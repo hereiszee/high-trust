@@ -49,9 +49,9 @@ AI.ROLES={
   boss:      {speed:3.0,cover:1,  advance:.6, peekHide:[1.0,1.8],expose:1.8},
 };
 AI.DIFFICULTY={
-  easy:  {maxShooters:1,pool:2,reaction:.9,acc:.8, aim:1.3,aggression:.7,flank:false,hear:.8},
-  normal:{maxShooters:2,pool:3,reaction:.6,acc:1,  aim:1,  aggression:1, flank:true, hear:1},
-  hard:  {maxShooters:3,pool:4,reaction:.4,acc:1.15,aim:.8,aggression:1.3,flank:true,hear:1.2},
+  easy:  {maxShooters:1,pool:2,reaction:.9,first:.8,acc:.8, aim:1.3,aggression:.7,flank:false,hear:.8,moveAcc:.6,sprintAcc:.5},
+  normal:{maxShooters:2,pool:3,reaction:.6,first:.4,acc:1,  aim:1,  aggression:1, flank:true, hear:1,moveAcc:.7,sprintAcc:.6},
+  hard:  {maxShooters:3,pool:4,reaction:.4,first:0, acc:1.15,aim:.8,aggression:1.3,flank:true,hear:1.2,moveAcc:.8,sprintAcc:.7},
 };
 AI.roleFor=(gun,boss)=>boss?'boss':gun==='shotgun'||gun==='double'?'shotgunner':gun==='hunter'?'marksman':(gun==='smg'||gun==='nailer')&&R()<.6?'rusher':'grunt';
 
@@ -175,12 +175,30 @@ AI.buildNav=function(grid,opts){
   for(const r of rooms){let sx=0,sz=0,wall=0,edge=0;for(const c of r.cells){sx+=nav.wx(c);sz+=nav.wz(c);const cx=c%W,cz=(c/W)|0;
       for(let q=0;q<4;q++){const nx=cx+D8[q][0],nz=cz+D8[q][1];if(!inb(nx,nz)){edge++;continue}const k=nz*W+nx;if(!walk[k]){if(st[k])wall++;else edge++}}}
     r.x=sx/r.cells.length;r.z=sz/r.cells.length;r.indoor=r.kind==='hall'||wall>edge*1.5}
-  {/* indoor rooms are named on the building's own 3x3 grid, yards on the map's */
-    const ins=rooms.filter(r=>r.indoor&&r.kind!=='hall');const bx0=Math.min(...ins.map(r=>r.x)),bx1=Math.max(...ins.map(r=>r.x)),bz0=Math.min(...ins.map(r=>r.z)),bz1=Math.max(...ins.map(r=>r.z));
+  {/* names a dad would shout: what is in the room when only one room has it (the stash room), otherwise where it sits
+      as seen from the way in (the back-left room). Yards are out front / the back yard / the side yard. */
+    const FEAT=o.features||{B:"the King's office",T:'the stash room',I:'the package room',Q:'the grill'};
+    const ins=rooms.filter(r=>r.indoor&&r.kind!=='hall'),inAll=rooms.filter(r=>r.indoor);
+    let sx=-1,sz=-1;for(let k=0;k<N;k++)if(ch[k]==='P'||ch[k]==='X'&&sx<0){sx=nav.wx(k);sz=nav.wz(k);if(ch[k]==='P')break}
+    const bx=ins.length?ins.reduce((s,r)=>s+r.x,0)/ins.length:W*T/2,bz=ins.length?ins.reduce((s,r)=>s+r.z,0)/ins.length:H*T/2;
+    if(sx<0){sx=bx;sz=0}
+    /* the way in: the outside door nearest the start */
+    {let bd=1e9,ex=null;for(const d of doors){const rs=d.rooms.map(i=>rooms[i]);if(!rs.some(r=>r.indoor)||!rs.some(r=>!r.indoor))continue;const dd=hyp(d.x-sx,d.z-sz);if(dd<bd){bd=dd;ex=d}}if(ex){sx=ex.x;sz=ex.z}}
+    let fx=sx-bx,fz=sz-bz;if(Math.abs(fx)>Math.abs(fz)){fx=Math.sign(fx);fz=0}else{fz=Math.sign(fz)||1;fx=0}/* front: the side of the building facing the way in */
+    const vx=-fx,vz=-fz;/* looking at the building from the front */
+    const rel=r=>{const dx=r.x-bx,dz=r.z-bz;return{depth:dx*vx+dz*vz,side:dx*vz-dz*vx}};
+    let dMax=1,sMax=1;for(const r of inAll){const q=rel(r);dMax=Math.max(dMax,Math.abs(q.depth));sMax=Math.max(sMax,Math.abs(q.side))}
+    const feats=r=>{const f=new Set();for(const c of r.cells)if(FEAT[ch[c]])f.add(ch[c]);return f};
+    const fCount={};const rf=new Map();for(const r of rooms){const f=feats(r);rf.set(r,f);for(const k of f)fCount[k]=(fCount[k]||0)+1};
     const used={};
-    for(const r of rooms){let fx,fz;if(r.indoor&&ins.length>1){fx=(r.x-bx0)/((bx1-bx0)||1);fz=(r.z-bz0)/((bz1-bz0)||1)}else{fx=r.x/(W*T);fz=r.z/(H*T)}
-      const ns=fz<.3?'north':fz>.7?'south':'',ew=fx<.3?'west':fx>.7?'east':'';
-      let n=r.kind==='hall'?'the hallway':(ns+ew?'the '+ns+ew+' '+(r.indoor?'room':'yard'):(r.indoor?'the middle room':'the yard'));
+    for(const r of rooms){const q=rel(r);let n;
+      if(r.indoor){const dw=q.depth>dMax*.34?'back':q.depth<-dMax*.34?'front':'',sw=q.side>sMax*.34?'left':q.side<-sMax*.34?'right':'';
+        const uniq=['B','T','I','Q'].find(k=>rf.get(r).has(k)&&fCount[k]===1&&r.kind!=='hall');
+        if(uniq)n=FEAT[uniq];
+        else if(r.kind==='hall')n='the '+(dw?dw+' ':'')+'hallway';
+        else n=dw||sw?'the '+[dw,sw].filter(Boolean).join('-')+' room':'the middle room'}
+      else if(!ins.length){const ns=r.z/(H*T)<.3?'north':r.z/(H*T)>.7?'south':'',ew=r.x/(W*T)<.3?'west':r.x/(W*T)>.7?'east':'';n=ns+ew?'the '+ns+ew+' side':'the yard'}
+      else if(rooms.filter(x=>!x.indoor).length===1)n='outside';else n=q.depth<-dMax*.5?'out front':q.depth>dMax*.5?'the back yard':'the side yard';
       if(used[n])n=n.replace('the ','the other ');used[n]=1;r.name=n}}
   nav.door=door;nav.doorId=dId;nav.room=room;nav.rooms=rooms;nav.doors=doors;
   nav.roomAt=(x,z)=>{const i=nav.cellOf(x,z);return i>=0?room[i]:-1};
@@ -218,7 +236,7 @@ AI.dirWord=function(x,z,fx,fz,tx,tz){const dx=tx-x,dz=tz-z,l=hyp(dx,dz)||1,fl=hy
 /* hit chance for one shot. c: {gun (profile), dist, aimT (s since aim started), first (first shot this exposure),
    suppressed 0..1, moving, sprint, crouch (target), cover (target partially covered 0..1), accMul (difficulty), boss} */
 AI.hitChance=function(c){const g=c.gun;let a=g.acc*clamp(1.15-c.dist/(g.range||32),.12,1);
-  if(c.moving)a*=c.sprint?.6:.7;if(c.crouch)a*=.75;if(c.cover)a*=1-.45*c.cover;if(c.suppressed)a*=1-.45*clamp(c.suppressed,0,1);
+  if(c.moving)a*=c.sprint?(c.sprintAcc??.6):(c.moveAcc??.7);if(c.crouch)a*=.75;if(c.cover)a*=1-.45*c.cover;if(c.suppressed)a*=1-.45*clamp(c.suppressed,0,1);
   const T=(g.aim||.5);const ramp=clamp(((c.aimT||0)-T)/.5,0,1);a*=c.first?.6:.75+.25*ramp;
   if(c.boss)a*=1.2;a*=c.accMul||1;return clamp(a,.02,.9)};
 AI.shotDamage=(g,dist)=>g.close&&dist<g.close[0]?g.close[1]:g.dmg;
@@ -280,13 +298,18 @@ AI.barker=function(o){o=Object.assign({gap:1.6,speaker:3},o||{});const last={},s
 const isOut=a=>!a||a.out||a.dead||a.hp<=0||a.state==='dead'||a.state==='surrender'||a.state==='cuffed';
 AI.isOut=isOut;
 /* shared shooting budget across squads (optional) */
-AI.pool=function(o){o=o||{};return{max:o.maxShooters||3,holders:new Set(),peak:0}};
+AI.pool=function(o){o=o||{};return{max:o.maxShooters||3,holders:new Set(),peak:0,squads:[]}};
 /* a squad blackboard shared by a group of enemies */
 AI.squad=function(nav,o){o=o||{};const diff=AI.DIFFICULTY[o.difficulty||'normal']||AI.DIFFICULTY.normal;
   const sq={nav,name:o.name||'crew',diff,max:o.maxShooters||diff.maxShooters,pool:o.pool||null,members:[],tokens:new Map(),
     threats:new Map(),morale:1,lossT:-1e9,requests:[],flanker:null,flankT:-1e9,advancer:null,advanceT:0,alert:false,alertT:-1e9,hunt:false,
-    barker:o.barker||AI.barker(),claims:new Map(),peak:0,stats:{lost:0,surrendered:0},t:0};
-  sq.add=a=>{if(!sq.members.includes(a)){sq.members.push(a);if(sq.members.length>1)sq.morale=Math.min(1,sq.morale+.12)}a.squad=sq;return a};
+    barker:o.barker||AI.barker(),claims:new Map(),peak:0,stats:{lost:0,surrendered:0},t:0,rooms:new Set()};
+  if(sq.pool&&sq.pool.squads)sq.pool.squads.push(sq);
+  /* squads in the same or an adjacent room (through the shared pool): a fight spanning two rooms still gets a flanker */
+  sq.neighbours=()=>{if(!sq.pool||!sq.pool.squads)return[];const out=[];for(const o of sq.pool.squads){if(o===sq)continue;let near=false;
+      for(const r of o.rooms){if(sq.rooms.has(r)){near=true;break}const R_=nav.rooms[r];if(R_)for(const q of R_.adj)if(sq.rooms.has(q)){near=true;break}if(near)break}
+      if(near)out.push(o)}return out};
+  sq.add=a=>{if(!sq.members.includes(a)){sq.members.push(a);const r=nav.roomAt?nav.roomAt(a.pos.x,a.pos.z):-1;if(r>=0)sq.rooms.add(r);if(sq.members.length>1)sq.morale=Math.min(1,sq.morale+.12)}a.squad=sq;return a};
   sq.alive=()=>sq.members.filter(a=>!isOut(a));
   /* threat memory: what the squad knows about each threat */
   sq.report=(th,t,by)=>{let m=sq.threats.get(th.id);if(!m){m={id:th.id};sq.threats.set(th.id,m)}m.x=th.x;m.z=th.z;m.t=t;m.by=by;m.reloading=!!th.reloading;m.isPlayer=!!th.isPlayer;
@@ -317,7 +340,8 @@ AI.squad=function(nav,o){o=o||{};const diff=AI.DIFFICULTY[o.difficulty||'normal'
     if(sq.advancer&&(isOut(sq.advancer)||t>sq.advanceT||!sq.advancer.ai||sq.advancer.ai.mode!=='combat'))sq.advancer=null;
     /* a single flanker for groups of three or more, on a cooldown */
     if(sq.flanker&&(isOut(sq.flanker)||!sq.flanker.ai||sq.flanker.ai.sub!=='flank'))sq.flanker=null;
-    if(!sq.flanker&&diff.flank&&fighting.length>=3&&t-sq.flankT>12&&t-sq.alertT>3){const th=sq.best(0,0,t);
+    const nb=sq.flanker||!diff.flank||!fighting.length?[]:sq.neighbours();let engaged=fighting.length;for(const o of nb)engaged+=o.alive().filter(a=>a.ai&&a.ai.mode==='combat').length;
+    if(!sq.flanker&&diff.flank&&engaged>=3&&t-sq.flankT>12&&t-sq.alertT>3&&!nb.some(o=>o.flanker&&t-o.flankT<12)){const th=sq.best(0,0,t)||nb.map(o=>o.best(0,0,t)).find(Boolean);
       if(th&&t-th.t<4){const c=fighting.filter(a=>a.ai.role!=='boss'&&a.ai.role!=='marksman'&&a.hp>a.maxHp*.5);
         if(c.length){c.sort((a,b)=>(a.ai.role==='rusher'?-5:0)+hyp(a.pos.x-th.x,a.pos.z-th.z)*.1-((b.ai.role==='rusher'?-5:0)+hyp(b.pos.x-th.x,b.pos.z-th.z)*.1));
           sq.flanker=c[0];sq.flankT=t;c[0].ai.wantFlank=true}}}
@@ -386,7 +410,8 @@ function chooseCover(a,ai,world,m,mode){const nav=world.nav,sq=a.squad,t=world.t
     if(s>bs){bs=s;best={spot:sp,hide,peek,score:s}}}
   return best}
 /* flank: a spot with sight of the threat, well off the squad's main axis, reached along cells he can't see */
-function planFlank(a,ai,world,m){const nav=world.nav,sq=a.squad;let cxs=0,czs=0,n=0;for(const o of sq.alive()){if(o===a)continue;cxs+=o.pos.x;czs+=o.pos.z;n++}if(!n)return null;
+function planFlank(a,ai,world,m){const nav=world.nav,sq=a.squad;let cxs=0,czs=0,n=0;const mates=sq.alive();for(const o of sq.neighbours?sq.neighbours():[])for(const b of o.alive())if(b.ai&&b.ai.mode==='combat')mates.push(b);
+  for(const o of mates){if(o===a)continue;cxs+=o.pos.x;czs+=o.pos.z;n++}if(!n)return null;
   const ax=cxs/n-m.x,az=czs/n-m.z,al=hyp(ax,az)||1;const tc=nav.nearestWalkable(m.x,m.z);const vis=nav.visFrom(tc,false);const df=nav.distField(nav.nearestWalkable(a.pos.x,a.pos.z));
   let best=null,bs=-1e9;for(let k=0;k<nav.N;k++){if(!nav.walk[k]||!vis[k]||!(df[k]<38))continue;const x=nav.wx(k),z=nav.wz(k),d=hyp(x-m.x,z-m.z);if(d<5||d>16)continue;
     const cos=((x-m.x)*ax+(z-m.z)*az)/(d*al);if(cos>.35)continue;const s=-df[k]*.25-Math.abs(d-10)*.4+(nav.coverAt[k]>=0?3:0)-cos*4;if(s>bs){bs=s;best=k}}
@@ -407,7 +432,7 @@ AI.think=function(a,world,dt){const ai=memOf(a,world),nav=world.nav,t=world.t,sq
   const vis=perceive(a,ai,world);
   if(vis){ai.visT=t;ai.target=vis.id;ai.lkp={x:vis.x,z:vis.z,t};if(sq)sq.report(vis,t,a);
     if(ai.mode==='idle'||ai.mode==='search'||ai.mode==='investigate'){const fresh=!ai.seenOnce;ai.seenOnce=true;const alerted=sq&&sq.alert&&t-sq.alertT>.3;
-      ai.mode='combat';ai.sub='react';ai.react=t+diff.reaction*(alerted?.5:1)*rr(.8,1.3);ai.firstShot=true;
+      ai.mode='combat';ai.sub='react';ai.react=t+diff.reaction*(alerted?.5:1)*rr(.8,1.3)+((sq?!sq.contacted:fresh)?(diff.first||0):0);if(sq)sq.contacted=true;ai.firstShot=true;
       if(fresh||R()<.5)queueBark(a,ai.role==='boss'?'taunt':'spotted',t);ai.cover=null;ai.path=null}}
   else if(sq&&sq.alert){const m=sq.best(a.pos.x,a.pos.z,t);if(m&&(!ai.lkp||m.t>ai.lkp.t)){ai.lkp={x:m.x,z:m.z,t:m.t};
       if(ai.mode==='idle'||ai.mode==='investigate'){ai.mode='combat';ai.sub='react';ai.react=t+diff.reaction*rr(.6,1.2);ai.cover=null;ai.path=null}}}
@@ -528,7 +553,7 @@ function tryFire(a,ai,world,dt,I,th,accMul,burstMul){const t=world.t,sq=a.squad;
   if(ai.burstLeft<=0&&ai.shotT<=t){ai.burstLeft=Math.max(1,Math.round(ai.gun.burst*(burstMul||1)))}
   if(ai.burstLeft>0&&ai.shotT<=t){const dist=hyp(th.x-a.pos.x,th.z-a.pos.z);
     I.fire=true;I.token=sq?sq.hasToken(a):true;I.targetId=th.id;I.dmg=AI.shotDamage(ai.gun,dist)*(a.dmgMul||1);
-    I.hitChance=AI.hitChance({gun:ai.gun,dist,aimT:ai.aimT,first:ai.firstShot,suppressed:ai.supp,moving:th.moving,sprint:th.sprint,crouch:th.crouch,cover:th.cover||0,accMul:(world.diff?world.diff.acc:1)*(accMul||1),boss:ai.role==='boss'});
+    I.hitChance=AI.hitChance({gun:ai.gun,dist,aimT:ai.aimT,first:ai.firstShot,suppressed:ai.supp,moving:th.moving,sprint:th.sprint,crouch:th.crouch,cover:th.cover||0,accMul:(world.diff?world.diff.acc:1)*(accMul||1),boss:ai.role==='boss',moveAcc:world.diff&&world.diff.moveAcc,sprintAcc:world.diff&&world.diff.sprintAcc});
     ai.firstShot=false;ai.mag--;ai.burstLeft--;ai.shotT=t+(ai.burstLeft>0?.12:ai.gun.cd*rr(.8,1.3));if(ai.burstLeft===0)ai.burstDone=true;return true}
   return false}
 
