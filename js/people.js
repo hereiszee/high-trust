@@ -295,7 +295,7 @@ function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const 
   if(a){const t=a.t||0;
     if(a.k==='jump'){tuck=.25+.55*Math.min(1,t/.22);arms=.7;lean=.06;split=.25;hold=1}
     else if(a.k==='fall'){tuck=.45+.25*Math.min(1,t/.4);arms=.9;lean=.02;split=.15;hold=1}
-    else if(a.k==='land'){const e=Math.sin(Math.PI*Math.min(1,t));dip=(a.amt||.3)*e;tuck=dip*.9;lean=dip*.35;arms=.4*(1-t)}
+    else if(a.k==='land'){const e=t<.22?t/.22:Math.pow(1-(t-.22)/.78,1.6);/* fast absorb, slow rise */dip=(a.amt||.3)*e;tuck=dip*.9;lean=dip*.35;arms=.4*(1-t)}
     else if(a.k==='vault'){const e=Math.sin(Math.PI*Math.min(1,t));tuck=.3+.9*e;lean=.45*e;split=.35*e;arms=.2;hold=1}
     else{/* climb / mantle: knee up onto the ledge, then push up */const e=Math.sin(Math.PI*Math.min(1,t*1.1));tuck=.2+.8*e;lean=.35*e;dip=.25*(1-t);split=.5*e;hold=1}}
   const k=Math.min(1,dt*(a&&a.k==='land'?24:14));S.tuck+=(tuck-S.tuck)*k;S.dip+=(dip-S.dip)*k;S.lean+=(lean-S.lean)*k;S.arms+=(arms-S.arms)*k;S.split+=(split-S.split)*k;

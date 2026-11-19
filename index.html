@@ -922,7 +922,7 @@ function vmSpring(dt,c){const h=Math.min(dt,1/60),n=Math.max(1,Math.round(dt/h))
 /* first person: the gun lags on take-off, dips on landing, sways with vertical speed and drops out of the way during a vault */
 function vmAir(dt){const V=P.vault,low=V?Math.min(1,V.t/.12,(1-V.t)/.22):0;P.vmLow=(P.vmLow||0)+(low-(P.vmLow||0))*Math.min(1,dt*18);const L_=P.vmLow;
   const air=P.onGround||V?0:clamp(-P.vy*.004,-.03,.04);
-  return{y:P.vmJ.y-L_*.24+air*.5,z:L_*.06,rx:P.vmJ.r*.3-L_*.8+air,rz:L_*.32}}
+  return{y:P.vmJ.y-L_*.06+air*.5,z:L_*.04,rx:P.vmJ.r*.3-L_*.22+air,rz:L_*.42}}
 function vmPose(dt){const w=WEAPONS[P.cur]||WEAPONS.pistol,t=P.adsT,rl=P.reloadT>0;const J=vmAir(dt);
   if(vmRig){vm.position.set(0,J.y,J.z);vm.rotation.set(J.rx,0,J.rz);try{vmRig.update(dt,{ads:t,moving:P.moving,sprint:keys.shift&&!P.aim&&P.moving,crouch:P.crouch});
       const f=72*(1-(vmRig.adsT||0)*(1-(vmRig.userData.adsFov||1)));if(Math.abs(vmCam.fov-f)>.01){vmCam.fov=f;vmCam.updateProjectionMatrix()}}catch(e){}
@@ -1362,7 +1362,7 @@ const PK_R=1.25;
 function toast(txt,col){if(!document.body)return;let el=$('pkToast');
   if(!el){el=document.createElement('div');el.id='pkToast';el.style.cssText='position:fixed;left:50%;bottom:27%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;z-index:3';document.body.appendChild(el)}
   const d=document.createElement('div');d.textContent=txt;d.style.cssText='font:800 15px/1 var(--body,sans-serif);letter-spacing:.05em;color:#f6f1e3;background:rgba(18,20,24,.66);padding:7px 13px 7px 11px;border-left:3px solid '+(col||'#ffc94a')+';border-radius:3px;text-shadow:0 1px 2px rgba(0,0,0,.5);transition:opacity .35s,transform .35s;opacity:0;transform:translateY(8px)';
-  el.appendChild(d);while(el.children.length>3)el.firstChild.remove();requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='none'});
+  el.appendChild(d);while(el.children.length>3)el.firstChild.remove();void d.offsetWidth;d.style.opacity='1';d.style.transform='none';
   setTimeout(()=>{d.style.opacity='0';d.style.transform='translateY(-6px)';setTimeout(()=>d.remove(),400)},1400)}
 function takeAmmo(t,n){if(!(t in P.pool))return 0;const b=P.pool[t];P.pool[t]=Math.min(AMMO[t].cap,b+Math.max(0,n));return P.pool[t]-b}
 function fullOnce(t){const F=P.fullSaid||(P.fullSaid={});if(F[t])return;F[t]=1;toast(AMMO[t].name+' full','#9aa0a8')}
@@ -1483,8 +1483,8 @@ function rayBox(ox,oz,dx,dz,c,r){let t0=-1e9,t1=1e9;
   for(const[o,d,a,b]of[[ox,dx,c.x0-r,c.x1+r],[oz,dz,c.z0-r,c.z1+r]]){if(Math.abs(d)<1e-6){if(o<=a||o>=b)return null;continue}let u=(a-o)/d,v=(b-o)/d;if(u>v){const k=u;u=v;v=k}t0=Math.max(t0,u);t1=Math.min(t1,v)}
   return t0<=t1&&t1>0?[t0,t1]:null}
 /* jump pressed while moving into low cover: vault it if there is room beyond, else climb onto it; chest-high with a standable top: mantle */
-function tryVault(dx,dz){const r=.35,y0=P.pos.y;let best=null,bt=1e9;
-  for(const c of L.colliders){if(c.h!=null&&y0>=c.h-MOVE.step)continue;const hit=rayBox(P.pos.x,P.pos.z,dx,dz,c,r);if(!hit||hit[0]>.75||hit[0]<-.05)continue;if(hit[0]<bt){bt=hit[0];best={c,hit}}}
+function tryVault(dx,dz){const r=.35,y0=P.pos.y,reach=.5+Math.min(6.6,Math.hypot(P.hv.x,P.hv.z))*.12;let best=null,bt=1e9;
+  for(const c of L.colliders){if(c.h!=null&&y0>=c.h-MOVE.step)continue;const hit=rayBox(P.pos.x,P.pos.z,dx,dz,c,r);if(!hit||hit[0]>reach||hit[0]<-.05)continue;if(hit[0]<bt){bt=hit[0];best={c,hit}}}
   if(!best||best.c.h==null)return false;const c=best.c,rel=c.h-y0;if(rel<.3||rel>MOVE.mantleMax)return false;
   const [tin,tout]=best.hit;const clearPath=(a,b,feet)=>{for(let t=a;t<=b+1e-6;t+=.2){const x=P.pos.x+dx*t,z=P.pos.z+dz*t;if(solidAt(x,z,.3,feet+.02,c))return false}return true};
   if(rel<=MOVE.vaultMax&&tout-tin<=2){const te=tout+.12,ex=P.pos.x+dx*te,ez=P.pos.z+dz*te;const land=supportAt(ex,ez,c.h-.3);
@@ -1521,12 +1521,14 @@ function updPlayer(dt){
   else{
     const wx=l>.1?mv.x*sp/Math.max(1,l):0,wz=l>.1?mv.z*sp/Math.max(1,l):0;
     if(P.onGround){P.hv.x=wx;P.hv.z=wz}else{const k=Math.min(1,dt*MOVE.air);P.hv.x+=(wx-P.hv.x)*k;P.hv.z+=(wz-P.hv.z)*k}
-    P.pos.x+=P.hv.x*dt;P.pos.z+=P.hv.z*dt;collide(P.pos,.35,P.pos.y);
+    const ox=P.pos.x,oz=P.pos.z,wasFree=!solidAt(ox,oz,.3,P.pos.y);P.pos.x+=P.hv.x*dt;P.pos.z+=P.hv.z*dt;collide(P.pos,.35,P.pos.y);
+    /* a pinch the push-out cannot solve (two boxes closer than a body): slide one axis at a time from the last free spot instead */
+    if(wasFree&&solidAt(P.pos.x,P.pos.z,.3,P.pos.y)){P.pos.x=ox+P.hv.x*dt;P.pos.z=oz;if(solidAt(P.pos.x,P.pos.z,.3,P.pos.y))P.pos.x=ox;P.pos.z=oz+P.hv.z*dt;if(solidAt(P.pos.x,P.pos.z,.3,P.pos.y))P.pos.z=oz}
     if(P.jumpBuf>0&&!(P.standT>0)&&(P.onGround||P.coyoteT>0||P.vy<=1)){const ml=Math.hypot(mv.x,mv.z);
       if(ml>.3&&tryVault(mv.x/ml,mv.z/ml)){P.jumpBuf=0;P.onGround=false;P.vy=0;P.vmJ.v-=.3;stepSnd({run:true,vol:.6})}
       else if(P.onGround||P.coyoteT>0)doJump()}
     if(!P.vault){
-      if(!P.onGround){P.airT+=dt;P.coyoteT-=dt;const v0=P.vy;P.vy=Math.max(-30,v0-MOVE.g*dt);P.pos.y+=(v0+P.vy)*.5*dt;P.peakY=Math.max(P.peakY,P.pos.y)}
+      if(!P.onGround){P.airT+=dt;P.coyoteT-=dt;const v0=P.vy;P.vy=Math.max(-30,v0-MOVE.g*dt);P.pos.y+=(v0+P.vy)*.5*dt;P.peakY=Math.max(P.peakY,P.pos.y);if(P.vy<0)collide(P.pos,.35,P.pos.y)}/* dropping past a low top: pushed clear of its side */
       const s=supportAt(P.pos.x,P.pos.z,P.pos.y);
       if(P.onGround){if(s.y>=P.pos.y-MOVE.step){P.pos.y=s.y;P.gnd=s.c}else{P.onGround=false;P.vy=0;P.coyoteT=MOVE.coyote;P.peakY=P.pos.y;P.airT=0}}
       else if(P.pos.y<=s.y){if(P.vy<=0)land(s);else P.pos.y=s.y}}}
@@ -1546,7 +1548,7 @@ function updPlayer(dt){
 let camDist=2.7;
 function updCamera(dt){
   if(VAN.on&&mode==='hub'){updDriveCam(dt);return}
-  const eye=V3(P.pos.x,P.visY+(P.crouch?1.15:1.65)+P.dip.y*.11+(P.vault?-.12*Math.sin(Math.PI*P.vault.t):0),P.pos.z);
+  const eye=V3(P.pos.x,P.visY+(P.crouch?1.15:1.65)+P.dip.y*.35+(P.vault?-.12*Math.sin(Math.PI*P.vault.t):0),P.pos.z);
   camera.rotation.set(P.pitch,P.yaw,0);
   const gw=WEAPONS[P.cur],base=CFG.fov*(mode==='mission'&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();

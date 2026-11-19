@@ -42,9 +42,9 @@ function helpers(){
   await p.evaluate(()=>document.getElementById('bStart').click());
   await p.evaluate(helpers);
   if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on')});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
+  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on')});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.waitForTimeout(450);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
   global.__p=p;global.__shot=shot;global.__ok=ok;global.__want=want;global.__SHOTS=SHOTS;
-  const tests=require('./movement-tests.js');
+  const tests=require(process.env.MT||'./movement-tests.js');
   for(const t of tests){if(!want(t.key))continue;try{await t.run(p,ok,shot)}catch(e){ok(t.key+' ran without throwing',false,String(e).slice(0,400))}}
   ok('zero console errors',errs.length===0,errs.slice(0,6));
   await b.close();
