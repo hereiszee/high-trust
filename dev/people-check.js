@@ -69,7 +69,7 @@ function helpers(){
   const st=await p.evaluate(()=>({ok:HT.People.ok,failed:__ht.assets.failed,player:!!__ht.P.dude.rb}));
   ok('people loaded and the player is skinned',st.ok&&st.player,st);
   if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on')});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
+  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on');for(const id of['cResult','cBrief','cPause'])if(document.getElementById(id))document.getElementById(id).hidden=true});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
 
   if(want('combat')){
     await p.evaluate(()=>__ht.startMission(0));
@@ -129,11 +129,16 @@ function helpers(){
       out.barrelErr={};const yp=out;for(const g of['rifle','pistol']){H.dude.equip(P.dude,g);P.cur=g;for(const pv of[-.6,0,.6]){P.pitch=pv;H.step(30);H.scene.updateMatrixWorld();
         const q=P.dude.gun.getWorldQuaternion(new THREE.Quaternion());const bd=new THREE.Vector3(0,0,1).applyQuaternion(q);const cf=new THREE.Vector3(-Math.sin(P.yaw)*Math.cos(pv),Math.sin(pv),-Math.cos(P.yaw)*Math.cos(pv));
         out.barrelErr[g+pv]=+(bd.angleTo(cf)).toFixed(2);if(pv===0)yp['yawpitch_'+g]=[+(Math.atan2(bd.x,bd.z)-Math.atan2(cf.x,cf.z)).toFixed(3),+(Math.asin(bd.y)-Math.asin(cf.y)).toFixed(3)]}}
+      /* the over-the-shoulder camera must never sit inside the dad's head: either it is clear of the head or the body is hidden */
+      P.aim=false;let worst=9;for(const aim of[false,true])for(let pv=-1.25;pv<=1.25;pv+=.25){P.aim=aim;P.pitch=pv;H.step(8);H.draw();if(!P.dude.root.visible)continue;
+        const hp=P.dude.body.getObjectByName('Bip01_Head').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.1,0));worst=Math.min(worst,H.camera.position.distanceTo(hp))}
+      out.camHead=+worst.toFixed(3);
       P.aim=false;P.pitch=0;
       return out});
     const bad=Object.entries(r).filter(([k,v])=>Array.isArray(v)&&(v[0]>.35||v[1]>.2));
     ok('pitch +-0.9 x 300 steps (idle/aim/crouch/fire/reload, 3 guns): bounded, returns to rest',bad.length===0,bad.length?bad.slice(0,6):{worstGrow:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[0])),worstBack:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[1]))});
     ok('aim pitch is visible in third person (hand rises with pitch)',r.handRise>.2,r.handRise);
+    ok('camera never inside the head (clearance with the body visible)',r.camHead>.28,r.camHead);
     ok('third-person barrel follows the view (within 0.2 rad)',Object.values(r.barrelErr).every(v=>v<.2),Object.assign(r.barrelErr,{yp:[r.yawpitch_rifle,r.yawpitch_pistol]}))}
 
   if(want('missions'))for(let i=0;i<4;i++){
@@ -207,6 +212,24 @@ function helpers(){
         const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x,1.35,P.pos.z,P.pos.x+f[0]*3.4,1.2,P.pos.z+f[1]*3.4);P.dude.root.visible=false;H.render.draw()},aim);
     await shot('ik_shotgun_close',()=>{const H=__ht,P=H.P;T_.lineup([{role:'thug',variant:'thug_red',gun:'shotgun',aim:1,turn:Math.PI/2}],{dist:1.6,steps:30});const d=T_.row[0];const q=d.root.position;
       const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x+f[0]*.3,1.45,P.pos.z+f[1]*.3,q.x,1.3,q.z)});
+  }
+
+  if(SHOTS&&want('polish')){
+    /* mission 2 opens with Coach Rick handing over his carbine */
+    await p.evaluate(()=>{const H=__ht;H.prog.done=[true,false,false,false];H.prog.rifleLent=false;H.startMission(1);H.P.fp=false;for(let i=0;i<20&&H.M.intro&&!H.M.intro.done;i++){H.keys.e=false;H.step(1)}});
+    await shot('rick_handoff',()=>{const H=__ht,P=H.P;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=Math.atan2(P.pos.x-r.pos.x,P.pos.z-r.pos.z)+.9;P.dude.root.visible=true;
+      T_.cam(r.pos.x+Math.sin(a)*2.4,1.55,r.pos.z+Math.cos(a)*2.4,(r.pos.x+P.pos.x)/2,1.15,(r.pos.z+P.pos.z)/2)});
+    await shot('rick_face',()=>{const H=__ht;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=r.yaw+.25;T_.cam(r.pos.x+Math.sin(a)*.85,1.72,r.pos.z+Math.cos(a)*.85,r.pos.x,1.66,r.pos.z)});
+    await p.evaluate(()=>{const H=__ht;for(let i=0;i<200&&H.M.intro&&!H.M.intro.done;i++){H.keys.e=true;H.step(1)}H.keys.e=false;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(5)});
+    /* the dad strafing left while aiming (legs turn into the travel, torso stays on target) and backing up */
+    for(const[n,key]of[['strafe_aim_left','a'],['strafe_aim_diag','wa'],['backpedal_aim','s']])
+      await shot(n,key=>{const H=__ht,P=H.P;H.give('rifle');H.dude.equip(P.dude,'rifle');P.cur='rifle';P.aim=true;P.crouch=false;for(const c of key)H.keys[c]=true;H.step(16);for(const c of key)H.keys[c]=false;
+        P.dude.root.visible=true;T_.rel(2.4,1.6,1.1,2.2,0)},key);
+    await shot('crouch_lineup',()=>{const H=__ht,P=H.P;P.dude.root.visible=false;T_.lineup([{role:'thug',variant:'thug_red',gun:'rifle',aim:1,mode:'crouch'},{role:'thug',variant:'thug_track',gun:'rifle',mode:'crouch'},{role:'thug',variant:'thug_hoodie',gun:'rifle',aim:1,mode:'crouch',vel:[0,1.2]},{role:'thug',variant:'thug_beanie',gun:'shotgun',mode:'crouch',vel:[0,2.3]},{role:'you',mode:'crouch',vel:[0,2.3]}].map(s=>Object.assign(s,{turn:Math.PI/2})),{dist:4,spacing:1.1,steps:24});
+      const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x,1.2,P.pos.z,P.pos.x+f[0]*4,.7,P.pos.z+f[1]*4)});
+    for(const[n,pv]of[['look_up_aim',.7],['look_down_aim',-.6]])
+      await shot(n,pv=>{const H=__ht,P=H.P;P.aim=true;P.pitch=pv;H.step(20);T_.rel(1.6,1.5,1.3,2.8,.6);P.pitch=0},pv);
+    await shot('pump_cycle',()=>{const H=__ht,P=H.P;H.give('shotgun');H.dude.equip(P.dude,'shotgun');P.cur='shotgun';P.aim=true;P.pitch=0;H.step(20);H.mouse=true;H.step(1);H.mouse=false;H.step(7);T_.rel(.7,1.55,1.4,1.6,.6)});
   }
 
   if(want('perf')){
