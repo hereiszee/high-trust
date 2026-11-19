@@ -7,6 +7,11 @@ const ROOT=path.resolve(__dirname,'..');
 const OUT=path.join(ROOT,'docs','screenshots','people');
 const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only=(argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
 const want=k=>!only.length||only.includes(k);
+/* no --only: run the blocks in separate browsers (one page through every mission and shot set outgrows the headless renderer's memory) */
+if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process');let bad=0;
+  for(const g of['combat','missions,perf','roster,fallback,lowq','shots,boss','ik,polish']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
+    console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
+  console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
 const PP_KEYS=23;
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
@@ -30,6 +35,7 @@ function helpers(){
     spot(x,z,r,a0=0){const rc=new T.Raycaster();for(const rr of[r,r*.7,r*.5,r*1.4])for(let k=0;k<24;k++){const a=a0+k/24*Math.PI*2;const px=x+Math.sin(a)*rr,pz=z+Math.cos(a)*rr;
         const eye=new T.Vector3(px,1.65,pz),tg=new T.Vector3(x,1.2,z),d=tg.clone().sub(eye);const L=d.length();rc.set(eye,d.normalize());rc.far=L+.5;
         const h=rc.intersectObjects(H.dude.solids,false)[0];if(h&&h.distance<L+.3)continue;
+        /* and back again: single-sided walls only show from one side */rc.set(tg,eye.clone().sub(tg).normalize());rc.far=L+.6;if(rc.intersectObjects(H.dude.solids,false)[0])continue;
         const lo=new T.Vector3(px,.5,pz),d2=new T.Vector3(x,.5,z).sub(lo);rc.set(lo,d2.normalize());rc.far=rr;const h2=rc.intersectObjects(H.dude.solids,false)[0];if(h2)continue;return{x:px,z:pz,a}}return null},
     live(){return H.enemies.filter(e=>e.state==='idle')},
     /* stand off from enemy e and shoot until he is down or gives up */
@@ -79,6 +85,7 @@ function helpers(){
     await p.evaluate(()=>__ht.startMission(0));
     const r=await p.evaluate(()=>{const H=__ht,P=H.P,e=T_.live()[0];const out={};
       for(const o of H.enemies)if(o!==e){o.pos.set(o.pos.x+500,0,o.pos.z+500)}/* nobody else in the way */
+      for(const a of H.allies){a.down=true;a.downT=1e9;a.hp=0}/* the crew must not add damage of their own */
       P.fp=true;P.aim=true;P.cur='pistol';
       /* stand the dad 6 m from the enemy with a clear line, enemy facing him */
       const E0=e.pos.clone();const sp=T_.spot(E0.x,E0.z,6);P.pos.set(sp.x,0,sp.z);P.yaw=Math.atan2(-(E0.x-sp.x),-(E0.z-sp.z));
