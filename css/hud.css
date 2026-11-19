@@ -428,6 +428,7 @@
 /* result */
 .ht-result .scrim{background:rgba(9,11,14,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .ht-result .col{margin:0 auto;width:min(640px,100%);padding-left:calc(var(--sa-l) + var(--s5));padding-right:calc(var(--sa-r) + var(--s5));align-items:stretch}
+.ht-result .col>*{flex-shrink:0}
 .ht-result .stamp{align-self:flex-start;font:400 var(--t-m)/1 var(--ht-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--sun);padding:7px 12px 6px;border-radius:var(--r1);transform:rotate(-2deg)}
 .ht-result.fail .stamp{background:var(--alarm);color:#fff}
 .ht-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-radius:var(--r2);overflow:hidden;margin:4px 0 var(--s4)}
