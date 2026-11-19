@@ -841,7 +841,21 @@ function flashTex(){if(FLASH)return FLASH;const c=canvas(128,128),x=c.getContext
   x.globalCompositeOperation='lighter';x.translate(64,64);for(let i=0;i<7;i++){x.rotate(Math.PI*2/7);x.fillStyle='rgba(255,190,90,.55)';x.beginPath();x.moveTo(0,-4);x.lineTo(60,0);x.lineTo(0,4);x.fill()}
   FLASH=new T.CanvasTexture(c);FLASH.encoding=T.sRGBEncoding;return FLASH}
 
-HT.Guns={TYPES,ALIAS,model,viewmodel,VMC,POSE,_B:B,_mat:mat,_cartridge:cartridge,_emptyCase:emptyCase};
+/* third person: transform for a gun as a child of a Rocketbox Bip01_R_Hand bone (assets/people/rocketbox/README.md).
+   Base offsets are the README ones for the rifle_* / pistol_* clips; each gun is then shifted so its own grip
+   (the wrist of the first-person grip pose) lands where the calibrated rifle / pistol grip sits. */
+const HAND_BASE={rifle:{p:[0.0989,-0.0154,0.0539],q:[-0.4003,0.4100,0.7039,-0.4198],ref:'rifle',d:[0,.045,.005]},
+  pistol:{p:[0.0787,0.0006,0.0687],q:[0.4079,-0.4620,-0.5513,0.5623],ref:'pistol',d:[0,.045,.016]}};
+const HAND_STYLE={pistol:'pistol',revolver:'pistol',sawedoff:'pistol',nailer:'pistol',shotgun:'rifle',beanbag:'rifle',double:'rifle',rifle:'rifle',smg:'rifle',hunter:'rifle'};
+const HAND_FIX={shotgun:[0,-.045,0],beanbag:[0,-.045,0],double:[0,-.045,0],hunter:[0,-.05,0],smg:[0,-.02,0],revolver:[0,-.04,0],sawedoff:[0,-.035,-.01],nailer:[0,-.02,0]};
+function wristInGun(type){const C=VMC[type],D=B[type]();const w=C.R.p;return V(w[2]||0,w[1]-D.grip[1],-(w[0]-D.grip[0]))}
+function handAttach(type){type=ALIAS[type]||type;const st=HAND_STYLE[type]||'rifle',b=HAND_BASE[st];
+  const d=V(...b.d).add(wristInGun(b.ref).sub(wristInGun(type))).add(V(...(HAND_FIX[type]||[0,0,0])));
+  const q=new T.Quaternion(...b.q);return{position:V(...b.p).add(d.clone().applyQuaternion(q)),quaternion:q,clipStyle:st}}
+/* convenience: parent a model() gun to a Rocketbox right-hand bone */
+function attachToHand(handBone,gun,type){const a=handAttach(type||gun.userData.type);gun.position.copy(a.position);gun.quaternion.copy(a.quaternion);handBone.add(gun);return gun}
+
+HT.Guns={TYPES,ALIAS,model,viewmodel,VMC,POSE,handAttach,attachToHand,_B:B,_mat:mat,_cartridge:cartridge,_emptyCase:emptyCase};
 let resolveReady;HT.Guns.ready=new Promise(r=>resolveReady=r);let started=null;
 HT.Guns.init=function(o={}){if(started)return started;if(o.base)BASE=o.base;HT.Guns.assets=o.assets||null;started=loadAll(o.assets).then(()=>{resolveReady(HT.Guns);return HT.Guns});return started};
 })();
