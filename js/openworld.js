@@ -692,7 +692,7 @@ OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const 
 
 /* ================= cache reuse, bridge, regions ================= */
 OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;
-  for(const o of [...lvl.group.children])if(!ws.own.has(o))lvl.group.remove(o);
+  for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch'))lvl.group.remove(o);   /* index.html's static batcher merges parked cars once per level: keep its meshes */
   if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};
