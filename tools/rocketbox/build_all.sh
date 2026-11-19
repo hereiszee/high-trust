@@ -12,7 +12,7 @@ build() { key=$1; src=$2; opts=${3:-'{}'}
 }
 build dad_player   Adults/Male_Adult_14 '{"cap":[0.012,0.02,0.06]}'
 build dad_gary     Adults/Male_Adult_03 '{"glasses":1}'
-build dad_rick     Adults/Male_Adult_01 '{"cap":[0.3,0.012,0.012],"caplow":0.02,"capsize":1.03,"whistle":1}'
+# (replaced below) build dad_rick     Adults/Male_Adult_01 '{"cap":[0.3,0.012,0.012],"caplow":0.02,"capsize":1.03,"whistle":1}'
 build dad_dave     Adults/Male_Adult_13 '{"belly":0.085}'
 build dad_doug     Professions/Police_Male_06 '{"glasses":1}'
 build thug_hoodie  Adults/Male_Adult_18
@@ -23,3 +23,15 @@ build boss         Professions/Business_Male_05
 build wife         Adults/Female_Adult_01
 build son          Children/Male_Child_01
 build daughter     Children/Female_Child_01
+# roster round 2 (variety): street crews, new Coach Rick, Riverside job-givers
+build thug_fro       Adults/Male_Adult_04
+build thug_jacket    Adults/Male_Adult_07
+build thug_brown     Adults/Male_Adult_20
+build thug_cap       Professions/Wood_Male_01
+build thug_f_hood    Adults/Female_Adult_12
+build thug_f_leather Adults/Female_Adult_04
+build dad_rick       Adults/Male_Adult_12 '{"cap":[0.3,0.012,0.012],"caplow":0.02,"capsize":1.03,"whistle":1}'
+build earl           Professions/Construction_Male_03
+build dee            Professions/Business_Female_01
+build rosa           Professions/Medical_Female_01
+build benny          Adults/Male_Adult_05 '{"cap":[0.8,0.14,0.29]}'
