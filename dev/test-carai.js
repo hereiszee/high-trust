@@ -6,9 +6,12 @@ const near=(a,b,e=1e-6)=>Math.abs(a-b)<=e;
 const offRoad=(x,z)=>{const tx=Math.floor(x/2),tz=Math.floor(z/2);if(',=Vl'.includes(def.map[tz][tx]))return 0;let best=9;
   for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const c=def.map[tz+dz][tx+dx];if(!',=Vl'.includes(c))continue;const x0=(tx+dx)*2,z0=(tz+dz)*2;best=Math.min(best,Math.hypot(Math.max(x0-x,0,x-x0-2),Math.max(z0-z,0,z-z0-2)))}return best};
 test('stock minivan stats equal index.html updVan constants',()=>{const s=Ga.apply('minivan');
-  assert.deepStrictEqual([s.maxSpeed,s.boostMax,s.accel,s.boostAccel,s.brake,s.hbrake,s.coast,s.revMax,s.revAccel,s.steerResp,s.turn,s.turnFade,s.hp,s.slots,s.ammoBonus],[17,25,8,11,24,20,3.5,8,7,7,1.55,.75,100,3,0])});
+  assert.deepStrictEqual([s.maxSpeed,s.boostMax,s.accel,s.boostAccel,s.brake,s.hbrake,s.coast,s.revMax,s.revAccel,s.steerResp,s.turn,s.turnFade,s.hp,s.slots,s.ammoBonus],[25,33,9,12,24,20,3.5,8,7,7,1.55,.75,100,3,0])});
+test('index.html CAR_FEEL matches HT.Garage stock stats for every type',()=>{const src=require('fs').readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
+  for(const t of Object.keys(Ga.VEH)){const m=new RegExp('\\n '+t+':\\s*\\{([^\\n]*)\\}').exec(src.slice(src.indexOf('const CAR_FEEL=')));assert(m,t);const g=k=>+new RegExp('[,{\\s]'+k+':\\s*([\\d.]+)').exec('{'+m[1])[1],V=Ga.VEH[t];
+    for(const[a,b]of[['max','max'],['boostMax','boostMax'],['acc','acc'],['boostAcc','boostAcc'],['brake','brake'],['hbrake','hbrake'],['steerResp','steerResp'],['turn','turn'],['grip','grip']])assert.strictEqual(g(a),V[b],t+'.'+a)}});
 test('upgrades: eng2 + tyre2 + brk2 (SPEC2 E W5-1)',()=>{const v=Ga.defaultVehicle();v.perf={engine:2,tyres:2,brakes:2,sport:false};const s=Ga.apply('minivan',v);
-  assert.strictEqual(s.maxSpeed,21);assert.strictEqual(s.boostMax,30);assert(near(s.accel,10.96));assert(near(s.grip,13.95));assert.strictEqual(s.brake,36);assert(s.absGrip)});
+  assert.strictEqual(s.maxSpeed,29);assert.strictEqual(s.boostMax,38);assert(near(s.accel,12.33));assert(near(s.grip,13.95));assert.strictEqual(s.brake,36);assert(s.absGrip)});
 test('protection and utility map to hp, ram, bullets, ammo, slots',()=>{const v=Ga.defaultVehicle();v.prot={bullBar:true,armor:2};const s=Ga.apply('minivan',v,{cargo:true,rack:true,aid:true});
   assert.strictEqual(s.hp,190);assert.strictEqual(s.bulletMul,.5);assert.strictEqual(s.ramDealtFront,2);assert.strictEqual(s.impactTakenFront,.5);assert.strictEqual(s.ammoBonus,2);assert.strictEqual(s.slots,4);assert(s.firstAid);
   assert.strictEqual(Ga.apply('pickup',Ga.defaultVehicle(),{cargo:true}).ammoBonus,4)});
@@ -24,15 +27,15 @@ test('horns: synthesized notes, capped at 2.4 s, light bar never red/blue',()=>{
   for(const id in Ga.HORNS){for(const x of Ga.hornNotes(id))assert(x.t+x.d<=2.4+1e-9&&x.f>100&&x.f<1200)}
   for(const c of Ga.COSMETICS.lightBar.amber.colors){const r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);assert(!(r>200&&g<80&&b<80)&&!(b>200&&r<80&&g<80))}});
 /* reference: the current index.html updVan (kinematic, no slip) */
-function oldUpdVan(V,keys,dt){const boost=keys.shift,MAX=boost?25:17;let v=V.spd,thr=keys.w?1:0,st=keys.a?1:0;
-  if(thr>0)v+=(v<0?24:boost?11:8)*dt*thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);v=Math.min(Math.max(v,-8),MAX);V.spd=v;V.steer+=(st-V.steer)*Math.min(1,dt*7);
+function oldUpdVan(V,keys,dt){const boost=keys.shift,MAX=boost?33:25;let v=V.spd,thr=keys.w?1:0,st=keys.a?1:0;
+  if(thr>0)v+=(v<0?24:boost?12:9)*dt*thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);v=Math.min(Math.max(v,-8),MAX);V.spd=v;V.steer+=(st-V.steer)*Math.min(1,dt*7);
   V.yaw+=V.steer*Math.min(Math.max(Math.abs(v)/5,0),1)*(1.55-Math.min(.75,Math.abs(v)/35))*Math.sign(v)*dt;V.x+=-Math.sin(V.yaw)*v*dt;V.z+=-Math.cos(V.yaw)*v*dt}
 test('feel parity: stock van ends within 10% of path length of the current updVan',()=>{for(const[keys,steps]of[[{w:1},90],[{w:1,a:1},90],[{w:1,shift:1,a:1},120],[{w:1,shift:1},150]]){
     const ref={x:0,z:0,yaw:0,spd:0,steer:0},c=C.make('minivan',{x:0,z:0,yaw:0});let dist=0;for(let i=0;i<steps;i++){const px=ref.x,pz=ref.z;oldUpdVan(ref,keys,1/30);dist+=Math.hypot(ref.x-px,ref.z-pz);C.drive(c,{thr:keys.w?1:0,st:keys.a?1:0,boost:!!keys.shift},1/30)}
     const err=Math.hypot(ref.x-c.x,ref.z-c.z);assert(err<=dist*.1,JSON.stringify(keys)+' err '+err.toFixed(2)+' of '+dist.toFixed(1));assert(near(ref.spd,c.spd,.01))}});
-test('top speeds: stock boost 25, eng3 33, sport burst 39 then 14 s cooldown',()=>{const run=(v,inp,n)=>{const c=C.make('minivan',{vehicle:v});let peak=0;for(let i=0;i<n;i++){C.drive(c,inp(i),1/30);peak=Math.max(peak,c.spd)}return{c,peak}};
-  assert(near(run(null,()=>({thr:1,boost:true}),300).peak,25,.01));const v3=Ga.defaultVehicle();v3.perf={engine:3,tyres:0,brakes:0,sport:true};assert(near(run(v3,()=>({thr:1,boost:true}),300).peak,33,.01));
-  const s=run(v3,i=>({thr:1,boost:true,sport:i>=200}),400);assert(near(s.peak,39,.05));assert(s.c.sportCd>0)});
+test('top speeds: stock boost 33, eng3 41, sport burst 47 then 14 s cooldown',()=>{const run=(v,inp,n)=>{const c=C.make('minivan',{vehicle:v});let peak=0;for(let i=0;i<n;i++){C.drive(c,inp(i),1/30);peak=Math.max(peak,c.spd)}return{c,peak}};
+  assert(near(run(null,()=>({thr:1,boost:true}),300).peak,33,.01));const v3=Ga.defaultVehicle();v3.perf={engine:3,tyres:0,brakes:0,sport:true};assert(near(run(v3,()=>({thr:1,boost:true}),300).peak,41,.01));
+  const s=run(v3,i=>({thr:1,boost:true,sport:i>=200}),400);assert(near(s.peak,47,.05));assert(s.c.sportCd>0)});
 test('van impact damage numbers (SPEC2 C.3)',()=>{const c=C.make('minivan');assert(near(C.impact(c,20,false,true),24.2));assert(near(C.impact(c,20,false,false),12.1));
   const vb=Ga.defaultVehicle();vb.prot.bullBar=true;const b=C.make('minivan',{vehicle:vb});assert(near(C.impact(b,20,true,true),12.1));
   const d=C.make('minivan');for(let i=0;i<5;i++)C.impact(d,20,false,true);assert.strictEqual(C.state(d).stage,'disabled');C.drive(d,{thr:1},1);assert(d.spd<=0.001);
