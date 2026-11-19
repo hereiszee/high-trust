@@ -14,6 +14,7 @@ It's a single `index.html` built on Three.js r128 (loaded from cdnjs). There's n
 | Shift | Jog |
 | C | Crouch |
 | Mouse | Look (click the view to lock the cursor) |
+| Esc | Pause: look speed, aim speed, field of view, invert look, first person |
 | Left click | Fire |
 | Right click | Aim down sights |
 | R | Reload |
