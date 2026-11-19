@@ -1316,8 +1316,8 @@ function roofAt(e,fx,sz){const v=e.obj;v.updateMatrixWorld(true);const o=v.local
 function seatCrew(e,dt){const rig=!!(P.dude&&P.dude.rb),seats=SEATS[e.type]||SEATS.minivan,f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),y0=L.world&&L.world.hub?0:groundAt(e.pos.x,e.pos.z);
   if(e._seatObj!==e.obj){e._seatObj=e.obj;e._roof=seats.map((s,i)=>i<feel(e).seats?roofAt(e,s[0],s[2]):9)}
   const put=(d,s)=>{const sc=d.root.scale.y||1,i=seats.indexOf(s),hip=Math.min(s[1],(e._roof[i]||9)-.84*sc-.05);d.root.position.set(e.pos.x+f.x*s[0]+r.x*s[2],y0+hip-.59*sc,e.pos.z+f.z*s[0]+r.z*s[2]);d.root.rotation.set(0,e.yaw+Math.PI+(s[3]||0),0);pose(d,dt,{mode:'sit',aim:false,moving:false})};
-  const show=rig&&e.obj.userData.mod&&e.type!=='workvan';
-  P.dude.root.visible=show&&!P.fp;if(P.dude.root.visible)put(P.dude,seats[0]);
+  const show=!!(rig&&(e.obj.userData.mod||e.obj.userData.size||e.obj.userData.wheels)&&e.type!=='workvan');
+  P.dude.root.visible=!!(show&&!P.fp);if(P.dude.root.visible)put(P.dude,seats[0]);
   let k=1;for(const a of allies){if(!a.ride){if(!a.down)pose(a.dude,dt,{aim:false});continue}a.pos.set(e.pos.x,0,e.pos.z);const s=seats[k++];a.dude.root.visible=!!(show&&s&&a.dude.rb&&!(e.type==='workvan'));if(a.dude.root.visible)put(a.dude,s)}}
 /* chase camera tuned per body; V hood view; C held looks back; thin poles and trunks don't yank the boom in */
 function camBlock(m){const u=m.userData;if(u._thin==null){if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,s=m.getWorldScale(V3());u._thin=(b.max.x-b.min.x)*s.x<.8&&(b.max.z-b.min.z)*s.z<.8}return !u._thin}
@@ -2509,7 +2509,7 @@ function frame(now){
   {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
-function start(){if(!ASSETS.done||mode!=='title')return;initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
+function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.apply(CFG.gfx);
 initModules();
 /* gun models load after Stage A, so they don't compete with the boot pack (procedural guns until then) */
@@ -2522,6 +2522,8 @@ makePlayer();P.yaw=.4;P.pitch=-.12;
 /* title card: honest Stage A progress; Start unlocks as soon as the hub can be shown and details keep streaming in during play.
    Only a dead network shows a warning; clicking the status line then retries (it also retries by itself when back online). */
 showTitle();
+/* keep the half-built scene hidden behind the title until the hub backdrop exists, then fade it in */
+cv.style.transition='opacity .7s';cv.style.opacity='0';const showScene=()=>{cv.style.opacity='1'};setTimeout(showScene,20000);
 function ldStatus(){const off=ASSETS.offline();
   HUD.set('title',{progress:ASSETS.done?1:ASSETS.progress,ready:ASSETS.done,warn:off,
     status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});
@@ -2533,7 +2535,7 @@ addEventListener('online',()=>ASSETS.retry());
 ASSETS.ready.then(A=>{ldStatus();
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}
   /* the title backdrop builds on the next task, so the unlocked button paints first (Start rebuilds the hub anyway) */
-  setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()}},0)});
+  setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()};requestAnimationFrame(()=>requestAnimationFrame(showScene))},0)});
 /* a hub model that arrives after Stage A gave up waiting: rebuild the hub while the title card is still up */
 {let rb=0;ASSETS.onAsset(s=>{if(!ASSETS.done||mode!=='title'||!/\.glb$/.test(s))return;clearTimeout(rb);rb=setTimeout(()=>{if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()}},400)})}
 /* realistic people that stream in after Stage A: hand them to js/people.js (it prepares a character once) */

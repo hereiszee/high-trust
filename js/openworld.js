@@ -220,6 +220,7 @@ function prepHouses(def){const out=[];let seed=1;
 /* ---------------- parked cars ---------------- */
 const CAR_TYPES=['sedan','suv','hatch','pickup','workvan','sedan','suv','minivan'],CAR_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#1f2226','#6d7378','#7a5a3a'];
 function parkedCars(ws){const def=ws.def,lvl=ws.lvl;if(!C.makeVehicle)return;
+  const mk=C.makeVehicle;C=Object.assign({},C,{makeVehicle:(t,c,o)=>{const v=mk(t,c,o);if(v)v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});return v}});   /* parked cars move when borrowed: keep them out of index.html's static batching */
   for(const p of def.parked){const k=(p.tx*7+p.tz*13)%CAR_TYPES.length;const v=C.makeVehicle(CAR_TYPES[k],CAR_COLS[(p.tx+p.tz)%CAR_COLS.length],{lod:1});if(!v)continue;
     v.position.set(p.x,C.groundY?C.groundY(p.x,p.z):0,p.z);if((p.tx+p.tz)%2)v.rotation.y=Math.PI;lvl.group.add(v);
     const col={x0:p.x-2.3,z0:p.z-1.1,x1:p.x+2.3,z1:p.z+1.1};lvl.colliders.push(col);
@@ -229,6 +230,7 @@ function parkedCars(ws){const def=ws.def,lvl=ws.lvl;if(!C.makeVehicle)return;
   const pl=def.places;const props=[['workvan','#d8d4c8',pl.sale_workvan],['pickup','#8a2f2a',pl.sale_pickup],['suv','#2e4a6b',pl.sale_suv]];
   for(const[t,c,p]of props){if(!p)continue;const v=C.makeVehicle(t,c,{lod:1});if(!v)continue;v.position.set(p.x,0,p.z);v.rotation.y=Math.PI/2;lvl.group.add(v);
     const col={x0:p.x-1.1,z0:p.z-2.4,x1:p.x+1.1,z1:p.z+2.4,h:1.8,k:'car'};lvl.colliders.push(col);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});ws.saleCars=(ws.saleCars||[]).concat([{v,p,t}])}
+  C.makeVehicle=mk;
   const pump=def.pumps[1];if(pump){const v=C.makeVehicle('hatch','#6d7378',{lod:1});if(v){const x=pump.x+2.6,z=pump.z;v.position.set(x,0,z);v.rotation.y=Math.PI/2;lvl.group.add(v);lvl.colliders.push({x0:x-1,z0:z-2.2,x1:x+1,z1:z+2.2,h:1.6,k:'car'});v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}}}
 
 /* ---------------- units ---------------- */
@@ -692,7 +694,7 @@ OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const 
 
 /* ================= cache reuse, bridge, regions ================= */
 OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;
-  for(const o of [...lvl.group.children])if(!ws.own.has(o))lvl.group.remove(o);
+  for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch'))lvl.group.remove(o);   /* index.html's static batcher merges parked cars once per level: keep its meshes */
   if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};
