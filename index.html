@@ -1404,7 +1404,7 @@ function enterHub(o){
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
   P.pos.copy(L.start);resetMove();P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
   metaHubEnter(o);if(L.ow)owEnterHub();
-  if(L.ow)wmHubEnter();
+  if(L.ow){wmHubEnter();if(P.carry)wmDrop();wmBino(false);L.nav=null;L.win=null}
   FX.clear();audioState('hub');setLoadout({side:'pistol',p1:prog.done[0]?'shotgun':null,p2:prog.done[1]?'rifle':null},P.cur);
   if(wmAllDone()){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
   wmHubGivers();/* every available giver, Maple and Riverside (WORLD MISSIONS) */
@@ -1717,7 +1717,7 @@ function puff(p){FX.impact(p,V3(0,1,0),'wood',{big:true,decal:false})}
 /* ================= COMBAT ================= */
 function speaker(){const a=allies.filter(x=>!x.down);return a.length?pick(a).id:null}
 function hurtEnemy(e,dmg,by,opt={}){
-  if(e.state==='dead'||e.state==='cuffed')return;
+  if(e.state==='dead'||e.state==='cuffed')return;if(by==='ally'&&e.script&&e.script.kind==='to')return;/* the crew leaves the Duke's run for his car to the dad */
   /* beanbag: never kills, never an execution; a hit on someone who already gave up costs a little trust */
   if(opt.nonlethal){if(e.state==='surrender'){if(simT-(e.surrAt||0)>=SURR_GRACE&&simT-(e.beanAt||-9)>1){e.beanAt=simT;addTrust(-1);const s=speaker();if(s)radio(s,"Okay, he gets it.",true)}return}
     e.hp=Math.max(1,e.hp-dmg);e.alert=true;cue('hit',e.dude,!!opt.head);if(!e.last)e.last=P.pos.clone();if(e.hp<e.maxhp*.6&&(!e.boss||!e.triedSurr)){e.triedSurr=true;surrender(e)}return}
@@ -2632,6 +2632,8 @@ Object.assign(HOMIES,{
 /* STAND-IN: base character + outfit tint until real models are cast (see the casting list in docs). One function so the swap is one edit. */
 const GIVER_STAND_IN={earl:{base:'boss',tint:'#4f6f9a'},benny:{base:'boss',tint:'#f2d6e2'},sal:{base:'boss',tint:'#7a8796'},dee:{base:'wife',tint:'#8a6ab8'},rosa:{base:'wife',tint:'#6cc0b5'}};
 function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=people();let d=null;
+  /* the cast model for this role when HT.People has it (preloaded on demand); the stand-in below only as a fallback */
+  if(pp&&pp.has&&pp.has(id)){try{const c=pp.make(id,{});if(c)return c}catch(e){}}
   if(pp&&s){try{d=pp.make(s.base,{})}catch(e){d=null}}
   if(!d)return makeDude(Object.assign({},h,{giver:null}));
   const tint=new THREE.Color(s.tint),hide=[];
@@ -2713,7 +2715,7 @@ function wmAdd(o,solid){L.group.add(o);WM.objs.push(o);if(solid)o.traverse(m=>{i
 function wmClear(){for(const o of WM.objs)if(o.parent)o.parent.remove(o);WM.objs=[];if(WM.solids&&L){const s=new Set(WM.solids);L.solids=L.solids.filter(m=>!s.has(m))}WM.solids=[];
   if(L&&WM.cols){const s=new Set(WM.cols);L.colliders=L.colliders.filter(c=>!s.has(c));L._hc=null}WM.cols=[];
   if(L&&L.pickups){for(const p of L.pickups)if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh);L.pickups=[]}
-  if(P.carry){wmDrop()}wmBino(false)}
+  if(P.carry){wmDrop()}wmBino(false);if(L){L.nav=null;L.win=null}}
 function wmCol(c){L.colliders.push(c);(WM.cols||(WM.cols=[])).push(c);return c}
 /* ---- props for the site entities (world-scale, built once per activation) ---- */
 function wmPile(x,z){const g=new THREE.Group();const C=['#b8874f','#c99c66','#a77a44','#d1a874'];
@@ -2786,7 +2788,7 @@ function startMissionWorld(i,o={}){const m=MISSIONS[i];ensureWorld();
   if(hud_){P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
   resetMove();P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
   FX.clear();setLoadout(missionLoadout(i),null);metaAmmo();metaMissionStart(i);
-  const crew=m.crew.filter(c=>c!=='rosa'||m.self||(SV()?SV().crew.rosa:prog.done[6]));
+  const crew=m.crew.filter(c=>c!=='rosa'||m.self||prog.done[6]||(SV()&&SV().crew.rosa));
   {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
    crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);const a=spawnAlly(c,P.pos.x+r.x*2.2*side+f.x*(1.8+row*1.3),P.pos.z+r.z*2.2*side+f.z*(1.8+row*1.3));if(c==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
   aiStart(m);
@@ -2979,7 +2981,7 @@ WJ.dee={start(o){const m=M.def;M.ids=0;M.sus=0;M.susMax=0;M.clean=false;M.smashe
     if(o.raid)return wmDeeRaid(o.loud);
     M.phase='stake';M.stakeT=0;M.frozen={x:M.car.pos.x,z:M.car.pos.z,yaw:M.car.yaw};M.sus=0;M.hPrev=!!keys.h;M.suspects=[];
     STAKE_LOOPS.forEach((lp,k)=>{const courier=k===3,look=courier?Object.assign({},m.boss.look):{hood:1,shirt:pick(['#3b3b45','#4a3f5a','#2f4858','#5a3a3a']),pants:'#2a2a2a'};
-      const d=makeDude(look);if(!courier)d.root.scale.multiplyScalar(.8);scene.add(d.root);const pts=lp.map(([x,z])=>({x:tileC(x),z:tileC(z)}));
+      const d=courier?makeDude(look):wmKid(look.shirt);scene.add(d.root);const pts=lp.map(([x,z])=>({x:tileC(x),z:tileC(z)}));
       M.suspects.push({dude:d,pos:V3(pts[0].x,0,pts[0].z),yaw:0,pts,k:1,wait:rand(0,2),kind:courier?'courier':'lookout',id:false,idT:0,stepT:0,step:null})})},
   upd(dt,F){if(M.phase==='stake')return wmStake(dt,F);if(M.phase==='walkoff')return wmWalkoff(dt,F);
     for(const s of L.stashes)if(!s.done)F.holds.push({x:s.x,z:s.z,r:2.3,o:s,txt:'Smash the stash',time:1.4,fn:()=>{s.done=true;M.smashed++;snd('smash');s.bags.forEach(b=>{if(b.parent)b.parent.remove(b)});puff(V3(s.x,1,s.z));puff(V3(s.x,1,s.z));
@@ -2988,6 +2990,9 @@ WJ.dee={start(o){const m=M.def;M.ids=0;M.sus=0;M.susMax=0;M.clean=false;M.smashe
     if(b&&b.state==='surrender')F.objs.push(['Zip-tie him',false]);
     M.exitOpen=M.smashed>=L.stashes.length&&!!M.bossDone;M.payX={ids:M.ids,cleanStakeout:M.clean};
     if(!M.exitOpen){const s=wmNearest(L.stashes,x=>!x.done);if(s)F.target={x:s.x,z:s.z,label:'Stash'};else if(b&&!M.bossDone)F.target={x:b.pos.x,z:b.pos.z,label:b.state==='surrender'?'Zip-tie':'The Courier'}}}};
+/* the lookouts are twelve: the family 'son' model in a hoodie tint when it has streamed in, else a smaller street-crew stand-in */
+function wmKid(col){const pp=people();if(pp&&pp.has&&pp.has('son')){try{const d=pp.make('son',{});if(d){const t=new THREE.Color(col);d.root.traverse(o=>{if(o.isSkinnedMesh&&o.material){const one=m=>{const c=m.clone();c.color=c.color.clone().lerp(t,.35);return c};o.material=Array.isArray(o.material)?o.material.map(one):one(o.material)}});return d}}catch(e){}}
+  const d=makeDude({hood:1,shirt:col,pants:'#2a2a2a'});d.root.scale.multiplyScalar(.8);return d}
 function wmSuspectsMove(dt,speed){for(const s of M.suspects){if(s.gone)continue;const d=s.dude;let moving=false;
     if(s.flee){moving=moveToward(s,s.flee.x,s.flee.z,speed||5.5,dt);faceTo(s,s.flee.x,s.flee.z,dt);s.fleeT=(s.fleeT||0)+dt;if(s.fleeT>(s.life||3)){s.gone=true;scene.remove(d.root)}}
     else if(s.wait>0){s.wait-=dt;faceTo(s,M.car.pos.x,M.car.pos.z,dt,1.5)}
@@ -3155,13 +3160,17 @@ function wmWin(m){if(m.id==='rosa'){const s=SV();if(s){s.crew.rosa=true;if(SAVEM
   if(m.id==='benny'){const s=SV();if(s){s.flags.hotPursuit=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}}}
 
 /* ================= STAKEOUT VIEW: binoculars from the driver's seat ================= */
-function wmCamera(dt){if(!(M&&M.phase==='stake'&&VAN.on&&P.aim)){wmBino(false);return false}const e=CV;
-  camera.position.set(e.pos.x-Math.sin(e.yaw)*.2+Math.cos(e.yaw)*-.4,groundAt(e.pos.x,e.pos.z)+1.55,e.pos.z-Math.cos(e.yaw)*.2-Math.sin(e.yaw)*-.4);camera.rotation.set(P.pitch,P.yaw,0,'YXZ');
+function wmCamera(dt){if(!(M&&M.phase==='stake'&&VAN.on&&P.aim)){wmBino(false);return false}const e=CV,S=carSize(e);
+  /* leaning out of the window: the lenses start just outside the body on the side you look at, so pillars and the roof never fill them */
+  const lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),fa=Math.abs(lx*-Math.sin(e.yaw)+lz*-Math.cos(e.yaw)),sa=Math.abs(lx*Math.cos(e.yaw)-lz*Math.sin(e.yaw)),out=Math.min(fa>.01?S.l/2/fa:99,sa>.01?S.w/2/sa:99)+.45;camera.position.set(e.pos.x+lx*out,groundAt(e.pos.x,e.pos.z)+Math.max(1.55,S.h*.85),e.pos.z+lz*out);camera.rotation.set(P.pitch,P.yaw,0);
   camera.fov+=(11-camera.fov)*Math.min(1,dt*10);camera.updateProjectionMatrix();wmBino(true);P.dude.root.visible=false;return true}
-let _bino=null;function wmBino(on){if(!on&&!_bino)return;if(!_bino){const d=document.createElement('div');d.id='bino';
-    d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:4;display:none;background:radial-gradient(circle at 37% 50%,transparent 0,transparent 25vmin,rgba(0,0,0,.6) 26vmin,transparent 26.1vmin),radial-gradient(circle at 63% 50%,transparent 0,transparent 25vmin,rgba(0,0,0,.6) 26vmin,transparent 26.1vmin)';
-    d.innerHTML='<svg width="100%" height="100%" style="position:absolute;inset:0"><defs><mask id="bm"><rect width="100%" height="100%" fill="white"/><circle cx="37%" cy="50%" r="26vmin" fill="black"/><circle cx="63%" cy="50%" r="26vmin" fill="black"/></mask></defs><rect width="100%" height="100%" fill="#050505" mask="url(#bm)"/><line x1="50%" y1="44%" x2="50%" y2="56%" stroke="rgba(255,255,255,.55)" stroke-width="1"/><line x1="47%" y1="50%" x2="53%" y2="50%" stroke="rgba(255,255,255,.55)" stroke-width="1"/></svg>';
-    document.body.appendChild(d);_bino=d}_bino.style.display=on?'block':'none'}
+let _bino=null;function wmBino(on){if(!on&&!_bino)return;
+  if(!_bino){const c=document.createElement('canvas');c.id='bino';c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;display:none';document.body.appendChild(c);_bino={c,w:0,h:0}}
+  const B=_bino,c=B.c;c.style.display=on?'block':'none';if(!on)return;
+  if(B.w!==innerWidth||B.h!==innerHeight){B.w=c.width=innerWidth;B.h=c.height=innerHeight;const x=c.getContext('2d'),r=Math.min(B.w,B.h)*.3,cy=B.h/2;
+    x.fillStyle='#050505';x.fillRect(0,0,B.w,B.h);x.globalCompositeOperation='destination-out';
+    for(const cx of[B.w/2-r*.78,B.w/2+r*.78]){const g=x.createRadialGradient(cx,cy,r*.82,cx,cy,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill()}
+    x.globalCompositeOperation='source-over';x.strokeStyle='rgba(255,255,255,.5)';x.lineWidth=1;x.beginPath();x.moveTo(B.w/2,cy-r*.18);x.lineTo(B.w/2,cy+r*.18);x.moveTo(B.w/2-r*.12,cy);x.lineTo(B.w/2+r*.12,cy);x.stroke()}}
 function wmMarkers(){const out=[];if(mode!=='mission'||!M||!M.suspects||M.phase!=='stake')return out;
   for(const s of M.suspects){if(s.gone)continue;const lab=s.id?(s.kind==='courier'?"COURIER · ID'd":"LOOKOUT · ID'd"):'?';out.push({id:s,kind:'obj',label:lab,x:s.pos.x,z:s.pos.z,screen:project(s.pos.x,2.1,s.pos.z),always:!!s.id,edge:false})}return out}
 function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];return[{id:'chase',x:ch.car.x,z:ch.car.z,alert:true,seen:true,dead:false}]}
@@ -3171,6 +3180,7 @@ function wmHubGivers(){const out=[],lines=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
+    if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
     const sb=GIVER_STAND_IN[m.giver];if(sb&&pm&&pm.preload&&!pm.has(sb.base)&&!n.dude.rb)pm.preload([sb.base]).then(()=>{if(!npcs.includes(n)||!pm.has(sb.base))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
     n.prefer=m.hood==='river'&&!prog.done[4];
