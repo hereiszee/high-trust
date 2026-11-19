@@ -85,6 +85,18 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | home/metal_tool_chest.glb | Metal Tool Chest | Poly Haven (John Hutcheson, Yann Kervran) | CC0 | https://polyhaven.com/a/metal_tool_chest |
 | home/dartboard.glb | Dartboard | Poly Haven (Satyaki Mandal) | CC0 | https://polyhaven.com/a/dartboard |
 
+## Building textures (assets/tex2/)
+
+Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion baked into the colour map (partly desaturated so they take paint tints). The procedural sets were generated for this project with a small numpy script and are released CC0.
+
+| Local file(s) | Source asset | Author | License | Source URL |
+|---|---|---|---|---|
+| tex2/stucco_{col,nrm,rgh}.jpg | White Stucco 02 | Poly Haven (Dimitrios Savva) | CC0 | https://polyhaven.com/a/white_stucco_02 |
+| tex2/shutter_{col,nrm,rgh}.jpg (also louvered shutters, vents and roll-up doors in the runtime atlas) | Painted Metal Shutter | Poly Haven (Charlotte Baglioni, Dario Barresi, Rico Cilliers) | CC0 | https://polyhaven.com/a/painted_metal_shutter |
+| tex2/corrugated_{col,nrm,rgh}.jpg | Corrugated Iron 02 | Poly Haven (Sergej Majboroda, Jenelle van Heerden) | CC0 | https://polyhaven.com/a/corrugated_iron_02 |
+| tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
+| tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
+
 ## Effects (js/fx.js)
 
-No files. All effect textures (muzzle-flash stars and cones, tracers, sparks, smoke and dust sprites, the fireball flipbook, bullet-hole / scorch / skid decals and their normal maps, the leaf sprite) are generated procedurally in code at startup. Original work, same license as the game code.
+No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
