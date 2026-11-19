@@ -29,8 +29,8 @@ body.shot .bench,body.shot #log,body:has(.htm) .bench{display:none}
 <script src="../js/audio.js"></script>
 <script src="../js/save.js"></script>
 <script>
-/* ?thumbs=3d: three.js + GLTFLoader, then dev-only stand-ins for HT.Guns.model and HT.Vehicles.make (the real modules come from js/guns.js / js/vehicles.js) */
-if(new URLSearchParams(location.search).get('thumbs')==='3d')document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>');
+/* ?thumbs=3d: three.js + GLTFLoader + the real 3D modules (js/guns.js HT.Guns, js/vehicles.js HT.Vehicles) */
+if(new URLSearchParams(location.search).get('thumbs')==='3d')document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script><script src="../js/guns.js"><\/script><script src="../js/vehicles.js"><\/script>');
 </script>
 <script>
 const {Save,Economy,Shop,Locker}=HT;
@@ -68,26 +68,11 @@ document.querySelector('.bench').addEventListener('click',e=>{const b=e.target.c
   if(b.id==='bExport'){const c=Save.export();log(c.slice(0,60)+'… ('+c.length+' chars)')}});
 window.__bench={payout,PRESETS,prog};
 
-/* ---- dev-only stand-ins for the 3D modules, built from the CC0 models in assets/ ---- */
+/* ---- 3D thumbnails through the real modules ---- */
 async function threeD(){
-  const L=new THREE.GLTFLoader(),load=u=>new Promise((res,rej)=>L.load('../assets/'+u,g=>res(g.scene),undefined,rej));
-  const GUNF={pistol:'props/gun_pistol.glb',revolver:'guns2/revolver.glb',nailer:'guns2/nail_gun_pixel.glb',shotgun:'guns2/shotgun_pump_wood.glb',double:'guns2/shotgun_sawedoff_db.glb',
-    beanbag:'props/gun_shotgun.glb',rifle:'props/gun_rifle.glb',smg:'guns2/smg.glb',hunter:'guns2/hunting_rifle_scoped.glb'};
-  const CARF={minivan:'props/car_van.glb',workvan:'props/car_van.glb',pickup:'props/car_suv.glb',suv:'props/car_suv.glb',sedan:'props/car_sedan.glb',hatch:'props/car_hatchback.glb'};
-  const guns={},cars={};
-  await Promise.all([...Object.entries(GUNF).map(async([k,f])=>{try{guns[k]=await load(f)}catch(e){}}),...Object.entries(CARF).map(async([k,f])=>{try{cars[k]=await load(f)}catch(e){}})]);
-  HT.Guns=HT.Guns||{model(type){const g=guns[type];if(!g)return null;const c=g.clone(true);
-    if(type==='beanbag')c.traverse(n=>{if(n.material&&/Wood/i.test(n.material.name||'')){n.material=n.material.clone();n.material.color.set('#f08a2c')}});return c}};
-  HT.Vehicles=HT.Vehicles||{make(type,o){const src=cars[type]||cars.minivan;if(!src)return null;const g=src.clone(true),u=(o&&o.upgrades)||{};
-    g.traverse(n=>{if(n.isMesh&&/body/i.test(n.name)&&o&&o.color){n.material=n.material.clone();n.material.color.set(o.color).lerp(new THREE.Color('#ffffff'),.25)}});
-    const box=new THREE.Box3().setFromObject(g),sz=box.getSize(new THREE.Vector3()),mx=new THREE.MeshStandardMaterial({color:'#2c3036',roughness:.6});
-    const fwdX=sz.x>sz.z,len=Math.max(sz.x,sz.z);
-    if(u.roofRack==='cargo'){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?len*.45:sz.x*.7,sz.y*.14,fwdX?sz.z*.7:len*.45),mx);m.position.set((box.min.x+box.max.x)/2,box.max.y+sz.y*.07,(box.min.z+box.max.z)/2);g.add(m)}
-    if(u.lightBar){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?len*.08:sz.x*.8,sz.y*.06,fwdX?sz.z*.8:len*.08),new THREE.MeshStandardMaterial({color:'#ffb000',emissive:'#ffb000',emissiveIntensity:.6}));
-      m.position.set((box.min.x+box.max.x)/2,box.max.y+sz.y*(u.roofRack==='cargo'?.17:.03),(box.min.z+box.max.z)/2);g.add(m)}
-    if(u.bullBar){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?.12:sz.x*.9,sz.y*.35,fwdX?sz.z*.9:.12),mx);m.position.set(fwdX?box.max.x+.06:(box.min.x+box.max.x)/2,box.min.y+sz.y*.3,fwdX?(box.min.z+box.max.z)/2:box.max.z+.06);g.add(m)}
-    return{group:g,dispose(){}}}};
-  Shop.thumbRenderer=Shop.gltfThumbs(THREE,L,{base:'../',kinds:['furn','gun','car','gar','cos']});
+  if(HT.Guns&&HT.Guns.init)await Promise.race([HT.Guns.init({base:'../assets/guns/',character:false}),new Promise(r=>setTimeout(r,8000))]).catch(()=>{});
+  if(HT.Vehicles&&HT.Vehicles.init)try{HT.Vehicles.init({})}catch(e){}
+  Shop.thumbRenderer=Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{base:'../',kinds:['furn','gun','att','car','gar','cos']});
 }
 const ready=(q.get('thumbs')==='3d'&&window.THREE)?threeD():Promise.resolve();
 ready.then(()=>{
