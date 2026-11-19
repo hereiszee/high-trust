@@ -2804,7 +2804,11 @@ function wmScript(e,dt){const s=e.script,d=e.dude;if(!s)return false;if(e.state=
     const t=s.pts[Math.min(s.k,s.pts.length-1)];if(Math.hypot(t.x-e.pos.x,t.z-e.pos.z)<1.2&&s.k<s.pts.length-1)s.k++;
     const dx=t.x-e.pos.x,dz=t.z-e.pos.z,l=Math.hypot(dx,dz);if(l>.3){e.pos.x+=dx/l*3.4*dt;e.pos.z+=dz/l*3.4*dt;collide(e.pos,.35);moving=true}faceTo(e,t.x,t.z,dt);const w=L.win,gx=tx(e.pos.x),gz=tx(e.pos.z);
     if(!moving||!w||(gx>w.x0+1&&gz>w.z0+1&&gx<w.x1-1&&gz<w.z1-1)){e.script=null;e.alert=false;e.target=null;e.last=null;if(e.ai){e.ai.mode='idle';e.ai.lkp=null}}}
-  else if(s.kind==='to'){moving=moveToward(e,s.x,s.z,s.speed||4.6,dt);faceTo(e,s.x,s.z,dt);if(Math.hypot(e.pos.x-s.x,e.pos.z-s.z)<1.6||(!moving&&s.t>1)){e.script=null;if(s.then)s.then(e)}}
+  else if(s.kind==='to'){/* along the site nav (fences and walls the old grid stepper can't see) */if(!s.pts){const r=L.nav&&L.nav.path(e.pos.x,e.pos.z,s.x,s.z);s.pts=r&&r.pts&&r.pts.length?r.pts.slice(1).concat([{x:s.x,z:s.z}]):[{x:s.x,z:s.z}];s.k=0;s.lastD=1e9;s.stuck=0}
+    const t=s.pts[Math.min(s.k,s.pts.length-1)];if(Math.hypot(t.x-e.pos.x,t.z-e.pos.z)<.9&&s.k<s.pts.length-1)s.k++;
+    const dx=t.x-e.pos.x,dz=t.z-e.pos.z,l=Math.hypot(dx,dz);if(l>.2){const sp=s.speed||4.6;e.pos.x+=dx/l*sp*dt;e.pos.z+=dz/l*sp*dt;collide(e.pos,.35);moving=true}faceTo(e,t.x,t.z,dt);
+    const dEnd=Math.hypot(e.pos.x-s.x,e.pos.z-s.z);if(dEnd<s.lastD-.05){s.lastD=dEnd;s.stuck=0}else s.stuck+=dt;
+    if(dEnd<1.6||s.stuck>2.5){e.script=null;if(s.then)s.then(e)}}
   else if(s.kind==='flee'){/* run 25 m away from the dad, then give up (surrBias) or fight */const ax=e.pos.x-P.pos.x,az=e.pos.z-P.pos.z,l=Math.hypot(ax,az)||1;
     if(!s.from)s.from={x:e.pos.x,z:e.pos.z};const run=Math.hypot(e.pos.x-s.from.x,e.pos.z-s.from.z);
     if(run<25&&s.t<6){let gx_=e.pos.x+ax/l*4,gz_=e.pos.z+az/l*4;if(!walkable(tx(gx_),tx(gz_))){gx_=e.pos.x-az/l*4*(s.side||(s.side=Math.random()<.5?1:-1));gz_=e.pos.z+ax/l*4*(s.side)}

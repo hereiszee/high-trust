@@ -149,6 +149,17 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
       if(H.CV)H.exitVehicle();H.step(2);const d=H.M.driver;if(d){for(let n=0;n<300&&d.state==='idle';n++){H.P.pos.set(d.pos.x+3,0,d.pos.z);H.collide(H.P.pos,.35);H.step(1)}if(d.state==='idle')H.hurtEnemy(d,999,'player');T.cuff(d)}
       r.driver=d&&d.state;r.exit=H.M.exitOpen;T.toCar();H.step(3);return r}));
     paid(7,R,R=>R.r.amb.length===3&&R.r.stop==='stopped');}
+  /* ---- 2 Big Dave: hold Linden Park through the waves (in the world) ---- */
+  if(want(2)){await setup([0,1],null);
+    const R=await run(2,()=>p.evaluate(()=>{const H=window.__ht,T=window.__T;const r={lvl:H.L.def.id,dir:!!H.M.dir};
+      for(let n=0;n<4000&&H.M.state==='go';n++){H.P.hp=100;if(n%20===0)for(const e of H.enemies)if(e.state==='idle'&&H.M.waveAge>3)(n%40?H.hurtEnemy(e,999,'player'):H.surrender(e));for(const e of H.enemies)if(e.state==='surrender')T.cuff(e);H.step(1)}
+      r.state=H.M.state;r.wave=H.M.wave;return r}));
+    paid(2,R,R=>R.r.lvl==='world'&&R.r.state==='won');await keep()}
+  /* ---- 3 Doug: the Kingpin's compound (in the world) ---- */
+  if(want(3)){await setup([0,1,2],null);
+    const R=await run(3,()=>p.evaluate(()=>{const H=window.__ht,T=window.__T;const b=H.L.boss;const r={lvl:H.L.def.id,boss:!!b};for(const e of H.enemies)if(e!==b&&e.state==='idle')H.hurtEnemy(e,999,'player');
+      H.hurtEnemy(b,b.hp-b.maxhp*.15,'player');H.step(2);if(b.state!=='surrender')H.surrender(b);T.cuff(b);r.bossDone=H.M.bossDone;T.leave();return r}));
+    paid(3,R,R=>R.r.bossDone==='cuffed'&&R.res.pay.some(l=>l.startsWith('bail:')));await keep()}
   /* ---- 8 The Duke: yard, he runs, the getaway chase, cuff him; the finale ---- */
   if(want(8)){await setup([0,1,2,3,4,5,6,7],55);
     const R=await run(8,()=>p.evaluate(()=>{const H=window.__ht,T=window.__T;const r={};const b=H.L.boss;r.duke=b.tag&&b.tag.textContent;r.hp=b.maxhp;
@@ -182,7 +193,11 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
     const w2=await p.evaluate(()=>{const H=window.__ht;const rs=[...document.querySelectorAll('.ht-result')],txt=(rs[rs.length-1]||document.body).innerText;H.enterHub();H.step(2);H.CFG.inWorld=false;H.startMission(0);H.step(3);const r={lvl:H.L.def.id,en:H.enemies.length,note:/windshield/.test(txt)};H.enterHub();H.CFG.inWorld=true;H.step(2);r.back=H.L.def.id;return r});
     ok(w.leash.d1<w.leash.d0-3,'leash: an enemy dragged 12 tiles outside the site window walks back toward his spawn ('+JSON.stringify(w.leash)+')');
     ok(w.left==='lost'&&w2.note,'leaving the job: 40 m outside the site for 8 s fails it with the windshield note');
-    ok(w2.lvl==='gary'&&w2.back==='world','fallback: CFG.inWorld=false builds the old separate level ('+JSON.stringify(w2)+')')}
+    ok(w2.lvl==='gary'&&w2.back==='world','fallback: CFG.inWorld=false builds the old separate level ('+JSON.stringify(w2)+')');
+    const gt=await p.evaluate(()=>{const H=window.__ht,T=window.__T;H.prog.done.fill(false);H.prog.done[0]=H.prog.done[1]=H.prog.done[4]=true;H.prog.trustR=10;H.enterHub();H.step(2);const g=T.giver(5);
+      const n=H.npcs.find(n=>n.marker.i===5);H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);const brief=!!(H.UIacts&&H.UIacts['brief:go']);
+      H.prog.trustR=16;H.enterHub();H.step(2);const g2=T.giver(5);return{g,brief,g2,lock:H.jobLock(5)}});
+    ok(gt.g&&gt.g.locked&&/trust 15/.test(gt.g.tag)&&!gt.brief&&gt.g2&&!gt.g2.locked,'gates: at Riverside trust 10 Pastor Dee says "needs Riverside trust 15%" and offers no brief; at 16 she does ('+JSON.stringify(gt)+')')}
   ok(errs.length===0,'no console errors'+(errs.length?': '+errs.slice(0,4).join(' | '):''));
   log(fails?fails+' FAILED':'all passed');
   if(process.argv.includes('--write'))fs.writeFileSync(path.join(SHOT_DIR,'evidence.txt'),out.join('\n')+'\n');
