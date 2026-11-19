@@ -593,6 +593,57 @@ function solveArm(arm,S,W,pole,handQ){const u=arm.userData;const d=_v1.subVector
     u.foreG.quaternion.premultiply(_q.setFromAxisAngle(ax,ang))}
   u.foreG.scale.y=Math.max(.2,(fd.length()-.055)/u.b);u.elbow.position.copy(E);u.cuffG.position.copy(W);u.cuffG.quaternion.copy(u.foreG.quaternion)}
 
+/* ------------------------------------------------------------------ real arms from a Rocketbox character
+   The character GLB is cloned, cut down to the triangles skinned to arm/hand bones, and its Bip01 arm chain is
+   driven every frame: two-bone IK for UpperArm/Forearm, the hand bone takes the grip frame, finger bones curl. */
+const CHARS={};let CHAR_BASE='assets/people/rocketbox/';
+function loadCharacter(key){if(CHARS[key])return Promise.resolve(CHARS[key]);const L=T.GLTFLoader?new T.GLTFLoader():null;if(!L)return Promise.resolve(null);
+  const pre=HT.Guns.assets&&HT.Guns.assets.gltf&&HT.Guns.assets.gltf(key);if(pre&&pre.scene){CHARS[key]=pre.scene;return Promise.resolve(pre.scene)}
+  return new Promise(res=>L.load(CHAR_BASE+key+'.glb',g=>{CHARS[key]=g.scene;res(g.scene)},undefined,()=>{console.warn('HT.Guns: character',key,'not found, using procedural arms');res(null)}))}
+const ARM_RE=/_(UpperArm|Forearm|Hand|Finger\d+)$/;
+function buildRealArms(src){if(!src||!T.SkeletonUtils)return null;const root=T.SkeletonUtils.clone(src);root.name='fpArms';
+  root.updateMatrixWorld(true);const bone=n=>root.getObjectByName(n);
+  let ok=false;root.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;o.castShadow=false;o.receiveShadow=true;
+    if(!o.isSkinnedMesh||/^acc_/.test(o.name)){o.visible=false;return}
+    const sk=o.skeleton,armIdx=new Set(sk.bones.map((b,i)=>ARM_RE.test(b.name)?i:-1).filter(i=>i>=0));
+    const g=o.geometry.clone(),si=g.attributes.skinIndex,sw=g.attributes.skinWeight,idx=g.index?g.index.array:null;if(!idx){o.visible=false;return}
+    const w=new Float32Array(si.count);for(let v=0;v<si.count;v++){let s=0;const I=[si.getX(v),si.getY(v),si.getZ(v),si.getW(v)],Wt=[sw.getX(v),sw.getY(v),sw.getZ(v),sw.getW(v)];for(let k=0;k<4;k++){if(armIdx.has(I[k]))s+=Wt[k]}w[v]=s}
+    const keep=[];for(let t=0;t<idx.length;t+=3){const a=idx[t],b=idx[t+1],c=idx[t+2];if(Math.min(w[a],w[b],w[c])>.92)keep.push(a,b,c)}
+    if(!keep.length){o.visible=false;return}g.setIndex(keep);o.geometry=g;ok=true;
+    const ms=Array.isArray(o.material)?o.material:[o.material];o.material=ms.map(m=>{const c=m.clone();c.envMapIntensity=.8;return c}).reduce((a,c)=>a.concat(c),[]);if(o.material.length===1)o.material=o.material[0]});
+  if(!ok)return null;
+  const side=s=>{const p='Bip01_'+s+'_';const ua=bone(p+'UpperArm'),fa=bone(p+'Forearm'),hd=bone(p+'Hand');if(!ua||!fa||!hd)return null;
+    const P=o=>o.getWorldPosition(new T.Vector3()),Q=o=>o.getWorldQuaternion(new T.Quaternion());
+    const S=P(ua),E=P(fa),W=P(hd);const n=new T.Vector3().crossVectors(E.clone().sub(S),W.clone().sub(E)).normalize();
+    const zua=new T.Vector3(0,0,1).applyQuaternion(Q(ua));const zs=Math.sign(zua.dot(n))||-1;
+    const hy=new T.Vector3(0,1,0).applyQuaternion(Q(hd));/* palm normal */
+    const fingers=[];for(let f=0;f<5;f++){const ch=[];for(let k=0;k<3;k++){const b=bone(p+'Finger'+f+(k?k:''));if(!b)continue;
+        const bq=Q(b),x=new T.Vector3(1,0,0).applyQuaternion(bq);let ax=new T.Vector3().crossVectors(x,hy);
+        if(f===0){/* thumb curls across the palm toward the little finger */const toward=P(bone(p+'Finger4')||hd).sub(P(b)).normalize();ax=new T.Vector3().crossVectors(x,toward.add(hy.clone().multiplyScalar(.6)))}
+        ax.normalize().applyQuaternion(bq.clone().invert());ch.push({b,rest:b.quaternion.clone(),ax})}fingers.push(ch)}
+    return{ua,fa,hd,a:S.distanceTo(E),b:E.distanceTo(W),zs,fingers}};
+  const R=side('R'),L=side('L');if(!R||!L)return null;
+  return{root,R,L}}
+const _m1=new T.Matrix4(),_m2=new T.Matrix4(),_q1=new T.Quaternion(),_q2=new T.Quaternion(),_s1=new T.Vector3(1,1,1);
+function setBoneWorld(b,pos,quat){b.parent.updateMatrixWorld(true);_m1.compose(pos,quat,_s1);_m2.copy(b.parent.matrixWorld).invert().multiply(_m1);_m2.decompose(b.position,b.quaternion,_v1);b.scale.set(1,1,1);b.updateMatrixWorld(true)}
+function frameQ(X,Y){const x=X.clone().normalize(),z=new T.Vector3().crossVectors(x,Y).normalize(),y=new T.Vector3().crossVectors(z,x);return new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(x,y,z))}
+/* S, W in world space; hand frame given as fingers direction and palm normal (world); pose = POSE entry */
+function solveRealArm(A,S,W,pole,fingersDir,palmN,pose,twist){const d=W.clone().sub(S);const L=d.length(),a=A.a,b=A.b;const Lc=clamp(L,Math.abs(a-b)+.01,a+b-.002);d.normalize();
+  const x=(a*a-b*b+Lc*Lc)/(2*Lc),h=Math.sqrt(Math.max(0,a*a-x*x));const pn=pole.clone().addScaledVector(d,-pole.dot(d)).normalize();
+  let S2=S;if(L>a+b-.002)S2=S.clone().addScaledVector(d,L-(a+b-.002));const E=S2.clone().addScaledVector(d,x).addScaledVector(pn,h);
+  const n=new T.Vector3().crossVectors(E.clone().sub(S2),W.clone().sub(E)).normalize();const Z=n.multiplyScalar(A.zs);
+  const xu=E.clone().sub(S2).normalize(),xf=W.clone().sub(E).normalize();
+  const qu=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(xu,new T.Vector3().crossVectors(Z,xu).normalize(),Z.clone().sub(xu.clone().multiplyScalar(Z.dot(xu))).normalize()));
+  let zf=Z.clone().sub(xf.clone().multiplyScalar(Z.dot(xf))).normalize();
+  /* forearm takes part of the wrist roll so the skin does not candy-wrap */
+  const qh=frameQ(fingersDir,palmN);const hz=new T.Vector3(0,0,1).applyQuaternion(qh);const hzp=hz.sub(xf.clone().multiplyScalar(hz.dot(xf))).normalize();
+  let ang=Math.acos(clamp(zf.dot(hzp),-1,1));if(new T.Vector3().crossVectors(zf,hzp).dot(xf)<0)ang=-ang;zf.applyAxisAngle(xf,ang*(twist==null?.55:twist));
+  const qf=new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(xf,new T.Vector3().crossVectors(zf,xf),zf));
+  setBoneWorld(A.ua,S2,qu);setBoneWorld(A.fa,E,qf);setBoneWorld(A.hd,W,qh);
+  if(pose){for(let f=0;f<5;f++){const ch=A.fingers[f];const vals=f===0?[pose.th[2]*.9-.15,pose.th[3]+.25,pose.th[4]+.2]:pose.f[f-1].map((v,k)=>v-(k?.08:.12));
+    ch.forEach((c,k)=>{c.b.quaternion.copy(c.rest).multiply(_q1.setFromAxisAngle(c.ax,vals[k]||0))})}}
+  return E}
+
 /* ------------------------------------------------------------------ viewmodel configuration per gun
    hand poses are in the gun's build space: p = wrist [s,y,x], Y = finger direction, Z = back-of-hand direction (both [s,y,x]) */
 const sv=(a)=>a?V(a[2]||0,a[1],-a[0]):null;
@@ -647,6 +698,9 @@ function viewmodel(type,opts={}){type=ALIAS[type]||type;const C=VMC[type]||VMC.p
   rig.add(sway);sway.add(hold);hold.add(kick);kick.add(anim);anim.add(gun);
   const hR=buildHand(M,'R'),hL=buildHand(M,'L');gun.add(hR,hL);
   const aR=buildArm(M,'R'),aL=buildArm(M,'L');rig.add(aR,aL);
+  /* real arms from the played character, unless gloves or procedural arms were asked for */
+  const charKey=opts.character||'dad_player';const RA=(opts.arms!=='procedural'&&!opts.gloves)?buildRealArms(CHARS[charKey]):null;
+  if(RA){rig.add(RA.root);RA.root.position.set(0,-1.75,.25);/* unposed body far below the view */aR.visible=aL.visible=false;for(const h of[hR,hL])h.children[0].visible=false}
   /* parts with rest transforms */
   const partOf=n=>n==='pump'?P.pump:n==='barrels'?P.barrels:null;
   const rest=new Map();for(const k in P){const o=P[k];if(o&&o.isObject3D)rest.set(o,{p:o.position.clone(),r:o.rotation.clone(),s:o.scale.clone()})}
@@ -826,7 +880,11 @@ function viewmodel(type,opts={}){type=ALIAS[type]||type;const C=VMC[type]||VMC.p
     /* arms: shoulders fixed in rig space; the forearm reaches to a point inside the glove cuff */
     rig.updateMatrixWorld(true);
     for(const[side,h,arm]of[['R',hR,aR],['L',hL,aL]]){const W=rig.worldToLocal(h.localToWorld(V(0,.002,0)));const S=V(...C.sh[side]);const pole=V(...C.pole[side]).normalize();
-      const hq=rig.getWorldQuaternion(new T.Quaternion()).invert().multiply(h.getWorldQuaternion(new T.Quaternion()));solveArm(arm,S,W,pole,hq)}
+      const hq=rig.getWorldQuaternion(new T.Quaternion()).invert().multiply(h.getWorldQuaternion(new T.Quaternion()));
+      if(RA){const A=RA[side];const ww=h.localToWorld(V(0,0,0));const wq=h.getWorldQuaternion(new T.Quaternion());const rq=rig.getWorldQuaternion(new T.Quaternion());
+        const fd=V(0,1,0).applyQuaternion(wq),pn=V(0,0,-1).applyQuaternion(wq);const pose=side==='R'?R.pose:L.pose;
+        solveRealArm(A,rig.localToWorld(S.clone()),ww,pole.clone().applyQuaternion(rq),fd,pn,pose)}
+      else solveArm(arm,S,W,pole,hq)}
     /* flash */
     flashT-=dt;flash.visible=flashT>0;flashLight.intensity=flashT>0?3.5:0;
     /* loose brass / dropped mags */
@@ -855,7 +913,7 @@ function handAttach(type){type=ALIAS[type]||type;const st=HAND_STYLE[type]||'rif
 /* convenience: parent a model() gun to a Rocketbox right-hand bone */
 function attachToHand(handBone,gun,type){const a=handAttach(type||gun.userData.type);gun.position.copy(a.position);gun.quaternion.copy(a.quaternion);handBone.add(gun);return gun}
 
-HT.Guns={TYPES,ALIAS,model,viewmodel,VMC,POSE,handAttach,attachToHand,_B:B,_mat:mat,_cartridge:cartridge,_emptyCase:emptyCase};
+HT.Guns={TYPES,ALIAS,model,viewmodel,VMC,POSE,handAttach,attachToHand,loadCharacter,_buildRealArms:buildRealArms,_CHARS:CHARS,_B:B,_mat:mat,_cartridge:cartridge,_emptyCase:emptyCase};
 let resolveReady;HT.Guns.ready=new Promise(r=>resolveReady=r);let started=null;
-HT.Guns.init=function(o={}){if(started)return started;if(o.base)BASE=o.base;HT.Guns.assets=o.assets||null;started=loadAll(o.assets).then(()=>{resolveReady(HT.Guns);return HT.Guns});return started};
+HT.Guns.init=function(o={}){if(started)return started;if(o.base)BASE=o.base;if(o.charBase)CHAR_BASE=o.charBase;HT.Guns.assets=o.assets||null;started=Promise.all([loadAll(o.assets),o.character===false?null:loadCharacter(o.character||'dad_player')]).then(()=>{resolveReady(HT.Guns);return HT.Guns});return started};
 })();
