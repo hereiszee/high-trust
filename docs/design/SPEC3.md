@@ -38,7 +38,7 @@ This document answers the owner's question: *"how many missions currently exist?
 | **Repeatable** | *Porch Light* | Guard a delivery-day porch from a pirate, then catch him without a scratch on the parcel. |
 | **Repeatable** | *Suds Up* | Run the youth-group car wash fundraiser while a crew keeps trying to ruin it. |
 
-**Structure:** three acts that interleave both neighbourhoods (Act 1 *Our Street*, Act 2 *Over the Bridge*, Act 3 *Good People Stay*). Every crew member and contact gets a 2-job strand with a perk, and a pacing chart that never puts two jobs of the same kind back to back. Riverside's visible transformation is driven by a **households** counter: each Riverside job brings a specific family or shop back to a specific address.
+**Structure:** three acts that interleave both neighbourhoods (Act 1 *Our Street*, Act 2 *Over the Bridge*, Act 3 *Good People Stay*). Every crew member and contact gets a 2-job strand with a perk. A pacing chart keeps two jobs of the same main kind from ever running back to back. Riverside's visible transformation is driven by a **households** counter: each Riverside job brings a specific family or shop back to a specific address.
 
 **New shared systems (8, each specified once in section 4):** stealth and detection, tailing bands, photo evidence, tow hitch, crew roles card, disguise and politeness, stage checkpoints, and the fridge-calendar replay.
 
