@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HUD test bench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="../css/hud.css">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#20262d}
+  #bg{position:fixed;inset:0;background:#4f7a9a center/cover no-repeat}
+  #bg.dim{filter:brightness(.62) saturate(.8)}
+  #bench{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:99;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;font:12px system-ui;opacity:.25;max-width:96vw}
+  #bench:hover{opacity:1}
+  #bench a{color:#fff;background:#0009;padding:3px 6px;border-radius:3px;text-decoration:none}
+  body.shot #bench{display:none}
+</style>
+<div id="bg"></div>
+<div id="hud"></div>
+<div id="bench"></div>
+<script src="../js/hud.js"></script>
+<script>
+(()=>{
+const Q=new URLSearchParams(location.search);const S=Q.get('s')||'mission';
+if(Q.has('shot'))document.body.classList.add('shot');
+const tall=innerHeight>innerWidth;
+document.getElementById('bg').style.backgroundImage=`url(bg_hub_${tall?'tall':'wide'}.jpg)`;
+const HUD=HT.HUD.init(document.getElementById('hud'),{touch:Q.has('touch')?Q.get('touch')==='1':undefined});
+['mission','hub','lowhp','shotgun','scope','drive','interior','home','banner','done','map','title','title-loading','brief','result','pause','pause-display','pause-keys'].forEach(s=>{const a=document.createElement('a');a.href='?s='+s;a.textContent=s;document.getElementById('bench').appendChild(a)});
+
+/* ---- the game's HUB generator (copied so the minimap shows the real neighbourhood) ---- */
+const HUB=(()=>{const W=60,H=42,g=[...Array(H)].map((_,z)=>Array(W).fill(0).map((_,x)=>x===0||z===0||x===W-1||z===H-1?'t':'g'));
+  const set=(x,z,c)=>{if(x>0&&z>0&&x<W-1&&z<H-1)g[z][x]=c};
+  const rect=(x0,z0,x1,z1,c)=>{for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)set(x,z,c)};
+  const RZ=[6,20,34],RX=[6,30,53];
+  for(const z of RZ)rect(1,z-1,W-2,z+3,'s');for(const x of RX)rect(x-1,1,x+3,H-2,'s');
+  for(const z of RZ)rect(1,z,W-2,z+2,',');for(const x of RX)rect(x,1,x+2,H-2,',');
+  for(const[x0,x1]of[[10,28],[34,51]])for(const[z0,z1]of[[1,3],[11,13],[15,17],[25,27],[29,31],[38,40]])for(let x=x0+1;x+4<=x1;x+=6)rect(x,z0,x+4,z1,'h');
+  for(const z of[4,10,18,24,32])for(const x of[16,22,40,46])set(x,z,'t');
+  for(let z=2;z<H-2;z+=3){if(g[z][2]==='g')set(2,z,'t');if(g[z][58]==='g')set(58,z,'t')}
+  for(const z of RZ)for(let x=4;x<W-2;x+=8){if(g[z-1][x]==='s')set(x,z-1,'l');if(g[z+3][x]==='s')set(x,z+3,'l')}
+  for(const x of RX)for(let z=4;z<H-2;z+=8){if(g[z][x-1]==='s')set(x-1,z,'l');if(g[z][x+3]==='s')set(x+3,z,'l')}
+  [['1',13,10],['2',37,24],['3',20,32],['4',44,18],['P',15,9],['D',19,7],['5',57,7],['6',2,35],['7',31,40],['8',54,2],['V',25,6],['V',44,22],['V',12,36],['V',48,8]].forEach(([c,x,z])=>set(x,z,c));
+  return{map:g.map(r=>r.join('')),lines:[...RZ.map(z=>['h',z+1]),...RX.map(x=>['v',x+1])],under:{D:',',5:',',6:',',7:',',8:',',V:',',l:'s'}}})();
+const KINGPIN=["ttttttttttttttttttttttttttttt","t,,,,,,,,,,,,,,,,,,,,,,,,,,,t","t,,X,P,,,,,,,,,,,,,,,,,,,,,,t","t,,,,,,,,,,,,,,,,,,,,,,,,,,,t","tfffffffffff,,,,,ffffffffffft","tgggggggggggggggggggggggggggt","tggEgggcgggggggggggggcgggEggt","tggggggggggEgggggEggggggggggt","tggggcggggggggggggggggggcgggt","tgg##########.#####.#######gt","tgg#........#.....#.......#gt","tgg#..E..cc.......#.cc..E.#gt","tgg#........#.....#.......#gt","tgg####.#######.#####.#####gt","tgg#.......#.........#....#gt","tgg#..E....#...E.....#..a.#gt","tgg#.......#.........#....#gt","tgg#..........cc.......E..#gt","tgg#####.########.#########gt","tgg#.......#........#.....#gt","tgg#..a....#...B....#..E..#gt","tgg#.......#..E..E..#.....#gt","tgg#......................#gt","tgg########################gt","ttttttttttttttttttttttttttttt"];
+const T=2,tc=i=>i*T+T/2;
+if(S==='interior')HUD.minimap.setLevel(KINGPIN,{tile:2,floor:',',inside:'.',interior:true,name:'The compound on Ridgeview'});
+else HUD.minimap.setLevel(HUB.map,{tile:2,lines:HUB.lines,under:HUB.under,floor:'g',inside:'g',name:'Maple Heights'});
+if(S!=='interior')HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:tc(15),z:tc(4),fast:true},{id:'shop',kind:'shop',label:'Hank\'s Hardware',x:tc(37),z:tc(14),fast:true},{id:'gar',kind:'garage',label:'Garage',x:tc(44),z:tc(28),fast:true}]);
+HUD.minimap.onFastTravel(p=>console.log('fast travel',p.label));
+
+/* ---- fake camera so world markers move like in game ---- */
+const cam={x:tc(17),z:tc(8),yaw:2.3,fov:72};
+function project(x,y,z){const dx=x-cam.x,dz=z-cam.z,dy=y-1.7;const fx=-Math.sin(cam.yaw),fz=-Math.cos(cam.yaw);const rx=Math.cos(cam.yaw),rz=-Math.sin(cam.yaw);
+  const f=dx*fx+dz*fz,r=dx*rx+dz*rz;const k=(innerHeight/2)/Math.tan(cam.fov*Math.PI/360);const behind=f<.1;const ff=behind?Math.max(.1,-f):f;
+  return{x:innerWidth/2+r/ff*k*(behind?-1:1),y:innerHeight/2-dy/ff*k,behind}}
+const W={pistol:{name:'Garage Pistol',type:'pistol',mag:9,reserve:84,magSize:12},rifle:{name:"Rick's Carbine",type:'rifle',mag:23,reserve:150,magSize:30},
+  shotgun:{name:"Grandpa's Pump",type:'shotgun',mag:2,reserve:30,magSize:6},hunter:{name:'Deer Season',type:'hunter',mag:4,reserve:20,magSize:5},beanbag:{name:'The Talking-To',type:'beanbag',mag:5,reserve:25,magSize:5}};
+const slots=(cur,list=['pistol','shotgun','rifle'])=>list.map((k,i)=>({key:i+1,name:W[k].name,type:W[k].type,active:k===cur}));
+const crew=[{name:'Gary',hp:84,x:tc(16),z:tc(10),color:'#7d6b8f'},{name:'Coach Rick',hp:100,x:tc(18),z:tc(11),color:'#b33a3a'},{name:'Big Dave',hp:46,x:tc(15),z:tc(11),color:'#c77d2a'}];
+function mk(id,kind,label,tx,tz,o={}){const x=tc(tx),z=tc(tz);return Object.assign({id,kind,label,x,z,screen:project(x,o.h??1.8,z)},o)}
+let state=null,t=0;
+const base=()=>({mode:'mission',hp:100,armor:0,trust:34,cash:1240,player:{x:cam.x,z:cam.z},compassYaw:cam.yaw,crew:[],markers:[],enemies:[],crosshair:{spread:.014,fov:72},zone:'Maple Heights · Birch St'});
+const SC={
+  mission(){cam.x=tc(17);cam.z=tc(8);cam.yaw=2.3;return Object.assign(base(),{weapon:{...W.rifle,firemode:'Auto'},weapons:slots('rifle'),crew,hp:72,armor:40,trust:46,trust2:52,
+    objective:{kicker:'Return to Sender',title:'Clear the chop shop',lines:[{text:'Recover stolen packages · 2/4'},{text:'Zip-tie the ringleader',done:false},{text:'Keep Gary on his feet',done:true}]},timer:154,
+    markers:[mk('pk','obj','Packages',22,12),mk('pk2','obj','Packages',5,4)],
+    enemies:[{id:1,x:tc(21),z:tc(12),seen:true,alert:true},{id:2,x:tc(24),z:tc(9),seen:true},{id:3,x:tc(26),z:tc(15)}],
+    prompt:{key:'E',text:'Zip-tie',sub:'Hold to cuff',progress:.62,hold:true},subtitles:{speaker:'Gary',text:'Packages first. Nobody gets hurt who doesn\'t insist on it.'},
+    tags:[{id:'g',text:'Gary',kind:'ally',screen:project(tc(16),2.3,tc(10))},{id:'s',text:'Hands up · zip-tie',kind:'surr',screen:project(tc(21),2.3,tc(12))}],
+    crosshair:{spread:.02,fov:72},routeTo:{x:tc(22),z:tc(12)}})},
+  hub(){cam.x=tc(17);cam.z=tc(8);cam.yaw=2.3;return Object.assign(base(),{mode:'hub',weapon:{...W.pistol,holstered:true},weapons:slots('pistol'),trust:34,
+    objective:{kicker:'Saturday',title:'Talk to Coach Rick',lines:[{text:'Find him on Birch Street'}]},
+    markers:[mk('j2','job','Coach Rick · Fourth Quarter',37,24),mk('j1','job','Gary · Return to Sender',13,10),mk('van','van','Minivan',19,7,{h:1})],routeTo:{x:tc(37),z:tc(24)},
+    prompt:{key:'E',text:'Talk to Gary'}})},
+  lowhp(){const s=SC.mission();Object.assign(s,{hp:21,armor:0,weapon:{...W.pistol,mag:2},weapons:slots('pistol'),crew:[{...crew[0],down:true,bleed:12,bleedMax:30},{...crew[1],down:true,reviving:.45},crew[2]],prompt:{key:'E',text:'Revive Gary',progress:.3,hold:true},subtitles:{speaker:'Big Dave',text:'Gary\'s down! Somebody get to Gary!'},crosshair:{spread:.04,fov:72}});
+    s.markers.push(mk('rv','revive','Gary',15,11));return s},
+  shotgun(){const s=SC.mission();Object.assign(s,{weapon:{...W.shotgun,reloading:.55,firemode:'Pump'},weapons:slots('shotgun'),crosshair:{spread:.075,fov:72},prompt:null});return s},
+  scope(){const s=SC.mission();Object.assign(s,{weapon:{...W.hunter},weapons:slots('hunter',['pistol','shotgun','hunter']),crosshair:{spread:.0005,ads:true,fov:72*.3},prompt:null,subtitles:null,tags:[],markers:[]});return s},
+  drive(){cam.x=tc(31);cam.z=tc(14);cam.yaw=0;return Object.assign(base(),{mode:'drive',speedMph:43,gear:'D',vanHealth:.82,weapon:W.pistol,trust:34,
+    objective:{kicker:'Fourth Quarter',title:'Drive the crew to Birch',lines:[{text:'Everyone in the van · 3/3',done:true},{text:'Get to the duplex on Birch'}]},
+    markers:[mk('dst','obj','Duplex on Birch',31,1,{h:1})],routeTo:{x:tc(54),z:tc(2)},crew:crew.map(c=>({...c,x:cam.x,z:cam.z}))})},
+  interior(){cam.x=tc(15);cam.z=tc(14);cam.yaw=Math.PI;document.getElementById('bg').classList.add('dim');return Object.assign(base(),{weapon:W.rifle,weapons:slots('rifle'),trust:61,crew:crew.map(c=>({...c,x:cam.x+2,z:cam.z-3})),zone:'The compound · Ridgeview',
+    objective:{kicker:'The Kingpin',title:'Find the Porch Pirate King',lines:[{text:'Search the house'},{text:'Give him one chance to surrender',warn:true}]},
+    markers:[mk('k','obj','The King',15,20)],enemies:[{id:1,x:tc(15),z:tc(15),seen:true},{id:2,x:tc(6),z:tc(15),alert:true}]})},
+  home(){return Object.assign(base(),{mode:'home',weapon:null,trust:61,cash:3420,objective:{kicker:'Home',title:'Spend the afternoon',lines:[{text:'Upgrade the garage workbench'}]},prompt:{key:'E',text:'Open the locker'},subtitles:{speaker:'Linda',text:'You left the grill on again.',color:'#f0a6c8'}})},
+  banner(){const s=SC.hub();s.prompt=null;s.banner={id:'b1',kind:'title',kicker:'Job 02 · Birch Street',title:'Fourth Quarter',sub:'Smash three stash tables before reinforcements arrive.'};return s},
+  done(){const s=SC.mission();Object.assign(s,{prompt:null,subtitles:null,tags:[],banner:{id:'b2',kind:'done',kicker:'Return to Sender',title:'Job Done',stats:[['Trust','+12'],['Zip-tied','3'],['Payout','$850']],dur:30}});return s},
+  map(){return SC.hub()},
+};
+const scr={
+  'title-loading':()=>HUD.show('title',{progress:.42,canContinue:false,version:'0.9'}),
+  title:()=>HUD.show('title',{progress:1,ready:true,canContinue:true,continueLabel:'Job 3 · Block Party',version:'0.9'}),
+  brief:()=>HUD.show('brief',{kicker:'Job 02 · Birch Street',title:'Fourth Quarter',giver:'Coach Rick',role:'Coach Rick · Varsity Football',place:'The duplex on Birch',color:'#b33a3a',
+    lines:['Thirty years coaching. I can read a play. That duplex on Birch is running one.','Three stash tables. We smash them, we leave. Reinforcements come in two minutes.','And I want everybody hydrated.'],
+    meta:[['Location','Duplex on Birch'],['Crew','Gary · Rick'],['Loadout','Pistol · Pump · Carbine'],['Payout','$600 + trust','g']]}),
+  result:()=>{HUD.show('result',{title:'Return to Sender',text:'Every package is back on its porch. Mrs. Kowalski cried a little. Gary pretended not to.',stats:[['Neutralized','2','Had to'],['Zip-tied','5','Second chances'],['Time','4:12'],['Trust','46%','+12 this job']],canRetry:true});
+    HUD.payout([{label:'Job payout',value:'$600'},{label:'Zip-tie bonus · 5',value:'$250'},{label:'Property damage',value:'-$40',neg:true},{label:'Total',value:'$810',total:true}])},
+  pause:(tab)=>HUD.show('pause',{tab,canAbandon:true,settings:{sens:7,ads:55,fov:74,invert:false,fp:false,gfx:'med',subs:true,mmRotate:true,master:80,music:60,sfx:90,voice:100}}),
+};
+if(scr[S]||S.startsWith('pause')){(scr[S]||(()=>scr.pause(S.split('-')[1])))();state=SC.hub();state.prompt=null}
+else state=(SC[S]||SC.mission)();
+HUD.on('*',(n,...a)=>console.log('[hud]',n,...a));
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+  if(S==='drive'){state.speedMph=43+Math.sin(t)*6}
+  state.player={x:cam.x,z:cam.z};state.compassYaw=cam.yaw;
+  if(state.markers)for(const m of state.markers)m.screen=project(m.x,m.h??1.8,m.z);
+  HUD.update(state,dt);requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+if(S==='map')setTimeout(()=>HUD.minimap.openMap(),100);
+/* transient effects, fired by the screenshot script right before capture */
+window.fx=()=>{
+  if(S==='mission'){HUD.feed('Zip-tied','cuff','+4 trust');HUD.feed('Neutralized','kill','Didn\'t want that');HUD.feed('Package recovered','info','2/4');HUD.hit('head');state.trust=50;state.cash=1490;state.objective.lines[1].done=true}
+  if(S==='lowhp'){HUD.damage({angle:-1.2},30);HUD.damage({angle:2.6},18);HUD.hit('hit')}
+  if(S==='shotgun')HUD.hit('kill');
+};
+window.HUDBENCH={state,cam,HUD};
+})();
+</script>
