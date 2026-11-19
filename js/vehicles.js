@@ -5,19 +5,25 @@
  *     type: 'minivan' | 'sedan' | 'suv' | 'hatch' | 'pickup' | 'workvan'
  *     Length runs along +X with the FRONT at +X, +Y up, the car's right side at +Z (left side, driver's side, at -Z).
  *     Centered on the origin in X/Z, tyres touch y = 0.
- *     upgrades: {paint:'#hex'|number, rims:'stock'|'alloy'|'black', roofRack, bullBar, lightBar, spoiler (bools), tint:0..1}
+ *     color: base paint hex. upgrades (unknown keys ignored, missing = stock):
+ *       paint: '#hex' colour, or a finish 'solid'|'twotone'|'wood'|'mural' (finish keeps opts.color as the base paint)
+ *       rims: 'stock'|'steel'|'alloy'|'black'|'chrome'|'gold'|'spinner'
+ *       roofRack: true|'cargo' (crossbars + cargo box) | 'rails' (rails only)
+ *       bullBar, spoiler: bool;  lightBar: bool | 'amber';  tint: 0..1
  *   group.userData = {
- *     type, size:{l,w,h},
+ *     type, size:{l,w,h}, len, wid, wheelBase, colliders:[{x0,z0,x1,z1}] (local AABB),
  *     wheels:[Object3D]  spinning wheel groups; they spin about their local Z axis (the axle).
  *                        Rolling forward (+X) is a NEGATIVE rotation.z: rotation.z -= distance / radius.
  *     wheelRadius,
  *     steer:[Object3D]   front wheel pivots; rotation.y = angle, positive = steer left (toward -Z).
  *     lights:{head:[], tail:[], brake:[], bar:[], drl:[]}  emissive materials
- *     body:[paint materials]   (MeshPhysicalMaterial, clearcoat)
- *     glass:[glass materials], bodyRoot: Object3D that rolls/pitches, contactShadow: Mesh (soft AO blob, optional)
+ *     body:[paint, lowerPaint] (MeshPhysicalMaterial, clearcoat; same material twice unless two-tone)
+ *     glass:[glass materials], bodyRoot / parts.body: Object3D that rolls/pitches, parts:{body,glass,wheels},
+ *     contactShadow: soft AO blob (never casts a shadow),
+ *     setUpgrades(u) (rebuilds in place), setColor(hex), setLights(on), flashBar(seconds), setDamage(0..1), dispose()
  *   }
  * HT.Vehicles.update(v, {speed, steer, braking, headlights, dt})
- *     speed m/s (+ forward), steer -1..1 (+ = left), braking bool, headlights bool, dt seconds.
+ *     speed m/s (+ forward), steer -1..1 (+ = left), braking bool, headlights bool (omit to keep setLights state), dt seconds.
  * HT.Vehicles.stats(v) -> {triangles, drawCalls}
  */
 (function(){
@@ -113,10 +119,10 @@ class Out{constructor(){this.b={}}
     for(let i=0;i<p.length;i++){B.p.push(p[i]);B.n.push(n[i])}
     if(u)for(let i=0;i<u.array.length;i++)B.u.push(u.array[i]);else for(let i=0;i<p.length/3*2;i++)B.u.push(0)}
   /* mirror everything added to bucket m since index `from` across z=0 */
-  mirror(m,from){const B=this.get(m),end=B.p.length;
+  mirror(m,from,flipU){const B=this.get(m),end=B.p.length;
     for(let o=from;o<end;o+=9){const tri=[[o,o+1,o+2],[o+6,o+7,o+8],[o+3,o+4,o+5]],uo=o/3*2,ut=[[uo,uo+1],[uo+4,uo+5],[uo+2,uo+3]];
       for(let c=0;c<3;c++){const[i,j,k]=tri[c];B.p.push(B.p[i],B.p[j],-B.p[k]);B.n.push(B.n[i],B.n[j],-B.n[k])}
-      for(let c=0;c<3;c++)B.u.push(B.u[ut[c][0]],B.u[ut[c][1]])}}
+      for(let c=0;c<3;c++)B.u.push(flipU?1-B.u[ut[c][0]]:B.u[ut[c][0]],B.u[ut[c][1]])}}
   mark(m){return this.get(m).p.length}
   build(){const r={};for(const m in this.b){const B=this.b[m];if(!B.p.length)continue;const g=new T.BufferGeometry();
       g.setAttribute('position',new T.Float32BufferAttribute(B.p,3));g.setAttribute('normal',new T.Float32BufferAttribute(B.n,3));
@@ -175,7 +181,7 @@ function patch(out,dm,poly,o){poly=subdiv(ccw(poly),o.seg||.04);const off=o.off?
     const Dv=V3(...dm.V.D),gz=o.graze??.15;for(let i=0;i<n;i++){const i2=(i+1)%n,q=[S0[i],S0[i2],S1[i2],S1[i]],r=[R0[i],R0[i2],R1[i2],R1[i]];if(q.some(x=>!x||x.n.dot(Dv)<gz)||stretched(q,r))continue;
       const tri=(x,y,z)=>{if(flip)out.tri(m,q[x].p,q[z].p,q[y].p,q[x].n,q[z].n,q[y].n,uv(r[x]),uv(r[z]),uv(r[y]));else out.tri(m,q[x].p,q[y].p,q[z].p,q[x].n,q[y].n,q[z].n,uv(r[x]),uv(r[y]),uv(r[z]))};
       tri(0,1,2);tri(0,2,3)}}
-  if(o.mirror)for(const m in marks)out.mirror(m,marks[m])}
+  if(o.mirror)for(const m in marks)out.mirror(m,marks[m],o.flipU)}
 /* strip of width w along a polyline */
 function ribbon(out,dm,pts,w,o){const P=subdiv(pts,o.seg||.02,!!o.closed),n=P.length,off=o.off??.003,m=o.mat,from=out.mark(m),flip=dm.V.h<0;
   const L=[],R=[];for(let i=0;i<n;i++){const a=P[o.closed?(i+n-1)%n:Math.max(0,i-1)],b=P[o.closed?(i+1)%n:Math.min(n-1,i+1)];let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
@@ -216,6 +222,14 @@ const stickerTex=()=>canvasTex('sticker',512,160,(g,w,h)=>{const r=30;g.fillStyl
   for(let k=0;k<5;k++){const a=-Math.PI/2+k*Math.PI*2/5+Math.PI/5;const px=cx+Math.cos(a)*48,py=cy+Math.sin(a)*48;g.save();g.beginPath();g.arc(cx,cy,R-2,0,7);g.clip();pent(px,py,17,a);g.restore();
     g.beginPath();g.moveTo(cx+Math.cos(a)*19*.81,cy+Math.sin(a)*19*.81);g.lineTo(px-Math.cos(a)*14,py-Math.sin(a)*14);g.lineWidth=3;g.stroke()}
   g.fillStyle='#1a7a3a';g.font='bold 54px Arial,Helvetica,sans-serif';g.textAlign='left';g.fillText('SOCCER',158,76);g.fillStyle='#16181c';g.font='bold 46px Arial,Helvetica,sans-serif';g.fillText('DAD ON BOARD',158,128)});
+const woodTex=()=>canvasTex('wood',1024,256,(g,w,h)=>{let a=7;const R=()=>{a=(a*16807)%2147483647;return a/2147483647};g.fillStyle='#6b4128';g.fillRect(0,0,w,h);
+  for(let i=0;i<260;i++){const y=R()*h,al=.05+R()*.18;g.strokeStyle=R()<.5?`rgba(40,20,8,${al})`:`rgba(160,110,60,${al})`;g.lineWidth=.5+R()*2.5;g.beginPath();g.moveTo(0,y);for(let x=0;x<=w;x+=32)g.lineTo(x,y+Math.sin(x*.01+i)*3+(R()-.5)*2);g.stroke()}
+  g.strokeStyle='rgba(25,12,4,.7)';g.lineWidth=2;for(let x=0;x<w;x+=128){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()}});
+const muralTex=()=>canvasTex('mural',1024,256,(g,w,h)=>{const sky=g.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#2b5f9e');sky.addColorStop(.6,'#f08a4b');sky.addColorStop(1,'#f6c35a');g.fillStyle=sky;g.fillRect(0,0,w,h);
+  g.fillStyle='#ffd36b';g.beginPath();g.arc(w*.62,h*.62,60,0,Math.PI*2);g.fill();
+  g.fillStyle='#1e3b2f';g.beginPath();g.moveTo(0,h);for(let x=0;x<=w;x+=16)g.lineTo(x,h*.72-Math.sin(x*.012)*30-Math.sin(x*.05)*8);g.lineTo(w,h);g.fill();
+  g.fillStyle='#163024';for(let i=0;i<9;i++){const x=40+i*115;g.fillRect(x-4,h*.5,8,h*.5);g.beginPath();g.arc(x,h*.5,34,0,Math.PI*2);g.fill()}
+  g.font='bold 54px Georgia, serif';g.fillStyle='#fff6e0';g.strokeStyle='#4a2410';g.lineWidth=6;g.textAlign='center';g.strokeText('RIVERSIDE',w*.3,84);g.fillText('RIVERSIDE',w*.3,84)});
 const shadowTex=()=>canvasTex('ao',128,256,(g,w,h)=>{const img=g.createImageData(w,h);for(let j=0;j<h;j++)for(let i=0;i<w;i++){
     const x=(i+.5)/w*2-1,y=(j+.5)/h*2-1,d=Math.pow(Math.pow(Math.abs(x),4)+Math.pow(Math.abs(y),4),.25),a=Math.pow(clamp(1-(d-.55)/.45,0,1),1.6);const o=(j*w+i)*4;img.data[o]=img.data[o+1]=img.data[o+2]=0;img.data[o+3]=a*255}
   g.putImageData(img,0,0)},{srgb:false});
@@ -421,7 +435,19 @@ function kit(type){if(KITS[type])return KITS[type];const S=prep(TYPES[type]);con
   if(rg.view==='rear')cutHole(B,'rear',insetPoly(ccw(rg.poly),.03));
   if(S.bed){const b=S.bed;cutHole(B,'top',[[b.x0,-b.hw],[b.x1,-b.hw],[b.x1,b.hw],[b.x0,b.hw]],.05)}
   /* body into buckets */
-  for(const t of B.tris)o.tri(t.cls,t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2]);
+  /* two-tone split: paint triangles are cut exactly at one height; the lower part goes to 'paint2' */
+  const Y2=lerp(S.botF(0),S.beltF(0),.45);
+  const cutY=(V,keepBelow)=>{const r=[];for(let i=0;i<V.length;i++){const a=V[i],b=V[(i+1)%V.length],sa=keepBelow?Y2-a.p.y:a.p.y-Y2,sb=keepBelow?Y2-b.p.y:b.p.y-Y2;
+      if(sa>=0)r.push(a);if((sa>=0)!==(sb>=0)){const k=sa/(sa-sb);r.push({p:a.p.clone().lerp(b.p,k),n:a.n.clone().lerp(b.n,k).normalize()})}}return r};
+  for(const t of B.tris){if(t.cls!=='paint'){o.tri(t.cls,t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2]);continue}
+    const ys=t.p.map(q=>q.y);if(Math.min(...ys)>=Y2){o.tri('paint',t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2]);continue}
+    if(Math.max(...ys)<=Y2){o.tri('paint2',t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2]);continue}
+    const V=t.p.map((q,i)=>({p:q,n:t.n[i]}));for(const[m,below]of[['paint',false],['paint2',true]]){const P=cutY(V,below);for(let i=1;i<P.length-1;i++)o.tri(m,P[0].p,P[i].p,P[i+1].p,P[0].n,P[i].n,P[i+1].n)}}
+  {const pts=[];for(let x=S.x0+.2;x<=S.x1-.25;x+=.05)pts.push([x,Y2]);ribbon(o,dm.side,pts,.012,{mat:'pin',off:.003,mirror:true,graze:.5})}
+  /* finish panels (shown only with paint:'wood' / 'mural') */
+  {const xa=S.axles[1]+S.Ra+.07,xb=S.axles[0]-S.Ra-.07;let bt=9;for(let x=xa;x<=xb;x+=.1)bt=Math.min(bt,S.beltF(x));const yb=S.botF(0)+(S.cladding?.2:.13);
+    patch(o,dm.side,rectP((xa+xb)/2,(yb+bt-.09)/2,xb-xa,bt-.09-yb,.02),{bands:[{w:.018,mat:'woodTrim'}],fill:'wood',off:.005,mirror:true,flipU:true});
+    patch(o,dm.side,rectP((xa+xb)/2,(yb+bt-.04)/2,xb-xa,bt-.04-yb,.01),{fill:'mural',off:.005,mirror:true,flipU:true})}
   /* interior shell: body pushed inward, seen through the glass */
   shell(S,o);
   /* --- glass with black frit / surrounds --- */
@@ -537,9 +563,9 @@ function kit(type){if(KITS[type])return KITS[type];const S=prep(TYPES[type]);con
 /* ---------------------------------------------------------------- wheels */
 const WG={};
 function rimGeo(rimR,tw,style){const key=rimR+'|'+tw+'|'+style;if(WG[key])return WG[key];
-  const Rf=rimR-.012,n=style==='alloy'||style==='black'?10:style==='steel'?8:5,hub=.27*Rf,outR=.86*Rf,depth=.022;
+  const Rf=rimR-.012,n=style==='alloy'?10:style==='spinner'?7:style==='steel'?8:5,hub=.27*Rf,outR=.86*Rf,depth=.022;
   const shape=new T.Shape();shape.absarc(0,0,Rf,0,Math.PI*2,false);
-  const ww=style==='alloy'||style==='black'?[.022,.017]:style==='steel'?[.0,.0]:[.05,.036];
+  const ww=style==='alloy'?[.022,.017]:style==='spinner'?[.03,.02]:style==='steel'?[.0,.0]:[.05,.036];
   if(style==='steel'){for(let i=0;i<n;i++){const a=(i+.5)/n*Math.PI*2,c=[Math.cos(a)*Rf*.62,Math.sin(a)*Rf*.62];const h=new T.Path();h.absellipse(c[0],c[1],Rf*.11,Rf*.07,0,Math.PI*2,true,a);shape.holes.push(h)}}
   else for(let i=0;i<n;i++){const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2,pts=[],eps=(r,w)=>Math.asin(Math.min(.9,w/2/r)),R0=hub+.012,R1=outR;
     for(let k=0;k<=3;k++){const r=lerp(R0,R1,k/3),w=lerp(ww[0],ww[1],k/3),a=a0+eps(r,w);pts.push([Math.cos(a)*r,Math.sin(a)*r])}
@@ -590,7 +616,9 @@ function shared(){if(MAT.ok)return MAT;MAT.ok=1;const S=(o)=>new T.MeshStandardM
   MAT.disc=S({color:col('#6f7276'),roughness:.4,metalness:.9,side:T.DoubleSide});
   MAT.caliper=S({color:col('#8f1c18'),roughness:.4,metalness:.2});
   MAT.rims={stock:S({color:col('#b9bdc3'),roughness:.26,metalness:.9}),alloy:Ph({color:col('#eef0f2'),roughness:.08,metalness:1,clearcoat:1,clearcoatRoughness:.03}),
-    black:Ph({color:col('#0b0b0c'),roughness:.25,metalness:.5,clearcoat:1,clearcoatRoughness:.05}),steel:S({color:col('#a3a7ac'),roughness:.38,metalness:.85})};
+    black:Ph({color:col('#0b0b0c'),roughness:.25,metalness:.5,clearcoat:1,clearcoatRoughness:.05}),steel:S({color:col('#a3a7ac'),roughness:.38,metalness:.85}),
+    chrome:S({color:col('#f2f3f5'),roughness:.03,metalness:1}),gold:S({color:col('#d6aa4c'),roughness:.16,metalness:1}),spinner:S({color:col('#f0f0f0'),roughness:.04,metalness:1})};
+  MAT.woodTrim=S({color:col('#c9a86a'),roughness:.4});
   MAT.cap=S({color:col('#2a2d33'),roughness:.3,metalness:.6});
   MAT.bar=S({color:col('#141414'),roughness:.35,metalness:.6});
   MAT.shadow=new T.MeshBasicMaterial({map:shadowTex(),transparent:true,depthWrite:false,opacity:.82,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
@@ -601,16 +629,17 @@ const PAINT={minivan:'#3e5872',sedan:'#8c1d1d',suv:'#2c3a4a',hatch:'#e6e6e2',pic
 /* ---------------------------------------------------------------- upgrades */
 function addUpgrades(type,K,u,root,mats){const S=K.S,dm=K.dm,sec=K.sec,o=new Out(),extra=[];
   const roofY=(x,z)=>dm.top.depth(x,z)??S.H;
-  if(u.roofRack){const xa=S.roofF+.3,xb=S.roofR+.12;const zr=sec((xa+xb)/2).wT-.1;
+  if(u.roofRack){const xa=S.roofF+.3,xb=S.roofR+.12;const zr=sec((xa+xb)/2).wT-.1,railsOnly=u.roofRack==='rails';
     if(!S.rails)for(const sg of[1,-1]){for(const x of[xa+.08,xb-.08]){const y=roofY(x,zr);o.geo('trim',rbox(.1,.07,.06,.02,2),mat4(x,y+.03,zr*sg))}
       o.geo('rail',rbox(xa-xb,.035,.04,.015,2),mat4((xa+xb)/2,roofY((xa+xb)/2,zr)+.075,zr*sg))}
+    if(!railsOnly){
     const yR=Math.max(roofY(xa-.2,zr),roofY(xb+.2,zr))+(S.rails?.055:.06);
     for(const x of[xa-.2,xb+.2]){o.geo('bar',rbox(.07,.03,zr*2+.12,.012,2),mat4(x,yR+.035,0));for(const sg of[1,-1])o.geo('bar',rbox(.09,yR+.05-roofY(x,zr),.06,.015,2),mat4(x,(yR+.05+roofY(x,zr))/2,sg*zr))}
     /* aero cargo box */
     const len=Math.min(1.75,xa-xb+.45),bw=.82,bh=.36;const g=rbox(len,bh,bw,.15,4);const p=g.attributes.position;
     for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const t=smooth(len*.1,len/2,x);y=-bh/2+(y+bh/2)*(1-.45*t);z*=1-.18*t*t;const tr=smooth(-len/2,-len*.3,-x);y=-bh/2+(y+bh/2)*(1-.12*tr);p.setXYZ(i,x,y,z)}
     g.computeVertexNormals();o.geo('cargo',g,mat4((xa+xb)/2-.05,yR+.07+bh/2,0));
-    o.geo('trim',rbox(len-.08,.012,bw-.02,.006,2),mat4((xa+xb)/2-.05,yR+.07+bh*.42,0))}
+    o.geo('trim',rbox(len-.08,.012,bw-.02,.006,2),mat4((xa+xb)/2-.05,yR+.07+bh*.42,0))}}
   if(u.bullBar){const yb=Math.max(.32,S.botF(S.x1)+.02),yt=Math.min(S.grille.y1+.02,sec(S.x1-.3).yt-.04);const zb=.5;
     const xf=z=>Math.max(dm.front.depth(z,(yb+yt)/2)??S.x1,dm.front.depth(z,yt-.04)??S.x1,dm.front.depth(z,yb+.05)??S.x1)+.07;
     const fx=xf(0);for(const sg of[1,-1]){const c=new T.CatmullRomCurve3([V3(fx-.02,yb,sg*zb),V3(fx+.02,yb+.2,sg*zb),V3(fx+.04,yt-.06,sg*zb),V3(fx+.03,yt,sg*(zb-.06)),V3(fx+.03,yt+.01,sg*.25),V3(fx+.03,yt+.01,0)]);
@@ -630,52 +659,86 @@ function addUpgrades(type,K,u,root,mats){const S=K.S,dm=K.dm,sec=K.sec,o=new Out
   const geos=o.build();return geos}
 
 /* ---------------------------------------------------------------- assembly */
-function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';shared();const K=kit(type),S=K.S,u=Object.assign({rims:S.rimStyle||'stock',tint:.55},opts.upgrades||{});
-  const paintHex=u.paint??opts.color??PAINT[type];
-  const root=new T.Group();root.name='vehicle_'+type;const body=new T.Group();body.name='bodyRoot';root.add(body);
+const FINISHES={solid:1,twotone:1,wood:1,mural:1};
+const RIMGEO={stock:'stock',chrome:'stock',steel:'steel',alloy:'alloy',black:'alloy',gold:'alloy',spinner:'spinner',spinners:'spinner'};
+function build(type,opts){shared();const K=kit(type),S=K.S,u=Object.assign({rims:S.rimStyle||'stock',tint:.55},opts.upgrades||{});
+  if(u.rims==='spinners')u.rims='spinner';if(!(u.rims in RIMGEO))u.rims='stock';
+  const fin=typeof u.paint==='string'&&FINISHES[u.paint]?u.paint:'solid';
+  const paintHex=(u.paint!=null&&!FINISHES[u.paint])?u.paint:(opts.color??PAINT[type]);
+  const root=new T.Group();const body=new T.Group();body.name='bodyRoot';root.add(body);
   const paint=new T.MeshPhysicalMaterial({color:col(paintHex),metalness:.5,roughness:.36,clearcoat:1,clearcoatRoughness:.05});
   if(new T.Color(paintHex).getHSL({}).l>.75){paint.metalness=.15;paint.roughness=.3}
-  const tint=clamp(u.tint,0,1);
+  const paint2=fin==='twotone'?new T.MeshPhysicalMaterial({color:col('#5a3a28'),metalness:.4,roughness:.38,clearcoat:1,clearcoatRoughness:.06}):paint;
+  const tint=clamp(+u.tint||0,0,1);
   const glass=new T.MeshPhysicalMaterial({color:col('#0b1014').lerp(col('#010203'),tint),roughness:.03,metalness:0,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:lerp(.38,.92,tint),depthWrite:false,envMapIntensity:1.6});
   const head=new T.MeshStandardMaterial({color:col('#c9d0d8'),roughness:.07,metalness:1,emissive:col('#fff3df'),emissiveIntensity:0});
   const drl=new T.MeshStandardMaterial({color:col('#ffffff'),roughness:.2,emissive:col('#eef4ff'),emissiveIntensity:1.6});
   const tail=new T.MeshPhysicalMaterial({color:col('#6a0b0b'),roughness:.08,metalness:.1,clearcoat:1,emissive:col('#ff1408'),emissiveIntensity:.08});
   const brake=new T.MeshPhysicalMaterial({color:col('#8a0d0d'),roughness:.12,metalness:.2,clearcoat:1,emissive:col('#ff1a0c'),emissiveIntensity:.1});
-  const barLed=new T.MeshStandardMaterial({map:ledTex(),emissiveMap:ledTex(),emissive:col('#ffffff'),emissiveIntensity:.3,roughness:.2});
+  const amber=u.lightBar==='amber';
+  const barLed=new T.MeshStandardMaterial({map:ledTex(),emissiveMap:ledTex(),emissive:col(amber?'#ffa020':'#ffffff'),color:col(amber?'#ffd9a0':'#ffffff'),emissiveIntensity:.3,roughness:.2});
   const cargo=new T.MeshPhysicalMaterial({color:col('#0e0f11'),roughness:.25,metalness:.2,clearcoat:1,clearcoatRoughness:.06});
   const bull=new T.MeshStandardMaterial({color:col('#17181a'),roughness:.42,metalness:.55});
   const plateR=new T.MeshStandardMaterial({map:plateTex(S.plateTxt||'HT 4DAD','SUBURBIA'),roughness:.4,metalness:.1});
+  const wood=new T.MeshStandardMaterial({map:woodTex(),roughness:.35,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+  const mural=new T.MeshPhysicalMaterial({map:muralTex(),roughness:.3,clearcoat:1,clearcoatRoughness:.05,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
   for(const m of[glass,head,drl,tail,brake,plateR])Object.assign(m,{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-  const M=Object.assign({},MAT,{paint,glass,head,drl,tail,brake,ledbar:barLed,cargo,bull,plateR,brakeBar:brake});
-  let tris=0,calls=0;
+  const M=Object.assign({},MAT,{pin:MAT.chrome,paint,paint2,glass,head,drl,tail,brake,ledbar:barLed,cargo,bull,plateR,brakeBar:brake,wood,mural});
+  let tris=0,calls=0;const own=[];
   const addMesh=(g,m,parent,cast=true)=>{const mesh=new T.Mesh(g,m);mesh.castShadow=cast&&!m.transparent;mesh.receiveShadow=true;parent.add(mesh);tris+=g.attributes.position.count/3;calls++;return mesh};
-  for(const k in K.geos){const m=M[k];if(!m){console.warn('vehicles: no material',k);continue}const mesh=addMesh(K.geos[k],m,body,k!=='interior'&&k!=='seat');if(k==='glass')mesh.renderOrder=2}
-  const ug=addUpgrades(type,K,u,root,M);for(const k in ug)addMesh(ug[k],M[k],body);
+  for(const k in K.geos){if((k==='wood'||k==='woodTrim')&&fin!=='wood')continue;if(k==='pin'&&fin!=='twotone')continue;if(k==='mural'&&fin!=='mural')continue;
+    const m=M[k];if(!m){console.warn('vehicles: no material',k);continue}const mesh=addMesh(K.geos[k],m,body,k!=='interior'&&k!=='seat');if(k==='glass')mesh.renderOrder=2}
+  const ug=addUpgrades(type,K,u,root,M);for(const k in ug){own.push(ug[k]);addMesh(ug[k],M[k],body)}
   /* wheels */
-  const W=K.wheel,rim=rimGeo(S.rimR,S.tw,u.rims==='stock'?(S.rimStyle||'stock'):u.rims),rimMat=MAT.rims[u.rims]||MAT.rims.stock;
+  const W=K.wheel,rim=rimGeo(S.rimR,S.tw,u.rims==='stock'?(S.rimStyle||'stock'):RIMGEO[u.rims]),rimMat=MAT.rims[u.rims]||MAT.rims.stock;
   const wheels=[],steer=[];
   for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018;const piv=new T.Object3D();piv.position.set(ax,S.wr,sg*zW);root.add(piv);
     const spin=new T.Group();piv.add(spin);const hold=new T.Group();if(sg<0)hold.rotation.y=Math.PI;spin.add(hold);
     addMesh(W.tyre,MAT.tyre,hold);addMesh(rim.rim,rimMat,hold);addMesh(rim.disc?mergeG([rim.disc,W.inner.disc]):W.inner.disc,MAT.disc,hold,false);
     const cal=new T.Mesh(W.caliper,MAT.caliper);cal.position.set(-S.rimR*.62*Math.cos(.5),S.rimR*.62*Math.sin(.5),sg*(S.tw/2-.075));cal.rotation.z=.5;piv.add(cal);tris+=W.caliper.attributes.position.count/3;calls++;
     wheels.push(spin);if(ax===S.axles[0])steer.push(piv)}
-  /* contact shadow */
-  const sh=new T.Mesh(new T.PlaneGeometry(S.L+.5,S.hwF(0)*2+.55),MAT.shadow);sh.rotation.x=-Math.PI/2;sh.position.y=.006;sh.renderOrder=1;root.add(sh);calls++;tris+=2;
+  /* contact shadow: never casts (callers often set castShadow on every mesh) */
+  const shg=new T.PlaneGeometry(S.L+.5,S.hwF(0)*2+.55);own.push(shg);const sh=new T.Mesh(shg,MAT.shadow);sh.rotation.x=-Math.PI/2;sh.position.y=.006;sh.renderOrder=1;
+  Object.defineProperty(sh,'castShadow',{get:()=>false,set(){}});root.add(sh);calls++;tris+=2;
   const bb=new T.Box3();for(const k in K.geos){K.geos[k].computeBoundingBox();bb.union(K.geos[k].boundingBox)}
-  root.userData={type,size:{l:+(bb.max.x-bb.min.x).toFixed(3),w:+(Math.max(S.hwF(S.axles[0]),S.hwF(0),S.hwF(S.axles[1]))*2).toFixed(3),h:+bb.max.y.toFixed(3)},wheels,steer,wheelRadius:S.wr,lights:{head:[head],tail:[tail],brake:[brake],bar:u.lightBar?[barLed]:[],drl:[drl]},
-    body:[paint],glass:[glass],bodyRoot:body,contactShadow:sh,upgrades:u,stats:{triangles:Math.round(tris),drawCalls:calls},_s:{roll:0,pitch:0,last:0,acc:0}};
-  return root}
+  const hwMax=Math.max(S.hwF(S.axles[0]),S.hwF(0),S.hwF(S.axles[1]));
+  const ud={type,size:{l:+(bb.max.x-bb.min.x).toFixed(3),w:+(hwMax*2).toFixed(3),h:+bb.max.y.toFixed(3)},len:+(bb.max.x-bb.min.x).toFixed(3),wid:+(hwMax*2).toFixed(3),
+    wheels,steer,wheelRadius:S.wr,wheelBase:S.axles[0]-S.axles[1],lights:{head:[head],tail:[tail],brake:[brake],bar:u.lightBar?[barLed]:[],drl:[drl]},
+    body:[paint,paint2],glass:[glass],bodyRoot:body,parts:{body,glass,wheels,rear:null},contactShadow:sh,
+    colliders:[{x0:bb.min.x,z0:-hwMax,x1:bb.max.x,z1:hwMax}],upgrades:u,color:paintHex,
+    stats:{triangles:Math.round(tris),drawCalls:calls,tris:Math.round(tris),calls},_own:own,_mats:[paint,paint2,glass,head,drl,tail,brake,barLed,cargo,bull,plateR,wood,mural],
+    _s:{roll:0,pitch:0,last:0,acc:0,head:false,flash:0,t:0},damage:0};
+  return{root,ud}}
 
-function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,o.dt??1/60),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
-  const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z+=da;
-  for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12);
-  const acc=dt>0?(sp-s.last)/dt:0;s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
-  const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
-  s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch;
-  const hl=!!o.headlights;for(const m of d.lights.head)m.emissiveIntensity=hl?3.2:0;for(const m of d.lights.tail)m.emissiveIntensity=hl?1.4:.08;
-  for(const m of d.lights.brake)m.emissiveIntensity=o.braking?5:(hl?1.2:.1);for(const m of d.lights.bar)m.emissiveIntensity=hl?4:.3}
+/* group.userData also carries setUpgrades(u), setColor(hex), setLights(on), flashBar(seconds), setDamage(0..1), dispose() */
+function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
+  const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);return root}
+function api(root,type,opts){const ud=root.userData;
+  ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
+    disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
+    const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
+    for(const k in ud)delete ud[k];Object.assign(ud,nu);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);applyLights(root,false)};
+  ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)};
+  ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};
+  ud.flashBar=t=>{ud._s.flash=t||0};
+  ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;for(const m of new Set(ud.body)){m.roughness=lerp(m.userData.r0??(m.userData.r0=m.roughness),.8,f);m.clearcoat=lerp(1,.15,f)}};
+  ud.dispose=()=>{disposeOwn(ud)};}
+function disposeOwn(ud){for(const g of ud._own||[])g.dispose();for(const m of ud._mats||[])if(m&&m.dispose)m.dispose()}
+function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head;
+  for(const m of d.lights.head)m.emissiveIntensity=hl?3.2:0;for(const m of d.lights.tail)m.emissiveIntensity=hl?1.4:.08;
+  for(const m of d.lights.brake)m.emissiveIntensity=braking?5:(hl?1.2:.1);
+  for(const m of d.lights.bar)m.emissiveIntensity=s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)}
 
-HT.Vehicles={init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),stats:v=>v.userData.stats,
+function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,Math.max(0,o.dt??1/60)),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
+  const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z=(w.rotation.z+da)%(Math.PI*2);
+  for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12||1);
+  if(dt>0){const acc=clamp((sp-s.last)/dt,-15,15);s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
+    const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
+    s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch}
+  if(o.headlights!=null)s.head=!!o.headlights;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking)}
+
+const stats=v=>{const d=v.userData;if(d&&d.stats)return d.stats;let t=0,c=0;v.traverse(o=>{if(o.isMesh){c++;t+=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3}});return{triangles:t,drawCalls:c,tris:t,calls:c}};
+HT.Vehicles={init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),TYPES:Object.keys(TYPES),stats,
   /* pre-build the cached geometry for some or all types (spreads the one-off cost) */
   warm(types=Object.keys(TYPES)){shared();for(const t of types)kit(t)}};
 })();

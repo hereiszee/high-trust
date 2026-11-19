@@ -70,7 +70,7 @@ const TYPES=HT.Vehicles.types;let cars=[];const state={type:Q.get('type')||'mini
 function clear(){for(const c of cars){scene.remove(c)}cars=[]}
 function show(){clear();const t0=performance.now();
   if(state.layout==='lineup'){TYPES.forEach((t,i)=>{const v=HT.Vehicles.make(t,{upgrades:state.up});v.position.set(0,0,(i-(TYPES.length-1)/2)*3.1);scene.add(v);cars.push(v)})}
-  else if(state.layout==='variants'){const vs=[{},{rims:'alloy',paint:'#9a1b1b',tint:.2},{rims:'black',paint:'#1c1d20',roofRack:true,bullBar:true,lightBar:true,tint:1,spoiler:true},{paint:'#e9e7e1',spoiler:true,roofRack:true}];
+  else if(state.layout==='variants'){const vs=[{},{rims:'alloy',paint:'#9a1b1b',tint:.2},{rims:'black',paint:'#1c1d20',roofRack:true,bullBar:true,lightBar:true,tint:1,spoiler:true},{paint:'wood',rims:'chrome',lightBar:'amber',roofRack:'rails'}];
     vs.forEach((u,i)=>{const v=HT.Vehicles.make(state.type,{upgrades:u});v.position.set(0,0,(i-1.5)*3.2);scene.add(v);cars.push(v)})}
   else{const v=HT.Vehicles.make(state.type,{upgrades:state.up});scene.add(v);cars.push(v)}
   const s=HT.Vehicles.stats(cars[0]);document.getElementById('info').textContent=`${state.type}: ${s.triangles} tris, ${s.drawCalls} draw calls, built in ${(performance.now()-t0).toFixed(0)} ms`;
@@ -81,8 +81,9 @@ const ui=document.getElementById('ui');const btn=(label,on,fn)=>{const b=documen
 const sel=document.createElement('select');for(const t of TYPES){const o=document.createElement('option');o.value=o.textContent=t;sel.appendChild(o)}sel.value=state.type;sel.onchange=()=>{state.type=sel.value;show()};ui.appendChild(sel);
 const lay=document.createElement('select');for(const t of['single','variants','lineup']){const o=document.createElement('option');o.value=o.textContent=t;lay.appendChild(o)}lay.value=state.layout;lay.onchange=()=>{state.layout=lay.value;show()};ui.appendChild(lay);
 for(const k of['roofRack','bullBar','lightBar','spoiler'])btn(k,false,b=>{state.up[k]=!state.up[k];b.classList.toggle('on');show()});
-const rims=document.createElement('select');for(const t of['stock','alloy','black']){const o=document.createElement('option');o.value=o.textContent=t;rims.appendChild(o)}rims.onchange=()=>{state.up.rims=rims.value;show()};ui.appendChild(rims);
+const rims=document.createElement('select');for(const t of['stock','steel','alloy','black','chrome','gold','spinner']){const o=document.createElement('option');o.value=o.textContent=t;rims.appendChild(o)}rims.onchange=()=>{state.up.rims=rims.value;show()};ui.appendChild(rims);
 const tint=document.createElement('input');tint.type='range';tint.min=0;tint.max=1;tint.step=.05;tint.value=.55;tint.oninput=()=>{state.up.tint=+tint.value;show()};const tl2=document.createElement('label');tl2.textContent='tint ';tl2.appendChild(tint);ui.appendChild(tl2);
+const fin=document.createElement('select');for(const t of['solid','twotone','wood','mural']){const o=document.createElement('option');o.value=o.textContent=t;fin.appendChild(o)}fin.onchange=()=>{state.up.paint=fin.value;show()};ui.appendChild(fin);
 const paint=document.createElement('input');paint.type='color';paint.value='#7d8a96';paint.oninput=()=>{state.up.paint=paint.value;show()};ui.appendChild(paint);
 btn('headlights',false,b=>{state.head=!state.head;b.classList.toggle('on');apply()});btn('brake',false,b=>{state.brake=!state.brake;b.classList.toggle('on');apply()});
 btn('drive',false,b=>{state.drive=!state.drive;b.classList.toggle('on')});
