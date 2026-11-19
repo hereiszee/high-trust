@@ -1,0 +1,27 @@
+ok   hub is the world (L.def.id=world, L.g[10][19]=H)
+ok   collider hash equals brute force on 1000 random queries (1978 colliders)
+     first build 1253 ms (title screen, start area only; the rest streams in), re-entering the cached world 55 ms
+ok   closed barricade stops the van (x=280.1 m, barricade at 282)
+ok   bridge open: across into Riverside and around the 3rd St / Ash St / River Rd block ({"x":422.0043067479626,"z":38.40538374273369,"wp":5,"maxZ":72.62142841488195,"region":"river"})
+ok   ring 0 launches gary (10 enemies), back in the world with the van at the ring
+ok   ring 1 launches rick (8 enemies), back in the world with the van at the ring
+ok   ring 2 launches dave (2 enemies), back in the world with the van at the ring
+ok   ring 3 launches doug (13 enemies), back in the world with the van at the ring
+ok   GPS route to the job site (5 points, 0.8 ms per solve)
+ok   fast travel to Dad's Auto puts the van on the pin (0.00 m)
+ok   crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked
+ok   fuzz: 3000 steps of random walking/driving, never ends a segment inside a collider or out of bounds (transient overlaps: 0)
+ok   med home: 367 draw calls, 44 shadow calls, 983k triangles (worst of 4 headings)
+ok   med mapleSE: 436 draw calls, 75 shadow calls, 985k triangles (worst of 4 headings)
+ok   med dadsAuto: 412 draw calls, 74 shadow calls, 662k triangles (worst of 4 headings)
+ok   med midBridge: 408 draw calls, 83 shadow calls, 651k triangles (worst of 4 headings)
+ok   med riversideMain3rd: 382 draw calls, 55 shadow calls, 451k triangles (worst of 4 headings)
+ok   med scrapyardGate: 399 draw calls, 68 shadow calls, 493k triangles (worst of 4 headings)
+ok   low home: 334 draw calls, 44 shadow calls, 789k triangles (worst of 4 headings)
+ok   low mapleSE: 400 draw calls, 70 shadow calls, 918k triangles (worst of 4 headings)
+ok   low dadsAuto: 312 draw calls, 72 shadow calls, 468k triangles (worst of 4 headings)
+ok   low midBridge: 336 draw calls, 79 shadow calls, 527k triangles (worst of 4 headings)
+ok   low riversideMain3rd: 360 draw calls, 47 shadow calls, 411k triangles (worst of 4 headings)
+ok   low scrapyardGate: 365 draw calls, 64 shadow calls, 465k triangles (worst of 4 headings)
+ok   no console errors
+all passed
