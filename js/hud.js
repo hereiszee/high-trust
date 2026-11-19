@@ -401,7 +401,8 @@ function updMarkers(list){
   const W=H.W,Hh=H.Hh,cx=W/2,cy=Hh/2;const mT=H.compact?150:96,mB=H.compact?320:130,mX=H.compact?28:56;
   const seen=new Set();
   for(const m of list||[]){if(!m.screen||m.world===false)continue;const id=m.id??(m.kind+m.x+m.z);seen.add(id);
-    let r=MK.get(id);if(!r){const e=el('div','ht-mk pop '+(m.kind||'obj'),R.wm,'<div class="ar"><svg viewBox="0 0 14 10" width="14" height="10"><path d="M0 10L7 0l7 10z" fill="currentColor" stroke="rgba(0,0,0,.5)"/></svg></div><div class="ic">'+iconSVG(m.kind||'obj')+'</div><div class="lb"><span class="l"></span><span class="ds ht-num"></span></div>');
+    let r=MK.get(id);if(r&&r.kind!==m.kind){r.e.remove();MK.delete(id);r=null}/* same id, new kind: rebuild the icon */
+    if(!r){const e=el('div','ht-mk pop '+(m.kind||'obj'),R.wm,'<div class="ar"><svg viewBox="0 0 14 10" width="14" height="10"><path d="M0 10L7 0l7 10z" fill="currentColor" stroke="rgba(0,0,0,.5)"/></svg></div><div class="ic">'+iconSVG(m.kind||'obj')+'</div><div class="lb"><span class="l"></span><span class="ds ht-num"></span></div>');
       r={e,ar:e.firstChild,l:e.querySelector('.l'),ds:e.querySelector('.ds'),lb:e.querySelector('.lb'),kind:m.kind};MK.set(id,r);setTimeout(()=>e.classList.remove('pop'),500)}
     const s=m.screen;let x=s.x,y=s.y,behind=!!s.behind;
     const inside=!behind&&x>=mX&&x<=W-mX&&y>=mT&&y<=Hh-mB;
@@ -410,7 +411,9 @@ function updMarkers(list){
     let ang=null;
     if(!inside){let dx=x-cx,dy=y-cy;if(behind){dx=-dx;dy=Math.max(Math.abs(dy),Hh*.25)}if(Math.abs(dx)<1&&Math.abs(dy)<1)dy=1;
       /* clamp onto an ellipse around the crosshair so edge arrows never sit on corner widgets */
-      const ex=H.compact?W*.4:Math.min(W*.36,Hh*.62),ey=H.compact?Hh*.22:Hh*.34;const k=1/Math.sqrt((dx*dx)/(ex*ex)+(dy*dy)/(ey*ey));x=cx+dx*k;y=cy+dy*k;ang=Math.atan2(dy,dx)}
+      const ex=H.compact?W*.4:Math.min(W*.36,Hh*.62),ey=H.compact?Hh*.22:Hh*.34;const k=1/Math.sqrt((dx*dx)/(ex*ex)+(dy*dy)/(ey*ey));x=cx+dx*k;y=cy+dy*k;ang=Math.atan2(dy,dx);
+      /* keep edge arrows out of the corner widgets and, on phones, the touch buttons */
+      y=clamp(y,mT,Hh-(H.touch?390:mB));x=clamp(x,mX,W-mX)}
     cls(r.e,'edge',ang!=null);
     if(ang!=null)sty(r.ar,'transform',`rotate(${(ang*180/Math.PI+90).toFixed(0)}deg) translateY(-12px)`);
     sty(r.e,'transform',`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`);
@@ -737,7 +740,7 @@ function showScreen(name,d={}){
 function hideScreen(name,instant){
   if(name==='map')return MAP.close();
   const n=name||SCR.cur;if(!n||!SCR.el[n])return;const e=SCR.el[n];delete SCR.el[n];if(SCR.cur===n)SCR.cur=null;
-  if(instant)e.remove();else{e.classList.remove('on');setTimeout(()=>e.remove(),480)}
+  if(instant)e.remove();else{e.classList.remove('on');e.classList.add('out');setTimeout(()=>e.remove(),480)}
   cls(R.hud,'off',false);show(R.touch,true);
 }
 function setScreen(name,d){const e=SCR.el[name];if(!e)return;Object.assign(SCR.data[name],d);if(name==='title')updTitle(e,SCR.data[name]);if(name==='pause'&&d.settings)renderPane(e,SCR.data[name])}

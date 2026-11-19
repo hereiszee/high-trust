@@ -737,7 +737,7 @@ let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused
 function requestLock(){if(COARSE)return;lockWanted=true;try{let r;try{r=cv.requestPointerLock({unadjustedMovement:true})}catch(e){r=null}
   if(r&&r.catch)r.catch(()=>{try{const r2=cv.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{lockFailed=true})}catch(e){lockFailed=true}});else if(!r)cv.requestPointerLock()}catch(e){lockFailed=true}}
 function releaseLock(){lockWanted=false;try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
-document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true}
+document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){try{document.exitPointerLock()}catch(e){}}}
   if(was&&!locked&&lockWanted&&running)openPause()});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
@@ -805,7 +805,8 @@ const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===tj.id){tj.id=n
 cv.addEventListener('touchend',tEnd);cv.addEventListener('touchcancel',tEnd);
 let touchFire=false;
 HUD.on('touch',(a,down)=>{initAudio();
-  if(a==='fire'){touchFire=down;mouseDown=down&&running;return}
+  /* a tap shorter than a frame still fires once: a semi-auto trigger stays pulled until fire() releases it */
+  if(a==='fire'){touchFire=down;if(down)mouseDown=running;else if(WEAPONS[P.cur].auto)mouseDown=false;return}
   if(a==='use'){if(down&&running)useTap=true;keys.e=down&&running;return}
   if(!down)return;
   if(a==='pause'){if(running)openPause();else if(pauseOpen)closePause();return}

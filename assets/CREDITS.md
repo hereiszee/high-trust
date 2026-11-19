@@ -96,3 +96,13 @@ Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion 
 | tex2/corrugated_{col,nrm,rgh}.jpg | Corrugated Iron 02 | Poly Haven (Sergej Majboroda, Jenelle van Heerden) | CC0 | https://polyhaven.com/a/corrugated_iron_02 |
 | tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
 | tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
+
+## Fonts (assets/fonts/)
+
+Latin subsets as served by Google Fonts, self-hosted so the HUD paints in its own type from the first frame. All **SIL Open Font License 1.1**; licence texts are next to the files.
+
+| Files | Family | Author | License |
+|---|---|---|---|
+| barlow-{500,600,700}.woff2 | Barlow | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlow.txt) |
+| barlow-condensed-{500,600,700,800}.woff2 | Barlow Condensed | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlowcondensed.txt) |
+| bowlby-one-400.woff2 | Bowlby One | Vernon Adams | OFL 1.1 (OFL-bowlbyone.txt) |
