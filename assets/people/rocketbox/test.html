@@ -1,0 +1,155 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Rocketbox People Test</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#info{position:fixed;left:8px;top:6px;color:#fff;font:12px monospace;text-shadow:0 1px 2px #000}</style>
+</head><body><div id="info">loading…</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script>
+// Standalone viewer/test for assets/people/rocketbox. Usage in a browser: test.html (interactive lineup, orbit with mouse drag)
+// Automation: window.show({...}) — see bottom.
+const BASE = './';
+const REF_HIP = 0.8952; // hip height of the skeleton the clips were authored on (dad_player)
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(1); renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.05, 200);
+camera.position.set(0,1.6,6);
+const sun = new THREE.DirectionalLight(0xfff1dd, 2.2);
+sun.position.set(4,8,5); sun.castShadow = true; sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:0.5,far:30}); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.02;
+scene.add(sun); scene.add(sun.target);
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x4a4036, 0.25));
+// ground
+const tl = new THREE.TextureLoader();
+const gcol = tl.load('../../tex/sidewalk_col.jpg'); gcol.encoding = THREE.sRGBEncoding;
+const gnrm = tl.load('../../tex/sidewalk_nrm.jpg');
+for (const t of [gcol,gnrm]) { t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(20,20); }
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60,60), new THREE.MeshStandardMaterial({map:gcol, normalMap:gnrm, roughness:0.9}));
+ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+// HDRI
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envReady = new Promise(res => new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('../../sky/sky_1k.hdr', tex => {
+  const env = pmrem.fromEquirectangular(tex).texture; scene.environment = env; scene.background = env; tex.dispose(); res();
+}, undefined, () => { scene.background = new THREE.Color(0x8fb3d9); res(); }));
+
+const loader = new THREE.GLTFLoader();
+const load = url => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+const cache = {};
+async function getChar(key){ if(!cache[key]) cache[key] = load(BASE + key + '.glb'); return cache[key]; }
+let clips = {}; let metaP = null;
+function getMeta(){ return metaP || (metaP = fetch(BASE + 'anims.json').then(r => r.json()).catch(() => ({}))); }
+async function getAnims(){ if(Object.keys(clips).length) return clips; try { const g = await load(BASE+'anims.glb'); for (const c of g.animations) clips[c.name]=c; } catch(e){ console.warn('no anims', e); } return clips; }
+
+// Fix-ups the game should also apply when instancing (see README notes)
+function prepCharacter(root){
+  root.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
+      const ms = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of ms) { if (m.map) m.map.anisotropy = 4; m.envMapIntensity = 0.9; }
+    }
+  });
+}
+// scale root-motion (pelvis height) of a clip to a character with different hip height (women/kids)
+const clipCache = {};
+function clipFor(name, hip){
+  const c = clips[name]; if(!c) return null;
+  const k = name + '@' + hip.toFixed(3); if (clipCache[k]) return clipCache[k];
+  const r = hip / REF_HIP; const cc = c.clone();
+  for (const t of cc.tracks) if (t.name.endsWith('Bip01_Pelvis.position') && Math.abs(r-1)>1e-3) { t.values = t.values.map(v=>v*r); }
+  return clipCache[k] = cc;
+}
+const actors = []; const mixers = [];
+function clear(){ for (const a of actors) scene.remove(a); actors.length = 0; mixers.length = 0; }
+async function spawn(spec){
+  const g = await getChar(spec.key);
+  const root = THREE.SkeletonUtils.clone(g.scene); prepCharacter(root);
+  root.position.set(spec.x||0, 0, spec.z||0); root.rotation.y = spec.rotY||0;
+  scene.add(root); actors.push(root);
+  let hip = REF_HIP; g.scene.traverse(o=>{ if(o.userData && o.userData.hipHeight) hip = o.userData.hipHeight; });
+  if (spec.clip) {
+    await getAnims();
+    const mixer = new THREE.AnimationMixer(root); mixers.push(mixer);
+    const clip = clipFor(spec.clip, hip);
+    if (clip) { const a = mixer.clipAction(clip); a.play(); mixer.setTime(spec.t != null ? spec.t * clip.duration : 0); }
+    if (spec.upper) { // optional additive/upper-body layering demo
+      const up = clipFor(spec.upper, hip); if (up) { const a2 = mixer.clipAction(up); a2.play(); }
+    }
+  }
+  if (spec.markers) for (const n of spec.markers) { const b = root.getObjectByName(n.replace(/ /g,'_')); if (b) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({color:0xff0000, depthTest:false})); m.renderOrder = 10; b.add(m); } }
+  if (spec.gun) { mixers.forEach(m=>m.update(0)); root.updateMatrixWorld(true); await attachGun(root, spec.gun); }
+  return root;
+}
+function attachProp(root, at){
+  const bone = root.getObjectByName(at.bone.replace(/ /g,'_'));
+  if (!bone) return;
+  let m;
+  if (at.type === 'rifle') { m = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.08,0.8), new THREE.MeshStandardMaterial({color:0x222222, roughness:0.5, metalness:0.6})); }
+  else { m = new THREE.Mesh(new THREE.SphereGeometry(0.03), new THREE.MeshStandardMaterial({color:0xff0000})); }
+  m.castShadow = true; bone.add(m);
+  // keep world scale 1 even if bone has scale
+  if (at.pos) m.position.fromArray(at.pos); if (at.rot) m.rotation.fromArray(at.rot);
+}
+// Fit a gun into the right hand from the current pose (grip at palm, barrel toward the left hand for rifles,
+// character-forward for pistols) and report the resulting R-Hand-local transform (constant you can hardcode in the game).
+const v3 = () => new THREE.Vector3();
+async function attachGun(root, kind){
+  const g = await load('../../props/gun_' + (kind === 'pistol' ? 'pistol' : 'rifle') + '.glb');
+  const gun = g.scene.clone(); gun.traverse(o=>{ if(o.isMesh) o.castShadow = true; });
+  const B = n => root.getObjectByName(n);
+  const hand = B('Bip01_R_Hand'), mid = B('Bip01_R_Finger2'), idx = B('Bip01_R_Finger1'), pky = B('Bip01_R_Finger4'), lh = B('Bip01_L_Hand'), lmid = B('Bip01_L_Finger2');
+  const w = hand.getWorldPosition(v3()), m = mid.getWorldPosition(v3()), i1 = idx.getWorldPosition(v3()), p1 = pky.getWorldPosition(v3());
+  const grip = w.clone().lerp(m, 0.75).add(i1.clone().sub(p1).multiplyScalar(0.15));
+  // palm-centre grip point; gun origin sits ~6 cm above it (both Quaternius guns have the origin at the top of the grip)
+  const fwd = new THREE.Vector3(0,0,1).applyQuaternion(root.getWorldQuaternion(new THREE.Quaternion()));
+  grip.add(new THREE.Vector3(0,0.06,0)).add(fwd.clone().multiplyScalar(-0.01));
+  let M;
+  const meta = await getMeta();
+  if (kind === 'rifle' && meta._rifle_origin_frame0) {
+    M = root.matrixWorld.clone().multiply(new THREE.Matrix4().makeRotationY(Math.PI).setPosition(new THREE.Vector3().fromArray(meta._rifle_origin_frame0)));
+  } else {
+  const up0 = new THREE.Vector3(0,1,0); const z = fwd.clone().negate(); const x = up0.clone().cross(z).normalize(); const y = z.clone().cross(x);
+  M = new THREE.Matrix4().makeBasis(x, y, z).setPosition(grip);
+  }
+  const local = hand.matrixWorld.clone().invert().multiply(M);
+  const pos = v3(), q = new THREE.Quaternion(), sc = v3(); local.decompose(pos, q, sc);
+  gun.position.copy(pos); gun.quaternion.copy(q); gun.scale.copy(sc); hand.add(gun);
+  window.gunLocal = window.gunLocal || {}; window.gunLocal[kind] = {pos: pos.toArray().map(v=>+v.toFixed(4)), quat: q.toArray().map(v=>+v.toFixed(4)), scale: sc.toArray().map(v=>+v.toFixed(3))};
+  console.log('GUNLOCAL', kind, JSON.stringify(window.gunLocal[kind]));
+}
+let ready = false;
+async function show(cfg){
+  ready = false; await envReady; clear();
+  for (const s of (cfg.chars||[])) await spawn(s);
+  for (const pr of (cfg.props||[])) { const g = await load(pr.url); const o = g.scene.clone(); o.position.fromArray(pr.pos||[0,0,0]); if(pr.rot) o.rotation.fromArray(pr.rot); scene.add(o); actors.push(o); if (pr.axes) { const ax = new THREE.AxesHelper(pr.axes); o.add(ax); ax.material.depthTest=false; ax.renderOrder=9; } }
+  for (const m of mixers) m.update(0);
+  const c = cfg.cam || [0,1.6,6], t = cfg.target || [0,1,0];
+  camera.fov = cfg.fov || 40; camera.position.fromArray(c); camera.lookAt(new THREE.Vector3().fromArray(t)); camera.updateProjectionMatrix();
+  if (cfg.sun) sun.position.fromArray(cfg.sun);
+  sun.target.position.set(t[0],0,t[2]); sun.position.add(new THREE.Vector3(t[0],0,t[2]));
+  document.getElementById('info').textContent = cfg.label || '';
+  renderer.render(scene, camera); ready = true; return true;
+}
+window.show = show; window.boneAxes = names => names.map(n => { const b = actors[0].getObjectByName(n.replace(/ /g,'_')); if(!b) return [n,null]; b.updateMatrixWorld(true); const e = b.matrixWorld.elements; const f = v => v.map(x=>+x.toFixed(2)); return [n, {pos: f([e[12],e[13],e[14]]), x: f([e[0],e[1],e[2]]), y: f([e[4],e[5],e[6]]), z: f([e[8],e[9],e[10]])}]; }); window.bonePos = names => names.map(n => { const b = actors[0].getObjectByName(n.replace(/ /g,'_')); return b ? [n, b.getWorldPosition(new THREE.Vector3()).toArray().map(v=>+v.toFixed(3))] : [n,null]; }); window.isReady = () => ready; window.getAnims = getAnims; window.clipsInfo = async () => { await getAnims(); return Object.values(clips).map(c=>({name:c.name,duration:+c.duration.toFixed(3),tracks:c.tracks.length})); };
+// interactive default: lineup + simple orbit
+let auto = !/[?&]auto=0/.test(location.search);
+let yaw = 0, pitch = 0.1, dist = 7, dragging = false, lx = 0, ly = 0, playing = /[?&]play=1/.test(location.search);
+addEventListener('pointerdown', e=>{dragging=true; lx=e.clientX; ly=e.clientY;}); addEventListener('pointerup', ()=>dragging=false);
+addEventListener('pointermove', e=>{ if(!dragging) return; yaw -= (e.clientX-lx)*0.005; pitch += (e.clientY-ly)*0.005; lx=e.clientX; ly=e.clientY; orbit(); });
+addEventListener('wheel', e=>{ dist *= e.deltaY>0?1.1:0.9; orbit(); });
+function orbit(){ camera.position.set(Math.sin(yaw)*Math.cos(pitch)*dist, 1+Math.sin(pitch)*dist, Math.cos(yaw)*Math.cos(pitch)*dist); camera.lookAt(0,1,0); }
+const clock = new THREE.Clock();
+(function loop(){ requestAnimationFrame(loop); const dt = clock.getDelta(); if (playing) for (const m of mixers) m.update(dt); renderer.render(scene, camera); })();
+addEventListener('resize', ()=>{ renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); });
+if (auto) fetch(BASE+'characters.json').then(r=>r.json()).then(list => {
+  const n = list.length; playing = true;
+  show({chars: list.map((c,i)=>({key:c.key, x:(i-(n-1)/2)*0.9, clip: c.idle || 'idle'})), cam:[0,1.5,Math.max(6, n*0.75)], target:[0,0.95,0], label:'Rocketbox people — drag to orbit'}).then(()=>{dist=Math.max(6,n*0.75);});
+}).catch(()=>{});
+</script></body></html>

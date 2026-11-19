@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>World Visualiser</title>
+<style>
+:root{--bg:#f4f1ea;--ink:#1d1f24;--muted:#6b6f75;--card:#fff;--line:#d8d2c4;--sun:#ffc94a}
+@media (prefers-color-scheme:dark){:root{--bg:#16181c;--ink:#ece8df;--muted:#9a9ea6;--card:#1f2228;--line:#33373f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:2}
+header h1{font-size:14px;margin:0 8px 0 0;letter-spacing:.04em;text-transform:uppercase}
+label{display:inline-flex;gap:5px;align-items:center;color:var(--muted)}input[type=range]{width:120px}
+button{font:inherit;padding:4px 10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:4px;cursor:pointer}
+#wrap{padding:12px 16px;overflow-x:auto}canvas{display:block;border:1px solid var(--line);background:#2a2d33}
+#info{padding:0 16px 16px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:pre-wrap}
+.k{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+</style></head><body>
+<header>
+  <h1>High Trust · World</h1>
+  <label>Riverside trust <input id="tier" type="range" min="0" max="100" value="0"><b id="tierV">0</b></label>
+  <label><input id="bridge" type="checkbox"> Bridge open</label>
+  <label><input id="lRegions" type="checkbox" checked> Regions</label>
+  <label><input id="lSites" type="checkbox" checked> Sites</label>
+  <label><input id="lGraph" type="checkbox" checked> Road graph</label>
+  <label><input id="lChunks" type="checkbox"> Chunks</label>
+  <label><input id="lDress" type="checkbox" checked> Dressing</label>
+  <label>Chase <select id="car"><option value="sedan">Duke's sedan (27)</option><option value="hatch">Hot Pursuit hatch (24)</option><option value="workvan">Ice-cream truck (19)</option></select></label>
+  <label>seed <input id="seed" type="number" value="3" min="1" style="width:50px"></label>
+  <button id="go">Run chase</button>
+  <label>zoom <select id="zoom"><option value="all">Whole map</option><option value="river">Riverside</option><option value="maple">Maple Heights</option><option value="route9">Route 9</option></select></label>
+</header>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="info"></div>
+<script src="../js/worldgen.js"></script>
+<script src="../js/roadgraph.js"></script>
+<script src="../js/carai.js"></script>
+<script>
+(function(){'use strict';
+const Wd=HT.World,R=HT.Roads,C=HT.CarAI,$=id=>document.getElementById(id);
+let def,G,chase=null,chaseT=0,anim=null;
+const S={tier:0,bridge:false,regions:true,sites:true,graph:true,chunks:false,dress:true,view:'all'};
+const VIEWS={all:{x0:0,z0:0,x1:232,z1:80},river:{x0:150,z0:0,x1:232,z1:80},maple:{x0:0,z0:0,x1:100,z1:80},route9:{x0:96,z0:0,x1:156,z1:80}};
+const GROUND={',':'#3b3d43','.':'#8f8b82',g:'#5d8a4a',s:'#b7b2a6',b:'#b5523b','=':'#6f6f6f','~':'#3f6f86'};
+const REG={maple:'rgba(255,201,74,.10)',route9:'rgba(120,170,255,.10)',river:'rgba(255,110,150,.10)'};
+function rebuild(){def=Wd.build({bridgeOpen:S.bridge});G=R.build(def);chase=null;draw()}
+function draw(){const v=VIEWS[S.view],cv=$('cv'),maxW=Math.max(600,innerWidth-34),px=Math.max(3,Math.floor(maxW/(v.x1-v.x0))),dpr=Math.min(2,devicePixelRatio||1);
+  cv.width=(v.x1-v.x0)*px*dpr;cv.height=(v.z1-v.z0)*px*dpr;cv.style.width=(v.x1-v.x0)*px+'px';cv.style.height=(v.z1-v.z0)*px+'px';
+  const x=cv.getContext('2d');x.setTransform(dpr*px,0,0,dpr*px,-v.x0*px*dpr,-v.z0*px*dpr);   // 1 unit = 1 tile
+  const m=def.map,dr=Wd.dressing(def,S.tier,[]),T=1/px;
+  for(let z=0;z<80;z++)for(let i=0;i<232;i++){x.fillStyle=GROUND[def.ground[z][i]]||'#555';x.fillRect(i,z,1.02,1.02)}
+  if(def.lines){x.strokeStyle='rgba(232,204,90,.6)';x.lineWidth=T;x.setLineDash([.6,.6]);for(const[o,k,a,b]of def.lines){x.beginPath();if(o==='h'){x.moveTo(a,k+.5);x.lineTo(b+1,k+.5)}else{x.moveTo(k+.5,a);x.lineTo(k+.5,b+1)}x.stroke()}x.setLineDash([])}
+  for(const h of def.houses){x.fillStyle=h.col;x.fillRect(h.x0+.1,h.z0+.1,h.x1-h.x0+.8,h.z1-h.z0+.8);x.fillStyle='#6b4a2f';const dz=h.face==='n'?h.z0:h.z1+.75;x.fillRect((h.x0+h.x1+1)/2-.3,dz,.6,.15)}
+  const boarded=new Set(dr.boarded);for(const u of def.rowUnits){x.fillStyle=u.col;x.fillRect(u.x0+.05,u.z0+.05,u.x1-u.x0+.9,u.z1-u.z0+.9);if(boarded.has(u.id)&&S.dress){x.strokeStyle='#c9a46a';x.lineWidth=2*T;x.beginPath();x.moveTo(u.x0+.3,u.z0+.3);x.lineTo(u.x1+.7,u.z1+.7);x.moveTo(u.x1+.7,u.z0+.3);x.lineTo(u.x0+.3,u.z1+.7);x.stroke()}}
+  for(const w of def.warehouses){x.fillStyle='#7e8a8f';x.fillRect(w.x0,w.z0,w.x1-w.x0+1,w.z1-w.z0+1)}
+  for(const b of def.buildings){x.fillStyle=b.col;x.fillRect(b.x0,b.z0,b.x1-b.x0+1,b.z1-b.z0+1);x.fillStyle='#1d1f24';x.font='bold 0.9px system-ui';x.fillText(b.id.toUpperCase(),b.x0+.2,b.z0+1)}
+  for(const w of def.walls){x.fillStyle=w.col;x.fillRect(w.x0,w.z0+.2,w.x1-w.x0+1,.6)}
+  x.lineWidth=2*T;for(const f of def.chainlink){x.strokeStyle='#b9c2c7';x.beginPath();if(f.o==='h'){x.moveTo(f.x0,f.z0+.5);x.lineTo(f.x1+1,f.z0+.5)}else{x.moveTo(f.x0+.5,f.z0);x.lineTo(f.x0+.5,f.z1+1)}x.stroke()}
+  for(const f of def.hedges){x.fillStyle='#3f6e35';x.fillRect(f.x0,f.z0+.3,f.x1-f.x0+1,f.o==='h'?.4:f.z1-f.z0+1)}
+  for(const r of def.rails){x.fillStyle='#cfcfcf';x.fillRect(r.x0,r.z0+.35,r.x1-r.x0+1,.3)}
+  for(const t of def.trees){x.fillStyle=['#2f5a28','#3b6a31','#4b7f3d'][t.v];x.beginPath();x.arc(t.tx+.5,t.tz+.5,.55,0,7);x.fill()}
+  for(const c of def.crates){x.fillStyle='#8b6a45';x.fillRect(c.tx+.15,c.tz+.15,.7,.7)}
+  for(const t of def.tables){x.fillStyle='#5a4636';x.fillRect(t.tx+.05,t.tz+.25,.9,.5)}
+  for(const p of def.pumps){x.fillStyle='#e5533d';x.fillRect(p.tx+.2,p.tz+.1,.6,.8)}
+  for(const v of def.parked){x.fillStyle=v.col;x.fillRect(v.x/2-1.1,v.z/2-.55,2.2,1.1)}
+  const garden={weeds:'#7a6a3a',seedlings:'#7fae57',bloom:'#e7b53a'}[dr.garden];for(const b of def.beds){x.fillStyle='#6b4a2f';x.fillRect(b.x0,b.z0+.1,b.x1-b.x0+1,.8);x.fillStyle=garden;x.fillRect(b.x0+.15,b.z0+.3,b.x1-b.x0+.7,.4)}
+  if(!def.bridgeOpen)for(const b of def.barricade){x.fillStyle='#ff8a1f';x.fillRect(b.tx+.2,b.tz,.6,1)}
+  const lit=new Set(dr.lampsLit);for(const l of def.lamps){x.fillStyle=lit.has(l.tx+','+l.tz)?'#ffe58a':'#55595f';x.beginPath();x.arc(l.tx+.5,l.tz+.5,.28,0,7);x.fill()}
+  if(S.dress){const tags=new Set(dr.tags);for(const t of def.tags)if(tags.has(t.id)){x.fillStyle='#ff3fb4';x.fillRect(t.x/2-.4,t.z/2-.25,.8,.5)}
+    const trash=new Set(dr.trash);for(const o of def.trash)if(trash.has(o.id)){x.fillStyle=o.kind==='cart'?'#c0c4c8':'#2b2b2b';x.beginPath();x.arc(o.tx+.5,o.tz+.5,.3,0,7);x.fill()}
+    if(dr.chalk.length)for(const c of def.chalk){x.fillStyle='rgba(255,255,255,.85)';x.fillRect(c.tx+.25,c.tz+.25,.5,.5)}
+    const nb=new Set(dr.neighbourAnchors);for(const p of def.porches){x.fillStyle=nb.has(p.order)?'#6fdc7a':'rgba(0,0,0,.25)';x.beginPath();x.arc(p.tx+.5,p.tz+.5,.33,0,7);x.fill()}}
+  if(S.regions){for(const k in def.hoods){const h=def.hoods[k];x.fillStyle=REG[k];x.fillRect(h.tx0,0,h.tx1-h.tx0+1,80);x.fillStyle='rgba(255,255,255,.9)';x.font='bold 2.2px system-ui';x.fillText(h.name.toUpperCase(),h.tx0+1.5,78.3)}}
+  if(S.chunks){x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=T;for(const c of def.chunks){x.strokeRect(c.x0,c.z0,c.x1-c.x0+1,c.z1-c.z0+1);x.fillStyle='rgba(255,255,255,.6)';x.font='1.4px system-ui';x.fillText('c'+c.i,c.x0+.5,c.z0+1.8)}}
+  if(S.sites){for(const s of Object.values(def.sites)){x.strokeStyle='#ffc94a';x.lineWidth=2*T;x.setLineDash([.8,.5]);x.strokeRect(s.x0,s.z0,s.x1-s.x0+1,s.z1-s.z0+1);x.setLineDash([]);
+      x.beginPath();x.arc(s.ring.x/2,s.ring.z/2,s.ring.r/2,0,7);x.stroke();x.fillStyle='#ffc94a';x.font='bold 1.6px system-ui';x.fillText(s.id,s.x0+.4,s.z0+1.7);
+      for(const e of s.spawns){x.fillStyle=e.boss?'#ff3030':'#e05050';x.fillRect(e.tx+.3,e.tz+.3,.4,.4)}for(const it of[...s.items,...s.bonus]){x.fillStyle='#ffd27a';x.fillRect(it.tx+.3,it.tz+.3,.4,.4)}}
+    for(const[k,p]of Object.entries(def.places)){if(!p.label&&!k.startsWith('g_'))continue;x.fillStyle=k.startsWith('g_')?'#ffc94a':'#fff';x.save();x.translate(p.tx+.5,p.tz+.5);x.rotate(Math.PI/4);x.fillRect(-.45,-.45,.9,.9);x.restore()}}
+  if(S.graph){x.strokeStyle='rgba(120,200,255,.85)';x.lineWidth=2*T;for(const e of G.edges){const a=G.nodes[e.a],b=G.nodes[e.b];x.beginPath();x.moveTo(a.tx+.5,a.tz+.5);x.lineTo(b.tx+.5,b.tz+.5);x.stroke()}
+    for(const n of G.nodes){x.fillStyle=n.e.length===1?'#ff8a1f':'#78c8ff';x.beginPath();x.arc(n.tx+.5,n.tz+.5,.45,0,7);x.fill()}}
+  if(chase){const tr=chase.trace,k=Math.min(tr.length-1,Math.floor(chaseT));const path=(sel,col)=>{x.strokeStyle=col;x.lineWidth=2.5*T;x.beginPath();tr.slice(0,k+1).forEach((p,i)=>{const q=p[sel];i?x.lineTo(q.x/2,q.z/2):x.moveTo(q.x/2,q.z/2)});x.stroke()};
+    path('van','#4aa3ff');path('car','#ff4a4a');const car=(q,col,len)=>{x.save();x.translate(q.x/2,q.z/2);x.rotate(-q.yaw);x.fillStyle=col;x.fillRect(-.5,-len/4,1,len/2);x.fillStyle='#fff';x.fillRect(-.35,-len/4,.7,.25);x.restore()};
+    const p=tr[k];car(p.van,'#4aa3ff',4.4);car(p.car,'#ff4a4a',4.6)}
+  info()}
+function info(){const dr=Wd.dressing(def,S.tier,[]);let s=`tier ${dr.tier} · "${dr.line}"\ntags ${dr.tags.length}/48 · broken lamps ${dr.lampsBroken.length} · trash ${dr.trash.length} · chalk ${dr.chalk.length} · boarded ${dr.boarded.length} · neighbour anchors ${dr.neighbourAnchors.length} · garden ${dr.garden}\n`+
+  `graph ${G.nodes.length} nodes / ${G.edges.length} edges · components ${G.components().count} · bridge ${def.bridgeOpen?'open':'closed'}`;
+  if(chase){const p=chase.trace[Math.min(chase.trace.length-1,Math.floor(chaseT))];s+=`\nchase ${$('car').value} seed ${$('seed').value}: ${chase.result} at ${chase.t.toFixed(1)} s · rams ${chase.rams} · PITs ${chase.pits} · t=${p.t.toFixed(1)} s car hp ${p.car.hp.toFixed(0)} · gap ${Math.hypot(p.van.x-p.car.x,p.van.z-p.car.z).toFixed(0)} m`}
+  $('info').textContent=s}
+function runChase(seed,type,frame){if(!def.bridgeOpen){S.bridge=true;$('bridge').checked=true;def=Wd.build({bridgeOpen:true});G=R.build(def)}
+  $('car').value=type;$('seed').value=seed;const max={sedan:27,hatch:24,workvan:19}[type];chase=C.simulateChase({def,G,seed,carType:type,max,trace:true});cancelAnimationFrame(anim);
+  if(frame!=null){chaseT=frame==='end'?chase.trace.length-1:frame;draw();return chase}
+  chaseT=0;const tick=()=>{chaseT+=1;draw();if(chaseT<chase.trace.length-1)anim=requestAnimationFrame(tick)};tick();return chase}
+$('tier').oninput=e=>{S.tier=+e.target.value;$('tierV').textContent=S.tier;draw()};
+$('bridge').onchange=e=>{S.bridge=e.target.checked;rebuild()};
+for(const[id,k]of[['lRegions','regions'],['lSites','sites'],['lGraph','graph'],['lChunks','chunks'],['lDress','dress']])$(id).onchange=e=>{S[k]=e.target.checked;draw()};
+$('zoom').onchange=e=>{S.view=e.target.value;draw()};$('go').onclick=()=>runChase(+$('seed').value||1,$('car').value);
+addEventListener('resize',draw);
+window.__viz={set(o){Object.assign(S,o);$('tier').value=S.tier;$('tierV').textContent=S.tier;$('bridge').checked=S.bridge;$('zoom').value=S.view;
+  for(const[id,k]of[['lRegions','regions'],['lSites','sites'],['lGraph','graph'],['lChunks','chunks'],['lDress','dress']])$(id).checked=S[k];
+  if(o.bridge!==undefined)rebuild();else draw()},runChase,get def(){return def},get G(){return G}};
+rebuild();
+})();
+</script></body></html>
