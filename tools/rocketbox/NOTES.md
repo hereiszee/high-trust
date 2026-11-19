@@ -7,4 +7,4 @@
 5. Proof: serve /home/user/high-trust, `node scripts/shots.js shots_final.json shots/final <port>`
 Scripts: rbcommon.py (FBX import + normalize), build_char.py (materials, export), acc.py (cap/glasses/whistle/belly),
 retarget.py (rest-aware retargeter, FK, two-bone IK), build_anims.py (clip list, procedural poses), texfx_dad_doug.sh, prep_tex.sh.
-6. Roster round 2 (variety): textures at JPEG quality 80 (colour) / 78 (normal) to keep every glb under 1.3 MB. Picked from the avatar previews (Assets/Avatars/*/*/<name>.png); avatars in religious dress or uniforms/costumes were left out. Earl's hard hat and tool belt are hidden at runtime (js/people.js HIDE) and he gets a procedural cap.
+6. Roster round 2 (variety): textures at JPEG quality 80 (colour) / 78 (normal) to keep every glb under 1.3 MB. Picked from the avatar previews (Assets/Avatars/*/*/<name>.png); avatars in religious dress or uniforms/costumes were left out.

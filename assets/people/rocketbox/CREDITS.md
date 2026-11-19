@@ -6,17 +6,13 @@ Every file in this folder is built from MIT- or CC0-licensed sources. Nothing he
 |---|---|---|---|---|
 | dad_player.glb | Rocketbox `Assets/Avatars/Adults/Male_Adult_14` (+ procedural cap) | Microsoft (Rocketbox Avatar Library) | MIT | https://github.com/microsoft/Microsoft-Rocketbox |
 | dad_gary.glb | Rocketbox `Adults/Male_Adult_03` (+ procedural sunglasses) | Microsoft | MIT | same |
-| dad_rick.glb | Rocketbox `Adults/Male_Adult_12` (+ procedural cap and whistle) | Microsoft | MIT | same |
+| dad_rick.glb | Rocketbox `Adults/Male_Adult_01` (+ procedural cap and whistle) | Microsoft | MIT | same |
 | thug_fro.glb | Rocketbox `Adults/Male_Adult_04` | Microsoft | MIT | same |
 | thug_jacket.glb | Rocketbox `Adults/Male_Adult_07` | Microsoft | MIT | same |
 | thug_brown.glb | Rocketbox `Adults/Male_Adult_20` | Microsoft | MIT | same |
 | thug_cap.glb | Rocketbox `Professions/Wood_Male_01` | Microsoft | MIT | same |
 | thug_f_hood.glb | Rocketbox `Adults/Female_Adult_12` | Microsoft | MIT | same |
 | thug_f_leather.glb | Rocketbox `Adults/Female_Adult_04` | Microsoft | MIT | same |
-| earl.glb | Rocketbox `Professions/Construction_Male_03` | Microsoft | MIT | same |
-| dee.glb | Rocketbox `Professions/Business_Female_01` | Microsoft | MIT | same |
-| rosa.glb | Rocketbox `Professions/Medical_Female_01` | Microsoft | MIT | same |
-| benny.glb | Rocketbox `Adults/Male_Adult_05 (+ procedural cap)` | Microsoft | MIT | same |
 | dad_dave.glb | Rocketbox `Adults/Male_Adult_13` (+ procedural belly morph) | Microsoft | MIT | same |
 | dad_doug.glb | Rocketbox `Professions/Police_Male_06`. Retextured: the "POLICE" patches now read "DAD", the shirt is tinted blue, and the badge is removed. Procedural sunglasses added. | Microsoft | MIT | same |
 | thug_hoodie.glb | Rocketbox `Adults/Male_Adult_18` | Microsoft | MIT | same |

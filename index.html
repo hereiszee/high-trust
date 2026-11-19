@@ -743,11 +743,12 @@ function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
    signatures and only fill UI, which hud() turns into one state object per frame. */
 const HUD=HT.HUD.init(document.body.appendChild(document.createElement('div')));
+HUD.blockKeys=()=>!!(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen());/* no M map while a shop/locker/home menu is up */
 {const au=HUD.settingsSchema.find(g=>g.tab==='audio');if(au){const v=au.items.find(i=>i.k==='voice');if(v){v.k='ambience';v.l='Ambience'}}}/* js/audio.js has master, sfx, music and ambience buses, no voice bus */
 const VOL_DEF={master:90,sfx:100,music:50,ambience:75};
 HUD.settings={subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience};P.fp=!!CFG.fp;
 const subQ=[];let subT=0,bannerT=0,hitT=0,hurtFlash=0;
-const UI={obj:null,prompt:null,marker:null,sub:null,route:null,acts:{},title:{progress:0},M:null,hp:100,n:{},down:new Map()};
+const UI={obj:null,prompt:null,marker:null,sub:null,route:null,acts:{},title:{progress:0,premise:'Packages are vanishing, a chop shop opened on Industrial Way, and somebody is dealing out of the duplex on Birch. You and the guys would rather be grilling.'},M:null,hp:100,n:{},down:new Map()};
 function radio(who,text,front){const n=who==='you'?'You':(HOMIES[who]?.name||who);if(front)subQ.unshift([n,text]);else subQ.push([n,text]);if(subQ.length>4)subQ.length=4}
 function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
   const intro=mode==='mission'&&M&&M.elapsed<.5&&t===M.def.title.toUpperCase();
@@ -1103,12 +1104,12 @@ function setObj(t,lines){UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?
 /* ================= INPUT ================= */
 const cv=renderer.domElement;let locked=false;
 function canvasFocus(){try{cv.focus({preventScroll:true})}catch(e){}}
-let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused=false;
+let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused=false,selfExit=false;/* selfExit: the next unlock is ours, not the player's Esc */
 function requestLock(){if(COARSE)return;lockWanted=true;try{let r;try{r=cv.requestPointerLock({unadjustedMovement:true})}catch(e){r=null}
   if(r&&r.catch)r.catch(()=>{try{const r2=cv.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{lockFailed=true})}catch(e){lockFailed=true}});else if(!r)cv.requestPointerLock()}catch(e){lockFailed=true}}
-function releaseLock(){lockWanted=false;try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
-document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){try{document.exitPointerLock()}catch(e){}}}
-  if(was&&!locked&&lockWanted&&running)openPause()});
+function releaseLock(){lockWanted=false;try{if(document.pointerLockElement){selfExit=true;document.exitPointerLock()}}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
+document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){selfExit=true;try{document.exitPointerLock()}catch(e){}}}
+  if(was&&!locked){if(selfExit)selfExit=false;else if(lockWanted&&running)openPause()}});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
   if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
@@ -1138,8 +1139,10 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause()})}
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){HUD.show('title',UI.title)}
+/* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
+function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
-  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
+  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',a=>{
   if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
   else if(UI.acts[a])UI.acts[a]();
@@ -1321,8 +1324,8 @@ function fire(){
         if(w.root&&Math.random()<w.root){e.rootT=.6;e.rootAt=e.pos.clone()}}}
   }
   /* pellets are summed per target so one blast can't both make a man give up and then hit him again */
-  for(const [e,d] of dmgBy){P.lastHitDir=fwd;if(hurtEnemy(e,d,'player',{nonlethal:w.nonlethal,gun:id,head:!!(fire.heads&&fire.heads.has(e))})==='dead')killed=true}if(fire.heads)fire.heads.clear();
-  if(anyHit){hitT=.18;HUD.hit(killed?'kill':'hit');const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
+  for(const [e,d] of dmgBy){P.lastHitDir=fwd;if(hurtEnemy(e,d,'player',{nonlethal:w.nonlethal,gun:id,head:!!(fire.heads&&fire.heads.has(e))})==='dead')killed=true}const headed=!!(fire.heads&&fire.heads.size);if(fire.heads)fire.heads.clear();
+  if(anyHit){hitT=.18;HUD.hit(headed?(killed?'head':'headhit'):killed?'kill':'hit');const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
   /* recoil: pattern-driven climb + jitter, recovered over time (rDebt) */
   const p=w.rc.pat[Math.min(n,w.rc.pat.length-1)];
   const kv=w.rc.v*p[0]*lerp(1,w.rc.adsMul,P.adsT)*(P.crouch?.8:1),kh=w.rc.h*(p[1]+w.rc.hBias+rand(-1,1));
@@ -1431,7 +1434,7 @@ function updPickups(dt,busy){
 /* automatic ammo: ammo bags, dropped boxes and the ammo in a dropped gun you already carry come to you within PK_R (a short magnet), with a toast.
    A full pouch says so once per ammo type until you spend some. A surrendered man's gun waits for the zip-tie. */
 const PK_R=1.25;
-function toast(txt,col){if(HUD&&HUD.feed){try{HUD.feed(txt,'info');return}catch(e){}}if(!document.body)return;let el=$('pkToast');
+function toast(txt,col){if(HUD&&HUD.ammoToast){try{HUD.ammoToast(txt,col);return}catch(e){}}if(!document.body)return;let el=$('pkToast');
   if(!el){el=document.createElement('div');el.id='pkToast';el.style.cssText='position:fixed;left:50%;bottom:27%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;z-index:3';document.body.appendChild(el)}
   const d=document.createElement('div');d.textContent=txt;d.style.cssText='font:800 15px/1 var(--body,sans-serif);letter-spacing:.05em;color:#f6f1e3;background:rgba(18,20,24,.66);padding:7px 13px 7px 11px;border-left:3px solid '+(col||'#ffc94a')+';border-radius:3px;text-shadow:0 1px 2px rgba(0,0,0,.5);transition:opacity .35s,transform .35s;opacity:0;transform:translateY(8px)';
   el.appendChild(d);while(el.children.length>3)el.firstChild.remove();void d.offsetWidth;d.style.opacity='1';d.style.transform='none';
@@ -1831,7 +1834,7 @@ function hudEvents(){
       HUD.damage(src?{x:src.pos.x,z:src.pos.z}:{angle:0},UI.hp-P.hp)}}
   UI.hp=P.hp}
 function hud(dt){
-  if(mode==='title'){$('lock').hidden=true;return}
+  if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
   const drv=VAN.on&&mode==='hub',mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
   /* crosshair spread: same formula fire() uses */
@@ -2193,13 +2196,13 @@ RENDER.apply(CFG.gfx);
 initModules();
 try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}
 try{FX.init({scene,camera,renderer,assets:ASSETS,quality:CFG.gfx,groundAt:worldGroundAt});FX.setQuality(RENDER.q);FX.bindGrade(RENDER.post&&RENDER.mats.grade?RENDER.mats.grade.uniforms:null)}catch(e){console.warn('FX init failed',e)}
-buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;
+buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();
 /* title card: progress bar while assets stream in; the button unlocks when everything settled (or after the 25s timeout) */
 showTitle();
 ASSETS.onProgress((f,A)=>{if(!A.done)HUD.set('title',{progress:f})});
 ASSETS.ready.then(A=>{const miss=A.failed.length;
   HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
-  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove()}
+  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();titlePose()}
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */

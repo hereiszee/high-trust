@@ -120,7 +120,7 @@ const SETTINGS=[
     {k:'sfx',l:'Effects',min:0,max:100,step:5,fmt:v=>v+'%'},
     {k:'voice',l:'Dialogue',min:0,max:100,step:5,fmt:v=>v+'%'}]}
 ];
-const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
+const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Jump · vault','Space'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Decorate (at home)','B'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
 
@@ -163,8 +163,8 @@ function build(root){
   for(let i=0;i<2;i++){const s=el('div','ht-seg',R.hp.querySelector('.ar'),'<i></i>');R.arSeg.push(s.firstChild)}
   R.hpV=R.hp.querySelector('.v');R.crew=el('div','ht-crew tx',R.lcol);R.crewCards=[];
   /* weapon */
-  R.wp=el('div','ht-wp tx',hud,'<div class="hint"></div><div class="main"><div class="gun"></div><div class="am ht-num"><span class="mag">0</span><span class="res">0</span></div></div><div class="rl"><i></i></div><div class="info"><span class="fm"></span><span class="nm"></span></div><div class="slots"></div>');
-  R.wpHint=R.wp.querySelector('.hint');R.wpGun=R.wp.querySelector('.gun');R.wpMag=R.wp.querySelector('.mag');R.wpRes=R.wp.querySelector('.res');R.wpRl=R.wp.querySelector('.rl i');R.wpFm=R.wp.querySelector('.fm');R.wpNm=R.wp.querySelector('.nm');R.wpSlots=R.wp.querySelector('.slots');R.wpAm=R.wp.querySelector('.am');
+  R.wp=el('div','ht-wp tx',hud,'<div class="at"></div><div class="hint"></div><div class="main"><div class="gun"></div><div class="am ht-num"><span class="mag">0</span><span class="res">0</span></div></div><div class="rl"><i></i></div><div class="info"><span class="fm"></span><span class="nm"></span></div><div class="slots"></div>');
+  R.wpAt=R.wp.querySelector('.at');R.wpHint=R.wp.querySelector('.hint');R.wpGun=R.wp.querySelector('.gun');R.wpMag=R.wp.querySelector('.mag');R.wpRes=R.wp.querySelector('.res');R.wpRl=R.wp.querySelector('.rl i');R.wpFm=R.wp.querySelector('.fm');R.wpNm=R.wp.querySelector('.nm');R.wpSlots=R.wp.querySelector('.slots');R.wpAm=R.wp.querySelector('.am');
   /* driving */
   R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span><span><b class="ht-kc">V</b>Hood</span></div>');
   R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');R.drvName=R.drv.querySelector('.vh .row span');
@@ -179,7 +179,7 @@ function build(root){
   R.stick=R.touch.firstChild;R.knob=R.stick.firstChild;R.tbtn={};
   for(const[a,lab,ic]of[['fire','Fire','fire'],['aim','Aim','aim'],['use','Use','use'],['reload','Reload','reload'],['crouch','Crouch','crouch'],['jump','Jump','jump'],['swap','Gun','swap'],['view','View','view'],['pause','','pause'],['map','','map']]){
     const b=el('div','ht-tb',R.touch,UI_ICON[ic]+(lab?'<span>'+lab+'</span>':''));b.dataset.a=a;R.tbtn[a]=b;
-    b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');try{b.setPointerCapture(e.pointerId)}catch(_){};emit('touch',a,true);if(a==='map')MAP.toggle();if(a==='pause')emit('action','pause')});
+    b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');try{b.setPointerCapture(e.pointerId)}catch(_){};emit('touch',a,true);if(a==='map'&&!(HUD.blockKeys&&HUD.blockKeys()))MAP.toggle();if(a==='pause')emit('action','pause')});
     const up=e=>{if(!b.classList.contains('dn'))return;b.classList.remove('dn');emit('touch',a,false)};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)}
   /* overlays: full map + screens */
   R.map=el('div','ht-map',root);R.map.hidden=true;
@@ -376,11 +376,17 @@ function updCrosshair(st,dt){
   const rl=w.reloading>0&&w.reloading<1&&!hide;cls(R.rlr,'on',rl);if(rl)attr(R.rlrFg,'stroke-dashoffset',(113.1*(1-w.reloading)).toFixed(1));
 }
 function hit(kind='hit'){
-  const k=kind==='kill'||kind==='head';cls(R.hm,'kill',k);
-  const big=kind==='head'?1.45:k?1.25:1;
+  /* kinds: hit, kill, head (headshot kill), headhit (headshot, still standing) */
+  const head=kind==='head'||kind==='headhit',k=kind==='kill'||kind==='head';cls(R.hm,'kill',k);
+  const big=kind==='head'?1.45:k?1.25:head?1.2:1;
   anim(R.hm,[{opacity:1,transform:`scale(${big*1.35})`,easing:'cubic-bezier(.2,.8,.2,1)'},{opacity:1,transform:`scale(${big})`,offset:.3,easing:'ease-in'},{opacity:0,transform:`scale(${big})`}],{duration:k?560:280});
-  if(kind==='head')anim(R.hm.querySelector('.hs'),[{opacity:.9,transform:'scale(.6)'},{opacity:0,transform:'scale(1.8)'}],{duration:500,easing:'ease-out'});
+  if(head)anim(R.hm.querySelector('.hs'),[{opacity:.9,transform:'scale(.6)'},{opacity:0,transform:'scale(1.8)'}],{duration:500,easing:'ease-out'});
 }
+/* ammo pickups next to the gun: '+24 9mm', '9mm full'. Two lines at most, newest on top */
+function ammoToast(text,color){if(!R.wpAt)return;const t=el('div','ht-at ht-num'+(/full$/i.test(text)?' full':''),null,esc(text));if(color)t.style.color=color;
+  R.wpAt.prepend(t);while(R.wpAt.children.length>2)R.wpAt.lastChild.remove();
+  const a=anim(t,[{opacity:0,transform:'translateY(6px)',easing:'ease-out'},{opacity:1,transform:'none',offset:.1},{opacity:1,offset:.75,easing:'ease-in'},{opacity:0,transform:'translateY(-4px)'}],{duration:2000,fill:'forwards'});
+  if(a)a.onfinish=()=>t.remove();else setTimeout(()=>t.remove(),2000)}
 /* damage(from): from = {x,z} world point, or {angle} radians relative to view (0 = ahead, +right) */
 function damage(from,amount=10){
   let rel;if(from&&from.angle!=null)rel=from.angle;else if(from&&H.player){const b=Math.atan2(from.x-H.player.x,-(from.z-H.player.z));rel=wrapPi(b-H.heading);CMP.fire.push({b,t:now()})}else rel=0;
@@ -674,7 +680,7 @@ function bindActs(root){root.querySelectorAll('[data-act]').forEach(b=>{if(b._bo
 const TIPS=['Hurt enemies sometimes give up. Zip-ties earn more trust than the alternative.','Crouch behind crates: a crouching dad is hard to see over a 1 m box.','Every job ends with a payout. Spend it at the hardware store or on the house.','The minivan has a horn. Use it responsibly. Or don\'t.','Shotguns rule a room and fall off fast in the street.'];
 function screenTitle(d){
   const e=el('div','ht-scr ht-title');
-  e.innerHTML=`<div class="scrim"></div><div class="col"><div class="ht-logo"><span class="roof">${UI_ICON.roof}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
+  e.innerHTML=`<div class="scrim"></div><div class="col"><div class="ht-logo"><span class="roof">${UI_ICON.roof}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>${d.premise?`<p class="premise">${esc(d.premise)}</p>`:''}
   <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Settings','settings','ghost')}</div></div>
   <div class="ht-load"><div class="row"><span class="tip"><b>Tip</b><span class="tt"></span></span><span class="st ht-num">Loading</span></div><div class="bar"><i></i></div></div><div class="ht-ver">Build ${esc(d.version||'')}</div>`;
   e.querySelector('.tt').textContent=d.tip||TIPS[Math.floor(Math.random()*TIPS.length)];
@@ -779,13 +785,13 @@ function update(st,dt=1/60){
 
 const HUD={
   init(rootEl,opt={}){H.root=rootEl||document.body.appendChild(document.createElement('div'));if(opt.touch!=null)H.forceTouch=opt.touch;if(opt.compact!=null)H.forceCompact=opt.compact;build(H.root);
-    addEventListener('keydown',e=>{if(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return;/* shop and locker menus own the keyboard */if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
+    addEventListener('keydown',e=>{if(!MAP.open&&((HUD.blockKeys&&HUD.blockKeys())||(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())))return;if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
     /* canvases draw text with the web fonts: redraw once they are in */
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{CMP.last='';MAP.dirty=true});
     return HUD},
   update,
   on,emit,
-  hit,damage,feed,toast,banner,payout,
+  hit,damage,feed,toast,ammoToast,banner,payout,
   show:showScreen,hide:hideScreen,set:setScreen,
   get screen(){return SCR.cur},
   minimap:{setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},
