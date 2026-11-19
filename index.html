@@ -133,6 +133,8 @@ const ASSETS=(()=>{
   const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red'].map(RB);
   const GROUPS={
     hub:[SKY,HDR,...['asphalt','sidewalk','grass','concfloor','woodfloor','mulch','pavers','roof','siding'].flatMap(T3),...['tree_oak','tree_tall','tree_pine','bush','mailbox'].map(G),D('asphalt_patch'),...['dad_player','dad_gary','anims'].map(RB)],
+    /* the open world hub also shows chain-link (fence alpha), rowhouse/site brick, warehouses, mission-site walls and Riverside trash */
+    world:[...['fence','brick','metal','plywood','rustmetal','paintwall','plaster'].flatMap(T3),texSrc('fence','alpha'),...['crate','crate_long','crate_slat','table_dining','trashbag'].map(G)],
     /* the rest of the crew shows up in the hub as jobs get done */
     crew:['dad_rick','dad_dave','dad_doug'].map(RB),
     m0:[...THUGS,...['barrel_blue','barrel_red','crate','crate_long','hanging_industrial_lamp','pallet','table_low','trashbag','tyre'].map(G),...['metal','paintwall','plywood','rustmetal'].flatMap(T3),D('leak_a'),D('leak_b')],
@@ -228,6 +230,7 @@ const ASSETS=(()=>{
     started=true;/* Stage B: sharpen what the hub shows, then every mission, then the rest */
     if(A.tier==='l')for(const s of GROUPS.hub)want(s,'l',2);
     for(const s of GROUPS.crew)want(s,A.tier,2);
+    for(const s of GROUPS.world)want(s,A.tier,2);
     for(const g of['m0','m1','m2','m3'])for(const s of GROUPS[g])want(s,A.tier,3);
     for(const s in LIVE)want(s,A.tier,4);pump()}
   A.onAsset(src=>{if(stageA.has(src))tick()});
@@ -856,12 +859,16 @@ function buildLevel(def){
       const m=box((x-s)*TILE,3.2,TILE,def.wall,(s+x)*TILE/2,1.6,tileC(z));addSolid(m,s*TILE,z*TILE,x*TILE,z*TILE+TILE);
       box((x-s)*TILE+.02,.12,TILE+.02,'#5b5550',(s+x)*TILE/2,3.2,tileC(z),group)}else x++}}
   /* houses */
-  const seen=new Set(),houses=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
+  const seen=new Set(),houses=[],statics=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
   let hseed=1;
+  /* the shops (Hank's Hardware, Dad's Auto) are placed on cleared lots by metaHubEnter; HW.shopFront can dress their forecourts */
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){if(g[z][x]!=='h'||seen.has(z*W+x))continue;let x1=x;while(x1<W&&g[z][x1]==='h')x1++;let z1=z;while(z1<H&&g[z1][x]==='h')z1++;
     for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen.add(zz*W+xx);
     const facing=houseFacing(g,x,z,x1,z1),home=px_>=x-1&&px_<=x1&&Math.abs(pz_-z)<=2&&!houses.some(h=>h.home);
-    const hs=placeHouse(lvl,WB,{x0:x*TILE+.15,z0:z*TILE+.15,x1:x1*TILE-.15,z1:z1*TILE-.15},facing,(hseed++)*7919+x*31+z,home);hs.home=home;houses.push(hs)}
+    const lot={x0:x*TILE+.15,z0:z*TILE+.15,x1:x1*TILE-.15,z1:z1*TILE-.15},fp={...lot},sd=(hseed++)*7919+x*31+z;let drive=null;
+    /* hub lots get a driveway beside the house: the house narrows, the slab runs to the street */
+    if(def.id==='hub'&&WB&&!home&&fp.x1-fp.x0>9&&(facing==='+z'||facing==='-z')){const dw=3;if((sd>>3)%2){drive={x0:fp.x1-dw+.2,x1:fp.x1};fp.x1-=dw}else{drive={x0:fp.x0,x1:fp.x0+dw-.2};fp.x0+=dw}}
+    const hs=placeHouse(lvl,WB,fp,facing,sd,home);hs.home=home;hs.lot=lot;hs.drive=drive;houses.push(hs);if(hs.group)statics.push(hs.group)}
   lvl.houses=houses;
   if(WB&&houses.length){try{for(const h of houses)HW.yard(WB,h);HW.lotFences(WB,houses)}catch(e){console.warn('yards failed',e)}}
   const lowQ=RENDER.q==='low';
@@ -871,24 +878,24 @@ function buildLevel(def){
     else if(ch==='f'){if(WB&&HW.hedge(WB,X,Z,true)){lvl.solids.push(HW.proxy(WB,2,1.2,.8,X,.6,Z));lvl.colliders.push({x0:X-1,z0:Z-.4,x1:X+1,z1:Z+.4,h:1.2,s:'grass'})}
       else{const m=box(TILE,1.2,.8,'#3f6e35',X,.6,Z);addSolid(m,X-1,Z-.4,X+1,Z+.4,{h:1.2,s:'grass'})}}
     else if(ch==='t'){lvl.colliders.push({x0:X-.45,z0:Z-.45,x1:X+.45,z1:Z+.45});
-      if(WB){const edge=x===0||z===0||x===W-1||z===H-1;if(!edge||(x+z)%(lowQ?4:3)===0)HW.tree(WB,X,Z,{s:edge?1.15:1});lvl.solids.push(HW.proxy(WB,.5,3,.5,X,1.5,Z))}
+      if(WB){const edge=x===0||z===0||x===W-1||z===H-1;if(!edge||(x+z)%(lowQ?4:3)===0)HW.tree(WB,X,Z,{s:edge?1.15:1,edge:edge?[x===0?-1:x===W-1?1:0,z===0?-1:z===H-1?1:0]:null});lvl.solids.push(HW.proxy(WB,.5,3,.5,X,1.5,Z))}
       else{const tr=box(.5,2.4,.5,'#5a4030',X,1.2,Z);group.add(tr);lvl.solids.push(tr);const top=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0),mat(pick(['#3f6e35','#4b7f3d','#5a9148'])));top.position.set(X,3.2,Z);top.castShadow=true;group.add(top);lvl.solids.push(top)}}
     else if(ch==='T'){let bags;if(WB){bags=HW.stash(WB,X,Z);lvl.solids.push(HW.proxy(WB,1.8,.85,1.1,X,.425,Z));lvl.colliders.push({x0:X-.9,z0:Z-.55,x1:X+.9,z1:Z+.55,h:.85,s:'wood'})}
       else{const m=box(1.8,.85,1.1,'#5a4636',X,.425,Z);addSolid(m,X-.9,Z-.55,X+.9,Z+.55,{h:.85,s:'wood'});bags=[];for(let i=0;i<4;i++)bags.push(box(.32,.18,.24,'#f1f1f1',X-.5+i*.33,.95,Z+rand(-.2,.2),group));bags.push(box(.25,.12,.18,'#c0c0c0',X+.6,.92,Z-.3,group))}
       lvl.stashes.push({x:X,z:Z,prog:0,done:false,bags})}
     else if(ch==='I'){let pile;if(WB)pile=HW.pile(WB,X,Z);else{pile=new THREE.Group();for(let i=0;i<5;i++)box(rand(.35,.6),rand(.25,.45),rand(.35,.6),pick(['#b8874f','#c99c66','#a77a44']),rand(-.4,.4),.2+i*.12,rand(-.4,.4),pile);pile.position.set(X,0,Z);group.add(pile)}lvl.items.push({x:X,z:Z,mesh:pile,got:false})}
     else if(ch==='a'){let m;if(WB)m=HW.ammo(WB,X,Z);else{m=new THREE.Group();box(.7,.4,.45,'#3f5a33',0,.2,0,m);box(.72,.06,.47,'#ffc94a',0,.34,0,m);m.position.set(X,0,Z);group.add(m)}lvl.ammo.push({x:X,z:Z,mesh:m,got:false})}
-    else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+    else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);statics.push(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
       lvl.exit={x:X+2.6,z:Z};const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));ring.position.set(X+2.6,.03,Z);group.add(ring);lvl.exitRing=ring}
     else if(ch==='V'){if(def.id==='hub')Z+=(g[z-1]&&g[z-1][x]==='s')?-.5:(g[z+1]&&g[z+1][x]==='s')?.5:0;const k=(x*7+z*13)%CAR_TYPES.length;const v=makeVan(CAR_COLS[(x+z)%CAR_COLS.length],CAR_TYPES[k]);v.position.set(X,WB?HW.groundY(lvl,X,Z):0,Z);
       if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);regCar(lvl,v,X,Z,lvl.colliders[lvl.colliders.length-1],[x,z]);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
-    else if(ch==='Q'){if(WB){HW.grill(WB,X,Z).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});HW.bounce(WB,X,Z+9).traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
-      else{const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+    else if(ch==='Q'){let qok=false;if(WB){try{HW.grill(WB,X,Z).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});HW.bounce(WB,X,Z+9).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});qok=true}catch(e){console.warn('party props failed',e)}}
+      if(!qok){const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
         const bh=new THREE.Group();box(3,1.6,3,'#e5533d',0,.8,0,bh);box(3.1,.6,3.1,'#2f5d9e',0,1.9,0,bh);box(.6,.6,.6,'#ffc94a',-1.2,2.5,-1.2,bh);box(.6,.6,.6,'#ffc94a',1.2,2.5,1.2,bh);bh.position.set(X,0,Z+9);group.add(bh);bh.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
       lvl.colliders.push({x0:X-.7,z0:Z-.5,x1:X+.7,z1:Z+.5});lvl.grill={x:X,z:Z};lvl.colliders.push({x0:X-1.55,z0:Z+9-1.55,x1:X+1.55,z1:Z+9+1.55});lvl.bounce={x:X,z:Z+9}}
     else if(ch==='P'){lvl.start=V3(X,0,Z)}
     else if(ch==='l'){lvl.colliders.push({x0:X-.2,z0:Z-.2,x1:X+.2,z1:Z+.2});if(!WB){const m=box(.16,4.2,.16,'#3a3d42',X,2.1,Z);group.add(m);lvl.solids.push(m);box(.9,.12,.3,'#3a3d42',X+.4,4.2,Z,group);box(.4,.06,.24,'#fff6c8',X+.6,4.12,Z,group)}
-      else lvl.solids.push(HW.proxy(WB,.2,7,.2,X,3.5,Z))}
+      else{const pr=HW.proxy(WB,.2,7,.2,X,3.5,Z);pr.userData.camSkip=true;lvl.solids.push(pr)}}
     else if(ch==='E'||ch==='B'){lvl.spawns.push({x:X,z:Z,boss:ch==='B'})}
     else if(ch==='S'){lvl.waveSpawns.push({x:X,z:Z})}
     else if('1234'.includes(ch)){lvl.markers.push({i:+ch-1,x:X,z:Z})}
@@ -897,10 +904,13 @@ function buildLevel(def){
     /* parked cars the world module picked along the curbs */
     for(const pc of WB.parked||[]){const k=Math.floor(pc.x*3+pc.z)%CAR_TYPES.length;const v=makeVehicle(CAR_TYPES[k],CAR_COLS[Math.floor(pc.x+pc.z)%CAR_COLS.length]);if(!v)continue;
       v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
-      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz});regCar(lvl,v,pc.x,pc.z,lvl.colliders[lvl.colliders.length-1])}}
+      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5,wd=sz.w-.2;const hx=(ax?sz.l:wd)/2,hz=(ax?wd:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz});regCar(lvl,v,pc.x,pc.z,lvl.colliders[lvl.colliders.length-1])}}
+  /* houses and parked cars are merged by BATCH on the level's first frame; camera booms ignore thin props (lamp posts) */
+  lvl.camSolids=lvl.solids.filter(m=>!(m.userData&&m.userData.camSkip));
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
   if(def.id!=='hub'&&window.HT&&window.HT.AI)lvl.nav=window.HT.AI.buildNav(g,{colliders:lvl.colliders,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});
+  if(lvl.nav&&HW&&HW.pruneCover){try{HW.pruneCover(lvl,lvl.nav)}catch(e){console.warn('cover prune failed',e)}}
   setMood(def);
   HUD.minimap.setLevel(def.map,{tile:TILE,pad:def.pad,lines:def.lines,under:def.under,floor:def.floor,inside:def.inside,interior:def.id!=='hub',name:def.place||'Maple Heights'});if(def.id!=='hub')HUD.minimap.setPins([]);
   L=lvl;return lvl;
@@ -1059,7 +1069,7 @@ const WORLD=(()=>{const G=HTM('WorldGen');if(!G||!OW())return null;try{return G.
 if(WORLD)HUB=WORLD;
 if(prog.trustR==null)prog.trustR=5;
 if(!prog.world)prog.world={visited:{maple:true,route9:false,river:false},pins:['home','hank','auto','gas']};
-const OWS={region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
+const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
 const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
@@ -1075,14 +1085,16 @@ function owLevel(def){const O=OW();
   lvl.houses=O.state.houses;   /* the meta layer finds the player's house (door, porch light, name board) here */
   lvl.assetsDone=ASSETS.done;def._lvl=lvl;L=lvl;setMood(def);owMinimap();return lvl}
 function owMinimap(){const def=WORLD;
-  HUD.minimap.setLevel(def.map,{tile:TILE,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights · Route 9 · Riverside Flats',
+  HUD.minimap.setLevel(def.map,{tile:TILE,px:COARSE?6:12,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights · Route 9 · Riverside Flats',
     under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
     legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
   owPins()}
+function owRegions(){const def=WORLD,v=prog.world;if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,trust:null},
+  {name:'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
 function owPins(){const def=WORLD,v=prog.world,pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
   MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
-  HUD.minimap.setPins(pins)}
+  HUD.minimap.setPins(pins);owRegions()}
 /* teleports: a car's speed also lives in its physics state (e.car) */
 function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
 /* enterHub hook: bridge state, coming back from a job puts the van and the crew back at the site's ring */
@@ -1100,6 +1112,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
    if(OWS.moodK==null||Math.abs(k-OWS.moodK)>.005){OWS.moodK=k;mood=owLerpMood(MOODS.world,MOODS.riverLow,k);applyMood()}}
   const reg=O.regionAt(P.pos.x,P.pos.z);
   if(reg!==OWS.region){const first=OWS.region===null;OWS.region=reg;
+    try{FX.ambient({leaves:true,pollen:reg!=='route9',density:reg==='river'?1.3:reg==='route9'?.6:1})}catch(e){}
     if(reg==='river'&&!prog.world.visited.river){prog.world.visited.river=true;for(const id of['center','mart'])if(!prog.world.pins.includes(id))prog.world.pins.push(id);owPins()}
     prog.world.visited[reg]=true;
     if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
@@ -1110,7 +1123,10 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   const off=OWS.gps&&OWS.gps.points.length>1&&owDistToRoute(P.pos.x,P.pos.z)>8;
   if(key!==OWS.gpsKey||off||(OWS.gpsT<=0&&(VAN.on?Math.abs(VAN.spd)>1:P.moving))){OWS.gpsKey=key;OWS.gpsT=1.5;
     OWS.gps=tgt?O.gps({x:P.pos.x,z:P.pos.z},tgt):null;HUD.minimap.route(OWS.gps?[{x:P.pos.x,z:P.pos.z},...OWS.gps.points.slice(1)]:null)}
-  owChevrons()}
+  owChevrons();
+  /* ambient traffic around the player (HT.CarAI on the road graph) */
+  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+}
 function owLerpMood(a,b,k){const o={};const c=new THREE.Color();for(const key in a){const va=a[key],vb=b[key];
   if(typeof va==='number')o[key]=va+(vb-va)*k;else if(typeof va==='string'&&va[0]==='#'){c.set(va).lerp(new THREE.Color(vb),k);o[key]='#'+c.getHexString()}else o[key]=va}return o}
 function owDistToRoute(x,z){const p=OWS.gps.points;let best=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/l,0,1);best=Math.min(best,Math.hypot(a.x+dx*t-x,a.z+dz*t-z))}return best}
@@ -1138,7 +1154,7 @@ HUD.on('fastTravel',pin=>owFastTravel(pin));
 function owShops(){const d=WORLD.doors,pl=WORLD.places;
   if(d.store){const door={x:d.store.x,z:d.store.z-.9,nx:0,nz:1};HUBX.shops.push({kind:'hardware',label:"Hank's Hardware",x:door.x,z:door.z+.9,door,bay:{x:door.x,z:door.z+4}})}
   if(d.auto){const door={x:d.auto.x,z:d.auto.z+.9,nx:0,nz:-1};HUBX.shops.push({kind:'auto',label:"Dad's Auto",x:door.x,z:door.z-.9,door,bay:pl.autoBay?{x:pl.autoBay.x,z:pl.autoBay.z-4}:{x:door.x,z:door.z-5}})}
-  for(const s of HUBX.shops){const sp=labelSprite(s.label.toUpperCase(),s.kind==='auto'?'Upgrades · paint · horns':'Guns · tools · yard stuff','#f6f1e3');sp.position.set(s.door.x+s.door.nx*.5,3.6,s.door.z+s.door.nz*.5);sp.scale.multiplyScalar(.85);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.6})}}
+  /* the storefronts carry their own sign band, so no floating label (map pins and door prompts still mark them) */}
 let JOB=null,camLookT=0,ENG=null,destRings=[],objKey='';
 const DRIVE_LINES=["Seatbelts. I'm not asking.","Nobody touch the radio presets.","I call shotgun. The seat. Not the gun.","Signal before you merge. We're the good guys.","This van has seen three soccer seasons and a divorce. It can handle this."];
 /* handling per body type (m/s, m/s², rad/s). The minivan row is the classic van feel; HT.Garage applies its upgrades on top of it.
@@ -1338,7 +1354,7 @@ function updDriveCam(dt){const e=CV;if(!e)return;const F=feel(e),S=carSize(e),ba
     camDist=dist<camDist?camDist+(dist-camDist)*Math.min(1,dt*(thinHit?6:16)):camDist+(dist-camDist)*Math.min(1,dt*3);
     camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2)}
   const fov=CFG.fov+Math.min(16,Math.abs(e.spd)*.5)+(P.fp?6:0);camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
-  sunFollow(e.pos.x,e.pos.z,fw.x,fw.z);
+  sunFollow(e.pos.x,e.pos.z,fw.x,fw.z);{const HW=HTM('World');if(HW&&HW.focus)HW.focus(V3(e.pos.x,gy+1.2,e.pos.z))}
 }
 /* hub: the car the dad is standing beside (door side), parked hero models drifting back to the light ones */
 function nearCar(){if(!L||!L.cars)return null;let best=null,bd=1e9;for(const e of L.cars){if(!e.obj)continue;const S=carSize(e),dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,
@@ -2038,18 +2054,19 @@ function updCamera(dt){
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vmPose(dt)}
   else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
-    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.solids,false)[0]:null;
+    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
     const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
     const fwdH=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
     const want=pivot.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));want.y=Math.max(.45,want.y);
     const dir=want.clone().sub(pivot),len=dir.length();dir.normalize();ray.set(pivot,dir);ray.near=0;ray.far=len;
-    const h=L?ray.intersectObjects(L.solids,false)[0]:null;const dist=h?Math.max(.15,h.distance-.25):len;
+    const h=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;const dist=h?Math.max(.15,h.distance-.25):len;
     camDist=dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*8);
     camera.position.copy(pivot).addScaledVector(dir,Math.min(camDist,len));camera.position.y=Math.max(.3,camera.position.y);
     const cd=camera.position.distanceTo(eye);if(P.dude)P.dude.root.visible=cd>.9;
     for(const a of allies){a.dude.root.visible=Math.hypot(a.pos.x-camera.position.x,a.pos.z-camera.position.z)>1}
     scopeEl().style.display=P.scoped?'block':'none';if(P.scoped){camera.position.copy(eye);if(P.dude)P.dude.root.visible=false}}
   if(P.fp)for(const a of allies)a.dude.root.visible=true;
+  {const HW=HTM('World');if(HW&&HW.focus)HW.focus(eye)}
   sunFollow(P.pos.x,P.pos.z,-Math.sin(P.yaw),-Math.cos(P.yaw));
   if(mode==='home')homeCam(dt);
 }
@@ -2344,7 +2361,6 @@ function metaHubEnter(o){HUBX.shops=[];HUBX.sprites=[];HUBX.home=null;if(!L||!L.
     grp.position.set(cx,0,cz);L.group.add(grp);grp.traverse(m=>{if(m.isMesh){L.solids.push(m);m.castShadow=true;m.receiveShadow=true}});
     L.colliders.push({x0:x0+.3,z0:z0+.3,x1:x1-.3,z1:z1-.3});
     const dr=grp.userData.door||{x:0,z:(z1-z0)/2,nx:0,nz:1};const door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz};
-    const sp=labelSprite(s.label.toUpperCase(),s.kind==='auto'?'Upgrades · paint · horns':'Guns · tools · yard stuff','#f6f1e3');sp.position.set(door.x+door.nx*.5,3.6,door.z+door.nz*.5);sp.scale.multiplyScalar(.85);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.6});
     HUBX.shops.push({kind:s.kind,label:s.label,x:door.x+door.nx*.9,z:door.z+door.nz*.9,door,bay:{x:cx+(s.kind==='auto'?3:0),z:z1+3}})}
   vanApply();
   try{const pins=[];if(HUBX.home)pins.push({id:'home',kind:'home',label:'Home',x:HUBX.home.x,z:HUBX.home.z,fast:true});for(const s of HUBX.shops)pins.push({id:s.kind,kind:s.kind==='auto'?'garage':'shop',label:s.label,x:s.x,z:s.z,fast:true});
