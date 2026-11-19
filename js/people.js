@@ -15,13 +15,20 @@ const HT=window.HT=window.HT||{};
 const T=window.THREE;
 const BASE='assets/people/rocketbox/';
 const REF_HIP=.8952;
-const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'];
-const GAME_KEYS=KEYS.slice(0,10);/* loaded with the game; family loads on demand (preload) */
+/* street crews: one neutral streetwear look across a broad, even mix of people (no costume coding) */
+const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red','thug_fro','thug_jacket','thug_brown','thug_cap','thug_f_hood','thug_f_leather'];
+const NEIGHBOURS=['earl','dee','rosa','benny'];
+const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4),NEIGHBOURS);
+const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other crew variants stream in right after, neighbours and family on demand */
+const STREAM_KEYS=THUGS.slice(4);
 const ROLE={you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
-  thug:['thug_hoodie','thug_track','thug_beanie','thug_red']};
-const SCALE={dad_dave:1.15,boss:1.06};
+  earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',thug:THUGS};
+const SCALE={dad_dave:1.15,boss:1.06,benny:1.04};
+/* per-character fix-ups: hide parts of the source outfit, add a fabric cap (sRGB) */
+const HIDE={earl:/helmet|tools/};const CAP_ADD={earl:'#2f4a6e'};
 const IDLE={dad_player:'idle',dad_gary:'idle_look',dad_rick:'idle',dad_dave:'idle',dad_doug:'idle',thug_hoodie:'idle_nervous',thug_track:'idle_angry',thug_beanie:'idle_nervous',thug_red:'idle_angry',boss:'idle_arms_folded',wife:'f_idle',son:'idle',daughter:'f_idle'};
-const FEMALE={wife:1,daughter:1};
+const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1,dee:1,rosa:1};
+Object.assign(IDLE,{thug_fro:'idle_angry',thug_jacket:'idle_nervous',thug_brown:'idle_angry',thug_cap:'idle_nervous',thug_f_hood:'f_idle',thug_f_leather:'f_idle',earl:'idle_look',dee:'f_idle',rosa:'f_idle',benny:'idle'});
 /* ground speed each clip was recorded at (m/s), and where the left foot starts relative to 'walk' (fraction of a cycle) */
 const SPEED={walk:1.012,walk_fast:1.495,jog:2.411,run:3.075,sprint:5.839,f_walk:1.214,crouch_walk:.626,strafe_left:3,strafe_right:3,run_back:2.47};
 const PHASE={run:.5};
@@ -46,7 +53,7 @@ P.files=()=>GAME_KEYS.concat(['anims']).map(k=>({name:'rb_'+k,url:BASE+k+'.glb'}
 P.init=function(o){o=o||{};if(o.assets)A=o.assets;if(o.quality)qualityFn=o.quality;
   if(P._initDone)return P.ready;P._initDone=true;
   const wait=A&&A.ready?A.ready:Promise.resolve();
-  wait.then(()=>{try{if(prepareAll())resolveReady(P);else{P.failed=true;rejectReady(new Error('people assets missing'))}}catch(e){console.warn('people: prepare failed',e);P.failed=true;rejectReady(e)}});
+  wait.then(()=>{try{if(prepareAll()){resolveReady(P);setTimeout(()=>P.preload(STREAM_KEYS),0)}else{P.failed=true;rejectReady(new Error('people assets missing'))}}catch(e){console.warn('people: prepare failed',e);P.failed=true;rejectReady(e)}});
   return P.ready};
 function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
 function prepareAll(){const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
@@ -93,6 +100,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
       if(low&&m.normalMap&&!/head/.test(m.name)){m.normalMap=null;m.needsUpdate=true}}});
   /* Coach Rick reads too young: salt-and-pepper hair */
   if(key==='dad_rick')s.traverse(o=>{if(o.isMesh&&o.material&&/opacity|hair/i.test(o.material.name)&&o.material.map)greyHair(o.material.map,.72)});
+  if(HIDE[key])s.traverse(o=>{if(o.isMesh&&o.material&&HIDE[key].test(o.material.name)){o.visible=false;o.castShadow=false}});
+  if(CAP_ADD[key]&&!B('acc_cap')){const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,new T.Color(CAP_ADD[key]).convertSRGBToLinear(),key))}
   /* caps: replace the stiff helmet-like shell with a proper fabric baseball cap */
   const cap=B('acc_cap');if(cap){const col=(cap.material&&cap.material.color)?cap.material.color.clone():new T.Color(.05,.05,.1);cap.visible=false;cap.castShadow=false;
     const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,col,key))}
@@ -121,7 +130,7 @@ function fabricNormal(){if(capNrm)return capNrm;const S=256,c=document.createEle
   x.putImageData(id,0,0);capNrm=new T.CanvasTexture(c);capNrm.wrapS=capNrm.wrapT=T.RepeatWrapping;return capNrm}
 /* skull extent in head-bone space, from head + hair vertices above the eyes */
 function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vector3(),bb=new T.Box3();let n=0;
-  s.traverse(o=>{if(!o.isMesh||/acc_|hit_/.test(o.name))return;const p=o.geometry.attributes.position;const sk=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;if(!sk||!o.skeleton)return;
+  s.traverse(o=>{if(!o.isMesh||!o.visible||/acc_|hit_/.test(o.name))return;const p=o.geometry.attributes.position;const sk=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;if(!sk||!o.skeleton)return;
     const hb=o.skeleton.bones.indexOf(head);if(hb<0)return;
     for(let i=0;i<p.count;i++){let w=0;const si=[sk.getX(i),sk.getY(i),sk.getZ(i),sk.getW(i)],ws=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)];for(let k=0;k<4;k++)if(si[k]===hb)w+=ws[k];if(w<.5)continue;
       v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);if(v.x<.1)continue;bb.expandByPoint(v);n++}});
@@ -164,7 +173,13 @@ function makeChain(){/* gold rope chain over the shirt, hangs from the neck onto
   const pend=new T.Mesh(new T.CylinderGeometry(.03,.03,.008,16),gold);pend.rotation.x=Math.PI/2;pend.position.set(.085,.155,0);const g=new T.Group();g.add(m);g.add(pend);return g}
 
 /* ---------- instances ---------- */
-function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:k[Math.floor(Math.random()*k.length)];return k}
+/* crews: a shuffle bag over the variants that are loaded, so the spread stays even and no two spawned in a row look alike */
+const bags={};
+function draw(list,role){const avail=list.filter(k=>tpl[k]||gltf(k));if(!avail.length)return list[0];let b=bags[role];
+  if(!b||!b.q.length||b.n!==avail.length){const q=avail.slice();for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]]}
+    if(b&&b.last&&q.length>1&&q[q.length-1]===b.last)[q[0],q[q.length-1]]=[q[q.length-1],q[0]];bags[role]=b={q,n:avail.length,last:b&&b.last}}
+  const k=b.q.pop();b.last=k;return k}
+function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:draw(k,role);return k}
 P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null){try{if(!prepareAll())P.failed=true}catch(e){P.failed=true}}if(!P.ok||!T.SkeletonUtils)return null;const key=resolveKey(role,o.variant);const t=tpl[key]||prep(key);if(!t)return null;
   const body=T.SkeletonUtils.clone(t.scene);body.name='rb_'+key;
   const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
@@ -194,7 +209,7 @@ function setBase(d,name,instant){const rb=d.rb;if(!clips(name,rb.hip))name=rb.id
 
 /* ---------- public driving API ---------- */
 P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
-  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;inp.air=o.air||null;if(rb.force)Object.assign(inp,rb.force);
+  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;if(rb.force)Object.assign(inp,rb.force);
   if(dt>0){const x=r.position.x,z=r.position.z;if(rb.lx!==null){const dx=x-rb.lx,dz=z-rb.lz,dd=Math.hypot(dx,dz);
       if(dd<3){const s=Math.sin(r.rotation.y),c=Math.cos(r.rotation.y);const k=1-Math.exp(-dt*10);const sc=r.scale.x||1;
         /* local: +x = character's left, +z = forward; scaled characters take longer strides */
@@ -308,7 +323,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   for(const k in rb.lw){const tgt=k===rb.base?1:0;const w=rb.lw[k];rb.lw[k]=tgt>w?Math.min(1,w+dt/fade):Math.max(0,w-dt/fade);sum+=rb.lw[k]}
   if(sum<=0){rb.lw[rb.base]=1;sum=1}
   if(rb.getUp>0)rb.getUp-=dt;
-  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k)*(1-.85*(rb.airHold||0));a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
+  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k);a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
   /* upper-body layers: one-shot > aim > hold > locomotion arms */
   const gun=rb.gunType,pist=rb.style==='pistol',longGun=gun&&!pist;
   const v=Math.hypot(rb.vx,rb.vz);
@@ -329,11 +344,8 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* the mixer skips writing a bone whose animated value did not change, so undo last frame's procedural offsets (aim pitch, hinge, IK) first or they accumulate */
   {const B=rb.bones,N=PROC_BONES;
    if(rb.pre)for(const n of N)if(B[n]&&rb.pre[n])B[n].quaternion.copy(rb.pre[n]);
-   if(rb.airPre)rb.airB.forEach((b,i)=>{if(b)b.quaternion.copy(rb.airPre[i])});/* same for the jump/land leg offsets */
    rb.mixer.update(dt);
-   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion);
-   const AB=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));rb.airPre=rb.airPre||AB.map(b=>b?b.quaternion.clone():null);AB.forEach((b,i)=>{if(b)rb.airPre[i].copy(b.quaternion)})}
-  applyAir(d,dt);
+   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion)}
   /* phase for the first-person bob and footsteps */
   const ba=rb.acts[rb.base];if(ba&&ba.lo&&SPEED[rb.base]){rb.phase=ba.lo.time/ba.c.dur;d.walk=rb.phase*Math.PI*4}else d.walk*=.9;
   /* aim pitch: split between spine and both upper arms (rotating both arms about the shoulder line keeps the support hand on the gun) */
@@ -353,8 +365,8 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   if(rb.kick>0){rb.kick=Math.max(0,rb.kick-dt*9);armT-=rb.kick*.06}
   const kk=Math.min(1,dt*14);rb.armP+=(armT-rb.armP)*kk;rb.spineP+=(spT-rb.spineP)*kk;
   /* hip yaw for sideways/diagonal travel (pelvis turns, spine turns back) */
-  rb.hip=(rb.hip||0)+(((full||!rb.hipT)?0:rb.hipT)-(rb.hip||0))*Math.min(1,dt*9);
-  if(Math.abs(rb.hip)>.004&&rb.bones.Bip01_Pelvis){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Pelvis,_cp,rb.hip);rotWorld(rb.bones.Bip01_Spine,_cp,-rb.hip)}
+  rb.hipYaw=(rb.hipYaw||0)+(((full||!rb.hipT)?0:rb.hipT)-(rb.hipYaw||0))*Math.min(1,dt*9);
+  if(Math.abs(rb.hipYaw)>.004&&rb.bones.Bip01_Pelvis){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Pelvis,_cp,rb.hipYaw);rotWorld(rb.bones.Bip01_Spine,_cp,-rb.hipYaw)}
   /* offering a gun: shoulders turn so the weapon lies across in front, muzzle away from the receiver */
   rb.offer=(rb.offer||0)+((offer?1:0)-(rb.offer||0))*Math.min(1,dt*6);
   /* the pistol_aim clip points ~0.2 rad left and high of the body's facing; square it up (rigid: upper torso yaw + shoulder-line pitch) */
@@ -388,31 +400,6 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* bodies stay a while, then sink away */
   if(rb.dead){rb.deadT+=dt;if(rb.deadT>12){d.body.position.y=-Math.min(1,(rb.deadT-12)/2.5)*.6;if(rb.deadT>14.5)d.root.visible=false}}}
 
-/* ---------- procedural jump / fall / land / vault (the clip set has none) ----------
-   inp.air = {k:'jump'|'fall'|'land'|'vault'|'climb'|'mantle', t, vy, amt}: knees tuck, arms balance, landings absorb.
-   Applied on top of the clip pose, before the aim layer, so a raised gun stays on target. */
-const AIR_B=['Bip01_L_Thigh','Bip01_R_Thigh','Bip01_L_Calf','Bip01_R_Calf','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_Spine','Bip01_L_Foot','Bip01_R_Foot'];
-function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const S=rb.air||(rb.air={tuck:0,dip:0,lean:0,arms:0,split:0});
-  let tuck=0,dip=0,lean=0,arms=0,split=0,hold=0;
-  if(a){const t=a.t||0;
-    if(a.k==='jump'){tuck=.25+.55*Math.min(1,t/.22);arms=.7;lean=.06;split=.25;hold=1}
-    else if(a.k==='fall'){tuck=.45+.25*Math.min(1,t/.4);arms=.9;lean=.02;split=.15;hold=1}
-    else if(a.k==='land'){const e=t<.22?t/.22:Math.pow(1-(t-.22)/.78,1.6);/* fast absorb, slow rise */dip=(a.amt||.3)*e;tuck=dip*.9;lean=dip*.35;arms=.4*(1-t)}
-    else if(a.k==='vault'){const e=Math.sin(Math.PI*Math.min(1,t));tuck=.3+.9*e;lean=.45*e;split=.35*e;arms=.2;hold=1}
-    else{/* climb / mantle: knee up onto the ledge, then push up */const e=Math.sin(Math.PI*Math.min(1,t*1.1));tuck=.2+.8*e;lean=.35*e;dip=.25*(1-t);split=.5*e;hold=1}}
-  const k=Math.min(1,dt*(a&&a.k==='land'?24:14));S.tuck+=(tuck-S.tuck)*k;S.dip+=(dip-S.dip)*k;S.lean+=(lean-S.lean)*k;S.arms+=(arms-S.arms)*k;S.split+=(split-S.split)*k;
-  rb.airHold=(rb.airHold||0)+(hold-(rb.airHold||0))*Math.min(1,dt*12);
-  if(S.tuck<.003&&S.dip<.003&&S.lean<.003&&S.arms<.003){if(!a)d.body.position.y=0;return}
-  const B=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));const rq=d.root.getWorldQuaternion(new T.Quaternion()),left=new T.Vector3(1,0,0).applyQuaternion(rq),fwdW=new T.Vector3(0,0,1).applyQuaternion(rq);
-  /* knees: thigh forward (negative about the character's left axis), shin folds back about twice as far; one leg leads */
-  const tl=S.tuck*(1+S.split*.6),tr=S.tuck*(1-S.split*.6);
-  rotWorld(B[0],left,-.95*tl);rotWorld(B[1],left,-.95*tr);rotWorld(B[2],left,1.55*tl);rotWorld(B[3],left,1.55*tr);
-  rotWorld(B[7],left,-.45*tl);rotWorld(B[8],left,-.45*tr);
-  if(S.lean>.003)rotWorld(B[6],left,S.lean*.5);
-  /* arms out for balance (only without a gun up; the aim layer owns the arms then) */
-  if(S.arms>.003&&!(rb.gunType&&rb.in.aim)){rotWorld(B[4],fwdW,-.55*S.arms);rotWorld(B[5],fwdW,.55*S.arms)}
-  /* landing absorb: hips sink while the knees bend (feet stay near the floor) */
-  d.body.position.y=-(S.dip*.22+S.tuck*(a&&(a.k==='land'||a.k==='climb'||a.k==='mantle')?.06:0))}
 P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;
   for(let i=P.live.length-1;i>=0;i--){const d=P.live[i];const rb=d.rb;
     if(!d.root.parent){if(++rb.orphan>90){P.live.splice(i,1);rb.mixer.stopAllAction()}continue}rb.orphan=0;

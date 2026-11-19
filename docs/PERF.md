@@ -117,6 +117,12 @@ The second visit is slower than before the merge (4.0 s vs 1.6 s) with all files
 to parsing nine module scripts, preparing the rigged characters and building the hub on the main thread, which headless
 SwiftShader makes worse.
 
+Second merge (main 0506df4: enterable home, borrowable cars, more people): first visit at 10 Mbit/s 3.8–4.2 s (4 runs),
+3.1–3.4 MB before Start, second visit 2.7–4.2 s. The house (`HT.Home.init`, ~13 MB) no longer loads at `ASSETS.ready`: it
+starts when the player comes within 40 m of the front door in the hub, or once everything else has streamed; the door
+prompt already says "unlocking…" until it is ready. js/people.js streams its extra crew variants itself after `ready`;
+they get the optimised files through the URL modifier.
+
 ## How loading works now
 
 **Stage A (blocks Start).** A tiny script in `<head>` starts fetching `assets/opt/manifest.json` and then one

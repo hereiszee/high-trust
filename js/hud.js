@@ -166,8 +166,8 @@ function build(root){
   R.wp=el('div','ht-wp tx',hud,'<div class="hint"></div><div class="main"><div class="gun"></div><div class="am ht-num"><span class="mag">0</span><span class="res">0</span></div></div><div class="rl"><i></i></div><div class="info"><span class="fm"></span><span class="nm"></span></div><div class="slots"></div>');
   R.wpHint=R.wp.querySelector('.hint');R.wpGun=R.wp.querySelector('.gun');R.wpMag=R.wp.querySelector('.mag');R.wpRes=R.wp.querySelector('.res');R.wpRl=R.wp.querySelector('.rl i');R.wpFm=R.wp.querySelector('.fm');R.wpNm=R.wp.querySelector('.nm');R.wpSlots=R.wp.querySelector('.slots');R.wpAm=R.wp.querySelector('.am');
   /* driving */
-  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span></div>');
-  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');
+  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span><span><b class="ht-kc">V</b>Hood</span></div>');
+  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');R.drvName=R.drv.querySelector('.vh .row span');
   /* prompt, subtitles, banner */
   R.pr=el('div','ht-pr off tx',hud,'<div class="gl"><svg viewBox="0 0 34 34"><circle class="bg" cx="17" cy="17" r="15"/><circle class="fg" cx="17" cy="17" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><b class="ht-kc">E</b></div><div class="tt"></div>');
   R.prK=R.pr.querySelector('.ht-kc');R.prFg=R.pr.querySelector('.fg');R.prT=R.pr.querySelector('.tt');
@@ -347,6 +347,7 @@ function updDrive(st){
   attr(R.drvNdl,'transform',`rotate(${(-225+270*f).toFixed(1)} 110 96)`);
   const g=st.gear!=null?String(st.gear):(st.speedMph<-0.5?'R':'D');txt(R.drvGear,g);cls(R.drvGear,'r',g==='R');
   let vh=st.vanHealth??1;if(vh>1)vh/=100;vh=clamp(vh,0,1);txt(R.drvVh,Math.round(vh*100)+'%');sty(R.drvVbI,'transform',`scaleX(${vh})`);cls(R.drvVb,'low',vh<.3);
+  txt(R.drvName,st.vehicleName||'Minivan');
   show(R.drvHint,!H.touch);
 }
 
@@ -778,7 +779,7 @@ function update(st,dt=1/60){
 
 const HUD={
   init(rootEl,opt={}){H.root=rootEl||document.body.appendChild(document.createElement('div'));if(opt.touch!=null)H.forceTouch=opt.touch;if(opt.compact!=null)H.forceCompact=opt.compact;build(H.root);
-    addEventListener('keydown',e=>{if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
+    addEventListener('keydown',e=>{if(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return;/* shop and locker menus own the keyboard */if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
     /* canvases draw text with the web fonts: redraw once they are in */
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{CMP.last='';MAP.dirty=true});
     return HUD},
