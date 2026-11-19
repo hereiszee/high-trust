@@ -71,9 +71,9 @@ function clear(){for(const c of cars){scene.remove(c)}cars=[]}
 function show(){clear();const t0=performance.now();
   if(state.layout==='lineup'){TYPES.forEach((t,i)=>{const v=HT.Vehicles.make(t,{upgrades:state.up,lod:state.lod||0});v.position.set(0,0,(i-(TYPES.length-1)/2)*3.1);scene.add(v);cars.push(v)})}
   else if(state.layout==='variants'){const vs=[{},{rims:'alloy',paint:'#9a1b1b',tint:.2},{rims:'black',paint:'#1c1d20',roofRack:true,bullBar:true,lightBar:true,tint:1,spoiler:true},{paint:'wood',rims:'chrome',lightBar:'amber',roofRack:'rails'}];
-    vs.forEach((u,i)=>{const v=HT.Vehicles.make(state.type,{upgrades:u});v.position.set(0,0,(i-1.5)*3.2);scene.add(v);cars.push(v)})}
+    vs.forEach((u,i)=>{const v=HT.Vehicles.make(state.type,{upgrades:u,lod:0});v.position.set(0,0,(i-1.5)*3.2);scene.add(v);cars.push(v)})}
   else{const v=HT.Vehicles.make(state.type,{upgrades:state.up,lod:state.lod||0});scene.add(v);cars.push(v)}
-  const s=HT.Vehicles.stats(cars[0]);document.getElementById('info').textContent=`${state.type}: ${s.triangles} tris, ${s.drawCalls} draw calls, built in ${(performance.now()-t0).toFixed(0)} ms`;
+  window.__cars=cars;const s=HT.Vehicles.stats(cars[0]);document.getElementById('info').textContent=`${state.type}: ${s.triangles} tris, ${s.drawCalls} draw calls, built in ${(performance.now()-t0).toFixed(0)} ms`;
   apply()}
 function apply(){for(const c of cars)HT.Vehicles.update(c,{speed:0,steer:state.steer||0,braking:state.brake,headlights:state.head,dt:1})}
 /* UI */

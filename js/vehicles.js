@@ -18,15 +18,18 @@
  *                        Rolling forward (+X) is a NEGATIVE rotation.z: rotation.z -= distance / radius.
  *     wheelRadius,
  *     steer:[Object3D]   front wheel pivots; rotation.y = angle, positive = steer left (toward -Z).
- *     lights:{head:[], tail:[], brake:[], bar:[], drl:[]}  emissive materials
- *     body:[paint, lowerPaint] (MeshPhysicalMaterial, clearcoat; same material twice unless two-tone)
+ *     lights:{head:[], tail:[], brake:[], bar:[], drl:[], amber:[], reverse:[]}  lamp channels: objects with an
+ *                        .emissiveIntensity property (all lamps live in the car's single multi material; update() drives them)
+ *     material: the car's multi material (atlas + per-vertex PBR; uniforms in material.userData.U)
+ *     body:[paint, lowerPaint] (MeshPhysicalMaterial, clearcoat + flake; same material twice unless two-tone; empty at LOD1)
  *     glass:[glass materials], bodyRoot / parts.body: Object3D that rolls/pitches, parts:{body,glass,wheels},
  *     contactShadow: soft AO blob (never casts a shadow),
  *     setUpgrades(u) (rebuilds in place), setColor(hex), setLights(on), flashBar(seconds), setDamage(0..1), dispose()
  *   }
  * HT.Vehicles.update(v, {speed, steer, braking, headlights, dt})
  *     speed m/s (+ forward), steer -1..1 (+ = left), braking bool, headlights bool (omit to keep setLights state), dt seconds.
- * HT.Vehicles.stats(v) -> {triangles, drawCalls}
+ * HT.Vehicles.stats(v) -> {triangles, drawCalls, tris, calls};  HT.Vehicles.warm(types, lod) pre-builds cached geometry.
+ * Draw calls per car: paint, multi (body trim/lamps/interior), glass, wheels, contact shadow (+1 for upgrades, +1 two-tone/finish).
  */
 (function(){
 'use strict';
