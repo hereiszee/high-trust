@@ -65,9 +65,14 @@ const ICON={
   van:{shape:'c',g:'M5 9h9.5l3 3H19v4.2H5zM8 15a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 8 15zm8 0a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2z'},
   loot:{shape:'s',g:'M6.5 9.5h11v8h-11zM6 8l2-2.5h8L18 8z'},
   enemy:{shape:'c',g:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z'},
-  travel:{shape:'c',g:'M12 6l5 6h-3v6h-4v-6H7z'}
+  travel:{shape:'c',g:'M12 6l5 6h-3v6h-4v-6H7z'},
+  /* open world places */
+  gas:{shape:'c',g:'M7 6h6v12H7zM8.3 7.3v3h3.4v-3zM13 9h1.6l1.6 1.8v5.2a1 1 0 0 0 2 0V10l-1.4-1.6.9-.9 1.5 1.7v6.8a2.4 2.4 0 0 1-4.8 0v-4.6L14 11z'},
+  mart:{shape:'c',g:'M5.5 7h2.2l1.6 7h7.4l1.6-5.4H9.1L8.8 7.6 8.5 7zM10 15.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm6 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'},
+  star:{shape:'c',g:'M12 5.6l1.9 4 4.3.5-3.2 3 .9 4.3L12 15.3l-3.9 2.1.9-4.3-3.2-3 4.3-.5z'},
+  site:{shape:'d',g:'M12 7.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 2.2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z'}
 };
-const KIND_COL={obj:'#ffc94a',job:'#ffc94a',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff'};
+const KIND_COL={obj:'#ffc94a',job:'#ffc94a',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a'};
 const SHAPE_D={d:'M12 1.5l10.5 10.5L12 22.5 1.5 12z',c:'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z',s:'M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z'};
 function iconSVG(kind){const ic=ICON[kind]||ICON.obj;const col='currentColor';
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SHAPE_D[ic.shape]}" fill="${col}" stroke="rgba(10,12,16,.55)" stroke-width="1.2"/>`+
@@ -585,7 +590,7 @@ function drawMinimap(st){
   (st.crew||[]).forEach((m,i)=>{if(m.x==null)return;let[x,y]=w2s(m.x,m.z);const d=Math.hypot(x-cx,y-cy);if(d>Rr-8){const f=(Rr-8)/d;x=cx+(x-cx)*f;y=cy+(y-cy)*f}
     if(m.down){drawIcon(c,'revive',x,y,14,.6+.4*Math.abs(Math.sin(T*4)))}else{c.fillStyle=m.color||'#7fdc6e';c.strokeStyle='#fff';c.lineWidth=1.6;c.beginPath();c.arc(x,y,3.8,0,TAU);c.fill();c.stroke()}});
   /* markers / pins (pinned to rim when out of range) */
-  const pinKinds={obj:1,job:1,shop:1,home:1,garage:1,van:1,revive:1,travel:1};
+  const pinKinds={obj:1,job:1,shop:1,home:1,garage:1,van:1,revive:1,travel:1,gas:1,mart:1,star:1};
   const all=[...(MM.pins||[]),...(st.markers||[])];
   for(const m of all){if(m.minimap===false||!ICON[m.kind]||m.kind==='enemy'||m.kind==='crew')continue;let[x,y]=w2s(m.x,m.z);const d=Math.hypot(x-cx,y-cy),lim=Rr-11;
     if(d>lim){if(!(pinKinds[m.kind]&&m.rim!==false))continue;const f=lim/d;x=cx+(x-cx)*f;y=cy+(y-cy)*f}
@@ -628,7 +633,7 @@ function buildMap(){
   m.querySelectorAll('.zb button').forEach(b=>b.onclick=()=>{const z=+b.dataset.z;if(!z)return MAP.close();zoomAt(H.W/2,H.Hh/2,z>0?1.4:1/1.4)});
   R.mapTip.querySelector('button').onclick=()=>{const s=MAP.sel;if(!s)return;emit('fastTravel',s);if(MAP.onTravel)MAP.onTravel(s);MAP.close()};
 }
-const LEGEND_ITEMS=[['obj','Objective'],['job','Job'],['van','Minivan'],['home','Home'],['shop','Hardware store'],['garage','Garage'],['travel','Fast travel']];
+const LEGEND_ITEMS=[['obj','Objective'],['job','Job'],['van','Minivan'],['home','Home'],['shop','Hardware store'],['garage',"Dad's Auto"],['gas','Gas station'],['mart','Corner mart'],['star','Community center'],['site','Job site'],['travel','Fast travel']];
 function mapLegend(){const have=new Set(mapItems().map(m=>m.kind));
   htm(R.mapLeg,LEGEND_ITEMS.filter(([k])=>have.has(k)).map(([k,l])=>`<div style="color:${KIND_COL[k]}">${iconSVG(k)}<span>${l}</span></div>`).join('')+`<div><i class="sw" style="background:${GROUND.road}"></i><span>Road</span></div><div><i class="sw" style="background:#b9b2a4"></i><span>Building</span></div>`)}
 /* keyboard: arrows/WASD pan, + - zoom, Tab cycles places, Enter fast-travels to the selection, Esc/M close */
@@ -647,7 +652,7 @@ function zoomAt(x,y,f){const w=MAP.s2w(x,y);MAP.z=clamp(MAP.z*f,MAP.zMin,MAP.zMa
 function mapItems(){return[...(MM.pins||[]),...((H.state&&H.state.markers)||[])].filter(m=>ICON[m.kind]&&m.kind!=='enemy'&&m.map!==false)}
 function pickAt(x,y,force){let best=force||null,bd=22;if(!best)for(const m of mapItems()){const[sx,sy]=MAP.w2s(m.x,m.z);const d=Math.hypot(sx-x,sy-y);if(d<bd){bd=d;best=m}}
   MAP.sel=best;if(!best){R.mapTip.hidden=true;MAP.dirty=true;return}
-  R.mapTip.hidden=false;R.mapTip.querySelector('.k').textContent=({obj:'Objective',job:'Job',home:'Home',shop:'Shop',garage:'Garage',travel:'Fast travel',van:'Vehicle'}[best.kind]||best.kind);
+  R.mapTip.hidden=false;R.mapTip.querySelector('.k').textContent=({obj:'Objective',job:'Job',home:'Home',shop:'Shop',garage:'Garage',travel:'Fast travel',van:'Vehicle',gas:'Gas station',mart:'Shop',star:'Community',site:'Job site'}[best.kind]||best.kind);
   R.mapTip.querySelector('h3').textContent=best.label||'';const b=R.mapTip.querySelector('button');b.hidden=!(best.fast||best.fastTravel);
   emit('mapSelect',best);placeTip();MAP.dirty=true}
 function placeTip(){if(!MAP.sel||!R.mapTip)return;const[x,y]=MAP.w2s(MAP.sel.x,MAP.sel.z);R.mapTip.style.left=x+'px';R.mapTip.style.top=y+'px'}
