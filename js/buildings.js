@@ -1188,7 +1188,7 @@
       b.poly('awning', [F.P(.4, ay - 1.0, -aD), F.P(W - .4, ay - 1.0, -aD), F.P(W - .4, ay - .75, -aD), F.P(.4, ay - .75, -aD)], [[0, 0], [(W - .8) / 1.2, 0], [(W - .8) / 1.2, .3], [0, .3]], null, F.N);
       for (const s of [.4, W - .4]) b.poly('awning', [F.P(s, ay - .75, -aD), F.P(s, ay, 0), F.P(s, ay - .75, 0)], [[0, 0], [1, 1], [0, 1]], null, mul(F.U, s < 1 ? -1 : 1));
       /* sign */
-      const nm = kind === 'hardware' ? SHOP_NAMES.hardware : r.pick(STORES);
+      const nm = opts.name || (kind === 'hardware' ? SHOP_NAMES.hardware : r.pick(STORES));
       const sm = signMaterial(nm, kind === 'hardware' ? { bg: '#7d1d1d', fg: '#fbf6ea', fg2: '#f3d27a', font: 'Georgia, "Times New Roman", serif', size: 112 } : { bg: '#f4f0e6', fg: '#1d3a5f', fg2: '#a12a2a' });
       b.mats.sign = sm;
       const sw = Math.min(W - 1.4, 11), sc = W / 2, sy0 = 3.85, sy1 = top - .25;

@@ -44,7 +44,10 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/guns.js"></script>
 <script src="js/buildings.js"></script>
 <script src="js/vehicles.js"></script>
+<script src="js/worldgen.js"></script>
 <script src="js/world.js"></script>
+<script src="js/roadgraph.js"></script>
+<script src="js/openworld.js"></script>
 <script src="js/people.js"></script>
 <script src="js/ai.js"></script>
 <script>
@@ -182,7 +185,8 @@ const MOODS={
   over:{exp:.95,tint:'#c9d2db',sun:'#f4f1ea',si:1.5,hemi:.6,near:45,far:170,fb:'#9fb2c4'},
   dusk:{exp:.92,tint:'#ffbf8c',sun:'#ffb070',si:2.2,hemi:.4,near:50,far:200,fb:'#e9b88a'}};
 let mood=MOODS.sun;
-function setMood(def){mood=def.id==='hub'||def.type==='waves'?MOODS.sun:def.type==='boss'?MOODS.dusk:MOODS.over;applyMood()}
+MOODS.world=Object.assign({},MOODS.sun,{near:70,far:195});
+function setMood(def){mood=def.world?MOODS.world:def.id==='hub'||def.type==='waves'?MOODS.sun:def.type==='boss'?MOODS.dusk:MOODS.over;const far=def.world?260:420;if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();const k=Math.min(1,far*.9/380);skyDome.scale.set(k,k,-k)}applyMood()}
 function applyMood(){const m=mood;renderer.toneMappingExposure=m.exp;sun.color.copy(lin(m.sun));sun.intensity=m.si;
   hemi.intensity=envMap?m.hemi:m.hemi+.6;const tint=lin(m.tint);
   if(ASSETS.skyTex){skyMat.map=ASSETS.skyTex;skyMat.color.copy(tint)}else skyMat.color.copy(lin(m.fb));skyMat.needsUpdate=true;
@@ -560,7 +564,8 @@ const MISSIONS=[
   "tgg########################gt",
   "ttttttttttttttttttttttttttttt"]},
 ];
-const HUB=(()=>{const W=60,H=42,g=[...Array(H)].map((_,z)=>Array(W).fill(0).map((_,x)=>x===0||z===0||x===W-1||z===H-1?'t':'g'));
+/* the old generated street grid: the hub when the open-world modules are missing (see OPEN WORLD below) */
+const HUB_SMALL=(()=>{const W=60,H=42,g=[...Array(H)].map((_,z)=>Array(W).fill(0).map((_,x)=>x===0||z===0||x===W-1||z===H-1?'t':'g'));
   const set=(x,z,c)=>{if(x>0&&z>0&&x<W-1&&z<H-1)g[z][x]=c};
   const rect=(x0,z0,x1,z1,c)=>{for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)set(x,z,c)};
   const RZ=[6,20,34],RX=[6,30,53];
@@ -573,6 +578,7 @@ const HUB=(()=>{const W=60,H=42,g=[...Array(H)].map((_,z)=>Array(W).fill(0).map(
   for(const x of RX)for(let z=4;z<H-2;z+=8){if(g[z][x-1]==='s')set(x-1,z,'l');if(g[z][x+3]==='s')set(x+3,z,'l')}
   [['1',13,10],['2',37,24],['3',20,32],['4',44,18],['P',15,9],['D',19,7],['5',57,7],['6',2,35],['7',31,40],['8',54,2],['V',25,6],['V',44,22],['V',12,36],['V',48,8]].forEach(([c,x,z])=>set(x,z,c));
   return{id:'hub',pad:'g',floor:'g',inside:'g',wall:'#999',map:g.map(r=>r.join('')),lines:[...RZ.map(z=>['h',z+1]),...RX.map(x=>['v',x+1])],under:{D:',',5:',',6:',',7:',',8:',',V:',',l:'s'}}})();
+let HUB=HUB_SMALL;
 
 /* ================= LEVEL ================= */
 const TILE=2;
@@ -606,6 +612,7 @@ function placeHouse(lvl,WB,fp,facing,seed,home){const w=fp.x1-fp.x0,d=fp.z1-fp.z
   return{...fp,fn,door,seed,group:grp}}
 function buildLevel(def){
   if(L&&L.group){scene.remove(L.group);L.group.traverse(o=>{if(o.userData&&o.userData.wkey&&o.geometry)o.geometry.dispose()})}
+  if(def.world&&OW()){try{return L=owLevel(def)}catch(e){console.warn('open world failed, using the small hub',e);if(def._lvl&&def._lvl.group)scene.remove(def._lvl.group);HUB=def=HUB_SMALL}}
   const rows=def.map,H=rows.length,W=Math.max(...rows.map(r=>r.length));
   const g=rows.map(r=>(r+def.pad.repeat(W)).slice(0,W).split(''));
   const group=new THREE.Group();scene.add(group);
@@ -699,12 +706,14 @@ function nextStep(fx,fz,gxw,gzw){
   const sx=tx(fx),sz=tx(fz),ex=tx(gxw),ez=tx(gzw);if(sx===ex&&sz===ez)return null;
   const W=L.W,H=L.H,prev=new Int32Array(W*H).fill(-1),q=[sz*W+sx];prev[sz*W+sx]=sz*W+sx;let found=false,head=0;
   const D=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  /* the open world is 232x80: search a window around start and goal only */
+  const win=L.def.world?{x0:Math.min(sx,ex)-14,z0:Math.min(sz,ez)-14,x1:Math.max(sx,ex)+14,z1:Math.max(sz,ez)+14}:null;
   while(head<q.length){const c=q[head++],cx=c%W,cz=(c/W)|0;if(cx===ex&&cz===ez){found=true;break}
-    for(const[dx,dz]of D){const nx=cx+dx,nz=cz+dz;if(!walkable(nx,nz)&&!(nx===ex&&nz===ez&&nx>=0&&nz>=0&&nx<W&&nz<H))continue;if(dx&&dz&&(!walkable(cx+dx,cz)||!walkable(cx,cz+dz)))continue;const k=nz*W+nx;if(prev[k]!==-1)continue;prev[k]=c;q.push(k)}}
+    for(const[dx,dz]of D){const nx=cx+dx,nz=cz+dz;if(win&&(nx<win.x0||nz<win.z0||nx>win.x1||nz>win.z1))continue;if(!walkable(nx,nz)&&!(nx===ex&&nz===ez&&nx>=0&&nz>=0&&nx<W&&nz<H))continue;if(dx&&dz&&(!walkable(cx+dx,cz)||!walkable(cx,cz+dz)))continue;const k=nz*W+nx;if(prev[k]!==-1)continue;prev[k]=c;q.push(k)}}
   if(!found)return null;let c=ez*W+ex,p=prev[c];while(p!==sz*W+sx&&p!==c){c=p;p=prev[c]}
   return{x:tileC(c%W),z:tileC((c/W)|0)};
 }
-function collide(p,r){for(const c of L.colliders){if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){
+function collide(p,r){for(const c of L.cgrid?L.cgrid(p,r):L.colliders){if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){
   const ox1=p.x+r-c.x0,ox2=c.x1-(p.x-r),oz1=p.z+r-c.z0,oz2=c.z1-(p.z-r);const mx=Math.min(ox1,ox2),mz=Math.min(oz1,oz2);
   if(mx<mz)p.x+=ox1<ox2?-ox1:ox2;else p.z+=oz1<oz2?-oz1:oz2}}}
 
@@ -792,6 +801,80 @@ let _scope=null;function scopeEl(){if(_scope)return _scope;const d=document.crea
 /* ================= FLOW ================= */
 /* ================= MINIVAN ================= */
 const VAN={on:false,obj:null,pos:V3(),yaw:0,spd:0,steer:0,col:null,bump:0},VAN_OFF={x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1};
+/* ================= OPEN WORLD (js/worldgen.js + js/roadgraph.js + js/openworld.js: SPEC2 layers W1/W2) ================= */
+/* With the modules present the hub is the continuous world (Maple Heights, Route 9, the river, Riverside Flats); HUB_SMALL is the fallback.
+   Missions still run as their own levels (CFG.inWorld stays false): each site's ring launches the old mission level, and the van comes back to the ring. */
+const OW=()=>HTM('OpenWorld');
+CFG.inWorld=false;
+const WORLD=(()=>{const G=HTM('WorldGen');if(!G||!OW())return null;try{return G.build({save:{prog,world:prog.world},missions:MISSIONS})}catch(e){console.warn('world generator failed, using the small hub',e);return null}})();
+if(WORLD)HUB=WORLD;
+if(prog.trustR==null)prog.trustR=5;
+if(!prog.world)prog.world={visited:{maple:true,route9:false,river:false},pins:['home','hank','auto','gas']};
+const OWS={region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
+const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
+function owLevel(def){const O=OW();
+  if(def._lvl){const lvl=def._lvl;scene.add(lvl.group);O.reset(lvl);setMood(def);L=lvl;owMinimap();return lvl}
+  const g=def.map.map(r=>r.split('')),group=new THREE.Group();scene.add(group);
+  const lvl={def,W:def.W,H:def.H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:def.markers.map(m=>({i:m.i,x:m.x,z:m.z})),start:V3(def.start.x,0,def.start.z),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[],
+    vanStart:{x:def.vanStart.x,z:def.vanStart.z},sites:def.sites,places:def.places,doors:def.doors};
+  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});
+  O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,player:()=>P.pos,
+    onSolids:()=>{if(mode==='hub')rebuildTargets()},quality:()=>RENDER.q});
+  if(def.bridgeOpen)O.openBridge();
+  def._lvl=lvl;L=lvl;setMood(def);owMinimap();return lvl}
+function owMinimap(){const def=WORLD;
+  HUD.minimap.setLevel(def.map,{tile:TILE,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights',
+    under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
+    legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
+  owPins()}
+function owPins(){const def=WORLD,v=prog.world,pins=[];
+  for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
+  MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
+  HUD.minimap.setPins(pins)}
+/* enterHub hook: bridge state, coming back from a job puts the van and the crew back at the site's ring */
+function owEnterHub(){const def=WORLD,O=OW();
+  if(prog.done[def.bridgeUnlockJob]&&O.openBridge()){owMinimap();banner('ROUTE 9 BRIDGE OPEN','The city finished the inspection. Riverside Flats is across the river.',3.4)}
+  if(OWS.ret){const r=OWS.ret;OWS.ret=null;VAN.pos.set(r.x,0,r.z);VAN.yaw=r.yaw;VAN.spd=0;syncVan();
+    const rt=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));P.pos.copy(VAN.pos).addScaledVector(rt,-2.4);collide(P.pos,.35);P.yaw=VAN.yaw}
+  OWS.region=null;OWS.gps=null;OWS.gpsKey='';owPins();O.dress(prog.trustR)}
+/* updHub hook: region banners, trust dressing, GPS route + ground chevrons */
+function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
+  if(OWS.q!==RENDER.q){OWS.q=RENDER.q;O.quality(RENDER.q)}
+  O.dress(prog.trustR);
+  const reg=O.regionAt(P.pos.x,P.pos.z);
+  if(reg!==OWS.region){const first=OWS.region===null;OWS.region=reg;
+    if(reg==='river'&&!prog.world.visited.river){prog.world.visited.river=true;for(const id of['center','mart'])if(!prog.world.pins.includes(id))prog.world.pins.push(id);owPins()}
+    prog.world.visited[reg]=true;
+    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
+      HUD.banner({kind:'alert',kicker:'Now entering',title:def.hoods[reg].name.toUpperCase(),sub,dur:2.6})}}
+  /* GPS: the accepted job's site, else the next giver */
+  let tgt=null;if(JOB!==null&&L.dests[JOB])tgt=L.dests[JOB];else{const n=npcs[0];if(n)tgt={x:n.pos.x,z:n.pos.z}}
+  const key=tgt?Math.round(tgt.x)+','+Math.round(tgt.z):'';OWS.gpsT-=dt;
+  const off=OWS.gps&&OWS.gps.points.length>1&&owDistToRoute(P.pos.x,P.pos.z)>8;
+  if(key!==OWS.gpsKey||off||(OWS.gpsT<=0&&(VAN.on?Math.abs(VAN.spd)>1:P.moving))){OWS.gpsKey=key;OWS.gpsT=1.5;
+    OWS.gps=tgt?O.gps({x:P.pos.x,z:P.pos.z},tgt):null;HUD.minimap.route(OWS.gps?[{x:P.pos.x,z:P.pos.z},...OWS.gps.points.slice(1)]:null)}
+  owChevrons()}
+function owDistToRoute(x,z){const p=OWS.gps.points;let best=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/l,0,1);best=Math.min(best,Math.hypot(a.x+dx*t-x,a.z+dz*t-z))}return best}
+/* up to 20 chevrons every 4 m along the next 80 m of the route, only while driving */
+function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.3);sh.lineTo(0,.25);sh.lineTo(.45,-.3);sh.lineTo(.45,-.05);sh.lineTo(0,.5);sh.lineTo(-.45,-.05);sh.closePath();
+    const geo=new THREE.ShapeGeometry(sh);geo.rotateX(-Math.PI/2);const m=new THREE.InstancedMesh(geo,new THREE.MeshBasicMaterial({color:lin('#ffc94a').multiplyScalar(1.6),transparent:true,opacity:.55,depthWrite:false,toneMapped:false}),20);
+    m.frustumCulled=false;m.renderOrder=3;m.count=0;scene.add(m);OWS.chev=m}
+  const m=OWS.chev,show=mode==='hub'&&VAN.on&&OWS.gps&&OWS.gps.points.length>1;m.visible=!!show;if(!show)return;
+  const p=OWS.gps.points;let si=0,bd=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((VAN.pos.x-a.x)*dx+(VAN.pos.z-a.z)*dz)/l,0,1),d=Math.hypot(a.x+dx*t-VAN.pos.x,a.z+dz*t-VAN.pos.z);if(d<bd){bd=d;si=i}}
+  const o=new THREE.Object3D();let n=0,acc=6;const a0=p[si],b0=p[si+1];{const dx=b0.x-a0.x,dz=b0.z-a0.z,l=dx*dx+dz*dz||1;const t=clamp(((VAN.pos.x-a0.x)*dx+(VAN.pos.z-a0.z)*dz)/l,0,1);var cur={x:a0.x+dx*t,z:a0.z+dz*t}}
+  let travelled=0;for(let i=si;i+1<p.length&&n<20&&travelled<80;i++){const a=i===si?cur:p[i],b=p[i+1],len=Math.hypot(b.x-a.x,b.z-a.z);const yaw=Math.atan2(b.x-a.x,b.z-a.z);
+    while(acc<len&&n<20&&travelled+acc<80){const x=a.x+(b.x-a.x)*acc/len,z=a.z+(b.z-a.z)*acc/len;o.position.set(x,(L.world&&HTM('World')?HTM('World').groundY(L,x,z):0)+.03,z);o.rotation.set(0,yaw,0);o.updateMatrix();m.setMatrixAt(n++,o.matrix);acc+=4}
+    acc-=len;travelled+=len}
+  m.count=n;m.instanceMatrix.needsUpdate=true}
+/* fast travel from the map: 0.35 s fade, the van and crew at the pin, fade back (SPEC2 A.9) */
+function owFastTravel(pin){if(!L||!L.ow||mode!=='hub'||!pin||!pin.place||!pin.fast)return false;
+  if(!(VAN.on||Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30)){HUD.feed('Get back to the minivan to fast travel','info');return false}
+  let p;if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p={x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place];if(!p)return false;
+  const go=()=>{if(!VAN.on&&typeof enterVan==='function')enterVan();VAN.pos.set(p.x,0,p.z);VAN.yaw=p.yaw!=null?p.yaw:-Math.PI/2;VAN.spd=0;VAN.steer=0;syncVan();P.pos.set(VAN.pos.x,0,VAN.pos.z);P.yaw=VAN.yaw;
+    for(const a of allies)a.pos.set(VAN.pos.x,0,VAN.pos.z);sunFollow(VAN.pos.x,VAN.pos.z);OWS.gpsKey='';const O=OW();if(O)O.update(camera)};
+  let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}
+  f.style.opacity='1';setTimeout(()=>{go();f.style.opacity='0';HUD.feed('Saved you '+Math.max(8,Math.round(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)/14))+' seconds and one argument about directions.','info')},360);return true}
+HUD.on('fastTravel',pin=>owFastTravel(pin));
 let JOB=null,camLookT=0,ENG=null,destRings=[],objKey='';
 const DRIVE_LINES=["Seatbelts. I'm not asking.","Nobody touch the radio presets.","I call shotgun. The seat. Not the gun.","Signal before you merge. We're the good guys.","This van has seen three soccer seasons and a divorce. It can handle this."];
 function makeHubVan(){const v=makeVan('#35577d','minivan',{roofRack:true});if(!v.userData.mod){box(3.4,.08,1.6,'#2a2a2a',-.3,2.04,0,v);for(const z of[-.7,.7])box(3.2,.1,.08,'#888',-.3,2.12,z,v)}
@@ -845,7 +928,7 @@ function enterHub(){
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
-  P.pos.copy(L.start);P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
+  P.pos.copy(L.start);P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;if(L.ow)owEnterHub();
   const next=prog.done.findIndex(d=>!d);
   FX.clear();audioState('hub');setLoadout({side:'pistol',p1:prog.done[0]?'shotgun':null,p2:prog.done[1]?'rifle':null},P.cur);
   if(next===-1){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
@@ -865,7 +948,7 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();
   const close=()=>{HUD.hide('brief');UI.acts={}};
   UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
-    'brief:skip':()=>{close();startMission(i);requestLock()},
+    'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMission(i);requestLock()},
     'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
 function startMission(i){
   engine(false);VAN.on=false;JOB=null;
@@ -1499,6 +1582,7 @@ function updMission(dt){
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
 function updHub(dt){
+  if(L.ow)owUpdate(dt);
   let prompt=null,target=null;
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
@@ -1508,7 +1592,7 @@ function updHub(dt){
   if(VAN.on){
     if(Math.abs(VAN.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitVan()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
-      if(Math.hypot(VAN.pos.x-d.x,VAN.pos.z-d.z)<4.5){const j=JOB;setPrompt(null);showMarker(null);startMission(j);return}}
+      if(Math.hypot(VAN.pos.x-d.x,VAN.pos.z-d.z)<4.5&&(!L.ow||Math.abs(VAN.spd)<3)){const j=JOB;if(L.ow)OWS.ret={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};setPrompt(null);showMarker(null);startMission(j);return}}
   }else if(VAN.obj&&Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<3.6){prompt=prompt||KE+' · Drive the minivan';if(useTap&&!prompt.includes('Talk')){useTap=false;enterVan()}}
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
   hubObj();setPrompt(prompt);showMarker(target);
@@ -1574,14 +1658,14 @@ function hud(dt){
     objective:obj,timer,prompt:UI.prompt,
     speedMph:Math.abs(VAN.spd)*2.237,gear:VAN.spd<-.3?'R':'D',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
-    markers,tags,subtitles:UI.sub,routeTo:UI.route,zone:mis&&M?M.def.place:'Maple Heights'},dt);
+    markers,tags,subtitles:UI.sub,routeTo:L&&L.ow?undefined:UI.route,zone:mis&&M?M.def.place:L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'},dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
 }
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
-function groundPass(sign){const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
+function groundPass(sign){if(sign>0&&L&&L.ow){const O=OW();if(O)O.update(camera)}const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
   for(const e of[P,...allies,...npcs]){const r=e.dude&&e.dude.root;if(r)r.position.y+=sign*HW.groundY(L,r.position.x,r.position.z)}
   if(sign>0&&VAN.obj)VAN.obj.position.y=HW.groundY(L,VAN.pos.x,VAN.pos.z)}
 let last=performance.now();
@@ -1622,6 +1706,11 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   pickUp(p){pickUp(p)},hurtEnemy,
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 /* character test hooks (dev/people scripts) */
+/* open world test hooks (SPEC2 D __ht additions) */
+Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
+  mode:{get:()=>mode},JOB:{get:()=>JOB,set:v=>{JOB=v}},running:{get:()=>running,set:v=>{running=v}}});
+Object.assign(window.__ht,{hoodAt:x=>OW()?OW().regionAt(x,0):'maple',openBridge:()=>{const r=OW()&&OW().openBridge();if(r&&WORLD)owMinimap();return r},fastTravel:id=>owFastTravel({place:id,fast:true}),
+  dress:t=>{prog.trustR=t;return OW()&&OW().dress(t)},drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
 window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]}};
 requestAnimationFrame(frame);
 })();
