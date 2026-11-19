@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Asset A/B: source vs optimised</title>
+<!-- Renders a source asset (left) and its assets/opt variant (right) under identical light.
+     dev/asset-ab.html?src=assets/props/tree_pine.glb&tier=l    (tier m or l; images work too: ?src=assets/tex/grass_col.jpg)
+     Used by tools/perf/ab.js to screenshot every converted asset. -->
+<style>html,body{margin:0;background:#888;overflow:hidden}canvas{display:block}#lab{position:fixed;left:8px;top:6px;font:12px monospace;color:#fff;text-shadow:0 1px 2px #000}</style>
+<div id="lab"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/combine/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js,npm/three@0.128.0/examples/js/loaders/RGBELoader.js,npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
+<script>
+(async()=>{
+const q=new URLSearchParams(location.search),src=q.get('src')||'assets/props/tree_pine.glb',tier=q.get('tier')||'l';
+const man=await (await fetch('../assets/opt/manifest.json')).json();const e=man.files[src];
+const v=e&&(e[tier]||e.l),f=v&&v.f;const opt=q.get('opt')||f&&(f.glb||f.webp||f.jpg||f.png||f.hdr);
+document.getElementById('lab').textContent=src+' ('+e.kb+'k)  vs  '+opt+' ('+(v&&v.kb)+'k)';
+const W=1200,H=600;const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});r.setSize(W,H);r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.appendChild(r.domElement);
+r.setScissorTest(true);
+const mk=()=>{const s=new THREE.Scene();s.background=new THREE.Color(0x8a9aa8);s.add(new THREE.HemisphereLight(0xcfe3ff,0x6b5a40,.6));const d=new THREE.DirectionalLight(0xfff0d8,2.4);d.position.set(3,5,4);s.add(d);return s};
+const env=await new Promise(res=>new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('../assets/sky/sky_1k.hdr',t=>{const pm=new THREE.PMREMGenerator(r);res(pm.fromEquirectangular(t).texture)},undefined,()=>res(null)));
+const scenes=[mk(),mk()];scenes.forEach(s=>s.environment=env);
+const cam=new THREE.PerspectiveCamera(35,(W/2)/H,.01,500);
+const gl=new THREE.GLTFLoader();gl.setMeshoptDecoder(MeshoptDecoder);
+async function put(s,url){
+  if(/\.glb$/.test(url)){const g=await new Promise((ok,no)=>gl.load(url,ok,undefined,no));s.add(g.scene);return g.scene}
+  if(/\.hdr$/.test(url)){const t=await new Promise(ok=>new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load(url,ok));const pm=new THREE.PMREMGenerator(r);s.environment=pm.fromEquirectangular(t).texture;
+    const g=new THREE.Group();[[0,1],[.4,.5],[1,0]].forEach(([ro,me],i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.45,48,24),new THREE.MeshStandardMaterial({roughness:ro,metalness:me}));m.position.x=(i-1)*1.05;g.add(m)});s.add(g);return g}
+  const t=await new Promise(ok=>new THREE.TextureLoader().load(url,ok));t.encoding=/_(nrm|rgh|alpha)/.test(src)?THREE.LinearEncoding:THREE.sRGBEncoding;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial({map:t,toneMapped:false,transparent:/\.png$|webp/.test(url)}));s.add(m);return m}
+const a=await put(scenes[0],'../'+src),b=await put(scenes[1],'../'+opt);
+const bb=new THREE.Box3().setFromObject(a),c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()).length()||2;
+cam.position.set(c.x+sz*.55,c.y+sz*.25,c.z+sz*.9);cam.lookAt(c);
+for(let i=0;i<2;i++){r.setViewport(i*W/2,0,W/2,H);r.setScissor(i*W/2,0,W/2,H);r.render(scenes[i],cam)}
+window.__abDone=true;
+})().catch(e=>{document.getElementById('lab').textContent='error '+e;window.__abDone=true});
+</script>

@@ -110,7 +110,7 @@ const SETTINGS=[
   {tab:'display',h:'Camera',items:[
     {k:'fov',l:'Field of view',min:60,max:100,step:1,fmt:v=>v+'°'}]},
   {tab:'display',h:'Graphics',items:[
-    {k:'gfx',l:'Quality',type:'seg',opts:[['low','Low'],['med','Medium'],['high','High']],sub:'Low turns off shadows and post effects'}]},
+    {k:'gfx',l:'Quality',type:'seg',opts:[['auto','Auto'],['low','Low'],['med','Medium'],['high','High']],sub:'Auto adapts resolution and effects to this machine · Low turns off shadows and post effects'}]},
   {tab:'display',h:'Interface',items:[
     {k:'subs',l:'Subtitles',type:'bool'},
     {k:'mmRotate',l:'Rotate minimap',sub:'Off keeps north up',type:'bool'}]},
