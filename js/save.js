@@ -620,7 +620,7 @@ function gunBars(w){if(typeof w==='string')w=weaponStats(w);return BAR_DEFS.map(
 /* Active vehicle, straight from HT.Garage.apply (fields: maxSpeed, boostMax, accel, boostAccel, brake, hbrake, grip, steerResp, turn, hp,
    bulletMul, ramDealtFront, impactTakenFront, sport*, ammoBonus, slots, firstAid, ...) plus the cosmetics and HT.Vehicles.make options. */
 function vehicleStats(s,type){s=S(s);const G=HT.Garage,g=s.garage;type=type||g.active;const v=g.vehicles[type]||defVehicle();
-  const st=G?G.apply(type,v,g.util):{type,maxSpeed:17,boostMax:25,accel:8,boostAccel:11,brake:24,grip:9,hp:100,bulletMul:1,ammoBonus:g.util.cargo?2:0,slots:g.util.rack?4:3,firstAid:!!g.util.aid,stock:true};
+  const st=G?G.apply(type,v,g.util):{type,maxSpeed:25,boostMax:33,accel:9,boostAccel:12,brake:24,grip:9,hp:100,bulletMul:1,ammoBonus:g.util.cargo?2:0,slots:g.util.rack?4:3,firstAid:!!g.util.aid,stock:true};
   st.curHp=g.hp[type]!=null?g.hp[type]:st.hp;st.active=type===g.active;
   st.paint=Object.assign({id:v.paint},G?G.COSMETICS.paint[v.paint]:{hex:'#35577d',finish:'solid'});st.rims=v.rims;st.tint=v.tint;st.lightBar=v.lightBar;st.spoiler=!!(v.spoiler||v.perf.sport);
   st.horn={id:g.horn,notes:G?G.hornNotes(g.horn):null};st.stickers=g.stickers.map(i=>i==null?null:G?G.COSMETICS.stickers[i]:String(i));

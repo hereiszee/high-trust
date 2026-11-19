@@ -23,3 +23,10 @@ build boss         Professions/Business_Male_05
 build wife         Adults/Female_Adult_01
 build son          Children/Male_Child_01
 build daughter     Children/Female_Child_01
+# roster round 2 (variety): street crews only
+build thug_fro       Adults/Male_Adult_04
+build thug_jacket    Adults/Male_Adult_07
+build thug_brown     Adults/Male_Adult_20
+build thug_cap       Professions/Wood_Male_01
+build thug_f_hood    Adults/Female_Adult_12
+build thug_f_leather Adults/Female_Adult_04
