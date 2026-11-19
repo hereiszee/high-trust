@@ -234,19 +234,26 @@ function parkedCars(ws){const def=ws.def,lvl=ws.lvl;if(!C.makeVehicle)return;
   const pump=def.pumps[1];if(pump){const v=C.makeVehicle('hatch','#6d7378',{lod:1});if(v){const x=pump.x+2.6,z=pump.z;v.position.set(x,0,z);v.rotation.y=Math.PI/2;lvl.group.add(v);lvl.colliders.push({x0:x-1,z0:z-2.2,x1:x+1,z1:z+2.2,h:1.6,k:'car'});v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}}}
 
 /* ---------------- units ---------------- */
-function buildUnit(u){if(u.built)return;u.built=true;const t0=performance.now();
-  u.group=new THREE.Group();u.group.visible=false;WS.lvl.group.add(u.group);WS.own.add(u.group);
-  try{if(u.kind==='chunk')buildChunk(u);else if(u.kind==='site')buildSite(u);else{u.sp.build(WS,u);u.group.updateMatrixWorld(true);compact(u.group,u.dress.flatMap(d=>[d.on,d.off]).filter(Boolean))}}catch(e){console.warn('open world: unit failed',u.kind,u.i,e)}
+/* units build in slices: a chunk is a generator that yields between its steps, so streaming spreads over frames (budget per frame in update) */
+function buildUnit(u){startUnit(u);stepUnit(u,1e9)}
+function startUnit(u){if(u.built)return;u.built=true;u.ready=false;u.ms=0;u.maxStep=0;
+  u.group=new THREE.Group();u.group.visible=false;WS.lvl.group.add(u.group);WS.own.add(u.group);u.gen=u.kind==='chunk'?buildChunk(u):null}
+function stepUnit(u,budget){if(u.ready)return true;const t0=performance.now();
+  try{if(!u.gen){if(u.kind==='site')buildSite(u);else{u.sp.build(WS,u);u.group.updateMatrixWorld(true);compact(u.group,u.dress.flatMap(d=>[d.on,d.off]).filter(Boolean))}u.maxStep=performance.now()-t0}
+    else for(;;){const s0=performance.now(),r=u.gen.next(),dt=performance.now()-s0;u.maxStep=Math.max(u.maxStep,dt);if(r.done)break;if(performance.now()-t0>budget){u.ms+=performance.now()-t0;return false}}}
+  catch(e){console.warn('open world: unit failed',u.kind,u.i,e)}
+  u.ms+=performance.now()-t0;finishUnit(u);return true}
+function finishUnit(u){u.gen=null;u.ready=true;const t0=performance.now();
   u.group.traverse(o=>{if(o.userData&&o.userData.wkey){if(!o.name)o.name='w:'+o.userData.wkey;delete o.userData.wkey}});
   /* tree impostor sheets are frustum-culled per chunk (their shader only hides near trees, it never moves far ones) */
   u.group.traverse(o=>{if(o.isMesh&&o.name==='w:imp'){o.geometry.computeBoundingSphere();o.frustumCulled=true}});
-  u.ms=performance.now()-t0;WS.built++;if(WS.tier>=0)dressUnit(u,WS.trust)}
+  u.ms+=performance.now()-t0;WS.built++;WS.maxStep=Math.max(WS.maxStep||0,u.maxStep);if(WS.tier>=0)dressUnit(u,WS.trust)}
 
-function buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:ch.z0,x1:ch.x1,z1:ch.z1},box=boxOfTiles(win);
+function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:ch.z0,x1:ch.x1,z1:ch.z1},box=boxOfTiles(win);
   if(!W_){fallbackChunk(u);return}
   const B=newB(ws,u.group,'hub',win,4,1000+ch.i*17);B.hub=true;
-  W_.ground(B);delete B.gb.out;for(const k in B.gb){clipGB(B.gb[k],box);if(!B.gb[k].I.length)delete B.gb[k]}
-  markings(B,ch,box);
+  W_.ground(B);delete B.gb.out;yield;for(const k in B.gb){clipGB(B.gb[k],box);if(!B.gb[k].I.length)delete B.gb[k]}
+  markings(B,ch,box);yield;
   const r=B.r,lowQ=ws.q==='low';
   /* trees */
   for(const t of ch.trees){const edge=t.tx===0||t.tz===0||t.tx===def.W-1||t.tz===def.H-1;if(edge&&(t.tx+t.tz)%(lowQ?4:2))continue;W_.tree(B,t.x,t.z,{s:edge?1.2:1})}
@@ -254,7 +261,7 @@ function buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:c
   for(const l of ch.lamps){if(l.hood==='river')continue;const p=lampSpot(l);W_.streetLamp(B,p.x,p.z,lampDir(ws,l))}
   for(const h of ch.hedges)for(let z=h.z0;z<=h.z1;z++)for(let x=h.x0;x<=h.x1;x++)W_.hedge(B,tc(x),tc(z),h.o==='h');
   for(const c of ch.crates)if(!W_.crate(B,c.x,c.z))B.gbOf('ply').box(c.x-.85,0,c.z-.85,c.x+.85,1.15,c.z+.85,1,null,{});
-  for(const t of ch.tables)W_.stash(B,t.x,t.z);
+  for(const t of ch.tables)W_.stash(B,t.x,t.z);yield;
   /* intersections: hydrants, street name signs */
   intersections(B,ch,box);
   /* houses: HT.Buildings per lot, merged per material below */
@@ -264,21 +271,25 @@ function buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:c
     try{if(BUm)grp=h.store?BUm.shop({kind:'hardware',w,d,seed:h.seed,facing:h.facing}):BUm.house({w,d,seed:h.seed,style:['ranch','colonial','craftsman','cape'][h.seed%4],facing:h.facing,home:!!h.home})}catch(e){console.warn('house failed',e);grp=null}
     if(!grp)grp=W_.fallbackHouse(B,{w,d,seed:h.seed,facing:h.facing,cx,cz});
     if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
-    try{W_.yard(B,h)}catch(e){}}
+    if(grp)grp.userData._owCol=h.src.col;try{W_.yard(B,h)}catch(e){}yield}
   for(const s of ws.fenceSegs||[]){const mx=(s[0]+s[2])/2,mz=(s[1]+s[3])/2;if(mx>=box.x0&&mx<box.x1&&mz>=box.z0&&mz<box.z1)W_.fence(B,s[0],s[1],s[2],s[3])}
   /* rowhouses, warehouses, commercial buildings */
-  buildingsInChunk(ws,B,box,blds);
+  buildingsInChunk(ws,B,box,blds);yield;
   chainlink(B,ch);
   for(const b of ch.beds)gardenBed(B,b);
   /* trust dressing pieces live in their own meshes so they can be toggled */
-  {const real=u.group;const dr=new THREE.Group();dr.name='dressing';real.add(dr);u.group=dr;try{riversideDressing(ws,u,B,ch,box)}finally{u.group=real}if(dr.children.length){u.dressRoot=dr}else real.remove(dr)}
+  {const real=u.group;const dr=new THREE.Group();dr.name='dressing';real.add(dr);u.group=dr;try{riversideDressing(ws,u,B,ch,box)}finally{u.group=real}if(dr.children.length){u.dressRoot=dr}else real.remove(dr)}yield;
   W_.finish(B,{bare:true,before:b=>{for(const L of[b.tuf,b.flw])if(L){const o=[];for(let i=0;i<L.length;i+=4)if(L[i]>=box.x0&&L[i]<box.x1&&L[i+1]>=box.z0&&L[i+1]<box.z1)o.push(L[i],L[i+1],L[i+2],L[i+3]);L.length=0;L.push(...o)}}});
-  if(blds.length){const sc=[];for(const g of blds){g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(g);sc.push({bb,kind:g.userData.style?'house':'flat',fp:g.userData.size,cx:g.position.x,cz:g.position.z,rot:g.rotation.y})}
-    const mg=new THREE.Group();u.group.add(mg);mergeGroups(blds,mg);
+  yield;
+  if(blds.length){const sc=[];for(const g of blds){g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(g);sc.push({bb,kind:g.userData.style?'house':'flat',fp:g.userData.size,cx:g.position.x,cz:g.position.z,rot:g.rotation.y,col:g.userData._owCol||'#cfc6b4',roof:g.userData._owRoof})}
+    const mg=new THREE.Group();u.group.add(mg);mergeGroups(blds,mg);u.mg=mg;
+    /* far LOD: one vertex-coloured shell mesh (walls, pitched/flat roofs, window bands) replaces the merged buildings beyond BLOD m */
+    const sh=shellMesh(sc);if(sh){sh.visible=false;u.group.add(sh);u.shell=sh}
     /* the merged buildings don't cast: one shadow-only caster (layer 1, seen by the sun's shadow camera only) stands in for all of them */
     if(C.sun){for(const m of mg.children)m.castShadow=false;const cm=casterMesh(sc);if(cm)u.group.add(cm)}}
   if(B.fab){const fm=gbMesh(B.fab,fabricMat(),{shadow:true});if(fm)u.group.add(fm)}
-  for(const l of B.lod)ws.lod.push(l);u.B=B;classifyDetail(u,B)}
+  /* world.js swaps a 36 m cell of trees to impostors by cell distance; shrink the cell radius it tests so only the nearest trees are real */
+  for(const l of B.lod){l.r=l.r*.35-4;ws.lod.push(l)}u.B=B;classifyDetail(u,B)}
 function casterMesh(list){const gb=new (HW().GB)();
   for(const o of list){const b=o.bb;if(b.isEmpty())continue;const top=b.max.y;
     if(o.kind==='house'&&o.fp){/* walls to the eaves, then a gable along the long side of the footprint */
@@ -287,6 +298,17 @@ function casterMesh(list){const gb=new (HW().GB)();
       else{for(const s of[-1,1])gb.quad([o.cx+s*w/2,eave,z0],[o.cx+s*w/2,eave,z1],[o.cx,top,z1],[o.cx,top,z0],[[0,0],[1,0],[1,1],[0,1]],null,[s,1,0]);for(const z of[z0,z1])gb.tri([x0,eave,z],[x1,eave,z],[o.cx,top,z],[[0,0],[1,0],[.5,1]],null,[0,0,z===z0?-1:1])}}
     else gb.box(b.min.x+.3,0,b.min.z+.3,b.max.x-.3,top,b.max.z-.3,1,null,{})}
   if(!gb.n)return null;const m=new THREE.Mesh(gb.geo(),MC.caster||(MC.caster=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})));m.castShadow=true;m.receiveShadow=false;m.layers.set(1);m.name='caster';return m}
+function shellMesh(list){const gb=new (HW().GB)(),c3=h=>{const c=lin(h);return[c.r,c.g,c.b]},WIN=[.05,.06,.07];
+  const wins=(x0,x1,z,nz,y0,top)=>{for(let x=x0+1.3;x<x1-1;x+=2.6)for(let y=y0;y+1.3<top-.4;y+=2.95)gb.wz(x-.5,x+.5,y,y+1.3,z+nz*.03,nz,1,WIN)},
+    winsX=(z0,z1,x,nx,y0,top)=>{for(let z=z0+1.3;z<z1-1;z+=2.6)for(let y=y0;y+1.3<top-.4;y+=2.95)gb.wx(z-.5,z+.5,y,y+1.3,x+nx*.03,nx,1,WIN)};
+  for(const o of list){const b=o.bb;if(b.isEmpty())continue;const top=b.max.y,wall=c3(o.col),roof=c3(o.roof||(o.kind==='house'?'#5d5751':'#4a4846'));
+    if(o.kind==='house'&&o.fp){const w=o.fp.w,d=o.fp.d,x0=o.cx-w/2,x1=o.cx+w/2,z0=o.cz-d/2,z1=o.cz+d/2,eave=Math.max(2.6,top*.58),ov=.4;
+      gb.box(x0,0,z0,x1,eave,z1,1,wall,{top:true});wins(x0,x1,z1,1,1.1,eave);wins(x0,x1,z0,-1,1.1,eave);
+      if(w>=d){for(const s of[-1,1])gb.quad([x0-ov,eave-.15,o.cz+s*(d/2+ov)],[x1+ov,eave-.15,o.cz+s*(d/2+ov)],[x1+ov,top,o.cz],[x0-ov,top,o.cz],[[0,0],[1,0],[1,1],[0,1]],roof,[0,1,s]);for(const x of[x0,x1])gb.tri([x,eave,z0],[x,eave,z1],[x,top,o.cz],[[0,0],[1,0],[.5,1]],wall,[x===x0?-1:1,0,0])}
+      else{for(const s of[-1,1])gb.quad([o.cx+s*(w/2+ov),eave-.15,z0-ov],[o.cx+s*(w/2+ov),eave-.15,z1+ov],[o.cx,top,z1+ov],[o.cx,top,z0-ov],[[0,0],[1,0],[1,1],[0,1]],roof,[s,1,0]);for(const z of[z0,z1])gb.tri([x0,eave,z],[x1,eave,z],[o.cx,top,z],[[0,0],[1,0],[.5,1]],wall,[0,0,z===z0?-1:1])}}
+    else{const x0=b.min.x+.3,x1=b.max.x-.3,z0=b.min.z+.3,z1=b.max.z-.3;gb.box(x0,0,z0,x1,top,z1,1,wall,{top:true});gb.floor(x0,z0,x1,z1,top,1,()=>roof);
+      wins(x0,x1,z1,1,1.4,top);wins(x0,x1,z0,-1,1.4,top);winsX(z0,z1,x1,1,1.4,top);winsX(z0,z1,x0,-1,1.4,top)}}
+  if(!gb.n)return null;const m=new THREE.Mesh(gb.geo(),MC.shell||(MC.shell=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,metalness:0})));m.castShadow=false;m.receiveShadow=true;m.name='shell';return m}
 /* near/far LOD inside a chunk: small things are only drawn within DETAIL m, grass tufts within TUFT m */
 const FAR_KEEP=new Set(['imp','road','lot','walk','grass','inside','dirt','paint','lamphead','lampglass','fence','hedgecore','ext','int','cap','plinth','found','roof','brickH','whsWall']);
 const MID_BLD=new Set(['trim','metal','concrete','grime','railing']),DET_BLD=new Set(['glow','skirt','fixt']);   /* house trim/fixtures: drawn up to MID m */
@@ -363,15 +385,15 @@ function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx
     const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2;const north=sideCount(b.z0-1,b.x0,b.x1)+sideCount(b.z0-2,b.x0,b.x1),south=sideCount(b.z1+1,b.x0,b.x1)+sideCount(b.z1+2,b.x0,b.x1);
     const facing=south>=north?'+z':'-z';const h=8.2+((i*37)%5)*.5;b.facing=facing;b.h=h;
     let g=null;try{if(BUm)g=BUm.shell({kind:'rowhouse',w,d,h,seed:'row'+i,facing})}catch(e){g=null}
-    if(g){g.position.set(cx,0,cz);blds.push(g)}else B.gbOf('brickH').box(cx-w/2,0,cz-d/2,cx+w/2,h,cz+d/2,1.1,null,{})});
+    if(g){g.position.set(cx,0,cz);g.userData._owCol=['#8a4b3a','#9c5b45','#7a4a3f','#a9774f','#6e5a4c'][i%5];g.userData._owRoof='#3d3b39';blds.push(g)}else B.gbOf('brickH').box(cx-w/2,0,cz-d/2,cx+w/2,h,cz+d/2,1.1,null,{})});
   ws.whBlocks.forEach((b,i)=>{const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz))return;const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2;
     let g=null;try{if(BUm)g=BUm.shell({kind:'warehouse',w,d,h:6.5+(i%3),seed:'wh'+i,facing:'-z'})}catch(e){g=null}
-    if(g){g.position.set(cx,0,cz);blds.push(g)}else B.gbOf('whsWall').box(cx-w/2,0,cz-d/2,cx+w/2,7,cz+d/2,2,null,{})});
+    if(g){g.position.set(cx,0,cz);g.userData._owCol='#a3a9ac';g.userData._owRoof='#6f7376';blds.push(g)}else B.gbOf('whsWall').box(cx-w/2,0,cz-d/2,cx+w/2,7,cz+d/2,2,null,{})});
   const NAMES={gas:['FILL-ER-UP','GAS · SNACKS · BAIT'],mart:['RAMOS CORNER MART','GROCERY · DELI · LOTTO'],benny:["BENNY'S BRAIN FREEZE",'ICE CREAM · DEPOT'],center:['RIVERSIDE FLATS','COMMUNITY CENTER']};
   for(const b of def.buildings){const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz)||b.id==='church')continue;
     const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2,facing=b.face==='s'?'+z':'-z';let g=null;
     try{if(BUm)g=BUm.shop({kind:b.id==='auto'?'auto':'store',w,d,seed:'shop'+b.id,facing,name:NAMES[b.id]})}catch(e){g=null}
-    if(g){g.position.set(cx,0,cz);blds.push(g)}else B.gbOf('plinth').box(cx-w/2,0,cz-d/2,cx+w/2,4.5,cz+d/2,2,null,{})}}
+    if(g){g.position.set(cx,0,cz);g.userData._owCol=b.col||'#cfc6b4';g.userData._owRoof='#5a5856';blds.push(g)}else B.gbOf('plinth').box(cx-w/2,0,cz-d/2,cx+w/2,4.5,cz+d/2,2,null,{})}}
 
 /* chain-link: galvanised posts every tile, top rail, diamond-mesh fabric (alpha tested) */
 function chainlink(B,ch){const gv=B.gbOf('galv'),fab=B.fab||(B.fab=new (HW().GB)());const H=2.05;
@@ -671,10 +693,13 @@ OW.dress=(t,force)=>{const ws=WS;if(!ws)return null;t=+t||0;const G=HT.WorldGen;
 /* ================= per frame ================= */
 const _v=new THREE.Vector3(),_b=new THREE.Box3();
 OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;dt=dt||1/30;ws.t+=dt;
-  const fogFar=C.fogFar?C.fogFar():200;const R=Math.min(ws.R||(ws.R=200),fogFar+8);ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
-  const cx=camera.position.x,cz=camera.position.z;let built=0;
+  const fogFar=C.fogFar?C.fogFar():200;const R=Math.min(ws.R||(ws.R=200),fogFar+8);ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
+  const cx=camera.position.x,cz=camera.position.z;
+  if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
-    if(!u.built){if(d<R+40&&(built<1||ws.buildAll)){buildUnit(u);built++}else continue}
+    if(!u.built){if(d<R+40&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue}
+    if(!u.ready){u.group.visible=false;continue}
+    if(u.mg){const far=d>ws.BLOD;if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
     let vis=u.sp&&u.sp.always?true:d<R;if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
     u.visible=vis;u.group.visible=vis;
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
@@ -689,8 +714,8 @@ function refreshSolids(ws,x,z){const lvl=ws.lvl,want=new Set();for(const c of lv
   for(let i=lvl.solids.length-1;i>=0;i--){const m=lvl.solids[i];if(mine.has(m)&&!want.has(m)){lvl.solids.splice(i,1);mine.delete(m);changed=true}}
   for(const m of want)if(!mine.has(m)){lvl.solids.push(m);mine.add(m);changed=true}
   if(changed&&C.onSolids)C.onSolids()}
-OW.buildAll=()=>{const ws=WS;if(!ws)return 0;let n=0;for(const u of ws.units)if(!u.built){buildUnit(u);n++}return n};
-OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const W_=HW();if(W_&&W_.quality)for(const u of ws.units)if(u.B)W_.quality(q,u.B);ws.R=q==='low'?160:q==='high'?240:200;ws.DETAIL=q==='low'?50:q==='high'?110:65;ws.MID=q==='low'?80:q==='high'?160:110;ws.TUFT=q==='high'?60:36;for(const u of ws.units){u.near=null;u.tnear=null;u.mnear=null}};
+OW.buildAll=()=>{const ws=WS;if(!ws)return 0;let n=0;if(ws.active){stepUnit(ws.active,1e9);ws.active=null}for(const u of ws.units)if(!u.built){buildUnit(u);n++}return n};
+OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const W_=HW();if(W_&&W_.quality)for(const u of ws.units)if(u.B)W_.quality(q,u.B);ws.R=q==='low'?160:q==='high'?240:200;ws.DETAIL=q==='low'?50:q==='high'?110:65;ws.BLOD=q==='low'?45:q==='high'?110:60;ws.MID=q==='low'?80:q==='high'?160:110;ws.TUFT=q==='high'?60:36;for(const u of ws.units){u.near=null;u.tnear=null;u.mnear=null;u.far=null}};
 
 /* ================= cache reuse, bridge, regions ================= */
 OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;
@@ -706,7 +731,7 @@ OW.roads=()=>{const ws=WS;if(!ws)return null;if(!ws.roads&&HT.Roads)try{ws.roads
 OW.gps=(from,to)=>{const ws=WS;if(!ws||!HT.Roads||!HT.Roads.gps)return null;try{return HT.Roads.gps(ws.def,from,to)}catch(e){console.warn('gps failed',e);return null}};
 OW.regionAt=(x,z)=>{const G=HT.WorldGen;return G&&G.regionAt?G.regionAt(x,z):'maple'};
 OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:ws.built,visible:ws.units.filter(u=>u.visible).length,chunks:ws.chunks.map(u=>({cx:u.ch.cx,cz:u.ch.cz,visible:u.visible,built:u.built,ms:u.ms&&Math.round(u.ms)})),
-  buildMs:Math.round(ws.tBuild||0),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
+  buildMs:Math.round(ws.tBuild||0),maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
 OW.units=()=>WS?WS.units:[];
 Object.defineProperty(OW,'state',{get:()=>WS});
 HT.OpenWorld=OW;
