@@ -1186,7 +1186,7 @@ function stampHTML(st,store){
   if(st.state==='maxed'&&st.kind==='rep')return`<span class="htm-stamp s-own">Like new</span>`;
   return''}
 
-function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':''}"></i></div></div>`}
+function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':cur<max*.7?'mid':''}"></i></div></div>`}
 function shopDetail(m,e){
   const s=Save.data,st=status(e.kind,e.id,m.store),d=itemData(e.kind,e.id)||{},armed=m.armed===e.key,G=HT.Garage;
   let kicker='',body='',name=entryName(e.kind,e.id),blurb=d.blurb||'',fx='';

@@ -1326,8 +1326,8 @@ const TOW_LINES=["{n}'s {t} arrived home on a flatbed.","{n} watched the tow tru
 const FIXED_LINES=["Did you... get it detailed? It's nicer than when I lent it to you.","Sal called. You paid for the bodywork? You're a good egg.","It's got new headlights! I've been meaning to do that since 2017."];
 const BUMP_LINES=["Hey! That's my {t}!","I SAW that. I'm writing it in the newsletter.","Not the {t}! It's paid off!"];
 function carSave(e){if(e!==VAN)return null;try{const s=SV();return s&&s.garage&&s.garage.hp?s.garage:null}catch(_){return null}}
-function carHpMax(e){if(!e)return 100;if(e===VAN){const vs=vanStats();if(vs&&vs.hp)return vs.hp}if(!e.obj&&e.stats&&e.stats.hp)return e.stats.hp;
-  const G=HTM('Garage');try{if(G&&G.VEH[e.type])return G.apply(e.type).hp}catch(_){}return 100}
+function carHpMax(e){if(!e)return 100;if(e===VAN){if(VAN._mx)return VAN._mx;const vs=vanStats();return VAN._mx=vs&&vs.hp||100}/* cached; vanApply clears it */
+  if(!e.obj&&e.stats&&e.stats.hp)return e.stats.hp;if(e._mx&&e._mxT===e.type)return e._mx;let m=100;const G=HTM('Garage');try{if(G&&G.VEH[e.type])m=G.apply(e.type).hp}catch(_){}e._mxT=e.type;return e._mx=m}
 function carHp(e){if(!e)return 0;const g=carSave(e);if(g){const v=g.hp[g.active];return v==null?carHpMax(e):v}if(e.hp==null)e.hp=carHpMax(e);return e.hp}
 function carFrac(e){const m=carHpMax(e);return m>0?clamp(carHp(e)/m,0,1):1}
 function carBand(e){const f=carFrac(e);return f<=0?5:f<.12?4:f<.3?3:f<.5?2:f<.7?1:0}
@@ -1361,7 +1361,7 @@ function carDamage(e,amt,cause){if(!e||!(amt>0))return 0;
   if(b>b0)carBandDown(e,b,cause);if(h<=0)carBroke(e,cause);return h0-h}
 function carBandDown(e,b,cause){if(CV!==e)return;const sp=speaker(),q=CAR_QUIPS[b];if(b<5&&q&&DRV.bandQ!==b){DRV.bandQ=b;DRV.quipT=Math.max(DRV.quipT,2);radio(sp||'you',carSay(e,pick(q)))}
   if(b>=3&&b<5){try{if(ENG&&ENG.chime)ENG.chime()}catch(_){}try{HUD.feed(CAR_WARN[b],'bad')}catch(_){}}}
-function carBroke(e,cause){e.brokeT=0;
+function carBroke(e,cause){e.brokeT=0;if(carSave(e))try{metaSave()}catch(_){}
   if(CV===e){if(ENG){try{ENG.misfire&&ENG.misfire(1);ENG.chime&&ENG.chime();ENG.stall&&ENG.stall(true)}catch(_){}}
     radio(speaker()||'you',carSay(e,pick(CAR_QUIPS[5])),true);
     try{HUD.banner({kind:'fail',kicker:carName(e),title:'Broken down',sub:e===VAN?'Get out (E), then call Dad\'s Auto for a tow':'Get out (E). '+e.name+' is going to hear about this.',dur:2.6})}catch(_){}}
@@ -1388,7 +1388,7 @@ function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!los
   if(!e.pullDir)e.pullDir=lz>0?-1:1;
   if(sp>10&&Math.abs(lx)>.35&&Math.random()<.6){const i=(lx>0?0:2)+(lz>0?1:0);if(!w.lamps[i]){w.lamps[i]=1;if(CV===e)radio(speaker()||'you',pick(["There goes a headlight.","Was that glass? That was glass.","One-eyed Willy. That's what we call her now."]))}}
   if(sp>13&&Math.abs(lz)>.45&&!w.tyre&&Math.random()<.3){w.tyre=1;e.pullDir=lz>0?1:-1;try{if(ENG&&ENG.thump)ENG.thump(1)}catch(_){}if(CV===e)try{HUD.feed('Flat tyre','bad')}catch(_){}}
-  if(carSave(e))try{SAVEM.touch('garage')}catch(_){}
+  if(carSave(e))try{SAVEM.touch('garage');metaSave()}catch(_){}
   if(ud&&ud.bodyRoot)dentCar(e,push,sp);carLook(e);/* (bodyRoot, not .mod: setUpgrades drops .mod on the van) */
   /* a parked car on the other end takes it too, and its owner notices */
   if(L&&L.cars){const S=carSize(e);let v=null,bd=1e9;for(const c of L.cars){if(c===e||!c.obj||c===CV)continue;const ox=c.pos.x-e.pos.x,oz=c.pos.z-e.pos.z,d=Math.hypot(ox,oz),S2=carSize(c);
@@ -1409,11 +1409,11 @@ function carDrive(e,S,B,I){const b=carBand(e),H=CAR_BAND[b],w=carWear(e),lim=H.l
   const pull=(H.pull+(w.tyre?.07:0))*(e.pullDir||1);if(pull&&!I.hb)I.st=clamp(I.st+pull*clamp(Math.abs(e.spd)/10,0,1),-1,1);
   if(b===5){I.thr=e.spd>.3?Math.min(0,I.thr):0;I.boost=false}return b}
 /* smoke, steam, sparks, hazards and the worn-car sounds; every frame for the car you drive, and for broken-down cars nearby */
-function carFxTick(e,dt,on){const b=carBand(e),H=CAR_BAND[b],F=e.fx||(e.fx={}),S=carSize(e);if(b===5)e.brokeT=(e.brokeT||0)+dt;
+function carFxTick(e,dt,on){const b=carBand(e),H=CAR_BAND[b],F=e.fx||(e.fx={}),S=carSize(e);for(const k in F)if(F[k]&&F[k].dead)F[k]=null;/* FX.clear() on a level swap */if(b===5)e.brokeT=(e.brokeT||0)+dt;
   const steamFade=b===5?Math.max(0,1-e.brokeT/45):1,want=H.hood>0&&(on||b===5)&&steamFade>0&&FX.emitter;
-  if(want&&!F.hood)try{F.hood=FX.emitter('hood',{object:e.obj,offset:[S.l/2-.8,Math.min(1.25,S.h*.58),0]})}catch(_){}
+  if(want&&!F.hood)try{F.hood=FX.emitter('hood',{object:e.obj,offset:[S.l/2-.8,Math.min(1.25,S.h*.58),0]});CARFX.cars.add(e)}catch(_){}
   if(F.hood){if(!want){F.hood.remove();F.hood=null}else{F.hood.intensity=H.hood*Math.max(.25,steamFade)*(on&&b<5?.75+.25*clamp(Math.abs(e.spd)/15,0,1):1);F.hood.steam=!!H.steam;F.hood.shade=H.steam?.93:H.shade}}
-  const drag=on&&b===4&&FX.emitter;if(drag&&!F.drag)try{F.drag=FX.emitter('drag',{object:e.obj,offset:[-S.l/2+.05,.07,-S.w*.25],dir:[-1,0,0]})}catch(_){}
+  const drag=on&&b===4&&FX.emitter;if(drag&&!F.drag)try{F.drag=FX.emitter('drag',{object:e.obj,offset:[-S.l/2+.05,.07,-S.w*.25],dir:[-1,0,0]});CARFX.cars.add(e)}catch(_){}
   if(F.drag){if(!drag){F.drag.remove();F.drag=null}else F.drag.speed=Math.abs(e.spd)}
   if(!on){if(b===5&&e.obj){const VM=HTM('Vehicles');if(VM&&VM.update&&e.obj.userData.mod&&Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<90)try{VM.update(e.obj,{speed:0,steer:0,braking:false,dt})}catch(_){}}return}
   /* sounds while you drive it */
@@ -1423,7 +1423,8 @@ function carFxTick(e,dt,on){const b=carBand(e),H=CAR_BAND[b],F=e.fx||(e.fx={}),S
       if(b>=3&&Math.random()<(b===4?.75:.4))ENG.misfire&&ENG.misfire(b===4?.8:.5);
       else if(b>=1&&av>6&&Math.random()<.55)ENG.rattle&&ENG.rattle(.3+b*.15)}
     if(w.tyre&&av>2&&DRV.tT<=0){DRV.tT=Math.max(.12,2.2/av);ENG.thump&&ENG.thump(Math.min(1,av/20))}}catch(_){}}
-function carTick(dt){if(!L||!L.cars)return;for(const e of L.cars){if(!e.obj)continue;if(e===CV||e.fx&&(e.fx.hood||e.fx.drag)||carBand(e)===5)carFxTick(e,dt,e===CV)}}
+const CARFX={L:null,cars:new Set()};
+function carTick(dt){if(CARFX.L!==L){for(const e of CARFX.cars)carFxOff(e);CARFX.cars.clear();CARFX.L=L}if(!L||!L.cars)return;for(const e of L.cars){if(!e.obj)continue;if(e===CV||e.fx&&(e.fx.hood||e.fx.drag)||carBand(e)===5)carFxTick(e,dt,e===CV)}}
 function carFxOff(e){const F=e&&e.fx;if(!F)return;for(const k in F)if(F[k]){try{F[k].remove()}catch(_){}F[k]=null}}
 /* towing: your own van to Dad's Auto (fee, or Sal's tab; patched to 60%), a neighbour's car home to its owner (fee and a trust hit) */
 function towVan(){const shop=HUBX.shops.find(s=>s.kind==='auto'),r=ECON&&ECON.towCharge?ECON.towCharge(TOW_FEE):{paid:0,tab:0};
@@ -1432,7 +1433,8 @@ function towVan(){const shop=HUBX.shops.find(s=>s.kind==='auto'),r=ECON&&ECON.to
   const m=carHpMax(VAN);carRepair(VAN,Math.max(0,m*.6-carHp(VAN)),{fresh:false});carLook(VAN);
   const p=V3(bay.x,0,bay.z).add(V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw)).multiplyScalar(2.8));collide(p,.35);P.pos.copy(p);P.dude.root.position.set(P.pos.x,0,P.pos.z);
   for(const a of allies){a.pos.copy(P.pos).add(V3(rand(-1.5,1.5),0,rand(-1.5,1.5)));collide(a.pos,.35)}
-  try{HUD.banner({kind:'done',kicker:"Dad's Auto · tow",title:'Towed to Sal\'s',sub:(r.tab?'On Sal\'s tab · '+money(r.tab):'Paid '+money(r.paid))+' · patched up to 60%',dur:2.8})}catch(_){}
+  const sub=(r.tab?'On Sal\'s tab · '+money(r.tab):'Paid '+money(r.paid))+' · patched up to 60%';try{HUD.feed("Towed to Dad's Auto",r.tab?'bad':'cash',r.tab?'tab '+money(r.tab):'-'+money(r.paid))}catch(_){}
+  setTimeout(()=>{try{HUD.banner({kind:'done',kicker:"Dad's Auto · tow",title:'Towed to Sal\'s',sub,dur:3})}catch(_){}},1500);/* after the region banner the move may trigger */
   radio('Sal',pick(["I put her back together with zip ties and prayer. 60 percent. Come in for the rest.","Flatbed ride's on the tab. Don't make it a habit.","She's running. Don't ask me how. Don't ask her either."]));
   if(typeof metaSave==='function')metaSave(true);return r}
 function towHome(e,auto){if(!e||e===VAN)return null;const r=ECON&&ECON.towCharge?ECON.towCharge(TOW_FEE_HOME):{paid:0,tab:0};if(CV===e)exitCar();if(BORROW.car===e)BORROW.car=null;
@@ -2469,7 +2471,7 @@ function metaAmmo(){if(!ECON||!M)return;try{for(const a of ECON.ammoFor())if(a.e
 const VANK={top:1,btop:1,accel:1,baccel:1,brake:1,turn:1,grip:1,steer:1};
 function vanStats(){try{return SV()&&ECON?ECON.vehicleStats():null}catch(e){return null}}
 function vanLook(){const vs=vanStats();if(!vs||!vs.makeOpts)return{type:'minivan',color:'#35577d',upgrades:{roofRack:true}};return{type:vs.type||'minivan',color:vs.makeOpts.color,upgrades:vs.makeOpts.upgrades,vs}}
-function vanApply(){const lk=vanLook(),vs=lk.vs;
+function vanApply(){const lk=vanLook(),vs=lk.vs;VAN._mx=null;
   if(vs){Object.assign(VANK,{top:vs.maxSpeed/25,btop:vs.boostMax/33,accel:vs.accel/9,baccel:vs.boostAccel/12,brake:vs.brake/24,turn:(vs.turn||1.55)/1.55,grip:(vs.grip||9)/9,steer:(vs.steerResp||7)/7})}
   const v=VAN.obj;if(!v||mode!=='hub')return;
   /* another vehicle bought or chosen at Dad's Auto: swap the model in place */

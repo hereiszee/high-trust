@@ -759,7 +759,7 @@ const emitters=[];
 const amb={on:false,leaves:false,pollen:false,dens:1,motes:[],pollenP:null,leafT:0};
 function ambient(o){if(!ready)return;if(!o){amb.on=false;return}amb.on=true;amb.leaves=o.leaves!==false;amb.pollen=o.pollen!==false;amb.dens=o.density||1;amb.wind=o.wind||[.6,0,.25];
   const n=96;if(!amb.pollenP){amb.pollenP=new Float32Array(n*4)}for(let i=0;i<n;i++)amb.pollenP[i*4+3]=-1}
-function emitter(type,o){if(!ready)return null;o=o||{};const h={type,o,t:0,acc:0,intensity:o.intensity==null?1:o.intensity,remove(){const i=emitters.indexOf(h);if(i>=0)emitters.splice(i,1)}};
+function emitter(type,o){if(!ready)return null;o=o||{};const h={type,o,t:0,acc:0,intensity:o.intensity==null?1:o.intensity,dead:false,remove(){h.dead=true;const i=emitters.indexOf(h);if(i>=0)emitters.splice(i,1)}};
   if(type==='motes'){const n=Math.round((o.count||60));h.p=new Float32Array(n*4);const b=o.box;for(let i=0;i<n;i++){h.p[i*4]=rnd(b[0],b[3]);h.p[i*4+1]=rnd(b[1],b[4]);h.p[i*4+2]=rnd(b[2],b[5]);h.p[i*4+3]=R()*100}}
   if(type==='shaft'){/* sunbeam through a window or roof hole: soft additive cards along the light, motes drifting inside it */
     const O=new T.Vector3().fromArray(o.origin),dir=new T.Vector3().fromArray(o.dir||[.55,.74,.38]).normalize(),L=o.length||4,w=(o.size||[1,1])[0],d=(o.size||[1,1])[1];

@@ -399,3 +399,4 @@ body>.htm,.htp:not(.ht-root *){
 .htm-reprows li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 10px;border-radius:4px;background:rgba(255,255,255,.06);border-left:3px solid var(--alarm,#ff6a4d)}
 .htm-reprows li span{display:flex;flex-direction:column;gap:2px;min-width:0}.htm-reprows li b{font-weight:700}.htm-reprows li small{opacity:.7;font-size:12px}
 .htm-reprows li em{font-style:normal;font-weight:800;white-space:nowrap}
+.htm-hpt i.mid{background:#ffc94a}
