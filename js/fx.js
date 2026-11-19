@@ -22,7 +22,7 @@ function vn(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf
   return lerp(lerp(NG[NP[X+NP[Y]]],NG[NP[X+1+NP[Y]]],u),lerp(NG[NP[X+NP[Y+1]]],NG[NP[X+1+NP[Y+1]]],u),v)}
 function fbm(x,y,o=4){let s=0,a=.5,n=0;for(let i=0;i<o;i++){s+=vn(x,y)*a;n+=a;a*=.5;x=x*2.03+17.1;y=y*2.03+9.7}return s/n}
 /* scratch objects: nothing in update() allocates */
-const _v=new T.Vector3(),_v2=new T.Vector3(),_v3=new T.Vector3(),_q=new T.Quaternion(),_q2=new T.Quaternion(),_e=new T.Euler(),_m=new T.Matrix4(),_sc=new T.Vector3(),_c=new T.Color();
+const _m2=new T.Matrix4(),_v=new T.Vector3(),_v2=new T.Vector3(),_v3=new T.Vector3(),_q=new T.Quaternion(),_q2=new T.Quaternion(),_e=new T.Euler(),_m=new T.Matrix4(),_sc=new T.Vector3(),_c=new T.Color();
 const ZAX=new T.Vector3(0,0,1),UP=new T.Vector3(0,1,0);
 
 /* ---------------------------------------------------------------- texture atlases (DataTexture, row 0 = bottom) */
@@ -91,14 +91,16 @@ function buildAlpha(){const at=new Atlas(8,128);
   at.tile(S.WISP,(u,v,o)=>{const x=u*2-1,y=v*2-1,r=Math.hypot(x*.75,y*1.25);const n=fbm(x*2+y*1.5+9,y*3+2,5);
     o[0]=o[1]=o[2]=.85+.2*n;o[3]=clamp((Math.pow(clamp(1-r,0,1),1.5)*(.2+1.3*n)-.18)*1.7,0,1)});
   at.tile(S.CHUNK,(u,v,o)=>{const x=u*2-1,y=v*2-1,r=Math.hypot(x,y);const e=.55+.3*fbm(Math.atan2(y,x)*1.5+4,1,3);o[0]=o[1]=o[2]=.6+.4*fbm(x*6,y*6,3);o[3]=sstep(e,e-.08,r)});
-  /* fireball flipbook (16 frames): rgb = emission colour, a = coverage. Billowy cauliflower lobes, white-hot early, tattering into dark red */
-  srand(91);const bl=[];for(let i=0;i<13;i++){const a=sr()*TAU,d=Math.sqrt(sr())*.62;bl.push({x:Math.cos(a)*d,y:Math.sin(a)*d*.85,r:.2+sr()*.2,g:.6+sr()*.7})}
-  for(let k=0;k<16;k++){const t=k/15;at.tile(S.FIRE+k,(u,v,o)=>{const x=(u*2-1)*1.04,y=(v*2-1)*1.04;let den=0;
-      for(const b of bl){const bx=b.x*(.35+.65*t)*b.g,by=b.y*(.35+.65*t)*b.g+.1*t,br=b.r*(.75+.45*t);const d=((x-bx)*(x-bx)+(y-by)*(y-by))/(br*br);if(d<1){const q=1-d;den=den+q*q*(1-den*.5)}}
-      const n=fbm(x*3.3+k*.15+4,y*3.3-t*1.2,5),bil=1-Math.abs(fbm(x*6+9,y*6-t*2,4)*2-1);
-      const dd=den*(.5+.7*n)*(.7+.6*bil);const r2=Math.hypot(x,y);const cov=sstep(.04+.22*t,.42+.3*t,dd)*sstep(1.02,.8,r2);
-      const heat=clamp((1-t*.97)*(.1+1.25*dd)*(.4+.85*bil)*(.7+.6*n),0,1.4);
-      o[0]=sstep(.02,.35,heat);o[1]=sstep(.3,1,heat)*.72;o[2]=sstep(.85,1.35,heat)*.42;const e=Math.min(1,heat*1.1);o[0]*=e;o[1]*=e;o[2]*=e;o[3]=cov})}
+  /* fireball flipbook (16 frames): rgb = emission, a = coverage. A domain-warped turbulent volume, eroded by noise from the
+     outside in: only the dense core is hot, so the rim reads as dark smoke rather than an outline. Late frames are cool tatters. */
+  for(let k=0;k<16;k++){const t=k/15,R0=.62+.32*t;at.tile(S.FIRE+k,(u,v,o)=>{const x=(u*2-1),y=(v*2-1),r=Math.hypot(x,y*1.08-.05*t);
+      const qx=fbm(x*1.7+1.3,y*1.7+t*.6,4),qy=fbm(x*1.7+7.7,y*1.7+3.1-t*.4,4);
+      const n=fbm(x*2.6+qx*2.6+k*.03,y*2.6+qy*2.6-t*.9,5),fine=fbm(x*7+qy*3,y*7+qx*3,3);
+      const dens=clamp((1-r/R0)*1.35+(n-.5)*1.15+(fine-.5)*.3,0,1);
+      const cov=sstep(.02,.62+.15*t,dens)*sstep(1,.85,r);
+      const core=sstep(.28+.3*t,1,dens*(.8+.4*n));const e=clamp(Math.pow(1-t,1.3)*core*1.3,0,1.3);
+      /* emission falls off steeply with heat: cool parts are dark smoke, not a red rim */
+      const I=Math.pow(e,2.2)*1.5;o[0]=Math.min(1,I);o[1]=Math.min(1,I*sstep(.2,.95,e)*.78);o[2]=Math.min(1,I*sstep(.7,1.25,e)*.5);o[3]=cov})}
   return at.tex(false)}
 
 /* decal atlas: 4x4 tiles of 128 px, colour (sRGB, alpha) + tangent-space normal map from a generated height field */
@@ -163,30 +165,54 @@ function buildLeafTex(){const c=document.createElement('canvas');c.width=c.heigh
   const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;return t}
 
 /* ---------------------------------------------------------------- billboard particle batch */
-const F_NEW=1,F_BOUNCE=2,F_TRACER=4,F_FLAT=8,F_SEG=16;
+const F_NEW=1,F_BOUNCE=2,F_TRACER=4,F_FLAT=8,F_SEG=16;const SOFT_LAYER=27;
 const PVS=`attribute vec3 iPos;attribute vec4 iDir;attribute vec4 iSize;attribute vec4 iCol;
 uniform float uN;uniform vec2 uFog;
-varying vec2 vUv;varying vec4 vCol;varying float vFog;varying vec2 vQ;varying float vWY;varying float vSoft;varying float vDepth;varying float vEmit;
-void main(){vec2 c=position.xy;vec4 mv;vec3 wp=iPos;vEmit=iDir.w==0.?iDir.x:0.;
+varying vec2 vUv;varying vec2 vUv2;varying float vBlend;varying vec4 vCol;varying float vFog;varying vec2 vQ;varying float vWY;varying float vSoft;varying float vDepth;varying float vEmit;varying float vErode;
+void main(){vec2 c=position.xy;vec4 mv;vec3 wp=iPos;vEmit=iDir.w==0.?iDir.x:0.;vErode=iDir.w==0.?iDir.y:(iDir.w>0.?iSize.z:0.);
   if(iDir.w>0.){vec3 a=(viewMatrix*vec4(iPos,1.)).xyz;vec3 b=(viewMatrix*vec4(iPos-iDir.xyz*iDir.w,1.)).xyz;vec3 ax=a-b;vec3 m=(a+b)*.5;
     vec3 sd=cross(ax,m);float sl=length(sd);sd=sl>1e-7?sd/sl:vec3(0.,1.,0.);mv=vec4(m+ax*c.x+sd*c.y*iSize.x,1.);vQ=vec2(c.x*2.,c.y*2.);}
   else if(iDir.w<0.){float cs=cos(iSize.z),sn=sin(iSize.z);vec2 r=vec2(c.x*cs-c.y*sn,c.x*sn+c.y*cs)*iSize.xy;wp=iPos+vec3(r.x,0.,r.y);mv=viewMatrix*vec4(wp,1.);vQ=c*2.;}
   else{float cs=cos(iSize.z),sn=sin(iSize.z);vec2 r=vec2(c.x*cs-c.y*sn,c.x*sn+c.y*cs);mv=viewMatrix*vec4(iPos,1.);vec2 o=r*iSize.xy;mv.xy+=o;
     wp=iPos+(vec4(o,0.,0.)*viewMatrix).xyz;vQ=r*2.;}
-  vWY=wp.y;vSoft=max(iSize.x,iSize.y)*.3;
-  float f=floor(iSize.w+.5);vec2 tile=vec2(mod(f,uN),floor(f/uN));vUv=(tile+uv)/uN;
+  vWY=wp.y;vSoft=max(iDir.w>0.?iSize.x*2.:max(iSize.x,iSize.y),.02)*.35;
+  /* flipbook: integer part = tile, fraction = blend toward the next frame */
+  float fi=iSize.w;float f0=floor(fi+.001);vBlend=fi-f0;float f1=f0+(vBlend>.002?1.:0.);
+  vUv=(vec2(mod(f0,uN),floor(f0/uN))+uv)/uN;vUv2=(vec2(mod(f1,uN),floor(f1/uN))+uv)/uN;
   vCol=iCol;vDepth=-mv.z;vFog=smoothstep(uFog.x,uFog.y,vDepth);gl_Position=projectionMatrix*mv;}`;
-const PFS_ADD=`uniform sampler2D uMap;varying vec2 vUv;varying vec4 vCol;varying float vFog;varying float vDepth;
-void main(){vec3 t=texture2D(uMap,vUv).rgb;vec3 c=t*vCol.rgb*vCol.a*(1.-vFog)*smoothstep(.04,.25,vDepth);
+const SOFT_GLSL=`uniform sampler2D uDepth;uniform vec4 uDepthP;
+float fxSceneZ(){float d=texture2D(uDepth,gl_FragCoord.xy*uDepthP.zw).x;return 2.*uDepthP.x*uDepthP.y/(uDepthP.y+uDepthP.x-(d*2.-1.)*(uDepthP.y-uDepthP.x));}`;
+const PFS_ADD=`uniform sampler2D uMap;varying vec2 vUv;varying vec2 vUv2;varying float vBlend;varying vec4 vCol;varying float vFog;varying float vDepth;varying float vSoft;
+#ifdef SOFT
+${SOFT_GLSL}
+#endif
+void main(){vec3 t=texture2D(uMap,vUv).rgb;if(vBlend>.002)t=mix(t,texture2D(uMap,vUv2).rgb,vBlend);float k=1.;
+  #ifdef SOFT
+  float dz=fxSceneZ()-vDepth;if(dz<0.)discard;k=clamp(dz/(vSoft*.5),0.,1.);
+  #endif
+  vec3 c=t*vCol.rgb*vCol.a*k*(1.-vFog)*smoothstep(.04,.25,vDepth);
   gl_FragColor=vec4(c,1.);
   #include <encodings_fragment>
 }`;
 /* premultiplied: lit smoke is tone mapped like the scene; emissive (fire) is added untonemapped so it blooms */
 const PFS_ALPHA=`uniform sampler2D uMap;uniform vec3 uFogC,uSunV,uSunC,uAmb;uniform float uGround;
-varying vec2 vUv;varying vec4 vCol;varying float vFog;varying vec2 vQ;varying float vWY;varying float vSoft;varying float vDepth;varying float vEmit;
-void main(){vec4 t=texture2D(uMap,vUv);float a=t.a*vCol.a;a*=clamp((vWY-uGround)/max(vSoft,.02),0.,1.);a*=smoothstep(.12,.9,vDepth);
-  if(a<.004)discard;float qq=min(dot(vQ,vQ),1.);vec3 n=normalize(vec3(vQ*.85,sqrt(1.-qq)+.3));
-  float l=clamp(dot(n,uSunV)*.6+.45,0.,1.);vec3 alb=vEmit>0.?vec3(.07,.064,.06):vCol.rgb*t.rgb;vec3 col=alb*(uAmb+uSunC*l);col=mix(col,uFogC,vFog);
+varying vec2 vUv;varying vec2 vUv2;varying float vBlend;varying vec4 vCol;varying float vFog;varying vec2 vQ;varying float vWY;varying float vSoft;varying float vDepth;varying float vEmit;varying float vErode;
+#ifdef SOFT
+${SOFT_GLSL}
+#endif
+void main(){vec4 t=texture2D(uMap,vUv);if(vBlend>.002)t=mix(t,texture2D(uMap,vUv2),vBlend);
+  /* erosion: thin parts of the sprite dissolve first, so puffs break up instead of fading as discs */
+  float ta=t.a;if(vErode>.001)ta*=smoothstep(vErode,vErode+.32,ta);
+  float a=ta*vCol.a;
+  #ifdef SOFT
+  float dz=fxSceneZ()-vDepth;if(dz<0.)discard;a*=clamp(dz/vSoft,0.,1.);
+  #else
+  a*=clamp((vWY-uGround)/max(vSoft,.02),0.,1.);
+  #endif
+  a*=smoothstep(.12,.9,vDepth);
+  if(a<.004)discard;float qq=min(dot(vQ,vQ),1.);vec3 n=normalize(vec3(vQ*.9,sqrt(1.-qq)+.2));
+  float l=clamp(dot(n,uSunV)*.75+.35,0.,1.);float sky=.62+.38*n.y;
+  vec3 alb=vEmit>0.?vec3(.05,.046,.043):vCol.rgb*t.rgb;vec3 col=alb*(uAmb*sky+uSunC*l*l);col=mix(col,uFogC,vFog);
   #if defined( TONE_MAPPING )
   col=toneMapping(col);
   #endif
@@ -198,7 +224,7 @@ function PSys(cap,additive,map,N,uniforms){
   this.cap=cap;this.n=0;this.w=0;this.additive=additive;
   const F=()=>new Float32Array(cap);
   this.arrs=[];const mk=n=>{const a=F();this.arrs.push(a);this[n]=a};
-  ['px','py','pz','vx','vy','vz','ox','oy','oz','age','life','s0','s1','asp','len','sf','rot','rv','r','g','b','a','fi','fo','fr0','frn','grav','drag','cool','bnc','gp','em'].forEach(mk);
+  ['px','py','pz','vx','vy','vz','ox','oy','oz','age','life','s0','s1','asp','len','sf','rot','rv','r','g','b','a','fi','fo','fr0','frn','grav','drag','cool','bnc','gp','em','er'].forEach(mk);
   this.fl=new Uint8Array(cap);
   const g=new T.InstancedBufferGeometry();
   g.setAttribute('position',new T.Float32BufferAttribute([-.5,-.5,0,.5,-.5,0,.5,.5,0,-.5,.5,0],3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,1,2,0,2,3]);
@@ -211,11 +237,13 @@ function PSys(cap,additive,map,N,uniforms){
     blending:T.CustomBlending,blendSrc:T.OneFactor,blendDst:additive?T.OneFactor:T.OneMinusSrcAlphaFactor,blendEquation:T.AddEquation});
   this.mesh=new T.Mesh(g,this.mat);this.mesh.frustumCulled=false;this.mesh.renderOrder=additive?30:20;this.mesh.name=additive?'fx-additive':'fx-smoke';
 }
+PSys.prototype.setSoft=function(on){const m=this.mat;if(!!m.defines.SOFT===on)return;if(on)m.defines.SOFT=1;else delete m.defines.SOFT;m.depthTest=!on;m.needsUpdate=true;
+  if(on)this.mesh.layers.set(SOFT_LAYER);else this.mesh.layers.set(0)};
 PSys.prototype.add=function(x,y,z,vx,vy,vz,life,s0,s1,tile,r,g,b,a){
   if(this.n>=this.cap)return -1;const i=this.n++;
   this.px[i]=x;this.py[i]=y;this.pz[i]=z;this.vx[i]=vx;this.vy[i]=vy;this.vz[i]=vz;this.ox[i]=this.oy[i]=this.oz[i]=0;
   this.age[i]=0;this.life[i]=life;this.s0[i]=s0;this.s1[i]=s1;this.asp[i]=1;this.len[i]=0;this.sf[i]=0;this.rot[i]=R()*TAU;this.rv[i]=0;
-  this.r[i]=r;this.g[i]=g;this.b[i]=b;this.a[i]=a;this.fi[i]=0;this.fo[i]=.5;this.fr0[i]=tile;this.frn[i]=1;this.grav[i]=0;this.drag[i]=0;this.cool[i]=0;this.bnc[i]=.3;this.gp[i]=2;this.em[i]=0;
+  this.r[i]=r;this.g[i]=g;this.b[i]=b;this.a[i]=a;this.fi[i]=0;this.fo[i]=.5;this.fr0[i]=tile;this.frn[i]=1;this.grav[i]=0;this.drag[i]=0;this.cool[i]=0;this.bnc[i]=.3;this.gp[i]=2;this.em[i]=0;this.er[i]=0;
   this.fl[i]=F_NEW;return i};
 PSys.prototype.kill=function(i){const j=--this.n;if(i!==j){for(const a of this.arrs)a[i]=a[j];this.fl[i]=this.fl[j]}};
 PSys.prototype.clear=function(){this.n=0;this.w=0};
@@ -235,7 +263,10 @@ PSys.prototype.update=function(dt,groundAt){
     else{
       if(age>0&&dt>0){const k=1/(1+this.drag[i]*dt);this.vx[i]*=k;this.vy[i]*=k;this.vz[i]*=k;this.vy[i]-=this.grav[i]*dt;
         this.px[i]+=this.vx[i]*dt;this.py[i]+=this.vy[i]*dt;this.pz[i]+=this.vz[i]*dt;this.rot[i]+=this.rv[i]*dt;
-        if(fl&F_BOUNCE){const gy=groundAt(this.px[i],this.pz[i]);if(this.py[i]<gy){this.py[i]=gy+.001;if(this.vy[i]<0)this.vy[i]*=-this.bnc[i];this.vx[i]*=.55;this.vz[i]*=.55}}}
+        if(fl&F_BOUNCE){let gy=groundAt(this.px[i],this.pz[i]);
+          if(solidAt){const sh=solidAt(this.px[i],this.pz[i]);if(sh!=null&&sh>gy){if(this.py[i]<sh-.03){const ox=this.px[i]-this.vx[i]*dt,oz=this.pz[i]-this.vz[i]*dt,s1=solidAt(this.px[i],oz),hx=s1!=null&&s1>this.py[i];
+              if(hx){this.px[i]=ox;this.vx[i]*=-.4}else{this.pz[i]=oz;this.vz[i]*=-.4}}else gy=sh}}
+          if(this.py[i]<gy){this.py[i]=gy+.001;if(this.vy[i]<0)this.vy[i]*=-this.bnc[i];this.vx[i]*=.55;this.vz[i]*=.55}}}
       x=this.px[i];y=this.py[i];z=this.pz[i];
       const e=1-Math.pow(1-t,this.gp[i]),s=this.s0[i]+(this.s1[i]-this.s0[i])*e;sw=s;sh=s*this.asp[i];
       let al=this.a[i];if(this.fi[i]>0&&t<this.fi[i])al*=t/this.fi[i];if(t>this.fo[i])al*=1-sstep(this.fo[i],1,t);C[w*4+3]=al;
@@ -244,12 +275,12 @@ PSys.prototype.update=function(dt,groundAt){
         dl=this.len[i]*(.6+.4*e)+this.sf[i]*sp;if(dl<.002)dl=.002;sh=1;
         /* segment particles are placed head-first: shift so the streak trails behind the particle */
 }
-      else if(fl&F_FLAT){dl=-1}else dx=this.em[i]}
+      else if(fl&F_FLAT){dl=-1}else{dx=this.em[i];dy=this.er[i]*Math.pow(t,1.3)}}
     let r=this.r[i],g=this.g[i],b=this.b[i];
     if(this.cool[i]>0){const k=1-t,c=this.cool[i];r*=Math.pow(k,c*.15);g*=Math.pow(k,c*.6);b*=Math.pow(k,c)}
-    let fr=this.fr0[i];if(this.frn[i]>1)fr+=Math.min(this.frn[i]-1,Math.floor(t*this.frn[i]));
+    let fr=this.fr0[i];if(this.frn[i]>1)fr+=Math.min(this.frn[i]-1.001,t*(this.frn[i]-1));
     P[w*3]=x;P[w*3+1]=y;P[w*3+2]=z;Dd[w*4]=dx;Dd[w*4+1]=dy;Dd[w*4+2]=dz;Dd[w*4+3]=dl;
-    Sz[w*4]=sw;Sz[w*4+1]=sh;Sz[w*4+2]=this.rot[i];Sz[w*4+3]=fr;C[w*4]=r;C[w*4+1]=g;C[w*4+2]=b;w++}
+    Sz[w*4]=sw;Sz[w*4+1]=sh;Sz[w*4+2]=(fl&(F_SEG|F_TRACER))?this.er[i]*Math.pow(t,1.3):this.rot[i];Sz[w*4+3]=fr;C[w*4]=r;C[w*4+1]=g;C[w*4+2]=b;w++}
   this.w=w};
 /* direct instance for persistent ambient things (written after update, before end) */
 PSys.prototype.push=function(x,y,z,s,asp,rot,tile,r,g,b,a){if(this.w>=this.cap)return;const w=this.w++,P=this.aPos.array,Dd=this.aDir.array,Sz=this.aSize.array,C=this.aCol.array;
@@ -276,7 +307,13 @@ Bodies.prototype.update=function(dt,groundAt,onBounce){const o=this.o,G=o.grav??
     if(!this.rest[i]&&dt>0){const dr=o.drag?1/(1+o.drag*dt):1;this.vx[i]*=dr;this.vz[i]*=dr;this.vy[i]=this.vy[i]*dr-G*dt;
       if(o.flutter){const a=this.age[i]*o.flutter+i;this.vx[i]+=Math.sin(a*1.3)*dt*2;this.vz[i]+=Math.cos(a*1.1)*dt*2}
       this.px[i]+=this.vx[i]*dt;this.py[i]+=this.vy[i]*dt;this.pz[i]+=this.vz[i]*dt;this.ex[i]+=this.wx[i]*dt;this.ey[i]+=this.wy[i]*dt;this.ez[i]+=this.wz[i]*dt;
-      const gy=groundAt(this.px[i],this.pz[i])+this.rad[i];
+      let gy=groundAt(this.px[i],this.pz[i])+this.rad[i];
+      if(solidAt){const bot=this.py[i]-this.rad[i]+.02,sh=solidAt(this.px[i],this.pz[i]);
+        if(sh!=null&&sh>bot){/* went into a wall: step back on the axis that hit it and bounce off */
+          const ox=this.px[i]-this.vx[i]*dt,oz=this.pz[i]-this.vz[i]*dt,s1=solidAt(this.px[i],oz),s2=solidAt(ox,this.pz[i]),hx=s1!=null&&s1>bot,hz=s2!=null&&s2>bot;
+          if(hx||!hz){this.px[i]=ox;this.vx[i]*=-.35}if(hz||!hx){this.pz[i]=oz;this.vz[i]*=-.35}this.wx[i]*=.6;this.wz[i]*=.6;
+          if(onBounce){const sp=Math.abs(this.vx[i])+Math.abs(this.vz[i]);if(sp>.5)onBounce(this,i,sp*2.5)}}
+        const st=solidAt(this.px[i],this.pz[i]);if(st!=null&&st+this.rad[i]>gy&&this.py[i]-this.rad[i]>=st-.06)gy=st+this.rad[i]}
       if(this.py[i]<gy){this.py[i]=gy;const imp=-this.vy[i];
         if(imp>0){if(onBounce&&imp>.8)onBounce(this,i,imp);this.vy[i]=imp*bo*rnd(.6,1.1);this.vx[i]*=.55;this.vz[i]*=.55;this.wx[i]*=.5;this.wy[i]*=.5;this.wz[i]*=.5;
           if(lie){this.ex[i]=lerp(this.ex[i],Math.PI/2,.6);this.ez[i]*=.4}}
@@ -291,21 +328,32 @@ Bodies.prototype.clear=function(){this.n=0;this.mesh.count=0;for(const t of this
 function Decals(cap,mat,tiles){
   this.cap=cap;this.head=0;this.total=0;
   const g=new T.PlaneGeometry(1,1);this.attr=new T.InstancedBufferAttribute(new Float32Array(cap*4),4);this.attr.setUsage(T.DynamicDrawUsage);g.setAttribute('aDecal',this.attr);
+  /* per-decal clip rectangle in the quad's own [-.5,.5] space: the part hanging over a face edge is discarded */
+  const cl=new Float32Array(cap*4);for(let i=0;i<cap;i++){cl[i*4]=-.5;cl[i*4+1]=.5;cl[i*4+2]=-.5;cl[i*4+3]=.5}
+  this.clip=new T.InstancedBufferAttribute(cl,4);this.clip.setUsage(T.DynamicDrawUsage);g.setAttribute('aClip',this.clip);
+  this.par=new Array(cap).fill(null);this.loc=new Float32Array(cap*16);this.nPar=0;
   this.mesh=new T.InstancedMesh(g,mat,cap);this.mesh.count=0;this.mesh.frustumCulled=false;this.mesh.receiveShadow=true;this.mesh.renderOrder=10;this.mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
   this.mesh.instanceColor=new T.InstancedBufferAttribute(new Float32Array(cap*3).fill(1),3);this.mesh.instanceColor.setUsage(T.DynamicDrawUsage);
   this.age=new Float32Array(cap);this.life=new Float32Array(cap);this.a0=new Float32Array(cap);this.tiles=tiles;this.limit=cap}
-Decals.prototype.add=function(pos,nrm,w,h,tile,roll,alpha,life,r,g,b){
+/* qo: optional orientation (else normal + roll); clip: optional [xmin,xmax,ymin,ymax]; attach: optional Object3D the decal rides on */
+Decals.prototype.add=function(pos,nrm,w,h,tile,roll,alpha,life,r,g,b,qo,clip,attach){
   if(this.head>=this.limit)this.head=0;const i=this.head;this.head=(this.head+1)%this.limit;this.total++;this.mesh.count=Math.max(this.mesh.count,Math.min(this.total,this.limit));
-  _q.setFromUnitVectors(ZAX,nrm);_q2.setFromAxisAngle(ZAX,roll);_q.multiply(_q2);_v.copy(pos).addScaledVector(nrm,.004+.0006*(this.total%8));_sc.set(w,h,1);
+  if(qo)_q.copy(qo);else{_q.setFromUnitVectors(ZAX,nrm);_q2.setFromAxisAngle(ZAX,roll);_q.multiply(_q2)}_v.copy(pos).addScaledVector(nrm,.004+.0006*(this.total%8));_sc.set(w,h,1);
   _m.compose(_v,_q,_sc);this.mesh.setMatrixAt(i,_m);this.mesh.instanceMatrix.needsUpdate=true;
+  const c=this.clip.array;if(clip){c[i*4]=clip[0];c[i*4+1]=clip[1];c[i*4+2]=clip[2];c[i*4+3]=clip[3]}else{c[i*4]=c[i*4+2]=-.5;c[i*4+1]=c[i*4+3]=.5}this.clip.needsUpdate=true;
+  if(this.par[i])this.nPar--;this.par[i]=attach||null;
+  if(attach){this.nPar++;attach.updateMatrixWorld();_m2.copy(attach.matrixWorld).invert().multiply(_m);_m2.toArray(this.loc,i*16)}
   const N=this.tiles,a=this.attr.array;a[i*4]=(tile%N)/N;a[i*4+1]=Math.floor(tile/N)/N;a[i*4+2]=alpha;a[i*4+3]=0;this.attr.needsUpdate=true;
   this.mesh.setColorAt(i,_c.setRGB(r??1,g??1,b??1));this.mesh.instanceColor.needsUpdate=true;
   this.age[i]=0;this.life[i]=life;this.a0[i]=alpha;return i};
 Decals.prototype.update=function(dt){const n=this.mesh.count,a=this.attr.array;let ch=false;
+  if(this.nPar){for(let i=0;i<n;i++){const p=this.par[i];if(!p||this.a0[i]<=0)continue;
+      let o=p;while(o.parent)o=o.parent;if(!o.isScene){_m.makeScale(0,0,0)}else{_m.fromArray(this.loc,i*16).premultiply(p.matrixWorld)}this.mesh.setMatrixAt(i,_m)}
+    this.mesh.instanceMatrix.needsUpdate=true}
   for(let i=0;i<n;i++){if(this.a0[i]<=0)continue;this.age[i]+=dt;const left=this.life[i]-this.age[i];
     if(left<6){const v=left<=0?0:this.a0[i]*left/6;if(v!==a[i*4+2]){a[i*4+2]=v;ch=true}if(left<=0){this.a0[i]=0;_m.makeScale(0,0,0);this.mesh.setMatrixAt(i,_m);this.mesh.instanceMatrix.needsUpdate=true}}}
   if(ch)this.attr.needsUpdate=true};
-Decals.prototype.clear=function(){this.head=0;this.total=0;this.mesh.count=0;this.a0.fill(0)};
+Decals.prototype.clear=function(){this.head=0;this.total=0;this.mesh.count=0;this.a0.fill(0);this.par.fill(null);this.nPar=0};
 
 /* ================================================================= module state */
 let ready=false,scene=null,camera=null,renderer=null,assets=null,root=null;
@@ -313,11 +361,11 @@ let ADD=null,ALP=null,decals=null,marks=null,chips=null,splinters=null,shards=nu
 let muzzleLight=null,blastLight=null,muzzleHold=0,blastT=1e9,blastPeak=0;
 let sunL=null,hemiL=null;
 let simTime=0;
-const U={uFog:{value:new T.Vector2(1e4,2e4)},uFogC:{value:new T.Color()},uSunV:{value:new T.Vector3(0,1,0)},uSunC:{value:new T.Color(1,1,1)},uAmb:{value:new T.Color(.5,.5,.55)},uGround:{value:-1e4}};
+const U={uDepth:{value:null},uDepthP:{value:new T.Vector4(.05,420,1,1)},uFog:{value:new T.Vector2(1e4,2e4)},uFogC:{value:new T.Color()},uSunV:{value:new T.Vector3(0,1,0)},uSunC:{value:new T.Color(1,1,1)},uAmb:{value:new T.Color(.5,.5,.55)},uGround:{value:-1e4}};
 const QL={low:{k:.45,decals:40,amb:.35,trail:0,light:1},med:{k:.75,decals:64,amb:.65,trail:.15,light:1},high:{k:1,decals:80,amb:1,trail:.3,light:1}};
 let Q=QL.high,qName='high';
 const cnt=n=>Math.max(1,Math.round(n*Q.k));
-let groundAt=()=>0;
+let groundAt=()=>0,solidAt=null;
 
 /* feedback state */
 const FB={trauma:0,kickP:0,kickY:0,kickR:0,back:0,t:0,hit:0,health:1,lowPulse:0,supp:0,desat:0,graded:null,cssF:''};
@@ -353,16 +401,17 @@ function buildDom(parent){css();parent=parent||document.body;const ns='http://ww
 /* ================================================================= init / quality / clear */
 function init(o){
   if(ready)return FX;scene=o.scene;camera=o.camera;renderer=o.renderer||null;assets=o.assets||null;if(o.groundAt)groundAt=o.groundAt;
-  root=new T.Group();root.name='HT.FX';scene.add(root);
+  if(o.solidAt)solidAt=o.solidAt;root=new T.Group();root.name='HT.FX';scene.add(root);
   const addTex=buildAdd(),alpTex=buildAlpha(),dec=buildDecals();
-  ADD=new PSys(1600,true,addTex,8,{uFog:U.uFog});
+  ADD=new PSys(1600,true,addTex,8,{uFog:U.uFog,uDepth:U.uDepth,uDepthP:U.uDepthP});
   ALP=new PSys(1600,false,alpTex,8,U);
   root.add(ALP.mesh,ADD.mesh);
   const dm=new T.MeshStandardMaterial({map:dec.map,normalMap:dec.normal,normalScale:new T.Vector2(1.2,1.2),transparent:true,depthWrite:false,roughness:.92,metalness:0,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
-  dm.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aDecal;varying float vDecalA;')
-      .replace('#include <uv_vertex>','#include <uv_vertex>\nvUv=uv*.25+aDecal.xy;vDecalA=aDecal.z;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vDecalA;').replace('#include <map_fragment>','#include <map_fragment>\ndiffuseColor.a*=vDecalA;')};
+  dm.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec4 aDecal;attribute vec4 aClip;varying float vDecalA;varying vec4 vClip;varying vec2 vLocal;')
+      .replace('#include <uv_vertex>','#include <uv_vertex>\nvUv=uv*.25+aDecal.xy;vDecalA=aDecal.z;vClip=aClip;vLocal=position.xy;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vDecalA;varying vec4 vClip;varying vec2 vLocal;')
+      .replace('#include <map_fragment>','if(vLocal.x<vClip.x||vLocal.x>vClip.y||vLocal.y<vClip.z||vLocal.y>vClip.w)discard;\n#include <map_fragment>\ndiffuseColor.a*=vDecalA;')};
   decals=new Decals(80,dm,4);marks=new Decals(260,dm,4);root.add(decals.mesh,marks.mesh);
   /* debris */
   const lit=(c,r,m,ex)=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:r,metalness:m},ex||{}));
@@ -468,8 +517,8 @@ function tracer(from,to,o){if(!ready)return;o=o||{};_ta.copy(from);_tb.copy(to).
 
 /* ================================================================= impacts */
 const SURF={
-  concrete:{dec:[D.CONC,D.CONC2],ds:.25,dust:[.62,.6,.57],chip:[.58,.56,.53],nChip:7,nDust:10,kind:'chip'},
-  plaster: {dec:[D.PLASTER],ds:.24,dust:[.86,.84,.8],chip:[.88,.86,.82],nChip:5,nDust:8,kind:'chip'},
+  concrete:{dec:[D.CONC,D.CONC2],ds:.25,dust:[.6,.58,.54],chip:[.58,.56,.53],nChip:7,nDust:10,kind:'chip'},
+  plaster: {dec:[D.PLASTER],ds:.24,dust:[.8,.78,.74],chip:[.88,.86,.82],nChip:5,nDust:8,kind:'chip'},
   brick:   {dec:[D.BRICK],ds:.26,dust:[.64,.42,.33],chip:[.58,.3,.22],nChip:7,nDust:7,kind:'chip'},
   wood:    {dec:[D.WOOD],ds:.18,dust:[.55,.43,.3],chip:[.82,.66,.45],nChip:6,nDust:4,kind:'splinter'},
   metal:   {dec:[D.DENT,D.PIERCE],ds:.1,dust:[.5,.5,.5],chip:[.4,.4,.42],nChip:0,nDust:2,kind:'spark',sparks:10},
@@ -480,18 +529,26 @@ const SURF={
   cloth:   {dec:null,ds:0,dust:[.85,.84,.82],chip:[.8,.8,.8],nChip:0,nDust:6,kind:'fiber'},
   nail:    {dec:[D.NAIL],ds:.03,dust:[.6,.58,.55],chip:[.5,.5,.5],nChip:1,nDust:2,kind:'chip'}};
 const _ip=new T.Vector3(),_in=new T.Vector3();
-function impact(pos,normal,surface,o){if(!ready)return;o=o||{};const s=SURF[surface]||SURF.concrete,big=o.big?1.8:1;
+function impact(pos,normal,surface,o,qo,clipFor){if(!ready)return;o=o||{};const s=SURF[surface]||SURF.concrete,big=o.big?1.8:1;
   _ip.copy(pos);_in.copy(normal||UP);if(_in.lengthSq()<1e-6)_in.set(0,1,0);_in.normalize();basis(_in);
   const px=_ip.x+_in.x*.03,py=_ip.y+_in.y*.03,pz=_ip.z+_in.z*.03;
   /* decal */
   if(s.dec&&o.decal!==false){const tile=s.dec[(R()*s.dec.length)|0],sz=s.ds*rnd(.85,1.2)*(o.big?1.4:1),tint=rnd(.9,1.05);
-    decals.add(_ip,_in,sz,sz,tile,R()*TAU,1,surface==='glass'?90:60,tint,tint,tint)}
-  /* dust: a fast jet along the normal that stalls, then a lazy cloud */
+    let clip=null;if(clipFor){clip=_clip;/* clipFor = distances to the face edges along +x,+y,-x,-y of the decal */
+      _clip[0]=-Math.min(.5,clipFor[2]/sz);_clip[1]=Math.min(.5,clipFor[0]/sz);_clip[2]=-Math.min(.5,clipFor[3]/sz);_clip[3]=Math.min(.5,clipFor[1]/sz)}
+    decals.add(_ip,_in,sz,sz,tile,R()*TAU,1,surface==='glass'?90:60,tint,tint,tint,qo||null,clip,o.attach&&o.attach.isObject3D?o.attach:null)}
+  /* dust, tinted by the surface: first a quick directional burst of streaks along the normal that stalls in a few
+     centimetres of travel, then a soft lit cloud that drifts and tears apart (noise erosion) instead of fading as discs */
   const dc=o.color&&surface==='cloth'?o.color:s.dust;const dt_=surface==='cloth'?S.FIBER:S.DUST;
-  for(let k=0;k<cnt(s.nDust*big);k++){const sp=rnd(.6,3.2)*big;rdir(_v3).multiplyScalar(.45).add(_in).normalize();
-    smoke(px,py,pz,_v3.x*sp,_v3.y*sp,_v3.z*sp,rnd(.8,1.8)*big,.08*big,rnd(.4,.8)*big,dc,rnd(.45,.75),{tile:k%3?dt_:S.SMOKE+(k&3),drag:3.8,grav:surface==='dirt'||surface==='grass'?.6:-.12,fo:.3,gp:5})}
-  /* the first instant: a tight bright puff right at the hole */
-  if(s.kind!=='spark'){const i=smoke(px,py,pz,_in.x*.6,_in.y*.6,_in.z*.6,.4,.06*big,.32*big,[dc[0]*1.15,dc[1]*1.15,dc[2]*1.15],.8,{tile:S.DUST,drag:4,grav:0,fo:.2,gp:6});if(i>=0)ALP.fi[i]=0}
+  for(let k=0;k<cnt((s.kind==='spark'?2:4)*big);k++){rdir(_v3).multiplyScalar(.38).add(_in).normalize();const sp=rnd(4,8.5)*big,sh=rnd(.88,1.05);
+    const i=ALP.add(px,py,pz,_v3.x*sp,_v3.y*sp,_v3.z*sp,rnd(.35,.6),.045*big,rnd(.16,.26)*big,dt_,dc[0]*sh,dc[1]*sh,dc[2]*sh,rnd(.5,.7));
+    if(i>=0){ALP.fl[i]|=F_SEG;ALP.sf[i]=.085;ALP.len[i]=.05*big;ALP.drag[i]=7.5;ALP.er[i]=.5;ALP.fo[i]=.2;ALP.gp[i]=3;ALP.ox[i]=_v3.x;ALP.oy[i]=_v3.y;ALP.oz[i]=_v3.z;ALP.grav[i]=-.1}}
+  const heavy=surface==='dirt'||surface==='grass';
+  for(let k=0;k<cnt(s.nDust*.65*big);k++){const sp=rnd(.4,2.2)*big,sh=rnd(.85,1.05);rdir(_v3).multiplyScalar(.6).add(_in).normalize();
+    const i=smoke(px+_in.x*.04,py+_in.y*.04,pz+_in.z*.04,_v3.x*sp,_v3.y*sp,_v3.z*sp,rnd(1.2,2.6)*big,.06*big,rnd(.28,.6)*big,[dc[0]*sh,dc[1]*sh,dc[2]*sh],rnd(.32,.5),
+      {tile:k%2?dt_:S.SMOKE+(k&3),drag:3.2,grav:heavy?.35:-.08,fi:.04,fo:.25,gp:4});
+    if(i>=0){ALP.er[i]=.62;ALP.rv[i]=rnd(-.8,.8)}}
+  if(s.kind!=='spark'){const i=smoke(px,py,pz,_in.x*.5,_in.y*.5,_in.z*.5,.22,.05*big,.18*big,[dc[0]*1.1,dc[1]*1.1,dc[2]*1.1],.65,{tile:S.DUST,drag:4,grav:0,fo:.2,gp:6});if(i>=0){ALP.fi[i]=0;ALP.er[i]=.35}}
   if(s.plume){for(let k=0;k<cnt(5*big);k++){const sp=rnd(3,7)*big;rdir(_v3).multiplyScalar(.3).add(_in).normalize();
     const i=smoke(px,py,pz,_v3.x*sp,_v3.y*sp,_v3.z*sp,rnd(.5,.9),.03,rnd(.12,.25)*big,[s.dust[0]*.8,s.dust[1]*.8,s.dust[2]*.8],.7,{tile:S.CHUNK,drag:1.2,grav:9,fo:.6});if(i>=0)ALP.asp[i]=rnd(.7,1.3)}}
   /* surface-specific bits */
@@ -525,8 +582,25 @@ function surfaceOf(hit){let o=hit.object;while(o){const u=o.userData;if(u){if(u.
   if(/barrel|metal|lamp|mailbox|utility|sign|fence|pipe/.test(name))return 'metal';if(/crate|pallet|table|chest|wood|door|plank/.test(name))return 'wood';
   if(/couch|sofa|chair|bag|cloth|mattress/.test(name))return 'cloth';if(/tree|bush|hedge/.test(name))return 'wood';
   return 'concrete'}
-function hit(h,o){if(!ready||!h)return;if(h.face){_hn.copy(h.face.normal);_nm.getNormalMatrix(h.object.matrixWorld);_hn.applyMatrix3(_nm).normalize()}else _hn.set(0,1,0);
-  impact(h.point,_hn,(o&&o.surface)||surfaceOf(h),o)}
+const _clip=[0,0,0,0],_d4=[0,0,0,0],_inv=new T.Matrix4(),_pl=new T.Vector3(),_ax=new T.Vector3(),_bx=new T.Vector3(),_mb=new T.Matrix4(),_hq=new T.Quaternion(),_ho={};
+function hit(h,o){if(!ready||!h)return;o=o||{};const obj=h.object;
+  if(h.face){_hn.copy(h.face.normal);_nm.getNormalMatrix(obj.matrixWorld);_hn.applyMatrix3(_nm).normalize()}else _hn.set(0,1,0);
+  const surface=o.surface||surfaceOf(h);let qo=null,d4=null;
+  /* decals are squared to the face and clipped to its edges when the hit face is an axis-aligned face of the mesh's own box
+     (walls, crates, boxes); anything else falls back to a free rotation with no clip */
+  const g=obj.geometry;if(h.face&&g&&!obj.isInstancedMesh&&!obj.isSkinnedMesh&&o.clip!==false){if(!g.boundingBox)g.computeBoundingBox();const bb=g.boundingBox,ln=h.face.normal;
+    const anx=Math.abs(ln.x),any=Math.abs(ln.y),anz=Math.abs(ln.z),ax=anx>any&&anx>anz?0:any>anz?1:2;
+    if(Math.max(anx,any,anz)>.985){_inv.copy(obj.matrixWorld).invert();_pl.copy(h.point).applyMatrix4(_inv);const a=(ax+1)%3,b=(ax+2)%3;
+      _ax.setFromMatrixColumn(obj.matrixWorld,a);_bx.setFromMatrixColumn(obj.matrixWorld,b);const la=_ax.length(),lb=_bx.length();_ax.multiplyScalar(1/la);_bx.multiplyScalar(1/lb);
+      const pa=_pl.getComponent(a),pb=_pl.getComponent(b);
+      _d4[0]=(bb.max.getComponent(a)-pa)*la;_d4[1]=(bb.max.getComponent(b)-pb)*lb;_d4[2]=(pa-bb.min.getComponent(a))*la;_d4[3]=(pb-bb.min.getComponent(b))*lb;
+      if(_v.crossVectors(_ax,_bx).dot(_hn)<0){_bx.negate();const t=_d4[1];_d4[1]=_d4[3];_d4[3]=t}
+      /* random quarter turn keeps it square to the face but varies the look */
+      for(let k=(R()*4)|0;k>0;k--){_v.copy(_ax);_ax.copy(_bx);_bx.copy(_v).negate();const t=_d4[0];_d4[0]=_d4[1];_d4[1]=_d4[2];_d4[2]=_d4[3];_d4[3]=t}
+      _mb.makeBasis(_ax,_bx,_hn);_hq.setFromRotationMatrix(_mb);qo=_hq;d4=_d4}}
+  let att=o.attach;if(att===true)att=obj;else if(!att){let p=obj;while(p){if(p.userData&&p.userData.fxAttach){att=p;break}p=p.parent}}
+  if(att&&att!==o.attach){for(const k in _ho)delete _ho[k];Object.assign(_ho,o);_ho.attach=att;o=_ho}
+  impact(h.point,_hn,surface,o,qo,d4)}
 
 /* ================================================================= shells */
 const SHELL={'9mm':{l:.019,r:.0048,col:[1,1,1],h:0},'357':{l:.033,r:.0048,col:[1,1,1],h:0},'556':{l:.045,r:.0048,col:[1,1,1],h:0},'308':{l:.051,r:.006,col:[1,1,1],h:0},
@@ -541,16 +615,23 @@ function shell(pos,dir,type){if(!ready)return;const t=SHELL[type]||SHELL[GUNSHEL
 /* ================================================================= explosions */
 const _xp=new T.Vector3();
 function explosion(pos,size,o){if(!ready)return;o=o||{};const s=size||1;_xp.copy(pos);const gy=groundAt(_xp.x,_xp.z);
-  glow(_xp.x,_xp.y+.3*s,_xp.z,2.6*s,3.6*s,.1,A.GLOW,2.2,1.3,.6);
-  glow(_xp.x,_xp.y+.3*s,_xp.z,2.4*s,3.2*s,.07,A.STAR6,2.6,1.6,.7);
-  /* fireball flipbook billows */
-  for(let k=0;k<cnt(14*s+4);k++){rdir(_v3);_v3.y=Math.abs(_v3.y)*.8+.35;_v3.normalize();const sp=rnd(2,6.5)*Math.sqrt(s),r0=rnd(0,.5)*s;
-    const i=ALP.add(_xp.x+_v3.x*r0,_xp.y+_v3.y*r0+.2*s,_xp.z+_v3.z*r0,_v3.x*sp,_v3.y*sp+rnd(.5,2),_v3.z*sp,rnd(.8,1.3)*Math.sqrt(s),rnd(1,1.7)*s,rnd(2.4,3.6)*s,S.FIRE,rnd(2.1,2.5),rnd(1.35,1.6),rnd(.9,1.1),1);
-    if(i>=0){ALP.em[i]=1;ALP.frn[i]=16;ALP.drag[i]=2.6;ALP.grav[i]=-1.6;ALP.fi[i]=0;ALP.fo[i]=.6;ALP.rv[i]=rnd(-1,1);ALP.age[i]=-rnd(0,.06);ALP.gp[i]=3}}
-  /* smoke column: dark, lit by the sun, rising and spreading */
-  for(let k=0;k<cnt(22*s+6);k++){rdir(_v3);_v3.y=Math.abs(_v3.y);const sp=rnd(1,4)*Math.sqrt(s),sh=rnd(.1,.2);
-    const i=smoke(_xp.x+_v3.x*.6*s,_xp.y+.5*s+_v3.y*.4*s,_xp.z+_v3.z*.6*s,_v3.x*sp*.6,rnd(1.8,4.2)*Math.sqrt(s),_v3.z*sp*.6,rnd(5,10),rnd(1.2,2)*s,rnd(4.5,7.5)*s,[sh,sh*.97,sh*.94],rnd(.6,.85),{drag:.8,grav:-.25,fi:.06,fo:.45});
-    if(i>=0){ALP.age[i]=-rnd(.05,.5);ALP.fl[i]&=~F_NEW;ALP.rv[i]=rnd(-.25,.25)}}
+  /* first frames: a hard white-hot core */
+  glow(_xp.x,_xp.y+.35*s,_xp.z,1.8*s,3.4*s,.09,A.GLOW,4,2.6,1.4);
+  glow(_xp.x,_xp.y+.35*s,_xp.z,1.6*s,2.8*s,.06,A.BURST,3.2,2,.9);
+  /* fireball: a few large turbulent billows that blow out fast, cool, and hand over to the smoke (noise-eroded as they age) */
+  for(let k=0;k<cnt(14*s+4);k++){rdir(_v3);_v3.y=Math.abs(_v3.y)*.7+.3;_v3.normalize();const sp=rnd(2.2,6.5)*Math.sqrt(s),r0=rnd(0,.25)*s;
+    const i=ALP.add(_xp.x+_v3.x*r0,_xp.y+_v3.y*r0+.25*s,_xp.z+_v3.z*r0,_v3.x*sp,_v3.y*sp+rnd(1,2.5),_v3.z*sp,rnd(.6,1)*Math.sqrt(s),rnd(1.5,2.1)*s,rnd(2.4,3.2)*s,S.FIRE,rnd(2.6,3),rnd(1.75,2),rnd(1.2,1.4),1);
+    if(i>=0){ALP.em[i]=1;ALP.frn[i]=16;ALP.drag[i]=3.4;ALP.grav[i]=-2.2;ALP.fi[i]=0;ALP.fo[i]=.55;ALP.rv[i]=rnd(-1.4,1.4);ALP.age[i]=-rnd(0,.05);ALP.gp[i]=4;ALP.er[i]=.55}}
+  {const i=ALP.add(_xp.x,_xp.y+.5*s,_xp.z,0,1.5,0,.75*Math.sqrt(s),2.4*s,3.6*s,S.FIRE,2.8,1.9,1.3,1);if(i>=0){ALP.em[i]=1;ALP.frn[i]=16;ALP.drag[i]=2;ALP.fo[i]=.5;ALP.gp[i]=4;ALP.er[i]=.5;ALP.rv[i]=rnd(-.6,.6)}}
+  /* rolling dark smoke: born inside the fireball, rises in a turbulent column and tears apart */
+  for(let k=0;k<cnt(26*s+6);k++){rdir(_v3);_v3.y=Math.abs(_v3.y);const sp=rnd(1,4.5)*Math.sqrt(s),sh=rnd(.07,.14),late=k%3===0;
+    const i=smoke(_xp.x+_v3.x*.5*s,_xp.y+.6*s+_v3.y*.5*s,_xp.z+_v3.z*.5*s,_v3.x*sp*.7,rnd(2,4.5)*Math.sqrt(s)*(late?.7:1),_v3.z*sp*.7,rnd(5,9),rnd(1,1.8)*s,rnd(4,7)*s,[sh,sh*.96,sh*.92],rnd(.7,.92),
+      {drag:.9,grav:-.3,fi:.04,fo:.35,gp:2.5});
+    if(i>=0){ALP.age[i]=-(late?rnd(.35,.9):rnd(.12,.4));ALP.fl[i]&=~F_NEW;ALP.rv[i]=rnd(-.5,.5);ALP.er[i]=.6}}
+  /* glowing embers drifting up through the smoke */
+  for(let k=0;k<cnt(30*s);k++){rdir(_v3);_v3.y=Math.abs(_v3.y)+.4;_v3.normalize();const sp=rnd(1.5,5)*Math.sqrt(s);
+    const i=ADD.add(_xp.x+rnd(-.6,.6)*s,_xp.y+rnd(.3,1.4)*s,_xp.z+rnd(-.6,.6)*s,_v3.x*sp,_v3.y*sp,_v3.z*sp,rnd(1.2,3.2),rnd(.03,.06),.02,A.EMBER,6,3,1.1,1);
+    if(i>=0){ADD.drag[i]=1.6;ADD.grav[i]=-.6;ADD.cool[i]=1.6;ADD.fo[i]=.4;ADD.age[i]=-rnd(0,.4);ADD.fl[i]&=~F_NEW}}
   /* ground dust ring */
   for(let k=0;k<cnt(18*s);k++){const a=k/(18*s)*TAU+rnd(-.1,.1),sp=rnd(6,11)*Math.sqrt(s);
     smoke(_xp.x+Math.cos(a)*.5,gy+.3,_xp.z+Math.sin(a)*.5,Math.cos(a)*sp,rnd(.3,1),Math.sin(a)*sp,rnd(1.6,3),.6*s,rnd(2,3.2)*s,[.6,.53,.44],.5,{drag:2.4,grav:-.1,tile:S.DUST})}
@@ -766,21 +847,37 @@ function update(dt){if(!ready)return;dt=dt>0?Math.min(dt,.1):0;simTime+=dt;
 function shellBounce(B,i,sp){if(FX.onShellBounce){_v.set(B.px[i],B.py[i],B.pz[i]);FX.onShellBounce(_v,B.kind[i]?'hull':'brass',sp)}}
 function shardBounce(B,i,sp){if(sp>2&&R()<.3){const j=ADD.add(B.px[i],B.py[i]+.01,B.pz[i],0,0,0,.12,.04,.01,A.SPARKLE,2.5,2.8,3,1);if(j>=0)ADD.rv[j]=rnd(-5,5)}}
 
+/* ---------------------------------------------------------------- soft particles
+   bindDepth(depthTexture, near, far, [w,h] or Vector2): the opaque scene's depth (the game's AO scene pass has one).
+   While bound, the two particle batches move to their own layer, so the scene pass never draws them while the depth
+   texture is its attachment. The game then calls renderSoft(renderer) into the composited colour target: particles test
+   depth by hand (hidden behind walls) and fade where they meet geometry. bindDepth(null) returns to plain depth testing. */
+const soft={on:false,tex:null};
+function bindDepth(tex,near,far,res){if(!ready)return;const on=!!tex;
+  if(on){U.uDepth.value=tex;const w=res?(res.x||res[0]):(tex.image&&tex.image.width)||1,h=res?(res.y||res[1]):(tex.image&&tex.image.height)||1;
+    U.uDepthP.value.set(near!=null?near:camera.near,far!=null?far:camera.far,1/w,1/h)}
+  if(on!==soft.on){soft.on=on;ADD.setSoft(on);ALP.setSoft(on)}soft.tex=tex||null;soft.fixedRes=!!res}
+function renderSoft(r){if(!ready||!soft.on||!camera)return;r=r||renderer;const tex=soft.tex;
+  if(!soft.fixedRes&&tex&&tex.image)U.uDepthP.value.z=1/tex.image.width,U.uDepthP.value.w=1/tex.image.height;
+  const mask=camera.layers.mask,ac=r.autoClear,bg=scene.background;camera.layers.set(SOFT_LAYER);r.autoClear=false;scene.background=null;
+  r.render(scene,camera);scene.background=bg;r.autoClear=ac;camera.layers.mask=mask}
+
 function stats(){return ready?{additive:ADD.n,smoke:ALP.n,drawnAdd:ADD.w,drawnSmoke:ALP.w,decals:decals.mesh.count,marks:marks.mesh.count,chips:chips.n,splinters:splinters.n,shards:shards.n,flakes:flakes.n,brass:brass.n,hulls:hulls.n,leaves:leaves.n,emitters:emitters.length,glows:glows.length,beacons:beacons.length,trauma:FB.trauma,quality:qName}:null}
 
-const FX={init,setQuality,update,clear,muzzleFlash,tracer,impact,hit,surfaceOf,shell,shake,applyCamera,damageIndicator,damageFrom,yawTo,hitPulse,setHealth,suppress,gradeUniforms,bindGrade,GRADE,
+const FX={init,setQuality,update,clear,bindDepth,renderSoft,get softParticles(){return soft.on},muzzleFlash,tracer,impact,hit,surfaceOf,shell,shake,applyCamera,damageIndicator,damageFrom,yawTo,hitPulse,setHealth,suppress,gradeUniforms,bindGrade,GRADE,
   explosion,skid,tyreSmoke,ambient,emitter,pickupGlow,highlight,beacon,trustPop,zipTie:trustPop,stats,
   get ready(){return ready},get quality(){return qName},
   /* hooks the game / audio module may set */
   onShellBounce:null,onNearMiss:null,onExplosion:null,cssFallback:true,groundY:null,
-  setGround(fn){groundAt=fn||(()=>0)},
+  setGround(fn){groundAt=fn||(()=>0)},setSolid(fn){solidAt=fn||null},
   _debug(){return{ADD,ALP,decals,marks}}};
 HT.FX=FX;
 })();
 /* API (all positions are THREE.Vector3 in world space; every call is a no-op before init):
-   init({scene,camera,renderer,assets,quality,groundAt?,dom?,domParent?})   setQuality('low'|'med'|'high')   update(dt)   clear()
+   init({scene,camera,renderer,assets,quality,groundAt?,solidAt?,dom?,domParent?})   setGround(fn) setSolid(fn)   bindDepth(depthTex,near,far,[w,h]?) / bindDepth(null)   renderSoft(renderer)
+     setQuality('low'|'med'|'high')   update(dt)   clear()
    muzzleFlash(pos,dir,{type:'pistol'|'revolver'|'smg'|'rifle'|'hunter'|'shotgun'|'double'|'beanbag'|'flare'|'nailer'|'enemy',firstPerson,scale})
-   tracer(from,to,{enemy,ally,trail,speed,length,width,suppress})       impact(pos,normal,surface,{big,color,decal})   hit(raycastHit,{big,surface,color})
+   tracer(from,to,{enemy,ally,trail,speed,length,width,suppress})       impact(pos,normal,surface,{big,color,decal,attach})   hit(raycastHit,{big,surface,color,attach,clip})
    shell(pos,ejectDir,gunIdOrType)   shake(amount,{kick,kickYaw})   applyCamera(camera)   explosion(pos,size)
    damageIndicator(yawRel,strength)  damageFrom(worldPos)  hitPulse(amount)  setHealth(0..1)  suppress(amount)  gradeUniforms()  bindGrade(shaderUniforms)  GRADE.{uniforms,glsl}
    skid(pos,dir,intensity,{width})  tyreSmoke(pos,intensity)  ambient({leaves,pollen,density,wind}|null)
