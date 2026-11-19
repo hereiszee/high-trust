@@ -88,6 +88,7 @@ const UI_ICON={
   aim:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>',
   use:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10h.5V3.5a1.5 1.5 0 0 1 3 0V10h.5V5a1.5 1.5 0 0 1 3 0v9c0 4-3 7-7 7-3 0-4.6-1.3-6-3.4L3.4 14a1.5 1.5 0 0 1 2.4-1.8L9 15z"/></svg>',
   reload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4v4h-4" /></svg>',
+  jump:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg>',
   crouch:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="13" cy="5" r="2.4"/><path d="M9 9h6l1 5h3v2.4h-5l-1-3-2 3 2 4.6h-2.7L7.6 17 9 13z"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>',
   view:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
@@ -170,8 +171,8 @@ function build(root){
   R.wp=el('div','ht-wp tx',hud,'<div class="hint"></div><div class="main"><div class="gun"></div><div class="am ht-num"><span class="mag">0</span><span class="res">0</span></div></div><div class="rl"><i></i></div><div class="info"><span class="fm"></span><span class="nm"></span></div><div class="slots"></div>');
   R.wpHint=R.wp.querySelector('.hint');R.wpGun=R.wp.querySelector('.gun');R.wpMag=R.wp.querySelector('.mag');R.wpRes=R.wp.querySelector('.res');R.wpRl=R.wp.querySelector('.rl i');R.wpFm=R.wp.querySelector('.fm');R.wpNm=R.wp.querySelector('.nm');R.wpSlots=R.wp.querySelector('.slots');R.wpAm=R.wp.querySelector('.am');
   /* driving */
-  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span></div>');
-  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');
+  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span><span><b class="ht-kc">V</b>Hood</span></div>');
+  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');R.drvName=R.drv.querySelector('.vh .row span');
   /* prompt, subtitles, banner */
   R.pr=el('div','ht-pr off tx',hud,'<div class="gl"><svg viewBox="0 0 34 34"><circle class="bg" cx="17" cy="17" r="15"/><circle class="fg" cx="17" cy="17" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><b class="ht-kc">E</b></div><div class="tt"></div>');
   R.prK=R.pr.querySelector('.ht-kc');R.prFg=R.pr.querySelector('.fg');R.prT=R.pr.querySelector('.tt');
@@ -181,7 +182,7 @@ function build(root){
   /* touch */
   R.touch=el('div','ht-touch',root,'<div class="ht-stick"><div class="kn"></div></div>');
   R.stick=R.touch.firstChild;R.knob=R.stick.firstChild;R.tbtn={};
-  for(const[a,lab,ic]of[['fire','Fire','fire'],['aim','Aim','aim'],['use','Use','use'],['reload','Reload','reload'],['crouch','Crouch','crouch'],['swap','Gun','swap'],['view','View','view'],['pause','','pause'],['map','','map']]){
+  for(const[a,lab,ic]of[['fire','Fire','fire'],['aim','Aim','aim'],['use','Use','use'],['reload','Reload','reload'],['crouch','Crouch','crouch'],['jump','Jump','jump'],['swap','Gun','swap'],['view','View','view'],['pause','','pause'],['map','','map']]){
     const b=el('div','ht-tb',R.touch,UI_ICON[ic]+(lab?'<span>'+lab+'</span>':''));b.dataset.a=a;R.tbtn[a]=b;
     b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');try{b.setPointerCapture(e.pointerId)}catch(_){};emit('touch',a,true);if(a==='map')MAP.toggle();if(a==='pause')emit('action','pause')});
     const up=e=>{if(!b.classList.contains('dn'))return;b.classList.remove('dn');emit('touch',a,false)};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)}
@@ -351,6 +352,7 @@ function updDrive(st){
   attr(R.drvNdl,'transform',`rotate(${(-225+270*f).toFixed(1)} 110 96)`);
   const g=st.gear!=null?String(st.gear):(st.speedMph<-0.5?'R':'D');txt(R.drvGear,g);cls(R.drvGear,'r',g==='R');
   let vh=st.vanHealth??1;if(vh>1)vh/=100;vh=clamp(vh,0,1);txt(R.drvVh,Math.round(vh*100)+'%');sty(R.drvVbI,'transform',`scaleX(${vh})`);cls(R.drvVb,'low',vh<.3);
+  txt(R.drvName,st.vehicleName||'Minivan');
   show(R.drvHint,!H.touch);
 }
 
@@ -782,7 +784,7 @@ function update(st,dt=1/60){
 
 const HUD={
   init(rootEl,opt={}){H.root=rootEl||document.body.appendChild(document.createElement('div'));if(opt.touch!=null)H.forceTouch=opt.touch;if(opt.compact!=null)H.forceCompact=opt.compact;build(H.root);
-    addEventListener('keydown',e=>{if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
+    addEventListener('keydown',e=>{if(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return;/* shop and locker menus own the keyboard */if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
     /* canvases draw text with the web fonts: redraw once they are in */
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{CMP.last='';MAP.dirty=true});
     return HUD},

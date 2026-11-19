@@ -7,9 +7,18 @@ const ROOT=path.resolve(__dirname,'..');
 const OUT=path.join(ROOT,'docs','screenshots','people');
 const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only=(argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
 const want=k=>!only.length||only.includes(k);
+/* no --only: run the blocks in separate browsers (one page through every mission and shot set outgrows the headless renderer's memory) */
+if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process');let bad=0;
+  for(const g of['combat','missions,perf','roster,fallback,lowq','shots,boss','ik,polish']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
+    console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
+  console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
+const PP_KEYS=23;
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
+/* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
+async function startGame(pg){await pg.evaluate(()=>{const b=document.getElementById('bStart');if(b)b.click()});await pg.keyboard.press('Enter');
+  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200)}
 /* page-side helpers, installed once the game is up */
 function helpers(){
   const H=window.__ht,PP=HT.People,T=THREE;
@@ -21,11 +30,12 @@ function helpers(){
     hbBox(e,part){const m=e.dude.meshes.find(x=>x.name==='hit_Bip01_'+part);m.updateWorldMatrix(true,false);return new T.Box3().setFromObject(m)},
     /* first person, eye at P.pos+1.65: point the view straight at p */
     aim(p){const P=H.P;const eye=P.pos.clone().add(new T.Vector3(0,P.crouch?1.15:1.65,0));const d=p.clone().sub(eye);P.yaw=Math.atan2(-d.x,-d.z);P.pitch=Math.asin(d.y/d.length())},
-    god(){const P=H.P;P.hp=100;for(const w of P.weapons){const a=P.ammo[w];if(a){a.res=999;if(a.mag<=0&&P.reloadT<=0){a.mag=3}}}},
+    god(){const P=H.P;P.hp=100;for(const w of P.weapons){const a=P.ammo[w];if(a){a.res=999;if(a.mag<=1&&!P.rl&&!(P.reloadT>0)){a.mag=8}}}},
     /* a spot r metres from (x,z) with a clear chest-high line of sight to it */
     spot(x,z,r,a0=0){const rc=new T.Raycaster();for(const rr of[r,r*.7,r*.5,r*1.4])for(let k=0;k<24;k++){const a=a0+k/24*Math.PI*2;const px=x+Math.sin(a)*rr,pz=z+Math.cos(a)*rr;
         const eye=new T.Vector3(px,1.65,pz),tg=new T.Vector3(x,1.2,z),d=tg.clone().sub(eye);const L=d.length();rc.set(eye,d.normalize());rc.far=L+.5;
         const h=rc.intersectObjects(H.dude.solids,false)[0];if(h&&h.distance<L+.3)continue;
+        /* and back again: single-sided walls only show from one side */rc.set(tg,eye.clone().sub(tg).normalize());rc.far=L+.6;if(rc.intersectObjects(H.dude.solids,false)[0])continue;
         const lo=new T.Vector3(px,.5,pz),d2=new T.Vector3(x,.5,z).sub(lo);rc.set(lo,d2.normalize());rc.far=rr;const h2=rc.intersectObjects(H.dude.solids,false)[0];if(h2)continue;return{x:px,z:pz,a}}return null},
     live(){return H.enemies.filter(e=>e.state==='idle')},
     /* stand off from enemy e and shoot until he is down or gives up */
@@ -64,17 +74,18 @@ function helpers(){
   await p.addInitScript(()=>{window.requestAnimationFrame=()=>0});/* the test drives frames itself */
   await p.goto('http://repo.local/index.html');
   await p.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});
-  await p.evaluate(()=>document.getElementById('bStart').click());
+  await startGame(p);
   await p.evaluate(helpers);
   const st=await p.evaluate(()=>({ok:HT.People.ok,failed:__ht.assets.failed,player:!!__ht.P.dude.rb}));
   ok('people loaded and the player is skinned',st.ok&&st.player,st);
   if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on')});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
+  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on');for(const id of['cResult','cBrief','cPause'])if(document.getElementById(id))document.getElementById(id).hidden=true});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
 
   if(want('combat')){
     await p.evaluate(()=>__ht.startMission(0));
     const r=await p.evaluate(()=>{const H=__ht,P=H.P,e=T_.live()[0];const out={};
       for(const o of H.enemies)if(o!==e){o.pos.set(o.pos.x+500,0,o.pos.z+500)}/* nobody else in the way */
+      for(const a of H.allies){a.down=true;a.downT=1e9;a.hp=0}/* the crew must not add damage of their own */
       P.fp=true;P.aim=true;P.cur='pistol';
       /* stand the dad 6 m from the enemy with a clear line, enemy facing him */
       const E0=e.pos.clone();const sp=T_.spot(E0.x,E0.z,6);P.pos.set(sp.x,0,sp.z);P.yaw=Math.atan2(-(E0.x-sp.x),-(E0.z-sp.z));
@@ -111,6 +122,35 @@ function helpers(){
       for(const g of['pistol','shotgun']){H.dude.equip(P.dude,g);P.aim=true;P.pitch=.45;H.step(40);const b=P.dude.body.getObjectByName('Bip01_R_Hand'),q0=b.getWorldQuaternion(new THREE.Quaternion());
         H.step(60);const q1=b.getWorldQuaternion(new THREE.Quaternion());out[g]=+(q0.angleTo(q1)).toFixed(4)}P.pitch=0;P.aim=false;return out});
     ok('aim pitch holds steady (no build-up over 2 s; idle breathing allowed)',Object.values(r).every(v=>v<.06),r)}
+
+  if(want('combat')){/* spin regression: hold pitch +-0.9 for 300 steps in each state; bones stay bounded and come back to rest */
+    const r=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;P.fp=false;
+      const rel=n=>{const b=P.dude.body.getObjectByName(n);const q=b.getWorldQuaternion(new THREE.Quaternion());return P.dude.root.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(q)};
+      const BONES=['Bip01_Spine1','Bip01_Spine2','Bip01_R_UpperArm','Bip01_L_UpperArm','Bip01_L_Forearm','Bip01_Head','Bip01_Pelvis'];
+      const snap=()=>BONES.map(rel),diff=(A,B)=>Math.max(...A.map((q,i)=>q.angleTo(B[i])));
+      const rest=()=>{P.aim=false;P.crouch=false;P.pitch=0;H.mouse=false;H.step(60)};const out={};
+      const states={idle:()=>{},aiming:()=>{P.aim=true},crouched:()=>{P.crouch=true;P.aim=true},firing:()=>{P.aim=true;H.mouse=true},reloading:()=>{P.aim=true;P.ammo[P.cur].mag=0;H.reload()}};
+      for(const g of['rifle','shotgun','pistol']){H.give(g);H.dude.equip(P.dude,g);P.cur=g;rest();const R0=snap();
+        for(const k in states)for(const pv of[.9,-.9]){const run=n=>{for(let i=0;i<n;i++){T_.god();P.pitch=pv;if(k==='firing')H.mouse=true;H.step(1)}};states[k]();run(150);const A=snap();run(150);const B=snap();
+          const grow=diff(A,B);rest();const back=diff(R0,snap());out[g+'/'+k+'/'+pv]=[+grow.toFixed(3),+back.toFixed(3)]}}
+      /* the aim pitch has to show: gun hand height with pitch +-0.6 while aiming */
+      H.dude.equip(P.dude,'rifle');P.cur='rifle';P.aim=true;const hy=pv=>{P.pitch=pv;H.step(30);return P.dude.body.getObjectByName('Bip01_R_Hand').getWorldPosition(new THREE.Vector3()).y};
+      out.handRise=+(hy(.6)-hy(-.6)).toFixed(3);
+      /* barrel vs view direction (third person, rifle and pistol) */
+      out.barrelErr={};const yp=out;for(const g of['rifle','pistol']){H.dude.equip(P.dude,g);P.cur=g;for(const pv of[-.6,0,.6]){P.pitch=pv;H.step(30);H.scene.updateMatrixWorld();
+        const q=P.dude.gun.getWorldQuaternion(new THREE.Quaternion());const bd=new THREE.Vector3(0,0,1).applyQuaternion(q);const cf=new THREE.Vector3(-Math.sin(P.yaw)*Math.cos(pv),Math.sin(pv),-Math.cos(P.yaw)*Math.cos(pv));
+        out.barrelErr[g+pv]=+(bd.angleTo(cf)).toFixed(2);if(pv===0)yp['yawpitch_'+g]=[+(Math.atan2(bd.x,bd.z)-Math.atan2(cf.x,cf.z)).toFixed(3),+(Math.asin(bd.y)-Math.asin(cf.y)).toFixed(3)]}}
+      /* the over-the-shoulder camera must never sit inside the dad's head: either it is clear of the head or the body is hidden */
+      P.aim=false;let worst=9;for(const aim of[false,true])for(let pv=-1.25;pv<=1.25;pv+=.25){P.aim=aim;P.pitch=pv;H.step(8);H.draw();if(!P.dude.root.visible)continue;
+        const hp=P.dude.body.getObjectByName('Bip01_Head').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.1,0));worst=Math.min(worst,H.camera.position.distanceTo(hp))}
+      out.camHead=+worst.toFixed(3);
+      P.aim=false;P.pitch=0;
+      return out});
+    const bad=Object.entries(r).filter(([k,v])=>Array.isArray(v)&&(v[0]>.35||v[1]>.2));
+    ok('pitch +-0.9 x 300 steps (idle/aim/crouch/fire/reload, 3 guns): bounded, returns to rest',bad.length===0,bad.length?bad.slice(0,6):{worstGrow:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[0])),worstBack:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[1]))});
+    ok('aim pitch is visible in third person (hand rises with pitch)',r.handRise>.2,r.handRise);
+    ok('camera never inside the head (clearance with the body visible)',r.camHead>.28,r.camHead);
+    ok('third-person barrel follows the view (within 0.2 rad)',Object.values(r.barrelErr).every(v=>v<.2),Object.assign(r.barrelErr,{yp:[r.yawpitch_rifle,r.yawpitch_pistol]}))}
 
   if(want('missions'))for(let i=0;i<4;i++){
     const t0=Date.now();
@@ -185,6 +225,39 @@ function helpers(){
       const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x+f[0]*.3,1.45,P.pos.z+f[1]*.3,q.x,1.3,q.z)});
   }
 
+  if(SHOTS&&want('polish')){
+    /* mission 2 opens with Coach Rick handing over his carbine */
+    await p.evaluate(()=>{const H=__ht;H.prog.done=[true,false,false,false];H.prog.rifleLent=false;H.startMission(1);H.P.fp=false;for(let i=0;i<20&&H.M.intro&&!H.M.intro.done;i++){H.keys.e=false;H.step(1)}});
+    await shot('rick_handoff',()=>{const H=__ht,P=H.P;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=Math.atan2(P.pos.x-r.pos.x,P.pos.z-r.pos.z)+.9;P.dude.root.visible=true;
+      T_.cam(r.pos.x+Math.sin(a)*2.4,1.55,r.pos.z+Math.cos(a)*2.4,(r.pos.x+P.pos.x)/2,1.15,(r.pos.z+P.pos.z)/2)});
+    await shot('rick_face',()=>{const H=__ht;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=r.yaw+.25;T_.cam(r.pos.x+Math.sin(a)*.85,1.72,r.pos.z+Math.cos(a)*.85,r.pos.x,1.66,r.pos.z)});
+    await p.evaluate(()=>{const H=__ht;for(let i=0;i<200&&H.M.intro&&!H.M.intro.done;i++){H.keys.e=true;H.step(1)}H.keys.e=false;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(5)});
+    /* the dad strafing left while aiming (legs turn into the travel, torso stays on target) and backing up */
+    for(const[n,key]of[['strafe_aim_left','a'],['strafe_aim_diag','wa'],['backpedal_aim','s']])
+      await shot(n,key=>{const H=__ht,P=H.P;H.give('rifle');H.dude.equip(P.dude,'rifle');P.cur='rifle';P.aim=true;P.crouch=false;for(const c of key)H.keys[c]=true;H.step(16);for(const c of key)H.keys[c]=false;
+        P.dude.root.visible=true;T_.rel(2.4,1.6,1.1,2.2,0)},key);
+    await shot('crouch_lineup',()=>{const H=__ht,P=H.P;P.dude.root.visible=false;T_.lineup([{role:'thug',variant:'thug_red',gun:'rifle',aim:1,mode:'crouch'},{role:'thug',variant:'thug_track',gun:'rifle',mode:'crouch'},{role:'thug',variant:'thug_hoodie',gun:'rifle',aim:1,mode:'crouch',vel:[0,1.2]},{role:'thug',variant:'thug_beanie',gun:'shotgun',mode:'crouch',vel:[0,2.3]},{role:'you',mode:'crouch',vel:[0,2.3]}].map(s=>Object.assign(s,{turn:Math.PI/2})),{dist:4,spacing:1.1,steps:24});
+      const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x,1.2,P.pos.z,P.pos.x+f[0]*4,.7,P.pos.z+f[1]*4)});
+    for(const[n,pv]of[['look_up_aim',.7],['look_down_aim',-.6]])
+      await shot(n,pv=>{const H=__ht,P=H.P;P.aim=true;P.pitch=pv;H.step(20);T_.rel(1.6,1.5,1.3,2.8,.6);P.pitch=0},pv);
+    await shot('pump_cycle',()=>{const H=__ht,P=H.P;H.give('shotgun');H.dude.equip(P.dude,'shotgun');P.cur='shotgun';P.aim=true;P.pitch=0;H.step(20);H.mouse=true;H.step(1);H.mouse=false;H.step(7);T_.rel(.7,1.55,1.4,1.6,.6)});
+  }
+
+  if(want('roster')){/* the whole street-crew pool, the crew and the Riverside job-givers */
+    const r=await p.evaluate(async()=>{const PP=HT.People;await PP.preload(PP.keys);return{all:PP.keys.filter(k=>PP.has(k)),thugs:PP.roles.thug.filter(k=>PP.has(k))}});
+    ok('roster: all character files load and prepare',r.all.length===PP_KEYS,r.all.length+' of '+PP_KEYS);
+    ok('at least 10 street-crew variants',r.thugs.length>=10,r.thugs.join(','));
+    const v=await p.evaluate(()=>{const H=__ht;H.startMission(3);const ks=H.enemies.map(e=>e.dude.rb&&e.dude.rb.key);let rep=0;for(let i=1;i<ks.length;i++)if(ks[i]===ks[i-1])rep++;return{ks,rep,distinct:new Set(ks).size}});
+    ok('spawns spread over the pool, no two in a row alike',v.rep===0&&v.distinct>=Math.min(8,v.ks.length-2),v);
+    if(SHOTS){await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+      await shot('roster_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map((v,i)=>({role:'thug',variant:v,gun:i%3?'rifle':'pistol'})),{dist:6.2,spacing:.78,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.45,P.pos.z,P.pos.x-Math.sin(P.yaw)*6.2,1.05,P.pos.z-Math.cos(P.yaw)*6.2)});
+      await shot('roster_crew_and_neighbours',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug','earl','dee','rosa','benny'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.5,P.pos.z,P.pos.x-Math.sin(P.yaw)*5.6,1.1,P.pos.z-Math.cos(P.yaw)*5.6)});
+      await shot('roster_faces_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map(v=>({role:'thug',variant:v})),{dist:3.2,spacing:.5,steps:30});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.62,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.55,P.pos.z-Math.cos(P.yaw)*3.2)});
+    }}
+
   if(want('perf')){
     const r=await p.evaluate(()=>{const H=__ht;H.startMission(3);const n=H.enemies.length+H.allies.length+1;
       for(let i=0;i<5;i++)H.step(1);const t0=performance.now();for(let i=0;i<60;i++)HT.People.update(1/60,H.camera);const ms=(performance.now()-t0)/60;
@@ -198,7 +271,7 @@ function helpers(){
       const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx2.newPage();const e2=[];q.on('pageerror',e=>e2.push(e.message));
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0});await q.goto('http://repo.local/index.html');
-    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await q.evaluate(()=>document.getElementById('bStart').click());await q.evaluate(helpers);
+    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await startGame(q);await q.evaluate(helpers);
     const r=await q.evaluate(()=>{const H=__ht;H.startMission(0);const box=H.enemies.every(e=>!e.dude.rb&&e.dude.legs.length===2)&&!H.P.dude.rb;T_.clearAll();for(const it of H.L.items)if(!it.got)T_.hold(it.x,it.z,40);T_.exit();return{box,state:H.M.state,failed:H.assets.failed.length}});
     ok('fallback: box dudes when the people files fail, mission 0 still completes',r.box&&r.state==='won'&&e2.length===0,Object.assign(r,{pageErrors:e2.slice(0,3)}));
     await ctx2.close()}
@@ -207,7 +280,7 @@ function helpers(){
     await ctx3.route('http://repo.local/**',r=>{const u=new URL(r.request().url());const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx3.newPage();const e3=[];q.on('console',m=>{if(m.type()==='warning'&&/people/.test(m.text()))e3.push(m.text().slice(0,300))});q.on('pageerror',e=>e3.push(e.message));q.on('console',m=>{if(m.type()==='error')e3.push(m.text())});
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0;try{localStorage.setItem('ht-cfg',JSON.stringify({gfx:'low'}))}catch(e){}});await q.goto('http://repo.local/index.html');
-    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await q.evaluate(()=>document.getElementById('bStart').click());
+    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await startGame(q);
     const r=await q.evaluate(()=>{const H=__ht;H.startMission(3);H.step(3);H.draw();let maxMap=0,maxOther=0;if(!H.P.dude.body)return{q:H.render.q,people:HT.People.ok,failed:HT.People.failed};H.P.dude.body.traverse(o=>{if(o.isSkinnedMesh){const m=o.material;if(m.map)maxMap=Math.max(maxMap,m.map.image.width);for(const t of[m.normalMap,m.roughnessMap])if(t)maxOther=Math.max(maxOther,t.image.width)}});return{q:H.render.q,maxMap,maxOther}});
     ok('low quality caps character textures',r.q==='low'&&r.maxMap<=512&&r.maxOther<=256&&e3.length===0,Object.assign(r,{errors:e3.slice(0,3)}));await ctx3.close()}
   await b.close();

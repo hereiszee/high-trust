@@ -1,15 +1,199 @@
 [
- {"key":"dad_player","name":"Dad (player)","role":"player","source":"Rocketbox Adults/Male_Adult_14","idle":"idle","accessories":["acc_cap"]},
- {"key":"dad_gary","name":"Gary","role":"dad","source":"Rocketbox Adults/Male_Adult_03","idle":"idle","accessories":["acc_sunglasses"]},
- {"key":"dad_rick","name":"Coach Rick","role":"dad","source":"Rocketbox Adults/Male_Adult_01","idle":"idle","accessories":["acc_cap","acc_whistle"]},
- {"key":"dad_dave","name":"Big Dave","role":"dad","source":"Rocketbox Adults/Male_Adult_13 (+belly morph)","idle":"idle","accessories":[]},
- {"key":"dad_doug","name":"Doug","role":"dad","source":"Rocketbox Professions/Police_Male_06 (retextured: DAD patches, blue shirt)","idle":"idle","accessories":["acc_sunglasses"]},
- {"key":"thug_hoodie","name":"Thug (hoodie)","role":"thug","source":"Rocketbox Adults/Male_Adult_18","idle":"idle_nervous","accessories":[]},
- {"key":"thug_track","name":"Thug (track jacket)","role":"thug","source":"Rocketbox Adults/Male_Adult_17","idle":"idle_angry","accessories":[]},
- {"key":"thug_beanie","name":"Thug (beanie)","role":"thug","source":"Rocketbox Professions/Delivery_Male_01","idle":"idle_nervous","accessories":[]},
- {"key":"thug_red","name":"Thug (red track top)","role":"thug","source":"Rocketbox Adults/Male_Adult_10","idle":"idle_angry","accessories":[]},
- {"key":"boss","name":"Boss","role":"boss","source":"Rocketbox Professions/Business_Male_05","idle":"idle_arms_folded","accessories":[]},
- {"key":"wife","name":"Wife","role":"family","source":"Rocketbox Adults/Female_Adult_01","idle":"f_idle","accessories":[]},
- {"key":"son","name":"Son (~10)","role":"family","source":"Rocketbox Children/Male_Child_01","idle":"idle","accessories":[]},
- {"key":"daughter","name":"Daughter (~8)","role":"family","source":"Rocketbox Children/Female_Child_01","idle":"f_idle","accessories":[]}
+{
+"key": "dad_player",
+"name": "Dad (player)",
+"role": "player",
+"source": "Rocketbox Adults/Male_Adult_14",
+"idle": "idle",
+"accessories": [
+"acc_cap"
+]
+},
+ {
+"key": "dad_gary",
+"name": "Gary",
+"role": "dad",
+"source": "Rocketbox Adults/Male_Adult_03",
+"idle": "idle",
+"accessories": [
+"acc_sunglasses"
+]
+},
+ {
+"key": "dad_rick",
+"name": "Coach Rick",
+"role": "dad",
+"source": "Rocketbox Adults/Male_Adult_12",
+"idle": "idle",
+"accessories": [
+"acc_cap",
+"acc_whistle"
+]
+},
+ {
+"key": "dad_dave",
+"name": "Big Dave",
+"role": "dad",
+"source": "Rocketbox Adults/Male_Adult_13 (+belly morph)",
+"idle": "idle",
+"accessories": []
+},
+ {
+"key": "dad_doug",
+"name": "Doug",
+"role": "dad",
+"source": "Rocketbox Professions/Police_Male_06 (retextured: DAD patches, blue shirt)",
+"idle": "idle",
+"accessories": [
+"acc_sunglasses"
+]
+},
+ {
+"key": "thug_hoodie",
+"name": "Thug (hoodie)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_18",
+"idle": "idle_nervous",
+"accessories": []
+},
+ {
+"key": "thug_track",
+"name": "Thug (track jacket)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_17",
+"idle": "idle_angry",
+"accessories": []
+},
+ {
+"key": "thug_beanie",
+"name": "Thug (beanie)",
+"role": "thug",
+"source": "Rocketbox Professions/Delivery_Male_01",
+"idle": "idle_nervous",
+"accessories": []
+},
+ {
+"key": "thug_red",
+"name": "Thug (red track top)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_10",
+"idle": "idle_angry",
+"accessories": []
+},
+ {
+"key": "boss",
+"name": "Boss",
+"role": "boss",
+"source": "Rocketbox Professions/Business_Male_05",
+"idle": "idle_arms_folded",
+"accessories": []
+},
+ {
+"key": "wife",
+"name": "Wife",
+"role": "family",
+"source": "Rocketbox Adults/Female_Adult_01",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "son",
+"name": "Son (~10)",
+"role": "family",
+"source": "Rocketbox Children/Male_Child_01",
+"idle": "idle",
+"accessories": []
+},
+ {
+"key": "daughter",
+"name": "Daughter (~8)",
+"role": "family",
+"source": "Rocketbox Children/Female_Child_01",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "thug_fro",
+"name": "Street crew (black jacket)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_04",
+"idle": "idle_angry",
+"accessories": []
+},
+ {
+"key": "thug_jacket",
+"name": "Street crew (brown jacket)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_07",
+"idle": "idle_nervous",
+"accessories": []
+},
+ {
+"key": "thug_brown",
+"name": "Street crew (brown hoodie)",
+"role": "thug",
+"source": "Rocketbox Adults/Male_Adult_20",
+"idle": "idle_angry",
+"accessories": []
+},
+ {
+"key": "thug_cap",
+"name": "Street crew (work shirt, cap)",
+"role": "thug",
+"source": "Rocketbox Professions/Wood_Male_01",
+"idle": "idle_nervous",
+"accessories": []
+},
+ {
+"key": "thug_f_hood",
+"name": "Street crew (black hoodie)",
+"role": "thug",
+"source": "Rocketbox Adults/Female_Adult_12",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "thug_f_leather",
+"name": "Street crew (leather jacket)",
+"role": "thug",
+"source": "Rocketbox Adults/Female_Adult_04",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "earl",
+"name": "Earl (retired bus driver)",
+"role": "neighbour",
+"source": "Rocketbox Professions/Construction_Male_03",
+"idle": "idle_look",
+"accessories": [],
+"notes": "helmet and tool belt hidden at runtime; procedural cap"
+},
+ {
+"key": "dee",
+"name": "Pastor Dee",
+"role": "neighbour",
+"source": "Rocketbox Professions/Business_Female_01",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "rosa",
+"name": "Rosa (ER nurse)",
+"role": "neighbour",
+"source": "Rocketbox Professions/Medical_Female_01",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "benny",
+"name": "Benny (ice-cream man)",
+"role": "neighbour",
+"source": "Rocketbox Adults/Male_Adult_05",
+"idle": "idle",
+"accessories": [
+"acc_cap"
+],
+"notes": "pink cap"
+}
 ]

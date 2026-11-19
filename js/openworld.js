@@ -53,7 +53,8 @@ function blocksOf(def,ch){const W=def.W,H=def.H,seen=new Uint8Array(W*H),out=[];
 function lampSpot(l){/* Route 9 lamps sit at the outer edge of the shoulder */
   if(isShoulder(l.tx,l.tz))return{x:l.x,z:l.tz===19?tc(19)-.8:tc(23)+.8};return{x:l.x,z:l.z}}
 function staticColliders(def,S){const g=def.map,W=def.W,H=def.H;
-  const add=(x0,z0,x1,z1,h,k,o)=>{const c={x0,z0,x1,z1,h,k};if(o)Object.assign(c,o);S.push(c);return c};
+  /* ph: raycast proxy height. h is the game's 'low collider' top (stand on it / vault it), only for crates, tables, hedges and beds */
+  const LOW={crate:1,table:1,hedge:1,bed:1};const add=(x0,z0,x1,z1,h,k,o)=>{const c={x0,z0,x1,z1,ph:h,k};if(LOW[k])c.h=h;if(o)Object.assign(c,o);S.push(c);return c};
   for(let z=0;z<H;z++){let x=0;while(x<W){if(g[z][x]==='#'){const s=x;while(x<W&&g[z][x]==='#')x++;add(s*TILE,z*TILE,x*TILE,z*TILE+TILE,3.3,'wall')}else x++}}
   for(const b of def.houses)add(b.x0*TILE+.15,b.z0*TILE+.15,(b.x1+1)*TILE-.15,(b.z1+1)*TILE-.15,7.5,'house');
   for(const[ch,h]of[['r',9.5],['x',7.5],['A',6]])for(const b of blocksOf(def,ch))add(b.x0*TILE+.1,b.z0*TILE+.1,(b.x1+1)*TILE-.1,(b.z1+1)*TILE-.1,h,'bldg');
@@ -74,7 +75,7 @@ function staticColliders(def,S){const g=def.map,W=def.W,H=def.H;
   for(const b of def.barricade)add(b.x-.4,b.z-1,b.x+.6,b.z+1,1.3,'barricade',{barricade:true});
   return S}
 const proxyGeo=new THREE.BoxGeometry(1,1,1),proxyMat=new THREE.MeshBasicMaterial({visible:false});
-function proxyOf(c){if(c.proxy)return c.proxy;const m=new THREE.Mesh(proxyGeo,proxyMat);const w=c.x1-c.x0,d=c.z1-c.z0;m.scale.set(w,c.h,d);m.position.set((c.x0+c.x1)/2,c.h/2,(c.z0+c.z1)/2);m.updateMatrixWorld(true);m.userData.proxy=true;c.proxy=m;return m}
+function proxyOf(c){if(c.proxy)return c.proxy;const m=new THREE.Mesh(proxyGeo,proxyMat);const w=c.x1-c.x0,d=c.z1-c.z0;m.scale.set(w,c.ph,d);m.position.set((c.x0+c.x1)/2,c.ph/2,(c.z0+c.z1)/2);m.updateMatrixWorld(true);m.userData.proxy=true;c.proxy=m;return m}
 function makeHash(lvl,S){const cells=new Map(),always=[];const key=(cx,cz)=>(cx+64)*4096+(cz+64);
   for(const c of S){if((c.x1-c.x0)>200||(c.z1-c.z0)>200){always.push(c);continue}
     for(let cx=Math.floor(c.x0/CELL);cx<=Math.floor(c.x1/CELL);cx++)for(let cz=Math.floor(c.z0/CELL);cz<=Math.floor(c.z1/CELL);cz++){const k=key(cx,cz);let a=cells.get(k);if(!a)cells.set(k,a=[]);a.push(c)}}
@@ -188,8 +189,8 @@ OW.build=(def,lvl,ctx)=>{if(ctx)C=Object.assign(C||{},ctx);const t0=performance.
   ws.houses=prepHouses(def);
   if(W_){/* lot fences between Maple houses: run world.js's rule once for the whole world, record the segments (drawn per chunk) and keep its colliders */
     const segs=[],dummy={r:rng(5),gbOf:()=>({box(){},obox(){}}),lvl:{colliders:[]}},orig=W_.fence;W_.fence=(B,ax,az,bx,bz)=>segs.push([ax,az,bx,bz]);
-    try{W_.lotFences(dummy,ws.houses)}catch(e){console.warn('lot fences failed',e)}W_.fence=orig;ws.fenceSegs=segs;for(const c of dummy.lvl.colliders)S.push(Object.assign(c,{h:1.9,k:'yardfence'}))}
-  S.push({x0:-10,z0:-10,x1:0,z1:def.H*TILE+10,h:0},{x0:def.W*TILE,z0:-10,x1:def.W*TILE+10,z1:def.H*TILE+10,h:0},{x0:-10,z0:-10,x1:def.W*TILE+10,z1:0,h:0},{x0:-10,z0:def.H*TILE,x1:def.W*TILE+10,z1:def.H*TILE+10,h:0});
+    try{W_.lotFences(dummy,ws.houses)}catch(e){console.warn('lot fences failed',e)}W_.fence=orig;ws.fenceSegs=segs;for(const c of dummy.lvl.colliders)S.push(Object.assign(c,{ph:1.9,k:'yardfence'}))}
+  S.push({x0:-10,z0:-10,x1:0,z1:def.H*TILE+10,ph:0},{x0:def.W*TILE,z0:-10,x1:def.W*TILE+10,z1:def.H*TILE+10,ph:0},{x0:-10,z0:-10,x1:def.W*TILE+10,z1:0,ph:0},{x0:-10,z0:def.H*TILE,x1:def.W*TILE+10,z1:def.H*TILE+10,ph:0});
   lvl.colliders.push(...S);lvl.nStatic=lvl.colliders.length;makeHash(lvl,S);ws.barricadeCols=S.filter(c=>c.barricade);
   /* cull units: chunks (lazy) + set pieces */
   for(const ch of def.chunks){const u={kind:'chunk',ch,i:ch.i,built:false,group:null,box:{x0:ch.box.x0-8,z0:ch.box.z0-8,x1:ch.box.x1+8,z1:ch.box.z1+8,y1:22},visible:false,dress:[]};ws.units.push(u);ws.chunks.push(u)}
@@ -681,7 +682,7 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;dt=dt||1
   /* nearby raycast proxies, every 0.5 s or after moving 8 m */
   const p=C.player?C.player():camera.position;ws.solT=(ws.solT||0)-dt;
   if(ws.solT<=0||!ws.solAt||Math.hypot(p.x-ws.solAt.x,p.z-ws.solAt.z)>8){ws.solT=.5;ws.solAt={x:p.x,z:p.z};refreshSolids(ws,p.x,p.z)}};
-function refreshSolids(ws,x,z){const lvl=ws.lvl,want=new Set();for(const c of lvl.cnear(x,z,80))if(c.h>0&&!c.off)want.add(proxyOf(c));
+function refreshSolids(ws,x,z){const lvl=ws.lvl,want=new Set();for(const c of lvl.cnear(x,z,80))if(c.ph>0&&!c.off)want.add(proxyOf(c));
   const mine=ws.mine||(ws.mine=new Set());let changed=false;
   for(let i=lvl.solids.length-1;i>=0;i--){const m=lvl.solids[i];if(mine.has(m)&&!want.has(m)){lvl.solids.splice(i,1);mine.delete(m);changed=true}}
   for(const m of want)if(!mine.has(m)){lvl.solids.push(m);mine.add(m);changed=true}
