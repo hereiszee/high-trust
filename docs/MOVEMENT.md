@@ -41,6 +41,7 @@ Vehicles are deliberately kept full height: one box spans hood and roof, so stan
   - slows the locomotion clip while airborne
 
   It runs after the mixer and before the aim layer, and its leg offsets are undone each frame like the other procedural bones.
+- **Touch:** the Jump button is part of the HUD touch layer (`js/hud.js` button list, `css/hud.css` position, hidden while driving) and arrives as `HUD.on('touch')` action `jump`.
 - **First person:** `vmAir()` makes the gun lag on take-off, dip on landing and sway with vertical speed. During a vault it drops and cants the gun.
 - **Firing:** there is no firing mid-vault. Firing in the air has 1.9× spread.
 

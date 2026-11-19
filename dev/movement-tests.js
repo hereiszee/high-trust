@@ -19,6 +19,9 @@ module.exports=[
     /* crouched jump: stands, then hops */
     M_.place(o.x,o.z);P.crouch=true;H.jump();let cj=null;for(let i=0;i<40;i++){H.step(1,1/60);if(!P.onGround&&cj===null)cj={i,crouch:P.crouch}}
     return{coyote:jumped,buf,cj}});
+  const tb=await p.evaluate(()=>{const H=__ht,P=H.P;const b=document.querySelector('.ht-tb[data-a=jump]');if(!b)return{exists:false};M_.place(P.pos.x,P.pos.z);
+    b.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:7}));b.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:7}));H.step(3,1/60);return{exists:true,air:!H.move.onGround,vy:+H.move.vy.toFixed(2)}});
+  ok('HUD touch Jump button jumps',tb.exists&&tb.air,tb);
   ok('coyote time: jump just after walking off a crate',c.coyote,c);ok('jump buffer: early press jumps on landing',c.buf>0&&c.buf<10,c.buf);ok('crouch + jump stands up then hops',c.cj&&!c.cj.crouch&&c.cj.i>=6,c.cj);
 }},
 {key:'crate',async run(p,ok,shot){
