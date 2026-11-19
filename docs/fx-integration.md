@@ -18,7 +18,11 @@ Test bench: `dev/fx.html` (buttons for every effect, click the scene to shoot, `
 All positions and directions are `THREE.Vector3` in world space. Every call is a no-op before `init`.
 
 ```js
-HT.FX.init({scene, camera, renderer, assets, quality:'low'|'med'|'high', groundAt?:(x,z)=>y, dom?:true, domParent?})
+HT.FX.init({scene, camera, renderer, assets, quality:'low'|'med'|'high', groundAt?:(x,z)=>y, solidAt?:(x,z)=>topHeight|null, dom?:true, domParent?})
+HT.FX.setGround(fn) / HT.FX.setSolid(fn)   // solidAt: top height of a wall/crate at that column, or null. Debris, brass and sparks
+                                           // bounce off solids taller than they are and can come to rest on top of lower ones
+HT.FX.bindDepth(depthTexture, near, far, [w,h]?) / HT.FX.bindDepth(null)   // soft particles (see below)
+HT.FX.renderSoft(renderer)                 // draws the particle batches into the current target with a manual depth test
 HT.FX.setQuality(q)      // particle counts, decal cap (40/64/80), ambient density
 HT.FX.update(dt)         // every frame and from the headless stepper; no allocations, no rendering
 HT.FX.clear()            // level change: kills particles, decals, bits, emitters, glows, beacons, lights, shake
@@ -27,10 +31,13 @@ HT.FX.muzzleFlash(pos, dir, {type, firstPerson, scale})
 //   type: pistol revolver smg rifle hunter shotgun double beanbag flare nailer enemy
 HT.FX.tracer(from, to, {enemy, ally, trail, speed, length, width, suppress})
 //   enemy tracers that pass within ~2 m of the camera add suppression and a little shake (onNearMiss hook)
-HT.FX.impact(pos, normal, surface, {big, color, decal})
+HT.FX.impact(pos, normal, surface, {big, color, decal, attach:object3D})
 //   surface: concrete plaster brick wood metal glass dirt grass cloth vehicle nail
 //   cloth = people: fabric puff only (non-gory). color = [r,g,b] 0..1 for the shirt / car paint chips
-HT.FX.hit(raycasterHit, {big, surface, color})   // works out the world normal + surface for you
+HT.FX.hit(raycasterHit, {big, surface, color, attach, clip})
+//   works out the world normal + surface; squares the decal to the face and clips it at the face edges when the hit face is
+//   an axis-aligned face of the mesh's own box (walls, crates). attach:true (or an ancestor with userData.fxAttach) makes the
+//   decal ride on that object every frame (vans, carts, doors); it disappears if the object leaves the scene.
 HT.FX.surfaceOf(raycasterHit)                    // userData.surface > userData.ent (cloth) > texture map > name heuristics
 HT.FX.shell(pos, ejectDir, gunIdOrType)          // '9mm' '357' '556' '308' '12ga' 'bean' or a gun id
 HT.FX.explosion(pos, size=1, {linger:true})      // flash, flipbook fireball, smoke column (+7 s linger), dust ring,
@@ -111,3 +118,27 @@ Load after three.js and before the main IIFE: `<script src="js/fx.js"></script>`
 8. **buildLevel(def)**: call `HT.FX.clear()` first. Tag surfaces as meshes are made: `m.userData.surface='brick'|'wood'|...` (otherwise textures are mapped from `ASSETS.textures` and names, falling back to concrete). Add ambient per level: hub `HT.FX.ambient({leaves:true,pollen:true})`, dens `HT.FX.ambient(null)` plus `emitter('shaft',...)` under windows / roof holes and `emitter('flies',{pos})` on trash piles.
 9. **Van**: `const ex=HT.FX.emitter('exhaust',{object:VAN.obj,offset:[.5,.25,-2.3],dir:[0,0,-1]})` and each frame `ex.intensity=Math.abs(VAN.spd)/20`. When sliding: for each rear wheel `HT.FX.skid(wheelWorldPos,fwd,slip)`.
 10. **Pickups / objective / zip-tie**: `HT.FX.pickupGlow(a.mesh)` on ammo/pickups (handle.remove() when taken), `HT.FX.beacon(exitPos)` for the objective, `HT.FX.trustPop(e.pos.clone().setY(2),'+TRUST',{sub:'zip-tied'})` in the zip-tie code, barrels: `HT.FX.explosion(pos,1)`.
+
+## Soft particles (review note 3)
+
+The particle batches can fade where they meet geometry and are hidden behind it, using the opaque scene depth from the AO
+scene pass. The depth texture must not be sampled while it is attached, so FX moves both batches to their own layer while
+depth is bound; the scene pass never draws them, and `renderSoft` draws them afterwards into the composited target with a
+manual depth test. In `RENDER`'s `ScenePass.render`:
+
+```js
+if(this.ao&&this.ensure()){
+  r.setRenderTarget(this.rt);r.clear();r.render(scene,camera);   // FX particles are not drawn here while depth is bound
+  ...AO + composite into readBuffer (unchanged)...
+  if(window.HT&&HT.FX.ready){HT.FX.bindDepth(this.rt.depthTexture,camera.near,camera.far);HT.FX.renderSoft(r)}  // into readBuffer
+}else{
+  if(window.HT&&HT.FX.ready)HT.FX.bindDepth(null);              // plain depth-tested particles, drawn by the scene render
+  r.setRenderTarget(readBuffer);r.clear();r.render(scene,camera)}
+```
+On low quality (no composer) nothing is bound and particles render normally, with a ground-plane fade as the fallback.
+
+## Wall collision (review note 5)
+
+`HT.FX.setSolid((x,z)=>{ /* return top height of the solid at this column, or null */ })`. In index.html the level
+colliders are boxes, so: `(x,z)=>{for(const c of L.colliders)if(x>c.x0&&x<c.x1&&z>c.z0&&z<c.z1)return c.h??3;return null}`
+(set `h` on low colliders like crates so bits can land on them).
