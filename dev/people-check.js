@@ -106,6 +106,12 @@ function helpers(){
     ok('standing up behind the crate exposes the head',r.standHead>=59,r.standHead);
   }
 
+  if(want('combat')){/* procedural offsets must not pile up while a static aim clip holds (mixer skips unchanged bones) */
+    const r=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;P.fp=false;const out={};
+      for(const g of['pistol','shotgun']){H.dude.equip(P.dude,g);P.aim=true;P.pitch=.45;H.step(40);const b=P.dude.body.getObjectByName('Bip01_R_Hand'),q0=b.getWorldQuaternion(new THREE.Quaternion());
+        H.step(60);const q1=b.getWorldQuaternion(new THREE.Quaternion());out[g]=+(q0.angleTo(q1)).toFixed(4)}P.pitch=0;P.aim=false;return out});
+    ok('aim pitch holds steady (no build-up over 2 s; idle breathing allowed)',Object.values(r).every(v=>v<.06),r)}
+
   if(want('missions'))for(let i=0;i<4;i++){
     const t0=Date.now();
     const r=await p.evaluate(i=>{const H=__ht;H.startMission(i);const L=H.L,M=()=>H.M;const out={i,enemies:H.enemies.length,skinned:H.enemies.filter(e=>e.dude.rb).length,allies:H.allies.length};
