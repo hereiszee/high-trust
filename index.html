@@ -827,7 +827,7 @@ function owLevel(def){const O=OW();
   if(def.bridgeOpen)O.openBridge();
   lvl.assetsDone=ASSETS.done;def._lvl=lvl;L=lvl;setMood(def);owMinimap();return lvl}
 function owMinimap(){const def=WORLD;
-  HUD.minimap.setLevel(def.map,{tile:TILE,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights',
+  HUD.minimap.setLevel(def.map,{tile:TILE,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights · Route 9 · Riverside Flats',
     under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
     legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
   owPins()}

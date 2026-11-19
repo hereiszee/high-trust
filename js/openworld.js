@@ -285,8 +285,8 @@ function casterMesh(list){const gb=new (HW().GB)();
     else gb.box(b.min.x+.3,0,b.min.z+.3,b.max.x-.3,top,b.max.z-.3,1,null,{})}
   if(!gb.n)return null;const m=new THREE.Mesh(gb.geo(),MC.caster||(MC.caster=new THREE.MeshBasicMaterial({color:0x000000,side:THREE.DoubleSide})));m.castShadow=true;m.receiveShadow=false;m.layers.set(1);m.name='caster';return m}
 /* near/far LOD inside a chunk: small things are only drawn within DETAIL m, grass tufts within TUFT m */
-const FAR_KEEP=new Set(['road','lot','walk','grass','inside','dirt','paint','lamphead','lampglass','fence','hedgecore','ext','int','cap','plinth','found','roof','brickH','whsWall']);
-const MID_BLD=new Set(['trim','fixt','metal','grime','concrete','railing']);   /* house trim/fixtures: drawn up to MID m */
+const FAR_KEEP=new Set(['imp','road','lot','walk','grass','inside','dirt','paint','lamphead','lampglass','fence','hedgecore','ext','int','cap','plinth','found','roof','brickH','whsWall']);
+const MID_BLD=new Set(['trim','metal','concrete','grime','railing']),DET_BLD=new Set(['glow','skirt','fixt']);   /* house trim/fixtures: drawn up to MID m */
 const MID_DROP=new Set(['paint','lampglass','fence','hedgecore','plinth','cap','dirt']);   /* drawn up to MID m only */
 function classifyDetail(u,B){const trees=new Set();for(const l of B.lod)for(const m of l.real)trees.add(m);u.detail=[];u.tufts=[];u.mid=[];
   for(const o of u.group.children){if(trees.has(o)||o===u.dressRoot)continue;
@@ -294,7 +294,7 @@ function classifyDetail(u,B){const trees=new Set();for(const l of B.lod)for(cons
     if(o.isInstancedMesh){u.detail.push(o);continue}
     const k=o.userData&&o.userData.wkey;if(k&&!FAR_KEEP.has(k)){u.detail.push(o);continue}if(k&&MID_DROP.has(k)){u.mid.push(o);continue}
     if(o.isGroup&&o.children.length&&!k&&o.children.every(c=>c.isMesh)&&!u.dress.some(d=>d.on===o||d.off===o)){/* merged buildings: tiny materials (lanterns, grime, fixtures) are detail */
-      for(const c of o.children){const n=c.geometry.index?c.geometry.index.count/3:0;if(n<2500)u.detail.push(c);else if(n<9000||MID_BLD.has(c.name.slice(2)))u.mid.push(c)}}}
+      for(const c of o.children){const nm=c.name.slice(2);if(DET_BLD.has(nm))u.detail.push(c);else if(MID_BLD.has(nm))u.mid.push(c)}}}
   const ctr=m=>{const g=m.geometry;if(m.isInstancedMesh&&g.boundingSphere)return g.boundingSphere;if(!g.boundingSphere)g.computeBoundingSphere();return g.boundingSphere};
   u.detailS=u.detail.map(ctr);u.tuftS=u.tufts.map(ctr);
   /* small street furniture doesn't cast into the (small, expensive) shadow pass */
@@ -548,7 +548,7 @@ SETPIECES.push({id:'r9lots',box:def=>({x0:240,z0:0,x1:285,z1:60,y1:12}),build(ws
   const sc=signCanvas(['U-STORE-IT','SELF STORAGE · 24 HR ACCESS'],{bg:'#e8611c',fg:'#fff',fg2:'#fff',w:1024,h:256});const sg=new THREE.Mesh(new THREE.PlaneGeometry(5,1.25),stdMat('ustore',{map:ctex(sc),roughness:.5}));
   sg.position.set(266,2.3,R9_STORAGE[1].z1+.03);g.add(sg);
   /* chain-link along the yard's road side */
-  const fab=new (W_.GB)();fab.quad([R9_PAD.x0,.04,R9_PAD.z1],[R9_PAD.x1,.04,R9_PAD.z1],[R9_PAD.x1,2,R9_PAD.z1],[R9_PAD.x0,2,R9_PAD.z1],[[0,0],[30/1.6,0],[30/1.6,1.2],[0,1.2]],null,[0,0,1]);
+  const fab=new (W_.GB)();fab.quad([R9_PAD.x0,.04,R9_PAD.z1],[R9_PAD.x1,.04,R9_PAD.z1],[R9_PAD.x1,2,R9_PAD.z1],[R9_PAD.x0,2,R9_PAD.z1],[[0,0],[30/.7,0],[30/.7,2/.7],[0,2/.7]],null,[0,0,1]);
   for(let x=R9_PAD.x0;x<=R9_PAD.x1;x+=2.5)if(x<262||x>270)gv.addGeo(cyl(.035,.035,2.05,8),M4(x,1.02,R9_PAD.z1));const fm=gbMesh(fab,fabricMat(),{shadow:true});if(fm)g.add(fm);
   /* billboards */
   const ADS=[['ZIP TIES · 2 FOR $5',"HANK'S HARDWARE & SPORTING · MAPLE HEIGHTS"],["WE FIX IT RIGHT","DAD'S AUTO · SINCE 1987 · NEXT RIGHT"]];
