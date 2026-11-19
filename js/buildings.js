@@ -126,7 +126,7 @@
         g.computeBoundingSphere(); g.computeBoundingBox();
         const mesh = new T.Mesh(g, m); mesh.name = k;
         const noShadow = NOSHADOW.has(k) || (m.userData && m.userData.noShadow);
-        mesh.castShadow = !noShadow; mesh.receiveShadow = !(k === 'glow' || k === 'skirt');
+        mesh.castShadow = !noShadow; mesh.receiveShadow = !(k === 'glow' || k === 'skirt'); if (noShadow) mesh.userData.noShadow = true;
         if (k === 'glass' || k === 'skirt' || k === 'grime') mesh.renderOrder = 2;
         grp.add(mesh); tris += b.i.length / 3;
       }

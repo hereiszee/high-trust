@@ -72,7 +72,8 @@ const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypas
   if (has('--levels') || val('--shots')) {
     const shots = val('--shots');
     if (shots) fs.mkdirSync(shots, { recursive: true });
-    await page.evaluate(() => { document.getElementById('bStart').click() });
+    /* frame costs are compared at Medium: Auto would react to this harness's back-to-back draws */
+    await page.evaluate(q => { document.getElementById('bStart').click(); window.__ht.render.apply(q) }, val('--q', 'med'));
     await page.waitForTimeout(1500);
     const sample = async (name, setup, arg) => {
       await page.evaluate(setup, arg);
@@ -85,11 +86,14 @@ const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypas
         h.draw(); const i1 = info(); ren.info.autoReset = true;
         const t = []; for (let k = 0; k < 30; k++) { const a = performance.now(); h.step(1); t.push(performance.now() - a) }
         t.sort((a, b) => a - b);
+        h.draw(); ren.getContext().finish();
+        const c = []; for (let k = 0; k < 9; k++) { const a = performance.now(); h.draw(); c.push(performance.now() - a); ren.getContext().finish() }
+        c.sort((a, b) => a - b);
         const d = []; for (let k = 0; k < 6; k++) { const a = performance.now(); h.draw(); ren.getContext().finish(); d.push(performance.now() - a) }
         d.sort((a, b) => a - b);
         let texBytes = 0; const seen = new Set();
         h.scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; for (const m of ms) for (const k in m) { const tx = m[k]; if (tx && tx.isTexture && !seen.has(tx)) { seen.add(tx); const im = tx.image; if (im && im.width) texBytes += im.width * im.height * 4 * (tx.generateMipmaps !== false ? 1.33 : 1) } } });
-        return { ...i1, stepMsMedian: +t[15].toFixed(2), stepMsP90: +t[27].toFixed(2), drawMsMedian: +d[3].toFixed(1), texMB: +(texBytes / 1048576).toFixed(1), q: h.render.q, pr: h.renderer.getPixelRatio() };
+        return { ...i1, stepMsMedian: +t[15].toFixed(2), stepMsP90: +t[27].toFixed(2), submitMsMedian: +c[4].toFixed(2), drawMsMedian: +d[3].toFixed(1), texMB: +(texBytes / 1048576).toFixed(1), q: h.render.q, pr: h.renderer.getPixelRatio() };
       });
       out[name] = r; console.log(name.padEnd(10), JSON.stringify(r));
       if (shots) await page.screenshot({ path: path.join(shots, name + '.jpg'), type: 'jpeg', quality: 85 });

@@ -12,12 +12,12 @@
    The ASSETS module picks these promises up; if anything here fails it falls back to loading files one by one. */
 window.__htBoot=(()=>{const B={onProgress:null};
   B.webp=new Promise(r=>{const i=new Image();i.onload=()=>r(i.width===1);i.onerror=()=>r(false);i.src='data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA'});
-  const get=(u,prog,n=0)=>fetch(u).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);
+  const get=(u,prog,n=0)=>fetch(u).then(r=>{if(!r.ok){const e=new Error(u+' '+r.status);e.final=r.status<500;throw e}
       const rd=prog&&r.body&&r.body.getReader?r.body.getReader():null;
       if(!rd||!prog)return r.arrayBuffer();const parts=[];let got=0;
       const pump=()=>rd.read().then(({done,value})=>{if(done){const out=new Uint8Array(got);let o=0;for(const p of parts){out.set(p,o);o+=p.length}return out.buffer}
         parts.push(value);got+=value.length;prog(got);return pump()});return pump()})
-    .catch(e=>{if(n>=3)throw e;return new Promise(res=>setTimeout(res,800*Math.pow(2.5,n))).then(()=>get(u,prog,n+1))});
+    .catch(e=>{if(n>=3||e.final)throw e;return new Promise(res=>setTimeout(res,800*Math.pow(2.5,n))).then(()=>get(u,prog,n+1))});
   B.man=get('assets/opt/manifest.json').then(b=>JSON.parse(new TextDecoder().decode(b)));
   B.pack=Promise.all([B.man,B.webp]).then(([m,w])=>{const p=m.boot&&m.boot[w?'webp':'jpg'];if(!p)throw new Error('no boot pack');
     return get(p.url,a=>B.onProgress&&B.onProgress(a,p.kb*1024))});
@@ -180,7 +180,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
       <label for="sFov">Field of view</label><input type="range" id="sFov" min="60" max="100" step="1"><output id="oFov"></output>
       <label for="sInv">Invert look</label><input type="checkbox" id="sInv"><span></span>
       <label for="sFp">First person</label><input type="checkbox" id="sFp"><span></span>
-      <label for="sGfx">Graphics</label><select id="sGfx"><option value="low">Low · no effects, fastest</option><option value="med">Medium · balanced</option><option value="high">High · full effects</option></select><span class="hint" id="oGfx"></span>
+      <label for="sGfx">Graphics</label><select id="sGfx"><option value="auto">Auto · adapts to this machine</option><option value="low">Low · no effects, fastest</option><option value="med">Medium · balanced</option><option value="high">High · full effects</option></select><span class="hint" id="oGfx"></span>
     </div>
     <div class="btns"><button class="btn" id="pResume">Resume</button><button class="btn ghost" id="pHub" hidden>Abandon job</button></div>
   </div>
@@ -326,7 +326,7 @@ const ASSETS=(()=>{
     /* reduced tier first when nothing is shown yet and full is wanted on a slow start; otherwise straight to what is wanted */
     const tn=st.want,tier=tn===2?'l':'m';let u=url(src,tier);if(st.tries>=2&&st.tries%2===0)u=src;/* the opt file may be missing: try the source */
     const done=ok=>{st.busy=false;active--;if(ok){st.tries=0;if(st.want>st.tier&&!(st.tier===2))want(src,st.want===2?'l':'m',3)}pump()};
-    const fail=e=>{st.tries++;failing++;const wait=Math.min(120e3,1500*Math.pow(2.5,st.tries-1))*(.8+Math.random()*.4);
+    const fail=e=>{st.tries++;failing++;if(stageA.has(src))tick();const wait=Math.min(120e3,1500*Math.pow(2.5,st.tries-1))*(.8+Math.random()*.4);
       console.warn('asset retry in '+Math.round(wait/1000)+'s:',src);st.retryAt=performance.now()+wait;
       setTimeout(()=>{st.retryAt=0;failing--;const pri=st.q?st.q.pri:1;if(st.tier<st.want){st.q={src,pri,seq:Q.length};Q.push(st.q);pump()}},wait);done(false)};
     const realTier=tierOf(src,u,TIERN[tier]);
@@ -337,7 +337,8 @@ const ASSETS=(()=>{
   function notify(src){for(const f of assetCbs){try{f(src,A)}catch(e){console.warn(e)}}}
   /* ---------- Stage A: boot pack ---------- */
   const stageA=new Set();let packBytes=[0,1];
-  function tick(){let have=0;for(const s of stageA)if(STATE[s]&&STATE[s].tier>0)have++;
+  /* a Stage A file that failed once no longer holds Start: it keeps retrying behind the game */
+  function tick(){let have=0;for(const s of stageA)if(STATE[s]&&(STATE[s].tier>0||STATE[s].tries>0))have++;
     const fItems=stageA.size?have/stageA.size:0,fBytes=packBytes[0]/packBytes[1];
     A.progress=Math.min(.99,Math.max(fItems,fBytes*.9+fItems*.1));if(A.done)A.progress=1;listeners.forEach(f=>f(A.progress,A));
     if(!A.done&&stageA.size&&have===stageA.size)finish()}
@@ -519,7 +520,7 @@ const RENDER=(()=>{
     render(r,writeBuffer,readBuffer){
       if(this.ao&&this.ensure()){
         r.setRenderTarget(this.rt);r.clear();r.render(scene,camera);
-        const pS=new THREE.Vector2(camera.projectionMatrix.elements[0],camera.projectionMatrix.elements[5]);
+        const pS=this.pS||(this.pS=new THREE.Vector2());pS.set(camera.projectionMatrix.elements[0],camera.projectionMatrix.elements[5]);
         for(const m of[aoMat,compMat]){m.uniforms.tDepth.value=this.rt.depthTexture;m.uniforms.cNear.value=camera.near;m.uniforms.cFar.value=camera.far;m.uniforms.pS.value.copy(pS)}
         aoMat.uniforms.texel.value.set(1/this.aoRT.width,1/this.aoRT.height);
         this.fsq.material=aoMat;r.setRenderTarget(this.aoRT);this.fsq.render(r);
@@ -537,23 +538,86 @@ const RENDER=(()=>{
     R.composer=c}
   R.resize=()=>{const pr=renderer.getPixelRatio(),w=innerWidth,h=innerHeight;
     if(R.composer){R.composer.setPixelRatio(pr);R.composer.setSize(w,h);grade.uniforms.res.value.set(w*pr,h*pr);if(fxaa)fxaa.uniforms.resolution.value.set(1/(w*pr),1/(h*pr))}};
-  R.apply=q=>{const G=GFX[q]||GFX.med;R.q=GFX[q]?q:'med';
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,G.pr));
+  /* set(q,scale): one preset at a resolution scale (0.6..1 of the preset's pixel ratio) */
+  function set(q,scale=1){const G=GFX[q]||GFX.med,prevQ=R.q;R.q=GFX[q]?q:'med';R.scale=scale;
+    const pr=Math.max(.5,Math.min(window.devicePixelRatio||1,G.pr)*scale);if(renderer.getPixelRatio()!==pr)renderer.setPixelRatio(pr);
     if(sun.shadow.mapSize.x!==G.shadow){sun.shadow.mapSize.set(G.shadow,G.shadow);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
     shadowExt=G.ext;Object.assign(sun.shadow.camera,{left:-G.ext,right:G.ext,top:G.ext,bottom:-G.ext});sun.shadow.camera.updateProjectionMatrix();
     const st=G.soft?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
     if(renderer.shadowMap.type!==st){renderer.shadowMap.type=st;const up=o=>{if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)};scene.traverse(up);vmScene.traverse(up)}
     R.post=G.post&&POST_OK;
     if(R.post&&!R.composer){try{build()}catch(e){console.warn('post-processing unavailable',e);R.post=false;R.composer=null}}
-    if(R.composer){scenePass.ao=G.ao||0;aoMat.defines.SAMPLES=G.ao||8;aoMat.needsUpdate=true;bloomScale=G.bloom||.5}
-    resize();if(ASSETS.setQuality)ASSETS.setQuality(R.q);const HW=HTM('World');if(HW&&HW.quality)HW.quality(R.q)};
+    if(R.composer){scenePass.ao=G.ao||0;if(aoMat.defines.SAMPLES!==(G.ao||8)){aoMat.defines.SAMPLES=G.ao||8;aoMat.needsUpdate=true}bloomScale=G.bloom||.5}
+    resize();if(prevQ!==R.q||!R.applied){R.applied=true;if(ASSETS.setQuality)ASSETS.setQuality(R.q);const HW=HTM('World');if(HW&&HW.quality)HW.quality(R.q)}}
+  /* Auto: starts at Medium, watches real frame times after Start and walks this ladder. Resolution is the first lever,
+     then the preset (shadow map size and softness, AO samples, bloom, post, grass, tree LOD distance, texture tier, anisotropy). */
+  const LADDER=[['high',1],['med',1],['med',.85],['med',.72],['med',.6],['low',.8],['low',.6]];
+  const AUTO={i:1,ceil:1,fails:{},ft:new Float32Array(90),n:0,last:0,evalT:0,fast:0,coolT:0};
+  R.apply=q=>{R.sel=q==='auto'||GFX[q]?q:'med';if(R.sel==='auto'){AUTO.i=Math.max(AUTO.ceil,Math.min(AUTO.i,LADDER.length-1));set(...LADDER[AUTO.i])}else set(R.sel,1)};
+  R.label=()=>R.sel==='auto'?'Auto · now '+({low:'Low',med:'Medium',high:'High'})[R.q]+(R.scale<1?' at '+Math.round(R.scale*100)+'% resolution':''):'';
+  function autoTick(now){const dt=now-AUTO.last;AUTO.last=now;
+    if(R.sel!=='auto'||dt>100||document.hidden||!$('cTitle').hidden)return;
+    AUTO.ft[AUTO.n++%90]=dt;if(now<AUTO.evalT||AUTO.n<45)return;AUTO.evalT=now+1500;
+    const a=Array.from(AUTO.ft.subarray(0,Math.min(AUTO.n,90))).sort((x,y)=>x-y),p75=a[Math.floor(a.length*.75)];
+    /* slower than ~45 fps: step down (two steps when far off) and don't climb back for 30 s;
+       steady 60 fps for three windows: step up, re-testing a level that was too slow only after the cool-down, at most twice */
+    let to=AUTO.i;
+    if(p75>22){AUTO.fails[AUTO.i]=(AUTO.fails[AUTO.i]||0)+1;to=Math.min(LADDER.length-1,AUTO.i+(p75>34?2:1));AUTO.fast=0;AUTO.ceil=Math.max(AUTO.ceil,to);AUTO.coolT=now+30000}
+    else if(p75<17.6){if(++AUTO.fast>=3&&AUTO.i>0){AUTO.fast=0;if(AUTO.i>AUTO.ceil)to=AUTO.i-1;else if(now>AUTO.coolT&&(AUTO.fails[AUTO.ceil-1]||0)<2){AUTO.ceil=Math.max(0,AUTO.ceil-1);AUTO.coolT=now+30000;to=AUTO.ceil}}}
+    else AUTO.fast=0;
+    if(to!==AUTO.i){AUTO.i=to;AUTO.n=0;set(...LADDER[to])}}
+  R.auto=AUTO;
   let t0=performance.now();
-  R.draw=()=>{skyDome.position.copy(camera.position);
+  let batchedL=null;
+  R.draw=()=>{skyDome.position.copy(camera.position);autoTick(performance.now());
+    if(L!==batchedL){batchedL=L;try{R.batch=BATCH.run(L,VAN.obj)}catch(e){console.warn('static batching failed',e)}}
     if(R.post&&R.composer){grade.uniforms.time.value=(performance.now()-t0)/1000;renderer.autoClear=true;
       try{R.composer.render()}catch(e){console.warn('post-processing failed, falling back',e);R.post=false}renderer.autoClear=false;if(R.post)return}
     renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);if(vm.visible){renderer.clearDepth();renderer.render(vmScene,vmCam)}};
   R.mats={aoMat,compMat};
   return R})();
+/* ================= STATIC BATCHING ================= */
+/* once per level, on its first frame: house and parked-car meshes that share a material are merged per 40 m cell
+   (hundreds of draw calls become a few dozen; frustum culling still works per cell). The originals stay in place,
+   invisible, so raycasts against lvl.solids are unchanged. Parts smaller than 0.45 m stop casting shadows, and the
+   batched objects get frozen matrices. A mesh with userData.noBatch, a skinned/instanced mesh, multi-material or
+   morphing geometry is left alone. */
+const BATCH=(()=>{const CELL=32,_m=new THREE.Matrix4(),_n=new THREE.Matrix3(),_v=new THREE.Vector3(),_s=new THREE.Sphere();
+  const sig=g=>Object.keys(g.attributes).sort().map(k=>k+g.attributes[k].itemSize+(g.attributes[k].normalized?'n':'')).join(',');
+  function merge(list){const g0=list[0].geometry,names=Object.keys(g0.attributes);let nv=0,ni=0;
+    for(const m of list){const g=m.geometry;nv+=g.attributes.position.count;ni+=g.index?g.index.count:g.attributes.position.count}
+    const out={};for(const k of names)out[k]=new Float32Array(nv*g0.attributes[k].itemSize);
+    const idx=nv>65535?new Uint32Array(ni):new Uint16Array(ni);let vo=0,io=0;
+    for(const m of list){const g=m.geometry,c=g.attributes.position.count;_m.copy(m.matrixWorld);_n.getNormalMatrix(_m);const flip=_m.determinant()<0;
+      for(const k of names){const a=g.attributes[k],sz=a.itemSize,o=out[k];
+        for(let i=0;i<c;i++){if(k==='position'){_v.fromBufferAttribute(a,i).applyMatrix4(_m);o[(vo+i)*3]=_v.x;o[(vo+i)*3+1]=_v.y;o[(vo+i)*3+2]=_v.z}
+          else if(k==='normal'){_v.fromBufferAttribute(a,i).applyMatrix3(_n).normalize();o[(vo+i)*3]=_v.x;o[(vo+i)*3+1]=_v.y;o[(vo+i)*3+2]=_v.z}
+          else for(let j=0;j<sz;j++)o[(vo+i)*sz+j]=a.array[i*sz+j]}}
+      const ix=g.index?g.index.array:null,n=ix?ix.length:c;
+      for(let i=0;i<n;i+=3){const a=ix?ix[i]:i,b=ix?ix[i+1]:i+1,d=ix?ix[i+2]:i+2;idx[io++]=a+vo;if(flip){idx[io++]=d+vo;idx[io++]=b+vo}else{idx[io++]=b+vo;idx[io++]=d+vo}}
+      vo+=c}
+    const g=new THREE.BufferGeometry();for(const k of names)g.setAttribute(k,new THREE.BufferAttribute(out[k],g0.attributes[k].itemSize));g.setIndex(new THREE.BufferAttribute(idx,1));
+    g.computeBoundingSphere();g.computeBoundingBox();return g}
+  function run(lvl,exclude){const t0=performance.now();if(!lvl||!lvl.group)return null;
+    const roots=[];for(const h of lvl.houses||[])if(h.group)roots.push(h.group);
+    for(const o of lvl.group.children)if(o.userData&&o.userData.mod&&o!==exclude)roots.push(o);
+    const buckets=new Map();let before=0;lvl.group.updateMatrixWorld(true);
+    for(const r of roots){const cx=Math.floor(r.position.x/CELL),cz=Math.floor(r.position.z/CELL);
+      r.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||!o.visible||o.userData.noBatch||Array.isArray(o.material)||o.geometry.morphAttributes.position||!o.geometry.attributes.position)return;
+        for(let q=o.parent;q&&q!==lvl.group;q=q.parent)if(!q.visible)return;
+        const g=o.geometry;if(!g.boundingSphere)g.computeBoundingSphere();_s.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+        const shadow=o.castShadow&&_s.radius>=.45;
+        const k=cx+','+cz+'|'+o.material.id+'|'+sig(g)+'|'+shadow+o.receiveShadow+'|'+o.renderOrder;
+        (buckets.get(k)||buckets.set(k,[]).get(k)).push(o);before++})}
+    let after=0;
+    for(const list of buckets.values()){const m0=list[0];const mesh=new THREE.Mesh(merge(list),m0.material);
+      mesh.castShadow=m0.castShadow&&list.some(o=>{_s.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld);return _s.radius>=.45});mesh.receiveShadow=m0.receiveShadow;mesh.renderOrder=m0.renderOrder;
+      mesh.userData.wkey='batch';mesh.matrixAutoUpdate=false;lvl.group.add(mesh);after++;
+      for(const o of list)o.visible=false}
+    for(const r of roots)r.traverse(o=>{o.matrixAutoUpdate=false});
+    return{before,after,ms:+(performance.now()-t0).toFixed(1)}}
+  return{run}})();
+
 /* muzzle flashes: tiny additive sprites, bright enough to bloom */
 const flashTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,220,150,.85)');g.addColorStop(1,'rgba(255,150,40,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
 const flashes=[];
@@ -901,7 +965,7 @@ let mode='title',M=null,running=false,simT=0;
 const P={pos:V3(),yaw:0,pitch:0,hp:100,regenT:0,crouch:false,aim:false,fp:false,weapons:['pistol'],cur:'pistol',ammo:{},fireT:0,reloadT:0,dude:null,moving:false,recoilKick:0};
 let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
 const keys={};let mouseDown=false,useTap=false;
-const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'med'};
+const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'auto'};
 try{Object.assign(CFG,JSON.parse(localStorage.getItem('ht-cfg')||'{}'))}catch(e){}
 function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
 
@@ -1010,7 +1074,7 @@ function enterHub(){
   running=true;
 }
 function fillAmmo(){for(const w of P.weapons)P.ammo[w]={mag:WEAPONS[w].mag,res:WEAPONS[w].reserve};P.reloadT=0}
-function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();
+function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
   $('brWho').textContent=m.role;$('brTitle').textContent=m.title;
   $('brLines').innerHTML=m.lines.map(l=>'<p>'+l+'</p>').join('');
   const obj={loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
@@ -1078,7 +1142,7 @@ addEventListener('mousemove',e=>{if(!running||pauseOpen)return;
   lastMX=lastMY=null});
 cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 const ui={sSens:'sens',sAds:'ads',sFov:'fov'};
-function syncPause(){for(const id in ui){$(id).value=CFG[ui[id]];$('o'+id.slice(1)).textContent=id==='sAds'?CFG.ads+'%':CFG[ui[id]]}$('sInv').checked=CFG.inv;$('sFp').checked=P.fp;$('sGfx').value=RENDER.q;$('oGfx').textContent=RENDER.post||RENDER.q==='low'?'':'effects unavailable'}
+function syncPause(){for(const id in ui){$(id).value=CFG[ui[id]];$('o'+id.slice(1)).textContent=id==='sAds'?CFG.ads+'%':CFG[ui[id]]}$('sInv').checked=CFG.inv;$('sFp').checked=P.fp;$('sGfx').value=RENDER.sel||RENDER.q;$('oGfx').textContent=RENDER.post||RENDER.q==='low'?RENDER.label():'effects unavailable'}
 for(const id in ui)$(id).addEventListener('input',()=>{CFG[ui[id]]=+$(id).value;saveCfg();syncPause()});
 $('sInv').addEventListener('change',()=>{CFG.inv=$('sInv').checked;saveCfg()});$('sGfx').addEventListener('change',()=>{CFG.gfx=$('sGfx').value;saveCfg();RENDER.apply(CFG.gfx);syncPause()});$('sFp').addEventListener('change',()=>{P.fp=$('sFp').checked});
 function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;syncPause();$('pHub').hidden=mode!=='mission';$('cPause').hidden=false;$('pResume').focus()}
@@ -1421,7 +1485,8 @@ function start(){if(!ASSETS.done)return;initAudio();$('cTitle').hidden=true;ente
 $('bStart').onclick=start;
 RENDER.apply(CFG.gfx);
 initModules();
-buildLevel(HUB);makePlayer();P.pos.copy(L.start);P.yaw=.4;P.pitch=-.12;
+/* the hub is built once Stage A is in (ASSETS.ready below), so decoding the boot pack is not competing with a throwaway build */
+makePlayer();P.yaw=.4;P.pitch=-.12;
 /* title card: honest Stage A progress; Start unlocks as soon as the hub can be shown and details keep streaming in during play.
    Only a dead network shows a warning, with Retry. */
 const ldRetry=document.createElement('button');ldRetry.className='btn ghost';ldRetry.id='ldRetry';ldRetry.textContent='Retry';ldRetry.hidden=true;
@@ -1433,8 +1498,9 @@ ASSETS.onProgress(f=>{$('ldB').style.width=Math.round(f*100)+'%';if(!ASSETS.done
 const ldTimer=setInterval(()=>{if($('cTitle').hidden){clearInterval(ldTimer);return}ldText()},1000);
 addEventListener('online',()=>ASSETS.retry());
 ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock in';ldText();
-  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}
-  if(!$('cTitle').hidden)b.focus()});
+  if(!$('cTitle').hidden)b.focus();
+  /* the title backdrop builds on the next task, so the enabled button paints first (Start rebuilds the hub anyway) */
+  setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}},0)});
 /* a hub model that arrives after Stage A gave up waiting: rebuild the hub while the title card is still up */
 {let rb=0;ASSETS.onAsset(s=>{if(!ASSETS.done||mode!=='title'||!/\.glb$/.test(s))return;clearTimeout(rb);rb=setTimeout(()=>{if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}},400)})}
 /* in-game streaming indicator: a small chip while Stage B is still fetching; updated from loader events, never per frame */
