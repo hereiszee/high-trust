@@ -666,7 +666,7 @@ function drawMap(st){
   c.imageSmoothingEnabled=MAP.z<4;
   if(MM.fog){c.globalAlpha=.1;c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);c.globalAlpha=1;c.drawImage(MM.rev,x0,y0,MM.base.width*sc,MM.base.height*sc)}else c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);
   /* game overlay (e.g. Riverside crew turf tints): fn(ctx, worldToScreen, zoom) */
-  if(MM.overlay){try{c.save();MM.overlay(c,MAP.w2s,MAP.z);c.restore()}catch(e){}}
+  if(MM.overlay){try{c.save();MM.overlay(c,(x,z)=>MAP.w2s(x,z),MAP.z);c.restore()}catch(e){}}
   if(MM.route&&MM.route.length>1){c.lineJoin='round';c.lineCap='round';c.beginPath();MM.route.forEach((q,i)=>{const[x,y]=MAP.w2s(q.x,q.z);i?c.lineTo(x,y):c.moveTo(x,y)});c.strokeStyle='rgba(20,16,4,.6)';c.lineWidth=8;c.stroke();c.strokeStyle='#ffc94a';c.lineWidth=4.5;c.stroke()}
   for(const m of mapItems()){const[x,y]=MAP.w2s(m.x,m.z);const sel=MAP.sel===m;if(sel){c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(x,y,16,0,TAU);c.stroke()}drawIcon(c,m.kind,x,y,sel?26:22);
     if((MAP.z>4.5||sel)&&m.label){c.font='700 12px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='top';c.fillStyle='rgba(0,0,0,.6)';c.fillText(m.label.toUpperCase(),x+1,y+15);c.fillStyle='#fff';c.fillText(m.label.toUpperCase(),x,y+14)}}

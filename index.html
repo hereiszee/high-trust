@@ -2842,7 +2842,8 @@ function frCivTick(dt){const tier=frTier(),inR=frInRiver(),pp=people();if(!pp||!
   if(FR.civ.length>=want)return;const G=HTM('WorldGen');const slots=G&&G.neighbourSlots?G.neighbourSlots(WORLD,prog.trustR,P.pos.x,P.pos.z,12,60):[];
   for(const p of slots){if(FR.civ.length>=want)break;if(FR.civ.some(c=>c.slot===p)||frInSite(p.x,p.z,2))continue;const kid=tier>=3&&Math.random()<.5,role=kid?pick(['son','daughter']):'wife';if(!pp.has(role))continue;
     if(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)<20||frSeen(p.x,p.z)&&Math.hypot(p.x-P.pos.x,p.z-P.pos.z)<45)continue;
-    const f=p.face||[0,1];const d=makeDude({role});if(!d)continue;const pos=V3(p.x-f[0]*(kid?2.2:.7),0,p.z-f[1]*(kid?2.2:.7));const c={kind:'civ',dude:d,pos,yaw:0,slot:p,door:{x:p.x+f[0]*1.2,z:p.z+f[1]*1.2},look:{x:p.x-f[0]*6,z:p.z-f[1]*6},inside:false,goT:0};
+    const f=p.face||[0,1];const d=makeDude({role});if(!d)continue;/* face points from the house to the street: grown-ups on the porch, kids out on the sidewalk, the door behind them */
+    const pos=V3(p.x+f[0]*(kid?2.4:.2)+(kid?rand(-1,1):0),0,p.z+f[1]*(kid?2.4:.2));const c={kind:'civ',dude:d,pos,yaw:0,slot:p,door:{x:p.x-f[0]*1.4,z:p.z-f[1]*1.4},look:{x:p.x+f[0]*6,z:p.z+f[1]*6},inside:false,goT:0};
     d.root.position.copy(pos);scene.add(d.root);FR.civ.push(c)}}
 
 /* ---------- HUD: heat pips (under the trust meter), objective line, markers, blips, turf tints on the full map ---------- */
