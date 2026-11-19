@@ -1070,6 +1070,11 @@ const WORLD=(()=>{const G=HTM('WorldGen');if(!G||!OW())return null;try{return G.
 if(WORLD)HUB=WORLD;
 if(prog.trustR==null)prog.trustR=5;
 if(!prog.world)prog.world={visited:{maple:true,route9:false,river:false},pins:['home','hank','auto','gas']};
+/* SAVE.world (js/save.js) when present, so visits, pins and the bridge persist with the game */
+function owW(){let s=null;try{s=typeof SV==='function'?SV():null}catch(e){s=null}const w=s&&s.world||prog.world;if(!w.visited)w.visited={};if(!w.pins)w.pins=['home','hank','auto','gas'];return w}
+const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the sidewalk','People wave','Doors unlocked'];
+function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
+function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
 const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
 function owLevel(def){const O=OW();
@@ -1080,7 +1085,7 @@ function owLevel(def){const O=OW();
   const lvl={def,W:def.W,H:def.H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:def.markers.map(m=>({i:m.i,x:m.x,z:m.z})),start:V3(def.start.x,0,def.start.z),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[],
     vanStart:{x:def.vanStart.x,z:def.vanStart.z},sites:def.sites,places:def.places,doors:def.doors};
   lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
-  O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,player:()=>P.pos,
+  O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,riverDone:owRiverDone,player:()=>P.pos,
     onSolids:()=>{if(mode==='hub')rebuildTargets()},quality:()=>RENDER.q,sun,fogFar:()=>scene.fog?scene.fog.far:200});
   if(def.bridgeOpen)O.openBridge();
   lvl.houses=O.state.houses;   /* the meta layer finds the player's house (door, porch light, name board) here */
@@ -1090,9 +1095,9 @@ function owMinimap(){const def=WORLD;
     under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
     legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
   owPins()}
-function owRegions(){const def=WORLD,v=prog.world;if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,trust:null},
-  {name:'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
-function owPins(){const def=WORLD,v=prog.world,pins=[];
+function owRegions(){const def=WORLD,v=owW();if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,trust:null},
+  {name:v.visited.river?'Riverside Flats · '+owTierName(prog.trustR):'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
+function owPins(){const def=WORLD,v=owW(),pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
   MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
   HUD.minimap.setPins(pins);owRegions()}
@@ -1100,7 +1105,8 @@ function owPins(){const def=WORLD,v=prog.world,pins=[];
 function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
 /* enterHub hook: bridge state, coming back from a job puts the van and the crew back at the site's ring */
 function owEnterHub(){const def=WORLD,O=OW();
-  if(prog.done[def.bridgeUnlockJob]&&O.openBridge()){owMinimap();banner('ROUTE 9 BRIDGE OPEN','The city finished the inspection. Riverside Flats is across the river.',3.4)}
+  {const rd=owRiverDone().join(',');if(rd!==OWS.riverDone){OWS.riverDone=rd;O.sourcesChanged()}}
+  if((prog.done[def.bridgeUnlockJob]||owW().bridgeOpen)&&O.openBridge()){owW().bridgeOpen=true;owMinimap();banner('ROUTE 9 BRIDGE OPEN','The city finished the inspection. Riverside Flats is across the river.',3.4)}
   if(OWS.ret){const r=OWS.ret;OWS.ret=null;VAN.pos.set(r.x,0,r.z);VAN.yaw=r.yaw;owStopCar(VAN);syncVan();
     const rt=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));P.pos.copy(VAN.pos).addScaledVector(rt,-2.4);collide(P.pos,.35);P.yaw=VAN.yaw}
   OWS.region=null;OWS.gps=null;OWS.gpsKey='';OWS.moodK=null;owPins();O.dress(prog.trustR)}
@@ -1109,14 +1115,15 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   if(OWS.q!==RENDER.q){OWS.q=RENDER.q;O.quality(RENDER.q)}
   O.dress(prog.trustR);
   /* SPEC2 A.5 mood blend: Riverside starts overcast and gets sunnier as its trust rises */
-  {const t=P.pos.x/TILE,kR=clamp((t-140)/16,0,1),k=kR*kR*(3-2*kR)*(1-clamp((prog.trustR-10)/60,0,1));
+  const bT=O.blockTrust?O.blockTrust(P.pos.x,P.pos.z):prog.trustR;
+  {const t=P.pos.x/TILE,kR=clamp((t-140)/16,0,1),k=kR*kR*(3-2*kR)*(1-clamp((bT-10)/60,0,1));
    if(OWS.moodK==null||Math.abs(k-OWS.moodK)>.005){OWS.moodK=k;mood=owLerpMood(MOODS.world,MOODS.riverLow,k);applyMood()}}
   const reg=O.regionAt(P.pos.x,P.pos.z);
   if(reg!==OWS.region){const first=OWS.region===null;OWS.region=reg;
     try{FX.ambient({leaves:true,pollen:reg!=='route9',density:reg==='river'?1.3:reg==='route9'?.6:1})}catch(e){}
-    if(reg==='river'&&!prog.world.visited.river){prog.world.visited.river=true;for(const id of['center','mart'])if(!prog.world.pins.includes(id))prog.world.pins.push(id);owPins()}
-    prog.world.visited[reg]=true;
-    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
+    {const w=owW();if(reg==='river'&&!w.visited.river){w.visited.river=true;for(const id of['center','mart'])if(!w.pins.includes(id))w.pins.push(id);owPins();if(typeof metaSave==='function')metaSave()}
+    w.visited[reg]=true}
+    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+owTierName(prog.trustR)+' · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
       HUD.banner({kind:'alert',kicker:'Now entering',title:def.hoods[reg].name.toUpperCase(),sub,dur:2.6})}}
   /* GPS: the accepted job's site, else the next giver */
   let tgt=null;if(JOB!==null&&L.dests[JOB])tgt=L.dests[JOB];else{const n=npcs[0];if(n)tgt={x:n.pos.x,z:n.pos.z}}
@@ -1125,9 +1132,19 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   if(key!==OWS.gpsKey||off||(OWS.gpsT<=0&&(VAN.on?Math.abs(VAN.spd)>1:P.moving))){OWS.gpsKey=key;OWS.gpsT=1.5;
     OWS.gps=tgt?O.gps({x:P.pos.x,z:P.pos.z},tgt):null;HUD.minimap.route(OWS.gps?[{x:P.pos.x,z:P.pos.z},...OWS.gps.points.slice(1)]:null)}
   owChevrons();
+  /* ambience: a run-down Riverside block hums like the industrial edge (traffic, distant clatter); a cared-for one sounds like the suburbs (birds, kids, mowers) */
+  {const amb=OWS.region==='river'&&bT<40?'industrial':'suburb';if(amb!==OWS.amb){OWS.amb=amb;const A=AU();if(A&&A.ambience)try{A.ambience(amb)}catch(e){}}}
+  owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
 }
+/* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
+   Until that role exists the porches stay empty. */
+function owNeighbours(dt,bT){const PP=HTM('People'),G=HTM('WorldGen');OWS.nbT=(OWS.nbT||0)-dt;const pool=OWS.nb||(OWS.nb=[]);
+  if(OWS.nbT<=0){OWS.nbT=1;const want=OWS.region==='river'&&G&&G.neighbourSlots?G.neighbourSlots(WORLD,bT,P.pos.x,P.pos.z,10,50):[];
+    while(pool.length<want.length&&!OWS.nbNone){let d=null;try{d=PP&&PP.ok?PP.make('neighbour',{variant:pool.length}):null}catch(e){d=null}if(!d){OWS.nbNone=true;break}pool.push({d,slot:null})}
+    pool.forEach((n,i)=>{const sl=want[i]||null;n.slot=sl;if(n.d.root.parent!==L.group)L.group.add(n.d.root);/* lives in the world group: gone with it during jobs */n.d.root.visible=!!sl&&mode==='hub';if(sl){n.d.root.position.set(sl.x,0,sl.z);n.d.root.rotation.y=sl.yaw+Math.PI}})}
+  for(const n of pool)if(n.slot&&n.d.root.visible)try{PP.pose(n.d,dt,{moving:false})}catch(e){}}
 function owLerpMood(a,b,k){const o={};const c=new THREE.Color();for(const key in a){const va=a[key],vb=b[key];
   if(typeof va==='number')o[key]=va+(vb-va)*k;else if(typeof va==='string'&&va[0]==='#'){c.set(va).lerp(new THREE.Color(vb),k);o[key]='#'+c.getHexString()}else o[key]=va}return o}
 function owDistToRoute(x,z){const p=OWS.gps.points;let best=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/l,0,1);best=Math.min(best,Math.hypot(a.x+dx*t-x,a.z+dz*t-z))}return best}
@@ -3192,9 +3209,12 @@ function wmExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors(
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
-function groundPass(sign){if(sign>0&&L&&L.ow){const O=OW();if(O)O.update(camera)}const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
+function groundPass(sign){if(L)stepPass(sign);if(sign>0&&L&&L.ow){const O=OW();if(O)O.update(camera)}const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
   for(const e of[P,...allies,...npcs]){const r=e.dude&&e.dude.root;if(r)r.position.y+=sign*HW.groundY(L,r.position.x,r.position.z)}
   if(sign>0&&VAN.obj)VAN.obj.position.y=HW.groundY(L,VAN.pos.x,VAN.pos.z)}
+/* crew, neighbours and enemies have no feet height of their own: for the draw, stand them on any curb, step or porch top under them (within a step) */
+function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.dude&&e.dude.root;if(!r)continue;
+  if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
@@ -3267,8 +3287,8 @@ window.__ht.homeInit=()=>homeInit();
 Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
   mode:{get:()=>mode},JOB:{get:()=>JOB,set:v=>{JOB=v}},running:{get:()=>running,set:v=>{running=v}}});
 Object.assign(window.__ht,{hoodAt:x=>OW()?OW().regionAt(x,0):'maple',openBridge:()=>{const r=OW()&&OW().openBridge();if(r&&WORLD)owMinimap();return r},fastTravel:id=>owFastTravel({place:id,fast:true}),
-  dress:t=>{prog.trustR=t;return OW()&&OW().dress(t)},drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
-window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]}};
+  dress:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();return r},previewTrust:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();OWS.moodK=null;owRegions();return r},blockTrust:(x,z)=>OW()?OW().blockTrust(x,z):0,blocks:()=>OW()?OW().blocks():[],owW,drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
+window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]},groundPass,supportAt,baseGroundY};
 requestAnimationFrame(frame);
 })();
 </script>
