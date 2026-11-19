@@ -257,7 +257,7 @@ const ASSETS=(()=>{
   A.decals={};for(const n of DECALS)add('world/'+n,40,(ok,bad)=>{texLoader.load('assets/world/'+n+'.png',t=>{t.encoding=THREE.sRGBEncoding;t.anisotropy=aniso();A.decals[n]=t;ok()},undefined,bad)});
   add('sky_2k',124,(ok,bad)=>{texLoader.load('assets/sky/sky_2k.jpg',t=>{t.encoding=THREE.sRGBEncoding;A.skyTex=t;A.skyImg=t.image;ok()},undefined,bad)});
   add('sky_1k.hdr',1435,(ok,bad,prog)=>{if(!THREE.RGBELoader)return bad();new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('assets/sky/sky_1k.hdr',t=>{A.hdr=t;ok()},prog,bad)});
-  setTimeout(()=>{if(!A.done){A.timedOut=true;for(const it of items)if(!it.settled)A.failed.push(it.name);console.warn('asset load timed out, continuing with fallbacks');finish()}},25000);
+  setTimeout(()=>{if(!A.done){A.timedOut=true;for(const it of items)if(!it.settled)A.failed.push(it.name);console.warn('asset load timed out, continuing with fallbacks');finish()}},120000);
   /* getters for the rest of the game */
   A.tex=n=>{const s=A.textures[n];return s&&s.map?s:null};
   const pbrCache={};
