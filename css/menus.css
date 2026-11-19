@@ -394,3 +394,8 @@ body>.htm,.htp:not(.ht-root *){
    (otherwise both get squashed and clipped at 1280x720). Belongs in css/hud.css long-term. */
 .ht-result .col>*{flex-shrink:0}
 @media (max-height:780px){.ht-result .col{justify-content:flex-start}}
+/* Dad's Auto repair breakdown: what is wrong with the car you pulled in with, and what each part costs */
+.htm-reprows{list-style:none;margin:var(--s2) 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.htm-reprows li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 10px;border-radius:4px;background:rgba(255,255,255,.06);border-left:3px solid var(--alarm,#ff6a4d)}
+.htm-reprows li span{display:flex;flex-direction:column;gap:2px;min-width:0}.htm-reprows li b{font-weight:700}.htm-reprows li small{opacity:.7;font-size:12px}
+.htm-reprows li em{font-style:normal;font-weight:800;white-space:nowrap}
