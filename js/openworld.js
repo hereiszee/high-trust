@@ -221,7 +221,10 @@ function prepHouses(def){const out=[];let seed=1;
 const CAR_TYPES=['sedan','suv','hatch','pickup','workvan','sedan','suv','minivan'],CAR_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#1f2226','#6d7378','#7a5a3a'];
 function parkedCars(ws){const def=ws.def,lvl=ws.lvl;if(!C.makeVehicle)return;
   const mk=C.makeVehicle;C=Object.assign({},C,{makeVehicle:(t,c,o)=>{const v=mk(t,c,o);if(v)v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});return v}});   /* parked cars move when borrowed: keep them out of index.html's static batching */
-  for(const p of def.parked){const k=(p.tx*7+p.tz*13)%CAR_TYPES.length;const v=C.makeVehicle(CAR_TYPES[k],CAR_COLS[(p.tx+p.tz)%CAR_COLS.length],{lod:1});if(!v)continue;
+  /* the cars say where you are: family cars in Maple, work trucks on Route 9, older hatchbacks and vans in faded colours in Riverside */
+  const BY={maple:[CAR_TYPES,CAR_COLS],route9:[['pickup','workvan','suv','pickup','sedan'],['#d8d4c8','#8a2f2a','#3d4a3a','#6d7378','#b9c0c7']],
+    river:[['hatch','sedan','workvan','hatch','pickup','sedan'],['#8c7d6a','#6e5a4c','#7d8a8f','#a39380','#5a6b5e','#9a8f84','#4a4f55']]};
+  for(const p of def.parked){const[TY,CO]=BY[HT.WorldGen?HT.WorldGen.regionAtTile(p.tx):'maple']||BY.maple;const k=(p.tx*7+p.tz*13)%TY.length;const v=C.makeVehicle(TY[k],CO[(p.tx+p.tz)%CO.length],{lod:1});if(!v)continue;
     v.position.set(p.x,C.groundY?C.groundY(p.x,p.z):0,p.z);if((p.tx+p.tz)%2)v.rotation.y=Math.PI;lvl.group.add(v);
     const col={x0:p.x-2.3,z0:p.z-1.1,x1:p.x+2.3,z1:p.z+1.1};lvl.colliders.push(col);
     if(C.regCar)try{C.regCar(lvl,v,p.x,p.z,col,[p.tx,p.tz])}catch(e){console.warn('regCar failed',e)}
@@ -393,6 +396,8 @@ function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx
   for(const b of def.buildings){const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz)||b.id==='church')continue;
     const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2,facing=b.face==='s'?'+z':'-z';let g=null;
     try{if(BUm)g=BUm.shop({kind:b.id==='auto'?'auto':'store',w,d,seed:'shop'+b.id,facing,name:NAMES[b.id]})}catch(e){g=null}
+    /* the corner mart's awning is trust dressing (tier 3), not part of the building */
+    if(g&&b.id==='mart'){const rm=[];g.traverse(o=>{if(o.isMesh&&o.name==='awning')rm.push(o)});for(const o of rm)o.parent.remove(o)}
     if(g){g.position.set(cx,0,cz);g.userData._owCol=b.col||'#cfc6b4';g.userData._owRoof='#5a5856';blds.push(g)}else B.gbOf('plinth').box(cx-w/2,0,cz-d/2,cx+w/2,4.5,cz+d/2,2,null,{})}}
 
 /* chain-link: galvanised posts every tile, top rail, diamond-mesh fabric (alpha tested) */
@@ -437,6 +442,17 @@ SETPIECES.push({id:'river',box:def=>({x0:270,z0:-400,x1:320,z1:def.H*TILE+400,y1
     conc.quad([x1,.02,za],[x1,.02,zb],[x1,-2.6,zb],[x1,-2.6,za],[[za/2,0],[zb/2,0],[zb/2,1.3],[za/2,1.3]],null,[-1,0,0]);
     cap.box(x1-.05,0,za,x1+.45,.22,zb,1.5,null,{})}
   const r=rng(3);for(let i=0;i<220;i++){const z=zA+r()*(zB-zA);if(z>36&&z<50)continue;const x=x0+.2+r()*1.3,s=.25+r()*.45;const geo=new THREE.DodecahedronGeometry(s,0);conc.addGeo(geo,M4(x,-.5-(x-x0)*1.1,z,r()*6,r(),r()))}
+  /* reeds in clumps along the west bank's waterline */
+  const reed=new (W_.GB)();for(let i=0;i<170;i++){const z=-60+r()*(def.H*TILE+120);if(z>34&&z<52)continue;const cx=x0+1.25+r()*.6;
+    for(let k=0;k<7;k++){const h=.8+r()*.9,a=r()*6.28,x=cx+Math.cos(a)*r()*.5,zz=z+Math.sin(a)*r()*.5,lean=(r()-.5)*.35,y0=-.95,t=r()*.2;const c=[.42+t,.5+t,.22];
+      reed.quad([x-.03,y0,zz],[x+.03,y0,zz],[x+lean+.01,y0+h,zz+lean*.5],[x+lean-.01,y0+h,zz+lean*.5],[[0,0],[1,0],[1,1],[0,1]],c,[0,0,1])}}
+  {const m=gbMesh(reed,stdMat('reeds',{color:'#ffffff',vertexColors:true,roughness:.9,side:THREE.DoubleSide}));if(m)g.add(m)}
+  /* towpath along the top of the west bank */
+  const tp=B.gbOf('dirt');tp.floor(x0-2.3,-60,x0-.9,36.5,.02,2);tp.floor(x0-2.3,49.5,x0-.9,def.H*TILE+60,.02,2);
+  /* two old wooden piers off the Riverside wall, a rowboat tied to one */
+  const wood=B.gbOf('fence');for(const pz of[22,118]){wood.box(x1-6,-.12,pz-1.1,x1,.06,pz+1.1,1.4,null,{});for(const px of[x1-5.6,x1-3.2,x1-.8])for(const dz of[-.95,.95])wood.box(px-.1,-2.6,pz+dz-.1,px+.1,.5,pz+dz+.1,1,null,{});
+    wood.box(x1-6,.06,pz-1.1,x1-5.8,.9,pz+1.1,1,null,{})}
+  {const boat=new THREE.Mesh(new THREE.CylinderGeometry(.75,.55,3.6,10,1,false,0,Math.PI),stdMat('boat',{color:'#2f6b8a',roughness:.6,side:THREE.DoubleSide}));boat.rotation.set(Math.PI/2,0,Math.PI);boat.position.set(x1-7.2,-.75,120.4);boat.castShadow=true;g.add(boat)}
   W_.finish(B,{bare:true,before:b=>{if(b.tuf)b.tuf.length=0;if(b.flw)b.flw.length=0}})}});
 /* ---- the Route 9 bridge: deck, girders, piers, parapets with rails, lamps, barricade ---- */
 SETPIECES.push({id:'bridge',box:def=>({x0:270,z0:30,x1:316,z1:58,y1:9}),build(ws,u){const def=ws.def,g=u.group,W_=HW();const bx0=141*TILE,bx1=153*TILE,z0=19*TILE,z1=24*TILE;
@@ -575,21 +591,42 @@ SETPIECES.push({id:'r9lots',box:def=>({x0:240,z0:0,x1:285,z1:60,y1:12}),build(ws
   /* chain-link along the yard's road side */
   const fab=new (W_.GB)();fab.quad([R9_PAD.x0,.04,R9_PAD.z1],[R9_PAD.x1,.04,R9_PAD.z1],[R9_PAD.x1,2,R9_PAD.z1],[R9_PAD.x0,2,R9_PAD.z1],[[0,0],[30/.7,0],[30/.7,2/.7],[0,2/.7]],null,[0,0,1]);
   for(let x=R9_PAD.x0;x<=R9_PAD.x1;x+=2.5)if(x<262||x>270)gv.addGeo(cyl(.035,.035,2.05,8),M4(x,1.02,R9_PAD.z1));const fm=gbMesh(fab,fabricMat(),{shadow:true});if(fm)g.add(fm);
-  /* billboards */
-  const ADS=[['ZIP TIES · 2 FOR $5',"HANK'S HARDWARE & SPORTING · MAPLE HEIGHTS"],["WE FIX IT RIGHT","DAD'S AUTO · SINCE 1987 · NEXT RIGHT"]];
-  for(const b of R9_BILL){const c=canvas(1024,384),x=c.getContext('2d');const ad=ADS[b.ad];const gr=x.createLinearGradient(0,0,1024,384);gr.addColorStop(0,b.ad?'#1c3150':'#7d1d1d');gr.addColorStop(1,b.ad?'#2f5fb8':'#c8262b');x.fillStyle=gr;x.fillRect(0,0,1024,384);
-    x.fillStyle='#fff';x.font='900 110px "Arial Black", Impact, sans-serif';x.textAlign='center';x.fillText(ad[0],512,170,980);x.fillStyle=b.ad?'#f2b632':'#f3d27a';x.font='700 46px Arial';x.fillText(ad[1],512,290,980);
-    const s=Math.sin(b.ry),co=Math.cos(b.ry);const P=(a,y,d)=>[b.x+a*co+d*s,y,b.z-a*s+d*co];
+  /* billboards: an ad on each face */
+  for(const b of R9_BILL){const s=Math.sin(b.ry),co=Math.cos(b.ry);const P=(a,y,d)=>[b.x+a*co+d*s,y,b.z-a*s+d*co];
     for(const dxx of[-2.4,2.4]){const p=P(dxx,0,0);gv.addGeo(cyl(.18,.14,5,10),M4(p[0],2.5,p[2]))}
-    const panel=new THREE.Mesh(new THREE.BoxGeometry(8,3,.25),[stdMat('bbside',{color:'#3a3d42'}),stdMat('bbside',{}),stdMat('bbside',{}),stdMat('bbside',{}),stdMat('bb'+b.ad,{map:ctex(c),roughness:.6}),stdMat('bbside',{})]);
+    const side=stdMat('bbside',{color:'#3a3d42',metalness:.5,roughness:.5});
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(8,3,.25),[side,side,side,side,stdMat('bbad'+b.ad*2,{map:ctex(adArt(b.ad*2)),roughness:.6}),stdMat('bbad'+(b.ad*2+1),{map:ctex(adArt(b.ad*2+1)),roughness:.6})]);
     const pc=P(0,6.4,0);panel.position.set(pc[0],pc[1],pc[2]);panel.rotation.y=b.ry;panel.castShadow=true;g.add(panel);
-    const walk=P(0,4.8,.6);trim.obox(walk[0],walk[1],walk[2],4,.04,.4,b.ry,1,null)}
+    for(const dd of[.6,-.6]){const walk=P(0,4.8,dd);trim.obox(walk[0],walk[1],walk[2],4,.04,.35,b.ry,1,null)}
+    /* lamps over each face */
+    for(const dd of[.9,-.9])for(const a of[-2.5,0,2.5]){const lp=P(a,8.05,dd);gv.addGeo(new THREE.BoxGeometry(.25,.12,.5),M4(lp[0],lp[1],lp[2],b.ry))}}
   W_.finish(B,{bare:true,before:q=>{if(q.tuf)q.tuf.length=0;if(q.flw)q.flw.length=0}})}});
+/* Route 9 billboard art (1024x384 canvases) */
+function adArt(i){const c=canvas(1024,384),x=c.getContext('2d');const T=(t,sz,y,col,font)=>{x.font=(font||'900 '+sz+'px "Arial Black", Impact, sans-serif');x.fillStyle=col;x.textAlign='center';x.fillText(t,512,y,960)};
+  if(i===0){const g=x.createLinearGradient(0,0,1024,384);g.addColorStop(0,'#7d1d1d');g.addColorStop(1,'#c8262b');x.fillStyle=g;x.fillRect(0,0,1024,384);
+    x.fillStyle='#f3d27a';x.fillRect(0,300,1024,84);T("HANK'S HARDWARE",96,140,'#fff');T('We have that.',62,225,'#f3d27a','italic 700 62px Georgia, serif');T('MAPLE AVE · ZIP TIES 2 FOR $5 · OPEN SATURDAYS',34,356,'#7d1d1d','800 34px Arial')}
+  else if(i===1){x.fillStyle='#f2c230';x.fillRect(0,0,1024,384);x.fillStyle='#1c3150';x.fillRect(0,0,1024,96);T("DAD'S AUTO",72,72,'#fff');T("We don't judge minivans.",70,200,'#1c3150','italic 800 70px Georgia, serif');
+    x.fillStyle='#1c3150';x.fillRect(180,250,300,70);x.fillRect(220,220,180,40);x.fillStyle='#bfe3ff';x.fillRect(235,228,70,28);x.fillRect(315,228,70,28);x.fillStyle='#111';for(const wx of[230,430]){x.beginPath();x.arc(wx,322,26,0,6.28);x.fill()}
+    T('ROUTE 9 · NEXT RIGHT',44,350,'#1c3150','800 44px Arial')}
+  else if(i===2){x.fillStyle='#fdf6e3';x.fillRect(0,0,1024,384);for(let k=0;k<14;k++){x.fillStyle=['#e8395b','#3fa7e8','#7fdc6e','#ffd23f'][k%4];x.beginPath();x.arc(40+k*72,30,18,0,6.28);x.fill()}
+    T('BAKE SALE + CAR WASH',78,150,'#2b4a6b');T('Maple Heights Elementary · New playground fund',38,215,'#b8323a','700 38px Arial');T('SATURDAY 9-2 · FILL-ER-UP LOT',52,300,'#2b4a6b','800 52px Arial')}
+  else{x.fillStyle='#d9d4c8';x.fillRect(0,0,1024,384);x.fillStyle='#2f5d4a';x.fillRect(0,0,340,384);T('',0,0,'#000');x.fillStyle='#e8e2d0';x.font='900 120px Georgia, serif';x.textAlign='center';x.fillText('BK',170,230);
+    x.textAlign='left';x.fillStyle='#2f5d4a';x.font='900 64px Georgia, serif';x.fillText('BARB KOWALSKI',380,150);x.font='700 40px Arial';x.fillText('REALTY · "I sell porches"',380,215);x.font='800 46px Arial';x.fillText('555-0142',380,300);
+    /* sun-faded and peeling */const r=rng(4);x.fillStyle='rgba(240,236,226,.35)';x.fillRect(0,0,1024,384);for(let k=0;k<26;k++){x.fillStyle='rgba(200,196,186,'+(.3+r()*.5)+')';x.fillRect(r()*1024,r()*384,20+r()*120,6+r()*30)}}
+  return c}
 /* ---- backdrop: world.js terrain ring with far houses and trees, the river valley carved through it ---- */
 SETPIECES.push({id:'backdrop',box:def=>({x0:-400,z0:-400,x1:def.W*TILE+400,z1:def.H*TILE+400,y1:40}),always:true,build(ws,u){const W_=HW();if(!W_||!W_.backdrop)return;const def=ws.def;
   const B=W_.begin({def:{id:'world',lines:[]},g:[],W:0,H:0,group:u.group,colliders:[],solids:[]});B.W=def.W;B.H=def.H;B.hub=true;B.r=rng(99);
   const rx=147*TILE;B.carve=(x,z)=>sstep(18,90,Math.abs(x-rx));B.carveY=(x,z)=>{const inW=z>0&&z<def.H*TILE&&x>0&&x<def.W*TILE;return inW?0:-3.2*(1-sstep(10,18,Math.abs(x-rx)))};B.skipRing=(x,z)=>Math.abs(x-rx)<26;
   W_.backdrop(B);
+  /* a Maple Heights water tower just past the north-west corner, and a power line along the south edge */
+  {const tx_=46,tz_=-16,leg=B.gbOf('galv');for(let k=0;k<4;k++){const a=k*Math.PI/2+Math.PI/4,px=tx_+Math.cos(a)*3.2,pz=tz_+Math.sin(a)*3.2;leg.addGeo(cyl(.18,.14,22,8),M4((px+tx_)/2+(px-tx_)*.25,10.5,(pz+tz_)/2+(pz-tz_)*.25,0,(pz-tz_)*.03,-(px-tx_)*.03))}
+   for(const y of[7,14])leg.addGeo(new THREE.TorusGeometry(2.6-y*.04,.06,4,16).rotateX(Math.PI/2),M4(tx_,y,tz_));
+   const tc_=canvas(1024,256),x=tc_.getContext('2d');x.fillStyle='#e9ebe8';x.fillRect(0,0,1024,256);x.fillStyle='#2f5d9e';x.font='900 92px "Arial Black", Impact';x.textAlign='center';x.fillText('MAPLE HEIGHTS',256,160);x.fillText('MAPLE HEIGHTS',768,160);
+   const tank=new THREE.Mesh(new THREE.CylinderGeometry(4.6,4.6,5,28,1,true),stdMat('tank',{map:ctex(tc_),roughness:.5,metalness:.3}));tank.position.set(tx_,23,tz_);u.group.add(tank);
+   const cap=new THREE.Mesh(new THREE.ConeGeometry(4.8,2.2,28),stdMat('tankcap',{color:'#e9ebe8',roughness:.5,metalness:.3}));cap.position.set(tx_,26.6,tz_);u.group.add(cap);
+   const bot=new THREE.Mesh(new THREE.SphereGeometry(4.6,28,8,0,Math.PI*2,Math.PI/2,Math.PI/2),stdMat('tankcap',{}));bot.position.set(tx_,20.5,tz_);u.group.add(bot);
+   const pts=[];for(let x=-40;x<def.W*TILE+60;x+=31)pts.push([x,def.H*TILE+7,Math.PI/2]);W_.utilityLine(B,pts)}
   for(const key in B.gb){const gb=B.gb[key];if(!gb.n)continue;const m=new THREE.Mesh(gb.geo(),W_.matFor(B,key));m.receiveShadow=true;m.castShadow=false;u.group.add(m)}
   W_.buildInst(B);for(const l of B.lod)ws.lod.push(l)}});
 

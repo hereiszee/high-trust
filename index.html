@@ -133,6 +133,8 @@ const ASSETS=(()=>{
   const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red'].map(RB);
   const GROUPS={
     hub:[SKY,HDR,...['asphalt','sidewalk','grass','concfloor','woodfloor','mulch','pavers','roof','siding'].flatMap(T3),...['tree_oak','tree_tall','tree_pine','bush','mailbox'].map(G),D('asphalt_patch'),...['dad_player','dad_gary','anims'].map(RB)],
+    /* the open world hub also shows chain-link (fence alpha), rowhouse/site brick, warehouses, mission-site walls and Riverside trash */
+    world:[...['fence','brick','metal','plywood','rustmetal','paintwall','plaster'].flatMap(T3),texSrc('fence','alpha'),...['crate','crate_long','crate_slat','table_dining','trashbag'].map(G)],
     /* the rest of the crew shows up in the hub as jobs get done */
     crew:['dad_rick','dad_dave','dad_doug'].map(RB),
     m0:[...THUGS,...['barrel_blue','barrel_red','crate','crate_long','hanging_industrial_lamp','pallet','table_low','trashbag','tyre'].map(G),...['metal','paintwall','plywood','rustmetal'].flatMap(T3),D('leak_a'),D('leak_b')],
@@ -227,6 +229,7 @@ const ASSETS=(()=>{
     started=true;/* Stage B: sharpen what the hub shows, then every mission, then the rest */
     if(A.tier==='l')for(const s of GROUPS.hub)want(s,'l',2);
     for(const s of GROUPS.crew)want(s,A.tier,2);
+    for(const s of GROUPS.world)want(s,A.tier,2);
     for(const g of['m0','m1','m2','m3'])for(const s of GROUPS[g])want(s,A.tier,3);
     for(const s in LIVE)want(s,A.tier,4);pump()}
   A.onAsset(src=>{if(stageA.has(src))tick()});
