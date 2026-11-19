@@ -84,3 +84,7 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | home/bench_vice_01.glb | Bench Vice 01 | Poly Haven (Antanas Kep, Yann Kervran) | CC0 | https://polyhaven.com/a/bench_vice_01 |
 | home/metal_tool_chest.glb | Metal Tool Chest | Poly Haven (John Hutcheson, Yann Kervran) | CC0 | https://polyhaven.com/a/metal_tool_chest |
 | home/dartboard.glb | Dartboard | Poly Haven (Satyaki Mandal) | CC0 | https://polyhaven.com/a/dartboard |
+
+## Effects (js/fx.js)
+
+No files. All effect textures (muzzle-flash stars and cones, tracers, sparks, smoke and dust sprites, the fireball flipbook, bullet-hole / scorch / skid decals and their normal maps, the leaf sprite) are generated procedurally in code at startup. Original work, same license as the game code.
