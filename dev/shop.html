@@ -2,84 +2,97 @@
 <meta charset="utf-8">
 <title>High Trust · Menus test bench</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:ital,wght@0,400;0,600;0,800;1,600&display=swap">
+<link rel="stylesheet" href="../css/hud.css">
 <link rel="stylesheet" href="../css/menus.css">
 <style>
-/* a stand-in for the game behind the menus, plus the game's own .card/.btn styles for the payout demo */
-:root{--ink:#16181c;--paper:#f6f1e3;--sun:#ffc94a;--polo:#2f5d9e;--alarm:#e5533d;--leaf:#7ed36b;--display:"Bowlby One","Arial Black",Impact,sans-serif;--body:"Rubik",system-ui,sans-serif;color-scheme:dark}
-html,body{margin:0;height:100%;background:#2a3038;color:var(--paper);font-family:var(--body)}
-body{background:linear-gradient(#8fb6d4 0 38%,#6d8f6a 38% 40%,#4c5a4a 40% 52%,#5d5f63 52%);overflow:hidden}
-.scene{position:fixed;inset:0;filter:blur(3px) saturate(.9)}
-.scene i{position:absolute;bottom:48%;width:180px;height:120px;background:#e8d9b0;box-shadow:inset 0 -10px 0 rgba(0,0,0,.1)}
-.scene i:before{content:"";position:absolute;left:-14px;right:-14px;top:-50px;height:50px;background:#7b4f3a;clip-path:polygon(50% 0,100% 100%,0 100%)}
-.bench{position:fixed;left:16px;top:16px;right:16px;display:flex;flex-wrap:wrap;gap:8px;z-index:1}
-.bench button{font:800 12px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-radius:6px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
-.bench button.y{background:var(--sun)}
-#log{position:fixed;left:16px;bottom:16px;font:600 12px var(--body);background:rgba(22,24,28,.8);padding:8px 10px;border-radius:6px;max-width:60vw}
-.card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(14,15,18,.72);padding-inline:16px;z-index:5}
-.card .in{background:var(--paper);color:var(--ink);max-width:560px;width:100%;padding:26px 26px 24px;border-radius:4px;box-shadow:8px 8px 0 var(--polo);max-height:88%;overflow:auto;position:relative;box-sizing:border-box}
-.card .in:before{content:"";position:absolute;left:0;right:0;top:54px;border-top:2px solid rgba(229,83,61,.45)}
-.card h2{font-family:var(--display);font-weight:400;font-size:clamp(28px,7vw,42px);line-height:1;margin:8px 0 12px}
-.card .who{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--alarm);font-weight:800;height:30px}
-.card p{margin:0 0 9px;font-size:15px;line-height:1.48}
-.card .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;background:var(--ink);color:var(--paper);padding:10px 12px;border-radius:4px;margin:14px 0 18px}
-.card .meta b{color:var(--sun);text-transform:uppercase;letter-spacing:.08em;font-size:11px;padding-top:2px}
-.btns{display:flex;gap:12px;flex-wrap:wrap}
-.btn{font-family:var(--display);font-size:19px;background:var(--sun);color:var(--ink);border:3px solid var(--ink);border-radius:5px;padding:9px 20px;cursor:pointer;box-shadow:4px 4px 0 var(--ink)}
-.btn.ghost{background:transparent;box-shadow:none}
-textarea{width:100%;height:70px;font:12px ui-monospace,monospace;box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#20262d;color:#fff;font-family:system-ui}
+#bg{position:fixed;inset:0;background:#4f7a9a center/cover no-repeat}
+.bench{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:99;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-width:96vw;opacity:.35}
+.bench:hover{opacity:1}
+.bench button{font:600 12px system-ui;color:#fff;background:#000a;border:0;padding:4px 7px;border-radius:3px;cursor:pointer}
+body.shot .bench,body.shot #log,body:has(.htm) .bench{display:none}
+#log{position:fixed;left:8px;top:8px;z-index:99;font:600 12px system-ui;background:#000a;padding:4px 8px;border-radius:4px;max-width:60vw}
+#log:empty{display:none}
 </style>
-<div class="scene"><i style="left:6%"></i><i style="left:30%;background:#c9d3dc"></i><i style="left:58%;background:#d8b7a0"></i><i style="left:82%"></i></div>
+<div id="bg"></div>
+<div id="hud"></div>
 <div class="bench">
-  <button class="y" data-open="dadazon">Dadazon</button><button class="y" data-open="hardware">Maple Hardware</button><button class="y" data-open="auto">Auto shop</button>
-  <button class="y" data-locker="loadout">Gun locker</button><button class="y" data-locker="attach">Workbench</button>
-  <button data-payout="win">Payout: win</button><button data-payout="fail">Payout: fail</button>
-  <button data-preset="fresh">Preset: fresh</button><button data-preset="mid">Preset: mid</button><button data-preset="rich">Preset: rich</button><button data-preset="broke">Preset: broke</button>
+  <button data-open="dadazon">Dadazon</button><button data-open="hardware">Hank's</button><button data-open="mart">Corner Mart</button><button data-open="auto">Dad's Auto</button>
+  <button data-locker="loadout">Gun locker</button><button data-locker="attach">Workbench</button>
+  <button data-payout="win">Payout: win</button><button data-payout="fail">Payout: fail</button><button data-payout="duke">Payout: Duke</button>
+  <button data-preset="fresh">fresh</button><button data-preset="mid">mid</button><button data-preset="rich">rich</button><button data-preset="broke">broke</button>
   <button id="bExport">Export code</button>
 </div>
 <div id="log"></div>
-<div class="card" id="cResult" hidden><div class="in"><div class="who" id="rsWho"></div><h2 id="rsTitle"></h2><div id="rsBody"></div>
-  <div class="btns"><button class="btn" id="rsGo">Head home</button><button class="btn ghost" id="rsBack">Back to the cul-de-sac</button></div></div></div>
+<script src="../js/hud.js"></script>
+<script src="../js/carai.js"></script>
+<script src="../js/audio.js"></script>
 <script src="../js/save.js"></script>
 <script>
-/* ?thumbs=3d: demo the thumbRenderer hook with real glTF renders of the furniture models (the game can do the same with its own THREE) */
-if(new URLSearchParams(location.search).get('thumbs')==='3d'){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>')}
+/* ?thumbs=3d: three.js + GLTFLoader, then dev-only stand-ins for HT.Guns.model and HT.Vehicles.make (the real modules come from js/guns.js / js/vehicles.js) */
+if(new URLSearchParams(location.search).get('thumbs')==='3d')document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>');
 </script>
 <script>
 const {Save,Economy,Shop,Locker}=HT;
+const q=new URLSearchParams(location.search);if(q.has('shot'))document.body.classList.add('shot');
+const tall=innerHeight>innerWidth;document.getElementById('bg').style.backgroundImage=`url(bg_hub_${tall?'tall':'wide'}.jpg)`;
+const HUD=HT.HUD.init(document.getElementById('hud'),{touch:matchMedia('(pointer:coarse)').matches});
 const log=t=>document.getElementById('log').textContent=t;
-const prog={done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0};
+const prog={done:Array(9).fill(false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0};
 Save.load();Save.bindProg(prog);
+const hudSync=()=>HUD.update({mode:'hub',cash:Save.data.cash,trust:prog.trust});Save.on('cash',hudSync);hudSync();
 const PRESETS={
   fresh:()=>Save.reset(),
-  mid:()=>{Save.reset();const d=Save.data;Object.assign(prog,{done:[true,true,false,false],trust:64});d.cash=1940;d.owned.guns.push('rifle','revolver');d.owned.att.push('reddot','grip');
-    d.loadout={side:'revolver',p1:'shotgun',p2:'rifle'};d.attOn.rifle={optic:'reddot',mag:null,under:'grip',muzzle:null};d.armory.seen={smg:1,double:1};d.pending=[{kind:'furn',id:'tv'}];
-    d.vehicle.engine=1;d.vehicle.tyres=1;d.vehicle.cos.paint.push('blue');d.vehicle.paint='blue';Save.touch('cash')},
-  rich:()=>{Save.reset();const d=Save.data;Object.assign(prog,{done:[true,true,true,true],trust:88});d.cash=12450;d.owned.guns.push('rifle','smg','hunter','nailer');d.owned.att.push('reddot','grip','extmag','muffler');
-    d.loadout={side:'nailer',p1:'rifle',p2:'hunter'};d.attOn.rifle={optic:'reddot',mag:'extmag',under:'grip',muzzle:'muffler'};d.flags.rangeDay=true;d.vehicle.roofBox=1;Save.touch('cash')},
-  broke:()=>{Save.reset();Object.assign(prog,{done:[true,false,false,false],trust:30});Save.data.cash=85;Save.touch('cash')}};
-const q=new URLSearchParams(location.search);
-if(q.get('preset'))PRESETS[q.get('preset')]();
-document.querySelector('.bench').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.open)Shop.open({kind:b.dataset.open,onClose:()=>log('shop closed · cash '+Economy.money(Save.data.cash)),onBuy:r=>log('bought '+r.kind+':'+r.id+' for '+r.price+' ('+r.delivered+')')});
+  mid:()=>{Save.reset();const d=Save.data,g=d.garage,v=g.vehicles.minivan;Object.assign(prog,{done:[true,true,false,false,false,false,false,false,false],trust:64,trustR:5});d.cash=1940;
+    d.owned.guns.push('rifle','revolver');d.owned.att.push('reddot','grip');d.loadout={side:'revolver',p1:'shotgun',p2:'rifle',p3:null};d.attOn.rifle={optic:'reddot',mag:null,under:'grip',muzzle:null};
+    d.armory.seen={smg:1,double:1};d.pending=[{kind:'furn',id:'tv'}];v.perf.engine=1;v.perf.tyres=1;g.ownedCos.paint.push('silver');v.paint='silver';g.purchases=3;g.hp.minivan=72;Save.touch('cash','garage')},
+  rich:()=>{Save.reset();const d=Save.data,g=d.garage;Object.assign(prog,{done:[true,true,true,true,true,true,false,false,false],trust:88,trustR:46,act:2});d.cash=12450;
+    d.owned.guns.push('rifle','smg','hunter','nailer');d.owned.att.push('reddot','grip','extmag','muffler');d.loadout={side:'nailer',p1:'rifle',p2:'hunter',p3:'smg'};
+    d.attOn.rifle={optic:'reddot',mag:'extmag',under:'grip',muzzle:'muffler'};d.flags.rangeDay=true;g.util.cargo=true;g.util.rack=true;
+    const v=g.vehicles.minivan;v.perf.engine=2;v.perf.tyres=2;v.perf.brakes=1;v.perf.sport=true;v.prot.bullBar=true;v.prot.armor=1;v.paint='wood';v.rims='chrome';g.ownedCos.paint.push('wood');g.ownedCos.rims.push('chrome');
+    g.owned.push('pickup');g.vehicles.pickup=HT.Garage.defaultVehicle();g.hp.pickup=120;g.ownedStickers=[2,4];g.stickers=[2,4,null];g.horn='ode';g.ownedHorns.push('ode');g.purchases=9;Save.touch('cash','garage')},
+  broke:()=>{Save.reset();Object.assign(prog,{done:[true,false,false,false,false,false,false,false,false],trust:30});Save.data.cash=85;Save.touch('cash')}};
+if(q.get('preset'))PRESETS[q.get('preset')]();hudSync();
+function payout(kind,instant){
+  const r={win:{mission:0,ok:true,cuffs:3,confiscated:2,allyDowns:0,got:4,elapsed:212,exec:0},fail:{mission:1,ok:false,cuffs:1,confiscated:1,exec:1},
+    duke:{mission:'duke',ok:true,cuffs:4,confiscated:3,allyDowns:1,bossDone:'cuffed',chaseT:48,vanHp:.93}}[kind];
+  const p=Economy.computePayout(r),m=Economy.missionOf(r.mission);
+  HUD.show('result',{fail:!r.ok,title:m.title,text:r.ok?(kind==='duke'?"The Duke of Catalytic Converters is in zip-ties and in tears. Earl says it's the best Saturday he's had since the bus route.":"Every package is back on its porch. Mrs. Kowalski cried a little. Gary pretended not to."):'The guys carried you to the van. Rick: "We regroup at halftime."',
+    stats:[['Neutralized',String(r.ok?2:3),'Had to'],['Zip-tied',String(r.cuffs),'Second chances'],['Time','4:12'],['Trust',Math.round(m.hood==='river'?prog.trustR:prog.trust)+'%','+12 this job']],canRetry:!r.ok,goLabel:'Head home'});
+  const h=Economy.renderPayout(HUD.payoutEl,p,{instant});h.done.then(()=>{Economy.applyPayout(p);log('paid '+p.total)});return h}
+document.querySelector('.bench').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;HUD.hide&&HUD.hide();
+  if(b.dataset.open)Shop.open({kind:b.dataset.open,onClose:()=>log('shop closed · cash '+Economy.money(Save.data.cash)),onBuy:r=>log((r.use?'used ':'bought ')+r.kind+':'+r.id+' for '+r.price),onPreview:v=>v&&log('preview '+v.type+' '+JSON.stringify(v.opts.upgrades))});
   if(b.dataset.locker)Locker.open({tab:b.dataset.locker,onClose:()=>log('locker closed · '+JSON.stringify(Save.data.loadout))});
-  if(b.dataset.preset){PRESETS[b.dataset.preset]();log('preset '+b.dataset.preset)}
-  if(b.dataset.payout)payout(b.dataset.payout==='win');
-  if(b.id==='bExport'){const c=Save.export();log(c.slice(0,60)+'… ('+c.length+' chars)');navigator.clipboard&&navigator.clipboard.writeText(c).catch(()=>{})}});
-function payout(ok,instant){
-  const p=Economy.computePayout(ok?{mission:0,ok:true,cuffs:3,confiscated:2,allyDowns:0,got:4,elapsed:212,exec:0,trust:prog.trust}:{mission:1,ok:false,cuffs:1,confiscated:1,exec:1,trust:prog.trust});
-  document.getElementById('rsWho').textContent=(ok?'Job done · ':'Job failed · ')+(ok?'Chop shop, Industrial Way':'The old duplex on Birch');
-  document.getElementById('rsTitle').textContent=ok?'Home in time for dinner.':'The guys carried you to the van.';
-  const body=document.getElementById('rsBody');
-  body.innerHTML=`<p>${ok?"Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry.":"Rick: We regroup at halftime."}</p><div class="meta"><b>Neutralized</b><span>${ok?5:2}</span><b>Zip-tied</b><span>${ok?3:1}</span><b>Time</b><span>3:32</span><b>Trust</b><span>${Math.round(prog.trust)}%</span><b>Payout</b><span>${Economy.money(p.total)}</span></div>`;
-  document.getElementById('cResult').hidden=false;
-  const r=Economy.renderPayout(body,p,{instant});r.done.then(()=>{Economy.applyPayout(p);log('paid '+p.total)});
-  document.getElementById('rsGo').onclick=document.getElementById('rsBack').onclick=()=>{r.skip();document.getElementById('cResult').hidden=true};
-  return r}
+  if(b.dataset.preset){PRESETS[b.dataset.preset]();hudSync();log('preset '+b.dataset.preset)}
+  if(b.dataset.payout)payout(b.dataset.payout);
+  if(b.id==='bExport'){const c=Save.export();log(c.slice(0,60)+'… ('+c.length+' chars)')}});
 window.__bench={payout,PRESETS,prog};
-if(q.get('thumbs')==='3d'&&window.THREE)Shop.thumbRenderer=Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{base:'../',kinds:['furn']});
-if(q.get('open'))Shop.open({kind:q.get('open'),tab:q.get('tab')||undefined,select:q.get('select')||undefined});
-if(q.get('locker'))Locker.open({tab:q.get('locker')});
-if(q.get('payout'))payout(q.get('payout')==='win',q.has('instant'));
+
+/* ---- dev-only stand-ins for the 3D modules, built from the CC0 models in assets/ ---- */
+async function threeD(){
+  const L=new THREE.GLTFLoader(),load=u=>new Promise((res,rej)=>L.load('../assets/'+u,g=>res(g.scene),undefined,rej));
+  const GUNF={pistol:'props/gun_pistol.glb',revolver:'guns2/revolver.glb',nailer:'guns2/nail_gun_pixel.glb',shotgun:'guns2/shotgun_pump_wood.glb',double:'guns2/shotgun_sawedoff_db.glb',
+    beanbag:'props/gun_shotgun.glb',rifle:'props/gun_rifle.glb',smg:'guns2/smg.glb',hunter:'guns2/hunting_rifle_scoped.glb'};
+  const CARF={minivan:'props/car_van.glb',workvan:'props/car_van.glb',pickup:'props/car_suv.glb',suv:'props/car_suv.glb',sedan:'props/car_sedan.glb',hatch:'props/car_hatchback.glb'};
+  const guns={},cars={};
+  await Promise.all([...Object.entries(GUNF).map(async([k,f])=>{try{guns[k]=await load(f)}catch(e){}}),...Object.entries(CARF).map(async([k,f])=>{try{cars[k]=await load(f)}catch(e){}})]);
+  HT.Guns=HT.Guns||{model(type){const g=guns[type];if(!g)return null;const c=g.clone(true);
+    if(type==='beanbag')c.traverse(n=>{if(n.material&&/Wood/i.test(n.material.name||'')){n.material=n.material.clone();n.material.color.set('#f08a2c')}});return c}};
+  HT.Vehicles=HT.Vehicles||{make(type,o){const src=cars[type]||cars.minivan;if(!src)return null;const g=src.clone(true),u=(o&&o.upgrades)||{};
+    g.traverse(n=>{if(n.isMesh&&/body/i.test(n.name)&&o&&o.color){n.material=n.material.clone();n.material.color.set(o.color).lerp(new THREE.Color('#ffffff'),.25)}});
+    const box=new THREE.Box3().setFromObject(g),sz=box.getSize(new THREE.Vector3()),mx=new THREE.MeshStandardMaterial({color:'#2c3036',roughness:.6});
+    const fwdX=sz.x>sz.z,len=Math.max(sz.x,sz.z);
+    if(u.roofRack==='cargo'){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?len*.45:sz.x*.7,sz.y*.14,fwdX?sz.z*.7:len*.45),mx);m.position.set((box.min.x+box.max.x)/2,box.max.y+sz.y*.07,(box.min.z+box.max.z)/2);g.add(m)}
+    if(u.lightBar){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?len*.08:sz.x*.8,sz.y*.06,fwdX?sz.z*.8:len*.08),new THREE.MeshStandardMaterial({color:'#ffb000',emissive:'#ffb000',emissiveIntensity:.6}));
+      m.position.set((box.min.x+box.max.x)/2,box.max.y+sz.y*(u.roofRack==='cargo'?.17:.03),(box.min.z+box.max.z)/2);g.add(m)}
+    if(u.bullBar){const m=new THREE.Mesh(new THREE.BoxGeometry(fwdX?.12:sz.x*.9,sz.y*.35,fwdX?sz.z*.9:.12),mx);m.position.set(fwdX?box.max.x+.06:(box.min.x+box.max.x)/2,box.min.y+sz.y*.3,fwdX?(box.min.z+box.max.z)/2:box.max.z+.06);g.add(m)}
+    return{group:g,dispose(){}}}};
+  Shop.thumbRenderer=Shop.gltfThumbs(THREE,L,{base:'../',kinds:['furn','gun','car','gar','cos']});
+}
+const ready=(q.get('thumbs')==='3d'&&window.THREE)?threeD():Promise.resolve();
+ready.then(()=>{
+  if(q.get('open'))Shop.open({kind:q.get('open'),tab:q.get('tab')||undefined,select:q.get('select')||undefined});
+  if(q.get('locker'))Locker.open({tab:q.get('locker')});
+  if(q.get('payout'))payout(q.get('payout'),q.has('instant'));
+  window.__ready=true});
 </script>
