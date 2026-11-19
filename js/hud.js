@@ -261,6 +261,7 @@ function updObjective(o,timer){
 /* ---------------- trust & cash ---------------- */
 const TR={v:null,disp:0,cash:null,cashDisp:0,cashFrom:0,cashT:1};
 function updTrust(st,dt){
+  if(st.trustLabel&&st.trustLabel!==TR.lab){TR.lab=st.trustLabel;const lb=R.tr.querySelector('.ht-trust .lab');if(lb)lb.textContent=st.trustLabel;TR.v=null}/* region meter: switching it is not a trust change */
   const t=clamp(+st.trust||0,0,100);
   if(TR.v==null){TR.v=t;sty(R.trGhost,'transform',`scaleX(${t/100})`)}
   if(Math.abs(t-TR.v)>=.5){const d=t-TR.v;toast((d>0?'+':'')+Math.round(d)+' trust',d<0?'neg':'');

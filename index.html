@@ -528,6 +528,7 @@ const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
+  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers: temporary stand-ins (RIVERSIDE JOBS) */
   const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
@@ -977,7 +978,7 @@ function radio(who,text,front){const n=who==='you'?'You':(HOMIES[who]?.name||who
 function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
   const intro=mode==='mission'&&M&&M.elapsed<.5&&t===M.def.title.toUpperCase();
   HUD.banner(intro?{kind:'title',kicker:'New job',title:M.def.title,sub:s,dur:d}:{kind:'alert',title:t,sub:s,dur:d})}
-function addTrust(v){prog.trust=clamp(prog.trust+v,0,100)}
+function addTrust(v,hood){hood=hood||(mode==='mission'&&M?(M.def.hood||'maple'):(L&&L.ow&&OWS.region==='river'?'river':'maple'));if(hood==='river')prog.trustR=clamp((prog.trustR||0)+v,0,100);else prog.trust=clamp(prog.trust+v,0,100)}
 /* 'E · Zip-tie', 'Hold E · Grab the packages', 'USE · Talk to Gary' */
 function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<small>(.*?)<\/small>/gi,' ($1)').replace(/<[^>]+>/g,'');const m=/^(Hold\s+)?(\S+)\s+·\s+(.*)$/.exec(t);
   UI.prompt=m?{key:m[2]==='USE'?'E':m[2],text:m[3],hold:!!m[1],progress:p||0}:{text:t,progress:p||0}}
@@ -1051,9 +1052,9 @@ const VAN={obj:null,pos:V3(),yaw:0,spd:0,steer:0,col:null,bump:0,type:'minivan',
   get on(){return !!CV},set on(b){if(b){if(!CV&&VAN.obj)enterCar(VAN)}else if(CV)stopDriving()}},VAN_OFF={x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1};
 /* ================= OPEN WORLD (js/worldgen.js + js/roadgraph.js + js/openworld.js: SPEC2 layers W1/W2) ================= */
 /* With the modules present the hub is the continuous world (Maple Heights, Route 9, the river, Riverside Flats); HUB_SMALL is the fallback.
-   Missions still run as their own levels (CFG.inWorld stays false): each site's ring launches the old mission level, and the van comes back to the ring. */
+   Jobs run at their real sites in this world (WORLD MISSIONS below). CFG.inWorld=false sends the Maple jobs back to their old separate levels. */
 const OW=()=>HTM('OpenWorld');
-CFG.inWorld=false;
+CFG.inWorld=true;
 const WORLD=(()=>{const G=HTM('WorldGen');if(!G||!OW())return null;try{return G.build({save:{prog,world:prog.world},missions:MISSIONS})}catch(e){console.warn('world generator failed, using the small hub',e);return null}})();
 if(WORLD)HUB=WORLD;
 if(prog.trustR==null)prog.trustR=5;
@@ -1067,7 +1068,7 @@ function owLevel(def){const O=OW();
   const g=def.map.map(r=>r.split('')),group=new THREE.Group();scene.add(group);
   const lvl={def,W:def.W,H:def.H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:def.markers.map(m=>({i:m.i,x:m.x,z:m.z})),start:V3(def.start.x,0,def.start.z),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[],
     vanStart:{x:def.vanStart.x,z:def.vanStart.z},sites:def.sites,places:def.places,doors:def.doors};
-  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});
+  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
   O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,player:()=>P.pos,
     onSolids:()=>{if(mode==='hub')rebuildTargets()},quality:()=>RENDER.q,sun,fogFar:()=>scene.fog?scene.fog.far:200});
   if(def.bridgeOpen)O.openBridge();
@@ -1291,7 +1292,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
-      if(mod)dentCar(e,push,sp);const s2=speaker();
+      if(mod)dentCar(e,push,sp);if(mode==='mission'&&M&&M.world)wmVanImpact(e,sp,hit.front);const s2=speaker();
       if(sp>11&&Math.random()<.5){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
         else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
   e.bump-=dt;syncCar(e);
@@ -1354,20 +1355,18 @@ function enterHub(o){
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
   P.pos.copy(L.start);resetMove();P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
   metaHubEnter(o);if(L.ow)owEnterHub();
-  const next=prog.done.slice(0,MISSIONS.length).findIndex(d=>!d);
+  if(L.ow)wmHubEnter();
   FX.clear();audioState('hub');setLoadout({side:'pistol',p1:prog.done[0]?'shotgun':null,p2:prog.done[1]?'rifle':null},P.cur);
-  if(next===-1){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
-  for(const mk of L.markers){if(mk.i!==next)continue;const m=MISSIONS[mk.i];const n=spawnNpc(m.giver,mk.x,mk.z,mk);
-    const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(mk.x,1.5,mk.z);L.group.add(ring);n.ring=ring}
-  prog.done.forEach((d,i)=>{if(d&&MISSIONS[i])spawnAlly(MISSIONS[i].giver,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5))});
+  if(wmAllDone()){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
+  wmHubGivers();/* every available giver, Maple and Riverside (WORLD MISSIONS) */
+  wmHubCrew();
   rebuildTargets();
-  setObj('Maple Heights',[HOMIES[MISSIONS[next].giver].name+' has a job for you. Follow the yellow marker.']);
   if(prog.missionsRun===0)radio('you',"Okay. Let's see who needs help.");
   else{const crew=prog.done.map((d,i)=>d?MISSIONS[i].giver:null).filter(Boolean);radio(pick(crew),pick(LINES.hub))}
   running=true;
 }
 function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
-  const obj={loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
+  const obj=m.obj||{loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
   HUD.show('brief',{kicker:'New job',title:m.title,giver:HOMIES[m.giver].name,role:m.role,place:m.place,color:HOMIES[m.giver].shirt,lines:m.lines,
     meta:[['Job',obj],['Crew','You, '+m.crew.map(c=>HOMIES[c].name).join(', ')],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
   const close=()=>{HUD.hide('brief');UI.acts={}};
@@ -1375,7 +1374,8 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
     'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMission(i);requestLock()},
     'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
-function startMission(i){
+function startMission(i,legacy){
+  if(!legacy&&typeof missionInWorld==='function'&&missionInWorld(i))return startMissionWorld(i);/* WORLD MISSIONS: run at the real site */
   settleBorrow(true);engine(false);VAN.on=false;JOB=null;
   const m=MISSIONS[i];mode='mission';clearChars();buildLevel(m);makePlayer();
   M={i,def:m,t:m.time||0,wave:0,waveT:3,waveAge:0,got:0,smashed:0,state:'go',kills:0,cuffs:0,elapsed:0,bossDone:null,exitOpen:false};
@@ -1396,23 +1396,27 @@ function startMission(i){
 function endMission(ok,why,title){
   if(!M||M.state!=='go')return;M.state=ok?'won':'lost';audioState('end',ok);running=false;releaseLock();subQ.length=0;subT=0;UI.sub=null;setPrompt(null);showMarker(null);
   const m=M.def,secs=Math.round(M.elapsed);
-  if(ok){prog.done[M.i]=true;addTrust(m.type==='boss'?(M.bossDone==='cuffed'?20:8):16)}
+  if(ok){prog.done[M.i]=true;addTrust(m.type==='boss'?(M.bossDone==='cuffed'?20:8):m.hood==='river'?14:16);if(M.world)wmWin(m)}
   const head=ok?pick(['Nobody is proud of this.','That was necessary. Unfortunately.','Home in time for dinner.']):(title||'The guys carried you to the van.');
-  const end=ok?{gary:"Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry.",rick:"Coach Rick: That's fundamentals. Bring it in. Hands in. 'Trust' on three.",dave:"Big Dave: Brisket survived. Kids never saw a thing. Come eat.",doug:M.bossDone==='cuffed'?"Doug: He's agreed to coach T-ball. It's over.":"Doug: It's over. I wish he'd put his hands up."}[m.giver]:why;
+  const end=ok&&m.endLine?m.endLine:ok?{gary:"Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry.",rick:"Coach Rick: That's fundamentals. Bring it in. Hands in. 'Trust' on three.",dave:"Big Dave: Brisket survived. Kids never saw a thing. Come eat.",doug:M.bossDone==='cuffed'?"Doug: He's agreed to coach T-ball. It's over.":"Doug: It's over. I wish he'd put his hands up."}[m.giver]:why;
   const lent=ok&&M.lent&&M.lent.length;
   const res={fail:!ok,stamp:(ok?'Job done':'Job failed')+' · '+m.place,title:head,text:(lent?'Coach Rick: "Keep the carbine. Clean it Sundays." ':'')+end,canRetry:!ok,
-    stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(prog.trust)+'%']]};
+    stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(m.hood==='river'?prog.trustR:prog.trust)+'%',m.hood==='river'?'Riverside Flats':'']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
   UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMission(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
-  metaResult(ok,res,mi);
+  metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
-function finale(){releaseLock();const t=Math.round(prog.trust);
-  HUD.show('result',{stamp:'Maple Heights · One month later',title:t>=70?'Doors unlocked.':'Quiet, anyway.',goLabel:'New Saturday',
-    text:(t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence.")+' The guys still meet Saturdays. Mostly they just grill.',
-    stats:[['Trust',t+'%'],['Zip-tied',prog.cuffed||'Nobody',prog.cuffed?(prog.cuffed===1?'person':'people')+' who got a second chance':'this time'],['Regrets',prog.shotSurr||'None',prog.shotSurr?'you think about at night':'you can name']]});
-  UI.acts={'result:go':()=>{Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
-function setObj(t,lines){UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?{text:l}:{text:l[0],done:!!l[1],warn:l[2]==='warn'})}}
+function finale(){releaseLock();const t=Math.round(prog.trust),tr=Math.round(prog.trustR||0),both=MISSIONS.length>4,good=both?t>=70&&tr>=70:t>=70;
+  HUD.show('result',{stamp:(both?'Maple Heights & Riverside Flats':'Maple Heights')+' · One month later',title:good?'Doors unlocked.':'Quiet, anyway.',goLabel:'New Saturday',canRetry:both,retryLabel:'Keep driving',
+    text:(both?(good?"Kids bike to school on both sides of the river. The chop shop is a climbing gym and the scrapyard is the Second Gear Auto School; the Duke changes the oil. ":"The dens are gone on both sides of the river. People wave, a little carefully. Trust takes longer to rebuild than a fence. ")
+      +"Rosa still won't wear the polo. Earl's bike library has a waiting list. The guys still meet Saturdays. Mostly they just grill."
+      :(t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence.")+' The guys still meet Saturdays. Mostly they just grill.'),
+    stats:[['Maple trust',t+'%'],...(both?[['Riverside trust',tr+'%']]:[]),['Zip-tied',prog.cuffed||'Nobody',prog.cuffed?(prog.cuffed===1?'person':'people')+' who got a second chance':'this time'],['Regrets',prog.shotSurr||'None',prog.shotSurr?'you think about at night':'you can name']]});
+  UI.acts={'result:go':()=>{Object.assign(prog,{done:prog.done.map(()=>false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0});WM.finaleSeen=false;WM.beat=false;const s=SV();if(s){s.flags.act2Intro=false;s.flags.finale2=false;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}
+      HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()},
+    'result:retry':()=>{WM.finaleSeen=true;const s=SV();if(s){s.flags.finale2=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
+function setObj(t,lines){if(mode==='mission'&&M&&M.leaveLine)lines=[...lines,M.leaveLine];UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?{text:l}:{text:l[0],done:!!l[1],warn:l[2]==='warn'})}}
 
 /* ================= INPUT ================= */
 const cv=renderer.domElement;let locked=false;
@@ -1669,8 +1673,8 @@ function hurtEnemy(e,dmg,by,opt={}){
   if(e.state==='idle')cue('hit',e.dude,!!opt.head);
 }
 const SURR_GRACE=.7;/* seconds after hands go up during which player hits don't count as an execution */
-function surrender(e){e.state='surrender';e.surrAt=simT;e.target=null;e.last=null;dropGun(e,'surrender');if(e.boss){mouseDown=false;P.fireT=Math.max(P.fireT,.6)}equip(e.dude,null);if(e.tag)e.tag.remove();const tag=document.createElement('div');tag.className='tag surr';tag.textContent=e.boss?'THE KING SURRENDERS · zip-tie him':'HANDS UP · zip-tie';$('tags').appendChild(tag);e.tag=tag;
-  const s=speaker();if(s)radio(s,pick(LINES.surrender),true);if(e.boss)banner('HANDS UP','The King gave up. Zip-tie him.',2.5)}
+function surrender(e){e.state='surrender';e.surrAt=simT;e.target=null;e.last=null;dropGun(e,'surrender');if(e.boss){mouseDown=false;P.fireT=Math.max(P.fireT,.6)}equip(e.dude,null);if(e.tag)e.tag.remove();const tag=document.createElement('div');tag.className='tag surr';const bn=M&&M.def.boss?M.def.boss.short:'The King';tag.textContent=e.boss?bn.toUpperCase()+' SURRENDERS · zip-tie him':'HANDS UP · zip-tie';$('tags').appendChild(tag);e.tag=tag;
+  const s=speaker();if(s)radio(s,pick(LINES.surrender),true);if(e.boss)banner('HANDS UP',bn+' gave up. Zip-tie him.',2.5)}
 function killEnemy(e){cue('die',e.dude);if(e.state!=='surrender')dropGun(e,'drop');e.state='dead';equip(e.dude,null);if(e.tag){e.tag.remove();e.tag=null}if(M)M.kills++;prog.downed++;
   if(e.boss&&M)M.bossDone='down';
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
@@ -1879,6 +1883,7 @@ function moveToward(ent,gx,gz,speed,dt){
 }
 function faceTo(ent,x,z,dt,rate=8){const a=Math.atan2(x-ent.pos.x,z-ent.pos.z);let d=a-ent.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;ent.yaw+=d*Math.min(1,dt*rate)}
 function updEnemy(e,dt){
+  if(e.script&&wmScript(e,dt))return;
   const d=e.dude;
   if(e.state==='dead'){pose(d,dt,{mode:'down'});return}
   if(e.state==='cuffed'){pose(d,dt,{mode:'kneel'});return}
@@ -1914,7 +1919,7 @@ function updEnemy(e,dt){
   d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;pose(d,dt,{moving,speed:1.2,aim:e.alert});
 }
 function updAlly(a,dt){
-  if(VAN.on&&mode==='hub')return;
+  if(VAN.on&&(mode==='hub'||a.ride))return;if(a.medic&&!a.down&&wmMedic(a,dt))return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
   if(mode==='mission'&&L.nav&&aiWorld){aiAlly(a,dt);return}
@@ -2020,7 +2025,7 @@ function updPlayer(dt){
 }
 let camDist=2.7;
 function updCamera(dt){
-  if(VAN.on&&mode==='hub'){updDriveCam(dt);return}
+  if(VAN.on&&mode!=='home'){if(mode==='mission'&&M&&M.world&&wmCamera(dt))return;updDriveCam(dt);return}
   const eye=V3(P.pos.x,P.visY+(P.crouch?1.15:1.65)+P.dip.y*.35+(P.vault?-.12*Math.sin(Math.PI*P.vault.t):0),P.pos.z);
   camera.rotation.set(P.pitch,P.yaw,0);
   const gw=WEAPONS[P.cur],base=CFG.fov*(mode==='mission'&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
@@ -2047,6 +2052,7 @@ function updCamera(dt){
 /* ================= MISSION LOGIC ================= */
 function updMission(dt){
   if(!M||M.state!=='go')return;const m=M.def;let prompt=null,promptP=null,objs=[],target=null;M.elapsed+=dt;
+  if(M.world&&wmMission(dt))return;/* WORLD MISSIONS: site extras + the Riverside jobs */
   let near=null,nd=2.4;for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
   /* one "hold E" job at a time: a package pile or a stash table */
   let hold=null,holdTxt='',holdTime=1;
@@ -2104,12 +2110,12 @@ function updMission(dt){
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
 function updHub(dt){
-  if(L.ow)owUpdate(dt);
+  if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   let prompt=null,target=null;const mp=metaHubUpd(dt);
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
-    if(JOB===null)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
-    if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;setPrompt(null);openBrief(n.marker.i);return}}}
+    if(JOB===null&&!target)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
+    if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
   for(const r of destRings)if(r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
@@ -2131,7 +2137,7 @@ const MK_LOW={Packages:1,Stash:1,Grill:1};
 function markerOf(t){if(!t)return null;
   const van=t.label==='Minivan'||t.label==='Van',hub=mode==='hub';
   let kind=van?'van':hub&&JOB===null?'job':'obj',label=t.label;
-  if(hub&&JOB===null){const n=npcs.find(n=>Math.hypot(n.pos.x-t.x,n.pos.z-t.z)<.5);if(n)label=HOMIES[n.id].name+' · '+MISSIONS[n.marker.i].title}
+  if(hub&&JOB===null){const n=npcs.find(n=>Math.hypot(n.pos.x-t.x,n.pos.z-t.z)<.5);if(n)label=HOMIES[n.id].name+' · '+(n.lockTag||MISSIONS[n.marker.i].title)}
   const y=MK_LOW[t.label]?1.3:kind==='job'?2.75:2.4;
   return{id:'tgt',kind,label,x:t.x,z:t.z,screen:project(t.x,y,t.z),always:true,edge:true}}
 /* events the HUD shows once (feed lines, damage arcs) are found by diffing game counters, so combat code needs no HUD calls */
@@ -2150,7 +2156,7 @@ function hudEvents(){
 function hud(dt){
   if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
-  const drv=VAN.on&&mode==='hub',mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
+  const drv=VAN.on&&(mode==='hub'||mode==='mission'),mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
   /* crosshair spread: same formula fire() uses */
   const sp=mis?curSpread():.01;
   let nf=false;if(mis){const sm=[];for(const e of enemies)if(e.state==='surrender')sm.push(...e.dude.meshes);
@@ -2164,7 +2170,7 @@ function hud(dt){
     obj={kicker:mis?'Objective':JOB!==null?'New job · '+MISSIONS[JOB].place:'Saturday',title:obj.title,
       lines:st?obj.lines.map(l=>/^\d+:\d\d until /.test(l.text)?{...l,text:'Until reinforcements'}:l):obj.lines}}
   const markers=[];const mk=markerOf(UI.marker);if(mk)markers.push(mk);
-  markers.push(...metaMarkers());
+  markers.push(...metaMarkers(),...wmMarkers());
   if(mode==='hub'&&VAN.obj&&!VAN.on&&(!mk||mk.kind!=='van'))markers.push({id:'van',kind:'van',label:'Minivan',x:VAN.pos.x,z:VAN.pos.z,world:false});
   /* route on the minimap to the current target (recomputed by the HUD when the target moves) */
   const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
@@ -2175,13 +2181,13 @@ function hud(dt){
     const ally=x.kind==='ally',c=x.tag.className;
     tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
   HUD.update({mode:drv?'drive':mis?'mission':mode==='home'?'home':'hub',
-    player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:prog.trust,cash:metaCash(),
+    player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:wmTrust(),trustLabel:wmTrustLabel(),cash:metaCash(),
     weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!mis},
     weapons:P.weapons.map(k=>({key:WEAPONS[k].key,name:WEAPONS[k].name,type:k,active:k===P.cur})),
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
-    enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})):[],
+    enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):[],
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?1-CV.dmg*.8:1,
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?wmVanHealth():1,
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'},dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
@@ -2255,7 +2261,7 @@ function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shot
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
 function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
   try{pay=ECON.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
-    bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:prog.trust,rerun:!!M.rerun});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
+    bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:m.hood==='river'?prog.trustR:prog.trust,rerun:!!M.rerun,...(M.payX||{})});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
   /* Coach Rick lets you keep the carbine after his job */
   const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
   metaSave(true);M.pay=pay;
@@ -2489,6 +2495,583 @@ function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptor
   saveGame:()=>metaSave(true),resetSave:()=>{SAVEM.reset();metaFixSave(SV());metaSave(true)},enterHome,exitHome,openShop,openLocker,decoStart,decoStop,decoAct,
   get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},place(x,z,yaw,pitch){P.pos.set(x,0,z);collide(P.pos,.35);if(yaw!=null)P.yaw=yaw;if(pitch!=null)P.pitch=pitch;return{x:P.pos.x,z:P.pos.z}},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
 
+/* ================= RIVERSIDE JOBS: people and data (SPEC2 B.0-B.5) ================= */
+/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): a clearly temporary stand-in until the owner casts them */
+Object.assign(HOMIES,{
+  earl:{name:'Earl',giver:'earl',shirt:'#3d5a80',pants:'#5b5b5b',hair:'#d8d8d8',cap:'#3d5a80',glasses:1,mustache:1,belly:1,skin:'#8d5a3b'},
+  dee:{name:'Pastor Dee',giver:'dee',shirt:'#6a4c93',pants:'#2b2d42',hair:'#1d1d1d',glasses:1,skin:'#a8714c'},
+  rosa:{name:'Rosa',giver:'rosa',shirt:'#5fa8a0',pants:'#5fa8a0',hair:'#2a1a12',gun:'smg',medic:1,skin:'#c68e66'},
+  benny:{name:'Benny',giver:'benny',shirt:'#f4f1ea',pants:'#c9b27c',apron:1,cap:'#e86a92',belly:1,mustache:1,skin:'#f1c7a3'},
+  sal:{name:'Sal',giver:'sal',shirt:'#4a5a6a',pants:'#3a3a3a',hair:'#b8b8b8',vest:1,mustache:1,skin:'#e0b48f'}});
+/* STAND-IN: base character + outfit tint until real models are cast (see the casting list in docs). One function so the swap is one edit. */
+const GIVER_STAND_IN={earl:{base:'boss',tint:'#4f6f9a'},benny:{base:'boss',tint:'#f2d6e2'},sal:{base:'boss',tint:'#7a8796'},dee:{base:'wife',tint:'#8a6ab8'},rosa:{base:'wife',tint:'#6cc0b5'}};
+function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=people();let d=null;
+  if(pp&&s){try{d=pp.make(s.base,{})}catch(e){d=null}}
+  if(!d)return makeDude(Object.assign({},h,{giver:null}));
+  const tint=new THREE.Color(s.tint),hide=[];
+  d.root.traverse(o=>{if(o.name==='rb_crown')hide.push(o);if(o.isMesh&&!o.isSkinnedMesh&&o.material&&o.material.metalness===1)hide.push(o);
+    if(o.isSkinnedMesh&&o.material){const one=m=>{const c=m.clone();c.color=c.color.clone().lerp(tint,.45);return c};o.material=Array.isArray(o.material)?o.material.map(one):one(o.material)}});
+  for(const o of hide)o.visible=false;d.standIn=id;return d}
+
+const RIVER_JOBS=[
+ {id:'earl',giver:'earl',hood:'river',role:'Earl · Retired, Route 9 Bus, 36 Years',title:'End of the Line',place:'The Spoke Shop, Dock St',
+  lines:["Thirty-six years I drove the number nine. Never late once. Know every kid in this neighborhood by their stop.",
+         "Somebody's been stealing their bikes. Clipping locks right off the school racks. And the converters off every car on 3rd Street.",
+         "It all goes to a warehouse on Dock Street they call the Spoke Shop. Six bikes in there belong to kids I know by name. Get 'em back. If you see converters, grab those too."],
+  crew:['gary','dave'],weapons:['pistol','shotgun','rifle'],type:'loot',goal:6,arms:{pistol:45,nailer:20,smg:20,shotgun:15},
+  obj:'Carry the 6 stolen bikes out to your ride. Converters are a bonus. A pickup bed carries more.',
+  radio:[['earl',"That's the place. Used to be a mattress outlet. Nobody bought a mattress there either."],['gary',"Six bikes. Carry each one out to the van. I'll keep the list."],['dave',"Converters are a bonus. They're heavy. Lift with your legs."]],
+  pickupLines:["Tasha's. She's been walking to school for a month.","That one's the Okafor twins'. They share it. Mostly they fight over it.","Little Danny's. Still has the playing card in the spokes.","Three left. Earl says the red one's got a bell.","That's the red one. Hear that bell? Earl's crying a little.","That's all six. Back to the van."],
+  bonusLines:["Converter. Mr. Hollis on 3rd is going to be so happy.","Another one. These things are worth more than my first car.","Three converters. Earl's doing math on a napkin.","That's every converter. The bike library has a budget now."],
+  endLine:"Earl: Thirty-six years and that's the best stop I ever made. I'm starting a bike library. Free. Bring 'em back by Sunday."},
+ {id:'dee',giver:'dee',hood:'river',role:'Pastor Dee · Youth Pastor, Riverside Community Church',title:'Fellowship Hall',place:'Spin City Laundromat, Main St',
+  lines:["I run the youth group. Basketball Tuesdays, homework Wednesdays, pizza whenever I can afford it.",
+         "Three of my kids have been missing Tuesdays. They're standing outside Spin City Laundromat being paid to watch for cars. Twelve years old.",
+         "There's a back room. A courier comes by and collects. I need you to watch first, find out who's who, and then go in. My kids walk away from this. That part isn't negotiable."],
+  crew:['gary','rick','doug'],weapons:['pistol','shotgun','rifle'],type:'stakeout',stake:{ids:3,watchT:1.5,maxT:120,alertDist:12},
+  arms:{pistol:40,smg:40,shotgun:20},boss:{name:'THE COURIER',short:'The Courier',hp:150,gun:'smg',look:{shirt:'#e0a030',pants:'#2a2a2a',hood:1,shoes:'#f2f2f2'},surrBias:.6},
+  obj:'Watch the laundromat and ID the lookouts and the courier. Then go in and smash the stash.',
+  radio:[['doug',"Park across the street. Engine off. Nobody eat anything crunchy."],['dee',"Look at each of them. Hold your aim on them, nice and steady. Find me the courier."],['gary',"I brought snacks. They're not crunchy. They're string cheese."]],
+  endLine:"Pastor Dee: Three kids at basketball tonight. The courier's nineteen. Sal says he can start at the shop Monday."},
+ {id:'rosa',giver:'rosa',hood:'river',role:'Rosa · ER Nurse, Nights · Mom of Two',title:'Garden Variety',place:'Riverside Community Garden',
+  lines:["I work nights in the ER. Days, I sleep four hours and then I'm in that garden with my kids. Lucia's growing tomatoes. Mateo's growing one very serious pumpkin.",
+         "The Duke's crew cuts through it. They've been stashing things under the compost. Yesterday they told me they're going to pave it for a parking lot. Saturday is Plant Day. Forty families.",
+         "I've been doing everything alone for six years. This Saturday I'd like some help. I'll bring my own gun, and I'll patch you up when you pull something. You will pull something."],
+  crew:['gary','rick','dave','doug','rosa'],self:true,weapons:['pistol','shotgun','rifle'],type:'waves',waves:[6,8,10],bedHp:60,arms:{pistol:35,smg:30,shotgun:20,rifle:15},
+  obj:'Hold the community garden through 3 waves. Keep them off the beds.',
+  radio:[['rosa',"Families are in the church hall. We hold the garden. Stay off the beds, please, I mean it."],['rick',"Set up behind the shed. Make them come to us."],['dave',"If anybody touches that pumpkin I'm going to lose my religion."]],
+  endLine:"Rosa: Forty families planted today. You guys are idiots and I love you. Fine. I'll take the polo."},
+ {id:'benny',giver:'benny',hood:'river',role:"Benny · Benny's Brain Freeze, 22 Years on the Route",title:'Brain Freeze',place:"Benny's route, Riverside Flats",
+  lines:["Twenty-two years I drove this route. Last summer the Duke's guys started 'taxing' me. Then they slashed my tires. Then they took my cash box.",
+         "I stopped coming. You know what a summer with no ice-cream truck does to a neighborhood? Neither did I. It's bad.",
+         "First run back is Saturday, ending at the basketball court. Free cones. I need an escort. Follow me close. If I stop, it's because somebody's in the road, and that somebody is not getting a cone."],
+  crew:['gary','dave','rosa'],weapons:['pistol','shotgun','rifle'],type:'escort',
+  route:[[213,21],[205,21],[205,35],[189,35],[157,35],[157,21],[197,21]],truck:{type:'workvan',paint:'#f4eef4',hp:300,speed:6,waitDist:28},
+  ambush:[{at:2,n:4,from:[[187,30],[191,40],[181,37]]},{at:3,n:5,from:[[155,30],[155,42],[160,37]]},{at:5,n:5,from:[[176,18],[186,24],[170,24]]}],
+  chase:{max:19,surrBias:.8},arms:{pistol:45,smg:35,shotgun:20},
+  obj:"Escort Benny's truck to the basketball court.",
+  radio:[['benny',"Stay on my bumper. Not literally. It's a new bumper."],['dave',"If we get through this, I'm getting the Rocket Pop."],['rosa',"Nobody eats ice cream in my van. Your van. Anybody's van."]],
+  endLine:"Benny: Two hundred and eleven free cones. A record. The Duke's going to hear about this, and I hope he's lactose intolerant."},
+ {id:'duke',giver:'earl',hood:'river',role:'Earl · Retired, Still Never Late',title:'The Duke',place:'The scrapyard on Dock St',
+  lines:["The Duke runs it all out of the scrapyard on Dock Street. Bikes, converters, the lookouts, the 'taxes.' His cousin was your Porch Pirate King.",
+         "He keeps a fast car by the back gate. Folks say nobody's ever caught him on the road.",
+         "You give him the chance to put his hands up. Same deal as last time. Then you catch him. I'll ride shotgun. I know every shortcut in this neighborhood."],
+  crew:['gary','rick','dave','doug','rosa'],weapons:['pistol','shotgun','rifle'],type:'boss',
+  boss:{name:'THE DUKE OF CATALYTIC CONVERTERS',short:'The Duke',hp:380,gun:'double',look:{shirt:'#1f3b4d',pants:'#111',crown:1,shades:1,scale:1.15,shoes:'#c0c0c0'},flee:.5},
+  chase:{type:'sedan',color:'#1c1c22',max:27,passenger:'smg'},arms:{rifle:30,smg:25,double:15,shotgun:15,revolver:15},
+  obj:'Find the Duke in the scrapyard. Give him the chance to surrender. If he runs, catch him.',
+  radio:[['earl',"Back gate's got a car parked behind it. That's his ride."],['doug',"Yard first, office second. He's in the office."],['rosa',"If he runs, we follow. I'm not doing paperwork on a man who got away."]],
+  endLine:"Earl: Thirty-six years, the number nine was never late. Today the Duke was. Folks are already calling it the Second Gear Auto School. I like that."}];
+if(WORLD)MISSIONS.push(...RIVER_JOBS);
+Object.assign(MK_LOW,{Bike:1,Converter:1,Shed:1,'Stash table':1});
+/* SPEC2 B.0 unlock table (owner decision F.1: the bridge opens after Rick's job, so Riverside interleaves with Maple; the Duke waits for Maple to be done) */
+const RIVER_TRUST_GATE={dee:15,rosa:25,benny:35,duke:50};
+function jobLock(i){const m=MISSIONS[i];if(!m)return 'no such job';if(prog.done[i])return null;
+  if(i<4)return i>0&&!prog.done[i-1]?'locked':null;
+  if(!WORLD||!prog.done[1])return 'bridge';if(i>4&&!prog.done[i-1])return 'locked';
+  const g=RIVER_TRUST_GATE[m.id];if(g&&(prog.trustR||0)<g)return 'trust';
+  if(m.id==='duke'&&!prog.done.slice(0,4).every(Boolean))return 'maple';return null}
+const jobAvailable=i=>!jobLock(i);
+
+/* ================= WORLD MISSIONS (SPEC2 A.8 / layer W3): a job runs at its real site in the open world ================= */
+/* startMission(i) hands off to startMissionWorld(i) when missionInWorld(i): no level swap. activateSite() fills L.items/stashes/spawns/...
+   from WORLD.sites[id] with fresh meshes, builds an AI nav for the site window (everything outside it is a wall, so enemies are leashed
+   to it) and the exit ring sits beside the dad's own vehicle. "Keep driving" on the result card goes back to the hub where he stands.
+   CFG.inWorld=false (or MISSIONS[i].inWorld=false) keeps the old separate-level path for the Maple jobs. */
+const WM={objs:[],navCache:new Map(),finaleSeen:false,last:null,beat:false};
+function missionInWorld(i){const m=MISSIONS[i];if(!m||!WORLD||!OW())return false;if(m.hood==='river')return true;return CFG.inWorld!==false&&m.inWorld!==false&&!!WORLD.sites[m.id]}
+function wmDests(lvl){/* rings for jobs whose start is not the site's own park spot: Dee's stakeout spot, Benny's depot */
+  const P_=WORLD.places,tc_=t=>t*TILE+TILE/2;const ON_STREET={earl:[166,63],rosa:[200,35],duke:[192,63],benny:[217,21]};/* the Riverside lots are fenced: their rings sit on the street at the gate */
+  MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id}})}
+function wmAdd(o,solid){L.group.add(o);WM.objs.push(o);if(solid)o.traverse(m=>{if(m.isMesh){L.solids.push(m);(WM.solids||(WM.solids=[])).push(m)}});return o}
+function wmClear(){for(const o of WM.objs)if(o.parent)o.parent.remove(o);WM.objs=[];if(WM.solids&&L){const s=new Set(WM.solids);L.solids=L.solids.filter(m=>!s.has(m))}WM.solids=[];
+  if(L&&WM.cols){const s=new Set(WM.cols);L.colliders=L.colliders.filter(c=>!s.has(c));L._hc=null}WM.cols=[];
+  if(L&&L.pickups){for(const p of L.pickups)if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh);L.pickups=[]}
+  if(P.carry){wmDrop()}wmBino(false)}
+function wmCol(c){L.colliders.push(c);(WM.cols||(WM.cols=[])).push(c);return c}
+/* ---- props for the site entities (world-scale, built once per activation) ---- */
+function wmPile(x,z){const g=new THREE.Group();const C=['#b8874f','#c99c66','#a77a44','#d1a874'];
+  for(let i=0;i<6;i++){const w=rand(.35,.6),h=rand(.25,.42),d=rand(.35,.55),b=box(w,h,d,C[i%4],rand(-.38,.38),h/2+(i>2?.3:0),rand(-.38,.38),g);b.rotation.y=rand(-.5,.5);box(w+.01,.04,.08,'#c9b98f',b.position.x,b.position.y+h/2,b.position.z,g).rotation.y=b.rotation.y}
+  g.position.set(x,0,z);return g}
+function wmStash(x,z){const g=new THREE.Group();box(1.8,.08,1.1,'#5a4636',0,.81,0,g);for(const[a,b]of[[-.8,-.45],[.8,-.45],[-.8,.45],[.8,.45]])box(.07,.78,.07,'#3d2f24',a,.39,b,g);
+  const bags=[];for(let i=0;i<4;i++)bags.push(box(.3,.16,.22,'#f1f1f1',x-.5+i*.33,.93,z+rand(-.2,.2)));bags.push(box(.25,.12,.18,'#c0c0c0',x+.6,.91,z-.3));box(.45,.05,.3,'#2d6a3a',.3,.87,.25,g);
+  g.position.set(x,0,z);return{g,bags}}
+function wmAmmo(x,z){const g=new THREE.Group();box(.7,.4,.45,'#3f5a33',0,.2,0,g);box(.72,.06,.47,'#ffc94a',0,.34,0,g);g.position.set(x,0,z);return g}
+const BIKE_COLS=['#2f6fd0','#2aa36b','#f0a020','#7b4bc0','#e0452e','#ffd23f'];
+function wmBike(col,lean){const g=new THREE.Group(),fr=new THREE.MeshStandardMaterial({color:lin(col),roughness:.35,metalness:.4}),tyre=new THREE.MeshStandardMaterial({color:lin('#1a1a1a'),roughness:.9}),chrome=new THREE.MeshStandardMaterial({color:lin('#c8ccd0'),roughness:.25,metalness:.9});
+  const wheel=new THREE.TorusGeometry(.31,.035,8,22),spoke=new THREE.CylinderGeometry(.008,.008,.6,4);
+  for(const x of[-.52,.52]){const w=new THREE.Mesh(wheel,tyre);w.position.set(x,.34,0);g.add(w);for(let k=0;k<3;k++){const s=new THREE.Mesh(spoke,chrome);s.position.set(x,.34,0);s.rotation.z=k*Math.PI/3;g.add(s)}}
+  const tube=(ax,ay,bx,by,r=.022,m=fr)=>{const l=Math.hypot(bx-ax,by-ay),t=new THREE.Mesh(new THREE.CylinderGeometry(r,r,l,6),m);t.position.set((ax+bx)/2,(ay+by)/2,0);t.rotation.z=Math.atan2(bx-ax,-(by-ay))+Math.PI;g.add(t);t.castShadow=true;return t};
+  tube(-.52,.34,-.05,.36);tube(-.05,.36,.4,.68);tube(-.12,.72,.4,.68);tube(-.52,.34,-.12,.72);tube(-.05,.36,-.12,.72);tube(.52,.34,.4,.68,.02,chrome);tube(.4,.68,.36,.86,.02,chrome);
+  const bar=new THREE.Mesh(new THREE.CylinderGeometry(.016,.016,.5,6),chrome);bar.rotation.x=Math.PI/2;bar.position.set(.36,.86,0);g.add(bar);
+  box(.24,.05,.1,'#222',-.13,.78,0,g);g.rotation.x=lean||0;g.traverse(m=>{if(m.isMesh)m.castShadow=true});return g}
+function wmConverter(){const g=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:lin('#9a9ca0'),roughness:.35,metalness:.85}),rust=new THREE.MeshStandardMaterial({color:lin('#7a4a2a'),roughness:.8,metalness:.3});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.42,14),m);body.scale.set(1,1,.6);body.rotation.z=Math.PI/2;body.position.y=.16;g.add(body);
+  for(const s of[-1,1]){const c=new THREE.Mesh(new THREE.CylinderGeometry(.05,.13,.12,10),m);c.rotation.z=-s*Math.PI/2;c.position.set(s*.27,.16,0);g.add(c);const p=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.18,8),rust);p.rotation.z=Math.PI/2;p.position.set(s*.42,.16,0);g.add(p)}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+/* ---- nav for a window of the world grid: outside the window is wall, world-only solids map to the legend the AI knows ---- */
+const WM_NAVMAP={r:'#',x:'#',A:'#','~':'#','|':'#','!':'#',G:'#',z:'#',o:'f','&':'c',H:'#',R:'#',U:'#'};
+function wmNav(w){if(!L||!window.HT||!HT.AI)return null;const key=w.x0+','+w.z0+','+w.x1+','+w.z1+(WORLD.bridgeOpen?'b':'');let n=WM.navCache.get(key);if(n)return n;
+  const W=L.W,H=L.H,g=[];for(let z=0;z<H;z++){const row=new Array(W);for(let x=0;x<W;x++){if(x<w.x0||z<w.z0||x>w.x1||z>w.z1){row[x]='#';continue}const c=L.g[z][x];row[x]=WM_NAVMAP[c]||c}g.push(row)}
+  const bx0=w.x0*TILE,bz0=w.z0*TILE,bx1=(w.x1+1)*TILE,bz1=(w.z1+1)*TILE;
+  const cols=L.colliders.filter(c=>!c.off&&c.x1>bx0&&c.x0<bx1&&c.z1>bz0&&c.z0<bz1&&c.x1-c.x0<60&&c.z1-c.z0<60&&!(c.ob)&&c!==VAN.col);
+  const t0=performance.now();n=HT.AI.buildNav(g,{colliders:cols,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});n._ms=performance.now()-t0;WM.navCache.set(key,n);return n}
+function wmWindow(cx,cz,r){/* tiles around a world point, clamped to the map */return{x0:Math.max(1,tx(cx)-r),z0:Math.max(1,tx(cz)-r),x1:Math.min(L.W-2,tx(cx)+r),z1:Math.min(L.H-2,tx(cz)+r)}}
+function wmSetWindow(w){L.win=w;L.nav=wmNav(w);if(M)aiStart(M.def)}
+function wmSnap(x,z){/* nearest walkable tile centre to a world point */const gx=tx(x),gz=tx(z);for(let r=0;r<6;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;const X=gx+dx,Z=gz+dz;if(walkable(X,Z)&&!WM_NAVMAP[L.g[Z][X]])return{x:tileC(X),z:tileC(Z)}}return{x,z}}
+/* ---- site activation ---- */
+function activateSite(st){const lvl=L;lvl.items=[];lvl.bonus=[];lvl.stashes=[];lvl.ammo=[];lvl.spawns=[];lvl.waveSpawns=[];lvl.boss=null;lvl.grill=null;lvl.pickups=lvl.pickups||[];
+  const bike=st.id==='earl';
+  st.items.forEach((p,k)=>{const mesh=bike?wmBike(BIKE_COLS[k%6],rand(-.06,.06)):wmPile(p.x,p.z);if(bike){mesh.position.set(p.x,0,p.z);mesh.rotation.y=rand(0,6.28)}wmAdd(mesh);lvl.items.push({x:p.x,z:p.z,mesh,got:false,k})});
+  for(const p of st.bonus){const mesh=wmConverter();mesh.position.set(p.x,0,p.z);mesh.rotation.y=rand(0,6.28);wmAdd(mesh);lvl.bonus.push({x:p.x,z:p.z,mesh,got:false})}
+  for(const p of st.stashes){const s=wmStash(p.x,p.z);wmAdd(s.g,true);for(const b of s.bags)wmAdd(b);lvl.stashes.push({x:p.x,z:p.z,prog:0,done:false,bags:s.bags});wmCol({x0:p.x-.9,z0:p.z-.55,x1:p.x+.9,z1:p.z+.55,h:.85,s:'wood'})}
+  for(const p of st.ammo){lvl.ammo.push({x:p.x,z:p.z,mesh:wmAdd(wmAmmo(p.x,p.z)),got:false})}
+  for(const p of st.spawns)lvl.spawns.push({x:p.x,z:p.z,boss:!!p.boss});
+  for(const p of st.waveSpawns)lvl.waveSpawns.push({x:p.x,z:p.z});
+  if(st.grill){lvl.grill={x:st.grill.x,z:st.grill.z};if(st.bounce)lvl.bounce={x:st.bounce.x,z:st.bounce.z}}
+  wmSetWindow(st.win)}
+function wmExitAt(car){/* the exit ring beside the dad's own vehicle, kerb side first */const e=car||VAN,r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);let p=null;
+  const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),col=e.col,sv=col&&{x0:col.x0,z0:col.z0,x1:col.x1,z1:col.z1,ob:col.ob};if(col)Object.assign(col,VAN_OFF,{ob:null});
+  for(const[a,s]of[[0,S.w/2+1.05],[0,-(S.w/2+1.05)],[-.8,S.w/2+1.05],[.8,-(S.w/2+1.05)],[-(S.l/2+.9),0]]){const q=e.pos.clone().addScaledVector(f,a).addScaledVector(r,s);
+    if(walkable(tx(q.x),tx(q.z))&&!solidAt(q.x,q.z,.4,0)&&Math.hypot(q.x-e.pos.x,q.z-e.pos.z)>S.w/2+.6){p=q;break}}
+  if(col)Object.assign(col,sv);if(!p)p=e.pos.clone().addScaledVector(r,S.w/2+1.05)
+  L.exit={x:p.x,z:p.z};if(!L.exitRing||!L.exitRing.parent){const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));L.exitRing=wmAdd(ring)}
+  L.exitRing.position.set(p.x,groundAt(p.x,p.z)+.04,p.z);L.exitRing.visible=false}
+function ensureWorld(){if(L&&L.ow&&L.def===WORLD)return;clearChars();buildLevel(HUB);makePlayer();makeHubVan()}
+/* the dad's vehicle for the job: the one he drove up in; brought to the ring when he skipped the drive */
+function wmCarFor(i){const d=L.dests&&L.dests[i];let e=CV||(WM.last&&L.cars&&L.cars.includes(WM.last)?WM.last:null)||VAN;
+  if(d&&Math.hypot(e.pos.x-d.x,e.pos.z-d.z)>30){const wasIn=CV===e;if(wasIn)stopDriving();e=VAN;const q=wmSnapRoad(d.x,d.z);e.pos.set(q.x,0,q.z);e.yaw=q.yaw;owStopCar(e);syncCar(e)}
+  return e}
+function wmSnapRoad(x,z){const G=OW()&&OW().roads();if(!G)return{x,z,yaw:-Math.PI/2};const r=G.nearestRoad(x,z);if(!r||r.dist>14)return{x,z,yaw:-Math.PI/2};const A=G.nodes[r.a],B=G.nodes[r.b],dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1;
+  return{x:r.x-dz/l*1.5,z:r.z+dx/l*1.5,yaw:Math.atan2(-dx/l,-dz/l)}}
+function startMissionWorld(i,o={}){const m=MISSIONS[i];ensureWorld();
+  settleBorrow(true);if(L.pickups){for(const p of L.pickups)if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh);L.pickups=[]}
+  wmClear();JOB=null;destRings.forEach(r=>r.visible=false);
+  const st=WORLD.sites[m.id]||null,car=wmCarFor(i);WM.last=car;
+  const stay=(m.type==='escort'||m.type==='stakeout')&&!o.raid;/* the dad stays at the wheel */
+  if(CV&&(!stay||CV!==car))exitCar();
+  mode='mission';clearChars();makePlayer();
+  M={i,def:m,t:m.time||0,wave:0,waveT:3,waveAge:0,got:0,smashed:0,state:'go',kills:0,cuffs:0,elapsed:0,bossDone:null,exitOpen:false,world:true,site:st,car,phase:'go',leaveT:8,payX:{}};
+  L.win=null;L.nav=null;
+  if(st&&!(m.type==='stakeout'&&!o.raid)&&m.type!=='escort')activateSite(st);
+  else{L.items=[];L.bonus=[];L.stashes=[];L.ammo=[];L.spawns=[];L.waveSpawns=[];L.boss=null;L.grill=null;const c=car.pos;wmSetWindow(wmWindow(c.x,c.z,14))}
+  wmExitAt(car);
+  const hud_=st&&!stay?st.huddle:null;
+  if(hud_){P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
+  resetMove();P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
+  FX.clear();setLoadout(missionLoadout(i),null);metaAmmo();metaMissionStart(i);
+  const crew=m.crew.filter(c=>c!=='rosa'||m.self||(SV()?SV().crew.rosa:prog.done[6]));
+  {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
+   crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);const a=spawnAlly(c,P.pos.x+r.x*2.2*side+f.x*(1.8+row*1.3),P.pos.z+r.z*2.2*side+f.z*(1.8+row*1.3));if(c==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
+  aiStart(m);
+  for(const s of L.spawns){const e=spawnEnemy(s.x,s.z,s.boss);e.home={x:s.x,z:s.z};if(s.boss){L.boss=e;wmBossLook(e,m.boss)}}
+  if(stay&&CV!==car)enterCar(car);
+  if(stay){for(const a of allies){a.ride=true;a.dude.root.visible=false}}
+  rebuildTargets();
+  const J=WJ[m.id];if(J&&J.start)J.start(o);
+  if(!o.quiet)m.radio.forEach(([w,t])=>radio(w,t));
+  banner(m.title.toUpperCase(),m.place,3.4);prog.missionsRun++;running=true;canvasFocus();audioState('mission');
+  return M}
+/* a mission boss with its own look, hp, gun and name (SPEC2 B.0 "mission bosses generalise the hard-coded King") */
+function wmBossLook(e,b){if(!b)return;scene.remove(e.dude.root);const d=makeDude(Object.assign({},b.look));if(b.look&&b.look.scale&&!d.rb)d.root.scale.setScalar(b.look.scale);
+  e.dude=d;e.gun=b.gun||e.gun;equip(d,e.gun,{gold:!!(b.look&&b.look.crown)});addChar(e);d.root.position.copy(e.pos);e.hp=e.maxhp=e.maxHp=b.hp;e.role=AI.roleFor(e.gun,true);e.surrBias=b.surrBias||0;
+  if(e.tag)e.tag.textContent=b.name}
+/* result card: "Keep driving" puts you back in the world beside your vehicle; a failed job retries at its site */
+function wmResult(ok,res,mi){const keep=()=>wmKeepDriving();
+  if(ok){res.retryLabel='Keep driving';res.canRetry=true;UI.acts['result:retry']=keep}
+  else{res.canRetry=true;res.retryLabel=M&&M.checkpoint?'Retry the chase':'Retry';const cp=M&&M.checkpoint;UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,cp?{checkpoint:cp}:{});requestLock()}}}
+function wmKeepDriving(){HUD.hide('result');UI.acts={};const m=M,car=(m&&m.car)||VAN,cuffs=m?m.cuffs:0,tow=m&&m.towed;wmClear();
+  OWS.ret=null;if(tow){const a=WORLD.places.autoBay||WORLD.places.auto;OWS.ret={x:a.x,z:a.z-4,yaw:-Math.PI/2}}else if(car===VAN)OWS.ret={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};
+  enterHub();
+  if(car!==VAN&&!tow&&L.cars&&L.cars.includes(car)){const r=V3(Math.cos(car.yaw),0,-Math.sin(car.yaw));P.pos.copy(car.pos).addScaledVector(r,-(carSize(car).w/2+.9));collide(P.pos,.35);P.yaw=car.yaw;for(const a of allies){a.pos.copy(P.pos).add(V3(rand(-1.5,1.5),0,rand(1,2)));collide(a.pos,.35)}}
+  if(tow){HUD.feed("Sal towed the van to Dad's Auto. Patched it up, on the house this once.",'info');if(VAN.car)VAN.car.hp=VAN.car.stats.hp}
+  if(cuffs)HUD.feed("Officer Dana's cruiser picked them up.",'info');
+  canvasFocus();requestLock()}
+/* ---- per frame: runs at the top of updMission for every job in the world ---- */
+function wmMission(dt){const m=M.def;
+  wmLeash();wmMedicTick(dt);if(M.chase)chaseUpdate(dt);if(!M||M.state!=='go')return true;
+  if(wmLeaving(dt))return true;
+  const J=WJ[m.id];if(!J||!J.upd)return false;/* the Maple jobs: the classic updMission branches run on the activated site */
+  wmFrame(dt,J);return true}
+/* enemies leave the site window only to come back to their spawn (SPEC2 A.8 leash) */
+function wmLeash(){const w=L.win;if(!w)return;for(const e of enemies){if(e.state!=='idle'||e.script||!e.home||e.noLeash)continue;const gx=tx(e.pos.x),gz=tx(e.pos.z);
+  if(gx<w.x0||gz<w.z0||gx>w.x1||gz>w.z1)e.script={kind:'home'}}}
+/* more than 30 m outside the site: 8 s to come back (not during chases, escorts or the stakeout) */
+function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
+  const b=st.box,q=VAN.on?CV.pos:P.pos,dx=Math.max(b.x0-q.x,0,q.x-b.x1),dz=Math.max(b.z0-q.z,0,q.z-b.z1);
+  if(Math.hypot(dx,dz)>30){M.leaveT-=dt;M.leaveLine=['Get back to the job ('+Math.max(0,Math.ceil(M.leaveT))+')',false,'warn'];
+    if(M.leaveT<=0){endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
+/* scripted enemy movement (hooked at the top of updEnemy): walking home, the Duke running to his car, a driver bailing out */
+function wmScript(e,dt){const s=e.script,d=e.dude;if(!s)return false;if(e.state==='dead'||e.state==='cuffed'||e.state==='surrender'){e.script=null;return false}
+  let moving=false;s.t=(s.t||0)+dt;
+  if(s.kind==='incar'){d.root.position.set(e.pos.x,-60,e.pos.z);return true}
+  if(s.kind==='home'){/* back along a tile route (the world GPS solver) to his spawn */if(!s.pts){const g=OW()&&OW().gps({x:e.pos.x,z:e.pos.z},e.home);s.pts=g?g.points.slice(1):[e.home];s.k=0}
+    const t=s.pts[Math.min(s.k,s.pts.length-1)];if(Math.hypot(t.x-e.pos.x,t.z-e.pos.z)<1.2&&s.k<s.pts.length-1)s.k++;
+    const dx=t.x-e.pos.x,dz=t.z-e.pos.z,l=Math.hypot(dx,dz);if(l>.3){e.pos.x+=dx/l*3.4*dt;e.pos.z+=dz/l*3.4*dt;collide(e.pos,.35);moving=true}faceTo(e,t.x,t.z,dt);const w=L.win,gx=tx(e.pos.x),gz=tx(e.pos.z);
+    if(!moving||!w||(gx>w.x0+1&&gz>w.z0+1&&gx<w.x1-1&&gz<w.z1-1)){e.script=null;e.alert=false;e.target=null;e.last=null;if(e.ai){e.ai.mode='idle';e.ai.lkp=null}}}
+  else if(s.kind==='to'){moving=moveToward(e,s.x,s.z,s.speed||4.6,dt);faceTo(e,s.x,s.z,dt);if(Math.hypot(e.pos.x-s.x,e.pos.z-s.z)<1.6||(!moving&&s.t>1)){e.script=null;if(s.then)s.then(e)}}
+  else if(s.kind==='flee'){/* run 25 m away from the dad, then give up (surrBias) or fight */const ax=e.pos.x-P.pos.x,az=e.pos.z-P.pos.z,l=Math.hypot(ax,az)||1;
+    if(!s.from)s.from={x:e.pos.x,z:e.pos.z};const run=Math.hypot(e.pos.x-s.from.x,e.pos.z-s.from.z);
+    if(run<25&&s.t<6){let gx_=e.pos.x+ax/l*4,gz_=e.pos.z+az/l*4;if(!walkable(tx(gx_),tx(gz_))){gx_=e.pos.x-az/l*4*(s.side||(s.side=Math.random()<.5?1:-1));gz_=e.pos.z+ax/l*4*(s.side)}
+      moving=moveToward(e,gx_,gz_,5.2,dt);faceTo(e,gx_,gz_,dt)}
+    else{const near=Math.hypot(ax,az)<15;
+      if((s.bias||0)>=1){if(near||s.t>14){e.script=null;surrender(e);return true}faceTo(e,P.pos.x,P.pos.z,dt,3)}
+      else{e.script=null;if(Math.random()<(s.bias||0)){surrender(e);return true}e.alert=true;e.last=P.pos.clone();return false}}}
+  d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;pose(d,dt,{moving,speed:1.3,aim:false});return true}
+/* Rosa, medic (SPEC2 B.0): downed crew near her are back up in 3 s instead of 9; she patches the dad up once per job */
+function wmMedicTick(dt){const r=allies.find(a=>a.id==='rosa'&&!a.down&&!a.ride);if(!r){return}
+  if(!r.medic){let best=null,bd=14;for(const a of allies)if(a!==r&&a.down&&!a.ride){const d=a.pos.distanceTo(r.pos);if(d<bd){bd=d;best=a}}if(best){r.medic=best;if(!M.medicSaid){M.medicSaid=1;radio('rosa',"Hold still. I've seen worse on a Tuesday.",true)}}}
+  if(r.medic&&!r.medic.down){r.medic=null;M.revives=(M.revives||0)+1}
+  if(!M.rosaHeal&&P.hp>0&&P.hp<30&&r.pos.distanceTo(P.pos)<10){M.rosaHeal=1;P.hp=Math.min(100,P.hp+25);radio('rosa',"Drink some water. That's an order.",true);HUD.feed('Rosa patched you up','trust','+25 health')}}
+function wmMedic(a,dt){const t=a.medic;if(!t||!t.down){a.medic=null;return false}const d=a.pos.distanceTo(t.pos);
+  if(d>1.3){const mv=moveToward(a,t.pos.x,t.pos.z,5.4,dt);faceTo(a,t.pos.x,t.pos.z,dt);a.dude.root.position.set(a.pos.x,0,a.pos.z);a.dude.root.rotation.y=a.yaw;pose(a.dude,dt,{moving:mv,aim:false});if(d<14)t.downT-=dt*2;return true}
+  t.downT-=dt*2;faceTo(a,t.pos.x,t.pos.z,dt);a.dude.root.rotation.y=a.yaw;pose(a.dude,dt,{mode:'kneel'});return true}
+function wmCuff(e){cue('interact',P.dude);e.state='cuffed';confiscate(e);if(e.tag){e.tag.remove();e.tag=null}M.cuffs++;prog.cuffed++;addTrust(4);snd('cuff');radio('you',pick(LINES.cuff),true);if(e.boss||e.driver)M.bossDone='cuffed';if(e.onCuff)e.onCuff(e)}
+/* the frame for the Riverside jobs: the job fills objectives, holds (hold E), taps (press E) and the marker; this does the rest */
+function wmFrame(dt,J){const m=M.def,F={objs:[],target:null,holds:[],taps:[],prompt:null,promptP:null};
+  let near=null,nd=2.4;if(!VAN.on)for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
+  J.upd(dt,F);if(!M||M.state!=='go')return;
+  const atRide=M.exitOpen&&!VAN.on&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2;/* heading out beats picking things up */
+  let hold=null,bd=1e9;if(!VAN.on&&!atRide)for(const h of F.holds){const dd=Math.hypot(h.x-P.pos.x,h.z-P.pos.z);if(dd<(h.r||1.8)&&dd<bd){bd=dd;hold=h}}
+  for(const h of F.holds)if(h!==hold&&h.o.prog)h.o.prog=Math.max(0,h.o.prog-dt);
+  const busy=hold&&hold.o.prog>0;let prompt=F.prompt,pp=F.promptP;
+  if(near&&!busy){prompt=KE+' · Zip-tie';if(useTap){useTap=false;wmCuff(near)}}
+  else if(hold){hold.o.prog=hold.o.prog||0;prompt='Hold '+KE+' · '+hold.txt;if(keys.e){hold.o.prog+=dt/hold.time;if(hold.o.prog>=1){hold.o.prog=0;hold.fn()}}else hold.o.prog=Math.max(0,hold.o.prog-dt);pp=hold.o.prog}
+  else{let tap=null,td=1e9;for(const t of F.taps){const dd=t.d!=null?t.d:Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td){td=dd;tap=t}}
+    if(tap&&!prompt){prompt=KE+' · '+tap.txt;if(useTap){useTap=false;tap.fn()}}}
+  if(!M||M.state!=='go')return;
+  /* in and out of cars during a job (the vehicle you came in is the way home) */
+  if(!prompt&&!M.noCars){if(VAN.on){if(Math.abs(CV.spd)<4&&M.phase!=='stake'){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}}
+    else{let c=nearCar();if(!c&&M.exitOpen&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2)c=M.car;if(c&&!(c.car&&c.car.hp<=0&&M.world)){prompt=KE+' · '+(M.exitOpen&&c===M.car?'Get in and head out':c===VAN?'Get in the minivan':c===M.car?'Get in':'Borrow '+c.name+"'s "+feel(c).label);if(useTap){useTap=false;enterCar(c);M.car=c;WM.last=c}}}}
+  if(M.exitOpen){if(!VAN.on||CV!==M.car)wmExitAt(M.car);F.objs.push(['Back to your ride and head out',false]);if(!F.target)F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Van'};
+    /* your vehicle is the exit: get in (any car you have taken counts) */
+    if(VAN.on&&Math.abs(CV.spd)<2){for(const a of allies)if(a.pos.distanceTo(P.pos)>20&&!a.ride){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(1,2));collide(a.pos,.35)}return endMission(true)}}
+  if(L.exitRing)L.exitRing.visible=!!M.exitOpen&&!VAN.on;
+  {const pk=VAN.on?null:updPickups(dt,!!prompt);if(pk){prompt=pk[0];pp=pk[1]}}
+  setObj(m.title,F.objs);setPrompt(prompt,pp);showMarker(F.target)}
+const wmNearest=(list,ok)=>{let b=null,bd=1e9;for(const o of list){if(ok&&!ok(o))continue;const x=o.pos?o.pos.x:o.x,z=o.pos?o.pos.z:o.z,dd=Math.hypot(x-P.pos.x,z-P.pos.z);if(dd<bd){bd=dd;b=o}}return b};
+/* the van and the crew: vehicles' ram/hp stats from HT.Garage (bull bar, armour) */
+function wmRamStats(e){const G=window.HT&&HT.Garage;let s=null;if(e===VAN){const vs=vanStats();if(vs&&vs.ramMult!=null)s=vs}if(!s&&G&&G.apply)try{s=G.apply(G.VEH[e.type]?e.type:'sedan')}catch(_){s=null}
+  s=s||{mass:1,ramMult:1,ramDealtFront:1,impactTakenFront:1,bulletMul:1};const S=carSize(e);return{mass:s.mass||1,ramMult:s.ramMult||1,ramDealtFront:s.ramDealtFront||1,impactTakenFront:s.impactTakenFront||1,bulletMul:s.bulletMul||1,bullBar:!!s.bullBar,len:S.l,wid:S.w,hp:s.hp||100}}
+function wmVanHit(d,why){const e=CV;if(!e||!e.car)return;const k=wmRamStats(e).bulletMul;e.car.hp=Math.max(0,e.car.hp-d*k);hurtFlash=Math.min(.4,hurtFlash+.08);if(e.car.hp<=0)wmVanDown(why)}
+function wmVanImpact(e,sp,front){if(!M||M.state!=='go'||!e.car)return;const CA=HTM('CarAI');if(!CA)return;const s=e.car.stats;if(s&&s.impactTakenFront==null)s.impactTakenFront=wmRamStats(e).impactTakenFront;CA.impact(e.car,sp,front,true);if(e.car.hp<=0)wmVanDown()}
+function wmVanDown(why){if(!M||M.state!=='go')return;if(!(M.chase||M.phase==='escort'||M.phase==='ambush'))return;M.towed=true;endMission(false,why||"The van's done. Sal's sending the tow truck. He says it's the alternator. It's not the alternator.","Out of the chase.")}
+function wmOnScreen(x,z){const p=project(x,1,z);return !p.behind&&p.x>-60&&p.x<innerWidth+60&&p.y>-60&&p.y<innerHeight+60}
+
+/* ================= CHASE (SPEC2 B.7): a getaway car on the road graph; rubber band, ram/PIT both ways, crew and passenger fire ================= */
+function chaseCollide(ch){return(p,r)=>{const s={x0:ch.col.x0,z0:ch.col.z0,x1:ch.col.x1,z1:ch.col.z1};Object.assign(ch.col,VAN_OFF);collide(p,r);Object.assign(ch.col,s)}}
+function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)return null;
+  const car=o.car||CA.make(o.type||'sedan',{x:o.x,z:o.z,yaw:o.yaw||0});if(o.hp){car.stats=Object.assign({},car.stats,{hp:o.hp});car.hp=o.hp}
+  let obj=o.obj;if(!obj){obj=makeVehicle(o.type||'sedan',o.color||'#1c1c22')||makeVanBox(o.color||'#1c1c22');wmAdd(obj,true)}
+  const ch={car,obj,col:o.col||wmCol({x0:0,z0:0,x1:0,z1:0}),label:o.label||'Getaway car',t:0,state:o.exit?'exit':'run',max:o.max||26,fireT:1.2,passenger:o.passenger||null,
+    boxT:0,seed:o.seed!=null?o.seed:(Math.random()*1e6)|0,driver:o.driver||null,driverSpec:o.driverSpec||null,onEscape:o.onEscape,onStop:o.onStop,said:{},rams:0,pits:0};
+  if(o.exit)CA.follow(car,o.exit,{speed:9,turnSpeed:7});else CA.flee(car,G,{max:ch.max,seed:ch.seed,threat:wmPursuer()});
+  M.chase=ch;M.phase='chase';M.chaseT0=M.elapsed;chaseSync(ch,0);return ch}
+function wmPursuer(){return CV?{x:CV.pos.x,z:CV.pos.z}:{x:P.pos.x,z:P.pos.z}}
+function chaseSync(ch,dt){const c=ch.car,o=ch.obj;o.position.set(c.x,groundAt(c.x,c.z),c.z);o.rotation.set(0,c.yaw+Math.PI/2,0);
+  const S=c.stats,hl=S.len/2,hw=S.wid/2,a=Math.abs(Math.sin(c.yaw)),b=Math.abs(Math.cos(c.yaw)),hx=a*hl+b*hw,hz=b*hl+a*hw;
+  Object.assign(ch.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz,ob:o.userData.mod?{x:c.x,z:c.z,fx:-Math.sin(c.yaw),fz:-Math.cos(c.yaw),hl,hw}:null});
+  const VM=HTM('Vehicles');if(o.userData.mod&&VM&&VM.update)try{VM.update(o,{speed:c.spd,steer:c.steer||0,braking:c.hp<=0||c.spd<1,headlights:false,dt:dt||1/30})}catch(_){}}
+function chaseUpdate(dt){const ch=M.chase;if(!ch||ch.state==='done')return;const c=ch.car,CA=HTM('CarAI'),G=OW().roads();ch.t+=dt;const coll=chaseCollide(ch);
+  if(ch.state==='exit'){CA.step(c,dt,{collide:coll});if(c.ai.done||c.ai.blocked&&ch.t>6){CA.flee(c,G,{max:ch.max,seed:ch.seed,threat:wmPursuer()});ch.state='run'}}
+  else if(ch.state==='run'){CA.step(c,dt,{van:wmPursuer(),G,collide:coll,canSnap:cc=>!wmOnScreen(cc.x,cc.z)});
+    if(CV&&CV.car){const e=CV,rs=wmRamStats(e),sh={x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:e.spd,hp:e.car.hp,stats:Object.assign({},rs,{hp:e.car.stats.hp||rs.hp})};const r=CA.ram(sh,c);
+      if(r){e.pos.x=e.car.x=sh.x;e.pos.z=e.car.z=sh.z;e.spd=e.car.spd=sh.spd;e.car.hp=sh.hp;syncCar(e);
+        if(r.vn>3){ch.rams++;if(r.pit)ch.pits++;if(e.bump<=0){e.bump=.4;if(ENG&&ENG.crash)ENG.crash(Math.min(1,r.vn/15));else snd('hit',Math.min(1,r.vn/15));try{FX.shake(Math.min(.45,r.vn/30))}catch(_){}if(e.obj.userData.mod)dentCar(e,{x:(c.x-e.pos.x)*-.1,z:(c.z-e.pos.z)*-.1},Math.max(6,r.vn+4))}
+          if(r.pit&&!ch.said.pit){ch.said.pit=1;radio('rick',"Textbook! I teach that to nobody!",true)}else if(!ch.said.ram){ch.said.ram=1;radio(speaker()||'you',pick(["Sal's going to love this.","That's one way to say hello.","Insurance covers this. Probably."]),true)}
+          if(e.car.hp<=0)wmVanDown()}}}
+    /* the crew in the van shoot the tyres; the passenger shoots the van */
+    if(CV){const n=allies.filter(a=>a.ride&&!a.down).length;if(n){const d=CA.crewFire({x:CV.pos.x,z:CV.pos.z},c,n,dt,(v,cc)=>losClear(v.x,v.z,cc.x,cc.z));
+        if(d>0){if(!ch.said.tyres){ch.said.tyres=1;radio('gary','Aim for the tyres!',true);radio('dave','Which ones?');radio('gary','The round ones!')}
+          if(Math.random()<dt*5){const f=V3(CV.pos.x,1.6,CV.pos.z),t=V3(c.x+rand(-1,1),.6,c.z+rand(-1,1));try{FX.tracer(f,t,{ally:true});FX.muzzleFlash(f,t.clone().sub(f).normalize(),{type:'pistol'})}catch(_){}gunSnd('pistol',.35,{dist:6,pos:f,noMech:true})}}}}
+    if(ch.passenger&&CV&&c.hp>0){ch.fireT-=dt;const d=Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z);if(ch.fireT<=0&&d<25){ch.fireT=1.2;const f=V3(c.x,1.5,c.z),t=V3(CV.pos.x+rand(-1,1),1,CV.pos.z+rand(-1,1));
+        try{FX.tracer(f,t,{enemy:true});FX.muzzleFlash(f,t.clone().sub(f).normalize(),{type:'enemy'})}catch(_){}gunSnd(ch.passenger,.6,{dist:d,pos:f,noMech:true});if(Math.random()<.55)wmVanHit(3,"They shot the van to pieces. Sal's sending the tow truck.")}}
+    if(!M||M.state!=='go')return;
+    if(c.ai.escaped){ch.state='done';if(ch.onEscape)ch.onEscape();return}
+    const vd=CV?Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z):1e9;if(Math.abs(c.spd)<1&&vd<6.5&&ch.t>2)ch.boxT+=dt;else ch.boxT=0;
+    if((c.hp<=0&&(c.stopped||Math.abs(c.spd)<.5))||ch.boxT>2){ch.state='stopped';c.spd=0;chaseStopped(ch)}}
+  if(c.hp<c.stats.hp*.45&&Math.random()<dt*(c.hp<=0?10:4)){try{FX.impact(V3(c.x-Math.sin(c.yaw)*1.6,1,c.z-Math.cos(c.yaw)*1.6),V3(0,1,0),'concrete',{big:c.hp<=0,decal:false})}catch(_){}}
+  chaseSync(ch,dt)}
+/* the car is stopped: the driver and passenger bail (flee 25 m, then hands up or fight); a nav window is built around the stop */
+function chaseStopped(ch){const c=ch.car;M.payX.chaseT=Math.round(M.elapsed-(M.chaseT0||M.elapsed));M.chaseT=M.payX.chaseT;
+  banner('STOPPED',ch.boxT>2?'Boxed in. Nowhere to go.':'Smoke, steam and a very bad day.',2.2);
+  wmSetWindow(wmWindow(c.x,c.z,16));
+  const f=V3(-Math.sin(c.yaw),0,-Math.cos(c.yaw)),r=V3(Math.cos(c.yaw),0,-Math.sin(c.yaw));
+  const door=s=>{const q=wmSnap(c.x+r.x*s*1.9+f.x*.4,c.z+r.z*s*1.9+f.z*.4);return q};
+  let drv=ch.driver;const d0=door(-1);
+  if(drv){drv.pos.set(d0.x,0,d0.z);drv.state='idle';drv.dude.root.position.set(d0.x,0,d0.z)}
+  else{const ds=ch.driverSpec||{};drv=spawnEnemy(d0.x,d0.z,false);drv.gun=ds.gun||'pistol';equip(drv.dude,drv.gun);if(drv.tag)drv.tag.textContent=ds.name||'DRIVER'}
+  drv.driver=true;drv.noLeash=true;drv.script={kind:'flee',bias:ch.driver?1:(ch.driverSpec&&ch.driverSpec.surrBias)||.8};M.driver=drv;
+  if(ch.passenger){const p0=door(1),p=spawnEnemy(p0.x,p0.z,false);p.gun=ch.passenger;equip(p.dude,p.gun);p.noLeash=true;p.script={kind:'flee',bias:.5}}
+  rebuildTargets();if(ch.onStop)ch.onStop(ch)}
+function chaseObjs(F){const ch=M.chase;if(!ch)return;const c=ch.car;
+  if(ch.state==='run'||ch.state==='exit'){const gap=Math.round(Math.hypot(c.x-P.pos.x,c.z-P.pos.z));F.objs.push(['Stop '+(ch.label==='The Duke'?'the Duke':ch.label),false],['Gap '+gap+' m',false,gap>70?'warn':'']);
+    if(!VAN.on)F.objs.push(['Get in a car',false,'warn']);F.target={x:c.x,z:c.z,label:ch.label}}
+  else if(ch.state==='stopped'){const d=M.driver;if(d&&d.state!=='cuffed'&&d.state!=='dead'){F.objs.push(['Zip-tie the driver',false]);F.target={x:d.pos.x,z:d.pos.z,label:d.state==='surrender'?'Zip-tie':'Driver'}}}}
+
+/* ================= RIVERSIDE JOBS: per-job logic (WJ[id].start(o) at mission start, .upd(dt,F) every frame) ================= */
+const CARGO_CAP={minivan:8,pickup:12,workvan:12,suv:9,sedan:3,hatch:3};
+function wmCarry(kind,mesh,it){P.carry={kind,mesh,it};if(mesh.parent)mesh.parent.remove(mesh);mesh.rotation.set(0,0,0);
+  if(kind==='bike'){mesh.position.set(.55,.12,0);mesh.rotation.set(0,Math.PI/2,0)}else{mesh.position.set(0,.85,.42)}P.dude.root.add(mesh)}
+function wmDrop(){const c=P.carry;if(!c)return;if(c.mesh.parent)c.mesh.parent.remove(c.mesh);P.carry=null}
+const WJ={};
+WJ.earl={start(){M.goal=6;M.bikes=0;M.conv=0;M.cargo=new Map()},
+  upd(dt,F){const m=M.def;
+    if(P.carry){mouseDown=false;P.fireT=Math.max(P.fireT,.2);
+      const cands=[M.car,...(L.cars||[]).filter(c=>c!==M.car&&(c.type==='pickup'||c.type==='workvan'))];
+      for(const c of cands){if(!c||!c.obj)continue;const S=carSize(c),dx=P.pos.x-c.pos.x,dz=P.pos.z-c.pos.z,al=dx*-Math.sin(c.yaw)+dz*-Math.cos(c.yaw),sd=dx*Math.cos(c.yaw)+dz*-Math.sin(c.yaw);
+        const d=Math.max(0,Math.abs(al)-S.l/2)+Math.max(0,Math.abs(sd)-S.w/2);if(d>1.6)continue;const used=M.cargo.get(c)||0,cap=CARGO_CAP[c.type]||4;
+        F.taps.push({d,r:1.7,txt:used>=cap?'Full · '+used+'/'+cap:'Load the '+(P.carry.kind==='bike'?'bike':'converter')+' · '+(c===VAN?'minivan':feel(c).label)+' '+used+'/'+cap,fn:()=>wmLoad(c)})}
+      F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Van'}}
+    else{for(const it of L.items)if(!it.got)F.holds.push({x:it.x,z:it.z,r:1.7,o:it,txt:'Pick up the bike',time:1.1,fn:()=>{it.got=true;wmCarry('bike',it.mesh,it);snd('reload',.5)}});
+      for(const it of L.bonus)if(!it.got)F.holds.push({x:it.x,z:it.z,r:1.6,o:it,txt:'Pick up the converter',time:1.4,fn:()=>{it.got=true;wmCarry('conv',it.mesh,it);snd('reload',.5)}});
+      const b=wmNearest(L.items,i=>!i.got);if(b)F.target={x:b.x,z:b.z,label:'Bike'};else{const c=wmNearest(L.bonus,i=>!i.got);if(c&&!M.exitOpen)F.target={x:c.x,z:c.z,label:'Converter'}}}
+    let used=0,cap=0;for(const[c,n]of M.cargo){used+=n}cap=CARGO_CAP[M.car.type]||4;
+    F.objs.push(['Load the stolen bikes into your ride · '+M.bikes+'/'+M.goal,M.bikes>=M.goal],['Bonus: catalytic converters · '+M.conv+'/'+L.bonus.length,M.conv>=L.bonus.length]);
+    if(P.carry)F.objs.push(['Carrying a '+(P.carry.kind==='bike'?'bike':'converter')+' · load it at the '+(M.car===VAN?'minivan':feel(M.car).label),false]);
+    M.exitOpen=M.bikes>=M.goal&&!P.carry;M.payX={bikes:M.bikes,converters:M.conv};if(M.exitOpen)F.target=null}};
+function wmLoad(c){const m=M.def,used=M.cargo.get(c)||0,cap=CARGO_CAP[c.type]||4;
+  if(used>=cap){radio(speaker()||'you',c===VAN?"Van's full. A pickup bed would've taken the rest.":"That's full. Find another ride.",true);
+    const it=P.carry.it,mesh=P.carry.mesh;wmDrop();if(it){/* set it down by the van: it can still go in another ride */it.got=false;const q=wmSnap(P.pos.x+rand(-.8,.8),P.pos.z+rand(-.8,.8));it.x=q.x;it.z=q.z;mesh.position.set(q.x,0,q.z);mesh.rotation.set(0,rand(0,6.28),0);L.group.add(mesh)}return}
+  const k=P.carry.kind;wmDrop();M.cargo.set(c,used+1);snd('cuff');
+  if(k==='bike'){M.bikes++;HUD.feed('Bike recovered','info',M.bikes+'/'+M.goal);radio(M.bikes>=4&&M.bikes<=5?'earl':'gary',m.pickupLines[M.bikes-1]||'Got it.',true)}
+  else{M.conv++;HUD.feed('Converter recovered','info','+$60 for the bike library');radio('dave',m.bonusLines[M.conv-1]||'Another one.',true)}}
+
+/* ---- Pastor Dee: stakeout, then raid (SPEC2 B.2) ---- */
+const STAKE_LOOPS=[[[162,23],[168,23]],[[172,23],[178,23]],[[180,23],[185,23]],[[164,24],[176,24],[183,24],[183,23]]];
+WJ.dee={start(o){const m=M.def;M.ids=0;M.sus=0;M.susMax=0;M.clean=false;M.smashed=0;M.noCars=false;
+    if(o.raid)return wmDeeRaid(o.loud);
+    M.phase='stake';M.stakeT=0;M.frozen={x:M.car.pos.x,z:M.car.pos.z,yaw:M.car.yaw};M.sus=0;M.hPrev=!!keys.h;M.suspects=[];
+    STAKE_LOOPS.forEach((lp,k)=>{const courier=k===3,look=courier?Object.assign({},m.boss.look):{hood:1,shirt:pick(['#3b3b45','#4a3f5a','#2f4858','#5a3a3a']),pants:'#2a2a2a'};
+      const d=makeDude(look);if(!courier)d.root.scale.multiplyScalar(.8);scene.add(d.root);const pts=lp.map(([x,z])=>({x:tileC(x),z:tileC(z)}));
+      M.suspects.push({dude:d,pos:V3(pts[0].x,0,pts[0].z),yaw:0,pts,k:1,wait:rand(0,2),kind:courier?'courier':'lookout',id:false,idT:0,stepT:0,step:null})})},
+  upd(dt,F){if(M.phase==='stake')return wmStake(dt,F);if(M.phase==='walkoff')return wmWalkoff(dt,F);
+    for(const s of L.stashes)if(!s.done)F.holds.push({x:s.x,z:s.z,r:2.3,o:s,txt:'Smash the stash',time:1.4,fn:()=>{s.done=true;M.smashed++;snd('smash');s.bags.forEach(b=>{if(b.parent)b.parent.remove(b)});puff(V3(s.x,1,s.z));puff(V3(s.x,1,s.z));
+      HUD.feed('Stash smashed','info',M.smashed+'/'+L.stashes.length);radio('rick',M.smashed<L.stashes.length?'One down! One to go!':"That's the stash. Now the courier.",true)}});
+    const b=L.boss;F.objs.push(['Smash the stash tables · '+M.smashed+'/'+L.stashes.length,M.smashed>=L.stashes.length],[M.bossDone?'The Courier is '+(M.bossDone==='cuffed'?'zip-tied':'down'):'Stop the Courier',!!M.bossDone]);
+    if(b&&b.state==='surrender')F.objs.push(['Zip-tie him',false]);
+    M.exitOpen=M.smashed>=L.stashes.length&&!!M.bossDone;M.payX={ids:M.ids,cleanStakeout:M.clean};
+    if(!M.exitOpen){const s=wmNearest(L.stashes,x=>!x.done);if(s)F.target={x:s.x,z:s.z,label:'Stash'};else if(b&&!M.bossDone)F.target={x:b.pos.x,z:b.pos.z,label:b.state==='surrender'?'Zip-tie':'The Courier'}}}};
+function wmSuspectsMove(dt,speed){for(const s of M.suspects){if(s.gone)continue;const d=s.dude;let moving=false;
+    if(s.flee){moving=moveToward(s,s.flee.x,s.flee.z,speed||5.5,dt);faceTo(s,s.flee.x,s.flee.z,dt);s.fleeT=(s.fleeT||0)+dt;if(s.fleeT>(s.life||3)){s.gone=true;scene.remove(d.root)}}
+    else if(s.wait>0){s.wait-=dt;faceTo(s,M.car.pos.x,M.car.pos.z,dt,1.5)}
+    else{const t=s.pts[s.k];moving=moveToward(s,t.x,t.z,1.5,dt);faceTo(s,t.x,t.z,dt,4);if(!moving||Math.hypot(t.x-s.pos.x,t.z-s.pos.z)<.5){s.k=(s.k+1)%s.pts.length;s.wait=rand(1.5,4)}}
+    d.root.position.set(s.pos.x,0,s.pos.z);d.root.rotation.y=s.yaw;pose(d,dt,{moving,speed:moving?.6:0,aim:false})}}
+function wmStake(dt,F){const m=M.def,S=m.stake,e=CV;M.stakeT+=dt;
+  if(e===M.car){const f=M.frozen;e.pos.x=e.car.x=f.x;e.pos.z=e.car.z=f.z;e.yaw=e.car.yaw=f.yaw;e.spd=e.car.spd=0;syncCar(e)}
+  const h=!!keys.h;if(h&&!M.hPrev){M.sus+=40;radio('doug','Did you just HONK? On a STAKEOUT?',true)}M.hPrev=h;
+  wmSuspectsMove(dt);
+  /* ID: hold the binoculars (aim) on a suspect, steady, within 45 m with line of sight */
+  let watching=null;if(P.aim&&VAN.on){const cf=camFwd(),cp=camera.position;let best=1e9;
+    for(const s of M.suspects){if(s.id||s.gone)continue;const dx=s.pos.x-cp.x,dy=1.3-cp.y,dz=s.pos.z-cp.z,dd=Math.hypot(dx,dy,dz);if(dd>45)continue;
+      const ang=Math.acos(clamp((dx*cf.x+dy*cf.y+dz*cf.z)/dd,-1,1));if(ang<Math.max(.045,1.1/dd)&&ang<best&&losClear(cp.x,cp.z,s.pos.x,s.pos.z,'#htVrxA')){best=ang;watching=s}}}
+  if(watching){watching.idT+=dt;if(watching.idT>=S.watchT){watching.id=true;M.ids++;snd('cuff');
+      radio('dee',watching.kind==='courier'?"That's him. Orange jacket. That's the courier.":pick(["That's Marcus. He's twelve. He's supposed to be at basketball.","Andre. His grandma sings in my choir.","DeShawn. He owes me a book report."]),true);HUD.feed((watching.kind==='courier'?'Courier':'Lookout')+" ID'd",'info',M.ids+'/4')}}
+  /* suspicion: on foot near them, moving the van, honking */
+  let up=false;if(!VAN.on)for(const s of M.suspects)if(!s.gone&&s.pos.distanceTo(P.pos)<S.alertDist){up=true;break}
+  M.sus=clamp(M.sus+(up?35:-5)*dt,0,100);M.susMax=Math.max(M.susMax,M.sus);
+  const lk=M.suspects.filter(s=>s.kind==='lookout'&&s.id).length,cr=M.suspects.some(s=>s.kind==='courier'&&s.id);
+  F.objs.push(['ID the lookouts · '+lk+'/3',lk>=3],['ID the courier',cr],['Suspicion · '+Math.round(M.sus)+'%',false,M.sus>60?'warn':''],[Math.max(0,Math.ceil(S.maxT-M.stakeT))+' s before the pickup',false]);
+  const s=wmNearest(M.suspects,x=>!x.id&&!x.gone);if(s)F.target={x:s.pos.x,z:s.pos.z,label:s.kind==='courier'?'Suspect':'Lookout?'};
+  F.prompt=watching?'Hold right mouse · Watching':VAN.on?'Hold right mouse · Binoculars':null;F.promptP=watching?clamp(watching.idT/S.watchT,0,1):0;
+  if(VAN.on&&!watching){F.taps.push({d:0,r:1,txt:'Get out (skip to the raid)',fn:()=>wmDeeRaid(M.sus>=100)})}
+  M.noCars=true;
+  if(M.sus>=100){M.loud=true;banner('SPOTTED','The lookouts scattered. They know you are here.',2.4);radio('doug','Well. That went great. Go go go!',true);for(const q of M.suspects)if(q.kind==='lookout')q.flee={x:q.pos.x+rand(20,30),z:q.pos.z-rand(-4,4)};return wmDeeRaid(true)}
+  if(M.ids>=4||M.stakeT>=S.maxT){M.clean=M.ids>=4&&M.susMax<=60;
+    if(M.ids>=4){M.phase='walkoff';M.walkT=0;const dp=wmSnap(tileC(166),tileC(23));const d=giverModel('dee');scene.add(d.root);M.dee={dude:d,pos:V3(dp.x,0,dp.z),yaw:0,stepT:0,step:null};
+      radio('dee',"Boys. Pizza. Now.",true);banner('PASTOR DEE','Three kids walk away from this.',2.4)}
+    else wmDeeRaid(false)}}
+function wmWalkoff(dt,F){M.walkT+=dt;const d=M.dee;
+  for(const s of M.suspects)if(s.kind==='lookout'&&!s.flee&&M.walkT>1.2){s.flee={x:tileC(150+12),z:tileC(23)};s.life=6}
+  wmSuspectsMove(dt,2.2);
+  if(d){const tgt=M.walkT<2.5?M.suspects[0].pos:{x:tileC(158),z:tileC(23)};const mv=moveToward(d,tgt.x,tgt.z,2,dt);faceTo(d,tgt.x,tgt.z,dt);d.dude.root.position.set(d.pos.x,0,d.pos.z);d.dude.root.rotation.y=d.yaw;pose(d.dude,dt,{moving:mv,speed:.6,aim:false})}
+  if(CV===M.car){const f=M.frozen;CV.pos.x=CV.car.x=f.x;CV.pos.z=CV.car.z=f.z;CV.spd=CV.car.spd=0;syncCar(CV)}
+  F.objs.push(['Pastor Dee is walking her kids out',M.walkT>4]);if(M.walkT>4.5)wmDeeRaid(false)}
+function wmDeeRaid(loud){if(M.phase==='raid')return;const st=M.site,m=M.def;M.phase='raid';M.noCars=false;M.loud=!!loud;
+  for(const s of M.suspects||[])if(!s.gone){if(s.kind==='courier'||!s.flee){scene.remove(s.dude.root);s.gone=true}}
+  if(M.dee){const dd=M.dee.dude;setTimeout(()=>scene.remove(dd.root),3000);M.dee=null}
+  if(CV)exitCar();
+  activateSite(st);wmExitAt(M.car);
+  P.pos.set(st.huddle.x,0,st.huddle.z);collide(P.pos,.35);P.yaw=Math.PI;resetMove();
+  allies.forEach((a,k)=>{a.ride=false;a.dude.root.visible=true;a.pos.set(P.pos.x+(k%2?2:-2),0,P.pos.z+1.6+(k>>1));collide(a.pos,.35)});
+  for(const s of L.spawns){let x=s.x,z=s.z;if(s.boss&&loud){x=tileC(182);z=tileC(30)}const e=spawnEnemy(x,z,s.boss);e.home={x,z};if(s.boss){L.boss=e;wmBossLook(e,m.boss)}if(loud){e.alert=true;e.last=P.pos.clone()}}
+  rebuildTargets();banner(loud?'GO LOUD':'GO TIME','Smash the stash. The courier gets his chance.',2.4);radio('rick',loud?"They know we're here. Tight and fast.":"Quiet now. Two tables in the back. Courier's in the office.",true)}
+
+/* ---- Rosa: defend the community garden (SPEC2 B.3) ---- */
+WJ.rosa={start(){const m=M.def,ids=new Set(M.site.beds);M.beds=(WORLD.beds||[]).filter(b=>ids.has(b.id)).map(b=>({b,hp:m.bedHp||60,x0:b.x0*TILE,x1:(b.x1+1)*TILE,z:b.z,flat:null}));M.bedsN=M.beds.length},
+  upd(dt,F){const m=M.def,live=enemies.filter(e=>e.state==='idle'),alive=live.length,surr=enemies.filter(e=>e.state==='surrender');M.waveAge+=dt;
+    if(M.dir){const orders=M.dir.update(dt,{t:simT,threats:aiWorld?aiWorld.threats:[],alive,agents:live});
+      for(const od of orders){const e=spawnEnemy(od.x,od.z,false);e.lane=od.lane;e.wave=true;e.noLeash=true;collide(e.pos,.35)}if(orders.length)rebuildTargets();
+      if(M.dir.wave!==M.wave){M.wave=M.dir.wave;M.waveAge=0;for(const s of M.squads.values()){s.morale=1;s.lossT=-1e9}
+        banner('WAVE '+M.wave,M.wave===m.waves.length?'Last one. Rosa says the pumpkin is watching.':'Here they come. Stay off the beds.',2.2);
+        if(M.wave===2)radio('dave',"They're going for the tomatoes! Not the tomatoes!");if(M.wave===3)radio('rosa',"Last push. Then everybody gets a juice box.")}
+      if(M.dir.finished&&!surr.length)return endMission(true)}
+    else if(!alive&&M.elapsed>3){M.waveT-=dt;if(M.waveT<=0){if(M.wave>=m.waves.length&&!surr.length)return endMission(true);if(M.wave<m.waves.length){const n=m.waves[M.wave];M.wave++;M.waveT=4;banner('WAVE '+M.wave,'Here they come.',2.2);
+        for(let i=0;i<n;i++){const s=L.waveSpawns[(i+M.wave)%L.waveSpawns.length];const e=spawnEnemy(s.x+rand(-1.5,1.5),s.z+rand(-1.5,1.5),false);collide(e.pos,.35);e.alert=true;e.wave=true;e.noLeash=true;e.last=V3(L.grill.x,0,L.grill.z)}rebuildTargets()}}}
+    /* trampling: anyone walking a bed flattens it */
+    for(const e of live)for(const b of M.beds){if(b.hp<=0)continue;if(e.pos.x>b.x0-.5&&e.pos.x<b.x1+.5&&Math.abs(e.pos.z-b.z)<1.4){b.hp-=20*dt;if(b.hp<=0)wmFlatten(b)}}
+    const up=M.beds.filter(b=>b.hp>0).length;M.payX={beds:up};
+    F.objs.push(['Hold the garden · wave '+Math.max(1,M.wave)+' of '+m.waves.length,false],[alive?alive+' left this wave':surr.length?'Zip-tie the '+surr.length+' who gave up':'Next wave incoming',false],['Beds standing · '+up+'/'+M.bedsN,false,up<10?'warn':'']);
+    if(alive&&alive<=2&&M.waveAge>25){const e=wmNearest(live);F.target={x:e.pos.x,z:e.pos.z,label:'Straggler'}}
+    else if(!alive&&surr.length){const e=wmNearest(surr);F.target={x:e.pos.x,z:e.pos.z,label:'Zip-tie'}}
+    else if(!alive&&L.grill)F.target={x:L.grill.x,z:L.grill.z,label:'Shed'}}};
+function wmFlatten(b){const m=new THREE.Mesh(new THREE.PlaneGeometry(b.x1-b.x0-.3,1.5),new THREE.MeshStandardMaterial({color:lin('#5b4a33'),roughness:1}));m.rotation.x=-Math.PI/2;m.position.set((b.x0+b.x1)/2,.47,b.z);wmAdd(m);b.flat=m;
+  HUD.feed('A garden bed got trampled','bad');if(Math.random()<.5)radio('rosa',pick(["Those were Lucia's tomatoes!","Off the beds! OFF!","That's forty families' lunch, you animals."]),true)}
+
+/* ================= ESCORT (SPEC2 B.4): Benny's truck follows the route, ambushes at stop points, then the twist and the chase ================= */
+function wmTruckModel(){const o=makeVehicle('workvan','#f4eef4')||makeVanBox('#f4eef4');const S=o.userData.size||{l:5,w:2.1,h:2.3};
+  const c=document.createElement('canvas');c.width=1024;c.height=256;const x=c.getContext('2d');x.fillStyle='#f4eef4';x.fillRect(0,0,1024,256);
+  x.fillStyle='#e86a92';x.fillRect(0,196,1024,60);x.fillStyle='#7fc8e8';for(let i=0;i<14;i++){x.beginPath();x.arc(36+i*72,212,14,0,6.3);x.fill()}
+  x.font='900 92px Arial';x.textAlign='center';x.fillStyle='#e86a92';x.fillText("BENNY'S",512,96);x.fillStyle='#3a7bd5';x.font='900 70px Arial';x.fillText('BRAIN FREEZE',512,170);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const pm=new THREE.MeshStandardMaterial({map:t,roughness:.6,polygonOffset:true,polygonOffsetFactor:-2});
+  for(const s of[-1,1]){const p=new THREE.Mesh(new THREE.PlaneGeometry(S.l*.55,S.h*.36),pm);p.position.set(-S.l*.1,S.h*.52,s*(S.w/2+.03));p.rotation.y=s>0?0:Math.PI;o.add(p)}
+  const cone=new THREE.Group();const wc=new THREE.Mesh(new THREE.ConeGeometry(.42,1.1,14),new THREE.MeshStandardMaterial({color:lin('#d9a35b'),roughness:.8}));wc.rotation.x=Math.PI;wc.position.y=.55;cone.add(wc);
+  const sc=new THREE.Mesh(new THREE.SphereGeometry(.47,16,12),new THREE.MeshStandardMaterial({color:lin('#ff9ec4'),roughness:.5}));sc.position.y=1.25;cone.add(sc);
+  const ch=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),new THREE.MeshStandardMaterial({color:lin('#d0213a'),roughness:.4}));ch.position.y=1.75;cone.add(ch);
+  cone.position.set(-S.l*.15,S.h+.02,0);cone.traverse(m=>{if(m.isMesh)m.castShadow=true});o.add(cone);return o}
+WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
+    const r=m.route.map(([x,z])=>G.nearestNode(tileC(x),tileC(z)));let ids=[r[0]];for(let k=1;k<r.length;k++){const p=G.path(r[k-1],r[k]);if(p)ids.push(...p.slice(1))}
+    M.escNodes=r;const lane=G.lane(ids);M.lane=lane;
+    const y0=Math.atan2(-(lane[1].x-lane[0].x),-(lane[1].z-lane[0].z));const car=CA.make('workvan',{x:lane[0].x,z:lane[0].z,yaw:y0});car.stats=Object.assign({},car.stats,{hp:m.truck.hp});car.hp=m.truck.hp;
+    CA.follow(car,lane,{speed:m.truck.speed,waitDist:m.truck.waitDist,turnSpeed:5});
+    const obj=wmAdd(wmTruckModel(),true);M.truck={car,obj,col:wmCol({x0:0,z0:0,x1:0,z1:0})};chaseSync(M.truck,0);
+    /* the dad's car lines up behind the truck */
+    const e=M.car,b=8;e.pos.set(lane[0].x+Math.sin(y0)*b,0,lane[0].z+Math.cos(y0)*b);e.yaw=y0;owStopCar(e);syncCar(e);
+    M.phase='escort';M.amb=0;M.hold=false;M.jingleT=1;M.waitSaid=-99;sunFollow(e.pos.x,e.pos.z)},
+  upd(dt,F){const m=M.def,T=M.truck;if(!T)return;const c=T.car,CA=HTM('CarAI'),G=OW().roads();
+    if(M.phase==='escort'||M.phase==='ambush'){
+      const van=wmPursuer();CA.step(c,dt,{van,collide:chaseCollide(T),blocked:()=>M.hold});chaseSync(T,dt);
+      const vd=Math.hypot(van.x-c.x,van.z-c.z);if(!M.hold&&vd>m.truck.waitDist&&M.elapsed-M.waitSaid>10){M.waitSaid=M.elapsed;radio('benny',"I'm not going without my escort!",true)}
+      M.jingleT-=dt;if(M.jingleT<=0&&!M.hold&&c.spd>2){M.jingleT=14;wmJingle(1)}
+      const a=m.ambush[M.amb];
+      if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10)wmAmbush(a)}
+      if(M.phase==='ambush')wmAmbushTick(dt);
+      if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Rocket Pops are not.","They got the truck.");
+      if(c.ai.done&&M.phase==='escort'){M.phase='court';M.courtT=0;M.payX.truckHp=c.hp/c.stats.hp;c.spd=0;
+        const r_=V3(Math.cos(c.yaw),0,-Math.sin(c.yaw)),bp=wmSnap(c.x-r_.x*2.6,c.z-r_.z*2.6);const d=giverModel('benny');scene.add(d.root);M.bennyN={dude:d,pos:V3(bp.x,0,bp.z),yaw:0,stepT:0,step:null};
+        radio('benny',"Free cones! Line up! One per kid, two if you said thank you!",true);banner('THE COURT','Benny is handing out cones.',2.2)}
+      const hp=Math.round(c.hp/c.stats.hp*100);F.objs.push([M.phase==='ambush'?'Ambush! Protect the truck':"Follow Benny's truck to the court",false],['Truck · '+hp+'%',false,hp<50?'warn':'']);
+      if(M.phase==='ambush'){const live=enemies.filter(e=>e.state==='idle'&&e.amb===M.amb).length;F.objs.push([live?live+' left':(VAN.on?"Benny's moving":'Back in the van'),!live]);if(VAN.on&&live)F.objs.push(['Get out and fight',false,'warn'])}
+      else if(vd>m.truck.waitDist)F.objs.push(['Close the gap · Benny is waiting',false,'warn']);
+      F.target=M.phase==='ambush'?(wmNearest(enemies,e=>e.state==='idle'&&e.amb===M.amb)?{x:wmNearest(enemies,e=>e.state==='idle'&&e.amb===M.amb).pos.x,z:wmNearest(enemies,e=>e.state==='idle'&&e.amb===M.amb).pos.z,label:'Ambush'}:null):{x:c.x,z:c.z,label:"Benny's truck"};
+      return}
+    if(M.phase==='court'){M.courtT+=dt;const b=M.bennyN;if(b){faceTo(b,P.pos.x,P.pos.z,dt,2);b.dude.root.position.set(b.pos.x,0,b.pos.z);b.dude.root.rotation.y=b.yaw;pose(b.dude,dt,{aim:false})}
+      F.objs.push(['Benny is handing out cones',false]);F.target={x:c.x,z:c.z,label:"Benny's truck"};
+      if(M.courtT>=4){banner('THEY TOOK THE TRUCK','One of the Duke\'s guys jumped in the driver\'s seat.',2.6);radio('benny',"My truck! That's my TRUCK!",true);radio('rosa','In the van. Now.');wmJingle(.5);
+        const r=M.def.chase;chaseStart({car:c,obj:T.obj,col:T.col,max:r.max,label:"Benny's truck",driverSpec:{surrBias:r.surrBias,gun:'pistol',name:'TRUCK THIEF'},onEscape:()=>endMission(false,"The truck's gone. Benny's going to need a minute. And a new truck.","It got away."),
+          onStop:()=>{radio('benny',"Is she okay? Tell me she's okay.",true)}});M.truck=null}
+      return}}
+  ,after(dt,F){/* chase and the cuff: driven by M.chase */const ch=M.chase;chaseObjs(F);const d=M.driver;
+    if(M.bennyN){const b=M.bennyN;b.dude.root.position.set(b.pos.x,0,b.pos.z);pose(b.dude,dt,{aim:false})}
+    if(ch&&ch.state==='stopped'&&d&&(d.state==='cuffed'||d.state==='dead')&&!M.exitOpen){M.exitOpen=true;radio('benny',"I'll take it from here. Thank you. Free cones for life. For your kids. Not for you, Dave.",true);M.payX.chaseT=M.chaseT}}};
+{const u=WJ.benny.upd;WJ.benny.upd=(dt,F)=>{if(M.truck)u(dt,F);else WJ.benny.after(dt,F)}}
+function wmJingle(rate){try{const G=HT.Garage;if(!G||!HT.Menus||!HT.Menus.playHorn)return;let n=G.hornNotes('entertainer');if(rate&&rate!==1)n=n.map(q=>({f:q.f*rate,t:q.t/rate,d:q.d/rate}));HT.Menus.playHorn({notes:n,gain:.25})}catch(_){}}
+function wmAmbush(a){const m=M.def,G=OW().roads(),c=M.truck.car;M.hold=true;M.phase='ambush';M.ambT=0;M.cleared=false;try{honk()}catch(_){}
+  const pts=a.from.map(([x,z])=>({x:tileC(x),z:tileC(z)}));let x0=c.x,z0=c.z,x1=c.x,z1=c.z;for(const p of pts){x0=Math.min(x0,p.x);z0=Math.min(z0,p.z);x1=Math.max(x1,p.x);z1=Math.max(z1,p.z)}
+  wmSetWindow({x0:Math.max(1,tx(x0)-10),z0:Math.max(1,tx(z0)-10),x1:Math.min(L.W-2,tx(x1)+10),z1:Math.min(L.H-2,tx(z1)+10)});
+  for(let i=0;i<a.n;i++){const f=pts[i%pts.length],q=wmSnap(f.x+rand(-1.5,1.5),f.z+rand(-1.5,1.5));const e=spawnEnemy(q.x,q.z,false);e.amb=M.amb;e.alert=true;e.last=V3(c.x,0,c.z);e.home={x:q.x,z:q.z};e.truckT=rand(1,2)}
+  rebuildTargets();banner('AMBUSH','Everybody out!',2);radio(speaker()||'you','Everybody out!',true);radio('benny',"Somebody's in the road, and that somebody is not getting a cone!")}
+function wmAmbushTick(dt){const c=M.truck.car;M.ambT+=dt;const mine=enemies.filter(e=>e.amb===M.amb);
+  for(const e of mine){if(e.state!=='idle')continue;const d=Math.hypot(e.pos.x-c.x,e.pos.z-c.z);if(d>32)continue;e.truckT=(e.truckT||1.5)-dt;
+    if(e.truckT<=0){e.truckT=rand(1.4,2.4);const f=V3(e.pos.x,1.4,e.pos.z),t=V3(c.x+rand(-1,1),1.2,c.z+rand(-1,1));try{FX.tracer(f,t,{enemy:true})}catch(_){}gunSnd(e.gun||'pistol',.5,{dist:e.pos.distanceTo(P.pos),pos:f,noMech:true});if(Math.random()<.5)c.hp=Math.max(0,c.hp-4)}}
+  const live=mine.filter(e=>e.state==='idle').length;
+  if(!live&&!M.cleared){M.cleared=true;M.goT=20;radio('benny',"Back in the van, I'm moving!",true)}
+  if(M.cleared){M.goT-=dt;if(VAN.on||M.goT<=0){/* the crew zip-ties anyone left with their hands up */for(const e of mine)if(e.state==='surrender'){e.state='cuffed';confiscate(e);if(e.tag){e.tag.remove();e.tag=null}M.cuffs++;prog.cuffed++;addTrust(4);radio(speaker()||'doug',"Doug's got him.",true)}
+    M.hold=false;M.amb++;M.phase='escort'}}}
+
+/* ---- The Duke: scrapyard raid, he runs for his car, getaway chase (SPEC2 B.5) ---- */
+WJ.duke={start(o){const st=M.site,g=st.getaway;M.phase='yard';
+    const ex=[[195,77],[196,75],[196,69],[199,67],[201,65],[201,63]].map(([x,z])=>({x:tileC(x),z:tileC(z)}));M.exitPts=ex;
+    const obj=makeVehicle('sedan','#1c1c22')||makeVanBox('#1c1c22');wmAdd(obj,true);const CA=HTM('CarAI');M.getaway={car:CA.make('sedan',{x:g.x,z:g.z,yaw:0}),obj,col:wmCol({x0:0,z0:0,x1:0,z1:0})};chaseSync(M.getaway,0);
+    if(o.checkpoint)wmDukeCheckpoint()},
+  upd(dt,F){const m=M.def,b=L.boss;
+    if(M.phase==='yard'){
+      if(b&&b.state==='idle'&&!b.script&&!M.fled&&b.hp<b.maxhp*m.boss.flee){M.fled=true;const g=M.site.getaway;b.noLeash=true;b.script={kind:'to',x:g.x+1.6,z:g.z,speed:5.6,then:e=>wmDukeChase(e)};
+        banner("HE'S RUNNING",'The Duke is going for his car.',2.4);radio('rosa','Get to the van!',true);radio('earl',"Told you. Back gate.")}
+      F.objs.push([M.bossDone?'The Duke is '+(M.bossDone==='cuffed'?'zip-tied':'down'):'Find the Duke',!!M.bossDone]);if(b&&b.state==='surrender')F.objs.push(['Zip-tie him',false]);
+      if(b&&!M.bossDone)F.target={x:b.pos.x,z:b.pos.z,label:b.state==='surrender'?'Zip-tie':'The Duke'};
+      M.exitOpen=!!M.bossDone;M.payX.vanHp=CV&&CV.car?CV.car.hp/CV.car.stats.hp:1;return}
+    chaseObjs(F);M.exitOpen=!!M.bossDone;
+    if(!VAN.on&&M.chase&&M.chase.state!=='stopped'){F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Van'}}
+    {const e=M.car;M.payX.vanHp=e&&e.car&&e.car.stats?e.car.hp/(e.car.stats.hp||100):1;if(M.chaseT!=null)M.payX.chaseT=M.chaseT}}};
+function wmDukeChase(b){const m=M.def,G_=M.getaway;b.script={kind:'incar'};b.inCar=true;b.state='incar';M.phase='chase';
+  /* the yard crew scatters once the boss is gone; the ones who gave up stay put for the zip-ties */
+  for(const e of[...enemies])if(e!==b&&e.state==='idle'){scene.remove(e.dude.root);if(e.tag)e.tag.remove();enemies.splice(enemies.indexOf(e),1)}
+  rebuildTargets();
+  const r=m.chase;chaseStart({car:G_.car,obj:G_.obj,col:G_.col,max:r.max,passenger:r.passenger,label:'The Duke',driver:b,exit:M.exitPts,
+    onEscape:()=>{M.checkpoint='chase';endMission(false,"The Duke got away. Earl: 'He'll be back. They always come back to the scene.'","He got away.")},
+    onStop:()=>{b.inCar=false;radio('earl',"End of the line, Your Grace.",true)}});
+  b.surrBias=1}
+function wmDukeCheckpoint(){/* retry from the chase: the van at the scrapyard gate, the Duke's car 30 m ahead on Dock St */
+  for(const e of[...enemies]){scene.remove(e.dude.root);if(e.tag)e.tag.remove()}enemies.length=0;
+  const st=M.site;const b=spawnEnemy(st.getaway.x,st.getaway.z,true);wmBossLook(b,M.def.boss);L.boss=b;b.hp=b.maxhp*.45;b.triedSurr=false;M.fled=true;
+  const G=OW().roads(),gate={x:tileC(201),z:tileC(63)},CA=HTM('CarAI');
+  const e=M.car;if(CV&&CV!==e)exitCar();const q=wmSnapRoad(gate.x-34,gate.z);e.pos.set(q.x,0,q.z);e.yaw=-Math.PI/2;owStopCar(e);syncCar(e);
+  const gc=M.getaway.car;gc.x=gate.x-4;gc.z=gate.z+1.5;gc.yaw=-Math.PI/2;gc.spd=6;
+  if(!CV)enterCar(e);for(const a of allies){a.ride=true;a.dude.root.visible=false}
+  M.exitPts=null;wmDukeChase(b);M.chase.state='run';HTM('CarAI').flee(gc,G,{max:M.def.chase.max,seed:M.chase.seed,threat:wmPursuer()});rebuildTargets();
+  banner('THE CHASE','Back on his bumper. Catch him this time.',2.2)}
+function wmWin(m){if(m.id==='rosa'){const s=SV();if(s){s.crew.rosa=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('crew')}
+    setTimeout(()=>{HUD.banner({kind:'done',kicker:'Rosa joined the crew',title:'HONORARY DAD',sub:'Medic · Riverside Flats',dur:2.6})},300);radio('gary',"We'll need to get you a polo.",true);radio('rosa','Absolutely not.');try{s&&s.events.push('rosa_joined')}catch(_){}}
+  if(m.id==='benny'){const s=SV();if(s){s.flags.hotPursuit=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}}}
+
+/* ================= STAKEOUT VIEW: binoculars from the driver's seat ================= */
+function wmCamera(dt){if(!(M&&M.phase==='stake'&&VAN.on&&P.aim)){wmBino(false);return false}const e=CV;
+  camera.position.set(e.pos.x-Math.sin(e.yaw)*.2+Math.cos(e.yaw)*-.4,groundAt(e.pos.x,e.pos.z)+1.55,e.pos.z-Math.cos(e.yaw)*.2-Math.sin(e.yaw)*-.4);camera.rotation.set(P.pitch,P.yaw,0,'YXZ');
+  camera.fov+=(11-camera.fov)*Math.min(1,dt*10);camera.updateProjectionMatrix();wmBino(true);P.dude.root.visible=false;return true}
+let _bino=null;function wmBino(on){if(!on&&!_bino)return;if(!_bino){const d=document.createElement('div');d.id='bino';
+    d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:4;display:none;background:radial-gradient(circle at 37% 50%,transparent 0,transparent 25vmin,rgba(0,0,0,.6) 26vmin,transparent 26.1vmin),radial-gradient(circle at 63% 50%,transparent 0,transparent 25vmin,rgba(0,0,0,.6) 26vmin,transparent 26.1vmin)';
+    d.innerHTML='<svg width="100%" height="100%" style="position:absolute;inset:0"><defs><mask id="bm"><rect width="100%" height="100%" fill="white"/><circle cx="37%" cy="50%" r="26vmin" fill="black"/><circle cx="63%" cy="50%" r="26vmin" fill="black"/></mask></defs><rect width="100%" height="100%" fill="#050505" mask="url(#bm)"/><line x1="50%" y1="44%" x2="50%" y2="56%" stroke="rgba(255,255,255,.55)" stroke-width="1"/><line x1="47%" y1="50%" x2="53%" y2="50%" stroke="rgba(255,255,255,.55)" stroke-width="1"/></svg>';
+    document.body.appendChild(d);_bino=d}_bino.style.display=on?'block':'none'}
+function wmMarkers(){const out=[];if(mode!=='mission'||!M||!M.suspects||M.phase!=='stake')return out;
+  for(const s of M.suspects){if(s.gone)continue;const lab=s.id?(s.kind==='courier'?"COURIER · ID'd":"LOOKOUT · ID'd"):'?';out.push({id:s,kind:'obj',label:lab,x:s.pos.x,z:s.pos.z,screen:project(s.pos.x,2.1,s.pos.z),always:!!s.id,edge:false})}return out}
+function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];return[{id:'chase',x:ch.car.x,z:ch.car.z,alert:true,seen:true,dead:false}]}
+
+/* ================= HUB: givers, crew, the bridge beat, site after-dressing, region trust ================= */
+function wmHubGivers(){const out=[],lines=[];
+  const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
+  if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
+  for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
+    n.prefer=m.hood==='river'&&!prog.done[4];
+    if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
+    else if(g.lock==='maple'){n.locked="Finish up in Maple Heights first. The Duke will keep. Men like that always keep.";n.lockTag='after Maple Heights is done'}
+    lines.push(HOMIES[m.giver].name+(n.locked?' · '+n.lockTag:' has a job for you'+(m.hood==='river'?' in Riverside Flats':'')))}
+  setObj(L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights',lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'])}
+function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
+  ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
+function wmAllDone(){return MISSIONS.length>0&&prog.done.slice(0,MISSIONS.length).every(Boolean)&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
+function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;
+  const s=SV();if(prog.done[1]&&!WM.beat&&!(s&&s.flags.act2Intro)){WM.beat=true;prog.act=2;if(s){s.flags.act2Intro=true;s.world.bridgeOpen=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags','world')}
+    setTimeout(()=>{if(mode!=='hub'||HUD.screen==='result')return;running=false;releaseLock();
+      HUD.show('result',{stamp:'Act 2 · One week later',title:'The bridge is open.',goLabel:'Drive across the bridge',canRetry:false,
+        text:"Earl Booker, retired, calls Gary's landline. Gary still has a landline. \"You the fellas who cleaned up Birch Street? The King's cousin set up shop across the river. Calls himself the Duke. Of catalytic converters. Bring the van.\"",
+        stats:[['Riverside trust',Math.round(prog.trustR)+'%','People keep their blinds down'],['Route 9 bridge','Open','The city finally finished the inspection']]});
+      UI.acts={'result:go':()=>{HUD.hide('result');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock();radio('doug',"I've been asking the city about that bridge since 2019.",true);radio('earl',"Ash Street. The stoop with the bus-stop sign on it. You can't miss me.")}}},1400)}}
+function wmSign(lines,x,z,yaw,o={}){const c=document.createElement('canvas');c.width=1024;c.height=320;const g=c.getContext('2d');g.fillStyle=o.bg||'#2f6b3f';g.fillRect(0,0,1024,320);g.strokeStyle=o.fg||'#f6f1e3';g.lineWidth=14;g.strokeRect(14,14,996,292);
+  g.fillStyle=o.fg||'#f6f1e3';g.textAlign='center';g.font='900 '+(lines[0].length>22?64:84)+'px Arial';g.fillText(lines[0],512,lines[1]?140:190);if(lines[1]){g.font='700 46px Arial';g.fillText(lines[1],512,230)}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;const grp=new THREE.Group();const w=o.w||3.4;
+  const bd=new THREE.Mesh(new THREE.BoxGeometry(w,w*.31,.08),[mat('#e8e2d0'),mat('#e8e2d0'),mat('#e8e2d0'),mat('#e8e2d0'),new THREE.MeshStandardMaterial({map:t,roughness:.6}),new THREE.MeshStandardMaterial({map:t,roughness:.6})]);bd.position.y=1.9;grp.add(bd);
+  for(const s of[-1,1]){const p=box(.1,1.9,.1,'#6b5a46',s*(w/2-.25),.95,0,grp)}grp.position.set(x,groundAt(x,z),z);grp.rotation.y=yaw||0;grp.traverse(m=>{if(m.isMesh)m.castShadow=true});L.group.add(grp);return grp}
+const WM_AFTER={gary:['INDUSTRIAL WAY CLIMBING GYM','Formerly a chop shop · Ropes on Tuesdays'],rick:['SOLD','The duplex on Birch has a family in it'],dave:['BOUNCE HOUSE STAYS UP','All summer · Courtesy of Big Dave'],
+  doug:['FUTURE HOME OF RIDGEVIEW T-BALL','Coach: The King'],earl:['FREE BIKE LIBRARY','Return by Sunday · Ask for Earl'],dee:['SPIN CITY · UNDER NEW MANAGEMENT','Youth group folds on Tuesdays'],
+  rosa:['RIVERSIDE COMMUNITY GARDEN','Plant Day every Saturday · Forty families'],duke:['SECOND GEAR AUTO SCHOOL','Pastor Dee\'s youth program · Ask for Sal']};
+function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORLD.sites[m.id];if(!s||!WM_AFTER[m.id])return;
+  const G=OW()&&OW().roads();let yaw=0,x=s.ring.x,z=s.ring.z;if(G){const r=G.nearestRoad(x,z);if(r){const dx=r.x-x,dz=r.z-z,l=Math.hypot(dx,dz)||1;x-=dx/l*1.2;z-=dz/l*1.2;yaw=Math.atan2(dx,dz)}}
+  const q=wmSnap(x,z);wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
+  if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
+function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;
+  if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}
+  const G=HTM('WorldGen');if(G&&G.tierOf){const t=G.tierOf(prog.trustR);if(WM.tier!=null&&t>WM.tier){const ln=G.dressing(WORLD,prog.trustR).line;HUD.banner({kind:'alert',kicker:'Riverside trust '+Math.round(prog.trustR)+'%',title:'RIVERSIDE FLATS',sub:ln,dur:3})}WM.tier=t}
+  if(!WORLD.bridgeOpen&&!WM.bridgeSaid&&Math.hypot(P.pos.x-282,P.pos.z-43)<14){WM.bridgeSaid=true;HUD.feed('The bridge is closed for inspection.','info');radio('doug',"I've been asking the city about that bridge since 2019.")}}
+function wmTrustRiver(){return mode==='mission'&&M?M.def.hood==='river':(!!L&&!!L.ow&&OWS.region==='river')}
+function wmTrust(){return wmTrustRiver()?prog.trustR||0:prog.trust}
+function wmTrustLabel(){return wmTrustRiver()?'Riverside trust':'Neighborhood trust'}
+function wmVanHealth(){const e=CV;if(!e)return 1;if(M&&M.world&&e.car&&e.car.stats)return clamp(e.car.hp/(e.car.stats.hp||100),0,1);return 1-e.dmg*.8}
+function wmExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({MISSIONS,CFG,WM,WJ,jobLock,jobAvailable,missionInWorld,startMissionWorld,giverModel,wmKeepDriving,activateSite,finale,wmScript,chaseStart,
+  get chase(){return M&&M.chase},get truck(){return M&&M.truck},get npcs(){return npcs},get suspects(){return M&&M.suspects},addTrust,hurtAlly,surrender,
+  get UIacts(){return UI.acts},get UIobj(){return UI.obj},get prompt(){return UI.prompt},get carry(){return P.carry},get exitAt(){return L&&L.exit}}))}
+
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
 function groundPass(sign){if(sign>0&&L&&L.ow){const O=OW();if(O)O.update(camera)}const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
@@ -2504,7 +3087,7 @@ function frame(now){
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
   if(L)updCamera(dt);
-  if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode==='hub'))FX.applyCamera(camera);
+  if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
   {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
@@ -2556,7 +3139,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   /* movement hooks: jump() presses jump once; move gives the live state; ground(x,z) is the height feet would stand at */
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
-metaExpose(window.__ht);
+metaExpose(window.__ht);wmExpose(window.__ht);
 /* character test hooks (dev/people scripts) */
 /* open world test hooks (SPEC2 D __ht additions) */
 Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
