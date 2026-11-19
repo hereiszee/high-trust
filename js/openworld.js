@@ -111,7 +111,7 @@ function mergeGroups(list,parent,keepGeo){const by=new Map();
   if(!keepGeo)for(const g of list)g.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose()});return n}
 /* merge the plain meshes of a set piece by material, keeping toggled dressing objects separate (each compacted on its own) */
 function compact(g,keep){const meshes=[];const kept=new Set(keep||[]);
-  const walk=o=>{for(const c of [...o.children]){if(kept.has(c)){if(c.isGroup||c.type==='Object3D')compact(c,[]);continue}
+  const walk=o=>{for(const c of [...o.children]){if(c.userData.noCompact)continue;if(kept.has(c)){if(c.isGroup||c.type==='Object3D')compact(c,[]);continue}
     if(c.isMesh&&!c.isInstancedMesh&&!c.isSkinnedMesh&&!Array.isArray(c.material)&&c.geometry&&c.geometry.attributes.normal)meshes.push(c);else if(!c.isMesh)walk(c)}};walk(g);
   if(meshes.length<2)return;const holder=new THREE.Group();for(const m of meshes){m.updateMatrixWorld(true);holder.add(m.clone())}
   for(const m of meshes)m.parent.remove(m);
@@ -859,7 +859,7 @@ SETPIECES.push({id:'riverlots',box:def=>({x0:300,z0:0,x1:464,z1:160,y1:10}),buil
     for(const x of[x0,x1])for(const z of[30,33,36]){const pole=B(.06,3.7,.06,metal,x,1.85,z,0,P)}
     u.dress.push({t:90,on:P})}
   /* moving truck + boxes + welcome banner: placed at the block whose renovation is happening now (see placeTruck) */
-  {const T=new THREE.Group();T.visible=false;g.add(T);ws.truck=T;const van=C.makeVehicle&&C.makeVehicle('workvan','#f4f1ea',{lod:1});if(van){van.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});T.add(van);T.userData.van=van}
+  {const T=new THREE.Group();T.visible=false;T.userData.noCompact=true;g.add(T);ws.truck=T;const van=C.makeVehicle&&C.makeVehicle('workvan','#f4f1ea',{lod:1});if(van){van.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});T.add(van);T.userData.van=van}
     const card=stdMat('boxes',{color:'#b48a58',roughness:.9});for(let k=0;k<6;k++)B(.55+(k%3)*.1,.4+(k%2)*.12,.45,card,-1.3+(k%3)*.6,.22+Math.floor(k/3)*.45,2.0,k*.3,T);
     const rp=B(.9,.05,2.2,stdMat('ramp',{color:'#8a8f93',metalness:.6}),-3.2,.35,0,0,T);rp.rotation.z=.3;
     const wc=signCanvas(['WELCOME TO','THE NEIGHBORHOOD!'],{bg:'#ffd23f',fg:'#b8323a',fg2:'#2b4a6b',w:768,h:256});const wb=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.85),stdMat('welcome',{map:ctex(wc),side:THREE.DoubleSide}));wb.position.set(.5,1.6,3.1);T.add(wb);T.userData.banner=wb}}});
