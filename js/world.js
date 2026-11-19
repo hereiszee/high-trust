@@ -588,7 +588,7 @@ function impostor(name){if(IMP[name]!==undefined)return IMP[name];const g=C.ASSE
 function backdrop(B){const r=rngOf(hashStr(B.id)+99);const Wm=B.W*TILE,Hm=B.H*TILE;const cx=Wm/2,cz=Hm/2;
   const dOut=(x,z)=>{const dx=Math.max(0,-x,x-Wm),dz=Math.max(0,-z,z-Hm);return Math.hypot(dx,dz)};
   /* terrain ring */
-  const hgt=(x,z)=>{const d=dOut(x,z);return sstep(14,150,d)*(5+30*fbm(x/90+7,z/90+3))+sstep(4,20,d)*(fbm(x/20,z/20)-.5)*1.2-.02};
+  const hgt=(x,z)=>{const d=dOut(x,z);return (sstep(14,150,d)*(5+30*fbm(x/90+7,z/90+3))+sstep(4,20,d)*(fbm(x/20,z/20)-.5)*1.2-.02)*(B.carve?B.carve(x,z):1)+(B.carveY?B.carveY(x,z):0)};
   const ext=260,st=8,axis=(a)=>{const v=[];for(let t=-ext;t<0;t+=st)v.push(t);const n=Math.max(1,Math.round(a/st));for(let k=0;k<=n;k++)v.push(a*k/n);for(let t=a+st;t<=a+ext;t+=st)v.push(t);return v};
   const xs=axis(Wm),zs=axis(Hm),g=new GB();const eps=.5;
   const nrm=(x,z)=>{const dx=hgt(x+eps,z)-hgt(x-eps,z),dz=hgt(x,z+eps)-hgt(x,z-eps);const v=new THREE.Vector3(-dx,2*eps,-dz).normalize();return v};
@@ -602,7 +602,7 @@ function backdrop(B){const r=rngOf(hashStr(B.id)+99);const Wm=B.W*TILE,Hm=B.H*TI
   /* far houses (or warehouses) just past the border */
   const ind=B.id==='gary';const sid=B.gbOf(ind?'whsWall':'siding'),roof=B.gbOf(ind?'whsRoof':'roof'),fnd=B.gbOf('found');
   const ring=[];const per=2*(Wm+Hm);for(let s=0;s<per;s+=ind?26:17){let x,z,nx,nz;if(s<Wm){x=s;z=-1;nx=0;nz=-1}else if(s<Wm+Hm){x=Wm+1;z=s-Wm;nx=1;nz=0}else if(s<2*Wm+Hm){x=Wm-(s-Wm-Hm);z=Hm+1;nx=0;nz=1}else{x=-1;z=Hm-(s-2*Wm-Hm);nx=-1;nz=0}
-    const d=16+r()*14;ring.push([x+nx*d,z+nz*d,nx,nz])}
+    const d=16+r()*14;if(B.skipRing&&B.skipRing(x+nx*d,z+nz*d))continue;ring.push([x+nx*d,z+nz*d,nx,nz])}
   for(const[x,z,nx,nz]of ring){const w=ind?16+r()*10:9+r()*3,dd=ind?12+r()*8:7+r()*2,h=ind?6+r()*3:2.8+(r()<.3?2.7:0);const y0=hgt(x,z)-.2;
     const ax=Math.abs(nz)>0,hw=(ax?w:dd)/2,hd=(ax?dd:w)/2;const tint=ind?[1,1,1]:[[1,1,1],[.75,.85,.95],[.95,.88,.7],[.85,.8,.75]][Math.floor(r()*4)];
     sid.box(x-hw,y0,z-hd,x+hw,y0+h,z+hd,ind?2:1.4,tint,{});fnd.box(x-hw-.05,y0-.3,z-hd-.05,x+hw+.05,y0+.35,z+hd+.05,2,null,{top:true});
@@ -620,7 +620,7 @@ function backdrop(B){const r=rngOf(hashStr(B.id)+99);const Wm=B.W*TILE,Hm=B.H*TI
     for(const o of ind?[-.3,.3]:[-.28,.28]){const L=w*o;if(ax)gl.wz(fcx+L-.6,fcx+L+.6,y0+1,y0+2.2,fcz+fn[1]*.02,fn[1],1);else gl.wx(fcz+L-.6,fcz+L+.6,y0+1,y0+2.2,fcx+fn[0]*.02,fn[0],1)}}
   /* trees on the hills: instanced, shown as baked impostors until the camera comes close */
   for(let i=0;i<(B.q==='low'?150:260);i++){const a=r()*6.283;const R0=Math.max(Wm,Hm)*.5;let x=cx+Math.cos(a)*(R0+6+Math.pow(r(),1.6)*170),z=cz+Math.sin(a)*(R0*.8+6+Math.pow(r(),1.6)*170);
-    const d=dOut(x,z);if(d<5)continue;if(ring.some(h=>Math.abs(h[0]-x)<9&&Math.abs(h[1]-z)<9))continue;const name=TREES[i%3];
+    const d=dOut(x,z);if(d<5||B.skipRing&&B.skipRing(x,z))continue;if(ring.some(h=>Math.abs(h[0]-x)<9&&Math.abs(h[1]-z)<9))continue;const name=TREES[i%3];
     if(partsOf(name))inst(B,name,x,hgt(x,z)-.1,z,r()*6,1+r()*.5)}}
 
 /* ---------- fallback house (when the buildings module is unavailable) ---------- */
@@ -729,11 +729,10 @@ const DECALS={d_floor:()=>decalMat('d_floor',floorDecalTex(),{rough:.35}),d_pudd
   d_leakA:()=>{const t=C.ASSETS.decal&&C.ASSETS.decal('leak_a');return t?decalMat('d_leakA',t,{rough:.9}):null},d_leakB:()=>{const t=C.ASSETS.decal&&C.ASSETS.decal('leak_b');return t?decalMat('d_leakB',t,{rough:.9}):null},
   d_graf:()=>decalMat('d_graf',graffitiTex(),{rough:.7}),d_post:()=>decalMat('d_post',posterTex(),{rough:.8}),d_manhole:()=>decalMat('d_mh',manholeTex(),{rough:.55}),d_drain:()=>decalMat('d_drain',drainTex(),{rough:.6}),
   leaves:()=>plain('leavesF','#4b7f3d',{rough:.9,vcol:true})};
-W.finish=B=>{
-  if(B.hub)hubDressing(B);
-  if(!B.hub){clutter(B);lights(B)}
-  scatterGrass(B);
-  try{backdrop(B)}catch(e){console.warn('backdrop failed',e)}
+W.finish=(B,o={})=>{/* o.bare: no street dressing/clutter/backdrop (the open world dresses its own chunks); o.before(B): last look at the builders */
+  if(!o.bare){if(B.hub)hubDressing(B);if(!B.hub){clutter(B);lights(B)}}
+  scatterGrass(B);if(o.before)o.before(B);
+  if(!o.bare)try{backdrop(B)}catch(e){console.warn('backdrop failed',e)}
   for(const key in B.gb){const gb=B.gb[key];if(!gb.n)continue;let m=DECALS[key]?DECALS[key]():matFor(B,key);if(!m)continue;
     const mesh=new THREE.Mesh(gb.geo(),m);mesh.receiveShadow=true;mesh.castShadow=!B.shadowless.has(key)&&!key.startsWith('d_');if(key.startsWith('d_')||key==='paint'||key==='joint')mesh.renderOrder=1;mesh.userData.wkey=key;B.group.add(mesh);
     if(key==='ext'||key==='int'||key==='cap')B.lvl.solids.push(mesh)}
@@ -746,6 +745,6 @@ W._track=B=>{W._last=B};
 /* per frame: swap tree chunks between real meshes and impostors by camera distance */
 W.update=(lvl,cam)=>{const B=lvl&&lvl.world;if(!B||!B.lod.length)return;const R=B.q==='low'?24:B.q==='high'?60:38;IMPU.uCam.value.copy(cam);IMPU.uR.value=R;
   for(const l of B.lod){const d=Math.hypot(l.c.x-cam.x,l.c.z-cam.z)-l.r;const near=d<R;if(l.near===near)continue;l.near=near;for(const m of l.real)m.visible=near}};
-W.matFor=matFor;W.inst=inst;W.GB=GB;W.rng=rngOf;W.partsOf=partsOf;W.tufts=tufts;
+W.matFor=matFor;W.inst=inst;W.backdrop=backdrop;W.LEVEL_STYLE=LEVEL_STYLE;W.buildInst=buildInst;W.TREES=TREES;W.GB=GB;W.rng=rngOf;W.partsOf=partsOf;W.tufts=tufts;
 window.HT.World=W;
 })();

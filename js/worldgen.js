@@ -419,5 +419,6 @@ function neighbourSlots(def,t,x,z,n,r){def=def||LAST;const k=tierOf(t),lim=TIERS
 
 HT.World={build,regionAt,regionAtTile,site,siteAt,chunkIndex,chunkAt,chunksNear,isSolid,openBridge,dressing,neighbourSlots,tierOf,genTags:(def,seed)=>genTags(def.map.map(r=>r.split('')),seed),
   get last(){return LAST},TILE,W,H,CHUNK,SOLID,LOSBLOCK,HOODS,TIERS,FLAGS,PLACES,MAPS,tc,tx,mulberry32};
+HT.WorldGen=HT.World;   /* js/world.js (the dressing module) also claims HT.World; the game reads the generator as HT.WorldGen */
 if(typeof module!=='undefined'&&module.exports)module.exports=HT.World;
 })(typeof window!=='undefined'?window:globalThis);

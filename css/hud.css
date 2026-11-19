@@ -181,6 +181,9 @@
 .ht-wp .rl{position:relative;width:232px;height:3px;background:rgba(10,12,16,.5);border-radius:2px;overflow:hidden;opacity:0;transition:opacity var(--d2)}
 .ht-wp .rl i{position:absolute;inset:0;background:var(--sun);transform-origin:left;transform:scaleX(0)}
 .ht-wp.rel .rl{opacity:1}
+.ht-wp .at{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-height:0}
+.ht-at{font:700 var(--t-m)/1.1 var(--ht-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--cash);text-shadow:var(--shadow)}
+.ht-at.full{color:var(--fg3)}
 .ht-wp .hint{font:700 var(--t-xs)/1 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--sun);height:14px}
 .ht-wp .slots{display:flex;gap:4px;margin-top:2px}
 .ht-sl{position:relative;display:flex;align-items:center;gap:6px;height:28px;padding:0 8px 0 6px;border-radius:var(--r1);background:rgba(12,15,19,.38);color:var(--fg3);transition:background var(--d2),color var(--d2)}
@@ -443,6 +446,20 @@
 .ht-pay-row.neg span:last-child{color:var(--alarm-2)}
 .ht-pay-row.tot{border-bottom:0;background:rgba(255,255,255,.06);color:var(--fg);font-size:var(--t-l)}
 .ht-pay-row.tot span:last-child{color:var(--cash)}
+/* result card with a long payout: nothing in the column shrinks (the column scrolls instead), and the
+   button row stays pinned to the bottom of the view so "Head home" is always on screen */
+.ht-result .col>*{flex-shrink:0}
+.ht-result .col{justify-content:flex-start;padding-top:calc(var(--sa-t) + var(--s6));padding-bottom:0}
+.ht-result .col>.stamp{margin-top:auto}
+.ht-result .ht-btns{position:sticky;bottom:0;z-index:1;margin-top:auto;padding:var(--s4) 0 calc(var(--sa-b) + var(--s5));background:linear-gradient(0deg,rgba(9,11,14,.96) 60%,rgba(9,11,14,0))}
+@media (max-height:820px){
+  .ht-result h2{font-size:clamp(28px,4.2vw,40px);margin:8px 0 10px}
+  .ht-result p{font-size:var(--t-m);line-height:1.4;margin-bottom:8px}
+  .ht-result .ht-stats{margin:2px 0 var(--s3)}
+  .ht-result .ht-stats div{padding:9px 12px}
+  .ht-result .ht-stats span{font-size:var(--t-xl);margin-top:5px}
+  .ht-result .ht-btns{padding-top:var(--s3);padding-bottom:calc(var(--sa-b) + var(--s4))}
+}
 
 /* pause / settings */
 .ht-pause .scrim{background:rgba(9,11,14,.7);backdrop-filter:blur(10px) saturate(.85);-webkit-backdrop-filter:blur(10px) saturate(.85)}
@@ -548,6 +565,8 @@
 .ht-root.compact .ht-scr .col{padding:calc(var(--sa-t) + 48px) calc(var(--sa-r) + 24px) calc(var(--sa-b) + 32px) calc(var(--sa-l) + 24px);justify-content:flex-end}
 .ht-root.compact .ht-title .col{justify-content:center;padding-bottom:110px}
 .ht-root.compact .ht-title .scrim{background:linear-gradient(0deg,rgba(9,11,14,.95) 0%,rgba(9,11,14,.75) 50%,rgba(9,11,14,.3) 100%)}
+.ht-title .premise{margin:var(--s4) 0 0;max-width:44ch;font:500 var(--t-l)/1.45 var(--ht-body);color:var(--fg2);text-shadow:var(--shadow)}
+.ht-root.compact .ht-title .premise{font-size:var(--t-m);margin-top:var(--s3)}
 .ht-root.compact .ht-logo .tag{letter-spacing:.18em;font-size:var(--t-xs)}
 .ht-root.compact .ht-logo .w{font-size:clamp(64px,22vw,96px)}
 .ht-root.compact .ht-scr .scrim{background:linear-gradient(0deg,rgba(9,11,14,.96) 0%,rgba(9,11,14,.86) 60%,rgba(9,11,14,.55) 100%)}

@@ -56,3 +56,19 @@ HT.CarAI.simulateChase({seed, carType, max, vehicle, crew, gap, trace})
 - `node dev/ai-ingame.js [--missions 0,1,2,3] [--no-shots]` — loads `index.html` in headless Chromium (SwiftShader), plays every mission with a scripted dad through `window.__ht.step()`, and checks cover against the dad's real camera and shoulder rays, crouch hitbox heights, fire tokens, flankers, boss phases, waves, crew vs camera, stacking, and the surrender/zip-tie/trust rules. It writes `docs/screenshots/ai-ingame/evidence.txt`, `evidence.json` and jpg screenshots.
 - `node dev/ai-ingame-fair.js [--seeds 6] [--write]` — win rate and health per mission for a steady and a casual scripted player.
 - `dev/ai-ingame-lib.js` serves the repo to the browser through Playwright request routing (no server process) and pauses the page's own loop once assets are loaded; `dev/ai-ingame-bot.js` and `dev/ai-ingame-probe.js` are injected into the page.
+
+## Open world in the game (`js/openworld.js`, SPEC2 W1/W2)
+
+`HT.OpenWorld` renders the `HT.WorldGen.build()` def as the hub (`HUB=WORLD` in index.html; the old street grid `HUB_SMALL` is the fallback when a module is missing).
+`js/worldgen.js` is exposed as `HT.WorldGen` because `js/world.js` (the dressing module) also claims `HT.World`.
+
+- **Units**: 24 chunks (32x32 tiles) built lazily near the camera, plus mission sites and set pieces (river, bridge + barricade, Fill-Er-Up, church, court, Route 9 signs/frontage, Riverside dressing, backdrop). Visible = distance (tied to fog) + frustum.
+- **Reuse**: each chunk runs `HT.World.ground/tree/streetLamp/yard/hedge/crate/fence/walls/finish` on a windowed builder (triangles clipped to the chunk), `HT.Buildings` houses/shops/shells merged per material, `HT.Vehicles` LOD1 parked cars registered through `regCar`.
+- **LOD**: street furniture within 65 m, tufts 36 m, trim/markings 110 m (Medium); tree impostors one step nearer than the small hub; buildings cast through one shadow-only caster per chunk (layer 1, seen by the sun's shadow camera).
+- **Collision**: static colliders from the grid in a 16 m hash (`L.cgrid`, used by `collide`), dynamic ones (cars, van) after `L.nStatic`; `ph` = raycast proxy height, `h` only on low colliders (crate, table, hedge, bed). Raycasts use invisible proxies within 80 m (`L.solids`, refreshed every 0.5 s).
+- **API**: `OW.build(def,lvl,ctx)`, `update(camera)`, `dress(trustR)`, `openBridge()`, `gps(from,to)`, `regionAt(x,z)`, `buildAll()`, `quality(q)`, `stats()`, `reset(lvl)` (cache reuse).
+- **Hooks in index.html** (OPEN WORLD block): `owLevel` (buildLevel's world branch, cached), `owEnterHub` (bridge after Rick's job, return to the ring), `owUpdate` (region banners, Riverside mood blend, GPS route + chevrons), `owFastTravel` (map pins), `owShops` (meta shop doors). `__ht`: `WORLD, ow, region, gps, chunks, openBridge(), fastTravel(id), dress(t), drawCalls()`.
+
+```
+node dev/openworld-ingame.js [--write]   # in-game checks + budgets -> docs/screenshots/open-world/evidence.txt
+```

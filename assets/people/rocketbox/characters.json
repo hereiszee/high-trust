@@ -23,7 +23,7 @@
 "key": "dad_rick",
 "name": "Coach Rick",
 "role": "dad",
-"source": "Rocketbox Adults/Male_Adult_12",
+"source": "Rocketbox Adults/Male_Adult_01",
 "idle": "idle",
 "accessories": [
 "acc_cap",
@@ -159,41 +159,5 @@
 "source": "Rocketbox Adults/Female_Adult_04",
 "idle": "f_idle",
 "accessories": []
-},
- {
-"key": "earl",
-"name": "Earl (retired bus driver)",
-"role": "neighbour",
-"source": "Rocketbox Professions/Construction_Male_03",
-"idle": "idle_look",
-"accessories": [],
-"notes": "helmet and tool belt hidden at runtime; procedural cap"
-},
- {
-"key": "dee",
-"name": "Pastor Dee",
-"role": "neighbour",
-"source": "Rocketbox Professions/Business_Female_01",
-"idle": "f_idle",
-"accessories": []
-},
- {
-"key": "rosa",
-"name": "Rosa (ER nurse)",
-"role": "neighbour",
-"source": "Rocketbox Professions/Medical_Female_01",
-"idle": "f_idle",
-"accessories": []
-},
- {
-"key": "benny",
-"name": "Benny (ice-cream man)",
-"role": "neighbour",
-"source": "Rocketbox Adults/Male_Adult_05",
-"idle": "idle",
-"accessories": [
-"acc_cap"
-],
-"notes": "pink cap"
 }
 ]

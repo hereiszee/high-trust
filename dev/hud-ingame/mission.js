@@ -23,8 +23,9 @@ const L=require('./lib.js');const DPR=+process.env.DPR||1;const MI=+(process.env
   await page.waitForTimeout(400);ei=await aim();await step(1);await ev(i=>{__ht.enemies[i].hp=1;__ht.P.fireT=0},ei);await ev(()=>{__ht.mouse=true});await step(1);await ev(()=>{__ht.mouse=false});await frames(2);await L.shot(page,'kill_wide');console.log('kill',await ev(i=>[__ht.enemies[i].state,__ht.M.kills],ei));
   console.log('feed',await ev(()=>[...document.querySelectorAll('.ht-fi')].map(f=>f.textContent)));
   // surrender: force the coin flip
-  ei=await aim();await step(2);ei=await aim();await ev(i=>{const e=__ht.enemies[i];e.hp=e.maxhp*.4+5;e.triedSurr=false;__ht.P.fireT=0;__ht._r=Math.random;Math.random=()=>.1},ei);
-  await ev(()=>{__ht.mouse=true});await step(1);await ev(()=>{__ht.mouse=false});await ev(()=>{Math.random=__ht._r});
+  ei=await aim();await step(2);await page.keyboard.press('1');await step(20);
+  /* realistic characters: a single shot can miss the skinned mesh, so retry (re-aimed) until he is hit */
+  for(let t=0;t<6;t++){ei=await aim();await step(2);const st=await ev(i=>{const e=__ht.enemies[i];e.hp=e.maxhp*.4+5;e.triedSurr=false;Object.assign(__ht.P,{fireT:0,equipT:0,rl:null});const r=Math.random;Math.random=()=>.1;__ht.fire();Math.random=r;return e.state},ei).catch(()=>null);if(st==='surrender')break}
   await frames(2);console.log('state0',await ev(()=>[__ht.prog.shotSurr,__ht.M.kills]));console.log('state',await ev(i=>__ht.enemies[i].state,ei));
   await calm();await step(30);await ev(i=>{const P=__ht.P,e=__ht.enemies[i];P.yaw=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.pitch=-.06},ei);await step(1);await frames(3);
   console.log('dbg',await ev(i=>{const e=__ht.enemies[i],P=__ht.P;return{shot:__ht.prog.shotSurr,kills:__ht.M.kills,cur:P.cur,st:e.state,d:e.pos.distanceTo(P.pos),running:__ht.M.state,fp:P.fp,pitch:P.pitch}},ei));
@@ -37,11 +38,11 @@ const L=require('./lib.js');const DPR=+process.env.DPR||1;const MI=+(process.env
   console.log('feed',await ev(()=>[...document.querySelectorAll('.ht-fi')].map(f=>f.textContent)),'cuffs',await ev(()=>__ht.M.cuffs));
   await ev(()=>{__ht.P.fp=false});await step(10);await L.shot(page,'zip_wide');
   // reload + crosshairs per gun
-  await ev(()=>{__ht.P.ammo[__ht.P.cur].mag=3});await page.keyboard.press('r');await step(8);await page.waitForTimeout(100);
+  await ev(()=>{Object.assign(__ht.P,{equipT:0,fireT:0,rl:null});__ht.P.ammo[__ht.P.cur].mag=3});await page.keyboard.press('r');await step(8);await frames(3);
   console.log('reload ring',await ev(()=>document.querySelector('.ht-rlr').classList.contains('on')));await L.shot(page,'reload_wide');
   for(const k of ['1','2','3']){await step(40);await page.keyboard.press(k);await step(4);await page.waitForTimeout(450);
     console.log('gun',k,await ev(()=>document.querySelector('.ht-xh').dataset.t));
-    await page.screenshot({path:'docs/screenshots/hud-ingame/xh_'+k+'.jpg',type:'jpeg',quality:84,clip:{x:540,y:260,width:200,height:200}})}
+    await page.screenshot({path:'docs/screenshots/hud-ingame/xh_'+k+'.jpg',type:'jpeg',quality:84,clip:{x:540,y:260,width:200,height:200},timeout:180000})}
   // damage + ally down
   await ev(()=>{const P=__ht.P;P.hp=100});await step(1);
   await ev(()=>{const P=__ht.P,e=__ht.enemies.find(e=>e.state==='idle');e.alert=true;e.target=P;P.hp=62;const a=__ht.allies[0];a.down=true;a.hp=0;a.downT=6})
