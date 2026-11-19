@@ -17,14 +17,14 @@ const HT=root.HT=root.HT||{};
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a};
 const fwd=y=>[-Math.sin(y),-Math.cos(y)],yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
 
-/* ---------- vehicle base stats (minivan row = today's updVan constants) ---------- */
+/* ---------- vehicle base stats (stock, m/s; same numbers as index.html CAR_FEEL, checked by dev/test-carai.js) ---------- */
 const VEH={
- minivan:{name:'Family Minivan', seats:7,len:4.4,wid:2.0,hp:100,max:17,boostMax:25,acc:8,  boostAcc:11, brake:24,hbrake:20,coast:3.5,revMax:8,revAcc:7,steerResp:7,  turn:1.55,turnFade:.75,grip:9,   ram:1.0,mass:1.0,cargo:0,price:0},
- workvan:{name:'The Contractor', seats:3,len:5.0,wid:2.1,hp:130,max:16,boostMax:23,acc:7,  boostAcc:9.5,brake:22,hbrake:18,coast:3.2,revMax:7,revAcc:6,steerResp:6.5,turn:1.40,turnFade:.75,grip:8,   ram:1.2,mass:1.3,cargo:2,price:3500},
- pickup: {name:'The Tailgater',  seats:5,len:5.2,wid:2.0,hp:120,max:19,boostMax:27,acc:9.5,boostAcc:13, brake:25,hbrake:21,coast:3.5,revMax:8,revAcc:7,steerResp:7.5,turn:1.60,turnFade:.75,grip:9.5, ram:1.3,mass:1.2,cargo:2,price:5500},
- suv:    {name:'The Suburbanite',seats:7,len:4.8,wid:2.0,hp:140,max:20,boostMax:29,acc:10, boostAcc:14, brake:27,hbrake:22,coast:3.5,revMax:8,revAcc:7,steerResp:8,  turn:1.60,turnFade:.75,grip:10.5,ram:1.4,mass:1.4,cargo:1,price:7500},
- sedan:  {name:'Sedan',          seats:5,len:4.6,wid:1.9,hp:100,max:22,boostMax:27,acc:12, boostAcc:14, brake:28,hbrake:22,coast:3.5,revMax:8,revAcc:8,steerResp:8.5,turn:1.75,turnFade:.75,grip:10,  ram:.9, mass:.9, cargo:0,price:null},
- hatch:  {name:'Hatchback',      seats:4,len:3.9,wid:1.8,hp:80, max:20,boostMax:26,acc:13, boostAcc:15, brake:28,hbrake:22,coast:3.5,revMax:8,revAcc:8,steerResp:9,  turn:1.85,turnFade:.75,grip:11,  ram:.8, mass:.8, cargo:0,price:null},
+ minivan:{name:'Family Minivan', seats:7,len:4.4,wid:2.0,hp:100,max:25,boostMax:33,acc:9,  boostAcc:12, brake:24,hbrake:20,coast:3.5,revMax:8,revAcc:7,steerResp:7,  turn:1.55,turnFade:.75,grip:9,   ram:1.0,mass:1.0,cargo:0,price:0},
+ workvan:{name:'The Contractor', seats:3,len:5.0,wid:2.1,hp:130,max:20,boostMax:27,acc:6,  boostAcc:8.5,brake:20,hbrake:17,coast:3.2,revMax:7,revAcc:6,steerResp:5.2,turn:1.3,turnFade:.75,grip:7.5,   ram:1.2,mass:1.3,cargo:2,price:3500},
+ pickup: {name:'The Tailgater',  seats:5,len:5.2,wid:2.0,hp:120,max:23.5,boostMax:32,acc:7.6,boostAcc:11, brake:23,hbrake:20,coast:3.5,revMax:8,revAcc:7,steerResp:7,turn:1.62,turnFade:.75,grip:8.5, ram:1.3,mass:1.2,cargo:2,price:5500},
+ suv:    {name:'The Suburbanite',seats:7,len:4.8,wid:2.0,hp:140,max:26.5,boostMax:34,acc:8.2, boostAcc:11, brake:22,hbrake:19,coast:3.5,revMax:8,revAcc:7,steerResp:6,  turn:1.42,turnFade:.75,grip:8,ram:1.4,mass:1.4,cargo:1,price:7500},
+ sedan:  {name:'Sedan',          seats:5,len:4.6,wid:1.9,hp:100,max:30,boostMax:38,acc:12, boostAcc:15, brake:27,hbrake:21,coast:3.5,revMax:8,revAcc:8,steerResp:8.5,turn:1.75,turnFade:.75,grip:10.5,  ram:.9, mass:.9, cargo:0,price:null},
+ hatch:  {name:'Hatchback',      seats:4,len:3.9,wid:1.8,hp:80, max:27.5,boostMax:34,acc:13.5, boostAcc:16, brake:28,hbrake:22,coast:3.5,revMax:8,revAcc:8,steerResp:10,  turn:2.05,turnFade:.75,grip:11.5,  ram:.8, mass:.8, cargo:0,price:null},
 };
 const ENGINE=[{m:0,b:0,a:1},{m:2,b:2,a:1.18},{m:4,b:5,a:1.37},{m:6,b:8,a:1.62}],
       TYRES=[{g:1,s:1,t:1},{g:1.25,s:1.2,t:1.05},{g:1.55,s:1.45,t:1.10}],
@@ -240,7 +240,7 @@ function pursuerInput(van,car,G,memo){memo=memo||{};const d=Math.hypot(car.x-van
 function simulateChase(o){const W=HT.World,R=HT.Roads;const def=o.def||W.build({bridgeOpen:true}),G=o.G||R.build(def);
   const dt=o.dt||1/30,maxT=o.maxT||240,collide=o.collide===false?null:(o.collide||tileCollider(def));
   const start=o.start||G.nodes[G.nearestNode(def.places.g_earl.x,def.places.g_earl.z)];
-  const car=make(o.carType||'sedan',{x:start.x,z:start.z,yaw:0});flee(car,G,{max:o.max||27,seed:o.seed||7,threat:null});
+  const car=make(o.carType||'sedan',{x:start.x,z:start.z,yaw:0});flee(car,G,{max:o.max||35,seed:o.seed||7,threat:null});
   const away=car.ai.pts[Math.min(3,car.ai.pts.length-1)];car.yaw=yawTo(away.x-car.x,away.z-car.z);
   const vf=fwd(car.yaw),gp=o.gap||30;let sp=G.nearestRoad(car.x-vf[0]*gp,car.z-vf[1]*gp);
   if(!sp||Math.hypot(sp.x-car.x,sp.z-car.z)<gp*.6){/* behind the car is off the network: use the far end of the edge it came from */const back=G.nodes[car.ai.cur].e.find(e=>e.to!==car.ai.next)||G.nodes[car.ai.cur].e[0];const bn=G.nodes[back.to],l=Math.hypot(bn.x-car.x,bn.z-car.z)||1;sp={x:car.x+(bn.x-car.x)*Math.min(1,gp/l),z:car.z+(bn.z-car.z)*Math.min(1,gp/l)}}

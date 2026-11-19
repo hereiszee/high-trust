@@ -1173,6 +1173,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   /* type character: launch torque (pickup) and a rear that steps out on the throttle */
   const v0=c.spd;S.accel=B.accel+F.torque*clamp(1-Math.abs(v0)/11,0,1);S.boostAccel=B.boostAccel+F.torque*clamp(1-Math.abs(v0)/11,0,1);
   S.grip=B.grip*(F.rear<1&&I.thr>0&&Math.abs(I.st)>.2&&Math.abs(v0)>3&&Math.abs(v0)<17?F.rear:1);
+  if(!I.hb)I.st*=1-.38*clamp(Math.abs(v0)/34,0,1);/* less steering authority at speed: quick but controllable */
   c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
   const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
@@ -1216,13 +1217,14 @@ function updDriveCam(dt){const e=CV;if(!e)return;const F=feel(e),S=carSize(e),ba
   if(P.fp){/* hood view: just above the hood, ahead of the windscreen (or over the tailgate looking back) */
     const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),x=back?-S.l*.47:S.l*.21,h=back?S.h*.9:S.h*.88+.14;
     camera.position.set(e.pos.x+f.x*x,gy+h,e.pos.z+f.z*x);camera.rotation.set(0,0,0);camera.lookAt(camera.position.x+fw.x,camera.position.y+fw.y*.6-.04,camera.position.z+fw.z);camDist=F.cam[0]}
-  else{const tgt=V3(e.pos.x,gy+S.h*.85+.25,e.pos.z),want=tgt.clone().addScaledVector(fw,-F.cam[0]).add(V3(0,F.cam[1],0));want.y=Math.max(gy+.7,want.y);
+  else{const sk=clamp(Math.abs(e.spd)/32,0,1),cd=F.cam[0]*(1+.3*sk);/* the boom stretches out at speed */
+    const tgt=V3(e.pos.x,gy+S.h*.85+.25,e.pos.z),want=tgt.clone().addScaledVector(fw,-cd).add(V3(0,F.cam[1]*(1-.15*sk),0));want.y=Math.max(gy+.7,want.y);
     const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();const sd=V3(dir.z,0,-dir.x).normalize();let dist=len,thinHit=false;/* a pole right behind the boom eases the camera in front of it; thin things near the car are ignored */
     for(const o of[0,-.45,.45]){ray.set(tgt.clone().addScaledVector(sd,o),dir);ray.near=0;ray.far=len;for(const h of ray.intersectObjects(L.solids,false)){const thick=camBlock(h.object);if(thick||h.distance>len*.45){dist=Math.min(dist,Math.max(thick?1.6:len*.45,h.distance-.35));if(!thick)thinHit=true;break}}}
     for(let k=2;k<dist;k+=.5){const q=tgt.clone().addScaledVector(dir,k);if(inCanopy(q.x,q.y,q.z)){dist=Math.max(2.2,k-.6);break}}
     camDist=dist<camDist?camDist+(dist-camDist)*Math.min(1,dt*(thinHit?6:16)):camDist+(dist-camDist)*Math.min(1,dt*3);
     camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2)}
-  const fov=CFG.fov+Math.max(0,Math.abs(e.spd))*.45+(P.fp?6:0);camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
+  const fov=CFG.fov+Math.min(16,Math.abs(e.spd)*.5)+(P.fp?6:0);camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
   sunFollow(e.pos.x,e.pos.z,fw.x,fw.z);
 }
 /* hub: the car the dad is standing beside (door side), parked hero models drifting back to the light ones */
@@ -2164,7 +2166,7 @@ const VANK={top:1,btop:1,accel:1,baccel:1,brake:1,turn:1,grip:1,steer:1};
 function vanStats(){try{return SV()&&ECON?ECON.vehicleStats():null}catch(e){return null}}
 function vanLook(){const vs=vanStats();if(!vs||!vs.makeOpts)return{type:'minivan',color:'#35577d',upgrades:{roofRack:true}};return{type:vs.type||'minivan',color:vs.makeOpts.color,upgrades:vs.makeOpts.upgrades,vs}}
 function vanApply(){const lk=vanLook(),vs=lk.vs;
-  if(vs){Object.assign(VANK,{top:vs.maxSpeed/17,btop:vs.boostMax/25,accel:vs.accel/8,baccel:vs.boostAccel/11,brake:vs.brake/24,turn:(vs.turn||1.55)/1.55,grip:(vs.grip||9)/9,steer:(vs.steerResp||7)/7})}
+  if(vs){Object.assign(VANK,{top:vs.maxSpeed/25,btop:vs.boostMax/33,accel:vs.accel/9,baccel:vs.boostAccel/12,brake:vs.brake/24,turn:(vs.turn||1.55)/1.55,grip:(vs.grip||9)/9,steer:(vs.steerResp||7)/7})}
   const v=VAN.obj;if(!v||mode!=='hub')return;
   /* another vehicle bought or chosen at Dad's Auto: swap the model in place */
   if(v.userData.type&&lk.type!==v.userData.type){const nv=makeVan(lk.color,lk.type,lk.upgrades);if(nv){const par=v.parent;if(par){par.add(nv);par.remove(v)}VAN.obj=nv;syncVan();return}}
