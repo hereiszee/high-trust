@@ -45,6 +45,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/guns.js"></script>
 <script src="js/buildings.js"></script>
 <script src="js/vehicles.js"></script>
+<script src="js/carai.js"></script>
 <script src="js/world.js"></script>
 <script src="js/people.js"></script>
 <script src="js/carai.js"></script>
@@ -657,7 +658,7 @@ function buildLevel(def){
     else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
       lvl.exit={x:X+2.6,z:Z};const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));ring.position.set(X+2.6,.03,Z);group.add(ring);lvl.exitRing=ring}
     else if(ch==='V'){if(def.id==='hub')Z+=(g[z-1]&&g[z-1][x]==='s')?-.5:(g[z+1]&&g[z+1][x]==='s')?.5:0;const k=(x*7+z*13)%CAR_TYPES.length;const v=makeVan(CAR_COLS[(x+z)%CAR_COLS.length],CAR_TYPES[k]);v.position.set(X,WB?HW.groundY(lvl,X,Z):0,Z);
-      if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
+      if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);regCar(lvl,v,X,Z,lvl.colliders[lvl.colliders.length-1],[x,z]);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
     else if(ch==='Q'){if(WB){HW.grill(WB,X,Z).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});HW.bounce(WB,X,Z+9).traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
       else{const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
         const bh=new THREE.Group();box(3,1.6,3,'#e5533d',0,.8,0,bh);box(3.1,.6,3.1,'#2f5d9e',0,1.9,0,bh);box(.6,.6,.6,'#ffc94a',-1.2,2.5,-1.2,bh);box(.6,.6,.6,'#ffc94a',1.2,2.5,1.2,bh);bh.position.set(X,0,Z+9);group.add(bh);bh.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
@@ -673,7 +674,7 @@ function buildLevel(def){
     /* parked cars the world module picked along the curbs */
     for(const pc of WB.parked||[]){const k=Math.floor(pc.x*3+pc.z)%CAR_TYPES.length;const v=makeVehicle(CAR_TYPES[k],CAR_COLS[Math.floor(pc.x+pc.z)%CAR_COLS.length]);if(!v)continue;
       v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
-      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}}
+      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz});regCar(lvl,v,pc.x,pc.z,lvl.colliders[lvl.colliders.length-1])}}
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
   if(def.id!=='hub'&&window.HT&&window.HT.AI)lvl.nav=window.HT.AI.buildNav(g,{colliders:lvl.colliders,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});
@@ -809,56 +810,217 @@ let _scope=null;function scopeEl(){if(_scope)return _scope;const d=document.crea
 
 /* ================= FLOW ================= */
 /* ================= MINIVAN ================= */
-const VAN={on:false,obj:null,pos:V3(),yaw:0,spd:0,steer:0,col:null,bump:0},VAN_OFF={x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1};
+/* Every car parked in the hub is a drivable entity {type,obj,pos,yaw,spd,steer,col,stats,owner:'player'|'neighbour',name,...} in L.cars:
+   buildLevel registers the neighbours' cars through regCar(), makeHubVan puts the family minivan first. VAN is the minivan (home base for jobs,
+   the only car that takes van upgrades); CV is whatever the dad is driving. VAN.on reads true while he drives ANY car so older call sites keep working.
+   Without HT.Vehicles the parked cars are plain boxes and only the minivan drives. */
+let CV=null;
+const VAN={obj:null,pos:V3(),yaw:0,spd:0,steer:0,col:null,bump:0,type:'minivan',owner:'player',name:'',dmg:0,odo:0,
+  get on(){return !!CV},set on(b){if(b){if(!CV&&VAN.obj)enterCar(VAN)}else if(CV)stopDriving()}},VAN_OFF={x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1};
 let JOB=null,camLookT=0,ENG=null,destRings=[],objKey='';
 const DRIVE_LINES=["Seatbelts. I'm not asking.","Nobody touch the radio presets.","I call shotgun. The seat. Not the gun.","Signal before you merge. We're the good guys.","This van has seen three soccer seasons and a divorce. It can handle this."];
+/* handling per body type (m/s, m/s², rad/s). The minivan row is the classic van feel; HT.Garage applies its upgrades on top of it.
+   roll scales the body lean, cam=[chase distance, height], eng=engine note, gears=shift points, rear=rear grip on the throttle, torque=extra launch accel */
+const CAR_FEEL={
+ minivan:{label:'minivan', seats:7,bed:0,max:25,  boostMax:33,acc:9,  boostAcc:12,  brake:24,hbrake:20,turn:1.55,steerResp:7,  grip:9,   roll:1,  cam:[8.5,1.3], eng:1,   gears:4,horn:'double',door:'slide',rear:1, torque:0},
+ hatch:  {label:'hatchback',seats:4,bed:0,max:27.5,boostMax:34,acc:13.5,boostAcc:16,brake:28,hbrake:22,turn:2.05,steerResp:10, grip:11.5,roll:.7, cam:[7,1.05],  eng:1.35,gears:5,horn:'triple',door:'close',rear:1, torque:0},
+ sedan:  {label:'sedan',   seats:4,bed:0,max:30,  boostMax:38,acc:12, boostAcc:15,brake:27,hbrake:21,turn:1.75,steerResp:8.5,grip:10.5,roll:.85,cam:[7.6,1.1], eng:1.12,gears:5,horn:'short', door:'close',rear:1, torque:0},
+ suv:    {label:'SUV',     seats:7,bed:0,max:26.5,boostMax:34,acc:8.2,boostAcc:11, brake:22,hbrake:19,turn:1.42,steerResp:6,  grip:8,   roll:2.3,cam:[9,1.5],   eng:.9,  gears:4,horn:'long',  door:'close',rear:1, torque:0},
+ pickup: {label:'pickup',  seats:2,bed:4,max:23.5,boostMax:32,acc:7.6,boostAcc:11, brake:23,hbrake:20,turn:1.62,steerResp:7,  grip:8.5, roll:1.5,cam:[9.4,1.6], eng:.72, gears:3,horn:'long',  door:'close',rear:.45,torque:9},
+ workvan:{label:'work van',seats:2,bed:4,max:20,  boostMax:27,acc:6,  boostAcc:8.5,brake:20,hbrake:17,turn:1.3,steerResp:5.2,grip:7.5, roll:1.9,cam:[9.6,1.6], eng:.8,  gears:4,horn:'short', door:'slide',rear:1, torque:0}};
+const feel=e=>CAR_FEEL[e&&e.type]||CAR_FEEL.minivan;
+/* seats in the car's frame: [forward, hip height, right(+)/left(-), turn]; seat 0 is the driver (left). Cargo seats (bed) come last */
+const SEATS={
+ minivan:[[.2,.62,-.42],[.2,.62,.42],[-.75,.64,-.44],[-.75,.64,.44],[-1.65,.66,-.42],[-1.65,.66,0],[-1.65,.66,.42]],
+ hatch:  [[-.12,.47,-.37],[-.12,.47,.37],[-1.02,.5,-.38],[-1.02,.5,.38]],
+ sedan:  [[-.15,.45,-.38],[-.15,.45,.38],[-1.08,.48,-.4],[-1.08,.48,.4]],
+ suv:    [[.05,.66,-.42],[.05,.66,.42],[-.85,.68,-.44],[-.85,.68,.44],[-1.7,.7,-.42],[-1.7,.7,0],[-1.7,.7,.42]],
+ pickup: [[.45,.78,-.42],[.45,.78,.42],[-1.35,1.12,-.62,-Math.PI/2],[-1.35,1.12,.62,Math.PI/2],[-2.15,1.12,-.62,-Math.PI/2],[-2.15,1.12,.62,Math.PI/2]],
+ workvan:[[1.15,.72,-.45],[1.15,.72,.45],[-.6,.7,-.6,-Math.PI/2],[-.6,.7,.6,Math.PI/2],[-1.6,.7,-.6,-Math.PI/2],[-1.6,.7,.6,Math.PI/2]]};
+const NEIGHBOURS=['Linda','Barb','Phil','Marcy','Ted','Denise','Walt','Joyce','Ken','Sharon','Ray','Pam','Gil','Rhonda','Stu','Carol','Hal','Bev'];
+const BORROW_NOTES=["Borrowing {n}'s {t}. Bring it back with gas in it.","{n}'s {t}. Keys were under the visor. Of course they were.","{n} said 'anytime' about the {t} once, in 2019. That counts.",
+  "Borrowing {n}'s {t}. Don't touch the seat settings. {n} WILL know.","{n}'s {t}. There's a note on the dash: 'Brakes pull left. Love, {n}.'"];
+const CREW_LINES={
+ hatch:["I'm going to need you to scoot your seat up.","My knees are in the glovebox.","Clown car energy. I respect it."],
+ sedan:["Smells like a pine tree and a gym bag in here.","This is a nice car. Nobody eat anything.","Leather seats. We're basically undercover."],
+ suv:["Look at all this cupholder real estate.","It's got a third row! I call way back.","Heated seats. I may never leave."],
+ pickup:["Bed's open. Somebody hold the cooler.","Wind in the mustache. This is living.","If I fall out, tell my wife I was brave."],
+ workvan:["Why are there forty pounds of drywall screws back here?","No windows back here. This is how the kidnapping rumors start.","Smells like a hardware store. Honestly? Love it."]};
+const NOFIT_LINES=["We're not all fitting in that. Go get the minivan.","I'm not riding in the trunk again. Get something bigger.","Five dads, four seats. Do the math, man."];
+const RETURN_LINES=["Right where I left it. You're a good neighbor.","And it's still got gas in it! Bless you.","Thanks for bringing it back. Want some zucchini?"];
+const DING_LINES=["Is that a new dent? We're going to talk about this at the block party.","Where's my car?! ...Oh, it's on Elm. Wonderful.","I'm putting this in the neighborhood newsletter."];
+const DRV={fp0:false,lights:null,lPrev:false,ex:null,quipT:0};
+/* borrowing ledger: the last borrowed car is settled when the dad takes another car or starts a job; capped so it can't be farmed or tank the meter */
+const BORROW={car:null,dmg0:0,odo0:0,plus:0,minus:0,thanked:new Set(),dinged:new Set()};
+
+function carModel(type,color,lod){const V_=HTM('Vehicles');if(!V_||!V_.make)return null;try{const v=V_.make(type,{color,lod});if(!v)return null;v.userData.mod=true;v.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});return v}catch(e){console.warn('vehicle module failed',e);return null}}
+/* hook from buildLevel: a neighbour's parked car (x,z metres, col its collider in lvl.colliders, tile [x,z] when it sits on a 'V' map tile) */
+function regCar(lvl,v,x,z,col,tile){if(!v||!v.userData.mod||!(lvl.def.id==='hub'||lvl.def.world))return null;const cars=lvl.cars||(lvl.cars=[]),y=v.rotation.y-Math.PI/2;
+  const e={type:v.userData.type||'sedan',obj:v,pos:V3(x,0,z),yaw:y,spd:0,steer:0,col,bump:0,stats:null,owner:'neighbour',name:NEIGHBOURS[(cars.length*7)%NEIGHBOURS.length],
+    color:v.userData.color,home:{x,z,yaw:y},dmg:0,odo:0,tile:tile||null,meshes:[]};
+  v.traverse(m=>{if(m.isMesh)e.meshes.push(m)});cars.push(e);return e}
+function carSize(e){const s=e.obj&&e.obj.userData.size;return s&&s.l?s:{l:4.4,w:2,h:1.8}}
+function groundAt(x,z){const HW=HTM('World');if(!HW||!HW.groundY||!L)return 0;try{return HW.groundY(L,x,z)||0}catch(_){return 0}}
+/* the car's meshes block bullets and the camera while parked, not while you sit in it */
+function setCarSolid(e,on){if(e===VAN||!L)return;if(on){if(e.meshes)return;e.meshes=[];e.obj.traverse(m=>{if(m.isMesh){L.solids.push(m);e.meshes.push(m)}});return}
+  if(!e.meshes)return;const s=new Set(e.meshes);let j=0;for(let i=0;i<L.solids.length;i++)if(!s.has(L.solids[i]))L.solids[j++]=L.solids[i];L.solids.length=j;e.meshes=null}
+/* hero model while you drive (and while it carries dents); the light parked model once you walk away */
+function swapLod(e,lod){if(e===VAN||!e.obj||(e.obj.userData.lod|0)===lod)return;const nv=carModel(e.type,e.color,lod);if(!nv)return;const old=e.obj,solid=!!e.meshes;
+  setCarSolid(e,false);nv.position.copy(old.position);nv.rotation.copy(old.rotation);if(old.parent){old.parent.add(nv);old.parent.remove(old)}try{old.userData.dispose&&old.userData.dispose()}catch(_){}
+  e.obj=nv;if(e.dmg&&nv.userData.setDamage)nv.userData.setDamage(e.dmg);if(solid)setCarSolid(e,true)}
+function carStats(e){const F=feel(e),S=carSize(e);
+  const s={type:e.type,maxSpeed:F.max,boostMax:F.boostMax,accel:F.acc,boostAccel:F.boostAcc,brake:F.brake,hbrake:F.hbrake,coast:3.5,revMax:8,revAccel:7,steerResp:F.steerResp,turn:F.turn,turnFade:.75,grip:F.grip,
+    absGrip:false,hp:100,sport:false,sportDur:0,sportCool:0,sportAccMul:1,sportMax:F.boostMax,len:Math.max(3.6,S.l*.86),wid:Math.max(1.8,Math.min(2.15,S.w))};
+  if(e===VAN&&typeof VANK!=='undefined'){const K=VANK,M=CAR_FEEL.minivan;/* Dad's Auto upgrades and bought vehicles, as multipliers on the classic van */
+    Object.assign(s,{maxSpeed:M.max*K.top,boostMax:M.boostMax*K.btop,accel:M.acc*K.accel,boostAccel:M.boostAcc*K.baccel,brake:M.brake*K.brake,hbrake:M.hbrake*K.brake,turn:M.turn*K.turn,grip:M.grip*K.grip,steerResp:M.steerResp*K.steer});
+    try{const vs=vanStats();if(vs&&vs.hp)s.hp=vs.hp}catch(_){}}
+  return s}
+/* arcade physics: HT.CarAI.drive when loaded (sliding grip model), else the classic van model */
+function drivePhys(c,inp,dt,col){const CA=HTM('CarAI');if(CA&&CA.drive)return CA.drive(c,inp,dt,col);
+  const S=c.stats;let v=c.spd;const thr=inp.thr,MAX=inp.boost?S.boostMax:S.maxSpeed,A=inp.boost?S.boostAccel:S.accel;
+  if(thr>0)v+=(v<0?S.brake:A)*dt*thr;else if(thr<0)v-=(v>0?S.brake:S.revAccel)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),S.coast*dt);
+  if(inp.hb)v-=Math.sign(v)*Math.min(Math.abs(v),S.hbrake*dt);v=clamp(v,-S.revMax,Math.max(MAX,Math.min(c.spd,v)));
+  c.steer+=(inp.st-c.steer)*Math.min(1,dt*S.steerResp);c.yaw+=c.steer*clamp(Math.abs(v)/5,0,1)*(S.turn-Math.min(S.turnFade,Math.abs(v)/35))*Math.sign(v)*(inp.hb?1.5:1)*dt;
+  const f=[-Math.sin(c.yaw),-Math.cos(c.yaw)];c.vdx=f[0];c.vdz=f[1];c.slip=0;c.x+=f[0]*v*dt;c.z+=f[1]*v*dt;c.spd=v;
+  let hit=null;for(const s of[1,-1]){const p={x:c.x+f[0]*S.len/3*s,z:c.z+f[1]*S.len/3*s},q={x:p.x,z:p.z};col(q,S.wid/2+.05);const dx=q.x-p.x,dz=q.z-p.z;if(dx*dx+dz*dz>1e-6){c.x+=dx;c.z+=dz;if(!hit)hit={front:s===1===(v>=0),speed:Math.abs(v)}}}
+  if(hit)c.spd*=hit.speed>5?-.25:.6;return hit}
 function makeHubVan(){const v=makeVan('#35577d','minivan',{roofRack:true});if(!v.userData.mod){box(3.4,.08,1.6,'#2a2a2a',-.3,2.04,0,v);for(const z of[-.7,.7])box(3.2,.1,.08,'#888',-.3,2.12,z,v)}
-  L.group.add(v);VAN.obj=v;VAN.pos.set(L.vanStart.x,0,L.vanStart.z);VAN.yaw=-Math.PI/2;VAN.spd=0;VAN.steer=0;VAN.on=false;VAN.col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(VAN.col);syncVan()}
-function syncVan(){const v=VAN.obj;v.position.set(VAN.pos.x,0,VAN.pos.z);v.rotation.y=VAN.yaw+Math.PI/2;v.rotation.x=0;v.rotation.z=clamp(-VAN.steer*VAN.spd*.004,-.06,.06)*0;
-  const c=VAN.col;if(VAN.on){Object.assign(c,VAN_OFF);return}const a=Math.abs(Math.sin(VAN.yaw)),b=Math.abs(Math.cos(VAN.yaw)),hx=a*2.2+b*1,hz=b*2.2+a*1;
-  c.x0=VAN.pos.x-hx;c.x1=VAN.pos.x+hx;c.z0=VAN.pos.z-hz;c.z1=VAN.pos.z+hz}
-function engine(on){const A=AU();if(A){try{if(on&&!ENG){ENG=A.vehicle();ENG.door&&ENG.door('slide')}else if(!on&&ENG&&ENG.stop){ENG.door&&ENG.door('slide');ENG.stop();ENG=null}}catch(e){}return}if(!AC)return;if(on&&!ENG){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=380;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AC.destination);o.start();o2.start();ENG={o,o2,g}}
+  L.group.add(v);VAN.obj=v;VAN.pos.set(L.vanStart.x,0,L.vanStart.z);VAN.yaw=-Math.PI/2;VAN.spd=0;VAN.steer=0;VAN.on=false;CV=null;VAN.dmg=0;VAN.odo=0;VAN.col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(VAN.col);
+  VAN.home={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};(L.cars||(L.cars=[])).unshift(VAN);BORROW.car=null;syncVan()}
+/* place the car's model and its parked footprint */
+function syncCar(e){const v=e.obj;if(!v)return;v.position.set(e.pos.x,groundAt(e.pos.x,e.pos.z),e.pos.z);v.rotation.set(0,e.yaw+Math.PI/2,0);
+  const c=e.col;if(!c)return;if(CV===e){Object.assign(c,VAN_OFF);return}const S=carSize(e),a=Math.abs(Math.sin(e.yaw)),b=Math.abs(Math.cos(e.yaw)),hl=S.l/2,hw=S.w/2,hx=a*hl+b*hw,hz=b*hl+a*hw;
+  c.x0=e.pos.x-hx;c.x1=e.pos.x+hx;c.z0=e.pos.z-hz;c.z1=e.pos.z+hz}
+function syncVan(){syncCar(VAN)}
+function engine(on,e){const F=feel(e||CV),A=AU();if(A){try{if(on&&!ENG){ENG=A.vehicle();ENG.door&&ENG.door(F.door)}else if(!on&&ENG&&ENG.stop){ENG.door&&ENG.door(F.door);ENG.stop();ENG=null}}catch(err){}return}if(!AC)return;if(on&&!ENG){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=380;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AC.destination);o.start();o2.start();ENG={o,o2,g}}
   else if(!on&&ENG){try{ENG.o.stop();ENG.o2.stop()}catch(e){}ENG=null}}
-function honk(){if(metaHorn())return;if(ENG&&ENG.horn){ENG.horn('double');return}if(!AC)return;const t=AC.currentTime;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
-function enterVan(){VAN.on=true;syncVan();P.yaw=VAN.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;P.dude.root.visible=false;vm.visible=false;engine(true);snd('reload',.6);
-  for(const a of allies){a.dude.root.visible=false;a.target=null}const sp=speaker();if(sp)radio(sp,pick(DRIVE_LINES))}
-function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));
-  VAN.on=false;VAN.spd=0;VAN.steer=0;syncVan();engine(false);let ok=false;
-  for(const s of[-2.3,2.3]){const p=VAN.pos.clone().addScaledVector(r,s),q=p.clone();collide(q,.35);if(q.distanceTo(p)<.05&&walkable(tx(p.x),tx(p.z))){P.pos.copy(p);ok=true;break}}
-  if(!ok){const p=VAN.pos.clone().addScaledVector(f,-3.4);collide(p,.35);P.pos.copy(p)}
-  P.yaw=VAN.yaw;P.dude.root.visible=true;resetMove();
-  allies.forEach((a,i)=>{a.pos.copy(P.pos).addScaledVector(f,-1.4-(i>>1)).addScaledVector(r,i%2?1.4:-1.4);collide(a.pos,.35);a.dude.root.visible=true;a.dude.root.position.set(a.pos.x,0,a.pos.z)})}
-function updVan(dt){
-  let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
-  if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}
-  const boost=keys.shift,MAX=boost?33*VANK.btop:25*VANK.top;let v=VAN.spd;
-  if(thr>0)v+=(v<0?24*VANK.brake:boost?12*VANK.baccel:9*VANK.accel)*dt*thr;else if(thr<0)v-=(v>0?24*VANK.brake:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
-  const hb=keys[' '];if(hb)v-=Math.sign(v)*Math.min(Math.abs(v),20*dt);
-  VAN.spd=v=clamp(v,-8,MAX);VAN.steer+=(st-VAN.steer)*Math.min(1,dt*7*VANK.steer);
-  VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55*VANK.turn-Math.min(.75,Math.abs(v)/(35*VANK.grip)))*Math.sign(v)*(hb?1.5:1)*dt;
-  const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw));VAN.pos.addScaledVector(f,v*dt);
-  let hit=false;for(const o of[1.45,-1.45]){const pt=VAN.pos.clone().addScaledVector(f,o),q=pt.clone();collide(q,1.05);const dx=q.x-pt.x,dz=q.z-pt.z;if(dx*dx+dz*dz>1e-6){VAN.pos.x+=dx;VAN.pos.z+=dz;hit=true}}
-  if(hit){if(Math.abs(v)>5&&VAN.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,Math.abs(v)/15));else snd('hit',Math.min(1,Math.abs(v)/15));hurtFlash=Math.min(.5,Math.abs(v)/40);VAN.bump=.4;const sp=speaker();if(sp&&Math.abs(v)>11&&Math.random()<.5)radio(sp,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}VAN.spd*=Math.abs(v)>5?-.25:.6}
-  VAN.bump-=dt;
-  syncVan();VAN.obj.rotation.x=0;
-  const VM=HTM('Vehicles');if(VAN.obj.userData.mod&&VM&&VM.update){VAN.obj.rotation.z=0;try{VM.update(VAN.obj,{speed:v,steer:VAN.steer,braking:!!hb||(thr<0&&v>.5)||(thr>0&&v<-.5),headlights:mood===MOODS.dusk,dt})}catch(e){}}else VAN.obj.rotation.z=clamp(VAN.steer*v*.0035,-.05,.05);
-  P.pos.set(VAN.pos.x,0,VAN.pos.z);P.vault=null;P.vy=0;P.dude.root.visible=false;vm.visible=false;
-  for(const a of allies){a.pos.set(VAN.pos.x,0,VAN.pos.z);a.dude.root.visible=false}
-  if(ENG&&ENG.set)ENG.set({rpm:clamp(.08+Math.abs(v)/22,0,1),throttle:thr?1:0,speed:v,skid:hb&&Math.abs(v)>4?1:0});
-  else if(ENG){ENG.o.frequency.value=38+Math.abs(v)*4.2+(thr?8:0);ENG.o2.frequency.value=19+Math.abs(v)*2.1;ENG.g.gain.setTargetAtTime(running?.03+Math.abs(v)*.0012:0,AC.currentTime,.05)}
+function honk(){if(CV===VAN&&typeof metaHorn==='function'&&metaHorn())return;if(ENG&&ENG.horn){ENG.horn(feel(CV).horn);return}if(!AC)return;const t=AC.currentTime,p=feel(CV).eng;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f*(.8+.2*p);g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
+const crewNow=()=>allies.filter(a=>!a.down);
+const carCap=e=>{const F=feel(e);return F.seats+F.bed};
+function borrowNote(e){return pick(BORROW_NOTES).replace(/\{n\}/g,e.name).replace(/\{t\}/g,feel(e).label)}
+function enterCar(e){if(!e||!e.obj||CV)return;
+  if(BORROW.car&&BORROW.car!==e)settleBorrow(false);/* taking another car settles the last borrowed one */
+  const fresh=e.owner==='neighbour'&&BORROW.car!==e;if(fresh){BORROW.car=e;BORROW.dmg0=e.dmg;BORROW.odo0=e.odo}
+  swapLod(e,0);setCarSolid(e,false);if(e.tile&&L.g[e.tile[1]]){L.g[e.tile[1]][e.tile[0]]=(L.def.under&&L.def.under.V)||',';e.tile=null}
+  if(e===VAN)VAN.type=VAN.obj.userData.type||'minivan';CV=e;e.stats=carStats(e);e.base=Object.assign({},e.stats);
+  const CA=HTM('CarAI');e.car=CA&&CA.make?CA.make(e.type,{x:e.pos.x,z:e.pos.z,yaw:e.yaw,stats:e.stats}):{x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:0,steer:0,vdx:0,vdz:0,slip:0,hp:100,stats:e.stats,bump:0,t:0};
+  e.car.hp=e.stats.hp||100;e.spd=0;e.steer=0;syncCar(e);
+  DRV.fp0=P.fp;P.fp=false;DRV.lights=null;DRV.lPrev=!!keys.l;camDist=feel(e).cam[0];
+  P.yaw=e.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;vm.visible=false;engine(true,e);snd('reload',.6);
+  const cap=carCap(e)-1;let k=0;for(const a of allies){a.target=null;a.ride=!a.down&&k<cap;if(a.ride)k++;a.dude.root.visible=!a.ride}
+  P.dude.root.visible=false;
+  try{if(FX.emitter){const S=carSize(e);DRV.ex=FX.emitter('exhaust',{object:e.obj,offset:[-S.l/2+.08,.3,S.w*.27],dir:[-1,.06,0]})}}catch(_){DRV.ex=null}
+  const sp=speaker(),crew=crewNow().length,riders=allies.filter(a=>a.ride).length;
+  if(e===VAN){if(sp)radio(sp,pick(DRIVE_LINES))}
+  else{if(fresh)radio('you',borrowNote(e),true);if(sp&&riders<crew)radio(sp,pick(NOFIT_LINES));else if(sp)radio(sp,pick(CREW_LINES[e.type]||CREW_LINES.sedan))}}
+function enterVan(){enterCar(VAN)}
+/* silent stop (level swaps): no exit placement */
+function stopDriving(){const e=CV;CV=null;if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}P.fp=DRV.fp0;if(e&&e.obj&&e.obj.parent){syncCar(e);setCarSolid(e,true)}for(const a of allies)a.ride=false}
+function exitCar(){const e=CV;if(!e)return;const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);
+  CV=null;e.spd=0;e.steer=0;if(e.car){e.car.spd=0;e.car.steer=0}syncCar(e);engine(false,e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}
+  setCarSolid(e,true);const VM=HTM('Vehicles');if(e.obj.userData.mod&&VM&&VM.update)try{VM.update(e.obj,{speed:0,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}
+  let ok=false;const side=S.w/2+.75;
+  for(const s of[-side,side]){const p=e.pos.clone().addScaledVector(r,s),q=p.clone();collide(q,.35);if(q.distanceTo(p)<.05&&walkable(tx(p.x),tx(p.z))){P.pos.copy(p);ok=true;break}}
+  if(!ok){const p=e.pos.clone().addScaledVector(f,-(S.l/2+1.1));collide(p,.35);P.pos.copy(p)}
+  P.yaw=e.yaw;P.dude.root.visible=true;P.dude.root.position.set(P.pos.x,0,P.pos.z);P.fp=DRV.fp0;P.crouch=false;
+  let i=0;for(const a of allies){if(!a.ride){a.dude.root.visible=true;continue}a.ride=false;a.pos.copy(P.pos).addScaledVector(f,-1.4-(i>>1)).addScaledVector(r,i%2?1.4:-1.4);collide(a.pos,.35);a.dude.root.visible=true;a.dude.root.position.set(a.pos.x,0,a.pos.z);i++}}
+function exitVan(){exitCar()}
+/* trust from borrowing: +1 for bringing it back near where it was, undamaged, after a real drive; -2 for leaving it far away or dented. Once per owner each way, +3/-6 per session */
+function settleBorrow(job){const e=BORROW.car;job=job&&CV===e;BORROW.car=null;if(!e||!L||!L.cars||!L.cars.includes(e))return null;
+  const dent=e.dmg-BORROW.dmg0,away=Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),moved=e.odo-BORROW.odo0,at=P.pos.clone().setY(2.2);
+  if(dent>=.3||(!job&&away>45&&moved>20)){if(BORROW.minus>-6&&!BORROW.dinged.has(e.name)){BORROW.dinged.add(e.name);BORROW.minus-=2;addTrust(-2);
+      try{FX.trustPop(at,'-2 TRUST',{sub:e.name+"'s going to mention this at the block party",color:'#ff6a4d'})}catch(_){}radio(e.name,pick(DING_LINES));return -2}return 0}
+  if(!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1);
+      try{FX.trustPop(at,'+1 TRUST',{sub:'Returned · thanks, '+e.name})}catch(_){}radio(e.name,pick(RETURN_LINES));return 1}}
+  return 0}
+/* a dent where the car hit something: push is the collision push-out (world), sp the impact speed.
+   Crumples the hero body in place (paint shell and trim pushed in along the hit, crease shading) and scuffs the paint around it */
+function dentCar(e,push,sp){const ud=e.obj.userData,add=Math.min(.22,(sp-5)*.013);e.dmg=Math.min(1,e.dmg+add);if(ud.setDamage)ud.setDamage(e.dmg);
+  const paint=ud.body&&ud.body[0];if(!paint||!ud.bodyRoot)return;
+  const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw),S=carSize(e);
+  const t=Math.min(S.l/2/Math.max(1e-3,Math.abs(lx)),S.w/2/Math.max(1e-3,Math.abs(lz))),P_={x:lx*t,y:S.h*(.3+Math.random()*.15),z:lz*t};
+  const R=.55+sp*.025,dep=Math.min(.26,.06+sp*.009)*(1.15-e.dmg*.8);/* later dents go shallower: the shell crumples, never inverts */
+  if(!paint.vertexColors){paint.vertexColors=true;paint.needsUpdate=true;if(ud.body[1]&&ud.body[1]!==paint){ud.body[1].vertexColors=true;ud.body[1].needsUpdate=true}}
+  ud.bodyRoot.traverse(m=>{if(!m.isMesh)return;const isPaint=ud.body.includes(m.material);if(!isPaint&&m.material!==ud.material)return;
+    if(!m.userData.dentOwn){m.geometry=m.geometry.clone();(ud._own||(ud._own=[])).push(m.geometry);m.userData.dentOwn=1}
+    const g=m.geometry;if(isPaint&&!g.attributes.color){const c=new Float32Array(g.attributes.position.count*3).fill(1);g.setAttribute('color',new THREE.BufferAttribute(c,3))}
+    dentGeo(g,P_,lx,lz,R,dep,isPaint)})}
+function dentGeo(g,c,lx,lz,R,dep,scuff){const pa=g.attributes.position,na=g.attributes.normal,ca=scuff?g.attributes.color:null;let n=0;
+  for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),d=Math.hypot(x-c.x,(y-c.y)*1.4,z-c.z);if(d>=R)continue;n++;
+    const w=Math.pow(1-d/R,1.6),h=Math.sin(x*41.3+z*17.1+y*29.7)*43758.5,j=h-Math.floor(h)-.5,k=dep*w*(1+j*.7);
+    pa.setXYZ(i,x-lx*k,y-k*.25,z-lz*k);
+    if(na){const nx=na.getX(i)+j*w*1.1,ny=na.getY(i)+Math.sin(h)*w*.6,nz=na.getZ(i)-j*w*1.1,nl=Math.hypot(nx,ny,nz)||1;na.setXYZ(i,nx/nl,ny/nl,nz/nl)}
+    if(ca){const s=1-Math.min(.55,w*.75+(j>.3?.2*w:0));ca.setXYZ(i,Math.min(ca.getX(i),s),Math.min(ca.getY(i),s*.97),Math.min(ca.getZ(i),s*.93))}}
+  if(!n)return;pa.needsUpdate=true;if(na)na.needsUpdate=true;if(ca)ca.needsUpdate=true;g.computeBoundingSphere()}
+function readDrive(){let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
+  if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}return{thr,st,hb:!!keys[' '],boost:!!keys.shift}}
+const autoLights=()=>mood===MOODS.dusk;
+function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=e.base,I=readDrive(),VM=HTM('Vehicles'),mod=e.obj.userData.mod;
+  if(keys.l&&!DRV.lPrev)DRV.lights=!(DRV.lights==null?autoLights():DRV.lights);DRV.lPrev=!!keys.l;
+  /* type character: launch torque (pickup) and a rear that steps out on the throttle */
+  const v0=c.spd;S.accel=B.accel+F.torque*clamp(1-Math.abs(v0)/11,0,1);S.boostAccel=B.boostAccel+F.torque*clamp(1-Math.abs(v0)/11,0,1);
+  S.grip=B.grip*(F.rear<1&&I.thr>0&&Math.abs(I.st)>.2&&Math.abs(v0)>3&&Math.abs(v0)<17?F.rear:1);
+  c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
+  const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});
+  if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
+  e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
+  if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
+      if(mod)dentCar(e,push,sp);const s2=speaker();
+      if(sp>11&&Math.random()<.5){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
+        else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
+  e.bump-=dt;syncCar(e);
+  const braking=I.hb||(I.thr<0&&e.spd>.5)||(I.thr>0&&e.spd<-.5),heads=DRV.lights==null?autoLights():DRV.lights;
+  if(mod&&VM&&VM.update){try{VM.update(e.obj,{speed:e.spd,steer:e.steer,braking,headlights:heads,dt})}catch(err){}const br=e.obj.userData.bodyRoot;if(br){br.rotation.x*=F.roll;br.rotation.z*=.6+.4*F.roll}}
+  else e.obj.rotation.z=clamp(e.steer*e.spd*.0035,-.05,.05);
+  P.pos.set(e.pos.x,0,e.pos.z);vm.visible=false;seatCrew(e,dt);
+  /* tyres: skid marks and smoke on slides, handbrake turns and launches */
+  const slip=c.slip||0,av=Math.abs(e.spd),launch=F.torque&&I.thr>0&&av>.5&&av<7?.55:0,sk=clamp((slip-.07)*3.2,0,1)+(I.hb&&av>4?.55:0)+launch;
+  if(sk>.05&&av>1.5){const S2=carSize(e),f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),rx=-S2.l*.3;
+    for(const s of[-1,1]){const p=e.pos.clone().addScaledVector(f,rx).addScaledVector(r,s*S2.w*.42);p.y=groundAt(p.x,p.z);try{FX.skid(p,f,Math.min(1,sk))}catch(_){}}}
+  if(DRV.ex)DRV.ex.intensity=clamp(.12+(I.thr>0?.75:0)*(1-av/S.boostMax)+(I.boost&&I.thr>0?.25:0),0,1);
+  /* engine: rpm climbs through the gears, the note per body type */
+  const fr=clamp(av/Math.max(1,S.boostMax),0,1),g=fr*F.gears*.999,gi=Math.floor(g),within=g-gi,rpm=clamp(((gi?.36:.1)+within*(gi?.52:.75)+(I.thr>0&&av<1?.18:0))*(.75+.25*F.eng),0,1);
+  if(ENG&&ENG.set)ENG.set({rpm,throttle:I.thr?1:0,speed:e.spd,skid:Math.min(1,sk)});
+  else if(ENG){ENG.o.frequency.value=(38+av*4.2+(I.thr?8:0))*F.eng;ENG.o2.frequency.value=(19+av*2.1)*F.eng;ENG.g.gain.setTargetAtTime(running?.03+av*.0012:0,AC.currentTime,.05)}
 }
-function updDriveCam(dt){
-  camLookT-=dt;if(camLookT<=0&&Math.abs(VAN.spd)>2){let d=VAN.yaw-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;P.yaw+=d*Math.min(1,dt*2.6);P.pitch+=(-.22-P.pitch)*Math.min(1,dt*1.5)}
-  P.pitch=clamp(P.pitch,-.9,.25);
-  const tgt=V3(VAN.pos.x,1.8,VAN.pos.z),fw=camFwd(),want=tgt.clone().addScaledVector(fw,-8.5).add(V3(0,1.3,0));want.y=Math.max(.7,want.y);
-  const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();ray.set(tgt,dir);ray.near=0;ray.far=len;const h=ray.intersectObjects(L.solids,false)[0];
-  const dist=h?Math.max(1.5,h.distance-.3):len;camDist=dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*4);
-  camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2);
-  const fov=CFG.fov+Math.max(0,VAN.spd)*.45;camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
-  sunFollow(VAN.pos.x,VAN.pos.z,fw.x,fw.z);
+/* inside height over a seat: first body surface straight down from above the car (local frame, metres above the ground) */
+function roofAt(e,fx,sz){const v=e.obj;v.updateMatrixWorld(true);const o=v.localToWorld(V3(fx,4,sz)),rc=new THREE.Raycaster(o,V3(0,-1,0),0,4);const ms=[];v.traverse(m=>{if(m.isMesh&&m!==v.userData.contactShadow&&!(m.material&&m.material.transparent))ms.push(m)});
+  const h=rc.intersectObjects(ms,false)[0];return h?h.point.y-v.position.y:9}
+/* the dad and the crew in their seats (needs the rigged characters' sit pose; otherwise they ride out of sight) */
+function seatCrew(e,dt){const rig=!!(P.dude&&P.dude.rb),seats=SEATS[e.type]||SEATS.minivan,f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),y0=L.world&&L.world.hub?0:groundAt(e.pos.x,e.pos.z);
+  if(e._seatObj!==e.obj){e._seatObj=e.obj;e._roof=seats.map((s,i)=>i<feel(e).seats?roofAt(e,s[0],s[2]):9)}
+  const put=(d,s)=>{const sc=d.root.scale.y||1,i=seats.indexOf(s),hip=Math.min(s[1],(e._roof[i]||9)-.84*sc-.05);d.root.position.set(e.pos.x+f.x*s[0]+r.x*s[2],y0+hip-.59*sc,e.pos.z+f.z*s[0]+r.z*s[2]);d.root.rotation.set(0,e.yaw+Math.PI+(s[3]||0),0);pose(d,dt,{mode:'sit',aim:false,moving:false})};
+  const show=rig&&e.obj.userData.mod&&e.type!=='workvan';
+  P.dude.root.visible=show&&!P.fp;if(P.dude.root.visible)put(P.dude,seats[0]);
+  let k=1;for(const a of allies){if(!a.ride){if(!a.down)pose(a.dude,dt,{aim:false});continue}a.pos.set(e.pos.x,0,e.pos.z);const s=seats[k++];a.dude.root.visible=!!(show&&s&&a.dude.rb&&!(e.type==='workvan'));if(a.dude.root.visible)put(a.dude,s)}}
+/* chase camera tuned per body; V hood view; C held looks back; thin poles and trunks don't yank the boom in */
+function camBlock(m){const u=m.userData;if(u._thin==null){if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,s=m.getWorldScale(V3());u._thin=(b.max.x-b.min.x)*s.x<.8&&(b.max.z-b.min.z)*s.z<.8}return !u._thin}
+/* tree crowns aren't colliders: keep the boom out of them (tree tiles from the map) */
+function inCanopy(x,y,z){if(y<2.3||y>8.5||!L)return false;const gx=tx(x),gz=tx(z);for(let j=gz-2;j<=gz+2;j++)for(let i=gx-2;i<=gx+2;i++){if(!L.g[j]||L.g[j][i]!=='t')continue;if(Math.hypot(tileC(i)-x,tileC(j)-z)<2.7)return true}return false}
+function updDriveCam(dt){const e=CV;if(!e)return;const F=feel(e),S=carSize(e),back=!!keys.c,gy=groundAt(e.pos.x,e.pos.z);
+  camLookT-=dt;if(camLookT<=0&&Math.abs(e.spd)>2){let d=e.yaw-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;P.yaw+=d*Math.min(1,dt*2.6);P.pitch+=(-.22-P.pitch)*Math.min(1,dt*1.5)}
+  P.pitch=clamp(P.pitch,-.9,.25);const yaw=P.yaw+(back?Math.PI:0),fw=V3(-Math.sin(yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(yaw)*Math.cos(P.pitch));
+  if(P.fp){/* hood view: just above the hood, ahead of the windscreen (or over the tailgate looking back) */
+    const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),x=back?-S.l*.47:S.l*.21,h=back?S.h*.9:S.h*.88+.14;
+    camera.position.set(e.pos.x+f.x*x,gy+h,e.pos.z+f.z*x);camera.rotation.set(0,0,0);camera.lookAt(camera.position.x+fw.x,camera.position.y+fw.y*.6-.04,camera.position.z+fw.z);camDist=F.cam[0]}
+  else{const tgt=V3(e.pos.x,gy+S.h*.85+.25,e.pos.z),want=tgt.clone().addScaledVector(fw,-F.cam[0]).add(V3(0,F.cam[1],0));want.y=Math.max(gy+.7,want.y);
+    const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();const sd=V3(dir.z,0,-dir.x).normalize();let dist=len,thinHit=false;/* a pole right behind the boom eases the camera in front of it; thin things near the car are ignored */
+    for(const o of[0,-.45,.45]){ray.set(tgt.clone().addScaledVector(sd,o),dir);ray.near=0;ray.far=len;for(const h of ray.intersectObjects(L.solids,false)){const thick=camBlock(h.object);if(thick||h.distance>len*.45){dist=Math.min(dist,Math.max(thick?1.6:len*.45,h.distance-.35));if(!thick)thinHit=true;break}}}
+    for(let k=2;k<dist;k+=.5){const q=tgt.clone().addScaledVector(dir,k);if(inCanopy(q.x,q.y,q.z)){dist=Math.max(2.2,k-.6);break}}
+    camDist=dist<camDist?camDist+(dist-camDist)*Math.min(1,dt*(thinHit?6:16)):camDist+(dist-camDist)*Math.min(1,dt*3);
+    camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2)}
+  const fov=CFG.fov+Math.max(0,Math.abs(e.spd))*.45+(P.fp?6:0);camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
+  sunFollow(e.pos.x,e.pos.z,fw.x,fw.z);
 }
+/* hub: the car the dad is standing beside (door side), parked hero models drifting back to the light ones */
+function nearCar(){if(!L||!L.cars)return null;let best=null,bd=1e9;for(const e of L.cars){if(!e.obj)continue;const S=carSize(e),dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,
+    al=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),sd=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw);
+    if(Math.abs(al)<S.l/2+.2&&Math.abs(sd)<S.w/2+1.4){const d=Math.abs(sd)+Math.max(0,Math.abs(al)-S.l/2+.6);if(d<bd){bd=d;best=e}}}
+  if(!best&&VAN.obj&&Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<3.6)best=VAN;return best}
+function carTidy(){if(!L||!L.cars)return;for(const e of L.cars)if(e!==CV&&e!==VAN&&e.obj&&e.obj.userData.lod===0&&!e.dmg&&Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)>26){swapLod(e,1);return}}
+function carLabel(e){return e===VAN||!e?'Family minivan':e.name+"'s "+feel(e).label+' · borrowed'}
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
-  setObj(m.title,[['Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
+  setObj(m.title,[[VAN.on&&CV!==VAN?'Borrow a ride':'Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
 function enterHub(o){
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
@@ -887,7 +1049,7 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();
     'brief:skip':()=>{close();startMission(i);requestLock()},
     'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
 function startMission(i){
-  engine(false);VAN.on=false;JOB=null;
+  settleBorrow(true);engine(false);VAN.on=false;JOB=null;
   const m=MISSIONS[i];mode='mission';clearChars();buildLevel(m);makePlayer();
   M={i,def:m,t:m.time||0,wave:0,waveT:3,waveAge:0,got:0,smashed:0,state:'go',kills:0,cuffs:0,elapsed:0,bossDone:null,exitOpen:false};
   P.pos.copy(L.start);resetMove();P.yaw=Math.PI;P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
@@ -976,7 +1138,7 @@ HUD.on('action',a=>{
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
 /* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
 HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
-  if(VAN.on){VAN.pos.set(pin.x,0,pin.z);VAN.spd=0;collide(VAN.pos,1.1);syncVan();P.pos.set(VAN.pos.x,0,VAN.pos.z);P.vault=null;P.vy=0}
+  if(VAN.on){const e=CV;e.pos.set(pin.x,0,pin.z);e.spd=0;if(e.car)e.car.spd=0;collide(e.pos,1.1);syncCar(e);P.pos.set(e.pos.x,0,e.pos.z);P.vault=null;P.vy=0}
   else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);resetMove();for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
   HUD.feed('Fast travel · '+pin.label,'info')});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
@@ -1619,11 +1781,13 @@ function updHub(dt){
     if(JOB===null)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
     if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;setPrompt(null);openBrief(n.marker.i);return}}}
   for(const r of destRings)if(r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
-  if(VAN.on){
-    if(Math.abs(VAN.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitVan()}}
+  if(VAN.on){const e=CV;
+    if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
-      if(Math.hypot(VAN.pos.x-d.x,VAN.pos.z-d.z)<4.5){const j=JOB;setPrompt(null);showMarker(null);startMission(j);return}}
-  }else if(VAN.obj&&Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<3.6){prompt=prompt||KE+' · Drive the minivan';if(useTap&&!prompt.includes('Talk')){useTap=false;enterVan()}}
+      if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
+        else{const j=JOB,b=e!==VAN?e:null;setPrompt(null);showMarker(null);startMission(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
+  }else{const e=nearCar();if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
+  DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
   hubObj();setPrompt(mp||prompt);showMarker(target);
 }
@@ -1687,7 +1851,7 @@ function hud(dt){
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
     enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})):[],
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs(VAN.spd)*2.237,gear:VAN.spd<-.3?'R':'D',
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?1-CV.dmg*.8:1,
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,routeTo:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':'Maple Heights'},dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
@@ -2024,7 +2188,7 @@ ASSETS.ready.then(A=>{const miss=A.failed.length;
   HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
   initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove()}
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
