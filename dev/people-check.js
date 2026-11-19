@@ -9,7 +9,7 @@ const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only
 const want=k=>!only.length||only.includes(k);
 /* no --only: run the blocks in separate browsers (one page through every mission and shot set outgrows the headless renderer's memory) */
 if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process');let bad=0;
-  for(const g of['combat','missions,perf','roster,fallback,lowq','shots,boss','ik,polish']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
+  for(const g of['combat','ground','missions,perf','roster,fallback,lowq','shots,boss','ik,polish,caps']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
     console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
   console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
@@ -18,7 +18,12 @@ const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);co
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
 async function startGame(pg){await pg.evaluate(()=>{const b=document.getElementById('bStart');if(b)b.click()});await pg.keyboard.press('Enter');
-  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200)}
+  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200);
+  /* characters stream in the background now: wait until every model is in (the game's own job start does the same for its cast) */
+  const ok=await pg.waitForFunction(()=>HT.People&&(HT.People.ok||HT.People.failed),null,{timeout:60000,polling:500}).then(()=>pg.evaluate(()=>HT.People.ok)).catch(()=>false);
+  if(!ok)return;/* fallback runs: no people files */
+  await pg.evaluate(()=>HT.People.preload(HT.People.keys.filter(k=>!/^(wife|son|daughter)$/.test(k))));
+  await pg.evaluate(()=>{const P=__ht.P;if(P.dude&&!P.dude.rb&&__ht.dude){/* the dad was built before his model arrived */__ht.enterHub()}})}
 /* page-side helpers, installed once the game is up */
 function helpers(){
   const H=window.__ht,PP=HT.People,T=THREE;
@@ -101,7 +106,7 @@ function helpers(){
       crate.position.copy(e.pos).addScaledVector(f,-.65);crate.position.y=.575;crate.rotation.y=P.yaw;H.L.group.add(crate);H.L.solids.push(crate);H.dude.rebuildTargets();
       HT.People.force(e.dude,{mode:'crouch',moving:false,aim:true});
       for(let i=0;i<30;i++){H.step(1);pin()}
-      H.scene.updateMatrixWorld();const hb=T_.hbBox(e,'Head');out.crouchHeadTop=+hb.max.y.toFixed(3);
+      H.scene.updateMatrixWorld();const hb=T_.hbBox(e,'Head');out.crouchHeadTop=+hb.max.y.toFixed(3);const V=new THREE.Vector3();out.dbg={base:e.dude.rb.base,mode:e.dude.rb.in.mode,ry:+e.dude.root.position.y.toFixed(3),by:+e.dude.body.position.y.toFixed(3),pel:+e.dude.body.getObjectByName('Bip01_Pelvis').getWorldPosition(V).y.toFixed(2),gun:e.dude.rb.gunType,sc:e.dude.root.scale.x,key:e.dude.rb.key,hinge:e.dude.rb.hinge,air:!!e.dude.rb.in.air};
       let hits=0;for(let i=0;i<8;i++){const d=shoot(i%2?'Head':'Spine2');if(d>0)hits++;e.hp=e.maxhp}out.crateHits=hits;
       /* stand up: now the head clears the crate and a head shot lands */
       HT.People.force(e.dude,{mode:'stand',moving:false,aim:true});for(let i=0;i<12;i++){H.step(1);pin()}
@@ -112,7 +117,7 @@ function helpers(){
     ok('leg shot damages',r.legs>=29,r.legs);
     ok('head shot registers as headshot (x2)',r.head>=59,r.head);
     ok('hitboxes: invisible boxes only, skinned meshes are not targets',r.targets>=10&&r.skinnedTargets===0&&r.hidden,{boxes:r.targets});
-    ok('crouched head hitbox is below a 1.15 m crate top',r.crouchHeadTop<1.15,r.crouchHeadTop);
+    ok('crouched head hitbox is below a 1.15 m crate top',r.crouchHeadTop<1.15,r.crouchHeadTop<1.15?r.crouchHeadTop:[r.crouchHeadTop,r.dbg]);
     ok('no hits through the crate while crouched',r.crateHits===0,r.crateHits);
     ok('standing up behind the crate exposes the head',r.standHead>=59,r.standHead);
   }
@@ -151,6 +156,53 @@ function helpers(){
     ok('aim pitch is visible in third person (hand rises with pitch)',r.handRise>.2,r.handRise);
     ok('camera never inside the head (clearance with the body visible)',r.camHead>.28,r.camHead);
     ok('third-person barrel follows the view (within 0.2 rad)',Object.values(r.barrelErr).every(v=>v<.2),Object.assign(r.barrelErr,{yp:[r.yawpitch_rifle,r.yawpitch_pistol]}))}
+
+  if(want('ground')){await p.evaluate(()=>HT.People.preload(HT.People.roles.thug));/* skeleton on the ground: pelvis height and feet, every movement and pose mode, crew / player model / enemies (male, female, scaled) */
+    const r=await p.evaluate(()=>{const H=__ht,D=H.dude,PP=HT.People,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;P.fp=false;H.step(2);
+      const V=new THREE.Vector3();const rel=(d,n)=>{const b=d.body.getObjectByName(n);return b?b.getWorldPosition(V).y-d.root.position.y:0};
+      const who=[{role:'you'},{role:'gary'},{role:'dave'},{role:'thug',variant:'thug_hoodie'},{role:'thug',variant:'thug_f_hood'},{role:'boss',crown:1}];
+      const SC=[['idle',{}],['walk',{vel:[0,1]}],['jog',{vel:[0,2.4]}],['run',{vel:[0,4.3]}],['sprint',{vel:[0,6.6]}],['strafeL',{vel:[3,0]}],['strafeR',{vel:[-3,0]}],['back',{vel:[0,-2.2]}],['diag',{vel:[1.6,1.6]}],
+        ['aimMove',{vel:[0,3],aim:1,gun:'rifle'}],['crouch',{mode:'crouch',aim:1,gun:'rifle'}],['crouchWalk',{mode:'crouch',vel:[0,2.3]}],['crouchBack',{mode:'crouch',vel:[0,-1.2]}],['kneel',{mode:'kneel'}],['hands',{mode:'hands'}],['down',{mode:'down'}],['dead',{dead:1,steps:600}]];
+      const LOW={crouch:1,crouchWalk:1,crouchBack:1,kneel:1,down:1,dead:1};const out=[];const dt=1/30;
+      for(const w of who)for(const[n,o]of SC){const d=D.make(w.role==='boss'?{crown:1}:w.role==='thug'?{variant:w.variant}:D.HOMIES[w.role]);if(o.gun)D.equip(d,o.gun);
+        d.root.position.set(P.pos.x+2,0,P.pos.z+2);d.root.rotation.y=.7;H.scene.add(d.root);const hip=d.rb.hip*(d.root.scale.x||1);
+        let pmin=9,pmax=-9,fmin=9,bodyY=0;const steps=o.steps||120;if(o.dead)PP.die(d);
+        for(let k=0;k<steps;k++){const ry=d.root.rotation.y;if(o.vel){d.root.position.x+=(Math.sin(ry)*o.vel[1]+Math.cos(ry)*o.vel[0])*dt;d.root.position.z+=(Math.cos(ry)*o.vel[1]-Math.sin(ry)*o.vel[0])*dt}
+          D.pose(d,dt,{moving:!!o.vel,aim:!!o.aim,mode:o.mode||'stand'});PP.update(dt,null);
+          if(k>20&&k%3===0&&d.root.visible){d.root.updateMatrixWorld(true);const pe=rel(d,'Bip01_Pelvis');pmin=Math.min(pmin,pe);pmax=Math.max(pmax,pe);
+            fmin=Math.min(fmin,rel(d,'Bip01_L_Toe0'),rel(d,'Bip01_R_Toe0'),rel(d,'Bip01_L_Foot')-.05,rel(d,'Bip01_R_Foot')-.05);bodyY=Math.min(bodyY,d.body.position.y)}}
+        H.scene.remove(d.root);
+        const lo=LOW[n]?(n==='down'||n==='dead'?-.02:.25):hip-.15,hi=LOW[n]?(n==='down'||n==='dead'?hip+.05:hip-.05):hip+.15;
+        const bad=pmin<lo||pmax>hi||fmin<-.03||(n==='dead'&&bodyY<-.001)/* bodies fade, never sink */;out.push({who:w.variant||w.role,n,pel:[+pmin.toFixed(2),+pmax.toFixed(2)],hip:+hip.toFixed(2),feet:+fmin.toFixed(3),bodyY,bad})}
+      /* player jump and land (movement worker's air poses) */
+      let jf=9,jb=0,tuck=0;P.aim=false;H.step(10);const knee=d=>{const t=d.body.getObjectByName('Bip01_L_Thigh').getWorldPosition(new THREE.Vector3()),f=d.body.getObjectByName('Bip01_L_Foot').getWorldPosition(new THREE.Vector3());return t.y-f.y};
+      P.dude.root.updateMatrixWorld(true);const k0=knee(P.dude);P.jumpBuf=.12;for(let k=0;k<70;k++){H.step(1);const d=P.dude;d.root.updateMatrixWorld(true);jf=Math.min(jf,rel(d,'Bip01_L_Toe0'),rel(d,'Bip01_R_Toe0'));jb=Math.min(jb,d.body.position.y);if(k>3&&k<14)tuck=Math.max(tuck,k0-knee(d))}
+      out.push({who:'player',n:'jump+land',feet:+jf.toFixed(3),bodyYmin:+jb.toFixed(3),kneeTuck:+tuck.toFixed(2),bad:jf<-.12||tuck<.08/* the movement worker's air pose (applyAir) must be live */});
+      H.step(40);out.push({who:'player',n:'after landing',bodyY:+P.dude.body.position.y.toFixed(4),bad:Math.abs(P.dude.body.position.y)>.002});
+      return out});
+    const bad=r.filter(x=>x.bad);
+    ok('skeleton on the ground: pelvis height and feet in every pose mode ('+r.length+' cases: crew, player model, enemies m/f, Dave x1.15, boss)',bad.length===0,bad.length?bad.slice(0,8):'all within limits');
+    /* live mission sampling: everyone standing/crouching/moving while a fight runs, plus the draw-time step lift */
+    const m=await p.evaluate(()=>{const H=__ht,P=H.P,V=new THREE.Vector3();const issues=[];let n=0;
+      for(const mi of[0,3]){H.startMission(mi);for(const e of H.enemies){e.alert=true;e.last=P.pos.clone()}
+        for(let k=0;k<300;k++){T_.god();H.step(1);if(k%6)continue;H.scene.updateMatrixWorld();
+          for(const x of[P,...H.allies,...H.enemies]){const d=x.dude;if(!d||!d.rb||!d.root.visible||(x.state&&x.state==='dead'))continue;n++;
+            const pe=d.body.getObjectByName('Bip01_Pelvis').getWorldPosition(V).y-d.root.position.y,t=Math.min(d.body.getObjectByName('Bip01_L_Toe0').getWorldPosition(V).y,d.body.getObjectByName('Bip01_R_Toe0').getWorldPosition(V).y)-d.root.position.y;
+            const hip=d.rb.hip*(d.root.scale.x||1);if(pe<.2||pe>hip+.2||t<-.03)issues.push({m:mi,who:x===P?'player':x.kind,state:x.state||x.down,base:d.rb.base,pe:+pe.toFixed(2),toe:+t.toFixed(2)})}}}
+      return{n,issues:issues.slice(0,8),count:issues.length}});
+    ok('live missions 0 and 3, 300 steps: nobody below ground (skeleton sampled '+m.n+' times)',m.count===0,m.count?m.issues:m.n);
+    const c=await p.evaluate(()=>{const H=__ht,D=H.dude,PP=HT.People,P=H.P;const out=[];
+      for(const v of PP.roles.thug.concat(['boss']))for(const g of['pistol','rifle','shotgun']){const d=D.make(v==='boss'?{crown:1}:{variant:v});D.equip(d,g);d.root.position.set(P.pos.x+3,0,P.pos.z);H.scene.add(d.root);
+        for(let k=0;k<40;k++){D.pose(d,1/30,{aim:true,mode:'crouch'});PP.update(1/30,null)}d.root.updateMatrixWorld(true);const m=d.meshes.find(x=>x.name==='hit_Bip01_Head');
+        const top=new THREE.Box3().setFromObject(m).max.y;H.scene.remove(d.root);out.push([v+'/'+g,+top.toFixed(3)])}
+      return out});
+    const worst=c.reduce((a,b)=>b[1]>a[1]?b:a);
+    ok('every opponent look crouch-aims below 1.15 m cover (pistol, rifle, shotgun; head hitbox top)',worst[1]<1.15,{worst,cases:c.length});
+    const h=await p.evaluate(()=>{const H=__ht,P=H.P;const d=H.dude.make(H.dude.HOMIES.you);const bb=new THREE.Box3();d.body.updateMatrixWorld(true);
+      d.body.traverse(o=>{if(o.isMesh&&o.visible&&!(o.userData&&o.userData.hitbox)){o.geometry.computeBoundingBox();const b=o.geometry.boundingBox.clone();if(!o.isSkinnedMesh)b.applyMatrix4(o.matrixWorld);bb.union(b)}});
+      return{height:+bb.max.y.toFixed(3),scale:d.root.scale.x,hip:d.rb.hip}});
+    ok('dad_player height (with cap) and scale',h.scale===1&&h.height>1.7&&h.height<1.9,h);
+  }
 
   if(want('missions'))for(let i=0;i<4;i++){
     const t0=Date.now();
@@ -227,7 +279,7 @@ function helpers(){
 
   if(SHOTS&&want('polish')){
     /* mission 2 opens with Coach Rick handing over his carbine */
-    await p.evaluate(()=>{const H=__ht;H.prog.done=[true,false,false,false];H.prog.rifleLent=false;H.startMission(1);H.P.fp=false;for(let i=0;i<20&&H.M.intro&&!H.M.intro.done;i++){H.keys.e=false;H.step(1)}});
+    await p.evaluate(()=>{const H=__ht;H.prog.done=[true,false,false,false];H.prog.rifleLent=false;H.startMission(1);H.P.fp=false;H.M.intro={t:0,done:false,prog:0};for(let i=0;i<20;i++){H.keys.e=false;H.M.intro.t=Math.min(H.M.intro.t,2);H.step(1)}});
     await shot('rick_handoff',()=>{const H=__ht,P=H.P;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=Math.atan2(P.pos.x-r.pos.x,P.pos.z-r.pos.z)+.9;P.dude.root.visible=true;
       T_.cam(r.pos.x+Math.sin(a)*2.4,1.55,r.pos.z+Math.cos(a)*2.4,(r.pos.x+P.pos.x)/2,1.15,(r.pos.z+P.pos.z)/2)});
     await shot('rick_face',()=>{const H=__ht;const r=H.allies.find(a=>a.id==='rick');if(!r)return;const a=r.yaw+.25;T_.cam(r.pos.x+Math.sin(a)*.85,1.72,r.pos.z+Math.cos(a)*.85,r.pos.x,1.66,r.pos.z)});
@@ -257,6 +309,13 @@ function helpers(){
       await shot('roster_faces_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map(v=>({role:'thug',variant:v})),{dist:3.2,spacing:.5,steps:30});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.62,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.55,P.pos.z-Math.cos(P.yaw)*3.2)});
     }}
+
+  if(SHOTS&&want('caps')){
+    await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+    for(const[n,turn,dx]of[['caps_front',0,0],['caps_three_quarter',.6,0],['caps_side',1.45,0]])
+      await shot(n,([turn])=>{const H=__ht,P=H.P;T_.lineup([{role:'you',turn},{role:'rick',turn}],{dist:1.25,spacing:.5,steps:30});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.72,P.pos.z,P.pos.x-Math.sin(P.yaw)*1.25,1.66,P.pos.z-Math.cos(P.yaw)*1.25)},[turn]);
+  }
 
   if(want('perf')){
     const r=await p.evaluate(()=>{const H=__ht;H.startMission(3);const n=H.enemies.length+H.allies.length+1;

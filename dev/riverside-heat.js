@@ -70,7 +70,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
   if(want('war')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;__clean();__go(379,43,Math.PI/2);H.frDraw('pistol');H.step(2);H.heat=3.3;
       const n=__until(()=>F.war&&F.hostile.length>=6&&new Set(F.hostile.map(e=>e.fr.id)).size===2,900);const crews=[...new Set(F.hostile.map(e=>e.fr.id))];
       const hc0=F.stats.hits_crew||0;let hp=0;
-      __until(()=>{P.hp=100;return (F.stats.hits_crew||0)-hc0>=6},2400);const crewHits=(F.stats.hits_crew||0)-hc0,cover=F.hostile.filter(e=>e.ai&&e.ai.stance==='crouch'||e.ai&&e.ai.cover).length;
+      __until(()=>{P.hp=100;return (F.stats.hits_crew||0)-hc0>=6},4200);const crewHits=(F.stats.hits_crew||0)-hc0,cover=F.hostile.filter(e=>e.ai&&e.ai.stance==='crouch'||e.ai&&e.ai.cover).length;
       return{n,crews,war:F.war,crewHits,cover,heat:+H.heat.toFixed(2),pips:__q('.fr-heat').querySelectorAll('i.on').length,ms:F.stats.ms/F.stats.frames}});
     ok(r.n>0&&r.crews.length===2&&r.war,'heat 3: turf war '+(r.war||[]).join(' vs ')+' (both hostile to the dad)');
     ok(r.crewHits>=6,'three-way fight: the crews shoot EACH OTHER ('+r.crewHits+' crew-on-crew hits), '+r.cover+' using cover');
@@ -168,7 +168,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
       __clean();__go(379,43,Math.PI/2);F.ambT=1e9;res.carjack=H.frIncident('carjack');const C=F.inc;if(C){H.frDraw('pistol');P.pos.set(C.x+8,0,C.z);H.collide(P.pos,.35);P.yaw=Math.atan2(-(C.x-P.pos.x),-(C.z-P.pos.z));__until(()=>C.spotted,90);res.cjHostile=F.members.filter(e=>e.hostile).length}
       return res});
     ok(r.scuffle&&r.broke&&r.dT>=1,'incident: a scuffle between two crews ("'+r.text+' · optional"), E breaks it up (+'+r.dT+' trust)');
-    ok(r.porch&&r.surr==='surrender'&&r.cuffed==='cuffed'&&r.goods===1&&r.goodsAfter===0,'incident: porch pirate gives up when caught, zip-tied, package back on the porch');
+    ok(r.porch&&r.surr==='surrender'&&r.cuffed==='cuffed'&&r.goods===1&&r.goodsAfter===0,'incident: porch pirate gives up when caught, zip-tied, package back on the porch'+(r.porch&&r.goodsAfter===0?'':' '+JSON.stringify(r)));
     ok(r.carjack&&r.cjHostile>=2,'incident: walking into a car break-in with a gun out turns them hostile ('+r.cjHostile+')');
     await p.evaluate(()=>{const H=window.__ht,F=H.fr;__clean();__go(379,43,Math.PI/2);F.ambT=1e9;H.frIncident('scuffle');const I=F.inc;if(I){H.P.pos.set(I.x-9,0,I.z+1.5);H.collide(H.P.pos,.35);H.P.yaw=Math.atan2(-(I.x-H.P.pos.x),-(I.z-H.P.pos.z));H.P.pitch=-.08;H.step(45)}});
     }

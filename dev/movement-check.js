@@ -10,6 +10,9 @@ const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);co
 
 function helpers(){
   const H=window.__ht,T=THREE;
+  /* these checks measure movement on the flat mission levels: run the jobs on their separate levels (CFG.inWorld=false fallback);
+     movement in the open world is covered by dev/openworld-ingame.js (fuzz) and dev/riverside-ingame.js */
+  if(H.CFG)H.CFG.inWorld=false;
   window.M_={
     calm(){for(const e of H.enemies){e.pos.x+=500;e.pos.z+=500;e.thinkT=1e9;e.alert=false;e.target=null}},
     god(){const P=H.P;P.hp=100},
