@@ -141,6 +141,8 @@
   const MPR = { siding: 1.6, brick: 1.4, stucco: 2.0, shingle: 2.24, concrete: 2.0, corr: 2.7, metalroof: 2.7, trim: 1, block: 1.6 };
   const loader = () => new T.TextureLoader();
   function tex2(name, srgb, onload) {
+    /* the game's ASSETS streams a reduced image first and swaps in the full one (same texture object) */
+    if (A && A.texture && !onload) return A.texture(BASE + 'assets/tex2/' + name + '.jpg', srgb);
     const t = loader().load(BASE + 'assets/tex2/' + name + '.jpg', onload, undefined, () => console.warn('buildings: texture failed', name));
     t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8; if (srgb) t.encoding = T.sRGBEncoding; return t;
   }
@@ -181,7 +183,7 @@
       /* six panel door */
       put(cx, I.d6, R.door); put(nx, I.d6n, R.door);
       /* half-glass craftsman door: panels below, 3x2 lites above */
-      { const r = R.door2; if (I.d6) cx.drawImage(I.d6, 0, 288, 256, 288, r[0], r[1] + 256, 256, 256); if (I.d6n) nx.drawImage(I.d6n, 0, 288, 256, 288, r[0], r[1] + 256, 256, 256);
+      { const r = R.door2; const ds = im => im.width / 256; if (I.d6) cx.drawImage(I.d6, 0, 288 * ds(I.d6), 256 * ds(I.d6), 288 * ds(I.d6), r[0], r[1] + 256, 256, 256); if (I.d6n) nx.drawImage(I.d6n, 0, 288 * ds(I.d6n), 256 * ds(I.d6n), 288 * ds(I.d6n), r[0], r[1] + 256, 256, 256);
         cx.fillStyle = '#e0e0e0'; cx.fillRect(r[0], r[1], 256, 256); nx.fillStyle = 'rgb(128,128,255)'; nx.fillRect(r[0], r[1], 256, 256);
         for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) {
           const x = r[0] + 34 + i * 98, y = r[1] + 28 + j * 72, w = 90, h = 64;
@@ -202,8 +204,8 @@
       /* roll-up door */
       { const r = R.roll; put(cx, I.sh, r); put(nx, I.shn, r); cx.fillStyle = 'rgba(40,40,40,.35)'; cx.fillRect(r[0], r[1] + r[3] - 22, r[2], 22); }
       /* plywood boards (boarded-up windows) */
-      { const r = R.ply; if (I.wf) { cx.drawImage(I.wf, 0, 0, 512, 1024, r[0], r[1], r[2], r[3]); cx.globalCompositeOperation = 'screen'; cx.fillStyle = '#7a5a36'; cx.fillRect(r[0], r[1], r[2], r[3]); cx.globalCompositeOperation = 'source-over'; }
-        if (I.wfn) nx.drawImage(I.wfn, 0, 0, 512, 1024, r[0], r[1], r[2], r[3]);
+      { const r = R.ply; if (I.wf) { cx.drawImage(I.wf, 0, 0, I.wf.width / 2, I.wf.height, r[0], r[1], r[2], r[3]); cx.globalCompositeOperation = 'screen'; cx.fillStyle = '#7a5a36'; cx.fillRect(r[0], r[1], r[2], r[3]); cx.globalCompositeOperation = 'source-over'; }
+        if (I.wfn) nx.drawImage(I.wfn, 0, 0, I.wfn.width / 2, I.wfn.height, r[0], r[1], r[2], r[3]);
         cx.fillStyle = 'rgba(30,20,10,.55)'; cx.fillRect(r[0], r[1] + 250, r[2], 4); nx.fillStyle = 'rgb(128,60,230)'; nx.fillRect(r[0], r[1] + 250, r[2], 4);
         cx.fillStyle = '#3a3430'; for (let i = 0; i < 6; i++) for (const y of [20, 240, 262, 490]) cx.fillRect(r[0] + 18 + i * 42, r[1] + y, 4, 4); }
       /* digits: black on white, for house numbers */
@@ -226,7 +228,9 @@
       tCol.needsUpdate = true; tNor.needsUpdate = true;
     };
     for (const [k, url] of want) {
-      pending++; const im = new Image(); im.crossOrigin = 'anonymous';
+      pending++;
+      if (A && A.image) { A.image(BASE + url, im => { imgs[k] = im; redraw(); }); continue; }
+      const im = new Image(); im.crossOrigin = 'anonymous';
       im.onload = () => { imgs[k] = im; redraw(); }; im.onerror = () => console.warn('buildings: atlas image failed', url);
       im.src = BASE + url;
     }
@@ -241,7 +245,7 @@
     const room = (i, top, bot) => { const g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, top); g.addColorStop(.78, bot); g.addColorStop(.781, '#1e1915'); g.addColorStop(1, '#141210'); x.fillStyle = g; x.fillRect(i * 256, 0, 256, 512); };
     const draw = img => {
       for (let i = 0; i < 4; i++) room(i, '#4a4440', '#2c2724');
-      if (img) x.drawImage(img, 0, 0, 1024, 512, 0, 0, 1024, 512);
+      if (img) x.drawImage(img, 0, 0, img.width, img.height, 0, 0, 1024, 512);
       /* 4: store shelves */
       { const o = 4 * 256; room(4, '#d8dad6', '#a9aba6'); const r = RNG('shelf');
         for (let s = 0; s < 5; s++) { const y = 150 + s * 62; x.fillStyle = '#6d7175'; x.fillRect(o, y + 46, 256, 6);
@@ -257,7 +261,9 @@
       { const o = 7 * 256; room(7, '#26221f', '#14110f'); x.fillStyle = 'rgba(80,70,50,.4)'; x.fillRect(o + 40, 260, 120, 160); x.fillStyle = '#0a0908'; x.fillRect(o + 170, 140, 70, 270); }
       t.needsUpdate = true;
     };
-    const im = new Image(); im.onload = () => draw(im); im.onerror = () => draw(null); im.src = BASE + 'assets/tex2/interiors.jpg'; draw(null);
+    draw(null);
+    if (A && A.image) A.image(BASE + 'assets/tex2/interiors.jpg', draw);
+    else { const im = new Image(); im.onload = () => draw(im); im.onerror = () => draw(null); im.src = BASE + 'assets/tex2/interiors.jpg'; }
     return t;
   }
   const intUV = (i, flip) => { const u0 = i / 8 + .002, u1 = (i + 1) / 8 - .002; return flip ? [u1, 0, u0, 1] : [u0, 0, u1, 1]; };

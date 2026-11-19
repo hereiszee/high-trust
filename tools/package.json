@@ -1,0 +1,17 @@
+{
+  "name": "high-trust-tools",
+  "private": true,
+  "description": "Asset build pipeline and perf measurement for High Trust (not shipped to the site)",
+  "scripts": {
+    "build-assets": "node build-assets.js",
+    "measure": "node perf/measure.js"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "4.1.1",
+    "@gltf-transform/core": "4.1.1",
+    "@gltf-transform/extensions": "4.1.1",
+    "@gltf-transform/functions": "4.1.1",
+    "meshoptimizer": "0.22.0",
+    "sharp": "0.33.5"
+  }
+}
