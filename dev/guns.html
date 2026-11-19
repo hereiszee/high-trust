@@ -22,6 +22,7 @@ canvas{display:block}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="../js/guns.js"></script>
 <script>
 'use strict';
@@ -75,7 +76,7 @@ function showLineup(att){state.mode='lineup';clearModels();const list=HT.Guns.TY
   rack.visible=true;camera.fov=30;camera.position.set(0,.76,3.1);camera.lookAt(0,.76,0);camera.updateProjectionMatrix();label('Arsenal',list.length+' guns')}
 function label(a,b){document.getElementById('label').innerHTML=a+(b?'<small>'+b+'</small>':'')}
 /* first-person */
-function showVM(type,att,o={}){state.mode='vm';if(state.vm){vmCam.remove(state.vm)}const rig=HT.Guns.viewmodel(type,{attachments:att,sleeve:o.sleeve||'#5d6b4f',skin:o.skin||'#c58c68',gloves:o.gloves!==false});
+function showVM(type,att,o={}){state.mode='vm';if(state.vm){vmCam.remove(state.vm)}const rig=HT.Guns.viewmodel(type,{attachments:att,sleeve:o.sleeve||'#5d6b4f',skin:o.skin||'#c58c68',gloves:o.gloves===true,character:o.character});
   vmCam.add(rig);state.vm=rig;state.gun=type;state.ads=0;vmCam.fov=72;vmCam.updateProjectionMatrix();
   rig.onEject=(info)=>{};label(NAMES[type]||type,'viewmodel · '+tris(rig)+' triangles');return rig}
 /* deterministic stepping for screenshots */
@@ -107,7 +108,7 @@ addEventListener('keyup',e=>{if(e.key==='Shift')state.sprint=false});
 addEventListener('mousedown',e=>{if(e.target.tagName!=='CANVAS')return;if(state.mode==='vm'){if(e.button===2)state.ads=1;else state.vm&&state.vm.fire()}else state.drag={x:e.clientX,a:state.turn,auto:state.auto}});
 addEventListener('mouseup',e=>{if(e.button===2)state.ads=0;state.drag=null});addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('mousemove',e=>{if(state.drag){state.auto=false;state.turn=state.drag.a+(e.clientX-state.drag.x)*.01}if(state.mode==='vm')state.look={dx:e.movementX,dy:e.movementY}});
-HT.Guns.init({base:'../assets/guns/'}).then(()=>{const q=new URLSearchParams(location.search);if(q.get('gun'))state.gun=q.get('gun');
+HT.Guns.init({base:'../assets/guns/',charBase:'../assets/people/rocketbox/',character:'dad_player'}).then(()=>{const q=new URLSearchParams(location.search);if(q.get('gun'))state.gun=q.get('gun');
   if(q.get('mode')==='vm')showVM(state.gun,state.att);else if(q.get('gun'))showModel(state.gun,state.att);else showLineup(state.att);ui();window.benchReady=true;loop()});
 </script>
 </body></html>
