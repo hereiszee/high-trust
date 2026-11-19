@@ -230,6 +230,28 @@ test('supplies and furniture caps',()=>{
   assert.equal(E.buy('furn','chair','hardware').ok,false,'dining chairs are a Dadazon thing');
 });
 
+test('HT.CATALOG.guns matches the game WEAPONS table field for field (index.html, docs/combat-integration.md)',()=>{
+  const src=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');const i=src.indexOf('const WEAPONS={');assert.ok(i>0,'WEAPONS in index.html');
+  let d=0,j=src.indexOf('{',i);for(let k=j;k<src.length;k++){if(src[k]==='{')d++;else if(src[k]==='}'&&--d===0){j=k+1;break}}
+  const W=Function('return '+src.slice(src.indexOf('{',i),j))();
+  assert.deepEqual(Object.keys(W).sort(),[...C.gunOrder].sort());
+  const diffs=[];const cmp=(a,b,pth)=>{if(a&&typeof a==='object'&&!Array.isArray(a)){for(const k in a)cmp(a[k],b?b[k]:undefined,pth+'.'+k)}else if(JSON.stringify(a)!==JSON.stringify(b))diffs.push(pth+': game '+JSON.stringify(a)+' vs catalogue '+JSON.stringify(b))};
+  for(const id in W)cmp(W[id],C.guns[id],id);
+  assert.deepEqual(diffs,[],'every game field must equal the catalogue (the catalogue is merged over the game table)');
+});
+
+test('furniture ids are 1:1 with js/home.js and the starter layout is HT.Home\'s (docs/home.md)',()=>{
+  const src=fs.readFileSync(path.join(__dirname,'..','js','home.js'),'utf8');
+  const cat=src.slice(src.indexOf('const CATALOG=['),src.indexOf('const CAT={}'));const homeIds=[...cat.matchAll(/\{id:'([a-z0-9]+)'/g)].map(m=>m[1]);
+  assert.deepEqual([...homeIds].sort(),Object.keys(C.furniture).sort());
+  const st=src.slice(src.indexOf('Home.starterLayout=()=>'),src.indexOf('Home.fullLayout'));const items=Function('return '+st.slice(st.indexOf('['),st.lastIndexOf(']')+1))();
+  assert.deepEqual(Save.defaults().furniture.placed,items,'fallback starter = HT.Home.starterLayout().items');
+  fresh({v:2,furniture:{owned:{sofa:1},placed:[{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
+    {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]}});
+  assert.deepEqual(Save.data.furniture.placed,items,'old 1 m starter layout migrates to the home grid');
+  globalThis.HT.Home={starterLayout:()=>({v:1,items:[{uid:'z',id:'plant',x:1,z:1,r:0}]})};try{assert.deepEqual(Save.defaults().furniture.placed,[{uid:'z',id:'plant',x:1,z:1,r:0}],'HT.Home wins when loaded')}finally{delete globalThis.HT.Home}
+});
+
 test('catalogue is complete and consistent',()=>{
   const num=['dmg','head','pellets','rate','mag','reserve','range','equip','speed','price'];
   for(const id of C.gunOrder){const g=C.guns[id];for(const k of num)assert.equal(typeof g[k],'number',id+'.'+k);
