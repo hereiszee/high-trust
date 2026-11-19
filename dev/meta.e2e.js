@@ -11,7 +11,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const ctx=await browser.newContext({viewport:{width:1280,height:720}});
   const page=await ctx.newPage();const errors=[];
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});page.on('pageerror',e=>errors.push(String(e)));
-  const shot=async n=>{if(SHOTS){await page.evaluate(()=>window.__ht.draw());await page.screenshot({path:OUT+n+'.jpg',type:'jpeg',quality:86})}};
+  const shot=async(n,keepBanner)=>{if(SHOTS){await page.evaluate(k=>{if(!k)document.getElementById('banner').classList.remove('on');window.__ht.draw()},!!keepBanner);await page.screenshot({path:OUT+n+'.jpg',type:'jpeg',quality:86})}};
   const ev=(f,a)=>page.evaluate(f,a);
   const key=async(k,n=1)=>{for(let i=0;i<n;i++){await page.keyboard.press(k);await sleep(60)}};
   const closeMenus=async()=>{for(let i=0;i<4&&await ev(()=>window.HT.Menus.isOpen());i++){await key('Escape');await sleep(150)}await sleep(150)};
@@ -29,7 +29,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await step(3);await sleep(1500);
   ok(await ev(()=>!document.getElementById('cResult').hidden),'result card shown');
   const pay=await ev(()=>window.__ht.M.pay);ok(pay&&pay.total>0,'payout computed: '+(pay&&pay.total));
-  await sleep(2600);await shot('01-result-payout');
+  await sleep(2600);await shot('01-result-payout',true);
   ok(await ev(()=>document.getElementById('rsBody').textContent.includes('Payout')),'payout row on the result card');
   const cash1=await ev(()=>window.__ht.cash);ok(cash1===pay.total,'cash credited: '+cash1);
   ok(await ev(()=>JSON.parse(localStorage.getItem('ht-save')).cash===window.__ht.cash),'saved to localStorage');
@@ -47,8 +47,11 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const fam=await ev(()=>window.__ht.home.family.map(m=>m.who+':'+m.root.children.length));ok(fam.length===4,'family present: '+fam.join(' '));
   ok(await ev(()=>/Jen|Maddie|Tyler|Biscuit/.test(document.getElementById('sub').textContent)||true),'greeting');
   await step(60);
-  await ev(()=>{const h=window.__ht;h.P.pos.set(3.2,0,4.2);h.P.yaw=Math.PI*.78;h.P.pitch=-.05;h.step(2)});
+  /* family in their routines: Jen cooking, Tyler at the island, Maddie on the couch, Biscuit in his bed; seen from the living room */
+  await ev(()=>{const H=window.__ht.home;H.forceActivity('jen','cook');H.forceActivity('tyler','island');H.forceActivity('maddie','seat');H.forceActivity('biscuit','dogbed')});await step(20);
+  await ev(()=>{const h=window.__ht;h.P.pos.set(6.4,0,3.4);h.P.yaw=Math.atan2(-(2.4-6.4),-(6.6-3.4));h.P.pitch=-.16;h.step(2)});
   await shot('03-living-room-family');
+  await ev(()=>{const h=window.__ht;h.P.fp=true;h.step(1)});await shot('03b-family-first-person');await ev(()=>{const h=window.__ht;h.P.fp=false;h.step(1)});
   /* locker */
   const lk=await ev(()=>{const h=window.__ht,it=h.home.interactables.find(i=>i.id==='locker');h.P.pos.set(it.x,0,it.z);h.step(1);return document.getElementById('prompt').textContent});
   ok(/locker/i.test(lk),'locker prompt: '+lk);
@@ -62,7 +65,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const before=await ev(()=>window.__ht.cash);
   const r=await ev(()=>window.HT.Economy.buy('furn','tv','dadazon'));ok(r&&r.ok!==false,'bought a TV on Dadazon');
   const r2=await ev(()=>window.HT.Economy.buy('furn','plant','dadazon'));
-  await ev(()=>window.HT.Shop&&window.HT.Shop.open&&0);await sleep(200);await shot('05-dadazon');
+  await key('e');await sleep(150);await key('e');await sleep(300);await shot('05-dadazon');
   await closeMenus();
   ok(await ev(()=>window.__ht.save.pending.length>=1),'order pending until next visit');
   ok(await ev(()=>window.__ht.cash)<before,'cash spent');
@@ -76,7 +79,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const dec=await ev(()=>{const h=window.__ht,D=window.HT.Home.decorate;h.P.pos.set(5.5,0,4.5);h.P.yaw=Math.PI/2;h.P.pitch=-1.0;h.step(2);
     const it=h.save.furniture.layout.items.find(i=>i.id==='tv65');D.move(it.uid);h.step(1);
     /* sweep the aim until it fits somewhere */
-    for(let y=0;y<24;y++){h.P.yaw=y*Math.PI/12;for(const p of[-.7,-.9,-1.1]){h.P.pitch=p;h.step(1);if(D.aimInfo&&!D.aimInfo.why)return{ok:true,y,p}}}return{ok:false}});
+    for(let y=0;y<24;y++){h.P.yaw=y*Math.PI/12;for(const p of[-.55,-.62,-.7]){h.P.pitch=p;h.step(1);if(D.aimInfo&&!D.aimInfo.why)return{ok:true,y,p}}}return{ok:false}});
   ok(dec.ok,'found a valid spot for the ghost');await shot('06-decorate-ghost');
   const placed=await ev(()=>window.HT.Home.decorate.place());ok(placed.ok,'placed via decorate');
   await key('b');await step(1);ok(await ev(()=>!window.__ht.deco.on),'decorate off');
@@ -98,7 +101,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await shot('08-auto');await closeMenus();
   const vk=await ev(()=>({top:window.__ht.VANK.top,up:window.__ht.VAN.obj.userData.upgrades}));
   ok(vk.top>1,'handling multiplier applied: top x'+vk.top);ok(vk.up&&vk.up.bullBar&&vk.up.roofRack==='cargo'&&vk.up.paint,'van shows upgrades '+JSON.stringify(vk.up));
-  await ev(()=>{const h=window.__ht,V=h.VAN;h.P.pos.set(V.pos.x+5,0,V.pos.z+5.5);h.P.yaw=Math.atan2(5,5.5);h.P.pitch=-.12;h.step(2)});
+  await ev(()=>{const h=window.__ht,V=h.VAN;const dx=5.2,dz=4.6;h.P.pos.set(V.pos.x+dx,0,V.pos.z+dz);h.P.yaw=Math.atan2(dx,dz);h.P.pitch=-.32;h.step(2)});
   await shot('09-van-upgraded');
   /* reload: everything restored */
   const snap=await ev(()=>{const s=window.__ht.save;return JSON.stringify({cash:s.cash,lay:s.furniture.layout.items.length,veh:s.vehicle,done:s.prog.done})});

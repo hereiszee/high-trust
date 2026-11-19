@@ -1316,7 +1316,8 @@ let HOME3=null,homeReady=false,homeLoading=null;
 #deco .strip span.on{background:var(--sun);color:var(--ink);border-color:var(--sun);opacity:1}
 #deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;font-weight:600;opacity:.9}#deco .k i{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);padding:0 5px;border-radius:3px;margin-right:4px;font-size:11px}
 .card .btn.small{font-size:15px;padding:6px 14px}
-.rs-pay{margin:0 0 14px}`;document.head.appendChild(st);
+.rs-pay{margin:0 0 14px}
+body.decoOn #sub{bottom:calc(env(safe-area-inset-bottom,0px) + 200px)}`;document.head.appendChild(st);
   const tr=$('trust');if(tr){const r=document.createElement('div');r.className='row';r.id='cashRow';r.innerHTML='<span>Cash</span><span id="cashV">$0</span>';tr.appendChild(r)}
   const d=document.createElement('div');d.className='hud';d.id='deco';d.hidden=true;document.body.appendChild(d)})();
 function cashHud(){const s=SV();if(s&&$('cashV'))$('cashV').textContent=money(s.cash)}
@@ -1350,6 +1351,9 @@ function furnSync(){const s=SV();if(!s||!HOMEM)return 0;const f=s.furniture;let 
 function openShop(kind){return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r)})))}
 function openLocker(tab){return openMenu(o=>HT.Locker.open(Object.assign(o,{tab,onChange:()=>{metaSave()}})))}
 function homeIdOf(id){return metaAlias()[id]||id}
+/* furniture the house added to the shop has no drawn icon yet: borrow the closest one instead of a question mark */
+if(HTM('Shop')&&HT.icon&&!HT.Shop.thumbRenderer){const IA={modernchair:'armchair',ottoman:'beanbag',sidetable:'lamp',cubeshelf:'bookshelf',runner:'rug',gnome:'flamingo',planter:'plant',print:'frame',fancyart:'frame',clock:'plaque'};
+  HT.Shop.thumbRenderer=it=>it.kind==='furn'&&IA[it.id]?HT.icon('furn',IA[it.id]):null}
 function metaOnBuy(r){aud(A=>A.ui('cash'));
   if(r.kind==='gun'&&r.delivered!=='pending'){const g=HT.CATALOG.guns[r.id];banner('NEW GUN',(g?g.name:r.id)+' is in your gun locker',2)}
   if(r.kind==='veh'||r.kind==='cos')vanApply();metaSave()}
@@ -1419,16 +1423,16 @@ function metaHubEnter(o){{const g=$('rsHub');if(g)g.hidden=true}HUBX.shops=[];HU
   /* the player's house: the one the hub marks as home (nearest the spawn) */
   const h=L.houses.find(x=>x.home)||L.houses.slice().sort((a,b)=>Math.hypot((a.x0+a.x1)/2-L.start.x,(a.z0+a.z1)/2-L.start.z)-Math.hypot((b.x0+b.x1)/2-L.start.x,(b.z0+b.z1)/2-L.start.z))[0];
   if(h&&h.door){const d=h.door,nx=d.nx,nz=d.nz,tx_=-nz,tz_=nx;HUBX.home={x:d.x+nx*.9,z:d.z+nz*.9,nx,nz,door:d,house:h};
-    const sp=labelSprite('HOME','The Millers · E to go inside');sp.position.set(d.x+nx*.6,4.1,d.z+nz*.6);L.group.add(sp);HUBX.sprites.push({s:sp,y:4.1});
+    const sp=labelSprite('HOME','The Millers');sp.scale.multiplyScalar(1.25);sp.position.set(d.x+nx*1.8,3.7,d.z+nz*1.8);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.7});
     /* porch light: a warm lamp by the door, always on for this house */
     const pl=new THREE.PointLight(0xffcf96,1.6,9,2);pl.position.set(d.x+nx*.7+tx_*.75,2.55,d.z+nz*.7+tz_*.75);L.group.add(pl);
     const bulb=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),glowMat('#ffd9a0',3));bulb.position.copy(pl.position);L.group.add(bulb);
     /* name board on a post at the end of the front walk */
     let reach=2;for(let s=.5;s<9;s+=.5){const gx=tx(d.x+nx*s),gz=tx(d.z+nz*s),c=L.g[gz]&&L.g[gz][gx];if(c==='s'||c===','||c==='l'){reach=s-.4;break}}
-    const bx=d.x+nx*reach-tx_*1.15,bz=d.z+nz*reach-tz_*1.15,post=box(.08,1.15,.08,'#f2f1ec',bx,.575,bz,L.group);L.solids.push(post);
-    const brd=new THREE.Mesh(new THREE.PlaneGeometry(.78,.39),new THREE.MeshStandardMaterial({map:signTex(['The Millers','1412 Maple']),roughness:.6}));
-    const brd2=brd.clone();for(const[b,k]of[[brd,1],[brd2,-1]]){b.position.set(bx+nx*.05*k,1.02,bz+nz*.05*k);b.rotation.y=Math.atan2(nx*k,nz*k);b.castShadow=true;L.group.add(b)}
-    box(.78,.05,.12,'#2f5d9e',bx,1.24,bz,L.group).rotation.y=Math.atan2(nx,nz)}
+    const bx=d.x+nx*reach-tx_*1.15,bz=d.z+nz*reach-tz_*1.15,post=box(.08,1.3,.08,'#f2f1ec',bx,.65,bz,L.group);L.solids.push(post);
+    const brd=new THREE.Mesh(new THREE.PlaneGeometry(.96,.48),new THREE.MeshStandardMaterial({map:signTex(['The Millers','1412 Maple']),roughness:.6}));
+    const brd2=brd.clone();for(const[b,k]of[[brd,1],[brd2,-1]]){b.position.set(bx+nx*.05*k,1.03,bz+nz*.05*k);b.rotation.y=Math.atan2(nx*k,nz*k);b.castShadow=true;L.group.add(b)}
+    box(.96,.05,.12,'#2f5d9e',bx,1.3,bz,L.group).rotation.y=Math.atan2(nx,nz)}
   /* shops */
   const B_=HTM('Buildings');
   for(const s of SHOP_LOTS){if(s.skip||!B_)continue;const x0=s.x0*TILE,z0=s.z0*TILE,x1=(s.x1+1)*TILE,z1=(s.z1+1)*TILE,cx=(x0+x1)/2,cz=(z0+z1)/2;let grp=null;
@@ -1502,7 +1506,8 @@ function enterHome(){if(!HOMEM||!homeReady)return false;const s=SV();
   L={def:{id:'home',type:'home'},group:H.group,colliders:H.colliders,solids:H.solids,W:1,H:1,g:[['#']],start:V3(H.spawn.x,0,H.spawn.z),items:[],stashes:[],spawns:[],markers:[],ammo:[],houses:[],waveSpawns:[]};
   bannerT=0;$('banner').classList.remove('on');subQ.length=0;
   setMood({id:'hub'});makePlayer();P.pos.copy(L.start);P.yaw=H.spawn.yaw;P.pitch=-.12;P.hp=100;P.crouch=false;P.aim=false;P.weapons=[P.cur];equip(P.dude,null);vm.visible=false;
-  const am=RENDER.mats.aoMat.uniforms;am.radius.value=(H.aoHint&&H.aoHint.radius)||.45;am.power.value=2;
+  /* the street-scale SSAO smears halos across flat interior walls: smaller radius, and most of the contact shadow comes from the house's baked floor AO */
+  const am=RENDER.mats.aoMat.uniforms;am.radius.value=(H.aoHint&&H.aoHint.radius)||.45;am.power.value=1.6;RENDER.mats.compMat.uniforms.strength.value=.4;
   rebuildTargets();camDist=1.2;
   let line=null;try{const ev=s?s.events:[];const e=pickEvent(ev);line=H.onEnter({event:e,trust:prog.trust,shotSurrUp:s&&prog.shotSurr>(s.family.lastShotSurr||0)});if(s){s.events.length=0;s.family.lastShotSurr=prog.shotSurr}}catch(e){console.warn(e)}
   if(line&&line.text)radio(line.name||line.who,line.text);
@@ -1516,7 +1521,7 @@ function enterHome(){if(!HOMEM||!homeReady)return false;const s=SV();
 function homeOwnedMap(){const s=SV(),o={},A=metaAlias();for(const id in s.furniture.owned){const h=A[id]||id;if(HOMEM.catalogById[h])o[h]=(o[h]||0)+s.furniture.owned[id]}return o}
 function homeTeardown(){if(DECO.on)decoStop(true);const s=SV();if(s&&HOMEM)Object.assign(s.family,HOMEM.lineState());
   if(homeVan&&homeVan.userData.dispose){try{homeVan.userData.dispose()}catch(e){}}homeVan=null;
-  if(HOME3){HOME3.dispose();HOME3=null}const am=RENDER.mats.aoMat.uniforms;am.radius.value=1;am.power.value=4;
+  if(HOME3){HOME3.dispose();HOME3=null}const am=RENDER.mats.aoMat.uniforms;am.radius.value=1;am.power.value=4;RENDER.mats.compMat.uniforms.strength.value=.85;
   aud(A=>{A.ambience(null);A.setIndoor&&A.setIndoor(false)})}
 function exitHome(via){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null;metaSave(true);enterHub({at:via==='garage'?'van':'home'});canvasFocus()}
 function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){}
@@ -1541,8 +1546,8 @@ function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){
 const DECO={on:false,msg:'',msgT:0,html:''};
 function decoStart(){if(!HOME3||!HOMEM)return;const D=HOMEM.decorate;const s=SV();
   D.start({owned:homeOwnedMap(),cutaway:true,people:[P.pos],onChange:Lo=>{s.furniture.layout=Lo;SAVEM.touch('furniture')},onExit:Lo=>{s.furniture.layout=Lo;SAVEM.touch('furniture');metaSave(true)}});
-  DECO.on=true;DECO.msg='';P.pitch=Math.min(P.pitch,-.75);setPrompt(null);$('deco').hidden=false;$('xh').classList.add('deco');aud(A=>A.ui('click'))}
-function decoStop(quiet){if(!DECO.on)return;DECO.on=false;try{HOMEM.decorate.exit()}catch(e){}$('deco').hidden=true;P.pitch=-.12;if(!quiet)aud(A=>A.ui('back'))}
+  DECO.on=true;DECO.msg='';document.body.classList.add('decoOn');P.pitch=Math.min(P.pitch,-.75);setPrompt(null);$('deco').hidden=false;$('xh').classList.add('deco');aud(A=>A.ui('click'))}
+function decoStop(quiet){if(!DECO.on)return;DECO.on=false;document.body.classList.remove('decoOn');try{HOMEM.decorate.exit()}catch(e){}$('deco').hidden=true;P.pitch=-.12;if(!quiet)aud(A=>A.ui('back'))}
 function decoFlash(t,bad){DECO.msg=t;DECO.bad=!!bad;DECO.msgT=2.2;if(bad)aud(A=>A.ui('denied'))}
 function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
   if(a==='place'){r=D.place();if(r.ok){decoFlash('Placed. Looks good.');aud(A=>A.ui('click'))}else decoFlash(r.reason||"Doesn't fit there",true)}
@@ -1567,7 +1572,7 @@ function decoUpd(dt){const D=HOMEM.decorate;
 function homeCam(dt){if(!HOME3)return;
   if(DECO.on){/* look down into the cut-away rooms from above and behind the dad */
     P.pitch=clamp(P.pitch,-1.35,-.32);const fh=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
-    camera.position.set(P.pos.x,4.6,P.pos.z).addScaledVector(fh,-2.6);camera.rotation.set(P.pitch,P.yaw,0);if(P.dude)P.dude.root.visible=true;return}
+    camera.position.set(P.pos.x,5.3,P.pos.z).addScaledVector(fh,-3.3);camera.rotation.set(P.pitch,P.yaw,0);if(P.dude)P.dude.root.visible=true;return}
   /* tight rooms: if the boom has collapsed, go first person instead of staring at the back of a head */
   if(!P.fp&&camDist<.55){camera.position.copy(P.pos).add(V3(0,1.62,0));if(P.dude)P.dude.root.visible=false}
   camera.position.y=Math.min(camera.position.y,2.3)}
