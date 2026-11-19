@@ -176,7 +176,7 @@ function cornerAhead(pts,i,x,z,maxD){let d=Math.hypot(pts[Math.min(i+1,pts.lengt
 /* controllers */
 function follow(c,points,o){o=o||{};c.ai={mode:'follow',pts:points,speed:o.speed||6,turnSpeed:o.turnSpeed||5,waitDist:o.waitDist||Infinity,done:false,blocked:false};return c}
 function flee(c,G,o){o=o||{};const n=G.nearestNode(c.x,c.z);c.ai={mode:'flee',G,max:o.max||c.stats.boostMax,turnSpeed:o.turnSpeed||9,prev:-1,cur:n,next:-1,pts:null,
-  escapeT:0,escaped:false,escapeDist:o.escapeDist||110,escapeTime:o.escapeTime||8,rnd:o.rnd||HT.World&&HT.World.mulberry32?HT.World.mulberry32(o.seed||7):Math.random};
+  escapeT:0,escaped:false,escapeDist:o.escapeDist||110,escapeTime:o.escapeTime||8,rnd:o.rnd||(HT.World&&HT.World.mulberry32?HT.World.mulberry32(o.seed||7):Math.random)};
   pickNext(c,o.threat||null);return c}
 function wander(c,G,o){flee(c,G,{...o,max:(o&&o.max)||11});c.ai.mode='wander';return c}
 function pickNext(c,threat){const ai=c.ai,G=ai.G,n=G.nodes[ai.cur];let opts=n.e.filter(e=>e.to!==ai.prev);if(!opts.length)opts=n.e;
