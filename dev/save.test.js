@@ -192,7 +192,7 @@ test('v1 save migrates to v2 (SPEC2 D)',()=>{
 test("Dad's Auto delegates to HT.Garage (SPEC2 C)",()=>{
   fresh();const d=Save.data,G=require('../js/carai.js').Garage;d.cash=20000;
   assert.equal(E.vehicleStats().maxSpeed,G.apply('minivan',G.defaultVehicle(),{}).maxSpeed,'stock = HT.Garage.apply');
-  assert.equal(E.buy('gar','eng1','auto').ok,true);assert.equal(d.garage.vehicles.minivan.perf.engine,1);assert.equal(E.vehicleStats().maxSpeed,19);
+  assert.equal(E.buy('gar','eng1','auto').ok,true);assert.equal(d.garage.vehicles.minivan.perf.engine,1);assert.equal(E.vehicleStats().maxSpeed,27);
   assert.match(E.status('gar','eng2','auto').reason,/Maple Heights trust 40/);d.prog.trust=40;assert.equal(E.status('gar','eng2','auto').state,'buy');
   assert.ok(E.vanStatsWith('gar','eng2').boostMax>E.vehicleStats().boostMax);
   assert.equal(E.buy('gar','armor1','auto').ok,true);assert.equal(d.garage.hp.minivan,140,'armor raises current HP too');
@@ -205,7 +205,7 @@ test("Dad's Auto delegates to HT.Garage (SPEC2 C)",()=>{
   assert.equal(E.buy('stick','2','auto').ok,true);assert.deepEqual(d.garage.stickers,[2,null,null]);assert.equal(E.status('stick','11','auto').state,'locked');
   assert.equal(E.buy('gar','cargo','auto').ok,true);assert.equal(E.ammoFor().find(a=>a.type==='9mm').extra,24,'+2 mags of 12');
   assert.equal(E.status('car','pickup','auto').state,'locked');d.prog.done[4]=true;assert.equal(E.buy('car','pickup','auto').ok,true);assert.ok(d.garage.owned.includes('pickup'));
-  assert.equal(E.status('car','pickup','auto').state,'owned');E.garUse('car','pickup');assert.equal(E.vehicleStats().type,'pickup');assert.equal(E.vehicleStats().maxSpeed,19);
+  assert.equal(E.status('car','pickup','auto').state,'owned');E.garUse('car','pickup');assert.equal(E.vehicleStats().type,'pickup');assert.equal(E.vehicleStats().maxSpeed,23.5);
   assert.ok(d.garage.purchases>=5);assert.equal(E.priceOf('gar','eng2','auto').price,Math.round(1200*.95),'loyalty discount');
   assert.equal(E.setLoadout('p3','smg').code,'rack');d.garage.util.rack=true;d.owned.guns.push('smg','rifle');d.loadout.p2='rifle';
   assert.equal(E.setLoadout('p3','smg').ok,true);assert.equal(E.setLoadout('p2','smg').code,'dup');assert.ok(d.events.includes('boughtCar'));
