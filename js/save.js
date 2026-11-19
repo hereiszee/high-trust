@@ -14,12 +14,26 @@ const hasDOM=typeof document!=='undefined';
 /* =====================================================================
    CATALOGUE
    ===================================================================== */
+/* bonus: mission-specific payout lines (SPEC D.1 + SPEC2 B.1-B.5). r = the result object passed to computePayout. */
 const MISSIONS=[
-  {id:'gary',giver:'gary',who:'Gary',title:'Return to Sender',base:400,par:300},
-  {id:'rick',giver:'rick',who:'Coach Rick',title:'Fourth Quarter',base:550,par:0},
-  {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240},
-  {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300}];
-
+  {id:'gary',giver:'gary',who:'Gary',title:'Return to Sender',base:400,par:300,hood:'maple',
+    bonus:[r=>r.got&&['packages','Returned packages ×'+r.got,30*r.got]]},
+  {id:'rick',giver:'rick',who:'Coach Rick',title:'Fourth Quarter',base:550,par:0,hood:'maple',
+    bonus:[r=>r.ok&&r.timeLeft>0&&['clock','Clock bonus · '+Math.round(r.timeLeft)+'s left',3*Math.round(r.timeLeft)]]},
+  {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240,hood:'maple',bonus:[]},
+  {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300,hood:'maple',
+    bonus:[r=>r.bossDone==='cuffed'&&['bail',"King's bail refund",500]]},
+  {id:'earl',giver:'earl',who:'Earl',title:'End of the Line',base:650,par:300,hood:'river',
+    bonus:[r=>r.bikes&&['bikes','Bikes back with their kids ×'+r.bikes,40*r.bikes],r=>r.converters&&['converters','Converters to the bike library fund ×'+r.converters,60*r.converters]]},
+  {id:'dee',giver:'dee',who:'Pastor Dee',title:'Fellowship Hall',base:800,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.cleanStakeout&&['stakeout','Clean stakeout',200],r=>r.ids&&['ids','Faces matched to names ×'+r.ids,50*r.ids],r=>r.bossDone==='cuffed'&&['courier','The Courier gets a second chance',250]]},
+  {id:'rosa',giver:'rosa',who:'Rosa',title:'Garden Variety',base:900,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.beds!=null&&(r.beds>=10?['tomatoes','Tomatoes saved',200]:r.beds>0&&['tomatoes','Garden beds standing ×'+r.beds,15*r.beds])]},
+  {id:'benny',giver:'benny',who:'Benny',title:'Brain Freeze',base:1000,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.truckHp>.66&&['truck','Truck in one piece',200],r=>r.ok&&r.chaseT!=null&&r.chaseT<45&&['chase','Chased it down under 45 s',150]]},
+  {id:'duke',giver:'earl',who:'Earl',title:'The Duke',base:1400,par:0,hood:'river',
+    bonus:[r=>r.bossDone==='cuffed'&&['bail',"The Duke's bail refund",600],r=>r.ok&&r.chaseT!=null&&r.chaseT<60&&['chase','Caught him under 60 s',150],r=>r.ok&&r.vanHp>=.9&&['dents',"Sal's no-dents bonus",100]]}];
+const MISSION_COUNT=MISSIONS.length;
 const AMMO={'9mm':{name:'9mm',cap:192,col:'#e9b949'},'357':{name:'.357',cap:36,col:'#a9adb3'},nails:{name:'Nails',cap:200,col:'#cfd6dd'},
   '12ga':{name:'12 ga',cap:40,col:'#d8553f'},bean:{name:'Beanbags',cap:30,col:'#f08a2c'},'556':{name:'5.56',cap:180,col:'#6fb35a'},'308':{name:'.308',cap:25,col:'#4f7fc4'}};
 
@@ -62,6 +76,26 @@ const GUNS={
     reload:{tac:2.6,empty:3.1},equip:.55,fsa:true,price:1200,unlock:{buyAfter:2,collect:1},
     blurb:"Deer season never really ended. It just moved to Ridgeview."}};
 const GUN_ORDER=['pistol','revolver','nailer','shotgun','double','beanbag','rifle','smg','hunter'];
+/* SPEC A.2 feel data: recoil pattern rc.pat, view-model kick vm, sound recipe snd (gunSnd layers), extra mech clicks on reload */
+const V=(back,rise,roll,side,k,damp,reloadStyle)=>({back,rise,roll,side,k,damp,reloadStyle});
+const FEEL={
+  pistol:{pat:[[1,0]],vm:V(.04,.10,.02,.005,140,16,'mag'),snd:{crack:[3200,1.2,.03,.5],body:[2200,.16,.45],thump:['sine',150,45,.12,.32],tail:[900,.35,.12],mech:[]}},
+  revolver:{pat:[[1,0]],vm:V(.07,.28,.05,.01,90,11,'cylinder'),snd:{crack:[2600,.9,.04,.7],body:[1500,.25,.7],thump:['sine',110,38,.2,.5],tail:[700,.7,.22,.12,.25],mech:[[.38,3000,.03,.12]]}},
+  nailer:{pat:[[1,0]],vm:V(.015,.02,.03,.02,220,22,'tilt'),snd:{crack:[6000,3,.015,.25],body:[4000,.05,.15],thump:['square',220,180,.04,.06],tail:null,mech:[[.03,7000,.08,.08]]}},
+  shotgun:{pat:[[1,0]],vm:V(.09,.16,.03,.01,80,10,'shell'),snd:{crack:[1800,.7,.05,.8],body:[900,.4,.9],thump:['sine',90,35,.16,.45],tail:[500,.8,.25],mech:[[.32,2500,.06,.25],[.42,1800,.06,.25]]}},
+  double:{pat:[[1,0],[1.25,.4]],vm:V(.12,.22,.06,.015,70,9,'break'),snd:{crack:[1500,.6,.06,1],body:[700,.55,1],thump:['sine',70,28,.25,.6],tail:[400,1.1,.35,.15,.3],mech:[],reloadMech:[[0,3500,.04,.3]],secondPitch:.94}},
+  beanbag:{pat:[[1,0]],vm:V(.07,.12,.02,.01,90,12,'shell'),snd:{crack:[1200,1,.04,.45],body:[600,.25,.5],thump:['sine',120,60,.1,.4],tail:[400,.3,.1],mech:[[.32,2750,.06,.25],[.42,1980,.06,.25]],impact:[300,.1]}},
+  rifle:{pat:[[1.4,0],[1.3,0],[1.2,0],[1.1,0],[1,0],[1,0],[.7,.6],[.6,.8]],vm:V(.025,.035,.01,.006,160,18,'mag'),snd:{crack:[3500,1.4,.025,.55],body:[3000,.12,.5],thump:['sine',140,40,.1,.3],tail:[1200,.45,.14],mech:[]}},
+  smg:{pat:[[1,0],[1,-.3],[1,.3]],vm:V(.018,.02,.015,.012,200,20,'mag'),snd:{crack:[4200,1.6,.02,.4],body:[3500,.07,.35],thump:['triangle',180,60,.06,.2],tail:[1500,.25,.08],mech:[]}},
+  hunter:{pat:[[1,0]],vm:V(.10,.20,.02,0,60,8,'bolt'),bolt:.45,snd:{crack:[5000,2,.02,.9],body:[2000,.2,.8],thump:['sine',100,30,.2,.55],tail:[600,1.6,.3,.22,.3],mech:[[.45,2200,.05,.2],[.6,1500,.05,.2]]}}};
+for(const g in FEEL){Object.assign(GUNS[g].rc,{pat:FEEL[g].pat});GUNS[g].vm=FEEL[g].vm;GUNS[g].snd=FEEL[g].snd;if(FEEL[g].bolt)GUNS[g].bolt=FEEL[g].bolt}
+GUNS.nailer.special={rootChance:.2,rootT:.6,quietR:6};GUNS.smg.special={adsBreak:.08};GUNS.hunter.special={scope:true,sway:[.0015,1.3,.0012,.9],laser:.8};
+GUNS.double.special={bothBarrelsWindow:.3};GUNS.beanbag.special={surrenderBelow:.6,tracer:'#f08a2c'};
+/* SPEC A.3 NPC profiles: enemy [acc,dmg,burst,cooldown,wantMin,wantMax], ally [acc,dmg,cooldown]; dmg may be [near,far,within] */
+const NPC_GUNS={
+  pistol:{enemy:[.40,9,1,.9,7,15],ally:[.50,24,.75]},revolver:{enemy:[.45,16,1,1.3,8,16],ally:[.55,40,1.1]},nailer:{enemy:[.35,4,6,1,3,8]},
+  shotgun:{enemy:[.60,[22,7,8],1,1.4,3,7],ally:[.65,[55,16,9],1.1]},double:{enemy:[.60,[26,8,7],2,1.8,3,6]},rifle:{enemy:[.34,8,3,1.3,7,15],ally:[.42,18,.35]},
+  smg:{enemy:[.30,6,5,1.2,4,10]},hunter:{enemy:[.55,24,1,2.6,16,30],laser:.8}};
 
 const ATTACHMENTS={
   reddot:{name:'Red Dot',slot:'optic',price:300,compat:['pistol','revolver','shotgun','beanbag','rifle','smg'],
@@ -120,95 +154,49 @@ const SUPPLIES={
   zipPack:{name:'Zip-Tie Contractor Pack',price:30,flag:'zipPack',fx:'Zip-tie 25% faster during the next mission',blurb:"Five hundred zip-ties. Also good for cable management, which you will never do."},
   icePack:{name:'Ice Packs & Ibuprofen',price:35,flag:'icePack',fx:'Your crew gets back up 30% faster during the next mission',blurb:"For hamstrings, lower backs and the knee you hurt getting out of the van."}};
 
-/* Minivan upgrades. Tiered: level 0 = stock. fx multipliers are what HT.Economy.vehicleStats() returns. */
-const VEHICLE={
-  engine:{name:'Engine Tune',tab:'perf',tiers:[
-    {name:'New Spark Plugs',price:400,fx:{top:1.08,accel:1.12},blurb:"Jen asked why the van sounds \"angry.\" It sounds motivated."},
-    {name:'Cold Air Intake',price:900,unlock:{done:1},fx:{top:1.16,accel:1.25},blurb:"It inhales. It exhales. It's doing better than you on the stairs."},
-    {name:'The Midlife Crisis',price:1800,unlock:{done:2},fx:{top:1.28,accel:1.45},blurb:"Zero to sixty before the kids finish asking \"are we there yet.\""}]},
-  tyres:{name:'Tyres',tab:'perf',tiers:[
-    {name:'All-Terrain Tread',price:250,fx:{grip:1.15},blurb:"Grips gravel, wet leaves and the moral high ground."},
-    {name:'Performance Rubber',price:600,unlock:{done:1},fx:{grip:1.3},blurb:"Corners like the cart at the warehouse store. The good cart."}]},
-  brakes:{name:'Brakes',tab:'perf',tiers:[
-    {name:'Ceramic Pads',price:200,fx:{brake:1.2},blurb:"Stops on a dime. Also stops the squeal you've been ignoring since March."},
-    {name:'Big Red Calipers',price:500,unlock:{done:2},fx:{brake:1.45},blurb:"You'll tell everyone. Everyone will nod politely."}]},
-  bullBar:{name:'Push Bar',tab:'prot',tiers:[
-    {name:'Church Parking Lot Edition',price:650,unlock:{done:0},fx:{ram:2,frontDmg:.5},blurb:"Gently encourages parked thugs to move along."}]},
-  panels:{name:'Door Panels',tab:'prot',tiers:[
-    {name:'Kevlar-Lined Doors',price:700,fx:{armor:1.5,crewDmg:.6},blurb:"The sliding door finally closes with authority."},
-    {name:'Full Soccer-Mom Armor',price:1500,unlock:{done:2},fx:{armor:2.2,crewDmg:.35},blurb:"Rated for gunfire and three seasons of travel soccer."}]},
-  tint:{name:'Window Tint',tab:'prot',tiers:[
-    {name:'Legal Tint',price:150,fx:{notice:.8},blurb:"Enemies notice the van a beat later. Neighbors assume you're famous."},
-    {name:'Limo Tint',price:350,unlock:{trust:40},fx:{notice:.65},blurb:"Tyler keeps waving at people. They can't see him. He keeps waving."}]},
-  roofBox:{name:'Rooftop Cargo Box',tab:'util',tiers:[
-    {name:'Rooftop Cargo Box',price:300,fx:{spareMags:1},blurb:"Holds a spare mag of everything, plus the tent from the camping trip."}]},
-  gunRack:{name:'Overhead Gun Rack',tab:'util',tiers:[
-    {name:'Overhead Gun Rack',price:550,unlock:{done:1},fx:{vanSwap:true},blurb:"Change your loadout at the van mid-job. Where the fishing rods used to go."}]},
-  medkit:{name:'Glovebox First Aid',tab:'util',tiers:[
-    {name:'The Good First-Aid Kit',price:350,fx:{vanHeal:1,revive:1.5},blurb:"One full patch-up at the van per job. Not the kit with three band-aids and a coupon."}]},
-  lightBar:{name:'Amber Light Bar',tab:'util',tiers:[
-    {name:'Amber Light Bar',price:400,unlock:{trust:30},fx:{surrender:1.1},blurb:"Looks official. Isn't. Thugs give up 10% more easily for the first 20 seconds after you roll up."}]}};
-const VEH_ORDER=['engine','tyres','brakes','bullBar','panels','tint','roofBox','gunRack','medkit','lightBar'];
-
-/* Cosmetic picks: one active choice per group, owned options can be re-selected free. */
-const COSMETICS={
-  paint:{name:'Paint',opts:[
-    {id:'stock',name:'Factory Silver',price:0,col:'#b9c0c7',blurb:"The color of every minivan in every school pickup line."},
-    {id:'beige',name:'HOA Beige',price:120,col:'#d8c7a3',blurb:"Pre-approved by the board. Blends in with every house on the street."},
-    {id:'blue',name:'Little League Blue',price:180,col:'#2f5d9e',blurb:"Matches the polos. Coach Rick wept a single tear."},
-    {id:'red',name:'Fire Station Red',price:250,col:'#c23b2e',blurb:"Fast-looking. Legally, it is not faster."},
-    {id:'green',name:'Lawn Envy Green',price:250,col:'#4f8a4a',blurb:"The same green as your lawn will be, one day."},
-    {id:'yellow',name:'Hazard Yellow',price:300,col:'#ffc94a',blurb:"Visible from space. Visible from the HOA president's porch."},
-    {id:'black',name:'Midnight Carpool',price:500,col:'#24272c',unlock:{done:3},blurb:"Blacked out. Very serious. Still has a stick-figure family decal."}]},
-  rims:{name:'Wheels',opts:[
-    {id:'stock',name:'Hubcaps (3 of 4)',price:0,style:'hub',blurb:"The fourth one is somewhere on Route 9."},
-    {id:'steel',name:'Black Steelies',price:200,style:'steel',blurb:"Tough. Simple. Like your stance on daylight saving time."},
-    {id:'chrome',name:'Chrome Five-Spokes',price:350,style:'chrome',blurb:"Shiny enough to check your hair in."},
-    {id:'gold',name:'Gold Mesh',price:450,style:'gold',unlock:{trust:50},blurb:"Maddie refuses to be dropped off within a block of school."},
-    {id:'offroad',name:'Off-Road Beadlocks',price:400,style:'offroad',unlock:{done:2},blurb:"For the dirt road to the lake house you don't own."}]},
-  horn:{name:'Horn',opts:[
-    {id:'stock',name:'Polite Beep',price:0,notes:[[392,.3],[494,.3]],wave:'square',blurb:"Two notes. Both apologetic."},
-    {id:'duck',name:'Duck Call',price:60,notes:[[620,.09],[540,.09],[620,.09],[520,.2]],wave:'sawtooth',blurb:"Quack. Quack. Moves people out of the way through sheer confusion."},
-    {id:'train',name:'Freight Train',price:180,notes:[[220,.7],[277,.7],[330,.7]],wave:'sawtooth',chord:true,blurb:"Somebody on Maple will call the city about this."},
-    {id:'jingle',name:'Ice Cream Jingle',price:120,notes:[[784,.15],[659,.15],[784,.15],[880,.15],[784,.3]],wave:'triangle',blurb:"Every kid in a two-block radius is now outside. Use responsibly."},
-    {id:'whistle',name:'Dad Whistle',price:90,notes:[[1400,.12],[1900,.35]],wave:'sine',blurb:"The two-note whistle that means \"car. Now.\""},
-    {id:'air',name:'Stadium Air Horn',price:250,notes:[[466,.5]],wave:'sawtooth',chord:true,unlock:{done:1},blurb:"Coach Rick's halftime horn. He'd want you to have it. He has three."}]}};
-
 const STORES={
   dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Delivered after your next outing.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
-  hardware:{name:'Maple Hardware',sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now'},
-  auto:{name:'Lug Nuts & Sons',sub:'Auto',who:'Industrial Way · Bay 2',tag:'We work on minivans. We do not judge minivans.',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['cos','Cosmetics']],deliver:'now'}};
-
-const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
-  supplies:SUPPLIES,vehicle:VEHICLE,vehOrder:VEH_ORDER,cosmetics:COSMETICS,stores:STORES,family:FAMILY};
+  hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now',discount:{hood:'trust',at:60}},
+  mart:{name:'Ramos Corner Mart',who:'Riverside Flats · Open late',tag:'"Your friend with the mustache bought all my beef jerky." Mrs. Ramos',tabs:[['sup','Supplies'],['stick','Stickers']],deliver:'now',discount:{hood:'trustR',at:60}},
+  auto:{name:"Dad's Auto",who:'Route 9 · Sal Benedetto, proprietor',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['looks','Looks'],['cars','Vehicles'],['repair','Repair']],deliver:'now',
+    lines:["Every van's a sports car if you believe in it.","I put a V6 in a minivan once. The man cried. Good tears.","Bull bar's off a snowplow. It's fine. It's mostly fine.",
+      "You want the spinners? I'm not going to stop you. I'm going to judge you.","Everybody calls me Dad, including my actual dad."],
+    lineRosa:"Your nurse friend told me to stop eating gas station sushi. I'm considering it."}};
+/* Vehicle data (VEH, upgrade CATALOG, COSMETICS, HORNS) lives in js/carai.js as HT.Garage: read it there, not here. */
+const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,npcGuns:NPC_GUNS,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
+  supplies:SUPPLIES,stores:STORES,family:FAMILY,get garage(){return HT.Garage||null}};
 HT.CATALOG=CATALOG;
 
 /* =====================================================================
    SAVE  (localStorage 'ht-save', schema v1 per SPEC E, plus optional extension fields)
    ===================================================================== */
-const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=1;
+const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=2;
 const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
 const clampN=(v,a,b)=>v<a?a:v>b?b:v;
 function starterPlaced(){return[{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
   {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]}
+/* garage shape (SPEC2 D); HT.Garage.defaultGarage is used when js/carai.js is loaded, this copy otherwise */
+const defVehicle=()=>HT.Garage?HT.Garage.defaultVehicle():{paint:'slate',rims:'steel',tint:'none',lightBar:false,spoiler:false,perf:{engine:0,tyres:0,brakes:0,sport:false},prot:{bullBar:false,armor:0}};
+const defGarage=()=>HT.Garage?HT.Garage.defaultGarage():{active:'minivan',owned:['minivan'],purchases:0,dirt:0,vehicles:{minivan:defVehicle()},hp:{minivan:100},
+  util:{cargo:false,rack:false,aid:false},stickers:[null,null,null],ownedStickers:[],horn:'stock',ownedHorns:['stock'],ownedCos:{paint:['slate'],rims:['steel'],tint:['none']}};
+const WORLD_PINS=['home','hank','auto','gas','mart','community','church','garden','depot','earl'];
 const SAVE_DEFAULT=()=>({v:SAVE_V,t:0,
-  prog:{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0},
+  prog:{done:Array(MISSION_COUNT).fill(false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0},
   cash:0,stats:{earned:0,spent:0},
   owned:{guns:['pistol','shotgun'],att:[]},
   attOn:{},
-  loadout:{side:'pistol',p1:'shotgun',p2:null},
+  loadout:{side:'pistol',p1:'shotgun',p2:null,p3:null},
   armory:{seen:{}},
   pending:[],
   furniture:{owned:{sofa:1,coffeetable:1,armchair:1,dining:1,chair:2,dogbed:1,picnic:1},placed:starterPlaced()},
   family:{firstVisit:true,seen:[],pets:0,lastShotSurr:0},
+  crew:{rosa:false},
   events:[],
-  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false},
-  /* extensions (optional; filled from defaults when missing) */
-  vehicle:{engine:0,tyres:0,brakes:0,bullBar:0,panels:0,roofBox:0,gunRack:0,medkit:0,paint:'stock',rims:'stock',tint:0,lightBar:0,horn:'stock',
-    cos:{paint:['stock'],rims:['stock'],horn:['stock']}},
-  world:{hood:'maple',trust2:12,done2:[],places:['maple','home','hardware']}});
+  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false},
+  world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0},
+  garage:defGarage()});
 
 /* Fill missing keys from defaults, keep unknown keys (other modules may add their own), reject wrong types. */
 function deepMerge(def,s){
@@ -223,7 +211,8 @@ function deepMerge(def,s){
   for(const k in s)if(!(k in def))out[k]=clone(s[k]);
   return out}
 
-/* Old shapes we may meet: v0 = the pre-save prototype ({done,trust,cash,guns}) or anything without a version. */
+/* Old shapes we may meet: v0 = the pre-save prototype ({done,trust,cash,guns}); v1 = SPEC.md E (+ this module's early 'vehicle' extension). */
+const V1_PAINT={stock:'slate',beige:'sand',blue:'slate',red:'cranberry',green:'forest',yellow:'orange',black:'black'},V1_RIMS={stock:'steel',steel:'steel',chrome:'chrome',gold:'gold',offroad:'alloy'};
 const MIGRATIONS={
   0:s=>{const o={v:1};
     o.prog=isObj(s.prog)?s.prog:{done:s.done,trust:s.trust,cuffed:s.cuffed,downed:s.downed,shotSurr:s.shotSurr,missionsRun:s.missionsRun};
@@ -232,17 +221,58 @@ const MIGRATIONS={
     if(Array.isArray(s.guns))o.owned={guns:s.guns.slice(),att:Array.isArray(s.att)?s.att.slice():[]};
     else if(isObj(s.owned))o.owned=s.owned;
     for(const k in s)if(!(k in o)&&!['done','trust','cuffed','downed','shotSurr','missionsRun','guns','att'].includes(k))o[k]=s[k];
-    o.v=1;return o}};
+    o.v=1;return o},
+  1:s=>{ /* SPEC2 D */
+    const d=s.prog&&Array.isArray(s.prog.done)?s.prog.done:[];s.prog=isObj(s.prog)?s.prog:{};s.prog.done=[...d,...Array(MISSION_COUNT).fill(false)].slice(0,MISSION_COUNT);
+    const w=isObj(s.world)?s.world:{};
+    if(s.prog.trustR==null)s.prog.trustR=typeof w.trust2==='number'?w.trust2:5;
+    s.prog.act=s.prog.done.slice(0,4).every(Boolean)?2:1;
+    s.world={bridgeOpen:s.prog.act===2};for(const k in w)if(!['trust2','done2','places','hood'].includes(k))s.world[k]=w[k];
+    if(isObj(s.loadout)&&!('p3' in s.loadout))s.loadout.p3=null;
+    if(isObj(s.vehicle)&&!s.garage){const v=s.vehicle,g=defGarage(),mv=g.vehicles.minivan;
+      mv.perf.engine=Math.min(3,v.engine|0);mv.perf.tyres=Math.min(2,v.tyres|0);mv.perf.brakes=Math.min(2,v.brakes|0);
+      mv.prot.bullBar=!!v.bullBar;mv.prot.armor=Math.min(2,v.panels|0);mv.lightBar=!!v.lightBar;
+      g.util.cargo=!!v.roofBox;g.util.rack=!!v.gunRack;g.util.aid=!!v.medkit;
+      mv.paint=V1_PAINT[v.paint]||'slate';mv.rims=V1_RIMS[v.rims]||'steel';mv.tint=['none','light','limo'][v.tint|0]||'none';
+      g.ownedCos.paint=[...new Set(['slate',...((v.cos&&v.cos.paint)||[]).map(x=>V1_PAINT[x]).filter(Boolean)])];
+      g.ownedCos.rims=[...new Set(['steel',...((v.cos&&v.cos.rims)||[]).map(x=>V1_RIMS[x]).filter(Boolean)])];
+      g.ownedCos.tint=['none',...(mv.tint!=='none'?[mv.tint]:[])];s.garage=g}
+    delete s.vehicle;s.v=2;return s}};
 function migrate(s){
   let v=typeof s.v==='number'?s.v:0,guard=0;
   while(v<SAVE_V&&MIGRATIONS[v]&&guard++<20){s=MIGRATIONS[v](s);v=s.v}
   return s}
 
+function sanitizeGarage(s){const g=s.garage,G=HT.Garage,def=defGarage();
+  const VT=G?Object.keys(G.VEH).filter(k=>G.VEH[k].price!=null):['minivan','workvan','pickup','suv'];
+  g.owned=[...new Set(['minivan',...(Array.isArray(g.owned)?g.owned:[]).filter(t=>VT.includes(t))])];
+  if(!g.owned.includes(g.active))g.active='minivan';
+  if(!isObj(g.vehicles))g.vehicles={};
+  for(const k in g.vehicles)if(!g.owned.includes(k))delete g.vehicles[k];
+  const P=G?G.COSMETICS.paint:null,RIMS=G?Object.keys(G.COSMETICS.rims):['steel','alloy','chrome','spinner','gold'],TINT=G?Object.keys(G.COSMETICS.tint):['none','light','limo'];
+  for(const t of g.owned){const v=g.vehicles[t]=deepMerge(defVehicle(),g.vehicles[t]);
+    v.perf.engine=clampN(Math.floor(num(v.perf.engine,0)),0,3);v.perf.tyres=clampN(Math.floor(num(v.perf.tyres,0)),0,2);v.perf.brakes=clampN(Math.floor(num(v.perf.brakes,0)),0,2);
+    v.perf.sport=!!v.perf.sport;v.prot.armor=clampN(Math.floor(num(v.prot.armor,0)),0,2);v.prot.bullBar=!!v.prot.bullBar;v.lightBar=!!v.lightBar;v.spoiler=!!v.spoiler;
+    if(P&&!P[v.paint])v.paint='slate';if(!RIMS.includes(v.rims))v.rims='steel';if(!TINT.includes(v.tint))v.tint='none'}
+  if(!isObj(g.hp))g.hp={};
+  for(const k in g.hp)if(!g.owned.includes(k))delete g.hp[k];
+  for(const t of g.owned){const mx=vehMaxHp(t,g);g.hp[t]=clampN(num(g.hp[t],mx),0,mx)}
+  g.util=deepMerge(def.util,g.util);for(const k in g.util)g.util[k]=!!g.util[k];
+  g.purchases=Math.max(0,Math.floor(num(g.purchases,0)));g.dirt=clampN(num(g.dirt,0),0,100);
+  const SN=G?G.COSMETICS.stickers.length:12,okSt=i=>Number.isInteger(i)&&i>=0&&i<SN;
+  g.ownedStickers=[...new Set(g.ownedStickers.filter(okSt))];g.stickers=[0,1,2].map(i=>okSt(g.stickers[i])&&g.ownedStickers.includes(g.stickers[i])?g.stickers[i]:null);
+  const HN=G?Object.keys(G.HORNS):['stock'];g.ownedHorns=[...new Set(['stock',...g.ownedHorns.filter(h=>HN.includes(h))])];if(!g.ownedHorns.includes(g.horn))g.horn='stock';
+  g.ownedCos=deepMerge(def.ownedCos,g.ownedCos);
+  g.ownedCos.paint=[...new Set(['slate',...g.ownedCos.paint.filter(x=>!P||P[x])])];g.ownedCos.rims=[...new Set(['steel',...g.ownedCos.rims.filter(x=>RIMS.includes(x))])];
+  g.ownedCos.tint=[...new Set(['none',...g.ownedCos.tint.filter(x=>TINT.includes(x))])];
+  for(const t of g.owned){const v=g.vehicles[t];if(!g.ownedCos.paint.includes(v.paint))v.paint='slate';if(!g.ownedCos.rims.includes(v.rims))v.rims='steel';if(!g.ownedCos.tint.includes(v.tint))v.tint='none'}
+  if(!g.util.rack)s.loadout.p3=null}
+function vehMaxHp(type,g){const v=g.vehicles[type]||defVehicle();if(HT.Garage)return HT.Garage.apply(type,v,g.util).hp;return({minivan:100,workvan:130,pickup:120,suv:140}[type]||100)+[0,40,90][v.prot.armor|0]}
 function sanitize(s){
   s=deepMerge(SAVE_DEFAULT(),s);s.v=SAVE_V;
   const p=s.prog;
-  p.done=[0,1,2,3].map(i=>!!(Array.isArray(p.done)&&p.done[i]));
-  p.trust=clampN(num(p.trust,12),0,100);
+  p.done=MISSIONS.map((m,i)=>!!(Array.isArray(p.done)&&p.done[i]));
+  p.trust=clampN(num(p.trust,12),0,100);p.trustR=clampN(num(p.trustR,5),0,100);p.act=p.act===2?2:1;
   for(const k of['cuffed','downed','shotSurr','missionsRun'])p[k]=Math.max(0,Math.floor(num(p[k],0)));
   s.cash=Math.max(0,Math.round(num(s.cash,0)));
   s.stats.earned=Math.max(0,num(s.stats.earned,0));s.stats.spent=Math.max(0,num(s.stats.spent,0));
@@ -258,7 +288,8 @@ function sanitize(s){
   if(!(own(L.side)&&GUNS[L.side].slot==='side'))L.side='pistol';
   if(!(own(L.p1)&&GUNS[L.p1].slot==='prim'))L.p1=own(L.p2)&&GUNS[L.p2].slot==='prim'?L.p2:'shotgun';
   if(!(own(L.p2)&&GUNS[L.p2].slot==='prim'&&L.p2!==L.p1))L.p2=null;
-  for(const k in L)if(!['side','p1','p2'].includes(k))delete L[k];
+  if(!(own(L.p3)&&GUNS[L.p3].slot==='prim'&&L.p3!==L.p1&&L.p3!==L.p2))L.p3=null;
+  for(const k in L)if(!['side','p1','p2','p3'].includes(k))delete L[k];
   const seen={};for(const g in s.armory.seen)if(GUNS[g])seen[g]=Math.max(0,Math.floor(num(s.armory.seen[g],0)));s.armory.seen=seen;
   s.pending=s.pending.filter(e=>isObj(e)&&((e.kind==='gun'&&GUNS[e.id])||(e.kind==='att'&&ATTACHMENTS[e.id])||(e.kind==='furn'&&FURNITURE[e.id])));
   const fo={};for(const f in s.furniture.owned)if(FURNITURE[f])fo[f]=Math.max(0,Math.floor(num(s.furniture.owned[f],0)));
@@ -270,15 +301,11 @@ function sanitize(s){
   s.furniture.placed=placed;
   for(const e of placed)fo[e.id]=Math.max(fo[e.id]||0,placed.filter(q=>q.id===e.id).length);
   s.furniture.owned=fo;
-  const vh=s.vehicle;
-  for(const k of VEH_ORDER)vh[k]=clampN(Math.floor(num(vh[k],0)),0,VEHICLE[k].tiers.length);
-  if(!isObj(vh.cos))vh.cos={};
-  for(const g in COSMETICS){const ids=COSMETICS[g].opts.map(o=>o.id);
-    vh.cos[g]=uniq(['stock',...(Array.isArray(vh.cos[g])?vh.cos[g]:[]).filter(i=>ids.includes(i))]);
-    if(!vh.cos[g].includes(vh[g]))vh[g]='stock'}
-  s.world.trust2=clampN(num(s.world.trust2,12),0,100);
-  s.world.places=uniq(['maple','home','hardware',...s.world.places.filter(x=>typeof x==='string')]);
-  if(typeof s.world.hood!=='string')s.world.hood='maple';
+  sanitizeGarage(s);
+  const w=s.world;w.pins=w.pins.filter(x=>WORLD_PINS.includes(x));w.scrubbed=w.scrubbed.filter(x=>typeof x==='string'||typeof x==='number');
+  w.scrubTrust=Math.max(0,num(w.scrubTrust,0));w.tier=Math.max(0,Math.floor(num(w.tier,0)));w.bridgeOpen=!!w.bridgeOpen;
+  if(!(isObj(w.lastPos)&&isFinite(w.lastPos.x)&&isFinite(w.lastPos.z)))w.lastPos=null;
+  s.crew.rosa=!!s.crew.rosa;
   s.family.seen=s.family.seen.filter(x=>typeof x==='string');
   s.events=s.events.filter(x=>typeof x==='string').slice(-50);
   for(const k in s.flags)s.flags[k]=!!s.flags[k];
@@ -392,10 +419,11 @@ function gunAvail(id,s){s=S(s);const g=GUNS[id],u=g.unlock;
 function basePrice(kind,id,s){s=S(s);
   if(kind==='gun')return GUNS[id].price;if(kind==='att')return ATTACHMENTS[id].price;if(kind==='furn')return FURNITURE[id].price;
   if(kind==='sup')return SUPPLIES[id].price;
-  if(kind==='veh'){const u=VEHICLE[id],lv=s.vehicle[id]||0;return lv<u.tiers.length?u.tiers[lv].price:0}
-  if(kind==='cos'){const[g,o]=id.split(':');const opt=COSMETICS[g].opts.find(x=>x.id===o);return opt?opt.price:0}
+  if(GARAGE_KINDS.includes(kind))return garPrice(kind,id,s);
   return 0}
-function discountFor(store,s){s=S(s);return store==='hardware'&&s.prog.trust>=60?.1:0}
+function discountFor(store,s){s=S(s);const st=STORES[store];
+  if(store==='auto')return(s.garage.purchases||0)>=5?.05:0;
+  if(st&&st.discount)return(s.prog[st.discount.hood]||0)>=st.discount.at?.1:0;return 0}
 function priceOf(kind,id,store,s){const b=basePrice(kind,id,s),d=discountFor(store,s);return{price:Math.round(b*(1-d)),base:b,discount:d}}
 
 /* Full status of a catalogue entry in a store: what the buy button should say. */
@@ -414,13 +442,66 @@ function status(kind,id,store,s){s=S(s);const pr=priceOf(kind,id,store,s),cash=s
     if(f.max&&have>=f.max){if(pend){out.state='pending';return out}out.state='maxed';out.reason=f.max===1?"You've got one. One is plenty.":'That is enough of those.';return out}
     return afford()}
   if(kind==='sup'){if(s.flags[SUPPLIES[id].flag]){out.state='owned';out.reason='Packed for the next job';return out}return afford()}
-  if(kind==='veh'){const u=VEHICLE[id],lv=s.vehicle[id]||0;out.level=lv;out.max=u.tiers.length;
-    if(lv>=u.tiers.length){out.state='maxed';out.reason='Fully upgraded';return out}
-    const r=condReason(u.tiers[lv].unlock,s);if(r){out.state='locked';out.reason=r;return out}return afford()}
-  if(kind==='cos'){const[g,o]=id.split(':');const opt=COSMETICS[g].opts.find(x=>x.id===o);
-    if(s.vehicle.cos[g].includes(o)){out.state=s.vehicle[g]===o?'equipped':'owned';return out}
-    const r=condReason(opt.unlock,s);if(r){out.state='locked';out.reason=r;return out}return afford()}
+  if(GARAGE_KINDS.includes(kind)){if(!HT.Garage){out.state='locked';out.reason="Dad's Auto is closed (js/carai.js not loaded)";return out}
+    garStatus(kind,id,store,s,out);return afford()}
   out.state='locked';out.reason='Unknown item';return out}
+
+/* ---------- Dad's Auto: thin layer over HT.Garage (js/carai.js), the single source of vehicle truth ----------
+   kinds: gar  = an HT.Garage.CATALOG id (eng1, tyre2, bull, cargo, v_pickup, ...)
+          car  = a vehicle type you own or can buy (minivan, workvan, pickup, suv): owned -> "drive this one"
+          cos  = 'paint:silver' | 'rims:alloy' | 'tint:light' | 'lightBar:amber' | 'spoiler:on' | 'horn:ode'
+          stick= sticker index into HT.Garage.COSMETICS.stickers          rep = 'active' (repair at $2/HP) */
+const GARAGE_KINDS=['gar','car','cos','stick','rep'];
+const doneIds=s=>MISSIONS.filter((m,i)=>s.prog.done[i]).map(m=>m.id);
+function garCtx(s){const G=HT.Garage,g=s.garage;return{owned:G.ownedIds(g),trust:s.prog.trust,trustR:s.prog.trustR,done:doneIds(s),cash:s.cash}}
+const actV=s=>s.garage.vehicles[s.garage.active];
+function cosReq(r,s){if(!r)return null;if(r.trustR!=null&&s.prog.trustR<r.trustR)return'Needs Riverside trust '+r.trustR+'%';if(r.done){for(const d of r.done)if(!doneIds(s).includes(d))return'Unlocks after '+MISSIONS.find(m=>m.id===d).title}return null}
+const STICKER_REQ={10:{done:['earl']},11:{trustR:70,mart:true}};
+function garPrice(kind,id,s){const G=HT.Garage;if(!G)return 0;const C=G.COSMETICS;
+  if(kind==='gar'){const it=G.CATALOG.find(c=>c.id===id);return it?it.price:0}
+  if(kind==='car')return G.VEH[id]&&G.VEH[id].price||0;
+  if(kind==='stick')return C.sticker;
+  if(kind==='rep'){const g=s.garage;return Math.ceil(Math.max(0,vehMaxHp(g.active,g)-g.hp[g.active])*2)}
+  const[gp,o]=id.split(':');
+  if(gp==='paint')return(C.paint[o]||{}).price||0;if(gp==='rims')return C.rims[o]||0;if(gp==='tint')return(C.tint[o]||[0,0])[1];
+  if(gp==='lightBar')return C.lightBar.amber.price;if(gp==='spoiler')return C.spoiler;if(gp==='horn')return(G.HORNS[o]||{}).price||0;return 0}
+function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);const set=(st,r)=>{out.state=st;if(r)out.reason=r};
+  if(kind==='gar'){const it=G.CATALOG.find(c=>c.id===id);out.item=it;
+    if(G.ownedIds(g).includes(id))return set(it.group==='vehicle'?'owned':'equipped');
+    const r=G.req(id,garCtx(s));if(r)set('locked',r);return}
+  if(kind==='car'){out.item=G.VEH[id];if(g.owned.includes(id))return set(g.active===id?'equipped':'owned');const r=G.req('v_'+id,garCtx(s));if(r)set('locked',r);return}
+  if(kind==='rep'){const mx=vehMaxHp(g.active,g);out.hp=g.hp[g.active];out.maxHp=mx;if(g.hp[g.active]>=mx)set('maxed','Not a scratch on her');return}
+  if(kind==='stick'){const i=+id;if(g.stickers.includes(i))return set('equipped');if(g.ownedStickers.includes(i))return set('owned');
+    const q=STICKER_REQ[i];if(q){if(q.mart&&store!=='mart')return set('locked','Only at Ramos Corner Mart');const r=cosReq(q,s);if(r)set('locked',r)}return}
+  const[gp,o]=id.split(':'),C=G.COSMETICS;
+  if(gp==='paint'||gp==='rims'||gp==='tint'){if(v[gp]===o)return set('equipped');if(g.ownedCos[gp].includes(o))return set('owned');
+    if(gp==='paint'){const r=cosReq((C.paint[o]||{}).req,s);if(r)set('locked',r)}return}
+  if(gp==='lightBar'){if(v.lightBar)return set('equipped');const r=cosReq(C.lightBar.amber.req,s);if(r)set('locked',r);return}
+  if(gp==='spoiler'){if(v.spoiler||v.perf.sport)return set('equipped',v.perf.sport&&!v.spoiler?'Comes with Sport Mode':null);return}
+  if(gp==='horn'){if(g.horn===o)return set('equipped');if(g.ownedHorns.includes(o))return set('owned');if(o==='entertainer'){const r=cosReq({done:['benny']},s);if(r)set('locked',r)}return}}
+/* applies a paid purchase (status already checked) */
+function garApply(kind,id,s){const G=HT.Garage,g=s.garage,v=actV(s);
+  if(kind==='gar'||kind==='car'){const before=vehMaxHp(g.active,g);const r=G.buy(g,kind==='car'?'v_'+id:id,Object.assign(garCtx(s),{cash:1e12}));
+    if(r.ok&&kind==='gar'){const after=vehMaxHp(g.active,g);g.hp[g.active]=Math.min(after,(g.hp[g.active]||before)+(after-before))}
+    return}
+  g.purchases=(g.purchases||0)+(kind==='rep'?0:1);
+  if(kind==='rep'){g.hp[g.active]=vehMaxHp(g.active,g);return}
+  if(kind==='stick'){const i=+id;g.ownedStickers.push(i);putSticker(g,i);return}
+  const[gp,o]=id.split(':');
+  if(gp==='paint'||gp==='rims'||gp==='tint'){g.ownedCos[gp].push(o);v[gp]=o}
+  else if(gp==='lightBar')v.lightBar=true;else if(gp==='spoiler')v.spoiler=true;
+  else if(gp==='horn'){g.ownedHorns.push(o);g.horn=o}}
+function putSticker(g,i){if(g.stickers.includes(i))return;const e=g.stickers.indexOf(null);if(e>=0)g.stickers[e]=i;else{g.stickers.shift();g.stickers.push(i)}}
+/* free actions on things you already own: drive another car, re-apply a cosmetic, (un)stick a sticker */
+function garUse(kind,id,s){s=S(s);const g=s.garage,v=actV(s);
+  if(kind==='car'){if(!g.owned.includes(id))return{ok:false,reason:"You don't own that one."};g.active=id}
+  else if(kind==='stick'){const i=+id;if(!g.ownedStickers.includes(i))return{ok:false,reason:'Buy it first.'};const k=g.stickers.indexOf(i);if(k>=0)g.stickers[k]=null;else putSticker(g,i)}
+  else if(kind==='cos'){const[gp,o]=id.split(':');
+    if(gp==='horn'){if(!g.ownedHorns.includes(o))return{ok:false,reason:'Buy it first.'};g.horn=o}
+    else if(['paint','rims','tint'].includes(gp)){if(!g.ownedCos[gp].includes(o))return{ok:false,reason:'Buy it first.'};v[gp]=o}
+    else return{ok:false,reason:'Nothing to change.'}}
+  else return{ok:false,reason:'Nothing to change.'};
+  if(mine(s))Save.touch('garage');return{ok:true}}
 
 const canAfford=(price,s)=>S(s).cash>=price;
 
@@ -437,14 +518,13 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
   else if(kind==='sup'){s.flags[SUPPLIES[id].flag]=true}
-  else if(kind==='veh'){s.vehicle[id]=(s.vehicle[id]||0)+1;ev='boughtUpgrade'}
-  else if(kind==='cos'){const[g,o]=id.split(':');s.vehicle.cos[g].push(o);s.vehicle[g]=o;ev='boughtUpgrade'}
+  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s);if(kind!=='rep')ev='boughtCar'}
   if(ev)s.events.push(ev);
-  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','vehicle','flags','loadout','attOn','events','stats')}
+  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats')}
   return{ok:true,price:st.price,delivered:deliverLater?'pending':'now',status:st}}
 
 /* a new gun fills an empty primary slot; a new attachment goes on the first owned compatible gun with that slot free */
-function autoSlot(id,s){const L=s.loadout;if(GUNS[id].slot==='prim'&&!L.p2&&L.p1!==id)L.p2=id}
+function autoSlot(id,s){const L=s.loadout;if(GUNS[id].slot!=='prim'||[L.p1,L.p2,L.p3].includes(id))return;if(!L.p2)L.p2=id;else if(!L.p3&&s.garage.util.rack)L.p3=id}
 function autoAttach(id,s){const a=ATTACHMENTS[id];const order=[s.loadout.p1,s.loadout.p2,s.loadout.side,...s.owned.guns].filter(Boolean);
   for(const g of order){if(!a.compat.includes(g)||!s.owned.guns.includes(g))continue;const row=s.attOn[g]=s.attOn[g]||{optic:null,mag:null,under:null,muzzle:null};if(!row[a.slot]){row[a.slot]=id;return g}}return null}
 
@@ -484,17 +564,19 @@ function collectGun(id,s){s=S(s);if(!GUNS[id])return{unlocked:false};const need=
 
 /* Loadout rules (SPEC C.4) */
 function setLoadout(slot,gun,s){s=S(s);const L=s.loadout;
-  if(!['side','p1','p2'].includes(slot))return{ok:false,reason:'No such slot.'};
-  if(gun==null){if(slot!=='p2')return{ok:false,reason:slot==='p1'?'Primary 1 can\'t be empty.':'You need a sidearm.'};L.p2=null}
+  if(!['side','p1','p2','p3'].includes(slot))return{ok:false,reason:'No such slot.'};
+  if(slot==='p3'&&!s.garage.util.rack)return{ok:false,code:'rack',reason:"Needs the gun rack from Dad's Auto."};
+  if(gun==null){if(slot==='p1'||slot==='side')return{ok:false,reason:slot==='p1'?'Primary 1 can\'t be empty.':'You need a sidearm.'};L[slot]=null}
   else{if(!GUNS[gun])return{ok:false,reason:'Unknown gun.'};
     if(!s.owned.guns.includes(gun))return{ok:false,reason:"You don't own the "+GUNS[gun].name+' yet.'};
     if(slot==='side'&&GUNS[gun].slot!=='side')return{ok:false,reason:'That one is too big for a holster.'};
     if(slot!=='side'&&GUNS[gun].slot!=='prim')return{ok:false,reason:'Sidearms go in the sidearm slot.'};
-    const other=slot==='p1'?'p2':slot==='p2'?'p1':null;
-    if(other&&L[other]===gun)return{ok:false,code:'dup',reason:"It's already in "+(other==='p1'?'Primary 1':'Primary 2')+'.'};
+    const dup=slot==='side'?null:['p1','p2','p3'].find(k=>k!==slot&&L[k]===gun);
+    if(dup)return{ok:false,code:'dup',reason:"It's already in "+SLOT_NAME[dup]+'.'};
     L[slot]=gun}
   if(mine(s))Save.touch('loadout');
   return{ok:true,loadout:Object.assign({},L)}}
+const SLOT_NAME={side:'Sidearm',p1:'Primary 1',p2:'Primary 2',p3:'Gun rack'};
 function swapPrimaries(s){s=S(s);const L=s.loadout;if(!L.p2)return{ok:false,reason:'Primary 2 is empty.'};[L.p1,L.p2]=[L.p2,L.p1];if(mine(s))Save.touch('loadout');return{ok:true}}
 function setAttachment(gun,slot,att,s){s=S(s);
   if(!s.owned.guns.includes(gun))return{ok:false,reason:"You don't own that gun."};
@@ -525,28 +607,34 @@ const BAR_DEFS=[
 const BAR_MAX={};for(const[k,,f]of BAR_DEFS)BAR_MAX[k]=Math.max(...GUN_ORDER.map(g=>f(GUNS[g])));
 function gunBars(w){if(typeof w==='string')w=weaponStats(w);return BAR_DEFS.map(([k,label,f])=>({k,label,v:Math.max(.3,Math.min(10,10*f(w)/BAR_MAX[k]))}))}
 
-/* Minivan: multipliers for js/vehicles.js */
-function vehicleStats(s){s=S(s);const v=s.vehicle,out={top:1,accel:1,grip:1,brake:1,armor:1,crewDmg:1,ram:1,frontDmg:1,notice:1,spareMags:0,vanSwap:false,vanHeal:0,revive:1,surrender:1};
-  for(const k of VEH_ORDER){const lv=v[k]||0;if(lv>0)Object.assign(out,VEHICLE[k].tiers[lv-1].fx)}
-  const pick=g=>COSMETICS[g].opts.find(o=>o.id===v[g])||COSMETICS[g].opts[0];
-  out.levels={};for(const k of VEH_ORDER)out.levels[k]=v[k]||0;
-  out.paint=pick('paint');out.rims=pick('rims');out.horn=pick('horn');out.tint=v.tint;out.bullBar=v.bullBar>0;out.roofBox=v.roofBox>0;out.lightBar=v.lightBar>0;out.gunRack=v.gunRack>0;out.medkit=v.medkit>0;
-  return out}
-const VBAR=[['top','Top speed',1.28],['accel','Accel.',1.45],['grip','Grip',1.3],['brake','Braking',1.45],['armor','Armor',2.2],['ram','Ramming',2]];
-function vanBars(vs){return VBAR.map(([k,label,mx])=>({k,label,v:4+6*((vs[k]||1)-1)/(mx-1)}))}
-function vanStatsWith(id,s){s=S(s);const c=clone(s);c.vehicle[id]=Math.min((c.vehicle[id]||0)+1,VEHICLE[id].tiers.length);return vehicleStats(c)}
+/* Active vehicle, straight from HT.Garage.apply (fields: maxSpeed, boostMax, accel, boostAccel, brake, hbrake, grip, steerResp, turn, hp,
+   bulletMul, ramDealtFront, impactTakenFront, sport*, ammoBonus, slots, firstAid, ...) plus the cosmetics and HT.Vehicles.make options. */
+function vehicleStats(s,type){s=S(s);const G=HT.Garage,g=s.garage;type=type||g.active;const v=g.vehicles[type]||defVehicle();
+  const st=G?G.apply(type,v,g.util):{type,maxSpeed:17,boostMax:25,accel:8,boostAccel:11,brake:24,grip:9,hp:100,bulletMul:1,ammoBonus:g.util.cargo?2:0,slots:g.util.rack?4:3,firstAid:!!g.util.aid,stock:true};
+  st.curHp=g.hp[type]!=null?g.hp[type]:st.hp;st.active=type===g.active;
+  st.paint=Object.assign({id:v.paint},G?G.COSMETICS.paint[v.paint]:{hex:'#35577d',finish:'solid'});st.rims=v.rims;st.tint=v.tint;st.lightBar=v.lightBar;st.spoiler=!!(v.spoiler||v.perf.sport);
+  st.horn={id:g.horn,notes:G?G.hornNotes(g.horn):null};st.stickers=g.stickers.map(i=>i==null?null:G?G.COSMETICS.stickers[i]:String(i));
+  st.makeOpts=G?G.vehicleOpts(g,type):{color:st.paint.hex,upgrades:{}};return st}
+const VBAR=[['top','Top speed',st=>st.boostMax/40],['accel','Acceleration',st=>st.boostAccel/20],['hand','Handling',st=>st.grip/16],['brake','Braking',st=>st.brake/40],['tough','Toughness',st=>st.hp/240]];
+function vanBars(st){return VBAR.map(([k,label,f])=>({k,label,v:Math.max(.3,Math.min(10,10*f(st)))}))}
+/* stats as they would be after buying/using an item (for the comparison bars and the live preview) */
+function vanStatsWith(kind,id,s){s=S(s);const c=clone(s);c.cash=1e12;
+  if(kind==='car'){if(!c.garage.owned.includes(id)){c.garage.owned.push(id);c.garage.vehicles[id]=defVehicle()}c.garage.active=id}
+  else if(kind==='stick'){}else if(HT.Garage){const st=status(kind,id,'auto',c);if(st.state==='buy')garApply(kind,id,c);else garUse(kind,id,c)}
+  return vehicleStats(c)}
 
 /* ammo carried by a loadout (SPEC B.6: per type, the largest reserve among guns using it) */
 function ammoFor(s,loadout){s=S(s);const L=loadout||s.loadout,vs=vehicleStats(s);const by={};
-  for(const g of[L.side,L.p1,L.p2]){if(!g)continue;const w=weaponStats(g,s.attOn[g]||{});const a=w.ammo;
+  for(const g of[L.side,L.p1,L.p2,s.garage.util.rack?L.p3:null]){if(!g)continue;const w=weaponStats(g,s.attOn[g]||{});const a=w.ammo;
     const e=by[a]=by[a]||{type:a,name:AMMO[a].name,cap:AMMO[a].cap,col:AMMO[a].col,reserve:0,mag:0,guns:[]};e.reserve=Math.max(e.reserve,w.reserve);e.mag=Math.max(e.mag,w.mag);e.guns.push(g)}
-  return Object.values(by).map(e=>{e.extra=(vs.spareMags+(s.flags.rangeDay?1:0))*e.mag;e.total=Math.min(e.cap,e.reserve+e.extra);return e})}
+  return Object.values(by).map(e=>{e.extra=((vs.ammoBonus||0)+(s.flags.rangeDay?1:0))*e.mag;e.total=Math.min(e.cap,e.reserve+e.extra);return e})}
 
 /* Payout (SPEC D.1). r: {mission, ok, cuffs, confiscated, allyDowns, got, timeLeft, elapsed, bossDone, exec, trust, rerun} */
 function computePayout(r,s){r=r||{};
   const m=missionOf(r.mission!=null?r.mission:r.i!=null?r.i:r.id)||MISSIONS[0];
   const ok=!!r.ok,k=r.rerun?.5:1,n=v=>Math.max(0,Math.floor(num(v,0)));
-  const trust=num(r.trust,s||data?S(s).prog.trust:12);
+  const river=m.hood==='river',sv=s||data?S(s):null;
+  const trust=num(r.trust,sv?(river?sv.prog.trustR:sv.prog.trust):12);
   const lines=[];let pos=0,pen=0;
   const add=(id,label,amt,kind)=>{amt=Math.round(amt);if(!amt)return;lines.push({id,label,amount:amt,kind:kind||'bonus'});if(amt>0)pos+=amt;else pen-=amt};
   if(ok)add('base','Bake sale fund',m.base*k,'base');
@@ -554,12 +642,12 @@ function computePayout(r,s){r=r||{};
   if(n(r.cuffs))add('cuffs','Second chances ×'+n(r.cuffs),60*n(r.cuffs)*k);
   if(n(r.confiscated))add('guns','Guns turned in to Officer Dana ×'+n(r.confiscated),25*n(r.confiscated)*k);
   if(ok&&n(r.allyDowns)===0)add('hamstring','Nobody pulled a hamstring',150*k);
-  if(n(r.got)&&m.id==='gary')add('packages','Returned packages ×'+n(r.got),30*n(r.got)*k);
-  if(ok&&m.id==='rick'&&num(r.timeLeft,0)>0){const t=Math.round(r.timeLeft);add('clock','Clock bonus · '+t+'s left',3*t*k)}
+  const rr=Object.assign({},r,{ok,got:n(r.got),bikes:n(r.bikes),converters:n(r.converters),ids:n(r.ids),timeLeft:num(r.timeLeft,0)});
+  for(const f of m.bonus){const l=f(rr);if(l)add(l[0],l[1],l[2]*k)}
   if(ok&&m.par&&r.elapsed!=null){const e=num(r.elapsed,1e9);if(e<m.par)add('quick','Quick work',100*k);else if(e<m.par*1.5)add('quick','Pretty quick work',50*k)}
-  if(r.bossDone==='cuffed')add('bail',"King's bail refund",500*k);
+  for(const l of Array.isArray(r.extra)?r.extra:[])if(l&&l.label&&isFinite(l.amount))add(l.id||'extra',l.label,l.amount*(l.amount>0?k:1),l.amount<0?'penalty':'bonus');
   const mult=.8+trust/250,adj=Math.round(pos*mult)-pos;
-  if(adj)lines.push({id:'trust',label:adj>0?'Neighbors chipped in':'Neighbors are nervous',amount:adj,kind:'mult',note:'×'+mult.toFixed(2)+' at '+Math.round(trust)+'% trust'});
+  if(adj)lines.push({id:'trust',label:adj>0?'Neighbors chipped in':'Neighbors are nervous',amount:adj,kind:'mult',note:'×'+mult.toFixed(2)+' at '+Math.round(trust)+'% '+(river?'Riverside ':'')+'trust'});
   if(n(r.exec))add('legal','Legal fees ×'+n(r.exec),-200*n(r.exec),'penalty');
   const total=Math.max(0,pos+adj-pen);
   return{lines,subtotal:pos,multiplier:mult,penalties:pen,total,ok,rerun:!!r.rerun,mission:m.id}}
@@ -571,7 +659,7 @@ function applyPayout(p,s){s=S(s);const old=s.cash;s.cash+=p.total;s.stats.earned
 const resultLines=p=>p.lines.map(l=>({label:l.label,text:(l.amount<0?'−$':'+$')+Math.abs(l.amount).toLocaleString('en-US'),neg:l.amount<0,kind:l.kind,note:l.note||''}));
 
 const Economy={money,missionOf,condReason,gunAvail,priceOf,basePrice,discountFor,status,canAfford,buy,sell,sellValue,deliverPending,collectGun,
-  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS};
+  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS};
 HT.Economy=Economy;
 
 /* =====================================================================
