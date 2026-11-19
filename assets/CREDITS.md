@@ -110,3 +110,22 @@ No files. All effect textures are generated procedurally in code at startup. Ori
 | guns/oga_m4a1.glb | Rick's Carbine | M4A1 Assault Rifle | BigWhyaaa (OpenGameArt) | CC0 | https://opengameart.org/content/m4a1-assault-rifle | FBX converted in-browser with three.js (FBXLoader -> GLTFExporter), scaled cm -> m, metal/rough packed into one texture, textures 1024px JPG |
 
 Procedural (built in code in js/guns.js, no external assets): revolver, pump shotgun, beanbag shotgun, side-by-side and sawed-off, SMG, cordless nailer, all attachments (red dot, suppressor, extended magazines, vertical foregrip), cartridges and shells, and the first-person arms, gloved hands and sleeves. All procedural textures (steel, walnut, checkering, polymer, leather, cloth) are generated at runtime on canvas.
+
+## Home interior additions (assets/home/, assets/home/tex/) — js/home.js
+
+All CC0 1.0 (public domain) from Poly Haven (https://polyhaven.com, models via api.polyhaven.com / dl.polyhaven.org, 1k glTF). Processed with glTF-Transform: textures resized to 512 px (256 px for small props) and re-encoded as JPEG, dedup + prune, mesh simplification on heavy props, KHR_mesh_quantization. `metal_tool_chest.glb` and `potted_plant_04.glb` were re-simplified in place.
+
+| Local file(s) | Source asset(s) | Author(s) | License |
+|---|---|---|---|
+| home/modern_arm_chair_01, side_table_01, modern_wooden_cabinet, dining_table, dining_chair_02, steel_frame_shelves_01, tool_cart, outdoor_table_chair_set_01, wooden_picnic_table, stone_fire_pit, Rockingchair_01, Ottoman_01, painted_wooden_nightstand, wooden_display_shelves_01, Shelf_01 | same names on Poly Haven (https://polyhaven.com/a/&lt;name&gt;) | Poly Haven contributors (see each asset page) | CC0 |
+| home/ceiling_fan, modern_ceiling_lamp_01, hanging_industrial_lamp, throw_pillows_01, gamepad, standing_picture_frame_01, standing_picture_frame_02, wall_clock | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/garden_gnome, garden_hose_wall_mounted_01, football, american_football, watering_can_metal_01, planter_box_01, propane_tank, shrub_04 | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/handsaw_wood, cross_pein_hammer, adjustable_wrench, pliers, measuring_tape_01, flathead_screwdriver | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/wooden_bowl_01, wooden_cutting_board, ceramic_vase_01, wicker_basket_01, jug_01, food_apple_01 | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/cardboard_box_lo.glb | props/cardboard_box.glb (Poly Haven Cardboard Box 01), simplified to ~700 triangles | Poly Haven (Rahul Chaudhary) | CC0 |
+| home/tex/oakfloor_{col,nrm,rgh}.jpg | Laminate Floor 02 (https://polyhaven.com/a/laminate_floor_02) | Poly Haven | CC0 |
+| home/tex/stonetile_{col,nrm,rgh}.jpg | Marble 01 (https://polyhaven.com/a/marble_01) | Poly Haven | CC0 |
+| home/tex/wallpaint_{col,nrm,rgh}.jpg | Plastered Wall 04 (https://polyhaven.com/a/plastered_wall_04) | Poly Haven | CC0 |
+| home/tex/linen_{col,nrm,rgh}.jpg | Rough Linen (https://polyhaven.com/a/rough_linen) | Poly Haven | CC0 |
+
+Generated in code (no files): lap siding, subway tile, quartz, carpet, pegboard, rugs, family photos, kids' drawings, signs, TV broadcast and laptop screens.
