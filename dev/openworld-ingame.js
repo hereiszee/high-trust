@@ -27,7 +27,8 @@ const drive=(p,wps,steps,boost)=>p.evaluate(([wps,steps,boost])=>{const H=window
   let d=await drive(p,[[200,41.5],[270,42],[330,43]],460,true);ok(d.x<141*2,'closed barricade stops the van (x='+d.x.toFixed(1)+' m, barricade at 282)');
   await p.evaluate(()=>window.__ht.openBridge());
   d=await drive(p,[[330,43],[379,43],[379,71],[315,71],[315,43],[420,43]],1100,false);ok(d.wp===5&&d.maxZ>65&&d.region==='river','bridge open: across into Riverside and around the 3rd St / Ash St / River Rd block ('+JSON.stringify(d)+')');
-  for(let i=0;i<4;i++){const r=await p.evaluate(i=>{const H=window.__ht;if(H.mode!=='hub')H.enterHub();const d=H.L.dests[i],V=H.VAN;H.JOB=i;if(!V.on)H.enterVan();V.pos.set(d.x,0,d.z);V.yaw=-Math.PI/2;V.spd=0;if(V.car){V.car.spd=0;V.car.x=d.x;V.car.z=d.z}H.syncVan();H.step(3);
+  for(let i=0;i<4;i++){const r=await p.evaluate(async i=>{const H=window.__ht;if(H.mode!=='hub')H.enterHub();const d=H.L.dests[i],V=H.VAN;H.JOB=i;if(!V.on)H.enterVan();V.pos.set(d.x,0,d.z);V.yaw=-Math.PI/2;V.spd=0;if(V.car){V.car.spd=0;V.car.x=d.x;V.car.z=d.z}H.syncVan();H.step(3);
+      for(let k=0;k<120&&H.mode!=='mission';k++)await new Promise(r=>setTimeout(r,100));/* a job waits (at most 10 s) for its cast to stream in */
       const m={mode:H.mode,lvl:H.L.def.id,enemies:H.enemies.length};H.enterHub();H.step(2);return{...m,back:H.L.def.id,dv:Math.hypot(H.VAN.pos.x-d.x,H.VAN.pos.z-d.z)}},i);
     ok(r.mode==='mission'&&r.back==='world'&&r.dv<.5,'ring '+i+' launches '+r.lvl+' ('+r.enemies+' enemies), back in the world with the van at the ring')}
   const g=await p.evaluate(()=>{const H=window.__ht;H.JOB=2;H.step(40);const n=H.gps&&H.gps.points.length;const t0=performance.now();for(let i=0;i<10;i++)H.ow.gps({x:39,z:15},H.L.dests[3]);

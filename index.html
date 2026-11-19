@@ -2569,7 +2569,7 @@ const RIVER_JOBS=[
          "You give him the chance to put his hands up. Same deal as last time. Then you catch him. I'll ride shotgun. I know every shortcut in this neighborhood."],
   crew:['gary','rick','dave','doug','rosa'],weapons:['pistol','shotgun','rifle'],type:'boss',
   boss:{name:'THE DUKE OF CATALYTIC CONVERTERS',short:'The Duke',hp:380,gun:'double',look:{shirt:'#1f3b4d',pants:'#111',crown:1,shades:1,scale:1.15,shoes:'#c0c0c0'},flee:.5},
-  chase:{type:'sedan',color:'#1c1c22',max:27,passenger:'smg'},arms:{rifle:30,smg:25,double:15,shotgun:15,revolver:15},
+  chase:{type:'sedan',color:'#1c1c22',max:27,hp:85,passenger:'smg'},arms:{rifle:30,smg:25,double:15,shotgun:15,revolver:15},
   obj:'Find the Duke in the scrapyard. Give him the chance to surrender. If he runs, catch him.',
   radio:[['earl',"Back gate's got a car parked behind it. That's his ride."],['doug',"Yard first, office second. He's in the office."],['rosa',"If he runs, we follow. I'm not doing paperwork on a man who got away."]],
   endLine:"Earl: Thirty-six years, the number nine was never late. Today the Duke was. Folks are already calling it the Second Gear Auto School. I like that."}];
@@ -2700,6 +2700,7 @@ function wmKeepDriving(){HUD.hide('result');UI.acts={};const m=M,car=(m&&m.car)|
   canvasFocus();requestLock()}
 /* ---- per frame: runs at the top of updMission for every job in the world ---- */
 function wmMission(dt){const m=M.def;
+  if(aiWorld)for(const e of enemies)if(e.loud&&e.state==='idle'){/* alerted by the job (loud raid, ambush): straight into combat through the AI's own memory */const ai=AI.mem(e,aiWorld);ai.mode='combat';ai.sub='react';ai.react=simT+.3+Math.random()*.6;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT};e.alert=true;e.loud=0}
   wmLeash();wmMedicTick(dt);if(M.chase)chaseUpdate(dt);if(!M||M.state!=='go')return true;
   if(wmLeaving(dt))return true;
   const J=WJ[m.id];if(!J||!J.upd)return false;/* the Maple jobs: the classic updMission branches run on the activated site */
@@ -2764,9 +2765,10 @@ const wmNearest=(list,ok)=>{let b=null,bd=1e9;for(const o of list){if(ok&&!ok(o)
 /* the van and the crew: vehicles' ram/hp stats from HT.Garage (bull bar, armour) */
 function wmRamStats(e){const G=window.HT&&HT.Garage;let s=null;if(e===VAN){const vs=vanStats();if(vs&&vs.ramMult!=null)s=vs}if(!s&&G&&G.apply)try{s=G.apply(G.VEH[e.type]?e.type:'sedan')}catch(_){s=null}
   s=s||{mass:1,ramMult:1,ramDealtFront:1,impactTakenFront:1,bulletMul:1};const S=carSize(e);return{mass:s.mass||1,ramMult:s.ramMult||1,ramDealtFront:s.ramDealtFront||1,impactTakenFront:s.impactTakenFront||1,bulletMul:s.bulletMul||1,bullBar:!!s.bullBar,len:S.l,wid:S.w,hp:s.hp||100}}
-function wmVanHit(d,why){const e=CV;if(!e||!e.car)return;const k=wmRamStats(e).bulletMul;e.car.hp=Math.max(0,e.car.hp-d*k);hurtFlash=Math.min(.4,hurtFlash+.08);if(e.car.hp<=0)wmVanDown(why)}
-function wmVanImpact(e,sp,front){if(!M||M.state!=='go'||!e.car)return;const CA=HTM('CarAI');if(!CA)return;const s=e.car.stats;if(s&&s.impactTakenFront==null)s.impactTakenFront=wmRamStats(e).impactTakenFront;CA.impact(e.car,sp,front,true);if(e.car.hp<=0)wmVanDown()}
+function wmVanHit(d,why){const e=CV;if(!e||!e.car)return;const k=wmRamStats(e).bulletMul;e.car.hp=Math.max(0,e.car.hp-d*k);const vd=M.vanDmg||(M.vanDmg={wall:0,ram:0,gun:0});vd.gun+=d*k;hurtFlash=Math.min(.4,hurtFlash+.08);if(e.car.hp<=0)wmVanDown(why)}
+function wmVanImpact(e,sp,front){if(!M||M.state!=='go'||!e.car)return;const CA=HTM('CarAI');if(!CA)return;const s=e.car.stats;if(s&&s.impactTakenFront==null)s.impactTakenFront=wmRamStats(e).impactTakenFront;const hp0=e.car.hp,d=CA.impact(e.car,sp,front,false);if(M.chase)e.car.hp=Math.max(e.car.hp,Math.min(hp0,25));/* scrapes alone never end a chase: the van limps on at 25% *//* walls and poles at the free-roam rate (half): a clipped corner in a chase shouldn't end it; rams and gunfire are full */const vd=M.vanDmg||(M.vanDmg={wall:0,ram:0,gun:0});vd.wall+=d;if(e.car.hp<=0)wmVanDown()}
 function wmVanDown(why){if(!M||M.state!=='go')return;if(!(M.chase||M.phase==='escort'||M.phase==='ambush'))return;M.towed=true;endMission(false,why||"The van's done. Sal's sending the tow truck. He says it's the alternator. It's not the alternator.","Out of the chase.")}
+function wmAhead(c,p,d){/* is p within d m in front of car c (in its lane)? */const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),dx=p.x-c.x,dz=p.z-c.z,a=dx*fx+dz*fz,s=Math.abs(-dx*fz+dz*fx);return a>0&&a<d&&s<2.2}
 function wmOnScreen(x,z){const p=project(x,1,z);return !p.behind&&p.x>-60&&p.x<innerWidth+60&&p.y>-60&&p.y<innerHeight+60}
 
 /* ================= CHASE (SPEC2 B.7): a getaway car on the road graph; rubber band, ram/PIT both ways, crew and passenger fire ================= */
@@ -2776,23 +2778,27 @@ function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)ret
   let obj=o.obj;if(!obj){obj=makeVehicle(o.type||'sedan',o.color||'#1c1c22')||makeVanBox(o.color||'#1c1c22');wmAdd(obj,true)}
   const ch={car,obj,col:o.col||wmCol({x0:0,z0:0,x1:0,z1:0}),label:o.label||'Getaway car',t:0,state:o.exit?'exit':'run',max:o.max||26,fireT:1.2,passenger:o.passenger||null,
     boxT:0,seed:o.seed!=null?o.seed:(Math.random()*1e6)|0,driver:o.driver||null,driverSpec:o.driverSpec||null,onEscape:o.onEscape,onStop:o.onStop,said:{},rams:0,pits:0};
-  if(o.exit)CA.follow(car,o.exit,{speed:9,turnSpeed:7});else CA.flee(car,G,{max:ch.max,seed:ch.seed,threat:wmPursuer()});
+  if(o.exit)CA.follow(car,o.exit,{speed:9,turnSpeed:7});else CA.flee(car,G,{max:ch.max,seed:ch.seed,rnd:wmRng(ch.seed),threat:wmPursuer()});
   M.chase=ch;M.phase='chase';M.chaseT0=M.elapsed;chaseSync(ch,0);return ch}
+const wmRng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};/* seeded choices for the getaway (mulberry32) */
 function wmPursuer(){return CV?{x:CV.pos.x,z:CV.pos.z}:{x:P.pos.x,z:P.pos.z}}
 function chaseSync(ch,dt){const c=ch.car,o=ch.obj;o.position.set(c.x,groundAt(c.x,c.z),c.z);o.rotation.set(0,c.yaw+Math.PI/2,0);
   const S=c.stats,hl=S.len/2,hw=S.wid/2,a=Math.abs(Math.sin(c.yaw)),b=Math.abs(Math.cos(c.yaw)),hx=a*hl+b*hw,hz=b*hl+a*hw;
-  Object.assign(ch.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz,ob:o.userData.mod?{x:c.x,z:c.z,fx:-Math.sin(c.yaw),fz:-Math.cos(c.yaw),hl,hw}:null});
+  /* while the dad drives, car-to-car contact is HT.CarAI.ram's job (damage, PIT); the collider only stops people on foot */
+  if(CV)Object.assign(ch.col,VAN_OFF,{ob:null});else Object.assign(ch.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz,ob:o.userData.mod?{x:c.x,z:c.z,fx:-Math.sin(c.yaw),fz:-Math.cos(c.yaw),hl,hw}:null});
   const VM=HTM('Vehicles');if(o.userData.mod&&VM&&VM.update)try{VM.update(o,{speed:c.spd,steer:c.steer||0,braking:c.hp<=0||c.spd<1,headlights:false,dt:dt||1/30})}catch(_){}}
 function chaseUpdate(dt){const ch=M.chase;if(!ch||ch.state==='done')return;const c=ch.car,CA=HTM('CarAI'),G=OW().roads();ch.t+=dt;const coll=chaseCollide(ch);
-  if(ch.state==='exit'){CA.step(c,dt,{collide:coll});if(c.ai.done||c.ai.blocked&&ch.t>6){CA.flee(c,G,{max:ch.max,seed:ch.seed,threat:wmPursuer()});ch.state='run'}}
-  else if(ch.state==='run'){CA.step(c,dt,{van:wmPursuer(),G,collide:coll,canSnap:cc=>!wmOnScreen(cc.x,cc.z)});
+  if(ch.state==='exit'){CA.step(c,dt,{collide:coll});if(c.ai.done||c.ai.blocked&&ch.t>6){CA.flee(c,G,{max:ch.max,seed:ch.seed,rnd:wmRng(ch.seed),threat:wmPursuer()});ch.state='run'}}
+  else if(ch.state==='run'){/* our rubber band on top of HT.CarAI's: the farther behind a chasing dad is, the more the getaway eases off; with nobody in a car it just leaves */
+    {const pv=wmPursuer(),d=Math.hypot(pv.x-c.x,pv.z-c.z),k=!CV?1:d<20?1:d<35?.85:d<60?.72:.62;c.ai.max=ch.max*k;c.ai.turnSpeed=7}
+    CA.step(c,dt,{van:wmPursuer(),G,collide:coll,canSnap:cc=>!wmOnScreen(cc.x,cc.z)});
     if(CV&&CV.car){const e=CV,rs=wmRamStats(e),sh={x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:e.spd,hp:e.car.hp,stats:Object.assign({},rs,{hp:e.car.stats.hp||rs.hp})};const r=CA.ram(sh,c);
-      if(r){e.pos.x=e.car.x=sh.x;e.pos.z=e.car.z=sh.z;e.spd=e.car.spd=sh.spd;e.car.hp=sh.hp;syncCar(e);
+      if(r){e.pos.x=e.car.x=sh.x;e.pos.z=e.car.z=sh.z;e.spd=e.car.spd=sh.spd;const vd=M.vanDmg||(M.vanDmg={wall:0,ram:0,gun:0});vd.ram+=e.car.hp-sh.hp;e.car.hp=sh.hp;syncCar(e);
         if(r.vn>3){ch.rams++;if(r.pit)ch.pits++;if(e.bump<=0){e.bump=.4;if(ENG&&ENG.crash)ENG.crash(Math.min(1,r.vn/15));else snd('hit',Math.min(1,r.vn/15));try{FX.shake(Math.min(.45,r.vn/30))}catch(_){}if(e.obj.userData.mod)dentCar(e,{x:(c.x-e.pos.x)*-.1,z:(c.z-e.pos.z)*-.1},Math.max(6,r.vn+4))}
           if(r.pit&&!ch.said.pit){ch.said.pit=1;radio('rick',"Textbook! I teach that to nobody!",true)}else if(!ch.said.ram){ch.said.ram=1;radio(speaker()||'you',pick(["Sal's going to love this.","That's one way to say hello.","Insurance covers this. Probably."]),true)}
           if(e.car.hp<=0)wmVanDown()}}}
     /* the crew in the van shoot the tyres; the passenger shoots the van */
-    if(CV){const n=allies.filter(a=>a.ride&&!a.down).length;if(n){const d=CA.crewFire({x:CV.pos.x,z:CV.pos.z},c,n,dt,(v,cc)=>losClear(v.x,v.z,cc.x,cc.z));
+    if(CV){const n=allies.filter(a=>a.ride&&!a.down).length;if(n){let d=0;if(c.hp>0&&Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z)<30&&losClear(CV.pos.x,CV.pos.z,c.x,c.z)){d=Math.min(3,n)*3*dt;c.hp=Math.max(0,c.hp-d)}/* SPEC2 B.7 crew fire, 3 hp/s per dad (up to 3), out to 30 m */
         if(d>0){if(!ch.said.tyres){ch.said.tyres=1;radio('gary','Aim for the tyres!',true);radio('dave','Which ones?');radio('gary','The round ones!')}
           if(Math.random()<dt*5){const f=V3(CV.pos.x,1.6,CV.pos.z),t=V3(c.x+rand(-1,1),.6,c.z+rand(-1,1));try{FX.tracer(f,t,{ally:true});FX.muzzleFlash(f,t.clone().sub(f).normalize(),{type:'pistol'})}catch(_){}gunSnd('pistol',.35,{dist:6,pos:f,noMech:true})}}}}
     if(ch.passenger&&CV&&c.hp>0){ch.fireT-=dt;const d=Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z);if(ch.fireT<=0&&d<25){ch.fireT=1.2;const f=V3(c.x,1.5,c.z),t=V3(CV.pos.x+rand(-1,1),1,CV.pos.z+rand(-1,1));
@@ -2905,7 +2911,7 @@ function wmDeeRaid(loud){if(M.phase==='raid')return;const st=M.site,m=M.def;M.ph
   activateSite(st);wmExitAt(M.car);
   P.pos.set(st.huddle.x,0,st.huddle.z);collide(P.pos,.35);P.yaw=Math.PI;resetMove();
   allies.forEach((a,k)=>{a.ride=false;a.dude.root.visible=true;a.pos.set(P.pos.x+(k%2?2:-2),0,P.pos.z+1.6+(k>>1));collide(a.pos,.35)});
-  for(const s of L.spawns){let x=s.x,z=s.z;if(s.boss&&loud){x=tileC(182);z=tileC(30)}const e=spawnEnemy(x,z,s.boss);e.home={x,z};if(s.boss){L.boss=e;wmBossLook(e,m.boss)}if(loud){e.alert=true;e.last=P.pos.clone()}}
+  for(const s of L.spawns){let x=s.x,z=s.z;if(s.boss&&loud){x=tileC(182);z=tileC(30)}const e=spawnEnemy(x,z,s.boss);e.home={x,z};if(s.boss){L.boss=e;wmBossLook(e,m.boss)}if(loud){e.alert=true;e.loud=1;e.last=P.pos.clone()}}
   rebuildTargets();banner(loud?'GO LOUD':'GO TIME','Smash the stash. The courier gets his chance.',2.4);radio('rick',loud?"They know we're here. Tight and fast.":"Quiet now. Two tables in the back. Courier's in the office.",true)}
 
 /* ---- Rosa: defend the community garden (SPEC2 B.3) ---- */
@@ -2951,7 +2957,9 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
     M.phase='escort';M.amb=0;M.hold=false;M.jingleT=1;M.waitSaid=-99;sunFollow(e.pos.x,e.pos.z)},
   upd(dt,F){const m=M.def,T=M.truck;if(!T)return;const c=T.car,CA=HTM('CarAI'),G=OW().roads();
     if(M.phase==='escort'||M.phase==='ambush'){
-      const van=wmPursuer();CA.step(c,dt,{van,collide:chaseCollide(T),blocked:()=>M.hold});chaseSync(T,dt);
+      const van=wmPursuer();CA.step(c,dt,{van,collide:chaseCollide(T),blocked:()=>M.hold||(CV&&wmAhead(c,CV.pos,7))});chaseSync(T,dt);
+      if(CV&&CV.car){const e=CV,rs=wmRamStats(e),sh={x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:e.spd,hp:e.car.hp,stats:Object.assign({},rs,{hp:e.car.stats.hp||rs.hp})},hp0=c.hp;const r=CA.ram(sh,c);
+        if(r){e.pos.x=e.car.x=sh.x;e.pos.z=e.car.z=sh.z;e.spd=e.car.spd=sh.spd;e.car.hp=sh.hp;syncCar(e);if(r.vn>3&&!M.bumpSaid){M.bumpSaid=1;radio('benny',"Hey! New bumper! NEW BUMPER!",true)}}}
       const vd=Math.hypot(van.x-c.x,van.z-c.z);if(!M.hold&&vd>m.truck.waitDist&&M.elapsed-M.waitSaid>10){M.waitSaid=M.elapsed;radio('benny',"I'm not going without my escort!",true)}
       M.jingleT-=dt;if(M.jingleT<=0&&!M.hold&&c.spd>2){M.jingleT=14;wmJingle(1)}
       const a=m.ambush[M.amb];
@@ -2969,7 +2977,8 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
     if(M.phase==='court'){M.courtT+=dt;const b=M.bennyN;if(b){faceTo(b,P.pos.x,P.pos.z,dt,2);b.dude.root.position.set(b.pos.x,0,b.pos.z);b.dude.root.rotation.y=b.yaw;pose(b.dude,dt,{aim:false})}
       F.objs.push(['Benny is handing out cones',false]);F.target={x:c.x,z:c.z,label:"Benny's truck"};
       if(M.courtT>=4){banner('THEY TOOK THE TRUCK','One of the Duke\'s guys jumped in the driver\'s seat.',2.6);radio('benny',"My truck! That's my TRUCK!",true);radio('rosa','In the van. Now.');wmJingle(.5);
-        const r=M.def.chase;chaseStart({car:c,obj:T.obj,col:T.col,max:r.max,label:"Benny's truck",driverSpec:{surrBias:r.surrBias,gun:'pistol',name:'TRUCK THIEF'},onEscape:()=>endMission(false,"The truck's gone. Benny's going to need a minute. And a new truck.","It got away."),
+        const r=M.def.chase;/* the tutorial chase: the stolen truck stops after ~4 good rams or some tyre work from the crew */c.stats=Object.assign({},c.stats,{hp:r.hp||110});c.hp=Math.min(c.hp,c.stats.hp);
+        chaseStart({car:c,obj:T.obj,col:T.col,max:r.max,label:"Benny's truck",driverSpec:{surrBias:r.surrBias,gun:'pistol',name:'TRUCK THIEF'},onEscape:()=>endMission(false,"The truck's gone. Benny's going to need a minute. And a new truck.","It got away."),
           onStop:()=>{radio('benny',"Is she okay? Tell me she's okay.",true)}});M.truck=null}
       return}}
   ,after(dt,F){/* chase and the cuff: driven by M.chase */const ch=M.chase;chaseObjs(F);const d=M.driver;
@@ -2980,7 +2989,7 @@ function wmJingle(rate){try{const G=HT.Garage;if(!G||!HT.Menus||!HT.Menus.playHo
 function wmAmbush(a){const m=M.def,G=OW().roads(),c=M.truck.car;M.hold=true;M.phase='ambush';M.ambT=0;M.cleared=false;try{honk()}catch(_){}
   const pts=a.from.map(([x,z])=>({x:tileC(x),z:tileC(z)}));let x0=c.x,z0=c.z,x1=c.x,z1=c.z;for(const p of pts){x0=Math.min(x0,p.x);z0=Math.min(z0,p.z);x1=Math.max(x1,p.x);z1=Math.max(z1,p.z)}
   wmSetWindow({x0:Math.max(1,tx(x0)-10),z0:Math.max(1,tx(z0)-10),x1:Math.min(L.W-2,tx(x1)+10),z1:Math.min(L.H-2,tx(z1)+10)});
-  for(let i=0;i<a.n;i++){const f=pts[i%pts.length],q=wmSnap(f.x+rand(-1.5,1.5),f.z+rand(-1.5,1.5));const e=spawnEnemy(q.x,q.z,false);e.amb=M.amb;e.alert=true;e.last=V3(c.x,0,c.z);e.home={x:q.x,z:q.z};e.truckT=rand(1,2)}
+  for(let i=0;i<a.n;i++){const f=pts[i%pts.length],q=wmSnap(f.x+rand(-1.5,1.5),f.z+rand(-1.5,1.5));const e=spawnEnemy(q.x,q.z,false);e.amb=M.amb;e.alert=true;e.loud=1;e.last=V3(c.x,0,c.z);e.home={x:q.x,z:q.z};e.truckT=rand(1,2)}
   rebuildTargets();banner('AMBUSH','Everybody out!',2);radio(speaker()||'you','Everybody out!',true);radio('benny',"Somebody's in the road, and that somebody is not getting a cone!")}
 function wmAmbushTick(dt){const c=M.truck.car;M.ambT+=dt;const mine=enemies.filter(e=>e.amb===M.amb);
   for(const e of mine){if(e.state!=='idle')continue;const d=Math.hypot(e.pos.x-c.x,e.pos.z-c.z);if(d>32)continue;e.truckT=(e.truckT||1.5)-dt;
@@ -3009,7 +3018,7 @@ function wmDukeChase(b){const m=M.def,G_=M.getaway;b.script={kind:'incar'};b.inC
   /* the yard crew scatters once the boss is gone; the ones who gave up stay put for the zip-ties */
   for(const e of[...enemies])if(e!==b&&e.state==='idle'){scene.remove(e.dude.root);if(e.tag)e.tag.remove();enemies.splice(enemies.indexOf(e),1)}
   rebuildTargets();
-  const r=m.chase;chaseStart({car:G_.car,obj:G_.obj,col:G_.col,max:r.max,passenger:r.passenger,label:'The Duke',driver:b,exit:M.exitPts,
+  const r=m.chase;chaseStart({car:G_.car,obj:G_.obj,col:G_.col,max:r.max,hp:r.hp,passenger:r.passenger,label:'The Duke',driver:b,exit:M.exitPts,
     onEscape:()=>{M.checkpoint='chase';endMission(false,"The Duke got away. Earl: 'He'll be back. They always come back to the scene.'","He got away.")},
     onStop:()=>{b.inCar=false;radio('earl',"End of the line, Your Grace.",true)}});
   b.surrBias=1}
@@ -3020,7 +3029,7 @@ function wmDukeCheckpoint(){/* retry from the chase: the van at the scrapyard ga
   const e=M.car;if(CV&&CV!==e)exitCar();const q=wmSnapRoad(gate.x-34,gate.z);e.pos.set(q.x,0,q.z);e.yaw=-Math.PI/2;owStopCar(e);syncCar(e);
   const gc=M.getaway.car;gc.x=gate.x-4;gc.z=gate.z+1.5;gc.yaw=-Math.PI/2;gc.spd=6;
   if(!CV)enterCar(e);for(const a of allies){a.ride=true;a.dude.root.visible=false}
-  M.exitPts=null;wmDukeChase(b);M.chase.state='run';HTM('CarAI').flee(gc,G,{max:M.def.chase.max,seed:M.chase.seed,threat:wmPursuer()});rebuildTargets();
+  M.exitPts=null;wmDukeChase(b);M.chase.state='run';rebuildTargets();
   banner('THE CHASE','Back on his bumper. Catch him this time.',2.2)}
 function wmWin(m){if(m.id==='rosa'){const s=SV();if(s){s.crew.rosa=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('crew')}
     setTimeout(()=>{HUD.banner({kind:'done',kicker:'Rosa joined the crew',title:'HONORARY DAD',sub:'Medic · Riverside Flats',dur:2.6})},300);radio('gary',"We'll need to get you a polo.",true);radio('rosa','Absolutely not.');try{s&&s.events.push('rosa_joined')}catch(_){}}
@@ -3080,7 +3089,7 @@ function wmTrustRiver(){return mode==='mission'&&M?M.def.hood==='river':(!!L&&!!
 function wmTrust(){return wmTrustRiver()?prog.trustR||0:prog.trust}
 function wmTrustLabel(){return wmTrustRiver()?'Riverside trust':'Neighborhood trust'}
 function wmVanHealth(){const e=CV;if(!e)return 1;if(M&&M.world&&e.car&&e.car.stats)return clamp(e.car.hp/(e.car.stats.hp||100),0,1);return 1-e.dmg*.8}
-function wmExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({MISSIONS,CFG,WM,WJ,jobLock,jobAvailable,missionInWorld,startMissionWorld,giverModel,wmKeepDriving,activateSite,finale,wmScript,chaseStart,
+function wmExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({MISSIONS,wmRng,CFG,WM,WJ,jobLock,jobAvailable,missionInWorld,startMissionWorld,giverModel,wmKeepDriving,activateSite,finale,wmScript,chaseStart,
   get chase(){return M&&M.chase},get truck(){return M&&M.truck},get npcs(){return npcs},get suspects(){return M&&M.suspects},addTrust,hurtAlly,surrender,
   get UIacts(){return UI.acts},get UIobj(){return UI.obj},get prompt(){return UI.prompt},get carry(){return P.carry},get exitAt(){return L&&L.exit}}))}
 
