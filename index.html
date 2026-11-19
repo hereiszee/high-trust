@@ -553,6 +553,10 @@ const WEAPONS={
     spread:{hip:.060,ads:.0005,move:3,bloomAdd:.02,bloomMax:.06,bloomDec:3},rc:{v:.090,h:.010,hBias:0,adsMul:1,rec:3,pat:[[1,0]]},
     ads:{zoom:.3,t:.32,speed:.55},speed:.9,reload:{tac:2.6,empty:3.1},equip:.55,fsa:true,vm:{back:.10,rise:.20,roll:.02,side:0,k:60,damp:8},shell:'308',shellDelay:.45,scope:true},
 };
+/* js/save.js HT.CATALOG is the single source of gun stats when loaded: its fields win, ours add feel-only data (recoil pattern, view-model kick, brass, specials) */
+(()=>{const C=window.HT&&window.HT.CATALOG;if(!C)return;const deep=(d,s)=>{for(const k in s){const v=s[k];if(v&&typeof v==='object'&&!Array.isArray(v)&&d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k]))deep(d[k],v);else d[k]=v}};
+  try{if(C.guns)for(const id in C.guns)WEAPONS[id]=WEAPONS[id]?(deep(WEAPONS[id],C.guns[id]),WEAPONS[id]):null;for(const id in WEAPONS)if(!WEAPONS[id]||!WEAPONS[id].rc||!WEAPONS[id].rc.pat)delete WEAPONS[id];
+    if(C.ammo)for(const t in C.ammo)AMMO[t]=Object.assign(AMMO[t]||{},C.ammo[t])}catch(e){console.warn('catalog merge failed',e)}})();
 for(const id in WEAPONS){WEAPONS[id].id=id;WEAPONS[id].key=''}
 const SLOT_KEYS=['side','p1','p2'];/* number keys 1,2,3 */
 /* NPC gun profiles: enemy [acc,dmg,burst,cooldown,wantMin,wantMax] (dmg may depend on distance); ally [acc,dmg,cooldown] */
@@ -1131,7 +1135,7 @@ function takeGun(id,mag,extra,{auto=true,slot=null}={}){const w=WEAPONS[id];
   if(auto||P.cur===old)swap(id,true);return left}
 
 function swap(id,force){if(!id||(id===P.cur&&!force)||!WEAPONS[id])return;const w=WEAPONS[id];
-  P.cur=id;P.rl=null;P.reloadT=0;P.autoRlT=0;P.chain=0;P.shellQ.length=0;P.equipT=w.equip;P.fireT=Math.max(P.fireT,0);
+  P.cur=id;P.rl=null;P.reloadT=0;P.autoRlT=0;P.chain=0;P.shellQ.length=0;P.equipT=w.equip;P.fireT=0;
   equip(P.dude,id);setViewGun(id);vmS.y=-.35;vmS.rx=.6;vmS.vy=vmS.vrx=0;sfx('equip',.5)}
 function reload(){const id=P.cur,a=P.ammo[id],w=WEAPONS[id];if(!a||!w||P.rl||P.equipT>0)return;
   const cap=w.mag+(w.chamber&&a.mag>0?1:0);if(a.mag>=cap||a.res<=0)return;const empty=a.mag===0;
