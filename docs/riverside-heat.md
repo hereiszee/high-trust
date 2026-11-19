@@ -59,7 +59,7 @@ Each zip-tie takes 0.5 off straight away.
 
 Below 1, once the guns have been quiet for 7 s and no crew has been provoked in the last 15 s, the crews lose interest. The war ends, every hostile holsters and walks off, and they despawn out of sight. The pips turn blue, the label reads **Cooling off**, and the music drops from `combat` to `tension`, then back to `hub` at 0. A crew dad remarks on it ("Okay. It's cooling off.").
 
-**Scaling with Riverside trust** (`HT.World` tiers):
+**Scaling with Riverside trust** (`HT.World` tiers). Both global `prog.trustR` and the trust of each block (`HT.OpenWorld.blockTrust(x,z)`) count, whichever is higher. A renovated block gets no loiterers, even while the rest of Riverside is rough. The heat cap comes from the block the dad is standing in.
 
 | trustR | max heat | loitering groups per crew | group size | incidents |
 |---|---|---|---|---|
@@ -83,7 +83,7 @@ These start 32-75 m away and out of sight. At 70%+ only the Dock St crew is left
 
 - **Spawning:** never within 25 m of the dad or in his sight. "In sight" means a clear line on the grid from the dad (rowhouses, walls and trees block it; chain-link and hedges don't), or in the camera frustum with a clear line from the camera. The check runs for every member's own position, not just the spot, because a corner can hide the spot and still show a shoulder. Ambient groups spawn 30-85 m away. At the cap, the farthest quiet group that nobody can see goes home, so the street life follows the dad. and reinforcements spawn 32-58 m away on sidewalks and roads. Nothing ever spawns on a mission lot or within its margin. The only exception is the heat-5 car: its riders get out of a car you watched drive in.
 - **Caps:** at most 10 hostiles. Past that, a provoked loiterer runs off instead. At most 12 loiterers.
-- **Story missions:** a job start clears free roam. `clearChars()` calls `frReset()`, and `frUpdate` only runs from `updHub`.
+- **Story missions:** a job start, in the world (`startMissionWorld`) or the classic level, clears free roam. `clearChars()` calls `frReset()`, and `frUpdate` only runs from `updHub`.
 - **Neighbours:** up to 4, depending on tier, on their porches. Kids appear from 50%. Their meshes never go into `rayTargets`, so they can't be hit. At heat ≥ 1, or with anyone hostile, they walk indoors and disappear. They come back after 6 s of calm.
 - **Crew dads:** with a free-roam fight on, they use `HT.AI.ally`, the same code as in missions. They go down and get back up exactly as they do in missions.
 
@@ -107,3 +107,8 @@ The nav window is `HT.AI.buildNav` over a grid the **same size** as `L.g`. Cells
 ## Test hooks (`window.__ht`)
 
 `heat` (get/set), `setHeat(v)`, `crews`, `fr` (the state), `frArmed`, `spawnCrew(id,x,z,n,{hostile})`, `frDraw(id)`, `frHolster()`, `frKey(k)`, `frIncident('porch'|'carjack'|'scuffle')`, `frReset()`, `frNav()`, `frSeen(x,z)`, `frWant(crewId)`, `frTrust(v,why)`, `frCuff(e)`, `frHurtPlayer(d,src)`, `frUpdate(dt)`. `fr.stats` holds the counters: `ms` and `frames` (cost), `spawnLog`, `hits_player`, `hits_ally`, `hits_crew`, `kills`, `cuffs`, `wars`, `cars`, `incidents`, `reinf`, `navBuilds`, `navMs`, `downs`. `fr.noEsc` freezes escalation for the decay tests.
+
+## Merging notes
+
+- Crew incident scripts use `e.frScript`. `e.script` belongs to the world missions (`wmScript` runs first in `updEnemy`).
+- `hud()` keeps main's `drv` (it includes driving during missions) and `wmMarkers()`/`wmMapDots()`. Free roam adds `arm=armedNow()`, `frMarkers()` and `frBlips()` (used when there's no mission).
