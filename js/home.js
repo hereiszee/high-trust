@@ -662,7 +662,7 @@ function frame(G,x,y,z,ry,w,h,tex,col='flat:#20201f:.5'){const g=new T.Group();g
 const PHOTO=[];function photoTex(i){return PHOTO[i]||(PHOTO[i]=ctex(photoCanvas(i),true,false))}
 const RUGS=[];
 function rugMat(k){if(RUGS[k])return RUGS[k];R=rng(70+k);
-  const c=canvas(1024,k===2?2048:640,(x,w,h)=>{const pal=k===0?['#9d4a32','#2c3e57','#e8dcc2','#c89a5b','#5c6e66']:k===1?['#d8d2c4','#6f7d86','#a9b3b4','#efe9dc','#c4a27a']:['#7d2f2a','#24344b','#e2d2b0','#b78a4c','#4d5e58'];
+  const c=canvas(1024,k===2?2048:640,(x,w,h)=>{const pal=k===3?['#3f6f8a','#e8dcc2','#f3eee2','#c96f4a','#6b8a7a']:k===0?['#9d4a32','#2c3e57','#e8dcc2','#c89a5b','#5c6e66']:k===1?['#d8d2c4','#6f7d86','#a9b3b4','#efe9dc','#c4a27a']:['#7d2f2a','#24344b','#e2d2b0','#b78a4c','#4d5e58'];
     x.fillStyle=pal[2];x.fillRect(0,0,w,h);
     if(k===1){for(let y=0;y<h;y+=40){x.fillStyle=pal[(y/40|0)%2?0:3];x.fillRect(0,y,w,40)}for(let y=0;y<h;y+=160){x.fillStyle=pal[1];x.fillRect(0,y+10,w,8)}}
     else{const bw=Math.min(w,h)*.09;x.fillStyle=pal[1];x.fillRect(0,0,w,h);x.fillStyle=pal[0];x.fillRect(bw*.5,bw*.5,w-bw,h-bw);x.fillStyle=pal[2];x.fillRect(bw,bw,w-2*bw,h-2*bw);
@@ -722,7 +722,6 @@ function garage(G,ctx){
   bx(wb,.9,.03,.18,'wood:#c8a274:.9',.45,1.95,.1);for(let i=0;i<4;i++)cyl(wb,.06,.06,.12,'flat:'+['#d9a441','#c94b3a','#58616a','#e8e4dc'][i]+':.5',.1+i*.22,2.03,.1,14);
   const shop=new T.Group();shop.position.set(0,0,0);wb.add(shop);
   col(-6.4,9.24,-4.2,10,{k:1.2});ctx.interactables.push({id:'workbench',x:-5.3,z:8.85,r:1.2,label:'Workbench'});
-  put(G,'metal_tool_chest',{h:1.0},-3.75,0,9.6,PI);col(-4.15,9.2,-3.35,10,{k:1});
   /* water heater + shelving + bikes + a beer-fridge-free corner, garage door opener already done */
   const wh=new T.Group();wh.position.set(-.65,0,9.4);G.add(wh);cyl(wh,.28,.28,1.45,'flat:#e9e7e2:.45',0,.75,0,24);cyl(wh,.29,.29,.04,'flat:#cfccc5:.4',0,1.48,0,24);cyl(wh,.05,.05,1.2,'metal:#b9a27a:.4',.12,2.1,0,10);cyl(wh,.05,.05,1.2,'metal:#b9a27a:.4',-.12,2.1,0,10);bx(wh,.16,.12,.08,'flat:#d33:.5',0,.35,.27);col(-.95,9.1,-.35,9.7,{k:1});
   const sh=put(G,'steel_frame_shelves_01',{h:1.9},-6.65,0,2.0,PI/2);col(-7,1.45,-6.3,2.55,{k:1});
@@ -809,7 +808,7 @@ function grill(G,x,y,z,ry){const g=new T.Group();g.position.set(x,y,z);g.rotatio
 function flowers(G,x,y,z,r,n,cols=['#e5533d','#ffc94a','#f5f1e6','#c2185b','#8e44ad']){for(let i=0;i<n;i++){const a=R()*TAU,d=Math.sqrt(R())*r,h=rr(.08,.25);const st=cyl(G,.004,.004,h,'flat:#3c6b2c:.8',x+Math.cos(a)*d,y+h/2,z+Math.sin(a)*d,4);st.castShadow=false;
   const fl=sph(G,rr(.02,.035),'flat:'+rpick(cols)+':.7',x+Math.cos(a)*d,y+h,z+Math.sin(a)*d,6);fl.castShadow=false}
   for(let i=0;i<5;i++){const a=R()*TAU,d=Math.sqrt(R())*r*.8;const lf=sph(G,rr(.05,.08),'flat:#4b7a38:.8',x+Math.cos(a)*d,y+.03,z+Math.sin(a)*d,8);lf.scale.y=.5}}
-function doghouse(G,x,z,ry,ctx){const g=new T.Group();g.position.set(x,0,z);g.rotation.y=ry;G.add(g);const w=1.0,d=1.15,h=.75,wall='fence';
+function doghouse(G,x,z,ry,ctx,noCol){const g=new T.Group();g.position.set(x,0,z);g.rotation.y=ry;G.add(g);const w=1.0,d=1.15,h=.75,wall='fence';
   bc(g,-w/2,0,-d/2,w/2,.08,d/2,'wood:#7b5a40:1');bc(g,-w/2,.08,-d/2,-w/2+.04,h,d/2,wall);bc(g,w/2-.04,.08,-d/2,w/2,h,d/2,wall);bc(g,-w/2,.08,-d/2,w/2,h,-d/2+.04,wall);
   /* front with an arched opening */
   const sh=new T.Shape();sh.moveTo(-w/2,0);sh.lineTo(w/2,0);sh.lineTo(w/2,h);sh.lineTo(0,h+.38);sh.lineTo(-w/2,h);sh.lineTo(-w/2,0);const hole=new T.Path();hole.moveTo(-.2,.08);hole.lineTo(.2,.08);hole.lineTo(.2,.42);hole.absarc(0,.42,.2,0,PI,false);hole.lineTo(-.2,.08);sh.holes.push(hole);
@@ -822,7 +821,7 @@ function doghouse(G,x,z,ry,ctx){const g=new T.Group();g.position.set(x,0,z);g.ro
   for(const[bx_,c]of[[-.75,'#2a6f9e'],[-.75,'#b3473a']]){}
   const bw=new T.Group();bw.position.set(-.85,0,.55);g.add(bw);cyl(bw,.12,.09,.07,'steel',0,.035,0,20);const wt=cyl(bw,.105,.105,.005,'flat:#7fb3c9:.05',0,.06,0,20);wt.material=new T.MeshStandardMaterial({color:lin('#6f9fb3'),roughness:.05,metalness:0,envMapIntensity:1.2});
   cyl(bw,.12,.09,.07,'flat:#b3473a:.4',.28,.035,.05,20);for(let i=0;i<9;i++)sph(bw,.014,'flat:#8a5a32:.8',.28+rr(-.06,.06),.07,.05+rr(-.06,.06),5);
-  col(x-.62,z-.62,x+.62,z+.62,{k:.6})}
+  if(!noCol)col(x-.62,z-.62,x+.62,z+.62,{k:.6})}
 function swingSet(G,x,z,ctx){const g=new T.Group();g.position.set(x,0,z);G.add(g);const wc='wood:#b2895f:1.5',L=3.2,H=2.3;
   for(const s of[-1,1]){const lx=s*L/2;for(const dz of[-.75,.75]){const l=bx(g,.09,H*1.05,.09,wc,lx,H/2,dz/2);l.rotation.x=dz>0?-.32:.32}bx(g,.06,.06,1.2,wc,lx,.55,0)}
   bx(g,L+.3,.12,.12,wc,0,H,0);
@@ -842,7 +841,7 @@ function wagon(G,x,z,ry){const g=new T.Group();g.position.set(x,0,z);g.rotation.
   for(const[a,b]of[[-.32,-.27],[.32,-.27],[-.32,.27],[.32,.27]]){cyl(g,.09,.09,.04,'flat:#1a1a1a:.7',a,.09,b,14).rotation.x=PI/2}tube(g,[[.45,.22,0],[.8,.35,0],[1.0,.4,0]],.012,'flat:#222:.5',6)}
 function yard(G,ctx){
   deckAndPergola(G,ctx);
-  doghouse(G,13.4,20.6,-PI/2,ctx);swingSet(G,-2.4,19.6,ctx);sandbox(G,-4.6,15.2);wagon(G,2.6,16.8,.8);
+  swingSet(G,-2.4,19.6,ctx);sandbox(G,-4.6,15.2);wagon(G,2.6,16.8,.8);
   bike(G,4.2,.04,19.4,0,'#e5533d',.62).rotation.set(PI/2-.05,0,.4);
   put(G,'football',{w:.22},6.2,0,17.6,.3);put(G,'american_football',{w:.3},1.0,0,20.4,1.2);put(G,'garden_gnome',{h:.45},13.9,0,23.0,-.6);put(G,'watering_can_metal_01',{h:.3},10.8,0,22.9,.4);
   /* raised beds with veggies along the back fence */
@@ -896,7 +895,7 @@ const MAKE={
   coffeetable:()=>{const g=new T.Group();put(g,'modern_coffee_table_01',{w:1.15,rot:PI/2});put(g,'gamepad',{w:.16},.25,.4,.05,.4);
     for(let i=0;i<3;i++)bx(g,.24,.006,.3,'flat:'+['#e5533d','#f4f1e8','#2f5d9e'][i],-.3+rr(-.02,.02),.4+i*.007,.02+rr(-.02,.02)).rotation.y=rr(-.3,.3);cyl(g,.045,.04,.1,'flat:#f2efe8:.3',.05,.45,-.08,12);bx(g,.05,.02,.17,'flat:#1a1a1a:.4',.3,.41,-.1).rotation.y=.4;return g},
   sidetable:(ctx)=>{const g=new T.Group();put(g,'side_table_01',{h:.58});lamp(g,0,.58,0,ctx,.52);put(g,'decorative_book_set_01',{w:.2},.12,.58,.1);return g},
-  tv65:(ctx)=>{const g=new T.Group();put(g,'modern_wooden_cabinet',{w:1.9});const top=.53;tvPanel(g,1.45,.83,top+.07,ctx);for(const s of[-1,1])bx(g,.05,.07,.18,'flat:#111:.4',s*.55,top+.035,0);
+  tv:(ctx)=>{const g=new T.Group();put(g,'modern_wooden_cabinet',{w:1.9});const top=.53;tvPanel(g,1.45,.83,top+.07,ctx);for(const s of[-1,1])bx(g,.05,.07,.18,'flat:#111:.4',s*.55,top+.035,0);
     bx(g,.8,.07,.09,'flat:#151515:.5',0,top+.035,.16);bx(g,.3,.05,.22,'flat:#e9e9e9:.3',.68,top+.025,.02);put(g,'potted_plant_04',{h:.3},-.75,top,.05);return g},
   tvsmall:(ctx)=>{const g=new T.Group();const b1=put(g,'cardboard_box',{fit:[.62,.36,.45]},-.0,0,0);const b2=put(g,'cardboard_box',{fit:[.6,.34,.42]},.0,.36,0,.06);
     const hh=(b1?.36:0)+(b2?.34:0)||.6;if(!b1){bx(g,.6,.6,.4,'flat:#b08a5a:.9',0,.3,0)}tvPanel(g,.72,.42,hh+.04,ctx);bx(g,.3,.04,.15,'flat:#111:.4',0,hh+.02,0);return g},
@@ -904,7 +903,7 @@ const MAKE={
   cubeshelf:()=>{const g=new T.Group();put(g,'wooden_display_shelves_01',{h:1.1,rot:PI/2});for(let i=0;i<3;i++)rbx(g,.26,.24,.28,.03,'linen:'+['#e5533d','#2f5d9e','#ffc94a'][i]+':.25',-.33+i*.33,.16,.0);
     put(g,'american_football',{w:.22},-.25,1.1,0,.6);put(g,'kenney_trophy',{h:.2},.2,1.1,0);return g},
   plant:()=>{const g=new T.Group();put(g,'potted_plant_02',{h:.95});return g},
-  floorlamp:(ctx)=>{const g=new T.Group();cyl(g,.16,.18,.03,'metal:#222:.4',0,.015,0,24);cyl(g,.012,.012,1.45,'brass',0,.74,0,8);const sh=cyl(g,.2,.24,.3,'shade:#f1e5cc:.9',0,1.45,0,28,true);sh.castShadow=false;sph(g,.05,'glow:#ffd9a6:6',0,1.4,0,10);return g},
+  lamp:(ctx)=>{const g=new T.Group();cyl(g,.16,.18,.03,'metal:#222:.4',0,.015,0,24);cyl(g,.012,.012,1.45,'brass',0,.74,0,8);const sh=cyl(g,.2,.24,.3,'shade:#f1e5cc:.9',0,1.45,0,28,true);sh.castShadow=false;sph(g,.05,'glow:#ffd9a6:6',0,1.4,0,10);return g},
   rug:()=>{const g=new T.Group();const r=plane(g,3,2,'flat:#888',0,.007,0,-PI/2);r.material=rugMat(0);r.receiveShadow=true;r.castShadow=false;return g},
   runner:()=>{const g=new T.Group();const r=plane(g,.8,2.4,'flat:#888',0,.007,0,-PI/2);r.material=rugMat(2);r.castShadow=false;return g},
   dining:()=>{const g=new T.Group();put(g,'dining_table',{w:1.9});const y=.75;
@@ -934,12 +933,26 @@ const MAKE={
   planter:()=>{const g=new T.Group();put(g,'planter_box_01',{w:1.7});R=rng(4);flowers(g,0,.38,0,.6,26);return g},
   beanbag:()=>{const g=new T.Group();const pts=[];for(let i=0;i<=12;i++){const t=i/12;pts.push(new T.Vector2(Math.sin(t*PI)*.48+(t>.8?-.05:0),t*.62))}const lg=withUV2(new T.LatheGeometry(pts,28));const m=new T.Mesh(lg,M('linen:#c25b4a:.3'));m.scale.set(1,1,.92);m.castShadow=m.receiveShadow=true;g.add(m);return g},
   dogbed:()=>{const g=new T.Group();const b=torus(g,.36,.12,'linen:#8b5e4a:.25',0,.12,0);b.scale.z=1.3;const c=cyl(g,.38,.4,.1,'linen:#c9b49a:.25',0,.06,0,24);c.scale.z=1.3;return g},
-  familyphoto:()=>{const g=new T.Group();frame(g,0,0,0,0,.9,.62,photoTex(0),'flat:#3a2a1d:.5');return g},
+  frame:()=>{const g=new T.Group();frame(g,0,0,0,0,.9,.62,photoTex(0),'flat:#3a2a1d:.5');return g},
   print:()=>{const g=new T.Group();if(!put(g,'hanging_picture_frame_01',{h:.8},0,0,0)){frame(g,0,0,0,0,.6,.8,photoTex(4))}else g.children[0].position.y-=.4;return g},
   fancyart:()=>{const g=new T.Group();if(!put(g,'fancy_picture_frame_01',{w:.9},0,0,0)){frame(g,0,0,0,0,.8,.6,photoTex(5))}else g.children[0].position.y-=.3;return g},
   clock:()=>{const g=new T.Group();const c=put(g,'wall_clock',{w:.34},0,0,0);if(c)c.position.y-=.17;return g},
   dartboard:()=>{const g=new T.Group();const d=put(g,'dartboard',{w:.46},0,0,0);if(d)d.position.y-=.23;return g},
-  trophyshelf:()=>{const g=new T.Group();bc(g,-.5,-.02,0,.5,.02,.2,'wood:#6b4a32:.8');for(const x of[-.3,0,.3]){const t=put(g,'kenney_trophy',{h:.24},x,.02,.1);if(t)t.traverse(o=>{if(o.isMesh){o.material=M('brass')}})}
+  roundrug:()=>{const g=new T.Group();const r=new T.Mesh(new T.CircleGeometry(.74,48),rugMat(3));r.rotation.x=-PI/2;r.position.y=.007;r.receiveShadow=true;g.add(r);return g},
+  trophy:()=>{const g=new T.Group();bc(g,-.2,0,-.2,.2,.9,.2,'wood:#3e2b1d:.8');bc(g,-.23,.9,-.23,.23,.94,.23,'wood:#3e2b1d:.8');const t=put(g,'kenney_trophy',{h:.34},0,.94,0);if(t)t.traverse(o=>{if(o.isMesh)o.material=M('brass')});
+    pic(g,.3,.08,ctex(textCanvas('LEAGUE CHAMP 2019',{w:512,h:128,bg:'#b38b3c',fg:'#2a1d0c',font:'bold 54px Georgia, serif'}),true,false),0,.75,.201);return g},
+  toolchest:()=>{const g=new T.Group();put(g,'metal_tool_chest',{h:1.0});return g},
+  vice:()=>{const g=new T.Group();bc(g,-.45,.8,-.22,.45,.86,.22,'butcher');for(const x of[-.4,.4])for(const z of[-.17,.17])bc(g,x-.03,0,z-.03,x+.03,.8,z+.03,'wood:#c8a274:.9');put(g,'bench_vice_01',{w:.24},.2,.86,.08,PI);put(g,'measuring_tape_01',{w:.07},-.2,.86,0,.4);return g},
+  safe:()=>{const g=new T.Group();rbx(g,.48,.62,.48,.02,'metal:#2b2f33:.45',0,.31,0);bx(g,.4,.52,.01,'metal:#33393d:.4',0,.31,.245);cyl(g,.045,.05,.02,'flat:#151515:.3',-.05,.4,.255,20).rotation.x=PI/2;
+    for(let i=0;i<3;i++){const sp=cyl(g,.008,.008,.12,'chrome',.1,.3,.27,6);sp.rotation.z=i*TAU/3}return g},
+  footlocker:()=>{const g=new T.Group();rbx(g,.85,.4,.42,.02,'flat:#4b5a3a:.6',0,.2,0);for(const x of[-.3,.3])bx(g,.06,.41,.43,'metal:#3a3a3a:.5',x,.2,0);bx(g,.1,.06,.02,'brass',0,.32,.215);
+    const st=ctex(textCanvas('U.S. DAD',{w:256,h:64,bg:'#4b5a3a',fg:'#e8e2c8',font:'bold 40px monospace'}),true,false);pic(g,.3,.075,st,0,.18,.212);return g},
+  grill:()=>{const g=new T.Group();const bowl=new T.Mesh(new T.SphereGeometry(.3,24,12,0,TAU,PI/2,PI/2),M('flat:#1c1d1f:.35'));bowl.position.y=.78;bowl.castShadow=true;g.add(bowl);
+    const lid=new T.Mesh(new T.SphereGeometry(.305,24,12,0,TAU,0,PI/2),M('flat:#1c1d1f:.3'));lid.position.y=.79;lid.castShadow=true;g.add(lid);cyl(g,.04,.03,.06,'flat:#111:.5',0,1.12,0,10);
+    for(let i=0;i<3;i++){const a=i*TAU/3;const l=cyl(g,.015,.015,.75,'chrome',Math.cos(a)*.2,.38,Math.sin(a)*.2,8);l.rotation.z=Math.cos(a)*.18;l.rotation.x=-Math.sin(a)*.18}
+    torus(g,.2,.008,'chrome',0,.25,0);for(const s of[-1,1])cyl(g,.06,.06,.03,'flat:#111:.7',s*.24,.06,-.08,12).rotation.z=PI/2;return g},
+  doghouse:(ctx)=>{const g=new T.Group();doghouse(g,0,0,0,null,true);return g},
+  plaque:()=>{const g=new T.Group();bc(g,-.5,-.02,0,.5,.02,.2,'wood:#6b4a32:.8');for(const x of[-.3,0,.3]){const t=put(g,'kenney_trophy',{h:.24},x,.02,.1);if(t)t.traverse(o=>{if(o.isMesh){o.material=M('brass')}})}
     pic(g,.24,.06,ctex(textCanvas("WORLD'S OKAYEST DAD",{w:512,h:96,bg:'#b38b3c',fg:'#2a1d0c',font:'bold 40px Georgia, serif'}),true,false),0,.07,.205);return g}};
 function books(g,w,ys,dz){R=rng(91);const atlas=ctex(bookAtlas(),true,false);const mat=new T.MeshStandardMaterial({map:atlas,roughness:.8,envMapIntensity:IENV});
   for(const y of ys){let x=-w/2;while(x<w/2-.04){const bw=rr(.025,.05),bh=rr(.2,.27),bd=rr(.15,.2);if(R()<.08){x+=rr(.05,.12);continue}const b=new T.Mesh(boxGeo(bw,bh,bd),mat);const tilt=x>w/2-.15&&R()<.5?.25:0;b.position.set(x+bw/2,y+bh/2,dz-.02);b.rotation.z=-tilt;
@@ -947,63 +960,61 @@ function books(g,w,ys,dz){R=rng(91);const atlas=ctex(bookAtlas(),true,false);con
 let NET=null;function netTex(){return NET||(NET=ctex(canvas(256,128,(x,w,h)=>{x.fillStyle='#000';x.fillRect(0,0,w,h);x.strokeStyle='#fff';x.lineWidth=1.4;for(let i=0;i<w;i+=8){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke()}for(let j=0;j<h;j+=8){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke()}}),false,true))}
 
 /* ---------- the catalogue (SPEC D.5 + extras). fp = footprint in 0.5 m cells (w along x, d along z) before rotation ---------- */
+/* ids match HT.CATALOG.furniture (js/save.js): names/prices/zones/tags/max are read from it at runtime when present.
+   fp is this module's precise footprint in 0.5 m cells (w along x, d along z, before rotation); HT.CATALOG's `cells` (1 m) are for menus. */
 const CATALOG=[
   {id:'sofa',name:'Sectional of Peace',price:650,fp:[4,2],zone:'in',h:.85,tags:['seat','tv-facing'],seats:[[-.5,.08],[0,.08],[.5,.08]]},
-  {id:'oldsofa',name:"Dad's Old Leather Couch",price:0,fp:[4,2],zone:'in',h:.85,tags:['seat'],seats:[[-.4,.08],[.4,.08]],starter:1},
   {id:'armchair',name:'The Thinking Chair',price:280,fp:[2,2],zone:'in',h:1,tags:['seat'],seats:[[0,.05]]},
-  {id:'lounge',name:'The Dad Chair',price:540,fp:[2,2],zone:'in',h:1,tags:['seat'],seats:[[0,.05]]},
-  {id:'modernchair',name:'Leather Accent Chair',price:310,fp:[2,2],zone:'in',h:.95,tags:['seat'],seats:[[0,.05]]},
+  {id:'lounge',name:'Mid-Century Lounger',price:520,fp:[2,2],zone:'in',h:1,tags:['seat'],seats:[[0,.05]]},
   {id:'rocker',name:"Grandpa's Rocker",price:240,fp:[2,2],zone:'any',h:1,tags:['seat'],seats:[[0,.05]]},
-  {id:'ottoman',name:'Leather Ottoman',price:130,fp:[2,2],zone:'in',h:.45,tags:[]},
-  {id:'coffeetable',name:'Coffee Table (coaster-mandatory)',price:160,fp:[3,2],zone:'in',h:.42,tags:[]},
-  {id:'sidetable',name:'End Table & Lamp',price:120,fp:[1,1],zone:'in',h:1.1,tags:['light']},
-  {id:'tv65',name:'65-inch TV & Media Console',price:900,fp:[4,1],zone:'in',h:1.4,tags:['tv']},
-  {id:'tvsmall',name:'Moving-Box TV Stand',price:0,fp:[2,1],zone:'in',h:1.1,tags:['tv'],starter:1},
+  {id:'coffeetable',name:'Coffee Table',price:160,fp:[3,2],zone:'in',h:.42,tags:[]},
+  {id:'tv',name:'65-Inch TV & Stand',price:900,fp:[4,1],zone:'in',h:1.4,tags:['tv'],max:1},
   {id:'bookshelf',name:'Bookshelf of Unread Books',price:220,fp:[2,1],zone:'in',h:1.9,tags:[]},
-  {id:'cubeshelf',name:"Kids' Cube Shelf",price:110,fp:[3,1],zone:'in',h:1.1,tags:[]},
-  {id:'plant',name:'Fiddle-Leaf Fig (will die)',price:45,fp:[1,1],zone:'any',h:.95,tags:[]},
-  {id:'floorlamp',name:'Floor Lamp',price:85,fp:[1,1],zone:'in',h:1.6,tags:['light']},
-  {id:'rug',name:'Big Area Rug',price:90,fp:[6,4],zone:'in',h:0,layer:'floor',tags:[]},
-  {id:'runner',name:'Hallway Runner',price:40,fp:[2,5],zone:'in',h:0,layer:'floor',tags:[]},
+  {id:'lamp',name:'Big Floor Lamp',price:110,fp:[1,1],zone:'in',h:1.6,tags:['light']},
   {id:'dining',name:'Dining Table',price:480,fp:[4,3],zone:'in',h:.76,tags:['dining','table']},
-  {id:'roundtable',name:'Bistro Table',price:150,fp:[2,2],zone:'any',h:.76,tags:['table']},
-  {id:'chair',name:'Dining Chair',price:90,fp:[1,1],zone:'in',h:.97,tags:['seat','tuck'],seats:[[0,.0]]},
-  {id:'kitchenchair',name:'Mismatched Kitchen Chair',price:0,fp:[1,1],zone:'in',h:.95,tags:['seat','tuck'],seats:[[0,0]],starter:1},
+  {id:'roundtable',name:'Round Breakfast Table',price:340,fp:[2,2],zone:'in',h:.76,tags:['dining','table']},
+  {id:'chair',name:'Dining Chair',price:90,fp:[1,1],zone:'in',h:.97,tags:['seat','tuck'],seats:[[0,0]]},
+  {id:'beanbag',name:'Bean Bag',price:70,fp:[2,2],zone:'in',h:.62,tags:['seat','kids'],seats:[[0,0]]},
+  {id:'rug',name:'Big Area Rug',price:90,fp:[6,4],zone:'in',h:0,layer:'floor',tags:[]},
+  {id:'roundrug',name:'Round Rug',price:75,fp:[3,3],zone:'in',h:0,layer:'floor',tags:[]},
+  {id:'plant',name:'Fiddle-Leaf Fig',price:45,fp:[1,1],zone:'any',h:.95,tags:[]},
+  {id:'frame',name:'Family Portrait',price:55,wall:1,ww:1.0,wh:.75,y:1.55,zone:'in',tags:[]},
+  {id:'plaque',name:"World's Okayest Dad Plaque",price:60,wall:1,ww:1.05,wh:.35,y:1.45,zone:'in',tags:[]},
+  {id:'trophy',name:'Fantasy League Trophy',price:150,fp:[1,1],zone:'in',h:1.2,tags:[]},
+  {id:'dartboard',name:'Dartboard',price:85,wall:1,ww:.5,wh:.5,y:1.73,zone:'in',tags:['play','garage']},
   {id:'shelves',name:'Steel Garage Shelving',price:150,fp:[3,1],zone:'in',h:1.8,tags:['garage']},
-  {id:'toolcart',name:'Rolling Tool Cart',price:120,fp:[3,2],zone:'in',h:.97,tags:['garage']},
+  {id:'toolchest',name:'Rolling Tool Chest',price:120,fp:[2,1],zone:'in',h:1.0,tags:['garage']},
+  {id:'vice',name:'Bench Vice',price:90,fp:[2,1],zone:'in',h:1.0,tags:['garage']},
+  {id:'safe',name:'Combination Safe',price:400,fp:[1,1],zone:'in',h:.75,tags:['garage']},
   {id:'minifridge',name:'Beverage Fridge',price:300,fp:[1,1],zone:'in',h:.86,tags:['garage']},
-  {id:'picnic',name:'Picnic Table',price:350,fp:[4,4],zone:'out',h:.75,tags:['seat','dining'],seats:[[-.4,.55],[.4,.55]],starter:1},
+  {id:'footlocker',name:'Army Footlocker',price:130,fp:[2,1],zone:'in',h:.45,tags:['garage']},
+  {id:'grill',name:'Kettle Grill Upgrade',price:600,fp:[2,2],zone:'out',h:1.0,tags:['gather'],max:1},
+  {id:'picnic',name:'Picnic Table',price:350,fp:[4,4],zone:'out',h:.75,tags:['seat','dining'],seats:[[-.4,.55],[.4,.55]]},
   {id:'patio',name:'Patio Set',price:420,fp:[2,4],zone:'out',h:.9,tags:['seat']},
   {id:'firepit',name:'Fire Pit',price:380,fp:[3,3],zone:'out',h:.4,tags:['gather']},
-  {id:'trampoline',name:'Trampoline',price:550,fp:[6,6],zone:'out',h:2.4,tags:['play']},
-  {id:'flamingo',name:'Lawn Flamingo',price:15,fp:[1,1],zone:'out',h:1,tags:['flamingo']},
-  {id:'gnome',name:'Garden Gnome',price:25,fp:[1,1],zone:'out',h:.45,tags:[]},
-  {id:'planter',name:'Flower Planter',price:65,fp:[4,1],zone:'out',h:.6,tags:[]},
-  {id:'beanbag',name:'Bean Bag',price:70,fp:[2,2],zone:'in',h:.62,tags:['seat','kids'],seats:[[0,0]]},
-  {id:'dogbed',name:'Orthopedic Dog Bed',price:60,fp:[2,2],zone:'any',h:.25,layer:'low',tags:['dogbed'],starter:1},
-  {id:'familyphoto',name:'Family Portrait',price:60,wall:1,ww:1.0,wh:.75,y:1.55,tags:[]},
-  {id:'print',name:'Framed Print',price:75,wall:1,ww:.65,wh:.85,y:1.5,tags:[]},
-  {id:'fancyart',name:'Fancy Painting (thrift store)',price:120,wall:1,ww:.95,wh:.75,y:1.55,tags:[]},
-  {id:'clock',name:'Wall Clock',price:35,wall:1,ww:.4,wh:.4,y:1.9,tags:[]},
-  {id:'dartboard',name:'Dartboard',price:55,wall:1,ww:.5,wh:.5,y:1.73,tags:['garage']},
-  {id:'trophyshelf',name:"World's Okayest Dad Shelf",price:95,wall:1,ww:1.05,wh:.35,y:1.45,tags:[]}];
+  {id:'trampoline',name:'Trampoline',price:550,fp:[6,6],zone:'out',h:2.4,tags:['play'],max:1},
+  {id:'doghouse',name:'Biscuit Manor',price:250,fp:[3,3],zone:'out',h:1.2,tags:['dogbed'],max:1},
+  {id:'dogbed',name:'Orthopedic Dog Bed',price:60,fp:[2,2],zone:'any',h:.25,layer:'low',tags:['dogbed']},
+  {id:'flamingo',name:'Lawn Flamingo',price:15,fp:[1,1],zone:'out',h:1,tags:['flamingo']}];
 const CAT={};for(const c of CATALOG)CAT[c.id]=c;
+/* pull names/prices/zones/max from the shared catalogue so the shop and the house agree */
+function syncCatalog(){const F=window.HT&&HT.CATALOG&&HT.CATALOG.furniture;if(!F)return;for(const c of CATALOG){const f=F[c.id];if(!f)continue;c.name=f.name;c.price=f.price;if(f.zone)c.zone=f.zone;if(f.max)c.max=f.max;c.cells=f.cells;c.fans=f.fans}}
 Home.catalog=CATALOG;Home.catalogById=CAT;
-/* starter: sparse, hand-me-downs. cells are 0.5 m; x,z = min corner cell; r = quarter turns (0 faces +z/south, 1 faces +x/east, 2 faces -z/north, 3 faces -x/west) */
+/* layouts use the save format ({uid,id,x,z,r}, ints) so HT.Save keeps them: floor items x,z = min-corner cell (0.5 m),
+   wall items x,z = wall point in decimetres (x/10, z/10), r = facing (0 +z/south, 1 +x/east, 2 -z/north, 3 -x/west) */
 Home.starterLayout=()=>({v:1,items:[
-  {uid:'s1',id:'oldsofa',x:8,z:3,r:1},{uid:'s2',id:'tvsmall',x:17,z:4,r:3},{uid:'s3',id:'dining',x:12,z:13,r:1},
-  {uid:'s4',id:'kitchenchair',x:11,z:15,r:1},{uid:'s5',id:'kitchenchair',x:15,z:14,r:3},{uid:'s6',id:'dogbed',x:15,z:1,r:0},{uid:'s7',id:'picnic',x:2,z:28,r:0}]});
+  {uid:'st1',id:'sofa',x:8,z:2,r:1},{uid:'st2',id:'coffeetable',x:11,z:3,r:1},{uid:'st3',id:'armchair',x:12,z:6,r:2},{uid:'st4',id:'dining',x:12,z:13,r:1},
+  {uid:'st5',id:'chair',x:11,z:15,r:1},{uid:'st6',id:'chair',x:15,z:14,r:3},{uid:'st7',id:'dogbed',x:16,z:8,r:0},{uid:'st8',id:'picnic',x:2,z:28,r:0}]});
 Home.fullLayout=()=>({v:1,items:[
-  {uid:'f1',id:'sofa',x:8,z:2,r:1},{uid:'f2',id:'coffeetable',x:11,z:3,r:1},{uid:'f3',id:'rug',x:9,z:1,r:1},{uid:'f4',id:'tv65',x:17,z:2,r:3},{uid:'f5',id:'armchair',x:12,z:6,r:2},
-  {uid:'f6',id:'lounge',x:6,z:5,r:1},{uid:'f7',id:'floorlamp',x:6,z:7,r:0},{uid:'f8',id:'sidetable',x:8,z:7,r:0},{uid:'f9',id:'plant',x:16,z:1,r:0},{uid:'f10',id:'bookshelf',x:6,z:0,r:0},
+  {uid:'f1',id:'sofa',x:8,z:2,r:1},{uid:'f2',id:'coffeetable',x:11,z:3,r:1},{uid:'f3',id:'rug',x:9,z:1,r:1},{uid:'f4',id:'tv',x:17,z:2,r:3},{uid:'f5',id:'armchair',x:12,z:6,r:2},
+  {uid:'f6',id:'lounge',x:6,z:5,r:1},{uid:'f7',id:'lamp',x:6,z:7,r:0},{uid:'f9',id:'plant',x:16,z:1,r:0},{uid:'f10',id:'bookshelf',x:6,z:0,r:0},
   {uid:'f11',id:'dining',x:12,z:13,r:1},{uid:'f12',id:'chair',x:11,z:13,r:1},{uid:'f13',id:'chair',x:11,z:15,r:1},{uid:'f14',id:'chair',x:15,z:13,r:3},{uid:'f15',id:'chair',x:15,z:15,r:3},
-  {uid:'f16',id:'dogbed',x:16,z:8,r:0},{uid:'f17',id:'beanbag',x:14,z:6,r:3},{uid:'f18',id:'plant',x:10,z:18,r:0},
-  {uid:'f20',id:'shelves',x:-14,z:10,r:1},{uid:'f21',id:'toolcart',x:-8,z:16,r:2},{uid:'f22',id:'minifridge',x:-2,z:15,r:3},
-  {uid:'f23',id:'patio',x:12,z:23,r:0},{uid:'f24',id:'firepit',x:2,z:28,r:0},{uid:'f25',id:'trampoline',x:13,z:32,r:0},{uid:'f26',id:'flamingo',x:26,z:30,r:3},{uid:'f27',id:'planter',x:-6,z:23,r:0},
-  {uid:'f28',id:'rocker',x:14,z:25,r:3},{uid:'f29',id:'gnome',x:-1,z:23,r:0},{uid:'f30',id:'runner',x:19,z:15,r:0},
-  {uid:'w1',id:'familyphoto',wx:3.65,wz:0,y:1.55,r:0},{uid:'w2',id:'clock',wx:2.6,wz:4.0,y:2.0,r:2},{uid:'w3',id:'fancyart',wx:9.3,wz:.95,y:1.55,r:3},{uid:'w4',id:'dartboard',wx:-3.0,wz:10,y:1.73,r:2},
-  {uid:'w5',id:'trophyshelf',wx:9.3,wz:3.6,y:1.5,r:3},{uid:'w6',id:'print',wx:-.15,wz:6.8,y:1.5,r:3}]});
-Home.allOwned=()=>{const o={};for(const c of CATALOG)o[c.id]=c.wall?2:4;return o};
+  {uid:'f16',id:'dogbed',x:16,z:8,r:0},{uid:'f17',id:'beanbag',x:14,z:6,r:3},{uid:'f18',id:'plant',x:10,z:18,r:0},{uid:'f19',id:'roundrug',x:22,z:5,r:0},{uid:'f31',id:'trophy',x:22,z:1,r:1},
+  {uid:'f20',id:'shelves',x:-14,z:10,r:1},{uid:'f21',id:'toolchest',x:-8,z:18,r:2},{uid:'f22',id:'minifridge',x:-2,z:15,r:3},{uid:'f32',id:'safe',x:-14,z:16,r:1},{uid:'f33',id:'footlocker',x:-14,z:6,r:1},{uid:'f34',id:'vice',x:-5,z:15,r:3},
+  {uid:'f23',id:'patio',x:12,z:23,r:0},{uid:'f24',id:'firepit',x:2,z:28,r:0},{uid:'f25',id:'trampoline',x:13,z:32,r:0},{uid:'f26',id:'flamingo',x:26,z:30,r:3},
+  {uid:'f28',id:'rocker',x:14,z:25,r:3},{uid:'f35',id:'doghouse',x:25,z:39,r:3},{uid:'f36',id:'grill',x:3,z:22,r:0},
+  {uid:'w1',id:'frame',x:37,z:0,r:0},{uid:'w3',id:'plaque',x:93,z:36,r:3},{uid:'w4',id:'dartboard',x:-30,z:100,r:2}]});
+Home.allOwned=()=>{const o={};for(const c of CATALOG)o[c.id]=c.max||(c.wall?2:4);return o};
 
 
 /* ======================================================================= decor grid + placement */
@@ -1045,7 +1056,7 @@ function checkWall(id,wx,wz,y,r,items,ignore){const c=CAT[id];if(!c)return'Unkno
   for(const nw of STATIC.noWall)if(nw.wall===sp.wall&&(nw.sgn==null||nw.sgn===sp.sgn)&&a+c.ww/2>nw.s&&a-c.ww/2<nw.e)return'Something is already on that wall';
   for(const it of items){if(it.uid===ignore||it.wx==null)continue;const o=CAT[it.id];const sp2=findSpan(it.wx,it.wz,it.r);if(sp2!==sp)continue;const b=sp.alongX?it.wx:it.wz;if(Math.abs(a-b)<(c.ww+o.ww)/2&&Math.abs(y-it.y)<(c.wh+o.wh)/2)return'Overlaps the '+o.name.toLowerCase()}
   if(c.tags.includes('garage')&&!sp.garage&&false)return'';return''}
-function findSpan(wx,wz,r){for(const sp of STATIC.wallSpans){if(wallFace(sp)!==r)continue;const f=sp.alongX?wz:wx,a=sp.alongX?wx:wz;if(Math.abs(f-sp.face)<.06&&a>=sp.s-.01&&a<=sp.e+.01)return sp}return null}
+function findSpan(wx,wz,r){for(const sp of STATIC.wallSpans){if(wallFace(sp)!==r)continue;const f=sp.alongX?wz:wx,a=sp.alongX?wx:wz;if(Math.abs(f-sp.face)<.07&&a>=sp.s-.06&&a<=sp.e+.06)return sp}return null}
 /* push an item's back flush against a wall it is close to (the grid is 0.5 m, walls are not) */
 function wallSnap(c,x0,z0,x1,z1,r){const back=FRONT[(r+2)%4];let best=null;const planes=[];
   for(const w of WALLS){const[a,b,cc,d]=w.r;planes.push({x0:a,z0:b,x1:cc,z1:d})}for(const k of STATIC.snapExtra||[])planes.push(k);planes.push({x0:-7.3,z0:10.2,x1:-7.1,z1:24},{x0:15.1,z0:10.2,x1:15.3,z1:24},{x0:-7.3,z0:23.92,x1:15.3,z1:24.1});
@@ -1055,7 +1066,8 @@ function wallSnap(c,x0,z0,x1,z1,r){const back=FRONT[(r+2)%4];let best=null;const
     if(gap!=null&&gap<.46&&(best==null||gap<best))best=gap}
   if(best==null)return[0,0];const m=best-.03-(c.inset||0);return[back[0]*m,back[1]*m]}
 const DEC={items:[],objs:new Map(),group:null,ctx:null,seats:[]};
-function layoutItems(L){return((L&&L.items)||[]).filter(it=>CAT[it.id]).map(it=>Object.assign({},it))}
+function layoutItems(L){const src=Array.isArray(L)?L:((L&&L.items)||[]);return src.filter(it=>it&&CAT[it.id]).map(it=>{const o=Object.assign({},it),c=CAT[it.id];
+  if(c.wall&&o.wx==null){o.wx=o.x/10;o.wz=o.z/10;o.y=c.y;const sp=findSpan(o.wx,o.wz,o.r);if(sp){if(sp.alongX)o.wz=sp.face;else o.wx=sp.face}delete o.x;delete o.z}return o})}
 function spawnItem(it,ctx){const c=CAT[it.id];const mk=MAKE[it.id];R=rng(hashStr(it.uid||it.id));const obj=mk?mk(ctx):new T.Group();obj.userData.uid=it.uid;obj.userData.dyn=1;
   if(c.wall){const f=FRONT[it.r];obj.position.set(it.wx+f[0]*.012,it.y,it.wz+f[1]*.012);obj.rotation.y=it.r*PI/2;}
   else{const[w,d]=dims(c,it.r);const x0=it.x*CELL,z0=it.z*CELL,x1=x0+w*CELL,z1=z0+d*CELL;let[sx,sz]=c.layer==='floor'?[0,0]:wallSnap(c,x0,z0,x1,z1,it.r);
@@ -1072,22 +1084,27 @@ function applyLayout(H,L){const ctx=H.ctx;if(DEC.group)ctx.dyn.remove(DEC.group)
     if(it._col&&c.layer!=='floor'&&c.layer!=='low'){const cc=Object.assign({_decor:1},it._col);H.colliders.push(cc)}
     if(!c.wall&&c.h>=.8)obj.traverse(o=>{if(o.isMesh&&o.geometry&&!o.material.transparent){o.userData.decor=1;H.solids.push(o)}});
     if(c.seats){for(const[dx,dz]of c.seats){const a=it.r*PI/2,cs=Math.cos(a),sn=Math.sin(a);DEC.seats.push({uid:it.uid,id:it.id,x:obj.position.x+dx*cs+dz*sn,z:obj.position.z-dx*sn+dz*cs,yaw:a,h:it.id==='picnic'?.45:c.id==='beanbag'?.25:it.id==='rocker'?.45:.45,tags:c.tags})}}}
+  /* until a real TV is bought, the old one sits on moving boxes against the hall wall */
+  if(!DEC.items.some(it=>it.id==='tv')){const o=MAKE.tvsmall(ctx);o.position.set(8.92,0,2.55);o.rotation.y=-PI/2;o.userData.dyn=1;g.add(o);
+    const cc={_decor:1,x0:8.6,z0:2.2,x1:9.3,z1:2.9};H.colliders.push(cc)}
   for(let i=ctx.interactables.length-1;i>=0;i--)if(ctx.interactables[i].id==='tv')ctx.interactables.splice(i,1);
   for(const it of DEC.items){if(!CAT[it.id].tags.includes('tv'))continue;const o=DEC.objs.get(it.uid),f=FRONT[it.r];if(o)ctx.interactables.push({id:'tv',uid:it.uid,x:o.position.x+f[0]*1.1,z:o.position.z+f[1]*1.1,r:1.0,label:'Watch the game'})}
+  if(!DEC.items.some(it=>it.id==='tv'))ctx.interactables.push({id:'tv',x:7.8,z:2.55,r:1.0,label:'Watch the game'});
   if(H.probe)applyProbe(g,H.probe);H.layout=serialize();if(H.onDecor)H.onDecor()}
-function serialize(){return{v:1,items:DEC.items.map(it=>{const o={uid:it.uid,id:it.id,r:it.r};if(it.wx!=null){o.wx=+it.wx.toFixed(3);o.wz=+it.wz.toFixed(3);o.y=+it.y.toFixed(2)}else{o.x=it.x;o.z=it.z}return o})}}
+function toSave(list){return list.map(it=>it.wx!=null?{uid:it.uid,id:it.id,x:Math.round(it.wx*10),z:Math.round(it.wz*10),r:it.r}:{uid:it.uid,id:it.id,x:it.x,z:it.z,r:it.r})}
+function serialize(){return{v:1,items:DEC.items.map(it=>it.wx!=null?{uid:it.uid,id:it.id,x:Math.round(it.wx*10),z:Math.round(it.wz*10),r:it.r}:{uid:it.uid,id:it.id,x:it.x,z:it.z,r:it.r})}}
 /* drop entries that are no longer valid (unknown ids, blocked cells, over the owned count) and report them so the game can refund */
 Home.validate=function(L,owned){const out=[],dropped=[],cnt={};for(const it of layoutItems(L)){const c=CAT[it.id];cnt[it.id]=(cnt[it.id]||0)+1;
-  if(owned&&!c.starter&&(owned[it.id]||0)<cnt[it.id]){dropped.push(it);continue}
+  if(owned&&(owned[it.id]||0)<cnt[it.id]||c.max&&cnt[it.id]>c.max){dropped.push(it);continue}
   const why=c.wall?checkWall(it.id,it.wx,it.wz,it.y,it.r,out):checkFloor(it.id,it.x,it.z,it.r,out);if(why){dropped.push(Object.assign({why},it));continue}out.push(it)}
-  return{layout:{v:1,items:out},dropped}};
+  return{layout:{v:1,items:toSave(out)},dropped}};
 /* first valid spot for a newly bought item, searched outward from a sensible room */
 const HOME_SPOT={in:[12,4],out:[10,30],any:[12,4],garage:[-8,12],wall:[[6.2,0,1.55,0],[12.8,5.5,1.6,2],[3,4,1.9,2],[-3.4,10,1.7,2],[9.3,3.5,1.5,3],[-.15,6.8,1.5,3],[0,1.2,1.6,1],[15,3.5,1.6,3]]};
 Home.autoPlace=function(L,id){const c=CAT[id];if(!c)return null;const items=layoutItems(L);const uid='u'+Date.now().toString(36)+Math.floor(Math.random()*1e4);
   if(c.wall){for(const[wx,wz,y,r]of HOME_SPOT.wall.concat(STATIC.wallSpans.map(sp=>{const m=(sp.s+sp.e)/2;return sp.alongX?[m,sp.face,c.y,wallFace(sp)]:[sp.face,m,c.y,wallFace(sp)]}))){
-      const yy=c.y||y;for(const d of[0,-.5,.5,-1,1]){const x=FRONT[r][1]?wx+d:wx,z=FRONT[r][0]?wz+d:wz;if(!checkWall(id,x,z,yy,r,items))return{v:1,items:[...items,{uid,id,wx:x,wz:z,y:yy,r}]}}}return null}
+      const yy=c.y||y;for(const d of[0,-.5,.5,-1,1]){const x=FRONT[r][1]?wx+d:wx,z=FRONT[r][0]?wz+d:wz;if(!checkWall(id,x,z,yy,r,items))return{v:1,items:toSave([...items,{uid,id,wx:x,wz:z,y:yy,r}])}}}return null}
   const[si,sj]=c.tags.includes('garage')?HOME_SPOT.garage:HOME_SPOT[c.zone];
-  for(let rad=0;rad<40;rad++)for(let dj=-rad;dj<=rad;dj++)for(let di=-rad;di<=rad;di++){if(Math.max(Math.abs(di),Math.abs(dj))!==rad)continue;for(const r of[0,1,2,3]){if(!checkFloor(id,si+di,sj+dj,r,items))return{v:1,items:[...items,{uid,id,x:si+di,z:sj+dj,r}]}}}
+  for(let rad=0;rad<40;rad++)for(let dj=-rad;dj<=rad;dj++)for(let di=-rad;di<=rad;di++){if(Math.max(Math.abs(di),Math.abs(dj))!==rad)continue;for(const r of[0,1,2,3]){if(!checkFloor(id,si+di,sj+dj,r,items))return{v:1,items:toSave([...items,{uid,id,x:si+di,z:sj+dj,r}])}}}
   return null};
 
 /* ======================================================================= decorate mode */
@@ -1183,9 +1200,10 @@ function activities(H){const L=[];const t=H.ctx.timeOfDay,eve=t>=17&&t<21,morn=t
   add('grill',8.75,12.35,PI/2,'cook',{jen:eve?2:.5});add('garden',6.4,22.55,0,'cook',{jen:morn?2:1,tyler:.3});add('dresser',11.55,1.75,-PI/2,'idle',{jen:night?4:.4});
   add('bench',-5.3,9.0,0,'cook',{tyler:.8});add('sandbox',-4.6,14.25,0,'cook',{tyler:2});add('swing1',-3.15,19.6,0,'sit',{tyler:1.5,maddie:1.2},{seatH:.5,swing:1});add('swing2',-2.25,19.6,0,'sit',{tyler:1,maddie:1},{seatH:.5,swing:1});
   add('yardrun',5,17,0,'play',{tyler:night?0:3,biscuit:1.5},{wander:1});add('yardstroll',8,18,0,'phone',{maddie:night?0:1});add('island',3.62,7.1,-PI/2,'sit',{maddie:1.5,tyler:.5},{seatH:.66});
-  add('dogbowl',4.7,9.35,0,'eat',{biscuit:1.2});add('doghouse',12.4,20.6,PI/2,'lie',{biscuit:night?.5:1.2});
+  add('dogbowl',4.7,9.35,0,'eat',{biscuit:1.2});
   for(const s of DEC.seats){const tv=s.tags.includes('tv-facing');add('seat:'+s.uid+':'+s.x.toFixed(2),s.x,s.z,s.yaw,'sit',{jen:eve?1.5:.6,maddie:tv?2.2:1.2,tyler:tv?(eve?4:2.5):1},{seatH:s.h,seat:1})}
   for(const it of DEC.items){if(it.id==='dogbed'){const o=DEC.objs.get(it.uid);if(o)add('dogbed',o.position.x,o.position.z,it.r*PI/2,'lie',{biscuit:night?4:2.2},{dur:[15,30]})}
+    if(it.id==='doghouse'){const o=DEC.objs.get(it.uid),f=FRONT[it.r];if(o)add('doghouse',o.position.x+f[0]*.9,o.position.z+f[1]*.9,it.r*PI/2+PI,'lie',{biscuit:night?.5:1.6})}
     if(it.id==='trampoline'){const o=DEC.objs.get(it.uid);if(o)add('tramp',o.position.x,o.position.z,0,'play',{tyler:3,maddie:1},{bounce:1,blocked:1})}}
   return L}
 function initFamily(H,o){const mk=(OPT.makePerson||o.makePerson);H.family=[];const start={jen:[1.4,7.6],maddie:[6.2,6.6],tyler:[5,17],biscuit:[2.4,3.2]};
@@ -1313,7 +1331,7 @@ Home.build=function(o={}){
     dispose:()=>{if(D.active)D.exit();if(root.parent)root.parent.remove(root);if(H.probe)H.probe.dispose();H.probe=null;if(CUR===H)CUR=null},aoHint:{radius:.45,power:2.5},vanSpot:ctx.vanSpot};
   if(o.renderer&&o.scene){o.scene.add(root);bakeProbe(H,o.renderer,o.scene)}
   ctx.interactables.push({id:'door',x:1.48,z:.75,r:.9,label:'Head outside'});ctx.exits=H.exits;buildGrid(ctx);CUR=H;H.owned=o.owned||null;
-  const v=Home.validate(o.layout||Home.starterLayout(),o.owned);H.dropped=v.dropped;if(v.dropped.length)console.warn('home layout: dropped '+v.dropped.map(d=>d.uid+' '+d.id+' ('+(d.why||'not owned')+')').join(', '));
+  syncCatalog();const v=Home.validate(o.layout||Home.starterLayout(),o.owned);H.dropped=v.dropped;if(v.dropped.length)console.warn('home layout: dropped '+v.dropped.map(d=>d.uid+' '+d.id+' ('+(d.why||'not owned')+')').join(', '));
   applyLayout(H,v.layout);H.setLayout=L=>applyLayout(H,Home.validate(L,H.owned).layout);
   if(typeof initFamily==='function')initFamily(H,o);
   setTimeOfDay(ctx,ctx.timeOfDay);

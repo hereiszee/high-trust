@@ -89,9 +89,23 @@ window.__render=draw;
 const gl=new THREE.GLTFLoader();const extra={};
 const loadG=n=>new Promise(r=>gl.load('../assets/'+n+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});r(g)},undefined,()=>r(null)));
 const P={pos:V3(1.48,0,1.4),yaw:Math.PI,pitch:-.05,fp:Q.get('fp')!=='0'};let home=null,dad=null;const keys={};
+/* rocketbox family (assets/people/rocketbox): realistic people for HT.Home via makePerson. Reference for the game's own factory. */
+const RB={chars:{},clips:{},REF:.8952};const RBMAP={spouse:'wife',son:'son',daughter:'daughter',dad:'dad_player'};
+const rbLoad=()=>Q.get('people')==='standin'?Promise.resolve():Promise.all([loadG('people/rocketbox/anims').then(g=>{if(g)for(const c of g.animations)RB.clips[c.name]=c}),
+  ...Object.values(RBMAP).map(k=>loadG('people/rocketbox/'+k).then(g=>{if(g)RB.chars[k]=g}))]);
+function rbClip(name,hip){const c=RB.clips[name];if(!c)return null;const k=name+'@'+hip.toFixed(3);if(RB.clips[k])return RB.clips[k];const r=hip/RB.REF,cc=c.clone();
+  for(const t of cc.tracks)if(t.name.endsWith('Bip01_Pelvis.position')&&Math.abs(r-1)>1e-3)t.values=t.values.map(v=>v*r);return RB.clips[k]=cc}
+function makeRocketbox(role){const key=RBMAP[role];const g=key&&RB.chars[key];if(!g||!RB.clips.idle)return null;
+  const root=new THREE.Group(),model=THREE.SkeletonUtils.clone(g.scene);root.add(model);let hip=RB.REF;g.scene.traverse(o=>{if(o.userData&&o.userData.hipHeight)hip=o.userData.hipHeight});
+  model.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;o.frustumCulled=false}});const fem=role==='spouse'||role==='daughter';
+  const MAP={idle:fem?'f_idle':'idle',walk:fem?'f_walk':'walk',run:'jog',play:'jog',sit:fem?'f_sit':'sit',wave:'interact',happy:'interact',talk:'idle_look',cook:'interact',phone:'idle_look',lie:'idle',eat:'idle'};
+  const mixer=new THREE.AnimationMixer(model);let cur=null,curName='';
+  const P={root,pose:'',setAnim(n){const want=MAP[n]||MAP.idle;P.pose=n;if(want===curName)return;const c=rbClip(want,hip)||rbClip('idle',hip);const a=mixer.clipAction(c);a.reset().fadeIn(.25).play();if(cur&&cur!==a)cur.fadeOut(.25);cur=a;curName=want;
+      if(n==='cook')a.setLoop(THREE.LoopRepeat,Infinity)},
+    update(dt){mixer.update(dt);model.position.y=P.pose==='sit'?(P.seatH||.45)-.45*hip/RB.REF:0}};P.setAnim('idle');return P}
 Promise.all([new Promise(r=>new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('../assets/sky/sky_1k.hdr',t=>{buildEnv(t);r()},undefined,()=>r())),
   new Promise(r=>new THREE.TextureLoader().load('../assets/sky/sky_2k.jpg',t=>{t.encoding=THREE.sRGBEncoding;skyMat.map=t;skyMat.color.set(0xffffff);skyMat.needsUpdate=true;r()},undefined,()=>r())),
-  HT.Home.init({base:'../assets/',renderer})]).then(()=>{
+  HT.Home.init({base:'../assets/',renderer,makePerson:r=>makeRocketbox(r)}),rbLoad()]).then(()=>{
   const layoutKind=Q.get('layout')||'starter';
   const opts={timeOfDay:+(Q.get('t')||15),trust:+(Q.get('trust')||50)};
   if(HT.Home.catalog){opts.layout=layoutKind==='full'?HT.Home.fullLayout():layoutKind==='empty'?{items:[]}:HT.Home.starterLayout();opts.owned=layoutKind==='full'?HT.Home.allOwned():null}
@@ -100,7 +114,7 @@ Promise.all([new Promise(r=>new THREE.RGBELoader().setDataType(THREE.UnsignedByt
   if(home.vanSpot&&HT.Home._internal.LIB.gltf.car_van){const v=HT.Home._internal.LIB.gltf.car_van.scene.clone(true);v.scale.setScalar(1.6);v.position.set(home.vanSpot.x,0,home.vanSpot.z);v.rotation.y=home.vanSpot.yaw;v.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true}});scene.add(v)}
   if(Q.get('probe')!=='0')home.bakeReflections(renderer,scene);
   P.pos.set(home.spawn.x,0,home.spawn.z);P.yaw=home.spawn.yaw;
-  if(HT.Home.makeStandIn){dad=HT.Home.makeStandIn('dad');if(dad)scene.add(dad.root)}
+  dad=makeRocketbox('dad')||(HT.Home.makeStandIn&&HT.Home.makeStandIn('dad'));if(dad)scene.add(dad.root);
   if(home.onEnter)home.onEnter({event:Q.get('event')||'firstVisit',trust:opts.trust});
   window.__ready=true;
 });
@@ -146,7 +160,7 @@ window.__shot=n=>{document.body.classList.add('shot');
   if(n==='overview'){home.setCutaway(true);window.__frozen=true;camera.position.set(4.5,15,17.5);camera.lookAt(4.2,0,4.6);if(dad)dad.root.visible=false;for(let i=0;i<20;i++)home.update(1/30,P.pos);draw();return true}
   if(home.cutaway)home.setCutaway(false);
   if(n==='cook'){home.forceActivity('jen','cook');home.forceActivity('maddie','island');n='kitchen'}
-  if(n.startsWith('deco')){const D=HT.Home.decorate;if(!D.active)D.start({owned:HT.Home.allOwned(),cutaway:n==='deco_ok'||n==='deco_bad'});const[sel,tx,tz,r]={deco_ok:['armchair',6.9,1.0,2],deco_bad:['tv65',5.2,2.0,0],deco_wall:['familyphoto',9.3,9.2,3],deco_yard:['trampoline',2.0,21.0,0]}[n];
+  if(n.startsWith('deco')){const D=HT.Home.decorate;if(!D.active)D.start({owned:HT.Home.allOwned(),cutaway:n==='deco_ok'||n==='deco_bad'});const[sel,tx,tz,r]={deco_ok:['armchair',6.9,1.0,2],deco_bad:['tv',5.2,2.0,0],deco_wall:['frame',9.3,9.2,3],deco_yard:['trampoline',2.0,21.0,0]}[n];
     D.select(sel);D.r=r;window.__frozen=true;const cp=n==='deco_yard'?V3(3.5,6.5,13.2):n==='deco_wall'?V3(6.2,1.7,8.6):V3(4.2,6.5,7.6);camera.position.copy(cp);const tgt=V3(tx,n==='deco_wall'?1.55:0,tz);camera.lookAt(tgt);
     const look=n==='deco_wall'?V3(9.3,1.55,9.2):tgt;D.aim(camera.position,look.clone().sub(camera.position).normalize(),[]);if(dad)dad.root.visible=false;draw();return true}
   if(HT.Home.decorate&&HT.Home.decorate.active&&!n.startsWith('deco'))HT.Home.decorate.exit();const s=SHOTS[n];if(!s)return false;window.__frozen=true;P.pos.set(s[0],0,s[1]);P.yaw=s[2];P.pitch=s[3];if(n==='top'){camera.position.set(4,30,10);camera.rotation.set(-1.45,0,0);draw();return true}
