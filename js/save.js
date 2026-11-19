@@ -55,7 +55,7 @@ const GUNS={
     spread:{hip:.075,ads:.055,move:1.3,bloomAdd:0,bloomMax:0,bloomDec:0},rc:{v:.06,h:.02,hBias:0,adsMul:.7,rec:5},ads:{zoom:.9,t:.2,speed:.7},speed:.94,
     reload:{shell:{start:.35,each:.5,end:.25,emptyExtra:.45}},equip:.45,fsa:false,price:0,unlock:{start:true},
     blurb:"Grandpa's. It lived in the garage rafters next to the Christmas lights. He'd want you to oil it more."},
-  double:{name:"Uncle Ray's Side-by-Side",short:'Side-by-Side',slot:'prim',ammo:'12ga',cls:'Shotgun',auto:false,dmg:16,head:1.5,pellets:10,rate:.18,mag:2,reserve:30,range:22,fall:[5,18,.15],
+  double:{name:"Uncle Ray's Side-by-Side",short:'Double',slot:'prim',ammo:'12ga',cls:'Shotgun',auto:false,dmg:16,head:1.5,pellets:10,rate:.18,mag:2,reserve:30,range:22,fall:[5,18,.15],
     spread:{hip:.09,ads:.07,move:1.2,bloomAdd:0,bloomMax:0,bloomDec:0},rc:{v:.11,h:.03,hBias:.3,adsMul:.8,rec:3.5},ads:{zoom:.92,t:.22,speed:.7},speed:.95,
     reload:{tac:2,empty:2},equip:.4,fsa:false,price:700,unlock:{buyAfter:2,collect:2},
     blurb:"Uncle Ray says it \"settles disagreements.\" Uncle Ray is no longer invited to Thanksgiving."},
@@ -67,11 +67,11 @@ const GUNS={
     spread:{hip:.02,ads:.006,move:1.7,bloomAdd:.003,bloomMax:.03,bloomDec:7},rc:{v:.009,h:.005,hBias:0,adsMul:.6,rec:7},ads:{zoom:.7,t:.2,speed:.7},speed:.97,
     reload:{tac:1.9,empty:2.4},equip:.4,fsa:false,price:0,unlock:{gift:'rick'},
     blurb:"Rick's spare. Climbs a little; pull down and to the left, same as his lawn mower."},
-  smg:{name:'The Carpool',short:'Carpool',slot:'prim',ammo:'9mm',cls:'SMG',auto:true,dmg:17,head:1.6,pellets:1,rate:.07,mag:32,reserve:192,range:50,fall:[12,35,.45],
+  smg:{name:'The Carpool',short:'SMG',slot:'prim',ammo:'9mm',cls:'SMG',auto:true,dmg:17,head:1.6,pellets:1,rate:.07,mag:32,reserve:192,range:50,fall:[12,35,.45],
     spread:{hip:.022,ads:.012,move:1.15,bloomAdd:.0025,bloomMax:.025,bloomDec:9},rc:{v:.006,h:.009,hBias:0,adsMul:.7,rec:10},ads:{zoom:.85,t:.13,speed:.8},speed:1.04,
     reload:{tac:1.6,empty:2},equip:.28,fsa:false,price:900,unlock:{buyAfter:1,collect:2},
     blurb:"Named for the minivan it rides in. Rattles like a juice box on a gravel road."},
-  hunter:{name:'Deer Season',short:'Deer Season',slot:'prim',ammo:'308',cls:'Bolt-action',auto:false,dmg:95,head:2.5,pellets:1,rate:1.1,mag:5,reserve:25,range:160,fall:[160,160,1],
+  hunter:{name:'Deer Season',short:'.308',slot:'prim',ammo:'308',cls:'Bolt-action',auto:false,dmg:95,head:2.5,pellets:1,rate:1.1,mag:5,reserve:25,range:160,fall:[160,160,1],
     spread:{hip:.06,ads:.0005,move:3,bloomAdd:.02,bloomMax:.06,bloomDec:3},rc:{v:.09,h:.01,hBias:0,adsMul:1,rec:3},ads:{zoom:.3,t:.32,speed:.55},speed:.9,
     reload:{tac:2.6,empty:3.1},equip:.55,fsa:true,price:1200,unlock:{buyAfter:2,collect:1},
     blurb:"Deer season never really ended. It just moved to Ridgeview."}};
@@ -88,6 +88,11 @@ const FEEL={
   rifle:{pat:[[1.4,0],[1.3,0],[1.2,0],[1.1,0],[1,0],[1,0],[.7,.6],[.6,.8]],vm:V(.025,.035,.01,.006,160,18,'mag'),snd:{crack:[3500,1.4,.025,.55],body:[3000,.12,.5],thump:['sine',140,40,.1,.3],tail:[1200,.45,.14],mech:[]}},
   smg:{pat:[[1,0],[1,-.3],[1,.3]],vm:V(.018,.02,.015,.012,200,20,'mag'),snd:{crack:[4200,1.6,.02,.4],body:[3500,.07,.35],thump:['triangle',180,60,.06,.2],tail:[1500,.25,.08],mech:[]}},
   hunter:{pat:[[1,0]],vm:V(.10,.20,.02,0,60,8,'bolt'),bolt:.45,snd:{crack:[5000,2,.02,.9],body:[2000,.2,.8],thump:['sine',100,30,.2,.55],tail:[600,1.6,.3,.22,.3],mech:[[.45,2200,.05,.2],[.6,1500,.05,.2]]}}};
+/* game-owned feel fields (index.html WEAPONS), kept identical here so the deep merge never changes them:
+   chamber (+1 round on a tactical reload), shell (brass type ejected, null = none), shellDelay, quiet (alert radius), root (nail pin chance), scope */
+const GAME_FEEL={pistol:{chamber:1,shell:'9mm'},revolver:{shell:null},nailer:{shell:null,quiet:6,root:.2},shotgun:{shell:'12ga',shellDelay:.32},double:{shell:null},
+  beanbag:{shell:'bean',shellDelay:.32},rifle:{chamber:1,shell:'556'},smg:{chamber:1,shell:'9mm'},hunter:{shell:'308',shellDelay:.45,scope:true}};
+for(const g in GAME_FEEL)Object.assign(GUNS[g],GAME_FEEL[g]);
 for(const g in FEEL){Object.assign(GUNS[g].rc,{pat:FEEL[g].pat});GUNS[g].vm=FEEL[g].vm;GUNS[g].snd=FEEL[g].snd;if(FEEL[g].bolt)GUNS[g].bolt=FEEL[g].bolt}
 GUNS.nailer.special={rootChance:.2,rootT:.6,quietR:6};GUNS.smg.special={adsBreak:.08};GUNS.hunter.special={scope:true,sway:[.0015,1.3,.0012,.9],laser:.8};
 GUNS.double.special={bothBarrelsWindow:.3};GUNS.beanbag.special={surrenderBelow:.6,tracer:'#f08a2c'};
@@ -175,8 +180,13 @@ const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
 const clampN=(v,a,b)=>v<a?a:v>b?b:v;
-function starterPlaced(){return[{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
-  {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]}
+/* starter furniture: HT.Home (js/home.js) owns the house and its 0.5 m grid, so its starter layout is the default when loaded.
+   The fallback below is the same layout (for Node and pages without THREE). OLD_STARTER = the SPEC.md 1 m coordinates, migrated away. */
+const HOME_STARTER=[{uid:'st1',id:'sofa',x:8,z:2,r:1},{uid:'st2',id:'coffeetable',x:11,z:3,r:1},{uid:'st3',id:'armchair',x:12,z:6,r:2},{uid:'st4',id:'dining',x:12,z:13,r:1},
+  {uid:'st5',id:'chair',x:11,z:15,r:1},{uid:'st6',id:'chair',x:15,z:14,r:3},{uid:'st7',id:'dogbed',x:16,z:8,r:0},{uid:'st8',id:'picnic',x:2,z:28,r:0}];
+const OLD_STARTER=JSON.stringify([{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
+  {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]);
+function starterPlaced(){try{if(HT.Home&&HT.Home.starterLayout)return clone(HT.Home.starterLayout().items)}catch(e){}return clone(HOME_STARTER)}
 /* garage shape (SPEC2 D); HT.Garage.defaultGarage is used when js/carai.js is loaded, this copy otherwise */
 const defVehicle=()=>HT.Garage?HT.Garage.defaultVehicle():{paint:'slate',rims:'steel',tint:'none',lightBar:false,spoiler:false,perf:{engine:0,tyres:0,brakes:0,sport:false},prot:{bullBar:false,armor:0}};
 const defGarage=()=>HT.Garage?HT.Garage.defaultGarage():{active:'minivan',owned:['minivan'],purchases:0,dirt:0,vehicles:{minivan:defVehicle()},hp:{minivan:100},
@@ -298,7 +308,7 @@ function sanitize(s){
     const x=num(e.x,NaN),z=num(e.z,NaN);if(!isFinite(x)||!isFinite(z))continue;
     let uid=typeof e.uid==='string'&&e.uid?e.uid:'f'+Math.random().toString(36).slice(2,8);while(uids.has(uid))uid+='x';uids.add(uid);
     placed.push({uid,id:e.id,x:Math.round(x),z:Math.round(z),r:((Math.round(num(e.r,0))%4)+4)%4})}
-  s.furniture.placed=placed;
+  s.furniture.placed=JSON.stringify(placed)===OLD_STARTER?starterPlaced():placed;
   for(const e of placed)fo[e.id]=Math.max(fo[e.id]||0,placed.filter(q=>q.id===e.id).length);
   s.furniture.owned=fo;
   sanitizeGarage(s);
@@ -880,13 +890,15 @@ function asThumbHTML(out){if(!out)return null;if(out.toDataURL)return'<img alt="
 /* thumbRenderer(item) may return a canvas, an <img>, a URL / HTML string, or a Promise of one; null keeps the vector icon.
    item = catalogue data + {kind, id, key, vehicle?:{type, opts}} (vehicle = what HT.Vehicles.make should build, incl. a previewed upgrade). */
 function hashStr(x){return fnv(JSON.stringify(x))}
-function vecFallback(kind,id,veh){if(veh&&HT.Garage){if(veh.stats)return carFull(veh.stats);const u=veh.opts.upgrades||{};
+/* saved attachments ({optic,mag,under,muzzle}) -> HT.Guns.model attachments */
+const gunMods=on=>{on=on||{};return{redDot:on.optic==='reddot',extMag:on.mag==='extmag',foregrip:on.under==='grip',suppressor:on.muzzle==='muffler'}};
+function vecFallback(kind,id,veh){if(veh&&veh.gun)return iconSVG(kind,id);if(veh&&HT.Garage){if(veh.stats)return carFull(veh.stats);const u=veh.opts.upgrades||{};
     return svg(carSVG(veh.type,veh.opts.color,u.rims||'steel',{finish:u.paint,tint:u.tint,lightBar:!!u.lightBar,spoiler:u.spoiler,bullBar:u.bullBar,cargo:u.roofRack==='cargo'}),'0 -12 164 112')}
   return iconSVG(kind,id)}
-function thumbHTML(kind,id,veh){const key=kind+':'+id+(veh?':'+hashStr([veh.type,veh.opts]):'');
+function thumbHTML(kind,id,veh){const key=kind+':'+id+(veh?':'+hashStr(veh.gun?veh.gun:[veh.type,veh.opts]):'');
   let inner=null;const r=HT.Shop&&HT.Shop.thumbRenderer;
   if(r){if(thumbCache.has(key))inner=thumbCache.get(key);
-    else if(!thumbWait.has(key)){try{const out=r(Object.assign({kind,id,key},itemData(kind,id),veh?{vehicle:{type:veh.type,opts:veh.opts}}:{}));
+    else if(!thumbWait.has(key)){try{const out=r(Object.assign({kind,id,key},itemData(kind,id),veh?(veh.gun?{gun:veh.gun}:{vehicle:{type:veh.type,opts:veh.opts}}):{}));
       if(out&&typeof out.then==='function'){thumbWait.add(key);out.then(v=>{const h=asThumbHTML(v);thumbCache.set(key,h);thumbWait.delete(key);
           if(h)for(const el of document.querySelectorAll(`[data-tk="${key}"]`)){el.innerHTML=h;el.classList.add('htm-rendered')}},()=>{thumbCache.set(key,null);thumbWait.delete(key)})}
       else{inner=asThumbHTML(out);thumbCache.set(key,inner)}}catch(e){thumbCache.set(key,null)}}}
@@ -1044,6 +1056,10 @@ function vehicleFor(kind,id,hero){const G=HT.Garage;if(!G)return null;const g=Sa
   if(kind==='car'||(kind==='gar'&&id.startsWith('v_'))){const t=kind==='car'?id:id.slice(2);return{type:t,opts:g.owned.includes(t)?G.vehicleOpts(g,t):{color:{workvan:'#f2f2ee',pickup:'#8a2f2a',suv:'#1f2226'}[t]||'#35577d',upgrades:{}}}}
   if((kind==='cos'&&!id.startsWith('horn'))||(kind==='gar'&&['bull','cargo','sport'].includes(id))||(hero&&kind==='stick')){const st=vanStatsWith(kind,id);return{type:st.type,opts:st.makeOpts,stats:st}}
   return null}
+/* attachment thumbnails show a real gun wearing the part: the chosen target, else your first equipped compatible gun */
+function gunFor(kind,id,target){if(kind!=='att')return null;const a=ATTACHMENTS[id],s=Save.data;
+  const g=target&&a.compat.includes(target)?target:[s.loadout.p1,s.loadout.p2,s.loadout.side].find(x=>x&&a.compat.includes(x))||a.compat.find(x=>s.owned.guns.includes(x))||a.compat[0];
+  return{gun:{type:g,attachments:gunMods({[a.slot]:id})}}}
 function shopEntries(store,tab){
   const E=[],G=HT.Garage;
   if(tab==='guns'){for(const id of GUN_ORDER)E.push({kind:'gun',id,sec:GUNS[id].slot==='side'?'Sidearms':'Primaries'})}
@@ -1088,7 +1104,7 @@ function tagHTML(st){
 function shopTile(e,st,sel){
   const lockR=st.state==='locked'?`<span class="htm-ireason">${esc(st.reason||'')}</span>`:'';
   return`<button class="htm-item${sel?' sel':''}" data-nav data-key="${e.key}" data-state="${st.state}" role="listitem" aria-label="${esc(entryName(e.kind,e.id))}">
-    <span class="htm-thumb t-${e.kind}">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id))}</span>
+    <span class="htm-thumb t-${e.kind}">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id)||gunFor(e.kind,e.id))}${e.kind==='att'?`<span class="htm-attbadge">${iconSVG('att',e.id)}</span>`:''}</span>
     <span class="htm-itx"><span class="htm-iname">${esc(entryName(e.kind,e.id))}</span><span class="htm-isub">${entrySub(e.kind,e.id)}</span>${lockR}</span>
     <span class="htm-tag">${tagHTML(st)}</span></button>`}
 
@@ -1164,7 +1180,7 @@ function shopDetail(m,e){
     body=`<div class="htm-stickers">${g.stickers.map(i=>`<span class="${i==null?'empty':''}">${i==null?'Empty slot':esc(G.COSMETICS.stickers[i])}</span>`).join('')}</div>`}
   else if(G&&e.kind==='rep'){const g=s.garage;kicker=G.VEH[g.active].name+' · Repair';body=hpBar(g.hp[g.active],vehMaxHp(g.active,g),'Body')+`<div class="htm-note left">Free partial repair at home: Tyler hammers it back to 60%. Mostly.</div>`}
   const sellV=(e.kind==='gun'||e.kind==='att')&&(st.state==='owned')?sellValue(e.kind,e.id):e.kind==='furn'&&m.canSell?sellValue('furn',e.id):0;m.canSell=false;
-  return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true))}</div>${stampHTML(st,m.store)}</div>
+  return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true)||gunFor(e.kind,e.id,m.attTarget))}</div>${stampHTML(st,m.store)}</div>
     <div class="htm-dscroll"><div class="htm-kicker">${esc(kicker)}</div><h3 class="htm-name">${esc(name)}</h3>
     ${blurb?`<p class="htm-blurb">${esc(blurb)}</p>`:''}${fx?`<div class="htm-fx"><b>What it does</b>${esc(fx)}</div>`:''}${body}</div>
     <div class="htm-buy"><div class="htm-buyrow">${buyButtonHTML(st,armed,m.store)}${sellV?`<button class="htm-ghost" data-nav data-act="sell">Sell · ${money(sellV)}</button>`:''}</div>
@@ -1177,11 +1193,12 @@ function shopDetail(m,e){
 function gltfThumbs(THREE,loader,o){o=o||{};const W=o.width||320,Hh=o.height||200;let R=null,queue=Promise.resolve();
   const toObj=x=>x&&(x.isObject3D?x:x.group&&x.group.isObject3D?x.group:x.scene&&x.scene.isObject3D?x.scene:null);
   const source=item=>{
-    if(item.vehicle&&HT.Vehicles&&HT.Vehicles.make){return Promise.resolve(HT.Vehicles.make(item.vehicle.type,item.vehicle.opts)).then(h=>({obj:toObj(h),view:'car',done:()=>{try{h&&h.dispose&&h.dispose()}catch(e){}}}))}
-    if(item.kind==='gun'&&HT.Guns&&HT.Guns.model){return Promise.resolve(HT.Guns.model(item.id)).then(x=>{const ob=toObj(x);return{obj:ob&&ob.clone(true),view:'gun',done:()=>{}}})}
+    if(item.vehicle&&HT.Vehicles&&HT.Vehicles.make){return Promise.resolve(HT.Vehicles.make(item.vehicle.type,Object.assign({lod:0},item.vehicle.opts))).then(h=>({obj:toObj(h),view:'car',done:()=>{try{h&&h.dispose&&h.dispose()}catch(e){}}}))}
+    const gq=item.gun||(item.kind==='gun'?{type:item.id}:null);
+    if(gq&&HT.Guns&&HT.Guns.model){return Promise.race([HT.Guns.ready||null,new Promise(r=>setTimeout(r,3000))]).then(()=>HT.Guns.model(gq.type,{attachments:gq.attachments||{}})).then(x=>({obj:toObj(x),view:'gun',done:()=>{}}))}
     if(item.model&&loader)return new Promise((res,rej)=>loader.load((o.base||'')+item.model,g=>res({obj:g.scene,view:'furn',done:()=>g.scene.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material)[].concat(n.material).forEach(m=>{for(const k in m)if(m[k]&&m[k].isTexture)m[k].dispose();m.dispose()})})}),undefined,rej));
     return null};
-  const VIEW={furn:[[.75,.55,1],.86,.14],gun:[[1,.16,.08],.62,0],car:[[.95,.42,.85],.72,.06]};
+  const VIEW={furn:[[.75,.55,1],.86,.14],gun:[[1,.16,.08],.5,0],car:[[.95,.38,.85],.56,.04]};
   const render=src=>{const obj=src.obj;if(!obj)throw new Error('no object');
     if(!R){R=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});R.setPixelRatio(o.pixelRatio||2);R.setSize(W,Hh);R.outputEncoding=THREE.sRGBEncoding;
       if(THREE.ACESFilmicToneMapping){R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15}}
@@ -1193,7 +1210,7 @@ function gltfThumbs(THREE,loader,o){o=o||{};const W=o.width||320,Hh=o.height||20
     cam.position.copy(c).addScaledVector(new THREE.Vector3(...dv).normalize(),rad/Math.sin(THREE.MathUtils.degToRad(13))*(o.zoom||zoom));cam.lookAt(c.x,c.y+size.y*lift,c.z);
     R.setClearColor(0x000000,0);R.clear();R.render(sc,cam);const url=R.domElement.toDataURL('image/png');
     sc.remove(obj);if(parent)parent.add(obj);src.done();return url};
-  return item=>{if(o.kinds&&!o.kinds.includes(item.kind))return null;const s0=source(item);if(!s0)return null;
+  return item=>{if(o.kinds&&!o.kinds.includes(item.kind)&&!(item.gun&&o.kinds.includes('gun')))return null;const s0=source(item);if(!s0)return null;
     const p=queue.then(()=>s0).then(render);queue=p.catch(()=>{});return p}}
 
 const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
@@ -1301,7 +1318,7 @@ HT.Shop=Shop;
    ===================================================================== */
 function lockerTile(id,st,sel,tag){const g=GUNS[id];
   return`<button class="htm-item${sel?' sel':''}" data-nav data-key="gun:${id}" data-state="${st}" role="listitem" aria-label="${esc(g.name)}">
-    <span class="htm-thumb t-gun">${thumbHTML('gun',id)}</span>
+    <span class="htm-thumb t-gun">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(Save.data.attOn[id])}})}</span>
     <span class="htm-itx"><span class="htm-iname">${esc(g.name)}</span><span class="htm-isub">${slotName[g.slot]} · ${AMMO[g.ammo].name}</span></span>
     <span class="htm-tag">${tag}</span></button>`}
 const Locker={
@@ -1321,7 +1338,7 @@ const Locker={
       slots.innerHTML=['side','p1','p2','p3'].map((k,i)=>{const id=L[k];
         if(k==='p3'&&!rack)return`<button class="htm-slot locked" data-nav data-act="slot" data-slot="p3"><span class="htm-slotk"><kbd>4</kbd>Gun rack</span><span class="htm-slotimg empty"></span><b class="empty"><i class="htm-lock"></i>Dad's Auto, $700</b></button>`;
         return`<button class="htm-slot${m.target===k?' tgt':''}" data-nav data-act="slot" data-slot="${k}" ${id?`data-key="gun:${id}"`:''}>
-        <span class="htm-slotk"><kbd>${i+1}</kbd>${slotName[k]}</span>${id?`<span class="htm-slotimg">${thumbHTML('gun',id)}</span><b>${esc(GUNS[id].name)}</b>`:'<span class="htm-slotimg empty"></span><b class="empty">Empty</b>'}</button>`}).join('')+
+        <span class="htm-slotk"><kbd>${i+1}</kbd>${slotName[k]}</span>${id?`<span class="htm-slotimg">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(Save.data.attOn[id])}})}</span><b>${esc(GUNS[id].name)}</b>`:'<span class="htm-slotimg empty"></span><b class="empty">Empty</b>'}</button>`}).join('')+
         `<div class="htm-ammostrip">${ammoFor().map(a=>`<span style="--c:${a.col}"><i></i>${esc(a.name)} <b>${a.reserve}${a.extra?'+'+a.extra:''}</b></span>`).join('')}</div>`};
     const gunState=id=>{const s=Save.data,L=s.loadout;if(!s.owned.guns.includes(id))return'locked';return Object.values(L).includes(id)?'equipped':'owned'};
     const gunTag=id=>{const L=Save.data.loadout,st=gunState(id);if(st==='equipped'){const k=Object.keys(L).find(k=>L[k]===id);return`<span class="htm-chip s-equipped">${['side','p1','p2'].indexOf(k)+1} · ${slotName[k]}</span>`}
@@ -1360,7 +1377,7 @@ const Locker={
       else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
         btns=`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span><i class="htm-lock"></i>Not in your locker</span></button>`+(a.collect?`<div class="htm-collect"><span>${esc(how)}</span><span class="htm-meter"><i style="width:${100*a.collect.n/a.collect.need}%"></i></span><b>${a.collect.n}/${a.collect.need}</b></div>`:`<div class="htm-note">${esc(how)}</div>`)}
       const mods=g.att.map(sl=>{const a=(s.attOn[id]||{})[sl];return a?`<i class="on">${esc(ATTACHMENTS[a].name)}</i>`:''}).join('');
-      return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id)}</div>${inSlot?`<span class="htm-stamp s-eq">${slotName[inSlot]}</span>`:''}</div>
+      return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(s.attOn[id])}})}</div>${inSlot?`<span class="htm-stamp s-eq">${slotName[inSlot]}</span>`:''}</div>
         <div class="htm-dscroll"><div class="htm-kicker">${slotName[g.slot]} · ${esc(g.cls)} · ${AMMO[g.ammo].name}</div><h3 class="htm-name">${esc(g.name)}</h3><p class="htm-blurb">${esc(g.blurb)}</p>
         <div class="htm-cmp">${cmp?`Compared with your <b>${esc(GUNS[cmp].name)}</b> <span class="htm-legend"><i class="up"></i>better <i class="down"></i>worse</span>`:inSlot?'Riding along on the next job':'Nothing to compare with'}</div>
         ${barsHTML(other?gunBars(other):null,gunBars(me))}${gunFacts(me,other)}${mods?`<div class="htm-fits"><span>Mods</span>${mods}</div>`:''}</div>
@@ -1371,7 +1388,7 @@ const Locker={
         return`<div class="htm-mod"><span class="htm-modl">${lab}</span><div class="htm-seg">`+
           `<button class="${!on[sl]?'on':''}" data-nav data-act="att" data-slot="${sl}" data-att="" ${own?'':'disabled'}>None</button>`+
           opts.map(a=>{const has=s.owned.att.includes(a);return`<button class="${on[sl]===a?'on':''}${has?'':' need'}" data-nav data-act="att" data-slot="${sl}" data-att="${a}" ${own?'':'disabled'}>${has?'':'<i class="htm-lock"></i>'}${esc(ATTACHMENTS[a].name)}${has?'':`<small>${money(ATTACHMENTS[a].price)}</small>`}</button>`}).join('')+`</div></div>`}).join('');
-      return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id)}</div>${Object.values(on).some(Boolean)?`<div class="htm-heroatt">${Object.values(on).filter(Boolean).map(a=>`<span>${thumbHTML('att',a)}</span>`).join('')}</div>`:''}</div>
+      return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(on)}})}</div>${Object.values(on).some(Boolean)?`<div class="htm-heroatt">${Object.values(on).filter(Boolean).map(a=>`<span>${thumbHTML('att',a)}</span>`).join('')}</div>`:''}</div>
         <div class="htm-dscroll"><div class="htm-kicker">Workbench · ${esc(g.cls)}</div><h3 class="htm-name">${esc(g.name)}</h3>
         ${own?'':'<div class="htm-note warn">Not in your locker yet. You can plan, but not install.</div>'}
         <div class="htm-mods">${rows}</div>

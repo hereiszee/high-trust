@@ -2,6 +2,8 @@
 
 `window.HT.AI` handles navigation, enemy squads, the crew, wave pacing and barks for the tile levels. It is engine-agnostic: it takes plain data and returns intents, and it never touches THREE or the DOM. The game keeps ownership of collision, damage, surrender, rendering and subtitles.
 
+**Status: wired into `index.html`** (all 13 steps below; see "In the game" at the end) and checked in the real 3D game with `node dev/ai-ingame.js` (evidence and screenshots in `docs/screenshots/ai-ingame/`).
+
 - Tests: `node dev/ai.test.js` (`--quick` runs fewer seeds, `--sync-maps` recopies the maps from `index.html`)
 - Visualiser: open `dev/ai.html` (served or from `file://`). It shows the real mission maps with the module driving every enemy and crewman against a scripted dad. URL params: `m`, `seed`, `t` (fast-forward), `until=combat`, `pause=1`, `tView=1`.
 - Screenshots: `docs/screenshots/ai/`
@@ -10,9 +12,9 @@
 
 | Call | Returns |
 |---|---|
-| `AI.buildNav(L.g,{colliders:L.colliders})` | nav: `walk`, `los(ax,az,bx,bz,crouch)`, `path(ax,az,bx,bz,{cost})` → `{pts,cells,len}` (8-way A*, no corner cutting, string-pulled), `distField(cell)` (cached), `covers[]` (`{i,x,z,dirs,high,low,door,room}`), `hides(spot,tx,tz)` → `'stand'`, `'crouch'` or `null`, `peekFrom(spot,tx,tz,hide)`, `rooms[]` (`name`, `indoor`, `adj`), `doors[]`, `roomAt`, `isDoor`, `roomDepth(room)` |
+| `AI.buildNav(L.g,{colliders:L.colliders})` | nav: `walk`, `los(ax,az,bx,bz,crouch)` (`crouch`: `'a'`/`'b'` = that end is crouched, `true` = both), `path(ax,az,bx,bz,{cost})` → `{pts,cells,len}` (8-way A*, no corner cutting, string-pulled), `distField(cell)` (cached), `covers[]` (`{i,x,z,dirs,high,low,door,room}`), `hides(spot,tx,tz)` → `'stand'`, `'crouch'` or `null`, `peekFrom(spot,tx,tz,hide)`, `rooms[]` (`name`, `indoor`, `adj`), `doors[]`, `roomAt`, `isDoor`, `roomDepth(room)` |
 | `AI.pool({maxShooters:3})` | shared shooting budget across squads |
-| `AI.squad(nav,{difficulty,pool,barker})` | blackboard: `add(e)`, `update(dt,world)`, `morale`, `requests[]`, `event({type:'down'\|'surrender'\|'hurt',agent})`, `tokens`, `threats` |
+| `AI.squad(nav,{difficulty|diff,pool,barker})` | blackboard (`neighbours()` = squads in the same or an adjacent room through the shared pool): `add(e)`, `update(dt,world)`, `morale`, `requests[]`, `event({type:'down'\|'surrender'\|'hurt',agent})`, `tokens`, `threats` |
 | `AI.think(e,world,dt)` | enemy intent (below) |
 | `AI.move(e,intent,dt)` | moves `e.pos` along `intent.dir*speed` and turns `e.yaw` toward `intent.face`. It does no collision, so call `collide()` after it. |
 | `AI.ally(a,world,dt)` | crew intent |
@@ -22,6 +24,7 @@
 | `AI.surrenderChance(e,base)` | the surrender chance, which rises as squad morale drops |
 | `AI.barker()`, `AI.BARKS` | throttled lines (114) |
 | `AI.GUNS`, `AI.ALLY_GUNS`, `AI.ROLES`, `AI.DIFFICULTY`, `AI.seed(n)` | tables and a deterministic RNG |
+| `AI.missionDiff(i)`, `AI.MISSION_DIFF` | per-mission tuning used by the game and the node sims (missions 0 and 3 are gentler) |
 
 Enemy intent: `{dir,speed,face,stance:'stand'|'crouch',peek:'left'|'right'|'over'|'flanked'|null,fire,targetId,hitChance,dmg,aiming,reloading,bark:{text,event,priority},state,role,moveTo,path,token,wantsSurrender}`.
 
@@ -92,4 +95,31 @@ Conventions: `e.yaw` uses the character convention, forward = (sin yaw, cos yaw)
 
 ## Difficulty knobs (`AI.DIFFICULTY`)
 
-`maxShooters` (per squad), `pool` (shooters across all squads at once), `reaction` (seconds before the first response), `acc`, `aim` (telegraph multiplier), `aggression` (cover-hop rate and peek cadence), `flank`, `hear`. `AI.ALLY_SUPPORT` (0.7) scales crew accuracy so the dad stays the main actor.
+`maxShooters` (per squad), `pool` (shooters across all squads at once), `reaction` (seconds before the first response), `first` (extra seconds the first time a squad makes contact), `acc`, `moveAcc` / `sprintAcc` (accuracy multiplier while the dad moves / sprints), `aim` (telegraph multiplier), `aggression` (cover-hop rate and peek cadence), `flank`, `hear`. `AI.ALLY_SUPPORT` (0.7) scales crew accuracy so the dad stays the main actor.
+
+## Cover geometry (nav options)
+
+- `lowReach` (2.4 m): low cover (crates, hedges) only hides a crouched man it is close to. A crate next to a standing dad 15 m away does not hide a crouched hoodie: the dad's eye and the third-person camera (about 2 m up) look straight over it.
+- `lowBox` / `hiBox`: real footprints of props inside their 2 m cell (`c` 1.7 x 1.7, `f` 2 x 0.8, `T` 1.8 x 1.1; the game passes `hiBox:{t:[.3,.3]}` for tree trunks). Lines are tested against the box exactly, so a sight line through the empty margin of a crate's cell is not blocked.
+- `hides(spot,x,z)` also checks lines to both shoulders (±0.3 m), so a crate corner that covers half a body is not cover.
+
+## In the game (`index.html`)
+
+- Script tag after `js/world.js`; glue lives in the `AI` section: `aiStart` (squads, pool, barkers, wave director), `squadFor`, `aiTick` (per-frame world, squad updates; called in `frame()` and `__ht.step()`), `aiAfter` (the King's reinforcement requests), `aiEnemy`, `aiAlly`, `aiShot` (noise + suppression hook in `fire()` and `shootAt()`), `deepCrouch`.
+- `buildLevel` ends with one line that builds `lvl.nav` for missions (`losBlock:'#htVcf'`: stash tables are 0.85 m, too low to hide a crouched man, so they are not cover).
+- `updEnemy` / `updAlly` keep their dead / cuffed / surrender / down branches and hand off to `aiEnemy` / `aiAlly` when a nav exists; the old code stays as the hub fallback.
+- `hurtEnemy` uses `AI.surrenderChance(e,.5)`; the Block Party wave block uses `AI.director` and resets squad morale each wave.
+- Guns: `aiSyncGuns()` copies acc, damage, burst, cooldown, range band and the close-range damage step from the combat table `NPC_GUNS`/`npcGun` into `AI.GUNS` / `AI.ALLY_GUNS` at mission start, so gun stats have one source. The AI only adds magazine, reload, aim telegraph and range.
+- Hunter laser: `aiEnemy` sets `e.target` and `e.fireT` (time left in the aim telegraph) so the combat code's `hunterLaser()` shows while a hunter lines up a shot.
+- Voices: barks go to `radio()` (subtitles) and to `HT.Audio.voice` with the speaker's position (`thug_alert`, `thug_hurt`, `thug_surrender`, `dad_alert`; see `AI_VOICE`). Surrender and hurt grunts are detected in `aiTick`, so the combat functions stay untouched.
+- Characters: the skinned people (`js/people.js`) crouch with `pose(...,{mode:'crouch',aim:true})`; their crouch-aim hinge keeps the head under 1.15 m. `deepCrouch` now only applies to the box-figure fallback.
+- Crouch pose for the box fallback (`deepCrouch`): crouched enemies and crew kneel, lean in and sink so every hitbox stays under 0.95-1.1 m (crate top 1.15 m), measured from the model's own height, so the taller King fits too.
+- `window.__ht` adds `AI`, `aiWorld`, `aiStats` (think() timing, bark log), `rayTargets` and `simT` for the headless checks.
+
+## Known weaknesses
+
+- Third-person camera: from ~2 m up and 2.7 m behind, the camera can see a sliver of a man hiding behind a wall corner or the edge of a crate that the dad's shoulder can't. `fire()`'s shoulder check stops those shots, but the player can see him.
+- Grid resolution: cover is per 2 m cell. Diagonal (outside-corner) crate spots are the weakest; a grazing ray still reaches 1-2 of 75 probe points in some cases.
+- The park has little real cover (eight crates; tree trunks are 0.5 m), so wave crews mostly fight in the open or behind crates.
+- The King (scale 1.2) crouch-aims with his crown about 1.16 m up, just over a 1.15 m crate. The camera can graze it from above, but in the crate test no shot from the dad's shoulder landed.
+- No left/right lean when peeking: `HT.People` has no lean cue, so a peek is the body stepping out to the side.

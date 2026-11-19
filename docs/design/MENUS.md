@@ -10,11 +10,13 @@ Load order in `index.html`: `css/hud.css`, `css/menus.css`, then `js/hud.js`, `j
 |---|---|---|
 | Guns: stats, feel, sound, NPC profiles | `HT.CATALOG.guns` (this file) | `HT.CATALOG.guns[id]` (raw), `HT.Economy.weaponStats(id)` (with the saved attachments applied) |
 | Vehicles: base stats, upgrades, cosmetics, horns | `HT.Garage` (`js/carai.js`) | `HT.Economy.vehicleStats()` = `HT.Garage.apply(active, vehicle, util)` + cosmetics + `makeOpts` |
-| Attachments, furniture, supplies, missions, payouts | `HT.CATALOG` (this file) | |
+| Furniture ids, prices, zones | `HT.CATALOG.furniture` (this file); ids are 1:1 with `HT.Home.catalog` (js/home.js), which copies names/prices/zones from here | the house grid footprint (`fp`) stays in js/home.js |
+| Starter furniture layout | `HT.Home.starterLayout().items` (0.5 m house grid) | `HT.Save.defaults().furniture.placed` (uses HT.Home when loaded, an identical copy otherwise; old SPEC 1 m layouts migrate) |
+| Attachments, supplies, missions, payouts | `HT.CATALOG` (this file) | |
 
 ### Gun fields (`HT.CATALOG.guns[id]`; ids `pistol revolver nailer shotgun double beanbag rifle smg hunter`, order in `HT.CATALOG.gunOrder`)
 
-Field names follow SPEC.md A.1. Times are in seconds, distances in metres and angles in radians.
+The ids and every field the game's `WEAPONS` table in `index.html` defines are identical here, including `short` and the game's feel fields `chamber`, `shell`, `shellDelay`, `quiet`, `root`, `scope`, `nonlethal`. `index.html` deep-merges `HT.CATALOG.guns` over `WEAPONS` (docs/combat-integration.md), and `dev/save.test.js` diffs the two tables field by field. Field names follow SPEC.md A.1. Times are in seconds, distances in metres and angles in radians.
 
 | field | meaning |
 |---|---|
@@ -37,6 +39,7 @@ Field names follow SPEC.md A.1. Times are in seconds, distances in metres and an
 | `snd:{crack,body,thump,tail,mech,reloadMech?,secondPitch?,impact?}` | `gunSnd` recipe layers exactly as in the SPEC A.2 sound table |
 | `att` | compatible attachment slots (`optic mag under muzzle`) |
 | `price`, `unlock:{start\|gift\|buyAfter\|trust\|any, collect}` | shop price and unlock rules (SPEC D.3 and B.5) |
+| `chamber`, `shell`, `shellDelay`, `quiet`, `root`, `scope` | game feel: +1 chambered round on a tactical reload, brass type (null = none) and delay, alert radius, nail pin chance, scope overlay |
 | `nonlethal`, `special` | beanbag flag; per-gun extras (`nailer.special.rootChance/rootT/quietR`, `smg.special.adsBreak`, `hunter.special.scope/sway/laser`, `double.special.bothBarrelsWindow`, `beanbag.special.surrenderBelow/tracer`) |
 
 `HT.CATALOG.npcGuns[id] = {enemy:[acc,dmg,burst,cooldown,wantMin,wantMax], ally:[acc,dmg,cooldown], laser?}` per SPEC A.3. A `dmg` written as `[near,far,within]` means near damage inside `within` metres.
@@ -60,7 +63,7 @@ Field names follow SPEC.md A.1. Times are in seconds, distances in metres and an
 | `setLoadout(slot,gun)` (`p3` needs the rack), `swapPrimaries()`, `setAttachment()`, `collectGun()`, `deliverPending()` | As before. |
 | `HT.Shop.open({kind:'dadazon'\|'hardware'\|'mart'\|'auto', tab, select, onClose, onBuy, onPreview})` | `onBuy({kind,id,price,store,delivered,use?})` fires after a purchase or a free "use". `onPreview({type,opts}\|null)` fires in Dad's Auto when the selected item changes the look: call `handle.setUpgrades(opts.upgrades)` on the van in the bay, and `null` means revert. |
 | `HT.Locker.open({tab:'loadout'\|'attach'\|'ammo', onClose, onChange})` | 4 slots. The 4th (gun rack) is locked until `garage.util.rack`. |
-| `HT.Shop.thumbRenderer`, `HT.Shop.gltfThumbs(THREE, loader, {kinds, base, zoom})` | 3D thumbnails: `item.model` glTF paths (furniture), `HT.Guns.model(type)` for guns, and `HT.Vehicles.make(type, opts)` for vehicles and previews (`item.vehicle = {type, opts}`, already carrying the selected upgrade). Studio light, transparent background over the pegboard, room or garage backdrop, cached per look. Vector art is shown while rendering and whenever a hook is missing. |
+| `HT.Shop.thumbRenderer`, `HT.Shop.gltfThumbs(THREE, loader, {kinds, base, zoom})` | 3D thumbnails (kinds `furn gun att car gar cos`): attachments render the target gun wearing the part (`HT.Guns.model(type,{attachments:{redDot,extMag,foregrip,suppressor}})`), and the locker shows each gun with its saved mods. `item.model` glTF paths (furniture), `HT.Guns.model(type)` for guns, and `HT.Vehicles.make(type, opts)` for vehicles and previews (`item.vehicle = {type, opts}`, already carrying the selected upgrade). Studio light, transparent background over the pegboard, room or garage backdrop, cached per look. Vector art is shown while rendering and whenever a hook is missing. |
 | `HT.Menus.isOpen()`, `close()`, `volume`, `playHorn(opt)`, `sfx(name)`; `HT.icon(kind,id)` | UI sounds go to `HT.Audio.ui` (`hover click back cash objective denied pickup`) when `HT.Audio.ready`, otherwise to a small built-in synth. `HT.Shop.sfx = name => true` overrides both. |
 
 Look and feel: the chrome (scrim, panel, tabs, buttons, keycaps, type scale, colours, motion) uses the `css/hud.css` tokens. Menus mount inside `.ht-root` when the HUD exists, so they inherit the tokens directly; standalone, they use identical fallbacks. Store branding (logo plate, colour band, item backdrops) stays inside the panel.
