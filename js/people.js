@@ -99,7 +99,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
   const hand=B('Bip01_R_Hand');if(hand){const gh=new T.Group();gh.name='gunHold';hand.add(gh)}
   return tpl[key]={scene:s,hip,key}}
 
-function capTexture(t,max){const im=t.image;if(!im||!im.width||im.width<=max||t.userData.rbCapped)return;t.userData.rbCapped=1;
+const capped=new WeakSet();
+function capTexture(t,max){const im=t.image;if(!im||!im.width||im.width<=max||capped.has(t))return;capped.add(t);
   try{const c=document.createElement('canvas');const k=max/Math.max(im.width,im.height);c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);t.image=c;t.needsUpdate=true}catch(e){}}
 
 /* fabric normal map for caps: fine twill plus six panel seams radiating from the button */
@@ -123,7 +124,7 @@ function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vecto
 const CAP2HEAD=new T.Matrix4().makeBasis(new T.Vector3(0,0,1),new T.Vector3(1,0,0),new T.Vector3(0,1,0));
 function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._skull[key]=bb&&[bb.min.toArray(),bb.max.toArray()];bb=bb||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
   const g=new T.Group();g.name='rb_cap';g.applyMatrix4(CAP2HEAD);
-  const hw=(bb.max.z-bb.min.z)/2+.014,hd=(bb.max.y-bb.min.y)/2+.014,cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.012;
+  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.012;
   const base=top-.088;/* crown depth: the band sits on the forehead, well above the brows */
   const fab=new T.MeshStandardMaterial({color:col,roughness:.96,metalness:0,normalMap:fabricNormal(),normalScale:new T.Vector2(.55,.55)});
   fab.color.multiplyScalar(1.15);
@@ -132,7 +133,7 @@ function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._s
   for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const yy=Math.max(y,-.05);p.setXYZ(i,x*hw,base+yy*(top-base)+z*.016*(1-yy),cz+z*hd)}
   cg.computeVertexNormals();const crown=new T.Mesh(cg,fab);crown.castShadow=true;g.add(crown);
   /* curved brim: arched across, gently pitched down */
-  const bw=hw*.95,bl=key==='dad_rick'?.085:.078,seg=14,rows=4,pos=[],idx=[],uv=[];
+  const bw=hw*.95,bl=.088,seg=14,rows=4,pos=[],idx=[],uv=[];
   for(let r=0;r<=rows;r++){const t=r/rows;for(let c=0;c<=seg;c++){const u=c/seg*2-1;const ang=u*1.05;
     const ex=Math.sin(ang)*bw*(1-t*.18),ez=Math.cos(ang)*hd*.92+t*bl*(1-u*u*.55);
     const ey=base+.004+Math.cos(ang)*.016-t*bl*.2-(u*u)*.02*(.4+t);pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
@@ -163,7 +164,7 @@ P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null)
   const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
   const meshes=[];let head=null,gunHold=null,skinned=[];
   body.traverse(n=>{if(n.userData&&n.userData.hitbox){meshes.push(n);if(n.userData.head)head=n}else if(n.isSkinnedMesh)skinned.push(n);if(n.name==='gunHold')gunHold=n});
-  const bones={};for(const n of['Bip01_Pelvis','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_R_Hand'])bones[n]=body.getObjectByName(n);
+  const bones={};for(const n of['Bip01_Pelvis','Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_R_Hand'])bones[n]=body.getObjectByName(n);
   const mixer=new T.AnimationMixer(body);
   const female=!!FEMALE[key];
   const rb={key,hip:t.hip,mixer,body,bones,skinned,acts:{},lw:{},aimW:0,holdW:0,armP:0,spineP:0,one:null,
@@ -241,15 +242,15 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   const gun=rb.gunType,longGun=gun&&gun!=='pistol';
   const v=Math.hypot(rb.vx,rb.vz);
   const aimT=!full&&gun&&inp.aim?1:0;
-  const holdT=!full&&longGun&&!inp.aim?1:0;
+  const holdT=!full&&longGun&&!inp.aim&&rb.base!=='idle_arms_folded'?1:0;
   rb.aimW+=(aimT-rb.aimW)*Math.min(1,dt*12);rb.holdW+=(holdT-rb.holdW)*Math.min(1,dt*8);
   let oneW=0;if(rb.one){const o=rb.one;o.t+=dt;const a=Math.min(1,o.t/.05),z=Math.min(1,(o.dur-o.t)/.12);oneW=full?0:Math.max(0,Math.min(a,z))*o.peak;if(o.t>=o.dur){rb.one=null;oneW=0}}
-  /* crouched: upper layers drive the arms only, the hunched crouch spine stays (head stays below cover) */
+  /* crouched with a gun up: the aim stance's torso is kept, then hinged forward at the lower spine (head stays below cover) */
   const crouch=inp.mode==='crouch';
   const WS={},WA={};let remS=1,remA=1;const add=(n,w,armsOnly)=>{if(!n||w<=0)return;WA[n]=(WA[n]||0)+w*remA;remA*=1-w;if(!armsOnly){WS[n]=(WS[n]||0)+w*remS;remS*=1-w}};
-  if(rb.one)add(rb.one.name,oneW,crouch);
+  if(rb.one)add(rb.one.name,oneW,false);
   const aimClip=gun==='pistol'?'pistol_aim':'rifle_aim',holdClip=gun==='pistol'?'pistol_idle':'rifle_aim';
-  add(aimClip,rb.aimW,crouch);add(holdClip,rb.holdW,crouch);
+  add(aimClip,rb.aimW,false);add(holdClip,rb.holdW,false);
   for(const n in WA){act(rb,n,'ar');act(rb,n,'sp')}
   /* apply weights */
   for(const n in rb.acts){const a=rb.acts[n];const lw=(rb.lw[n]||0)/sum;setW(a.lo,lw,n);setW(a.sp,(WS[n]||0)+remS*lw,n);setW(a.ar,(WA[n]||0)+remA*lw,n);
@@ -261,17 +262,17 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   let armT=0,spT=0;
   const pa=Math.max(-1.1,Math.min(1.1,inp.pitch||0));
   if(rb.aimW>.01){if(crouch)armT+=rb.aimW*-pa;else{armT+=rb.aimW*(-pa*.55);spT+=rb.aimW*(-pa*.45)}}
-  let lift=0;if(crouch&&!full){/* level the arms against the crouch's forward lean so the gun still points ahead */
-    const w=Math.min(1,rb.aimW+(longGun?rb.holdW:0));if(w>.01&&rb.bones.Bip01_Spine2){rb.bones.Bip01_Spine2.getWorldQuaternion(_q);_v.set(0,1,0).applyQuaternion(_q);
-      const ry=d.root.rotation.y;const fw=_v.x*Math.sin(ry)+_v.z*Math.cos(ry);const lean=Math.atan2(-_v.y,fw);armT-=lean*w;lift=lean*w*.45}}
-  if(longGun&&rb.holdW>.01&&!full)armT+=rb.holdW*(v>3.6?.35:.55);
+  /* hinge: lower spine leans forward, arms and neck turn back by the same world angle so gun and gaze stay level */
+  const hw=crouch&&!full?Math.min(1,rb.aimW+(longGun?rb.holdW:0)):0;rb.hinge=(rb.hinge||0)+(hw*.5-(rb.hinge||0))*Math.min(1,dt*10);
+  const hinge=rb.hinge>.005?rb.hinge:0;armT-=hinge;
+  if(longGun&&rb.holdW>.01&&!full)armT+=rb.holdW*(v>3.6?.3:.38);
   if(rb.reloadT>0&&!full){rb.reloadT-=dt;armT+=.6;spT+=.12}
   if(rb.kick>0){rb.kick=Math.max(0,rb.kick-dt*9);armT-=rb.kick*.06}
   const kk=Math.min(1,dt*14);rb.armP+=(armT-rb.armP)*kk;rb.spineP+=(spT-rb.spineP)*kk;
-  if(Math.abs(rb.armP)>.002||Math.abs(rb.spineP)>.002){const B=rb.bones;_cp.set(1,0,0).applyQuaternion(d.root.getWorldQuaternion(_q2));const left=_v.copy(_cp);
+  if(Math.abs(rb.armP)>.002||Math.abs(rb.spineP)>.002||hinge){const B=rb.bones;_cp.set(1,0,0).applyQuaternion(d.root.getWorldQuaternion(_q2));const left=_v.copy(_cp);
+    if(hinge){rotWorld(B.Bip01_Spine,left,hinge);rotWorld(B.Bip01_Neck,left,-hinge*.85)}
     const sp=rb.spineP*.5;rotWorld(B.Bip01_Spine1,left,sp);rotWorld(B.Bip01_Spine2,left,sp);
     rotWorld(B.Bip01_L_UpperArm,left,rb.armP);rotWorld(B.Bip01_R_UpperArm,left,rb.armP)}
-  if(lift>.01){_cp.set(1,0,0).applyQuaternion(d.root.getWorldQuaternion(_q2));rotWorld(rb.bones.Bip01_Neck,_cp,-lift)}
   /* the King only folds his arms while he is unarmed or calm */
   if(d.gunHold)d.gunHold.visible=!(rb.base==='idle_arms_folded'&&rb.lw.idle_arms_folded>.5);
   /* bodies stay a while, then sink away */

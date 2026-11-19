@@ -495,15 +495,15 @@ function pose(d,dt,o={}){if(d.rb){HTM('People').pose(d,dt,o);return}
   if(aim){d.arms[1].rotation.x=-Math.PI/2;d.arms[0].rotation.x=-Math.PI/2+.25;d.arms[0].rotation.z=-.55;d.arms[1].rotation.z=0}
   else{d.arms[0].rotation.x=-s;d.arms[1].rotation.x=s;d.arms.forEach(a=>a.rotation.z=0)}
 }
-/* animation cues for the skinned people: thin pass-through wrappers so the combat code stays untouched */
+/* animation cues for the skinned people: thin pass-through wrappers so the combat code stays untouched (each fails soft if a name changes) */
 {const cue=(f,d,...a)=>{const m=d&&d.rb&&HTM('People');if(m)try{m[f](d,...a)}catch(e){}};
-  const _fire=fire,_reload=reload,_shootAt=shootAt,_hurtEnemy=hurtEnemy,_killEnemy=killEnemy,_hurtAlly=hurtAlly;
-  fire=function(){const a=P.ammo[P.cur],m=a?a.mag:0;const r=_fire.apply(this,arguments);if(a&&a.mag<m)cue('fire',P.dude);return r};
-  reload=function(){const was=P.reloadT;const r=_reload.apply(this,arguments);if(P.reloadT>0&&!(was>0))cue('reload',P.dude,P.reloadT);return r};
-  shootAt=function(src){if(src&&src.dude)cue('fire',src.dude);return _shootAt.apply(this,arguments)};
-  killEnemy=function(e){const r=_killEnemy.apply(this,arguments);cue('die',e.dude);return r};
-  hurtEnemy=function(e,dmg){const st=e.state;const r=_hurtEnemy.apply(this,arguments);if(st==='idle'&&e.state==='idle')cue('hit',e.dude,false);return r};
-  hurtAlly=function(a){const dn=a.down;const r=_hurtAlly.apply(this,arguments);if(!dn&&!a.down)cue('hit',a.dude,false);return r}}
+  const wrap=(get,set,mk)=>{try{const f=get();if(typeof f==='function')set(mk(f))}catch(e){}};
+  wrap(()=>fire,f=>fire=f,_f=>function(){const a=P.ammo[P.cur],m=a?a.mag:0;const r=_f.apply(this,arguments);if(a&&a.mag<m)cue('fire',P.dude);return r});
+  wrap(()=>reload,f=>reload=f,_f=>function(){const was=P.reloadT;const r=_f.apply(this,arguments);if(P.reloadT>0&&!(was>0))cue('reload',P.dude,P.reloadT);return r});
+  wrap(()=>shootAt,f=>shootAt=f,_f=>function(src){if(src&&src.dude)cue('fire',src.dude);return _f.apply(this,arguments)});
+  wrap(()=>killEnemy,f=>killEnemy=f,_f=>function(e){const r=_f.apply(this,arguments);cue('die',e&&e.dude);return r});
+  wrap(()=>hurtEnemy,f=>hurtEnemy=f,_f=>function(e){const st=e.state;const r=_f.apply(this,arguments);if(st==='idle'&&e.state==='idle')cue('hit',e.dude,false);return r});
+  wrap(()=>hurtAlly,f=>hurtAlly=f,_f=>function(a){const dn=a.down;const r=_f.apply(this,arguments);if(!dn&&!a.down)cue('hit',a.dude,false);return r})}
 
 /* ================= DATA ================= */
 const HOMIES={
