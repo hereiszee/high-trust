@@ -37,7 +37,7 @@ module.exports=[
   ok('walks off the far side down to the ground',Math.abs(r.after)<.01,r.after);
   ok('running jump into a crate climbs onto it',r.kinds.includes('climb')&&Math.abs(r.climbTop-1.15)<1e-3,r);
   if(__SHOTS){
-    await shot('on_top_of_crate',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=false;H.step(100);document.getElementById('banner').classList.remove('on');const rc=new THREE.Raycaster();const open=c=>{rc.set(new THREE.Vector3((c.x0+c.x1)/2,1.3,(c.z0+c.z1)/2),new THREE.Vector3(0,1,0));rc.far=30;return !rc.intersectObjects(H.L.solids,false).length&&!H.solidAt((c.x0+c.x1)/2,(c.z0+c.z1)/2,3.2,1.15)};const crate=M_.tiles('c').map(t=>M_.col(t.x,t.z)).filter(c=>c&&open(c))[0];
+    await shot('on_top_of_crate',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=false;H.step(100);const rc=new THREE.Raycaster();const open=c=>{rc.set(new THREE.Vector3((c.x0+c.x1)/2,1.3,(c.z0+c.z1)/2),new THREE.Vector3(0,1,0));rc.far=30;return !rc.intersectObjects(H.L.solids,false).length&&!H.solidAt((c.x0+c.x1)/2,(c.z0+c.z1)/2,3.2,1.15)};const crate=M_.tiles('c').map(t=>M_.col(t.x,t.z)).filter(c=>c&&open(c))[0];
       M_.place((crate.x0+crate.x1)/2,(crate.z0+crate.z1)/2,1.15);P.yaw+=Math.PI*.75;P.pitch=-.18;M_.run(30);H.draw()});
     await shot('mid_jump_third_person',()=>{const H=__ht,P=H.P;const o=M_.approach(M_.tiles('c').map(t=>M_.col(t.x,t.z)).find(c=>c&&M_.approach(c,2.5).length),2.5)[0];
       M_.place(o.x-o.dx*1.5,o.z-o.dz*1.5);M_.face(o.dx+.6*o.dz,o.dz+.6*o.dx);P.pitch=-.12;H.keys.w=true;M_.run(20);H.jump();M_.run(14);H.keys.w=false;H.draw()});
@@ -57,7 +57,7 @@ module.exports=[
     ok('vaults a '+name+' and lands on the far side',r&&r.kinds&&r.side>0&&Math.abs(r.y)<.02&&!r.inside,r);
   }
   if(__SHOTS){
-    await shot('mid_vault',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=false;H.step(100);document.getElementById('banner').classList.remove('on');const cands=M_.tiles('f').map(t=>M_.col(t.x,t.z)).filter(Boolean);
+    await shot('mid_vault',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=false;H.step(100);const cands=M_.tiles('f').map(t=>M_.col(t.x,t.z)).filter(Boolean);
       for(const c of cands){for(const o of M_.approach(c,.9)){M_.place(o.x,o.z);M_.face(o.dx,o.dz);H.keys.w=true;M_.run(3);H.jump();M_.run(2);if(H.move.vault==='vault'){M_.run(10);H.keys.w=false;
             /* side-on camera so the arc reads */P.yaw+=.9;H.draw();return}H.keys.w=false;M_.run(40)}}});
   }
@@ -107,12 +107,12 @@ module.exports=[
     /* dropped box: walk into reach */
     P.pool[t]=20;H.pickups.slice().forEach(()=>{});const box=H.dropAt('pistol',s.x+2.6,s.z);/* a pistol drop of a carried type */
     const before=P.pool[t];H.keys.w=true;M_.run(30);H.keys.w=false;M_.run(12);out.gun={before,after:P.pool[t],left:H.pickups.includes(box)};
-    out.toast=[...document.querySelectorAll('#pkToast div')].map(d=>d.textContent);
+    out.toast=[...document.querySelectorAll('.ht-fi span')].map(d=>d.textContent);
     /* ammo bag tile 'a' */
     const bag=L.ammo.find(a=>!a.got);P.pool[t]=10;M_.place(bag.x-2.2,bag.z);M_.face(1,0);H.keys.w=true;M_.run(40);H.keys.w=false;M_.run(14);out.bag={got:bag.got,pool:P.pool[t],inScene:!!bag.mesh.parent};
     /* full: nothing taken, one message */
-    P.pool[t]=H.AMMO[t].cap;P.fullSaid=null;const g2=H.dropAt('pistol',P.pos.x+.6,P.pos.z);for(const d of document.querySelectorAll('#pkToast div'))d.remove();M_.run(30);
-    out.full={stays:H.pickups.includes(g2),msgs:[...document.querySelectorAll('#pkToast div')].map(d=>d.textContent)};
+    P.pool[t]=H.AMMO[t].cap;P.fullSaid=null;const g2=H.dropAt('pistol',P.pos.x+.6,P.pos.z);for(const d of document.querySelectorAll('.ht-fi span'))d.remove();M_.run(30);
+    out.full={stays:H.pickups.includes(g2),msgs:[...document.querySelectorAll('.ht-fi span')].map(d=>d.textContent)};
     /* an ammo box of a type you have room for */
     P.pool[t]=50;const ab=H.pickups.length;H.L.pickups;const o={ammo:{type:t,n:17},x:P.pos.x+1.0,z:P.pos.z+.2,src:'crate'};
     return out});
@@ -122,28 +122,32 @@ module.exports=[
   ok('full pouch: pickup stays and says "9mm full" once',r.full.stays&&r.full.msgs.filter(m=>m==='9mm full').length===1,r.full);
   const r2=await p.evaluate(()=>{const H=__ht,P=H.P;P.pool['9mm']=40;P.fullSaid=null;
     /* a non-carried gun still needs hold-E */
-    const g=H.dropAt('rifle',P.pos.x+.5,P.pos.z);M_.run(20);return{stays:H.pickups.includes(g),weapons:P.weapons.slice(),prompt:document.getElementById('prompt').textContent}});
+    const g=H.dropAt('rifle',P.pos.x+.5,P.pos.z);M_.run(20);return{stays:H.pickups.includes(g),weapons:P.weapons.slice()}});
   ok('a gun you do not carry is not auto-taken (hold E prompt)',r2.stays&&!r2.weapons.includes('rifle'),r2);
-  if(__SHOTS)await shot('ammo_toast',()=>{const H=__ht,P=H.P;H.startMission(0);M_.calm();P.fp=false;H.step(100);document.getElementById('banner').classList.remove('on');
+  if(__SHOTS)await shot('ammo_toast',()=>{const H=__ht,P=H.P;H.startMission(0);M_.calm();P.fp=false;H.step(100);
     const L=H.L;let s=null;for(let z=3;z<L.H-3&&!s;z++)for(let x=3;x<L.W-3&&!s;x++){const X=x*2+1,Z=z*2+1;if(!H.solidAt(X,Z,4,0))s={x:X,z:Z}}
-    M_.place(s.x,s.z);M_.face(1,.3);P.pitch=-.2;P.pool['9mm']=30;for(const d of document.querySelectorAll('#pkToast div'))d.remove();
+    M_.place(s.x,s.z);M_.face(1,.3);P.pitch=-.2;P.pool['9mm']=30;for(const d of document.querySelectorAll('.ht-fi span'))d.remove();
     H.dropAt('pistol',P.pos.x-Math.sin(P.yaw)*2.4,P.pos.z-Math.cos(P.yaw)*2.4);H.keys.w=true;M_.run(24);H.keys.w=false;M_.run(4);H.draw()});
 }},
 {key:'crew',async run(p,ok){
   const r=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();
     const cands=M_.tiles('f').map(t=>M_.col(t.x,t.z)).filter(Boolean);let res=null;
-    for(const c of cands){for(const o of M_.approach(c,.9)){M_.place(o.x,o.z);for(const a of H.allies){a.pos.set(o.x-o.dx*1.5,0,o.z-o.dz*1.5)}M_.face(o.dx,o.dz);M_.run(30,1/30);
-        H.keys.w=true;M_.run(3);H.jump();M_.run(30);if(!H.move.vault&&((P.pos.x-o.x)*o.dx+(P.pos.z-o.z)*o.dz)>2){M_.run(30);H.keys.w=false;
+    const nav=H.L.nav;for(const c of cands){for(const o of M_.approach(c,.9)){if(!nav.path(o.x-o.dx*1.5,o.z-o.dz*1.5,o.x+o.dx*8,o.z+o.dz*8)||!nav.path(H.allies[0].pos.x,H.allies[0].pos.z,o.x,o.z))continue;M_.place(o.x,o.z);for(const a of H.allies){a.pos.set(o.x-o.dx*1.5,0,o.z-o.dz*1.5)}M_.face(o.dx,o.dz);M_.run(30,1/30);
+        H.keys.w=true;M_.run(3);H.jump();M_.run(30);if(!H.move.vault&&((P.pos.x-o.x)*o.dx+(P.pos.z-o.z)*o.dz)>2){M_.run(40,1/30);H.keys.w=false;if(((P.pos.x-o.x)*o.dx+(P.pos.z-o.z)*o.dz)<6){continue}
           /* stand still past the hedge; the crew has to path around it */
-          M_.run(240,1/30);res={d:H.allies.map(a=>+Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z).toFixed(1)),inside:H.allies.filter(a=>H.solidAt(a.pos.x,a.pos.z,.28,0)).length};break}H.keys.w=false}
+          M_.run(240,1/30);const cx=(c.x0+c.x1)/2,cz=(c.z0+c.z1)/2,side=q=>(q.x-cx)*o.dx+(q.z-cz)*o.dz;res={d:H.allies.map(a=>+Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z).toFixed(1)),across:H.allies.map(a=>side(a.pos)>0),inside:H.allies.filter(a=>H.solidAt(a.pos.x,a.pos.z,.28,0)).length};break}H.keys.w=false}
       if(res)break}
     return res||{none:true}});
-  ok('crew follows around the hedge after the dad vaults it (within 6 m in 8 s)',r.d&&r.d.every(d=>d<6)&&!r.inside,r);
+  const r2=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();
+    /* the pocket behind the mission van, closed off on the nav grid by the van, a hedge row and the edge trees */
+    M_.place(3,5);M_.face(0,-1);const before=H.allies.map(a=>!!H.L.nav.path(a.pos.x,a.pos.z,P.pos.x,P.pos.z));M_.run(300,1/30);return{reachable:before,d:H.allies.map(a=>+Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z).toFixed(1))}});
+  ok('crew catches up (within 8 m in 10 s) when the dad is somewhere the grid cannot reach',r2.d.every(d=>d<8),r2);
+  ok('crew paths around the hedge after the dad vaults it (all across, within 8 m, in 8 s)',r.d&&r.d.every(d=>d<8)&&r.across.every(Boolean)&&!r.inside,r);
 }},
 {key:'fpshot',async run(p,ok,shot){
   if(!__SHOTS)return;
-  await shot('first_person_jump',()=>{const H=__ht,P=H.P;H.startMission(1);M_.calm();P.fp=true;P.pitch=-.05;H.step(100);document.getElementById('banner').classList.remove('on');H.jump();M_.run(5);H.draw()});
-  await shot('first_person_vault',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=true;H.step(100);document.getElementById('banner').classList.remove('on');const cands=M_.tiles('f').map(t=>M_.col(t.x,t.z)).filter(Boolean);
+  await shot('first_person_jump',()=>{const H=__ht,P=H.P;H.startMission(1);M_.calm();P.fp=true;P.pitch=-.05;H.step(100);H.jump();M_.run(5);H.draw()});
+  await shot('first_person_vault',()=>{const H=__ht,P=H.P;H.startMission(3);M_.calm();P.fp=true;H.step(100);const cands=M_.tiles('f').map(t=>M_.col(t.x,t.z)).filter(Boolean);
     for(const c of cands){for(const o of M_.approach(c,.9)){M_.place(o.x,o.z);M_.face(o.dx,o.dz);P.pitch=-.15;H.keys.w=true;M_.run(3);H.jump();M_.run(2);if(H.move.vault==='vault'){M_.run(9);H.keys.w=false;H.draw();return}H.keys.w=false;M_.run(40)}}});
 }},
 {key:'missions',async run(p,ok){

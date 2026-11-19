@@ -964,7 +964,7 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){HUD.show('title',UI.title)}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
-  buildLevel(HUB);makePlayer();P.pos.copy(L.start);P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
+  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',a=>{
   if(a==='newgame'||a==='continue')start();
   else if(UI.acts[a])UI.acts[a]();
@@ -976,8 +976,8 @@ HUD.on('action',a=>{
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
 /* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
 HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
-  if(VAN.on){VAN.pos.set(pin.x,0,pin.z);VAN.spd=0;collide(VAN.pos,1.1);syncVan();P.pos.set(VAN.pos.x,0,VAN.pos.z)}
-  else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
+  if(VAN.on){VAN.pos.set(pin.x,0,pin.z);VAN.spd=0;collide(VAN.pos,1.1);syncVan();P.pos.set(VAN.pos.x,0,VAN.pos.z);P.vault=null;P.vy=0}
+  else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);resetMove();for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
   HUD.feed('Fast travel · '+pin.label,'info')});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
@@ -1259,7 +1259,7 @@ function updPickups(dt,busy){
 /* automatic ammo: ammo bags, dropped boxes and the ammo in a dropped gun you already carry come to you within PK_R (a short magnet), with a toast.
    A full pouch says so once per ammo type until you spend some. A surrendered man's gun waits for the zip-tie. */
 const PK_R=1.25;
-function toast(txt,col){if(!document.body)return;let el=$('pkToast');
+function toast(txt,col){if(HUD&&HUD.feed){try{HUD.feed(txt,'info');return}catch(e){}}if(!document.body)return;let el=$('pkToast');
   if(!el){el=document.createElement('div');el.id='pkToast';el.style.cssText='position:fixed;left:50%;bottom:27%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;z-index:3';document.body.appendChild(el)}
   const d=document.createElement('div');d.textContent=txt;d.style.cssText='font:800 15px/1 var(--body,sans-serif);letter-spacing:.05em;color:#f6f1e3;background:rgba(18,20,24,.66);padding:7px 13px 7px 11px;border-left:3px solid '+(col||'#ffc94a')+';border-radius:3px;text-shadow:0 1px 2px rgba(0,0,0,.5);transition:opacity .35s,transform .35s;opacity:0;transform:translateY(8px)';
   el.appendChild(d);while(el.children.length>3)el.firstChild.remove();void d.offsetWidth;d.style.opacity='1';d.style.transform='none';
@@ -1353,7 +1353,10 @@ function aiEnemy(e,dt){const d=e.dude,t0=performance.now();const I=AI.think(e,ai
 function aiAlly(a,dt){const d=a.dude,t0=performance.now();
   const I=AI.ally(a,{nav:L.nav,t:simT,barker:M.crewBarker,player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,crouch:P.crouch,moving:P.moving,reloading:P.reloadT>0,busy:!!keys.e,hp:P.hp},
     camera:{x:camera.position.x,z:camera.position.z,yaw:P.yaw},enemies,allies},dt);aiStats.allyMs+=performance.now()-t0;aiStats.allyCalls++;
-  if(I.teleport)a.pos.set(I.teleport.x,0,I.teleport.z);AI.move(a,I,dt);
+  if(I.teleport)a.pos.set(I.teleport.x,0,I.teleport.z);
+  /* no path to the dad (he vaulted into a pocket the grid can't reach): after 3 s, catch up behind the camera */
+  if(I.state==='follow'&&!I.path&&Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z)>8){a.lostT=(a.lostT||0)+dt;if(a.lostT>3){a.lostT=0;const k=L.nav.nearestWalkable(P.pos.x+Math.sin(P.yaw)*2.2,P.pos.z+Math.cos(P.yaw)*2.2);if(k>=0)a.pos.set(L.nav.wx(k),0,L.nav.wz(k))}}else a.lostT=0;
+  AI.move(a,I,dt);
   for(const o of enemies)if(o.state==='surrender'||o.state==='cuffed'){const dx=a.pos.x-o.pos.x,dz=a.pos.z-o.pos.z,dd=Math.hypot(dx,dz);if(dd<.9&&dd>0){a.pos.x+=dx/dd*.05;a.pos.z+=dz/dd*.05}}
   collide(a.pos,.35);
   if(I.bark){radio(a.id,I.bark.text,I.bark.priority>=2);aiLog(a.id,I.bark);aiVoice(AI_VOICE[I.bark.event],a)}
