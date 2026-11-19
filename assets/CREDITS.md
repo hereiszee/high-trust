@@ -115,6 +115,16 @@ Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion 
 | tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
 | tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
 
+## Fonts (assets/fonts/)
+
+Latin subsets as served by Google Fonts, self-hosted so the HUD paints in its own type from the first frame. All **SIL Open Font License 1.1**; licence texts are next to the files.
+
+| Files | Family | Author | License |
+|---|---|---|---|
+| barlow-{500,600,700}.woff2 | Barlow | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlow.txt) |
+| barlow-condensed-{500,600,700,800}.woff2 | Barlow Condensed | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlowcondensed.txt) |
+| bowlby-one-400.woff2 | Bowlby One | Vernon Adams | OFL 1.1 (OFL-bowlbyone.txt) |
+
 ## Effects (js/fx.js)
 
 No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
@@ -122,3 +132,7 @@ No files. All effect textures are generated procedurally in code at startup. Ori
 ## Firearms and first-person arms
 
 See assets/credits/guns.md.
+
+## Vehicles (js/vehicles.js)
+
+No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.

@@ -2,175 +2,31 @@
 <title>High Trust</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap">
+<link rel="preload" href="assets/fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/bowlby-one-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/hud.css">
 <style>
-/* Layout: full-bleed 3D view; HUD hugs the corners like a shooter; briefings are paper index cards over the scene. Single deliberate look. */
+/* Layout: full-bleed 3D view. The HUD, minimap and all menus come from js/hud.js + css/hud.css (window.HT.HUD). */
 :root{
   --ink:#16181c; --paper:#f6f1e3; --sun:#ffc94a; --polo:#2f5d9e; --alarm:#e5533d; --leaf:#7ed36b;
   --display:"Bowlby One","Arial Black",Impact,sans-serif;
-  --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ui:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-family:var(--body);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
 .hud{position:fixed;pointer-events:none;text-shadow:0 1px 0 rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.35)}
-#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(170,20,10,.85) 100%);opacity:0}
-#xh{left:50%;top:50%;width:0;height:0}
-#xh i{position:absolute;background:var(--paper);box-shadow:0 0 2px #000}
-#xh .t{width:2px;height:8px;left:-1px}#xh .b{width:2px;height:8px;left:-1px}#xh .l{height:2px;width:8px;top:-1px}#xh .r{height:2px;width:8px;top:-1px}
-#xh .d{width:3px;height:3px;left:-1.5px;top:-1.5px;border-radius:50%}
-#xh.nofire i{background:var(--sun)}#xh.nofire:after{content:"HANDS UP";position:absolute;left:-40px;width:80px;top:22px;text-align:center;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--sun)}
-#hm{left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;opacity:0}
-#hm:before,#hm:after{content:"";position:absolute;left:10px;top:-2px;width:2px;height:26px;background:#fff;transform:rotate(45deg)}#hm:after{transform:rotate(-45deg)}
-#hm.kill:before,#hm.kill:after{background:var(--alarm)}
-#obj{top:calc(env(safe-area-inset-top,0px) + 14px);left:max(16px,env(safe-area-inset-left,0px));max-width:min(340px,60vw)}
-#obj .t{font-family:var(--display);font-size:18px;letter-spacing:.02em;color:var(--sun);line-height:1.05}
-#obj .s{font-size:13px;margin-top:6px;line-height:1.45;font-weight:600}
-#obj .s div:before{content:"◇ ";color:var(--sun)}#obj .s div.ok{opacity:.55;text-decoration:line-through}#obj .s div.ok:before{content:"◆ "}#obj .s div.warn{color:var(--alarm)}#obj .s div.warn:before{color:var(--alarm)}
-#trust{top:calc(env(safe-area-inset-top,0px) + 14px);right:max(16px,env(safe-area-inset-right,0px));width:min(200px,34vw);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:800}
-#trust .row{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums}
-.bar{height:6px;background:rgba(0,0,0,.6);margin-top:5px;border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--alarm),var(--sun) 55%,var(--leaf));width:10%;transition:width .4s}
-#wpn{bottom:calc(env(safe-area-inset-bottom,0px) + 16px);right:max(16px,env(safe-area-inset-right,0px));text-align:right}
-#wpn .n{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
-#wpn .a{font-family:var(--display);font-size:34px;line-height:1;font-variant-numeric:tabular-nums}#wpn .a small{font-size:16px;opacity:.6}
-#wpn .k{font-size:11px;margin-top:4px;opacity:.75;font-weight:600}
-#wpn .k b{display:inline-block;min-width:16px;padding:0 4px;border:1px solid rgba(246,241,227,.5);border-radius:3px;margin-left:6px;text-align:center}
-#wpn .k b.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
-#hp{bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:max(16px,env(safe-area-inset-left,0px));width:min(210px,40vw);font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
-#hp .bar i{background:var(--paper)}
-#crew{margin-top:10px;display:flex;flex-direction:column;gap:5px}
-#crew div{font-size:11px;letter-spacing:.04em;text-transform:none;font-weight:600}
-#crew .bar{height:4px;margin-top:2px}#crew .bar i{background:var(--leaf)}#crew .down{color:var(--alarm)}
-#sub{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);max-width:min(640px,88vw);text-align:center;font-size:16px;font-weight:600;line-height:1.4}
-#sub b{color:var(--sun);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px;margin-right:6px}
-#prompt{left:50%;top:62%;transform:translateX(-50%);background:rgba(22,24,28,.8);border:1px solid rgba(246,241,227,.5);padding:6px 12px;border-radius:4px;font-weight:800;font-size:14px;white-space:nowrap}
-#prompt .p{display:block;height:3px;background:var(--sun);margin-top:5px;width:0}
-#banner{left:0;right:0;top:30%;text-align:center;font-family:var(--display);font-size:clamp(34px,8vw,72px);line-height:1;color:var(--sun);opacity:0;transition:opacity .4s;padding-inline:16px;text-shadow:4px 4px 0 var(--ink)}
-#banner small{display:block;font-family:var(--body);font-size:clamp(13px,3vw,18px);color:var(--paper);font-weight:800;margin-top:10px;text-shadow:2px 2px 0 var(--ink)}
-#banner.on{opacity:1}
-#mk{width:0;height:0}
-#mk i{position:absolute;left:-9px;top:-9px;width:14px;height:14px;border:2px solid var(--sun);transform:rotate(45deg);background:rgba(255,201,74,.25)}
-#mk span{position:absolute;top:12px;left:-60px;width:120px;text-align:center;font-size:11px;font-weight:800;color:var(--sun);letter-spacing:.05em}
-.tag{position:fixed;pointer-events:none;transform:translate(-50%,-100%);font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap;text-shadow:0 1px 2px #000;text-align:center}
-.tag.ally{color:var(--leaf)}.tag.surr{color:var(--sun);font-size:13px;background:rgba(22,24,28,.75);padding:2px 6px;border-radius:3px}.tag.homie{color:var(--sun)}.tag.down{color:var(--alarm)}
-#lock{left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);font-size:12px;font-weight:800;background:rgba(22,24,28,.8);padding:5px 10px;border-radius:4px;letter-spacing:.04em}
-.card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(14,15,18,.72);padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));z-index:5}
-.card .in{background:var(--paper);color:var(--ink);max-width:560px;width:100%;padding:26px 26px 24px;border-radius:4px;box-shadow:8px 8px 0 var(--polo);max-height:88%;overflow:auto;position:relative}
-.card .in:before{content:"";position:absolute;left:0;right:0;top:54px;border-top:2px solid rgba(229,83,61,.45)}
-.card h1{font-family:var(--display);font-weight:400;font-size:clamp(44px,11vw,76px);line-height:.92;margin:0 0 4px;color:var(--polo)}
-.card h2{font-family:var(--display);font-weight:400;font-size:clamp(28px,7vw,42px);line-height:1;margin:8px 0 12px;text-wrap:balance}
-.card .who{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--alarm);font-weight:800;height:30px}
-.card p{margin:0 0 9px;font-size:15px;line-height:1.48}
-.card .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;background:var(--ink);color:var(--paper);padding:10px 12px;border-radius:4px;margin:14px 0 18px}
-.card .meta b{color:var(--sun);text-transform:uppercase;letter-spacing:.08em;font-size:11px;padding-top:2px}
-.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13.5px;margin:14px 0 20px}
-.keys b{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--ink);color:var(--paper);padding:1px 7px;border-radius:3px;font-size:11.5px;justify-self:start;white-space:nowrap}
-.btns{display:flex;gap:12px;flex-wrap:wrap}
-.btn{font-family:var(--display);font-size:19px;background:var(--sun);color:var(--ink);border:3px solid var(--ink);border-radius:5px;padding:9px 20px;cursor:pointer;box-shadow:4px 4px 0 var(--ink)}
-.btn.ghost{background:transparent;box-shadow:none}
-.btn:disabled{opacity:.55;cursor:progress;box-shadow:2px 2px 0 var(--ink)}
-.ld{margin:2px 0 16px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--polo)}
-.ld .bar{height:8px;background:rgba(22,24,28,.14);margin:0 0 6px}.ld .bar i{background:var(--polo);width:0;transition:width .25s}
-.ld.warn{color:var(--alarm)}
-.set select{font:600 14px var(--body);color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:4px 6px;width:100%}
-.set .hint{font-size:11px;font-weight:600;opacity:.7;text-align:right;white-space:nowrap}
-.set{display:grid;grid-template-columns:auto 1fr auto;gap:10px 12px;align-items:center;font-size:14px;margin:14px 0 20px}
-.set label{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.set input[type=range]{width:100%;accent-color:var(--polo)}
-.set output{font-variant-numeric:tabular-nums;font-weight:800;min-width:3ch;text-align:right}
-.set input[type=checkbox]{width:18px;height:18px;accent-color:var(--polo);justify-self:start}
-.btn:focus-visible{outline:3px solid var(--polo);outline-offset:3px}
-.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
-#touch{display:none}
-@media (pointer:coarse){
-  #touch{display:block}
-  .tb{position:fixed;width:62px;height:62px;border-radius:50%;background:rgba(246,241,227,.16);border:2px solid rgba(246,241,227,.55);color:var(--paper);font:800 11px var(--body);display:flex;align-items:center;justify-content:center;text-align:center;z-index:2}
-  #tFire{right:calc(max(16px,env(safe-area-inset-right,0px)) + 8px);bottom:calc(env(safe-area-inset-bottom,0px) + 120px);width:78px;height:78px;background:rgba(229,83,61,.35)}
-  #tAim{right:calc(max(16px,env(safe-area-inset-right,0px)) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}
-  #tUse{right:calc(max(16px,env(safe-area-inset-right,0px)) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 76px)}
-  #tRel{right:calc(max(16px,env(safe-area-inset-right,0px)) + 170px);bottom:calc(env(safe-area-inset-bottom,0px) + 110px);width:50px;height:50px}
-  #tSwap{right:calc(max(16px,env(safe-area-inset-right,0px)) + 18px);bottom:calc(env(safe-area-inset-bottom,0px) + 210px);width:50px;height:50px}
-  #tCam{right:calc(max(16px,env(safe-area-inset-right,0px)) + 80px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px);width:50px;height:50px}
-  #sub{bottom:calc(env(safe-area-inset-bottom,0px) + 290px);max-width:calc(100vw - 32px)}
-  #tRel{right:calc(max(16px,env(safe-area-inset-right,0px)) + 150px);bottom:calc(env(safe-area-inset-bottom,0px) + 222px)}
-  #tPause{top:calc(env(safe-area-inset-top,0px) + 64px);right:max(16px,env(safe-area-inset-right,0px));width:44px;height:44px;font-size:14px}
-  .kb{display:none}
-  #lock{display:none}
-}
-@media (max-width:520px){#trust .row span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:6px}#obj{max-width:52vw}#obj .t{font-size:15px}#obj .s{font-size:12px}#wpn .a{font-size:26px}}
+#lock{left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);font:700 13px/1.2 var(--ui);letter-spacing:.06em;text-transform:uppercase;background:rgba(12,15,19,.72);padding:6px 12px;border-radius:6px;z-index:11}
+#tags,#sub{display:none}
+@media (pointer:coarse){#lock{display:none}}
 </style>
 
-<div id="vig"></div>
-<div class="hud" id="xh"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
-<div class="hud" id="hm"></div>
-<div class="hud" id="obj"><div class="t" id="objT"></div><div class="s" id="objS"></div></div>
-<div class="hud" id="trust"><div class="row"><span>Neighborhood trust</span><span id="trV">12%</span></div><div class="bar"><i id="trB"></i></div></div>
-<div class="hud" id="hp"><div class="row">Dad health</div><div class="bar"><i id="hpB" style="width:100%"></i></div><div id="crew"></div></div>
-<div class="hud" id="wpn"><div class="n" id="wN"></div><div class="a" id="wA"></div><div class="k" id="wK"></div></div>
-<div class="hud" id="sub"></div>
-<div class="hud" id="prompt" hidden></div>
-<div class="hud" id="banner"></div>
-<div class="hud" id="mk" hidden><i></i><span id="mkT"></span></div>
 <div class="hud" id="lock" hidden>Click the view to lock your mouse · Esc to pause</div>
-<div id="tags"></div>
-<div id="touch">
-  <div class="tb" id="tFire">FIRE</div><div class="tb" id="tAim">AIM</div><div class="tb" id="tUse">USE</div>
-  <div class="tb" id="tRel">R</div><div class="tb" id="tPause">II</div><div class="tb" id="tSwap">GUN</div><div class="tb" id="tCam">VIEW</div>
-</div>
-
-<div class="card" id="cTitle">
-  <div class="in">
-    <div class="who">Maple Heights · Saturday</div>
-    <h1>High<br>Trust</h1>
-    <p>Maple Heights used to leave its doors unlocked. Then the packages started disappearing, a chop shop opened on Industrial Way, and somebody started dealing out of the old duplex on Birch.</p>
-    <p>You and the guys would rather be grilling. Unfortunately, someone has to do this.</p>
-    <div class="keys">
-      <b class="kb">WASD</b><span class="kb">Move · <b>SHIFT</b> jog · <b>C</b> crouch</span>
-      <b class="kb">MOUSE</b><span class="kb">Look · left click fire · right click aim</span>
-      <b class="kb">R</b><span class="kb">Reload · <b>1 2 3</b> or <b>Q</b> switch guns</span>
-      <b class="kb">E</b><span class="kb">Talk, zip-tie, smash stashes (hold)</span>
-      <b class="kb">V</b><span class="kb">Over-the-shoulder or first-person view</span>
-      <b class="kb">ESC</b><span class="kb">Pause · look speed, aim speed, field of view, invert</span>
-      <b>RESTRAINT</b><span>Hurt enemies sometimes give up. Zip-tie them instead of finishing the job. Trust is the whole point.</span>
-    </div>
-    <div class="ld" id="ld"><div class="bar"><i id="ldB"></i></div><span id="ldT">Loading the neighborhood · 0%</span></div>
-    <div class="btns"><button class="btn" id="bStart" disabled>Loading…</button></div>
-  </div>
-</div>
-<div class="card" id="cBrief" hidden>
-  <div class="in">
-    <div class="who" id="brWho"></div>
-    <h2 id="brTitle"></h2>
-    <div id="brLines"></div>
-    <div class="meta" id="brMeta"></div>
-    <div class="btns"><button class="btn" id="brGo">Load the van</button><button class="btn ghost" id="brSkip">Skip the drive</button><button class="btn ghost" id="brNo">Not yet</button></div>
-  </div>
-</div>
-<div class="card" id="cPause" hidden>
-  <div class="in">
-    <div class="who">Paused</div>
-    <h2>Take a breath.</h2>
-    <div class="set">
-      <label for="sSens">Look speed</label><input type="range" id="sSens" min="1" max="20" step="1"><output id="oSens"></output>
-      <label for="sAds">Aim speed</label><input type="range" id="sAds" min="20" max="100" step="5"><output id="oAds"></output>
-      <label for="sFov">Field of view</label><input type="range" id="sFov" min="60" max="100" step="1"><output id="oFov"></output>
-      <label for="sInv">Invert look</label><input type="checkbox" id="sInv"><span></span>
-      <label for="sFp">First person</label><input type="checkbox" id="sFp"><span></span>
-      <label for="sGfx">Graphics</label><select id="sGfx"><option value="low">Low · no effects, fastest</option><option value="med">Medium · balanced</option><option value="high">High · full effects</option></select><span class="hint" id="oGfx"></span>
-    </div>
-    <div class="btns"><button class="btn" id="pResume">Resume</button><button class="btn ghost" id="pHub" hidden>Abandon job</button></div>
-  </div>
-</div>
-<div class="card" id="cResult" hidden>
-  <div class="in">
-    <div class="who" id="rsWho"></div>
-    <h2 id="rsTitle"></h2>
-    <div id="rsBody"></div>
-    <div class="btns"><button class="btn" id="rsGo">Back to the cul-de-sac</button><button class="btn ghost" id="rsRetry" hidden>Run it back</button></div>
-  </div>
-</div>
+<div id="tags" hidden></div><div id="sub" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -182,6 +38,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/hud.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/guns.js"></script>
@@ -189,6 +46,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
 <script src="js/people.js"></script>
+<script src="js/ai.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -821,7 +679,9 @@ function buildLevel(def){
       const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}}
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
+  if(def.id!=='hub'&&window.HT&&window.HT.AI)lvl.nav=window.HT.AI.buildNav(g,{colliders:lvl.colliders,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});
   setMood(def);
+  HUD.minimap.setLevel(def.map,{tile:TILE,pad:def.pad,lines:def.lines,under:def.under,floor:def.floor,inside:def.inside,interior:def.id!=='hub',name:def.place||'Maple Heights'});if(def.id!=='hub')HUD.minimap.setPins([]);
   L=lvl;return lvl;
 }
 function makeVanBox(col='#b9c0c7'){const v=new THREE.Group();box(4.4,1.7,2,col,0,1.15,0,v);box(1.3,1,2.02,'#2b3440',1.4,1.5,0,v);box(2.4,.7,2.04,'#2b3440',-.6,1.6,0,v);box(.1,.3,1.6,'#ffe9a8',2.2,.9,0,v);box(4.5,.14,2.1,'#7a8188',0,.38,0,v);
@@ -832,10 +692,9 @@ function makeVanBox(col='#b9c0c7'){const v=new THREE.Group();box(4.4,1.7,2,col,0
 const tx=v=>Math.floor(v/TILE);
 function walkable(x,z){if(!L||x<0||z<0||x>=L.W||z>=L.H)return false;return !SOLID.includes(L.g[z][x])}
 function losClear(ax,az,bx,bz,blk=LOSBLOCK){const d=Math.hypot(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=tx(x),gz=tx(z);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;if(blk.includes(L.g[gz][gx]))return false}return true}
-const LOS_NOCRATE=LOSBLOCK.replace('c','');
+const LOS_NOCRATE='#htV';
 /* crates (1.15m) hide a crouching dad, not a standing one: enemies see over them like the player shoots over them */
-const LOS_HIGH='#htV';/* standing on a crate or table: hedges, tables and crates no longer hide you */
-function losClearFor(t,ax,az,bx,bz){return losClear(ax,az,bx,bz,t===P&&P.pos.y>.6?LOS_HIGH:t===P&&P.crouch?LOSBLOCK:LOS_NOCRATE)}
+function losClearFor(t,ax,az,bx,bz){return losClear(ax,az,bx,bz,t===P&&P.crouch&&!(P.pos.y>.6)?LOSBLOCK:LOS_NOCRATE)}/* crouching on top of a crate or table hides nothing */
 function nextStep(fx,fz,gxw,gzw){
   const sx=tx(fx),sz=tx(fz),ex=tx(gxw),ez=tx(gzw);if(sx===ex&&sz===ez)return null;
   const W=L.W,H=L.H,prev=new Int32Array(W*H).fill(-1),q=[sz*W+sx];prev[sz*W+sx]=sz*W+sx;let found=false,head=0;
@@ -876,23 +735,35 @@ try{Object.assign(CFG,JSON.parse(localStorage.getItem('ht-cfg')||'{}'))}catch(e)
 function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
 
 /* ================= UI helpers ================= */
+/* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
+   signatures and only fill UI, which hud() turns into one state object per frame. */
+const HUD=HT.HUD.init(document.body.appendChild(document.createElement('div')));
+{const au=HUD.settingsSchema.find(g=>g.tab==='audio');if(au){const v=au.items.find(i=>i.k==='voice');if(v){v.k='ambience';v.l='Ambience'}}}/* js/audio.js has master, sfx, music and ambience buses, no voice bus */
+const VOL_DEF={master:90,sfx:100,music:50,ambience:75};
+HUD.settings={subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience};P.fp=!!CFG.fp;
 const subQ=[];let subT=0,bannerT=0,hitT=0,hurtFlash=0;
+const UI={obj:null,prompt:null,marker:null,sub:null,route:null,acts:{},title:{progress:0},M:null,hp:100,n:{},down:new Map()};
 function radio(who,text,front){const n=who==='you'?'You':(HOMIES[who]?.name||who);if(front)subQ.unshift([n,text]);else subQ.push([n,text]);if(subQ.length>4)subQ.length=4}
-function banner(t,s,d=3){$('banner').innerHTML=t+(s?'<small>'+s+'</small>':'');$('banner').classList.add('on');bannerT=d}
+function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
+  const intro=mode==='mission'&&M&&M.elapsed<.5&&t===M.def.title.toUpperCase();
+  HUD.banner(intro?{kind:'title',kicker:'New job',title:M.def.title,sub:s,dur:d}:{kind:'alert',title:t,sub:s,dur:d})}
 function addTrust(v){prog.trust=clamp(prog.trust+v,0,100)}
-function setPrompt(t,p){const el=$('prompt');if(!t){el.hidden=true;return}el.hidden=false;const h=t+(p!=null?'<span class="p" style="width:'+Math.round(p*100)+'%"></span>':'');if(el.innerHTML!==h)el.innerHTML=h}
+/* 'E · Zip-tie', 'Hold E · Grab the packages', 'USE · Talk to Gary' */
+function setPrompt(t,p){if(!t){UI.prompt=null;return}const m=/^(Hold\s+)?(\S+)\s+·\s+(.*)$/.exec(t);
+  UI.prompt=m?{key:m[2]==='USE'?'E':m[2],text:m[3],hold:!!m[1],progress:p||0}:{text:t,progress:p||0}}
 
 /* ================= SPAWNING ================= */
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
 function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
 function clearChars(){for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
-function spawnEnemy(x,z,boss){
+function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};
   const d=makeDude(look);equip(d,gun,{gold:boss});
   const hp=boss?420:shotgunner?90:75;
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false};
   d.root.position.copy(e.pos);enemies.push(e);addChar(e);
+  e.id='e'+(eidSeq++);e.maxHp=e.maxhp;e.role=AI.roleFor(gun,boss);e.dmgMul=(M&&M.i===0?.8:1)*(boss?1.4:1);if(M&&M.squads&&L.nav)(sq||squadFor(x,z)).add(e);
   if(boss){const tag=document.createElement('div');tag.className='tag down';tag.textContent='THE PORCH PIRATE KING';$('tags').appendChild(tag);e.tag=tag}
   return e;
 }
@@ -993,7 +864,7 @@ function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN
   setObj(m.title,[['Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
 function enterHub(){
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
-  engine(false);JOB=null;objKey='';makeHubVan();destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
+  engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
   P.pos.copy(L.start);resetMove();P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
   const next=prog.done.findIndex(d=>!d);
@@ -1009,15 +880,14 @@ function enterHub(){
   running=true;
 }
 function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();
-  $('brWho').textContent=m.role;$('brTitle').textContent=m.title;
-  $('brLines').innerHTML=m.lines.map(l=>'<p>'+l+'</p>').join('');
   const obj={loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
-  $('brMeta').innerHTML=`<b>Where</b><span>${m.place}</span><b>Job</b><span>${obj}</span><b>Crew</b><span>You, ${m.crew.map(c=>HOMIES[c].name).join(', ')}</span><b>Guns</b><span>${m.weapons.map(w=>WEAPONS[w].name).join(' · ')}</span>`;
-  $('cBrief').hidden=false;$('brGo').focus();
-  $('brGo').onclick=()=>{$('cBrief').hidden=true;JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
-    radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))};
-  $('brSkip').onclick=()=>{$('cBrief').hidden=true;startMission(i);requestLock()};
-  $('brNo').onclick=()=>{$('cBrief').hidden=true;running=true;canvasFocus();requestLock()}}
+  HUD.show('brief',{kicker:'New job',title:m.title,giver:HOMIES[m.giver].name,role:m.role,place:m.place,color:HOMIES[m.giver].shirt,lines:m.lines,
+    meta:[['Job',obj],['Crew','You, '+m.crew.map(c=>HOMIES[c].name).join(', ')],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
+  const close=()=>{HUD.hide('brief');UI.acts={}};
+  UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
+    radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
+    'brief:skip':()=>{close();startMission(i);requestLock()},
+    'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
 function startMission(i){
   engine(false);VAN.on=false;JOB=null;
   const m=MISSIONS[i];mode='mission';clearChars();buildLevel(m);makePlayer();
@@ -1028,6 +898,7 @@ function startMission(i){
   if(lend&&!prog.done[i]&&!M.lent)M.intro={t:0,done:false,prog:0};
   {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));/* crew beside and ahead of the dad, out of the camera's line */
    m.crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);spawnAlly(c,L.start.x+r.x*2.2*side+f.x*(1.8+row*1.3),L.start.z+r.z*2.2*side+f.z*(1.8+row*1.3))})}
+  aiStart(m);
   for(const s of L.spawns){const e=spawnEnemy(s.x,s.z,s.boss);if(s.boss)L.boss=e}
   rebuildTargets();
   if(M.intro){radio('rick',"Hold up. You're not walking into Birch with a garage pistol.",true);radio('rick',"Rick's Carbine. Thirty rounds, climbs a little, pull down and to the left. Bring her back clean.")}
@@ -1035,39 +906,37 @@ function startMission(i){
   banner(m.title.toUpperCase(),m.place,3.4);prog.missionsRun++;running=true;canvasFocus();audioState('mission');
 }
 function endMission(ok,why,title){
-  if(!M||M.state!=='go')return;M.state=ok?'won':'lost';audioState('end',ok);running=false;releaseLock();subQ.length=0;subT=0;$('sub').innerHTML='';setPrompt(null);
+  if(!M||M.state!=='go')return;M.state=ok?'won':'lost';audioState('end',ok);running=false;releaseLock();subQ.length=0;subT=0;UI.sub=null;setPrompt(null);showMarker(null);
   const m=M.def,secs=Math.round(M.elapsed);
   if(ok){prog.done[M.i]=true;addTrust(m.type==='boss'?(M.bossDone==='cuffed'?20:8):16)}
-  $('rsWho').textContent=(ok?'Job done · ':'Job failed · ')+m.place;
-  $('rsTitle').textContent=ok?pick(['Nobody is proud of this.','That was necessary. Unfortunately.','Home in time for dinner.']):(title||'The guys carried you to the van.');
+  const head=ok?pick(['Nobody is proud of this.','That was necessary. Unfortunately.','Home in time for dinner.']):(title||'The guys carried you to the van.');
   const end=ok?{gary:"Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry.",rick:"Coach Rick: That's fundamentals. Bring it in. Hands in. 'Trust' on three.",dave:"Big Dave: Brisket survived. Kids never saw a thing. Come eat.",doug:M.bossDone==='cuffed'?"Doug: He's agreed to coach T-ball. It's over.":"Doug: It's over. I wish he'd put his hands up."}[m.giver]:why;
-  $('rsBody').innerHTML=`<p>${end}</p><div class="meta"><b>Neutralized</b><span>${M.kills}</span><b>Zip-tied</b><span>${M.cuffs}${M.cuffs?' · they get a second chance':''}</span><b>Time</b><span>${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}</span><b>Trust</b><span>${Math.round(prog.trust)}%</span></div>`;
-  if(ok&&M.lent&&M.lent.length){$('rsBody').insertAdjacentHTML('afterbegin','<p><i>Coach Rick: "Keep the carbine. Clean it Sundays."</i></p>');banner("RICK'S CARBINE",'New in your gun locker',2.4)}
-  $('rsRetry').hidden=ok;$('rsGo').textContent='Back to the cul-de-sac';
-  const mi=M.i;
-  $('rsRetry').onclick=()=>{$('cResult').hidden=true;startMission(mi)};$('rsGo').onclick=()=>{$('cResult').hidden=true;enterHub();canvasFocus()};
-  setTimeout(()=>{$('cResult').hidden=false;$('rsGo').focus()},ok?900:1200);
+  const lent=ok&&M.lent&&M.lent.length;
+  const res={fail:!ok,stamp:(ok?'Job done':'Job failed')+' · '+m.place,title:head,text:(lent?'Coach Rick: "Keep the carbine. Clean it Sundays." ':'')+end,canRetry:!ok,
+    stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(prog.trust)+'%']]};
+  const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
+  UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMission(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
+  setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust);
-  $('rsWho').textContent='Maple Heights · One month later';$('rsTitle').textContent=t>=70?'Doors unlocked.':'Quiet, anyway.';
-  $('rsBody').innerHTML=`<p>${t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence."}</p><p>The guys still meet Saturdays. Mostly they just grill.</p><div class="meta"><b>Trust</b><span>${t}%</span><b>Zip-tied</b><span>${prog.cuffed?prog.cuffed+' '+(prog.cuffed===1?'person':'people')+' who got a second chance':'Nobody, this time'}</span><b>Regrets</b><span>${prog.shotSurr?prog.shotSurr+' you think about at night':'None you can name'}</span></div>`;
-  $('rsRetry').hidden=true;$('rsGo').textContent='New Saturday';
-  $('rsGo').onclick=()=>{Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});$('cResult').hidden=true;enterHub();canvasFocus()};
-  $('cResult').hidden=false;$('rsGo').focus()}
-function setObj(t,lines){$('objT').textContent=t;const h=lines.map(l=>typeof l==='string'?'<div>'+l+'</div>':'<div class="'+(l[1]?'ok':(l[2]||''))+'">'+l[0]+'</div>').join('');if($('objS').innerHTML!==h)$('objS').innerHTML=h}
+  HUD.show('result',{stamp:'Maple Heights · One month later',title:t>=70?'Doors unlocked.':'Quiet, anyway.',goLabel:'New Saturday',
+    text:(t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence.")+' The guys still meet Saturdays. Mostly they just grill.',
+    stats:[['Trust',t+'%'],['Zip-tied',prog.cuffed||'Nobody',prog.cuffed?(prog.cuffed===1?'person':'people')+' who got a second chance':'this time'],['Regrets',prog.shotSurr||'None',prog.shotSurr?'you think about at night':'you can name']]});
+  UI.acts={'result:go':()=>{Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
+function setObj(t,lines){UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?{text:l}:{text:l[0],done:!!l[1],warn:l[2]==='warn'})}}
 
 /* ================= INPUT ================= */
 const cv=renderer.domElement;let locked=false;
 function canvasFocus(){try{cv.focus({preventScroll:true})}catch(e){}}
-let lockFailed=false,lockWanted=false,pauseOpen=false;
+let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused=false;
 function requestLock(){if(COARSE)return;lockWanted=true;try{let r;try{r=cv.requestPointerLock({unadjustedMovement:true})}catch(e){r=null}
   if(r&&r.catch)r.catch(()=>{try{const r2=cv.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{lockFailed=true})}catch(e){lockFailed=true}});else if(!r)cv.requestPointerLock()}catch(e){lockFailed=true}}
 function releaseLock(){lockWanted=false;try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
-document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked)lockFailed=false;
+document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){try{document.exitPointerLock()}catch(e){}}}
   if(was&&!locked&&lockWanted&&running)openPause()});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
-  if(!locked&&!lockFailed&&!COARSE){requestLock();e.preventDefault();return}
+  if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
   if(e.button===0)mouseDown=true;if(e.button===2)P.aim=true;e.preventDefault()});
 addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2)P.aim=false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -1080,21 +949,43 @@ addEventListener('mousemove',e=>{if(!running||pauseOpen)return;
     if(lastMX!==null)look(e.clientX-lastMX,e.clientY-lastMY);lastMX=e.clientX;lastMY=e.clientY;return}
   lastMX=lastMY=null});
 cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
-const ui={sSens:'sens',sAds:'ads',sFov:'fov'};
-function syncPause(){for(const id in ui){$(id).value=CFG[ui[id]];$('o'+id.slice(1)).textContent=id==='sAds'?CFG.ads+'%':CFG[ui[id]]}$('sInv').checked=CFG.inv;$('sFp').checked=P.fp;$('sGfx').value=RENDER.q;$('oGfx').textContent=RENDER.post||RENDER.q==='low'?'':'effects unavailable'}
-for(const id in ui)$(id).addEventListener('input',()=>{CFG[ui[id]]=+$(id).value;saveCfg();syncPause()});
-$('sInv').addEventListener('change',()=>{CFG.inv=$('sInv').checked;saveCfg()});$('sGfx').addEventListener('change',()=>{CFG.gfx=$('sGfx').value;saveCfg();RENDER.apply(CFG.gfx);syncPause()});$('sFp').addEventListener('change',()=>{P.fp=$('sFp').checked});
-function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;syncPause();$('pHub').hidden=mode!=='mission';$('cPause').hidden=false;$('pResume').focus()}
-function closePause(){pauseOpen=false;$('cPause').hidden=true;running=true;last=performance.now();canvasFocus();requestLock()}
-$('pResume').onclick=closePause;
-$('pHub').onclick=()=>{pauseOpen=false;$('cPause').hidden=true;if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()};
+/* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
+function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
+HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
+  if(k==='gfx')RENDER.apply(v);if(k in VOL_DEF)setVolume();saveCfg()});
+/* volume: the js/audio.js buses when present; otherwise one gain node in front of the fallback synth's speakers */
+let volNode=null,volSet=false;
+function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
+  if(A){try{A.setVolume({master:v('master'),sfx:v('sfx'),music:v('music'),ambience:v('ambience')});volSet=true}catch(e){}}
+  if(!AC)return;if(!volNode){volNode=AC.createGain();volNode.connect(AC.destination);try{Object.defineProperty(AC,'destination',{value:volNode})}catch(e){}}
+  volNode.gain.value=A?1:v('master')*v('sfx')}
+function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;
+  HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause()})}
+function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
+function showTitle(){HUD.show('title',UI.title)}
+function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
+  buildLevel(HUB);makePlayer();P.pos.copy(L.start);P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
+HUD.on('action',a=>{
+  if(a==='newgame'||a==='continue')start();
+  else if(UI.acts[a])UI.acts[a]();
+  else if(a==='resume'){if(pauseOpen)closePause()}
+  else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
+  else if(a==='quit')quitToTitle();
+  else if(a==='resetSave')Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0})});
+/* full map (M): the world waits while it is open, and the cursor is free */
+HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
+/* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
+HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
+  if(VAN.on){VAN.pos.set(pin.x,0,pin.z);VAN.spd=0;collide(VAN.pos,1.1);syncVan();P.pos.set(VAN.pos.x,0,VAN.pos.z)}
+  else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
+  HUD.feed('Fast travel · '+pin.label,'info')});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
   if(card&&k==='tab'){const f=[...card.querySelectorAll('button,input')].filter(el=>!el.hidden&&el.offsetParent);if(f.length){const i=f.indexOf(document.activeElement);const n=e.shiftKey?(i<=0?f.length-1:i-1):(i+1)%f.length;f[n].focus();e.preventDefault()}return}
   if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(k)&&running)e.preventDefault();
   if(e.repeat)return;keys[k]=true;
   if(pauseOpen){if(k==='escape'||k==='p')closePause();return}
-  if(!running){if(k==='escape'&&!$('cBrief').hidden){$('brNo').click();return}if(k==='enter'&&!$('cTitle').hidden&&e.target.tagName!=='BUTTON')start();return}
+  if(!running){if(k==='escape'&&HUD.screen==='brief'&&UI.acts['brief:no']){UI.acts['brief:no']();return}if(k==='escape'&&HUD.screen==='pause'&&mode==='title'){showTitle();return}if(k==='enter'&&HUD.screen==='title'&&e.target.tagName!=='BUTTON')start();return}
   if(k==='escape'||k==='p'){openPause();try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}return}
   if(k===' '&&!VAN.on)P.jumpBuf=MOVE.buf;
   if(k==='r')reload();if(k==='v')P.fp=!P.fp;if(k==='c'||k==='control')P.crouch=!P.crouch;
@@ -1107,16 +998,25 @@ addEventListener('wheel',e=>{if(running&&P.weapons.length>1){const i=P.weapons.i
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;mouseDown=false});
 /* touch */
 const tj={id:null,sx:0,sy:0,x:0,y:0},tl={id:null,lx:0,ly:0};
-cv.addEventListener('touchstart',e=>{initAudio();for(const t of e.changedTouches){if(t.clientX<innerWidth*.45&&tj.id===null){tj.id=t.identifier;tj.sx=t.clientX;tj.sy=t.clientY;tj.x=tj.y=0}else if(tl.id===null){tl.id=t.identifier;tl.lx=t.clientX;tl.ly=t.clientY}}e.preventDefault()},{passive:false});
-cv.addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier===tj.id){tj.x=clamp((t.clientX-tj.sx)/55,-1,1);tj.y=clamp((t.clientY-tj.sy)/55,-1,1)}else if(t.identifier===tl.id){look((t.clientX-tl.lx)*2.4,(t.clientY-tl.ly)*2.4);tl.lx=t.clientX;tl.ly=t.clientY}}e.preventDefault()},{passive:false});
-const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===tj.id){tj.id=null;tj.x=tj.y=0}if(t.identifier===tl.id)tl.id=null}};
+cv.addEventListener('touchstart',e=>{initAudio();for(const t of e.changedTouches){if(t.clientX<innerWidth*.45&&tj.id===null){tj.id=t.identifier;tj.sx=t.clientX;tj.sy=t.clientY;tj.x=tj.y=0;HUD.touch.stick(0,0,true,tj.sx,tj.sy)}else if(tl.id===null){tl.id=t.identifier;tl.lx=t.clientX;tl.ly=t.clientY}}e.preventDefault()},{passive:false});
+cv.addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier===tj.id){tj.x=clamp((t.clientX-tj.sx)/55,-1,1);tj.y=clamp((t.clientY-tj.sy)/55,-1,1);HUD.touch.stick(tj.x,tj.y,true,tj.sx,tj.sy)}else if(t.identifier===tl.id){look((t.clientX-tl.lx)*2.4,(t.clientY-tl.ly)*2.4);tl.lx=t.clientX;tl.ly=t.clientY}}e.preventDefault()},{passive:false});
+const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===tj.id){tj.id=null;tj.x=tj.y=0;HUD.touch.stick(0,0,false)}if(t.identifier===tl.id)tl.id=null}};
 cv.addEventListener('touchend',tEnd);cv.addEventListener('touchcancel',tEnd);
 let touchFire=false;
-const tb=(id,down,up)=>{const el=$(id);el.addEventListener('touchstart',e=>{initAudio();down();e.preventDefault();e.stopPropagation()},{passive:false});el.addEventListener('touchend',e=>{if(up)up();e.preventDefault()},{passive:false})};
-tb('tFire',()=>{touchFire=true;mouseDown=true},()=>{touchFire=false;mouseDown=false});tb('tAim',()=>P.aim=!P.aim);tb('tUse',()=>{useTap=true;keys.e=true},()=>keys.e=false);
-{if(!$('tJump')){const b=document.createElement('div');b.className='tb';b.id='tJump';b.textContent='JUMP';b.style.cssText='right:calc(max(16px,env(safe-area-inset-right,0px)) + 24px);bottom:calc(env(safe-area-inset-bottom,0px) + 34px);width:60px;height:60px';$('touch').appendChild(b)}
-  tb('tJump',()=>{if(!VAN.on)P.jumpBuf=MOVE.buf})}
-tb('tRel',()=>reload());tb('tPause',()=>{if(running)openPause();else if(pauseOpen)closePause()});tb('tSwap',()=>swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]));tb('tCam',()=>P.fp=!P.fp);
+HUD.on('touch',(a,down)=>{initAudio();
+  /* a tap shorter than a frame still fires once: a semi-auto trigger stays pulled until fire() releases it */
+  if(a==='fire'){touchFire=down;if(down)mouseDown=running;else if(WEAPONS[P.cur].auto)mouseDown=false;return}
+  if(a==='use'){if(down&&running)useTap=true;keys.e=down&&running;return}
+  if(!down)return;
+  if(a==='pause'){if(running)openPause();else if(pauseOpen)closePause();return}
+  if(!running)return;
+  if(a==='aim')P.aim=!P.aim;else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
+  else if(a==='swap')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);else if(a==='view')P.fp=!P.fp;else if(a==='jump'&&!VAN.on)P.jumpBuf=MOVE.buf});
+/* jump button: lives in the HUD's touch layer, placed below fire, hidden while driving */
+{const tbs=HUD.touch&&HUD.touch.buttons,host=tbs&&tbs.fire&&tbs.fire.parentNode;if(host&&!tbs.jump){const b=document.createElement('div');b.className='ht-tb';b.dataset.a='jump';
+  b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg><span>Jump</span>';host.appendChild(b);tbs.jump=b;
+  const st=document.createElement('style');st.textContent='.ht-tb[data-a=jump]{width:64px;height:64px;right:calc(var(--sa-r,0px) + 32px);bottom:calc(var(--sa-b,0px) + 26px)}.ht-root.touch.m-drive .ht-tb[data-a=jump]{display:none}';document.head.appendChild(st);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');initAudio();if(running&&!VAN.on)P.jumpBuf=MOVE.buf});const up=()=>b.classList.remove('dn');b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)}}
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);
@@ -1240,7 +1140,7 @@ function fire(){
       if(e&&e.state==='surrender'&&simT-(e.surrAt||0)<SURR_GRACE)continue;hit=h;break}
     let end=hit?hit.point:camera.position.clone().addScaledVector(dir,w.range);
     if(!P.fp){const d2=end.clone().sub(shoulder),L2=d2.length();ray.set(shoulder,d2.normalize());ray.near=0;ray.far=Math.max(0,L2-.05);const blk=ray.intersectObjects(L.solids,false)[0];if(blk){hit=blk;end=blk.point}}
-    FX.tracer(mz,end,{trail:w.pellets>1?0:undefined,color:id==='beanbag'?'#ff7a1a':undefined});
+    FX.tracer(mz,end,{trail:w.pellets>1?0:undefined,color:id==='beanbag'?'#ff7a1a':undefined});if(k===w.pellets-1)aiShot(shoulder,end,'player',26);
     if(hit){const e=hit.object.userData.ent;
       if(e){FX.impact(hit.point,dir.clone().negate(),'cloth',{big:w.dmg>50,color:[.35,.45,.6]})}
       else if(id==='nailer')FX.impact(hit.point,(FX.ready&&hit.face)?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):dir.clone().negate(),'nail');
@@ -1251,7 +1151,7 @@ function fire(){
   }
   /* pellets are summed per target so one blast can't both make a man give up and then hit him again */
   for(const [e,d] of dmgBy){P.lastHitDir=fwd;if(hurtEnemy(e,d,'player',{nonlethal:w.nonlethal,gun:id})==='dead')killed=true}
-  if(anyHit){hitT=.18;$('hm').classList.toggle('kill',killed);const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
+  if(anyHit){hitT=.18;HUD.hit(killed?'kill':'hit');const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
   /* recoil: pattern-driven climb + jitter, recovered over time (rDebt) */
   const p=w.rc.pat[Math.min(n,w.rc.pat.length-1)];
   const kv=w.rc.v*p[0]*lerp(1,w.rc.adsMul,P.adsT)*(P.crouch?.8:1),kh=w.rc.h*(p[1]+w.rc.hBias+rand(-1,1));
@@ -1278,7 +1178,7 @@ function hurtEnemy(e,dmg,by,opt={}){
   if(e.boss&&!e.triedSurr&&e.hp>=e.maxhp*thr&&e.hp-dmg<=0)dmg=e.hp-e.maxhp*thr+1;
   e.hp-=dmg;e.alert=true;if(!e.last)e.last=P.pos.clone();
   if(e.hp<=0){killEnemy(e);return 'dead'}
-  if(!e.triedSurr&&e.hp<e.maxhp*thr){e.triedSurr=true;if(e.boss||Math.random()<.5)surrender(e)}
+  if(!e.triedSurr&&e.hp<e.maxhp*thr){e.triedSurr=true;if(e.boss||Math.random()<(M&&M.squads?AI.surrenderChance(e,.5):.5))surrender(e)}
 }
 const SURR_GRACE=.7;/* seconds after hands go up during which player hits don't count as an execution */
 function surrender(e){e.state='surrender';e.surrAt=simT;e.target=null;e.last=null;dropGun(e,'surrender');if(e.boss){mouseDown=false;P.fireT=Math.max(P.fireT,.6)}equip(e.dude,null);if(e.tag)e.tag.remove();const tag=document.createElement('div');tag.className='tag surr';tag.textContent=e.boss?'THE KING SURRENDERS · zip-tie him':'HANDS UP · zip-tie';$('tags').appendChild(tag);e.tag=tag;
@@ -1292,7 +1192,7 @@ function shootAt(src,target,acc,dmg,isEnemy){
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
   const dir=end.clone().sub(from).normalize(),mz=from.clone().addScaledVector(dir,.7),gun=src.gun||'pistol';
-  FX.tracer(mz,end,{enemy:isEnemy,ally:!isEnemy});FX.muzzleFlash(mz,dir,{type:isEnemy?'enemy':gun});
+  FX.tracer(mz,end,{enemy:isEnemy,ally:!isEnemy});if(!isEnemy)aiShot(from,end,src.id,22);FX.muzzleFlash(mz,dir,{type:isEnemy?'enemy':gun});
   gunSnd(gun,isEnemy?.75:.55,{dist:src.pos.distanceTo(P.pos),pos:src.pos.clone().setY(1.4),noMech:true});
   if(!hit){ray.set(from,dir);ray.near=.5;ray.far=from.distanceTo(end)+4;const h=L?ray.intersectObjects(L.solids,false)[0]:null;if(h)FX.hit(h);return}
   if(target!==P)FX.impact(tp,dir.clone().negate(),'cloth',{color:[.35,.45,.6]});
@@ -1399,6 +1299,86 @@ function finishIntro(){M.intro.done=true;M.lent=['rifle'];prog.rifleLent=true;ta
   banner("RICK'S CARBINE",'On loan from Coach Rick',2.4);radio('rick',"I've got a spare. Don't tell Denise.",true);sfx('rack')}
 
 /* ================= AI ================= */
+/* ---------- game AI (js/ai.js, docs/AI.md): the module decides, the game moves, collides, shoots and talks ---------- */
+const AI=window.HT.AI;
+let aiWorld=null,eidSeq=1;const noiseQ=[];
+const aiStats={thinkMs:0,thinks:0,allyMs:0,allyCalls:0,barks:[]};
+/* one source for NPC gun stats: the combat table NPC_GUNS (acc, dmg, burst, cooldown, range band; the close-range damage
+   step is found by probing npcGun). The AI keeps only what it adds on top: magazine, reload, aim telegraph, range */
+function aiSyncGuns(){if(aiSyncGuns.done)return;aiSyncGuns.done=1;
+  const step=(k,ally)=>{const n=npcGun(k,0,ally),f=npcGun(k,99,ally);if(n[1]===f[1])return null;let d=0;while(d<40&&npcGun(k,d,ally)[1]===n[1])d+=.5;return[d,n[1]]};
+  for(const k in NPC_GUNS){const f=npcGun(k,99),c=step(k,false);const g=AI.GUNS[k]||(AI.GUNS[k]={mag:6,reload:2,aim:.55,range:30});
+    Object.assign(g,{acc:f[0],dmg:f[1],burst:f[2],cd:f[3],want:[f[4],f[5]]});if(c)g.close=c;else delete g.close;
+    if(NPC_GUNS[k].a){const fa=npcGun(k,99,true),ca=step(k,true);const a=AI.ALLY_GUNS[k]||(AI.ALLY_GUNS[k]={range:35});Object.assign(a,{acc:fa[0],dmg:fa[1],cd:fa[2]});if(ca)a.close=ca;else delete a.close}}}
+/* positional grunts from js/audio.js under the subtitle lines */
+const AI_VOICE={spotted:'thug_alert',taunt:'thug_alert',flanked:'thug_alert',rush:'thug_alert',investigate:'thug',searching:'thug',hit:'thug_hurt',retreat:'thug_hurt',surrender:'thug_surrender',
+  contactFront:'dad_alert',contactLeft:'dad_alert',contactRight:'dad_alert',contactBehind:'dad_alert',contactRoom:'dad_alert',enemyFlanking:'dad_alert',breach:'dad_alert'};
+function aiVoice(kind,ent){const A=AU();if(!A||!A.voice||!kind)return;try{A.voice(kind,ent.pos.clone().setY(1.6))}catch(e){}}
+function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.nav)return;aiSyncGuns();const df=AI.missionDiff(M.i);/* per-mission tuning lives in js/ai.js (AI.MISSION_DIFF) so the node sims test the same numbers */
+  M.aiDiff=df;M.pool=AI.pool({maxShooters:df.pool});M.squads=new Map();M.barker=AI.barker();M.crewBarker=AI.barker({gap:1.2});
+  if(m.type==='waves'&&L.grill&&L.waveSpawns.length)M.dir=AI.director(L.nav,{spawns:L.waveSpawns,defend:L.grill,waves:m.waves})}
+/* one squad per indoor room, one for everything outside */
+function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
+  let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
+/* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
+function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;noiseQ.push({x:from.x,z:from.z,r,t:simT,kind:'gun',id});AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
+function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
+/* per frame, before the enemy loop: what the AI can know about the dad and the crew */
+function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
+  while(noiseQ.length&&simT-noiseQ[0].t>.5)noiseQ.shift();
+  const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
+  aiWorld={nav:L.nav,t:simT,diff:M.aiDiff,noises:noiseQ,agents:enemies.filter(e=>e.state==='idle'),
+    threats:[{id:'player',x:P.pos.x,z:P.pos.z,fx,fz,fov:.96,isPlayer:true,crouch:P.crouch&&!(P.pos.y>.6)/* on top of a crate, crouching hides nothing */,moving:P.moving,sprint:!!keys.shift&&P.moving&&!P.aim&&!P.crouch,reloading:P.reloadT>0,busy:!!keys.e,down:false},
+      ...allies.map(a=>({id:a.id,x:a.pos.x,z:a.pos.z,crouch:!!(a.ai&&a.ai.stance==='crouch'),moving:!!(a.ai&&a.ai.intent&&a.ai.intent.speed>.2),down:a.down}))]};
+  for(const e of enemies){if(e.state==='surrender'&&!e._vSurr){e._vSurr=1;aiVoice('thug_surrender',e)}
+    if(e.state==='idle'&&e._vHp!=null&&e.hp<e._vHp&&simT-(e._vHurtT||-9)>1.2){e._vHurtT=simT;aiVoice('thug_hurt',e)}e._vHp=e.hp}
+  for(const s of M.squads.values())s.update(dt,aiWorld)}
+/* after the enemy loop: the King's call for backup */
+function aiAfter(){if(!aiWorld||!M||!M.squads)return;let n=0;
+  for(const s of M.squads.values())while(s.requests.length){const r=s.requests.shift();if(r.kind!=='reinforce')continue;
+    for(const p of r.points){const e=spawnEnemy(p.x,p.z,false,s);const ai=AI.mem(e,aiWorld);ai.mode='combat';ai.sub='react';ai.react=simT+.6;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT};n++}
+    M.reinforced=(M.reinforced||0)+r.points.length}
+  if(n)rebuildTargets()}
+function aiEnemy(e,dt){const d=e.dude,t0=performance.now();const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
+  AI.move(e,I,dt);collide(e.pos,.35);
+  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
+  /* what the game's own systems read: target (hunter laser, music) and fireT (the laser shows while he lines up a shot) */
+  const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid==='player'?P:tid?allies.find(a=>a.id===tid)||null:null;
+  e.fireT=I.aiming&&e.ai.gun.laser?Math.max(.01,e.ai.gun.aim*(aiWorld.diff.aim||1)-e.ai.aimT):0;
+  if(I.fire){const t=I.targetId==='player'?P:allies.find(a=>a.id===I.targetId);if(t&&!t.down)shootAt(e,t,I.hitChance,I.dmg,true)}
+  if(I.wantsSurrender&&!e.triedSurr&&e.state==='idle'){e.triedSurr=true;surrender(e);return}
+  e.alert=e.ai.mode!=='idle';
+  d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;
+  pose(d,dt,{moving:I.speed>.2,speed:Math.max(.5,I.speed/3.4),aim:e.alert||I.stance==='crouch',mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(e,d,I.stance==='crouch',dt)}
+function aiAlly(a,dt){const d=a.dude,t0=performance.now();
+  const I=AI.ally(a,{nav:L.nav,t:simT,barker:M.crewBarker,player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,crouch:P.crouch,moving:P.moving,reloading:P.reloadT>0,busy:!!keys.e,hp:P.hp},
+    camera:{x:camera.position.x,z:camera.position.z,yaw:P.yaw},enemies,allies},dt);aiStats.allyMs+=performance.now()-t0;aiStats.allyCalls++;
+  if(I.teleport)a.pos.set(I.teleport.x,0,I.teleport.z);AI.move(a,I,dt);
+  for(const o of enemies)if(o.state==='surrender'||o.state==='cuffed'){const dx=a.pos.x-o.pos.x,dz=a.pos.z-o.pos.z,dd=Math.hypot(dx,dz);if(dd<.9&&dd>0){a.pos.x+=dx/dd*.05;a.pos.z+=dz/dd*.05}}
+  collide(a.pos,.35);
+  if(I.bark){radio(a.id,I.bark.text,I.bark.priority>=2);aiLog(a.id,I.bark);aiVoice(AI_VOICE[I.bark.event],a)}
+  if(I.fire){const e=enemies.find(x=>x.id===I.targetId);if(e&&e.state==='idle')shootAt(a,e,I.hitChance,I.dmg,false)}
+  if(I.reviving){const o=allies.find(x=>x.id===I.revive);if(o)o.downT-=dt*2}
+  d.root.position.set(a.pos.x,0,a.pos.z);d.root.rotation.y=a.yaw;pose(d,dt,{moving:I.speed>.2,aim:true,mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(a,d,I.stance==='crouch',dt)}
+/* behind a 1.15 m crate the whole body has to sit under the top or the dad's rays hit him through it: sink the hips,
+   fold the legs forward and lean the torso from the hip (arms stay level). Works from the model's own measured height. */
+const _m4a=new THREE.Matrix4(),_m4b=new THREE.Matrix4(),_bx=new THREE.Box3();
+function bodyTop(d){d.root.updateMatrixWorld(true);_m4a.copy(d.root.matrixWorld).invert();let top=0;
+  for(const m of d.meshes){if(!m.geometry)continue;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();_bx.copy(m.geometry.boundingBox).applyMatrix4(_m4b.multiplyMatrices(_m4a,m.matrixWorld));top=Math.max(top,_bx.max.y)}
+  return top*d.root.scale.y}
+/* box-figure fallback only (the skinned people crouch on their own). The third-person camera sits ~2 m up and looks over the crate, so the body also has to stay tucked against it:
+   head to about 0.95 m, kneeling with the shins behind, leaning in so the head ends up just behind the crate face */
+const CROUCH_TOP=.95,CROUCH_LEAN=.75,CROUCH_REACH=.5;
+function deepCrouch(ent,d,on,dt){ent.ck=(ent.ck||0)+((on?1:0)-(ent.ck||0))*Math.min(1,dt*12);const k=ent.ck;if(k<.01||d.rb)return;/* skinned people (js/people.js) crouch-aim below 1.15 m themselves */
+  const r=d.root;if(ent.topH==null){ent.topH=bodyTop(d);ent.hipH=d.legs&&d.legs[0]?d.legs[0].position.y*r.scale.y:ent.topH*.45;r.rotation.order='YXZ';
+    const h=ent.hipH,top=ent.topH;let lean=CROUCH_LEAN,sink=h+(top-h)*Math.cos(lean)-CROUCH_TOP;
+    if(h-sink<.15){sink=h-.15;lean=Math.acos(clamp((CROUCH_TOP-.15)/(top-h),-1,1))}/* tall men (the King) lean further instead of sinking through the floor */
+    ent.crouchFit={lean,sink:Math.max(0,sink),back:Math.max(0,(top-h)*Math.sin(lean)-CROUCH_REACH)}}
+  const h=ent.hipH,f=ent.crouchFit,th=f.lean*k,sink=f.sink*k,fx=Math.sin(ent.yaw),fz=Math.cos(ent.yaw);
+  /* pivot at the hip: root offset so the hip stays over the feet's spot (minus a little room for long torsos) */
+  const back=h*Math.sin(th)+f.back*k;
+  r.rotation.x=th;r.position.set(ent.pos.x-fx*back,h-h*Math.cos(th)-sink,ent.pos.z-fz*back);
+  const a=Math.acos(clamp((h-sink)/h,-1,1));for(const l of d.legs||[])l.rotation.x=a-th;for(const m of d.arms||[])m.rotation.x-=th}
 function moveToward(ent,gx,gz,speed,dt){
   const dx=gx-ent.pos.x,dz=gz-ent.pos.z,d=Math.hypot(dx,dz);if(d<.3||(d<1.3&&!walkable(tx(gx),tx(gz))))return false;
   let tx_=gx,tz_=gz;
@@ -1412,6 +1392,7 @@ function updEnemy(e,dt){
   if(e.state==='dead'){pose(d,dt,{mode:'down'});return}
   if(e.state==='cuffed'){pose(d,dt,{mode:'kneel'});return}
   if(e.state==='surrender'){faceTo(e,P.pos.x,P.pos.z,dt,3);pose(d,dt,{mode:'hands'});d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;return}
+  if(L.nav&&aiWorld){aiEnemy(e,dt);return}
   e.thinkT-=dt;
   if(e.thinkT<=0){e.thinkT=.25;let best=null,bd=1e9;
     const cands=[P,...allies.filter(a=>!a.down)];
@@ -1445,6 +1426,7 @@ function updAlly(a,dt){
   if(VAN.on&&mode==='hub')return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
+  if(mode==='mission'&&L.nav&&aiWorld){aiAlly(a,dt);return}
   a.thinkT-=dt;
   if(a.thinkT<=0&&mode==='mission'){a.thinkT=.3;let best=null,bd=30;
     for(const e of enemies){if(e.state!=='idle'||(!e.alert&&e.pos.distanceTo(P.pos)>15))continue;const dd=e.pos.distanceTo(a.pos);if(dd<bd&&losClear(a.pos.x,a.pos.z,e.pos.x,e.pos.z)){bd=dd;best=e}}
@@ -1590,7 +1572,7 @@ function updMission(dt){
     if(M.smashed<3){M.t-=dt;
       if(!M.warn60&&M.t<60){M.warn60=1;radio('rick','One minute! Move it!',true);
         /* their lookouts are early: two come looking for the dad */
-        const far=L.spawns.filter(s=>!s.boss&&Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>16);for(let i=0;i<2&&far.length;i++){const s=far.splice(Math.floor(Math.random()*far.length),1)[0];const e=spawnEnemy(s.x+rand(-.5,.5),s.z+rand(-.5,.5),false);e.alert=true;e.wave=true;e.last=P.pos.clone();e.hearT=rand(.5,1.5)}rebuildTargets()}
+        const far=L.spawns.filter(s=>!s.boss&&Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>16);for(let i=0;i<2&&far.length;i++){const s=far.splice(Math.floor(Math.random()*far.length),1)[0];const e=spawnEnemy(s.x+rand(-.5,.5),s.z+rand(-.5,.5),false);e.alert=true;e.wave=true;e.hunt=true;e.last=P.pos.clone();e.hearT=rand(.5,1.5)}rebuildTargets()}
       if(!M.warn20&&M.t<20){M.warn20=1;radio('gary','Twenty seconds!',true)}
       if(M.t<=0)return endMission(false,"Coach Rick: Their reinforcements showed up. We fall back and run it again.","Too slow, Coach.")}
     const t=Math.max(0,Math.ceil(M.t));objs=[['Smash the stash tables · '+M.smashed+'/3',M.smashed>=3],M.smashed>=3?['Tables down. Clock stopped.',true]:[Math.floor(t/60)+':'+String(t%60).padStart(2,'0')+' until reinforcements',false,M.t<30?'warn':'']];
@@ -1598,12 +1580,19 @@ function updMission(dt){
   if(m.type==='waves'){
     const live=enemies.filter(e=>e.state==='idle'),alive=live.length,surr=enemies.filter(e=>e.state==='surrender');
     M.waveAge+=dt;
-    if(alive===0){if(M.wave>=m.waves.length&&surr.length){/* last wave beaten: the ones who gave up still need zip-ties */}
+    if(M.dir){/* the wave director paces spawns in groups, out of the dad's sight, along lanes to the grill */
+      const orders=M.dir.update(dt,{t:simT,threats:aiWorld?aiWorld.threats:[],alive,agents:live});
+      for(const od of orders){const e=spawnEnemy(od.x,od.z,false);e.lane=od.lane;e.wave=true;collide(e.pos,.35)}if(orders.length)rebuildTargets();
+      if(M.dir.wave!==M.wave){M.wave=M.dir.wave;M.waveAge=0;for(const s of M.squads.values()){s.morale=1;s.lossT=-1e9}/* a fresh wave hasn't watched the last one lose */
+        banner('WAVE '+M.wave,M.wave===m.waves.length?'Last one. Dave says the brisket is resting.':'Here they come.',2.2);
+        if(M.wave===2)radio('dave',"They're flanking the bounce house! Nobody touches the bounce house!");if(M.wave===3)radio('rick',"Last push. Leave it all on the field.")}
+      if(M.dir.finished&&!surr.length)return endMission(true)}
+    else if(alive===0){if(M.wave>=m.waves.length&&surr.length){/* last wave beaten: the ones who gave up still need zip-ties */}
       else{M.waveT-=dt;if(M.waveT<=0){if(M.wave>=m.waves.length)return endMission(true);const n=m.waves[M.wave];M.wave++;M.waveAge=0;banner('WAVE '+M.wave,M.wave===m.waves.length?'Last one. Dave says the brisket is resting.':'Here they come.',2.2);
       const far=L.waveSpawns.filter(s=>Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>18),pool=far.length?far:L.waveSpawns,o=Math.floor(Math.random()*pool.length);
       for(let i=0;i<n;i++){const s=pool[(i+o)%pool.length];const e=spawnEnemy(s.x+rand(-1.5,1.5),s.z+rand(-1.5,1.5),false);collide(e.pos,.35);e.alert=true;e.wave=true;e.hearT=i*.25;const a=rand(0,6.28);e.last=V3(L.grill.x+Math.cos(a)*2.4,0,L.grill.z+Math.sin(a)*2.4)}rebuildTargets();M.waveT=4;
       if(M.wave===2)radio('dave',"They're flanking the bounce house! Nobody touches the bounce house!");if(M.wave===3)radio('rick',"Last push. Leave it all on the field.")}}}
-    if(alive&&M.waveAge>60&&!M.hunt){M.hunt=1;for(const e of live)e.last=P.pos.clone()}
+    if(!M.dir&&alive&&M.waveAge>60&&!M.hunt){M.hunt=1;for(const e of live)e.last=P.pos.clone()}
     if(!alive)M.hunt=0;
     objs=[['Hold the park · wave '+Math.max(1,M.wave)+' of '+m.waves.length,false],[alive?alive+' left this wave':(surr.length&&M.wave>=m.waves.length?'Zip-tie the '+surr.length+' who gave up':M.wave>=m.waves.length?'That should be all of them':'Next wave incoming'),false]];
     const nearest=list=>{let b=null,bd=1e9;for(const e of list){const dd=e.pos.distanceTo(P.pos);if(dd<bd){bd=dd;b=e}}return b};
@@ -1641,34 +1630,65 @@ function updHub(dt){
 /* ================= HUD ================= */
 const vtmp=V3();
 function project(x,y,z){vtmp.set(x,y,z).project(camera);return{x:(vtmp.x*.5+.5)*innerWidth,y:(-vtmp.y*.5+.5)*innerHeight,behind:vtmp.z>1}}
-function showMarker(t){const el=$('mk');if(!t){el.hidden=true;return}el.hidden=false;const p=project(t.x,1.6,t.z);
-  let x=p.x,y=p.y;if(p.behind){x=innerWidth-x;y=90}x=clamp(x,60,innerWidth-60);y=clamp(y,90,innerHeight-140);
-  el.style.left=x+'px';el.style.top=y+'px';$('mkT').textContent=t.label+' · '+Math.round(Math.hypot(t.x-P.pos.x,t.z-P.pos.z))+'m'}
+function showMarker(t){UI.marker=t||null}
+/* marker height above the ground: people and vans get it over their heads, pickups just above the pile */
+const MK_LOW={Packages:1,Stash:1,Grill:1};
+function markerOf(t){if(!t)return null;
+  const van=t.label==='Minivan'||t.label==='Van',hub=mode==='hub';
+  let kind=van?'van':hub&&JOB===null?'job':'obj',label=t.label;
+  if(hub&&JOB===null){const n=npcs.find(n=>Math.hypot(n.pos.x-t.x,n.pos.z-t.z)<.5);if(n)label=HOMIES[n.id].name+' · '+MISSIONS[n.marker.i].title}
+  const y=MK_LOW[t.label]?1.3:kind==='job'?2.75:2.4;
+  return{id:'tgt',kind,label,x:t.x,z:t.z,screen:project(t.x,y,t.z),always:true,edge:true}}
+/* events the HUD shows once (feed lines, damage arcs) are found by diffing game counters, so combat code needs no HUD calls */
+function hudEvents(){
+  if(mode==='mission'&&M){if(UI.M!==M){UI.M=M;UI.n={cuffs:0,kills:0,got:0,smashed:0,shot:prog.shotSurr};UI.down.clear();UI.hp=P.hp}
+    const n=UI.n,d=(k,v)=>{const x=v-n[k];n[k]=v;return x>0?x:0};
+    if(d('cuffs',M.cuffs))HUD.feed('Zip-tied','cuff','+4 trust');
+    if(d('kills',M.kills))HUD.feed('Neutralized','kill');
+    if(d('shot',prog.shotSurr))HUD.feed('Shot a man with his hands up','bad','-10 trust');
+    if(d('got',M.got))HUD.feed('Packages recovered','info',M.got+'/4');
+    if(d('smashed',M.smashed))HUD.feed('Stash smashed','info',M.smashed+'/3');
+    for(const a of allies){const was=UI.down.get(a)||false;if(a.down!==was){UI.down.set(a,a.down);if(a.down)HUD.feed(a.name+' is down','bad');else if(M.state==='go')HUD.feed(a.name+' is back up','trust')}}
+    if(P.hp<UI.hp-.5){let src=null,bd=1e9;for(const e of enemies){if(e.state!=='idle'||!e.alert)continue;const dd=e.pos.distanceTo(P.pos)*(e.target===P?.5:1);if(dd<bd){bd=dd;src=e}}
+      HUD.damage(src?{x:src.pos.x,z:src.pos.z}:{angle:0},UI.hp-P.hp)}}
+  UI.hp=P.hp}
 function hud(dt){
-  const title=mode==='title';['obj','trust','hp','wpn','xh'].forEach(id=>$(id).hidden=title);if(title){$('mk').hidden=true;return}
-  $('xh').hidden=VAN.on&&mode==='hub';if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;
-  $('trV').textContent=Math.round(prog.trust)+'%';$('trB').style.width=prog.trust+'%';
-  $('hpB').style.width=P.hp+'%';
-  $('vig').style.opacity=clamp((1-P.hp/100)*.85+hurtFlash*.5,0,1);hurtFlash=Math.max(0,hurtFlash-dt*2);
-  const w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
-  $('wN').textContent=w.name+(P.reloadT>0?' · reloading':'');
-  const drv=VAN.on&&mode==='hub';if(drv)$('wN').textContent='Family minivan';
-  const ah=drv?(Math.round(Math.abs(VAN.spd)*2.237)+'<small> mph</small>'):mode==='mission'?(a.mag+'<small> / '+a.res+'</small>'):'<small>holstered</small>';if($('wA').innerHTML!==ah)$('wA').innerHTML=ah;
-  const kh=drv?'<span class="kb">W/S gas · A/D steer · Shift boost · Space brake · H horn</span>':P.weapons.map(x=>'<b class="'+(x===P.cur?'on':'')+'">'+WEAPONS[x].key+'</b>').join('')+'<span class="kb"> · V '+(P.fp?'1st':'3rd')+' person</span>';if($('wK').innerHTML!==kh)$('wK').innerHTML=kh;
-  const ch=allies.map(x=>'<div class="'+(x.down?'down':'')+'">'+x.name+(x.down?' · down':'')+'<div class="bar"><i style="width:'+x.hp+'%"></i></div></div>').join('');if($('crew').innerHTML!==ch)$('crew').innerHTML=ch;
-  const sp=mode==='mission'?curSpread():.01;const g=4+sp*innerHeight*.9;
-  const xh=$('xh').children;xh[0].style.top=(-g-8)+'px';xh[1].style.top=g+'px';xh[2].style.left=(-g-8)+'px';xh[3].style.left=g+'px';
-  $('xh').style.opacity=mode==='mission'?1:.35;
-  let nf=false;if(mode==='mission'){const sm=[];for(const e of enemies)if(e.state==='surrender')sm.push(...e.dude.meshes);
+  if(mode==='title'){$('lock').hidden=true;return}
+  if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
+  const drv=VAN.on&&mode==='hub',mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
+  /* crosshair spread: same formula fire() uses */
+  const sp=mis?curSpread():.01;
+  let nf=false;if(mis){const sm=[];for(const e of enemies)if(e.state==='surrender')sm.push(...e.dude.meshes);
     if(sm.length){ray.set(camera.position,camFwd());ray.near=0;ray.far=90;const h=ray.intersectObjects([...sm,...L.solids],false)[0];nf=!!(h&&h.object.userData.ent)}}
-  $('xh').classList.toggle('nofire',nf);
-  hitT-=dt;$('hm').style.opacity=hitT>0?1:0;
-  for(const x of [...allies,...npcs,...enemies]){if(!x.tag)continue;const p=project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z);const dd=x.pos.distanceTo(P.pos);
-    const hide=p.behind||dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45);x.tag.hidden=hide;if(hide)continue;x.tag.style.left=p.x+'px';x.tag.style.top=p.y+'px';
-    if(x.kind==='ally'){x.tag.className='tag '+(x.down?'down':'ally');x.tag.textContent=x.name+(x.down?' · down':'')}
-    if(x.kind==='npc')x.tag.textContent=HOMIES[x.id].name+' · '+MISSIONS[x.marker.i].title}
-  subT-=dt;if(subT<=0){if(subQ.length){const[n,t]=subQ.shift();$('sub').innerHTML='<b>'+n+'</b>'+t;subT=Math.max(2.4,t.length*.055)}else $('sub').innerHTML=''}
-  bannerT-=dt;if(bannerT<=0)$('banner').classList.remove('on');
+  hudEvents();
+  /* subtitles: one line at a time, long enough to read */
+  subT-=dt;if(subT<=0){if(subQ.length){const[n,t]=subQ.shift();UI.sub={speaker:n,text:t};subT=Math.max(2.4,t.length*.055)}else UI.sub=null}
+  /* objective (the stash countdown moves into the objective timer) */
+  let obj=UI.obj,timer=null;
+  if(obj){const st=mis&&M&&M.def.type==='stash'&&M.smashed<3&&M.state==='go';if(st)timer=Math.max(0,M.t);
+    obj={kicker:mis?'Objective':JOB!==null?'New job · '+MISSIONS[JOB].place:'Saturday',title:obj.title,
+      lines:st?obj.lines.map(l=>/^\d+:\d\d until /.test(l.text)?{...l,text:'Until reinforcements'}:l):obj.lines}}
+  const markers=[];const mk=markerOf(UI.marker);if(mk)markers.push(mk);
+  if(mode==='hub'&&VAN.obj&&!VAN.on&&(!mk||mk.kind!=='van'))markers.push({id:'van',kind:'van',label:'Minivan',x:VAN.pos.x,z:VAN.pos.z,world:false});
+  /* route on the minimap to the current target (recomputed by the HUD when the target moves) */
+  const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
+  /* name tags: the spawn code still creates tag elements (hidden in #tags); their text and class drive the HUD tags */
+  const tags=[];
+  for(const x of [...allies,...enemies]){if(!x.tag||!x.tag.isConnected)continue;if(drv&&x.kind==='ally')continue;
+    const dd=x.pos.distanceTo(P.pos);if(dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45))continue;
+    const ally=x.kind==='ally',c=x.tag.className;
+    tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
+  HUD.update({mode:drv?'drive':mis?'mission':'hub',
+    player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:prog.trust,
+    weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!mis},
+    weapons:P.weapons.map(k=>({key:WEAPONS[k].key,name:WEAPONS[k].name,type:k,active:k===P.cur})),
+    crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
+    enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})):[],
+    objective:obj,timer,prompt:UI.prompt,
+    speedMph:Math.abs(VAN.spd)*2.237,gear:VAN.spd<-.3?'R':'D',
+    crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
+    markers,tags,subtitles:UI.sub,routeTo:UI.route,zone:mis&&M?M.def.place:'Maple Heights'},dt);
+  hurtFlash=Math.max(0,hurtFlash-dt*2);
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
 }
 
@@ -1682,7 +1702,7 @@ function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);
-    for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);
+    aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);
     if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
@@ -1692,23 +1712,22 @@ function frame(now){
   {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
-function start(){if(!ASSETS.done)return;initAudio();$('cTitle').hidden=true;enterHub();canvasFocus();requestLock()}
-$('bStart').onclick=start;
+function start(){if(!ASSETS.done||mode!=='title')return;initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.apply(CFG.gfx);
 initModules();
 try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}
 try{FX.init({scene,camera,renderer,assets:ASSETS,quality:CFG.gfx,groundAt:worldGroundAt});FX.setQuality(RENDER.q);FX.bindGrade(RENDER.post&&RENDER.mats.grade?RENDER.mats.grade.uniforms:null)}catch(e){console.warn('FX init failed',e)}
 buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;
 /* title card: progress bar while assets stream in; the button unlocks when everything settled (or after the 25s timeout) */
-ASSETS.onProgress((f,A)=>{$('ldB').style.width=Math.round(f*100)+'%';if(!A.done)$('ldT').textContent='Loading the neighborhood · '+Math.round(f*100)+'%'});
-ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock in';
-  const miss=A.failed.length;$('ld').classList.toggle('warn',!!miss);
-  $('ldT').textContent=miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready';
+showTitle();
+ASSETS.onProgress((f,A)=>{if(!A.done)HUD.set('title',{progress:f})});
+ASSETS.ready.then(A=>{const miss=A.failed.length;
+  HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
   initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove()}
-  if(!$('cTitle').hidden)b.focus()});
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
+  if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},

@@ -3,18 +3,19 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('fs'),path=require('path');
+require('../js/carai.js');            // HT.Garage: vehicle data lives there
 const HT=require('../js/save.js');
 const {Save,Economy:E,CATALOG:C}=HT;
 
 function fresh(raw,extra){const st=Save.useStorage(Save.memoryStorage());if(raw!==undefined)st.setItem('ht-save',typeof raw==='string'?raw:JSON.stringify(raw));
   if(extra)for(const k in extra)st.setItem(k,extra[k]);Save.load();return st}
 
-test('fresh boot gives the SPEC E defaults plus extension fields',()=>{
+test('fresh boot gives the SPEC E + SPEC2 D (v2) defaults',()=>{
   fresh();const d=Save.data;
-  assert.equal(d.v,1);assert.deepEqual(d.owned.guns,['pistol','shotgun']);assert.equal(d.cash,0);
-  assert.deepEqual(d.loadout,{side:'pistol',p1:'shotgun',p2:null});
-  assert.equal(Save.lastLoad.status,'fresh');
-  assert.equal(d.vehicle.engine,0);assert.equal(d.vehicle.paint,'stock');assert.equal(d.world.trust2,12);assert.ok(d.world.places.includes('home'));
+  assert.equal(d.v,2);assert.deepEqual(d.owned.guns,['pistol','shotgun']);assert.equal(d.cash,0);
+  assert.deepEqual(d.loadout,{side:'pistol',p1:'shotgun',p2:null,p3:null});
+  assert.equal(Save.lastLoad.status,'fresh');assert.equal(d.prog.done.length,9);assert.equal(d.prog.trustR,5);assert.equal(d.prog.act,1);
+  assert.deepEqual(d.garage,require('../js/carai.js').Garage.defaultGarage());assert.equal(d.world.bridgeOpen,false);assert.deepEqual(d.crew,{rosa:false});
   assert.ok(d.furniture.placed.length>=8);
 });
 
@@ -44,26 +45,26 @@ test('a save from a newer version is set aside, not overwritten blindly',()=>{
   assert.equal(JSON.parse(st.getItem('ht-save-future')).cash,5000);
 });
 
-test('v0 prototype save migrates to v1',()=>{
+test('v0 prototype save migrates to v2',()=>{
   fresh({done:[true,false,false,false],trust:44,cash:300,guns:['pistol','shotgun','smg'],cuffed:3,someModule:{x:1}});
-  const d=Save.data;assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.v,1);
-  assert.deepEqual(d.prog.done,[true,false,false,false]);assert.equal(d.prog.trust,44);assert.equal(d.prog.cuffed,3);
+  const d=Save.data;assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.v,2);
+  assert.deepEqual(d.prog.done,[true,false,false,false,false,false,false,false,false]);assert.equal(d.prog.trust,44);assert.equal(d.prog.cuffed,3);
   assert.equal(d.cash,300);assert.ok(d.owned.guns.includes('smg'));assert.deepEqual(d.someModule,{x:1});
 });
 
 test('wrong types are repaired field by field',()=>{
   fresh({v:1,cash:'lots',prog:{trust:500,done:'yes',cuffed:-4},stats:7,attOn:{pistol:{optic:'reddot',mag:'extmag'}},
     furniture:{owned:{sofa:'two',bogus:3},placed:[{uid:'a',id:'sofa',x:3,z:4,r:5},{id:'nope',x:1,z:1},{uid:'a',id:'chair',x:'q',z:2},{uid:'a',id:'chair',x:1,z:2,r:-1}]},
-    vehicle:{engine:9,paint:'chrome',cos:{paint:['red']}},world:{trust2:-5},events:'x',flags:{rangeDay:1}});
+    vehicle:{engine:9,paint:'red',cos:{paint:['red']}},world:{trust2:-5},events:'x',flags:{rangeDay:1}});
   const d=Save.data;
-  assert.equal(d.cash,0);assert.equal(d.prog.trust,100);assert.deepEqual(d.prog.done,[false,false,false,false]);assert.equal(d.prog.cuffed,0);
+  assert.equal(d.cash,0);assert.equal(d.prog.trust,100);assert.deepEqual(d.prog.done,Array(9).fill(false));assert.equal(d.prog.cuffed,0);
   assert.deepEqual(d.stats,{earned:0,spent:0});
   assert.deepEqual(d.attOn.pistol,{optic:null,mag:null,under:null,muzzle:null},'unowned attachments are removed');
   assert.equal(d.furniture.placed.length,2);assert.equal(d.furniture.placed[0].r,1);assert.notEqual(d.furniture.placed[0].uid,d.furniture.placed[1].uid);
   assert.equal(d.furniture.placed[1].r,3);
   assert.equal(d.furniture.owned.sofa,1,'owned is at least the placed count');assert.equal(d.furniture.owned.bogus,undefined);
-  assert.equal(d.vehicle.engine,3);assert.equal(d.vehicle.paint,'stock');assert.ok(d.vehicle.cos.paint.includes('red'));
-  assert.equal(d.world.trust2,0);assert.deepEqual(d.events,[]);assert.equal(d.flags.rangeDay,true);
+  const mv=d.garage.vehicles.minivan;assert.equal(mv.perf.engine,3,'old v1 vehicle extension carried into garage, clamped');assert.equal(mv.paint,'cranberry');assert.equal(d.vehicle,undefined);
+  assert.equal(d.prog.trustR,0,'old world.trust2 becomes trustR, clamped');assert.deepEqual(d.events,[]);assert.equal(d.flags.rangeDay,true);
 });
 
 test('export/import code round-trips and rejects damage',()=>{
@@ -179,17 +180,46 @@ test('selling',()=>{
   assert.equal(E.sell('veh','engine').ok,false);
 });
 
-test('minivan upgrades: tiers, locks, stats and cosmetics',()=>{
-  fresh();const d=Save.data;d.cash=10000;
-  assert.equal(E.buy('veh','engine','auto').ok,true);assert.equal(d.vehicle.engine,1);
-  const st=E.status('veh','engine','auto');assert.equal(st.state,'locked');assert.match(st.reason,/Fourth Quarter/);
-  d.prog.done[1]=true;assert.equal(E.buy('veh','engine','auto').ok,true);assert.equal(E.vehicleStats().top,1.16);
-  assert.ok(E.vanStatsWith('engine').top>E.vehicleStats().top);
-  assert.equal(E.buy('cos','paint:red','auto').ok,true);assert.equal(d.vehicle.paint,'red');assert.equal(E.vehicleStats().paint.col,'#c23b2e');
-  assert.equal(E.status('cos','paint:stock','auto').state,'owned');assert.equal(E.status('cos','paint:black','auto').state,'locked');
-  assert.equal(E.buy('veh','roofBox','auto').ok,true);assert.equal(E.vehicleStats().spareMags,1);
-  const am=E.ammoFor();assert.equal(am.find(a=>a.type==='9mm').extra,12);
-  for(const k of C.vehOrder)for(const t of C.vehicle[k].tiers)assert.ok(t.price>0&&t.blurb&&t.name,k);
+test('v1 save migrates to v2 (SPEC2 D)',()=>{
+  fresh({v:1,cash:900,prog:{done:[true,true,true,true],trust:70},loadout:{side:'pistol',p1:'shotgun',p2:null}});const d=Save.data;
+  assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.prog.act,2,'a v1 player who beat the Kingpin lands in Act 2');assert.equal(d.world.bridgeOpen,true);
+  assert.equal(d.prog.done.length,9);assert.equal(d.prog.trustR,5);assert.equal(d.loadout.p3,null);assert.equal(d.cash,900);
+  fresh({v:2,garage:{active:'suv',owned:['minivan','hovercraft'],vehicles:{minivan:{perf:{engine:7},paint:'nope'}},hp:{minivan:999},stickers:[3,99,null],ownedStickers:[3],horn:'ode'},loadout:{p3:'smg'},owned:{guns:['pistol','shotgun','smg']}});
+  const g=Save.data.garage;assert.equal(g.active,'minivan');assert.deepEqual(g.owned,['minivan']);assert.equal(g.vehicles.minivan.perf.engine,3);assert.equal(g.vehicles.minivan.paint,'slate');
+  assert.equal(g.hp.minivan,Save.data.garage.vehicles.minivan.prot.armor?140:100);assert.deepEqual(g.stickers,[3,null,null]);assert.equal(g.horn,'stock');assert.equal(Save.data.loadout.p3,null,'p3 dropped without the rack');
+});
+
+test("Dad's Auto delegates to HT.Garage (SPEC2 C)",()=>{
+  fresh();const d=Save.data,G=require('../js/carai.js').Garage;d.cash=20000;
+  assert.equal(E.vehicleStats().maxSpeed,G.apply('minivan',G.defaultVehicle(),{}).maxSpeed,'stock = HT.Garage.apply');
+  assert.equal(E.buy('gar','eng1','auto').ok,true);assert.equal(d.garage.vehicles.minivan.perf.engine,1);assert.equal(E.vehicleStats().maxSpeed,19);
+  assert.match(E.status('gar','eng2','auto').reason,/Maple Heights trust 40/);d.prog.trust=40;assert.equal(E.status('gar','eng2','auto').state,'buy');
+  assert.ok(E.vanStatsWith('gar','eng2').boostMax>E.vehicleStats().boostMax);
+  assert.equal(E.buy('gar','armor1','auto').ok,true);assert.equal(d.garage.hp.minivan,140,'armor raises current HP too');
+  d.garage.hp.minivan=100;assert.equal(E.status('rep','active','auto').price,80);assert.equal(E.buy('rep','active','auto').ok,true);assert.equal(d.garage.hp.minivan,140);
+  assert.equal(E.status('rep','active','auto').state,'maxed');
+  assert.equal(E.buy('cos','paint:silver','auto').ok,true);assert.equal(E.vehicleStats().paint.hex,'#b9c0c7');assert.equal(E.status('cos','paint:slate','auto').state,'owned');
+  assert.deepEqual(E.garUse('cos','paint:slate'),{ok:true});assert.equal(d.garage.vehicles.minivan.paint,'slate');
+  assert.equal(E.status('cos','paint:mural','auto').state,'locked');assert.equal(E.status('cos','lightBar:amber','auto').reason,'Needs Riverside trust 35%');
+  assert.equal(E.buy('cos','horn:ode','auto').ok,true);assert.equal(E.vehicleStats().horn.id,'ode');assert.ok(E.vehicleStats().horn.notes.length>3);
+  assert.equal(E.buy('stick','2','auto').ok,true);assert.deepEqual(d.garage.stickers,[2,null,null]);assert.equal(E.status('stick','11','auto').state,'locked');
+  assert.equal(E.buy('gar','cargo','auto').ok,true);assert.equal(E.ammoFor().find(a=>a.type==='9mm').extra,24,'+2 mags of 12');
+  assert.equal(E.status('car','pickup','auto').state,'locked');d.prog.done[4]=true;assert.equal(E.buy('car','pickup','auto').ok,true);assert.ok(d.garage.owned.includes('pickup'));
+  assert.equal(E.status('car','pickup','auto').state,'owned');E.garUse('car','pickup');assert.equal(E.vehicleStats().type,'pickup');assert.equal(E.vehicleStats().maxSpeed,19);
+  assert.ok(d.garage.purchases>=5);assert.equal(E.priceOf('gar','eng2','auto').price,Math.round(1200*.95),'loyalty discount');
+  assert.equal(E.setLoadout('p3','smg').code,'rack');d.garage.util.rack=true;d.owned.guns.push('smg','rifle');d.loadout.p2='rifle';
+  assert.equal(E.setLoadout('p3','smg').ok,true);assert.equal(E.setLoadout('p2','smg').code,'dup');assert.ok(d.events.includes('boughtCar'));
+});
+
+test('Riverside payouts (SPEC2 B.1-B.5) use Riverside trust',()=>{
+  fresh();Save.data.prog.trustR=50;Save.data.prog.trust=12;
+  const e=E.computePayout({mission:'earl',ok:true,bikes:3,converters:2,elapsed:250,allyDowns:1});
+  assert.deepEqual(e.lines.map(l=>[l.id,l.amount]),[['base',650],['bikes',120],['converters',120],['quick',100]]);assert.equal(e.total,990);
+  assert.equal(E.computePayout({mission:'rosa',ok:true,beds:11,allyDowns:1,trust:50}).total,1100);
+  assert.equal(E.computePayout({mission:'rosa',ok:true,beds:6,allyDowns:1,trust:50}).total,990);
+  assert.equal(E.computePayout({mission:'benny',ok:true,truckHp:.8,chaseT:30,allyDowns:1,trust:50}).total,1350);
+  assert.equal(E.computePayout({mission:8,ok:true,bossDone:'cuffed',chaseT:40,vanHp:.95,allyDowns:1,trust:50}).total,2250);
+  assert.equal(E.computePayout({mission:'dee',ok:true,cleanStakeout:true,ids:2,bossDone:'cuffed',allyDowns:1,trust:50,extra:[{label:'Bonus from the game',amount:10}]}).total,1360);
 });
 
 test('supplies and furniture caps',()=>{
@@ -198,6 +228,28 @@ test('supplies and furniture caps',()=>{
   assert.equal(E.buy('furn','tv','dadazon').ok,true);assert.equal(E.status('furn','tv','dadazon').state,'pending');assert.equal(E.buy('furn','tv','dadazon').ok,false);
   E.deliverPending();assert.equal(E.status('furn','tv','dadazon').state,'maxed');
   assert.equal(E.buy('furn','chair','hardware').ok,false,'dining chairs are a Dadazon thing');
+});
+
+test('HT.CATALOG.guns matches the game WEAPONS table field for field (index.html, docs/combat-integration.md)',()=>{
+  const src=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');const i=src.indexOf('const WEAPONS={');assert.ok(i>0,'WEAPONS in index.html');
+  let d=0,j=src.indexOf('{',i);for(let k=j;k<src.length;k++){if(src[k]==='{')d++;else if(src[k]==='}'&&--d===0){j=k+1;break}}
+  const W=Function('return '+src.slice(src.indexOf('{',i),j))();
+  assert.deepEqual(Object.keys(W).sort(),[...C.gunOrder].sort());
+  const diffs=[];const cmp=(a,b,pth)=>{if(a&&typeof a==='object'&&!Array.isArray(a)){for(const k in a)cmp(a[k],b?b[k]:undefined,pth+'.'+k)}else if(JSON.stringify(a)!==JSON.stringify(b))diffs.push(pth+': game '+JSON.stringify(a)+' vs catalogue '+JSON.stringify(b))};
+  for(const id in W)cmp(W[id],C.guns[id],id);
+  assert.deepEqual(diffs,[],'every game field must equal the catalogue (the catalogue is merged over the game table)');
+});
+
+test('furniture ids are 1:1 with js/home.js and the starter layout is HT.Home\'s (docs/home.md)',()=>{
+  const src=fs.readFileSync(path.join(__dirname,'..','js','home.js'),'utf8');
+  const cat=src.slice(src.indexOf('const CATALOG=['),src.indexOf('const CAT={}'));const homeIds=[...cat.matchAll(/\{id:'([a-z0-9]+)'/g)].map(m=>m[1]);
+  assert.deepEqual([...homeIds].sort(),Object.keys(C.furniture).sort());
+  const st=src.slice(src.indexOf('Home.starterLayout=()=>'),src.indexOf('Home.fullLayout'));const items=Function('return '+st.slice(st.indexOf('['),st.lastIndexOf(']')+1))();
+  assert.deepEqual(Save.defaults().furniture.placed,items,'fallback starter = HT.Home.starterLayout().items');
+  fresh({v:2,furniture:{owned:{sofa:1},placed:[{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
+    {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]}});
+  assert.deepEqual(Save.data.furniture.placed,items,'old 1 m starter layout migrates to the home grid');
+  globalThis.HT.Home={starterLayout:()=>({v:1,items:[{uid:'z',id:'plant',x:1,z:1,r:0}]})};try{assert.deepEqual(Save.defaults().furniture.placed,[{uid:'z',id:'plant',x:1,z:1,r:0}],'HT.Home wins when loaded')}finally{delete globalThis.HT.Home}
 });
 
 test('catalogue is complete and consistent',()=>{
@@ -211,8 +263,10 @@ test('catalogue is complete and consistent',()=>{
   // a clean campaign pays ~$4.5-6.5k (SPEC D.1): enough for a couple of guns and some attachments, with furniture and van upgrades for reruns
   const sum=a=>a.reduce((x,y)=>x+y,0);
   const guns=sum(C.gunOrder.map(g=>C.guns[g].price)),att=sum(Object.values(C.attachments).map(a=>a.price));
-  const furn=sum(Object.values(C.furniture).map(f=>f.price)),van=sum(C.vehOrder.flatMap(k=>C.vehicle[k].tiers.map(t=>t.price)));
-  assert.ok(guns+att>4500&&guns+att<8000,'arsenal '+(guns+att));assert.ok(van>6500&&van<16000,'van '+van);assert.ok(furn>6500,'furniture '+furn);
+  const furn=sum(Object.values(C.furniture).map(f=>f.price));
+  assert.ok(guns+att>4500&&guns+att<8000,'arsenal '+(guns+att));assert.ok(furn>6500,'furniture '+furn);
+  for(const g of C.gunOrder){const w=C.guns[g];assert.ok(Array.isArray(w.rc.pat)&&w.vm&&w.snd&&w.snd.crack,g+' feel data')}
+  assert.equal(C.garage,require('../js/carai.js').Garage,'vehicle catalogue is HT.Garage, not a copy');
   const best=sum([0,1,2,3].map(i=>E.computePayout({mission:i,ok:true,cuffs:4,confiscated:3,allyDowns:0,got:4,elapsed:100,timeLeft:60,bossDone:'cuffed',trust:80}).total));
   assert.ok(best>4500&&best<8000,'clean campaign pays '+best);
 });
