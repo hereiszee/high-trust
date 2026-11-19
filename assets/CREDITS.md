@@ -84,3 +84,7 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | home/bench_vice_01.glb | Bench Vice 01 | Poly Haven (Antanas Kep, Yann Kervran) | CC0 | https://polyhaven.com/a/bench_vice_01 |
 | home/metal_tool_chest.glb | Metal Tool Chest | Poly Haven (John Hutcheson, Yann Kervran) | CC0 | https://polyhaven.com/a/metal_tool_chest |
 | home/dartboard.glb | Dartboard | Poly Haven (Satyaki Mandal) | CC0 | https://polyhaven.com/a/dartboard |
+
+## Vehicles (js/vehicles.js)
+
+No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.

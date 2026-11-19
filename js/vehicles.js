@@ -1,0 +1,681 @@
+/* High Trust: vehicle library (procedural, physically based).
+ *
+ * HT.Vehicles.init({assets})            optional; assets = game ASSETS object (only used for the env map if present)
+ * HT.Vehicles.make(type, {color, upgrades}) -> THREE.Group
+ *     type: 'minivan' | 'sedan' | 'suv' | 'hatch' | 'pickup' | 'workvan'
+ *     Length runs along +X with the FRONT at +X, +Y up, the car's right side at +Z (left side, driver's side, at -Z).
+ *     Centered on the origin in X/Z, tyres touch y = 0.
+ *     upgrades: {paint:'#hex'|number, rims:'stock'|'alloy'|'black', roofRack, bullBar, lightBar, spoiler (bools), tint:0..1}
+ *   group.userData = {
+ *     type, size:{l,w,h},
+ *     wheels:[Object3D]  spinning wheel groups; they spin about their local Z axis (the axle).
+ *                        Rolling forward (+X) is a NEGATIVE rotation.z: rotation.z -= distance / radius.
+ *     wheelRadius,
+ *     steer:[Object3D]   front wheel pivots; rotation.y = angle, positive = steer left (toward -Z).
+ *     lights:{head:[], tail:[], brake:[], bar:[], drl:[]}  emissive materials
+ *     body:[paint materials]   (MeshPhysicalMaterial, clearcoat)
+ *     glass:[glass materials], bodyRoot: Object3D that rolls/pitches, contactShadow: Mesh (soft AO blob, optional)
+ *   }
+ * HT.Vehicles.update(v, {speed, steer, braking, headlights, dt})
+ *     speed m/s (+ forward), steer -1..1 (+ = left), braking bool, headlights bool, dt seconds.
+ * HT.Vehicles.stats(v) -> {triangles, drawCalls}
+ */
+(function(){
+'use strict';
+const HT=window.HT=window.HT||{};
+const T=THREE;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t)};
+const V3=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
+let ASSETS=null;
+
+/* ---------------------------------------------------------------- profiles */
+/* polyline through keys [x,y,r] with rounded corners (r = fillet length), evaluated as y(x) */
+function profile(keys){
+  const pts=[];
+  for(let i=0;i<keys.length;i++){const [x,y,r=0]=keys[i];
+    if(i===0||i===keys.length-1||!r){pts.push([x,y]);continue}
+    const A=keys[i-1],B=keys[i+1],la=Math.hypot(A[0]-x,A[1]-y),lb=Math.hypot(B[0]-x,B[1]-y);
+    const t1=Math.min(r,la*.5),t2=Math.min(r,lb*.5);
+    const p1=[x+(A[0]-x)/la*t1,y+(A[1]-y)/la*t1],p2=[x+(B[0]-x)/lb*t2,y+(B[1]-y)/lb*t2];
+    for(let k=0;k<=10;k++){const t=k/10,u=1-t;pts.push([u*u*p1[0]+2*u*t*x+t*t*p2[0],u*u*p1[1]+2*u*t*y+t*t*p2[1]])}}
+  const f=x=>{if(x<=pts[0][0])return pts[0][1];const n=pts.length;if(x>=pts[n-1][0])return pts[n-1][1];
+    let lo=0,hi=n-1;while(hi-lo>1){const m=(lo+hi)>>1;if(pts[m][0]<=x)lo=m;else hi=m}
+    const a=pts[lo],b=pts[hi],d=b[0]-a[0];return d<1e-9?b[1]:a[1]+(b[1]-a[1])*(x-a[0])/d};
+  f.keys=keys;return f}
+
+/* ---------------------------------------------------------------- 2D polygon helpers (a,b plane) */
+const area2=p=>{let s=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];s+=a[0]*b[1]-b[0]*a[1]}return s/2};
+const ccw=p=>area2(p)<0?p.slice().reverse():p;
+function hull(P){const p=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);if(p.length<3)return p;
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+  for(const q of p){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],q)<=1e-12)lo.pop();lo.push(q)}
+  for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],q)<=1e-12)up.pop();up.push(q)}
+  up.pop();lo.pop();return lo.concat(up)}
+/* round every corner of a polygon with a quadratic fillet of length r (number or per-vertex array) */
+function roundPoly(P,r,seg=6){P=ccw(P);const n=P.length,out=[];
+  for(let i=0;i<n;i++){const A=P[(i+n-1)%n],B=P[i],C=P[(i+1)%n],ri=Array.isArray(r)?r[i]:r;
+    const la=Math.hypot(A[0]-B[0],A[1]-B[1]),lc=Math.hypot(C[0]-B[0],C[1]-B[1]);
+    if(!ri||la<1e-6||lc<1e-6){out.push(B);continue}
+    const t1=Math.min(ri,la*.48),t2=Math.min(ri,lc*.48);
+    const p1=[B[0]+(A[0]-B[0])/la*t1,B[1]+(A[1]-B[1])/la*t1],p2=[B[0]+(C[0]-B[0])/lc*t2,B[1]+(C[1]-B[1])/lc*t2];
+    for(let k=0;k<=seg;k++){const t=k/seg,u=1-t;out.push([u*u*p1[0]+2*u*t*B[0]+t*t*p2[0],u*u*p1[1]+2*u*t*B[1]+t*t*p2[1]])}}
+  return out}
+function subdiv(P,maxLen,closed=true){const out=[],n=P.length,m=closed?n:n-1;
+  for(let i=0;i<m;i++){const a=P[i],b=P[(i+1)%n],l=Math.hypot(b[0]-a[0],b[1]-a[1]),k=Math.max(1,Math.ceil(l/maxLen));
+    for(let j=0;j<k;j++)out.push([a[0]+(b[0]-a[0])*j/k,a[1]+(b[1]-a[1])*j/k])}
+  if(!closed)out.push(P[n-1]);return out}
+function insetPoly(P,d){const n=P.length,out=[];
+  for(let i=0;i<n;i++){const A=P[(i+n-1)%n],B=P[i],C=P[(i+1)%n];
+    let e1=[B[0]-A[0],B[1]-A[1]],e2=[C[0]-B[0],C[1]-B[1]];const l1=Math.hypot(...e1)||1,l2=Math.hypot(...e2)||1;
+    const n1=[-e1[1]/l1,e1[0]/l1],n2=[-e2[1]/l2,e2[0]/l2];let m=[n1[0]+n2[0],n1[1]+n2[1]];const lm=Math.hypot(...m)||1;m=[m[0]/lm,m[1]/lm];
+    const k=d/Math.max(.35,m[0]*n1[0]+m[1]*n1[1]);out.push([B[0]+m[0]*k,B[1]+m[1]*k])}
+  return out}
+/* Douglas-Peucker simplification of a closed polygon */
+function simplify(P,tol){if(P.length<5)return P;const dp=(pts)=>{if(pts.length<3)return pts;const a=pts[0],b=pts[pts.length-1];let mi=-1,md=0;const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1e-9;
+    for(let i=1;i<pts.length-1;i++){const d=Math.abs((pts[i][0]-a[0])*dy-(pts[i][1]-a[1])*dx)/l;if(d>md){md=d;mi=i}}
+    if(md<=tol)return[a,b];const l1=dp(pts.slice(0,mi+1)),l2=dp(pts.slice(mi));return l1.slice(0,-1).concat(l2)};
+  let far=0,fd=0;for(let i=1;i<P.length;i++){const d=Math.hypot(P[i][0]-P[0][0],P[i][1]-P[0][1]);if(d>fd){fd=d;far=i}}
+  const A=dp(P.slice(0,far+1)),B=dp(P.slice(far).concat([P[0]]));return A.slice(0,-1).concat(B.slice(0,-1))}
+const centroid=P=>{let a=0,b=0;for(const p of P){a+=p[0];b+=p[1]}return[a/P.length,b/P.length]};
+const quad=(pts,r=.03)=>roundPoly(hull(pts),r);
+const trap=(y0,y1,hw0,hw1,r=.03)=>roundPoly([[-hw0,y0],[hw0,y0],[hw1,y1],[-hw1,y1]],r);
+const rectP=(cx,cy,w,h,r=.01)=>roundPoly([[cx-w/2,cy-h/2],[cx+w/2,cy-h/2],[cx+w/2,cy+h/2],[cx-w/2,cy+h/2]],r,4);
+const circleP=(cx,cy,r,n=24)=>{const o=[];for(let i=0;i<n;i++){const a=i/n*Math.PI*2;o.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r])}return o};
+const mirrorA=P=>P.map(p=>[-p[0],p[1]]).reverse();
+
+/* ---------------------------------------------------------------- normals with hard creases */
+function creaseNormals(pos,thrDeg=42){const nT=pos.length/9,fa=new Float32Array(nT*3),fu=new Float32Array(nT*3),out=new Float32Array(pos.length);
+  const map=new Map(),key=i=>Math.round(pos[i]*4000)+'|'+Math.round(pos[i+1]*4000)+'|'+Math.round(pos[i+2]*4000);
+  for(let t=0;t<nT;t++){const o=t*9;const ux=pos[o+3]-pos[o],uy=pos[o+4]-pos[o+1],uz=pos[o+5]-pos[o+2],vx=pos[o+6]-pos[o],vy=pos[o+7]-pos[o+1],vz=pos[o+8]-pos[o+2];
+    const cx=uy*vz-uz*vy,cy=uz*vx-ux*vz,cz=ux*vy-uy*vx,l=Math.hypot(cx,cy,cz);fa[t*3]=cx;fa[t*3+1]=cy;fa[t*3+2]=cz;
+    if(l>1e-14){fu[t*3]=cx/l;fu[t*3+1]=cy/l;fu[t*3+2]=cz/l}
+    for(let c=0;c<3;c++){const k=key(o+c*3);let a=map.get(k);if(!a)map.set(k,a=[]);a.push(t)}}
+  const ct=Math.cos(thrDeg*Math.PI/180);
+  for(let t=0;t<nT;t++){const nx=fu[t*3],ny=fu[t*3+1],nz=fu[t*3+2];
+    for(let c=0;c<3;c++){const o=t*9+c*3,a=map.get(key(o));let sx=0,sy=0,sz=0;
+      for(const f of a){if(fu[f*3]*nx+fu[f*3+1]*ny+fu[f*3+2]*nz>=ct){sx+=fa[f*3];sy+=fa[f*3+1];sz+=fa[f*3+2]}}
+      let l=Math.hypot(sx,sy,sz);if(l<1e-14){sx=nx;sy=ny;sz=nz;l=Math.hypot(sx,sy,sz)||1}
+      out[o]=sx/l;out[o+1]=sy/l;out[o+2]=sz/l}}
+  return out}
+function geoCrease(g,thr=40){g=g.index?g.toNonIndexed():g;g.setAttribute('normal',new T.BufferAttribute(creaseNormals(g.attributes.position.array,thr),3));return g}
+
+/* ---------------------------------------------------------------- geometry buckets (one merged mesh per material) */
+class Out{constructor(){this.b={}}
+  get(m){return this.b[m]||(this.b[m]={p:[],n:[],u:[]})}
+  tri(m,a,b,c,na,nb,nc,ua,ub,uc){const B=this.get(m);B.p.push(a.x,a.y,a.z,b.x,b.y,b.z,c.x,c.y,c.z);
+    B.n.push(na.x,na.y,na.z,nb.x,nb.y,nb.z,nc.x,nc.y,nc.z);
+    if(ua)B.u.push(ua[0],ua[1],ub[0],ub[1],uc[0],uc[1]);else B.u.push(0,0,0,0,0,0)}
+  /* add any THREE geometry, transformed by matrix m4 (Matrix4) */
+  geo(m,g,m4){g=g.index?g.toNonIndexed():g.clone();if(m4)g.applyMatrix4(m4);if(!g.attributes.normal)g.computeVertexNormals();
+    if(m4&&m4.determinant()<0){for(const a of[g.attributes.position,g.attributes.normal,g.attributes.uv]){if(!a)continue;const s=a.itemSize,arr=a.array;for(let t=0;t<a.count;t+=3)for(let k=0;k<s;k++){const i1=(t+1)*s+k,i2=(t+2)*s+k,tmp=arr[i1];arr[i1]=arr[i2];arr[i2]=tmp}}}
+    const B=this.get(m),p=g.attributes.position.array,n=g.attributes.normal.array,u=g.attributes.uv;
+    for(let i=0;i<p.length;i++){B.p.push(p[i]);B.n.push(n[i])}
+    if(u)for(let i=0;i<u.array.length;i++)B.u.push(u.array[i]);else for(let i=0;i<p.length/3*2;i++)B.u.push(0)}
+  /* mirror everything added to bucket m since index `from` across z=0 */
+  mirror(m,from){const B=this.get(m),end=B.p.length;
+    for(let o=from;o<end;o+=9){const tri=[[o,o+1,o+2],[o+6,o+7,o+8],[o+3,o+4,o+5]],uo=o/3*2,ut=[[uo,uo+1],[uo+4,uo+5],[uo+2,uo+3]];
+      for(let c=0;c<3;c++){const[i,j,k]=tri[c];B.p.push(B.p[i],B.p[j],-B.p[k]);B.n.push(B.n[i],B.n[j],-B.n[k])}
+      for(let c=0;c<3;c++)B.u.push(B.u[ut[c][0]],B.u[ut[c][1]])}}
+  mark(m){return this.get(m).p.length}
+  build(){const r={};for(const m in this.b){const B=this.b[m];if(!B.p.length)continue;const g=new T.BufferGeometry();
+      g.setAttribute('position',new T.Float32BufferAttribute(B.p,3));g.setAttribute('normal',new T.Float32BufferAttribute(B.n,3));
+      g.setAttribute('uv',new T.Float32BufferAttribute(B.u,2));g.computeBoundingSphere();g.computeBoundingBox();r[m]=g}
+    return r}}
+
+const MG={};function mergeG(gs){const k=gs.map(g=>g.uuid).join();if(MG[k])return MG[k];const o=new Out();for(const g of gs)o.geo('m',g);return MG[k]=o.build().m}
+/* rounded box with exact normals */
+function rbox(w,h,d,r,s=3){const g=new T.BoxGeometry(w,h,d,s*2,s*2,s*2),p=g.attributes.position,n=g.attributes.normal;
+  const hx=w/2-r,hy=h/2-r,hz=d/2-r,v=V3(),c=V3();
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz));
+    const dn=v.clone().sub(c);if(dn.lengthSq()<1e-12)dn.fromBufferAttribute(n,i);dn.normalize();p.setXYZ(i,c.x+dn.x*r,c.y+dn.y*r,c.z+dn.z*r);n.setXYZ(i,dn.x,dn.y,dn.z)}
+  return g}
+const M4=()=>new T.Matrix4();
+const mat4=(x,y,z,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1)=>M4().compose(V3(x,y,z),new T.Quaternion().setFromEuler(new T.Euler(rx,ry,rz)),V3(sx,sy,sz));
+
+/* ---------------------------------------------------------------- orthographic depth maps of the body */
+const VIEWS={side:{A:[1,0,0],B:[0,1,0],D:[0,0,1],h:1},front:{A:[0,0,1],B:[0,1,0],D:[1,0,0],h:-1},rear:{A:[0,0,1],B:[0,1,0],D:[-1,0,0],h:1},top:{A:[1,0,0],B:[0,0,1],D:[0,1,0],h:-1}};
+class DMap{constructor(view,pos,cs=.012){const V=VIEWS[view];this.view=view;this.V=V;this.cs=cs;
+    const A=V.A,B=V.B,D=V.D,n=pos.length/3,a=new Float32Array(n),b=new Float32Array(n),d=new Float32Array(n);
+    let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;
+    for(let i=0;i<n;i++){const x=pos[i*3],y=pos[i*3+1],z=pos[i*3+2];a[i]=x*A[0]+y*A[1]+z*A[2];b[i]=x*B[0]+y*B[1]+z*B[2];d[i]=x*D[0]+y*D[1]+z*D[2];
+      if(a[i]<a0)a0=a[i];if(a[i]>a1)a1=a[i];if(b[i]<b0)b0=b[i];if(b[i]>b1)b1=b[i]}
+    a0-=cs*2;b0-=cs*2;this.a0=a0;this.b0=b0;const W=this.W=Math.ceil((a1-a0)/cs)+4,H=this.H=Math.ceil((b1-b0)/cs)+4;
+    const Z=this.Z=new Float32Array(W*H).fill(-1e9);
+    for(let t=0;t<n;t+=3){const ax=(a[t]-a0)/cs-.5,ay=(b[t]-b0)/cs-.5,bx=(a[t+1]-a0)/cs-.5,by=(b[t+1]-b0)/cs-.5,cx=(a[t+2]-a0)/cs-.5,cy=(b[t+2]-b0)/cs-.5;
+      const den=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);if(Math.abs(den)<1e-12)continue;
+      const i0=Math.max(0,Math.floor(Math.min(ax,bx,cx))),i1=Math.min(W-1,Math.ceil(Math.max(ax,bx,cx))),j0=Math.max(0,Math.floor(Math.min(ay,by,cy))),j1=Math.min(H-1,Math.ceil(Math.max(ay,by,cy)));
+      for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const w1=((by-cy)*(i-cx)+(cx-bx)*(j-cy))/den,w2=((cy-ay)*(i-cx)+(ax-cx)*(j-cy))/den,w3=1-w1-w2;
+        if(w1<-1e-3||w2<-1e-3||w3<-1e-3)continue;const z=w1*d[t]+w2*d[t+1]+w3*d[t+2],k=j*W+i;if(z>Z[k])Z[k]=z}}}
+  depth(a,b){const fi=(a-this.a0)/this.cs-.5,fj=(b-this.b0)/this.cs-.5,i=Math.floor(fi),j=Math.floor(fj),fx=fi-i,fy=fj-j;let s=0,w=0;
+    for(const[di,dj,ww]of[[0,0,(1-fx)*(1-fy)],[1,0,fx*(1-fy)],[0,1,(1-fx)*fy],[1,1,fx*fy]]){const ii=i+di,jj=j+dj;if(ii<0||jj<0||ii>=this.W||jj>=this.H)continue;
+      const z=this.Z[jj*this.W+ii];if(z>-1e8&&ww>0){s+=z*ww;w+=ww}}
+    if(w>1e-6)return s/w;
+    for(let r=1;r<=3;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++){const ii=Math.round(fi)+di,jj=Math.round(fj)+dj;if(ii<0||jj<0||ii>=this.W||jj>=this.H)continue;const z=this.Z[jj*this.W+ii];if(z>-1e8)return z}
+    return null}
+  world(a,b,d){const V=this.V;return V3(V.A[0]*a+V.B[0]*b+V.D[0]*d,V.A[1]*a+V.B[1]*b+V.D[1]*d,V.A[2]*a+V.B[2]*b+V.D[2]*d)}
+  proj(p){const V=this.V;return[p.x*V.A[0]+p.y*V.A[1]+p.z*V.A[2],p.x*V.B[0]+p.y*V.B[1]+p.z*V.B[2],p.x*V.D[0]+p.y*V.D[1]+p.z*V.D[2]]}
+  /* surface point + normal at (a,b) */
+  at(a,b,off=0){const d=this.depth(a,b);if(d==null)return null;const h=this.cs*1.6;
+    const da=((this.depth(a+h,b)??d)-(this.depth(a-h,b)??d))/(2*h),db=((this.depth(a,b+h)??d)-(this.depth(a,b-h)??d))/(2*h);
+    const n=this.world(-clamp(da,-12,12),-clamp(db,-12,12),1).normalize();const p=this.world(a,b,d).addScaledVector(n,off);return{p,n}}}
+
+/* reject quads that jumped across a silhouette (3D edge much longer than its 2D footprint) */
+function stretched(q,r){for(let i=0;i<4;i++){const a=q[i].p,b=q[(i+1)%4].p,d3=a.distanceTo(b);if(r){const d2=Math.hypot(r[i][0]-r[(i+1)%4][0],r[i][1]-r[(i+1)%4][1]);if(d3>d2*3.2+.012)return true}else if(d3>.12)return true}return false}
+/* filled patch over a convex outline: bands (outer rings) + optional fill */
+function patch(out,dm,poly,o){poly=subdiv(ccw(poly),o.seg||.04);const off=o.off??.004;
+  const rings=[poly];for(const b of o.bands||[])rings.push(insetPoly(rings[rings.length-1],b.w));
+  const mats=(o.bands||[]).map(b=>b.mat);
+  if(o.fill){const last=rings[rings.length-1],c=centroid(last);for(const s of[.72,.45,.2]){rings.push(last.map(p=>[c[0]+(p[0]-c[0])*s,c[1]+(p[1]-c[1])*s]));mats.push(o.fill)}rings.push(last.map(()=>c));mats.push(o.fill)}
+  let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const p of poly){a0=Math.min(a0,p[0]);a1=Math.max(a1,p[0]);b0=Math.min(b0,p[1]);b1=Math.max(b1,p[1])}
+  const flip=dm.V.h<0,uv=p=>{let u=(p[0]-a0)/(a1-a0||1);if(flip)u=1-u;return[u,(p[1]-b0)/(b1-b0||1)]};
+  const S=rings.map((r,k)=>r.map(p=>{const offk=off+(o.raise||0)*(k/(rings.length-1));return dm.at(p[0],p[1],offk)}));
+  const marks={};const use=m=>{if(!(m in marks))marks[m]=out.mark(m)};
+  for(let k=0;k<rings.length-1;k++){const m=mats[k];use(m);const R0=rings[k],R1=rings[k+1],S0=S[k],S1=S[k+1],n=R0.length;
+    const Dv=V3(...dm.V.D),gz=o.graze??.15;for(let i=0;i<n;i++){const i2=(i+1)%n,q=[S0[i],S0[i2],S1[i2],S1[i]],r=[R0[i],R0[i2],R1[i2],R1[i]];if(q.some(x=>!x||x.n.dot(Dv)<gz)||stretched(q,r))continue;
+      const tri=(x,y,z)=>{if(flip)out.tri(m,q[x].p,q[z].p,q[y].p,q[x].n,q[z].n,q[y].n,uv(r[x]),uv(r[z]),uv(r[y]));else out.tri(m,q[x].p,q[y].p,q[z].p,q[x].n,q[y].n,q[z].n,uv(r[x]),uv(r[y]),uv(r[z]))};
+      tri(0,1,2);tri(0,2,3)}}
+  if(o.mirror)for(const m in marks)out.mirror(m,marks[m])}
+/* strip of width w along a polyline */
+function ribbon(out,dm,pts,w,o){const P=subdiv(pts,o.seg||.02,!!o.closed),n=P.length,off=o.off??.003,m=o.mat,from=out.mark(m),flip=dm.V.h<0;
+  const L=[],R=[];for(let i=0;i<n;i++){const a=P[o.closed?(i+n-1)%n:Math.max(0,i-1)],b=P[o.closed?(i+1)%n:Math.min(n-1,i+1)];let tx=b[0]-a[0],ty=b[1]-a[1];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
+    const w0=o.w0??w/2,w1=o.w1??w/2;L.push(dm.at(P[i][0]-ty*w0,P[i][1]+tx*w0,off+(o.raise||0)));R.push(dm.at(P[i][0]+ty*w1,P[i][1]-tx*w1,off))}
+  const m2=o.closed?n:n-1,Dv=V3(...dm.V.D),gz=o.graze??.3;for(let i=0;i<m2;i++){const i2=(i+1)%n,q=[R[i],R[i2],L[i2],L[i]];if(q.some(x=>!x||x.n.dot(Dv)<gz)||stretched(q))continue;const uv=[[0,i/m2],[0,(i+1)/m2],[1,(i+1)/m2],[1,i/m2]];
+    const tri=(x,y,z)=>{if(flip)out.tri(m,q[x].p,q[z].p,q[y].p,q[x].n,q[z].n,q[y].n,uv[x],uv[z],uv[y]);else out.tri(m,q[x].p,q[y].p,q[z].p,q[x].n,q[y].n,q[z].n,uv[x],uv[y],uv[z])};tri(0,1,2);tri(0,2,3)}
+  if(o.mirror)out.mirror(m,from)}
+
+/* ---------------------------------------------------------------- canvas textures */
+const texCache={};
+function canvasTex(key,w,h,draw,o={}){if(texCache[key])return texCache[key];const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');draw(g,w,h);
+  const t=new T.CanvasTexture(c);if(o.srgb!==false)t.encoding=T.sRGBEncoding;t.anisotropy=4;if(o.repeat){t.wrapS=t.wrapT=T.RepeatWrapping}return texCache[key]=t}
+function normalFromHeight(key,w,h,hf,strength=2,wrapU=true){if(texCache[key])return texCache[key];const H=new Float32Array(w*h);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++)H[j*w+i]=hf(i/w,j/h);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d'),img=g.createImageData(w,h);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const l=H[j*w+(wrapU?(i+w-1)%w:Math.max(0,i-1))],r=H[j*w+(wrapU?(i+1)%w:Math.min(w-1,i+1))],u=H[Math.max(0,j-1)*w+i],d=H[Math.min(h-1,j+1)*w+i];
+    let nx=(l-r)*strength,ny=(d-u)*strength,nz=1;const L=Math.hypot(nx,ny,nz);const o=(j*w+i)*4;
+    img.data[o]=(nx/L*.5+.5)*255;img.data[o+1]=(ny/L*.5+.5)*255;img.data[o+2]=(nz/L*.5+.5)*255;img.data[o+3]=255}
+  g.putImageData(img,0,0);const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;return texCache[key]=t}
+const treadNormal=()=>normalFromHeight('tread',1024,128,(u,v)=>{
+  if(v<.2||v>.8){const s=Math.abs(v-.5);return .3+.04*Math.sin(s*260)}               /* sidewall: faint concentric ribs */
+  let h=1;for(const g of[.37,.5,.63])if(Math.abs(v-g)<.018)h=0;                     /* circumferential grooves */
+  const blocks=72,ph=(u*blocks+(v<.5?0:.5))%1;                                     /* staggered lateral sipes */
+  if((v<.37||v>.63)&&ph<.12)h=Math.min(h,.15);if(v>.39&&v<.61&&Math.abs(ph-.55)<.03)h=Math.min(h,.4);
+  if(v<.27||v>.73)h=lerp(h,.3,smooth(.73,.8,Math.max(v,1-v)));return h},3.5);
+const grilleTex=()=>canvasTex('grille',256,256,(g,w,h)=>{g.fillStyle='#050505';g.fillRect(0,0,w,h);
+  const r=13;g.strokeStyle='#3a3d42';g.lineWidth=3.5;for(let y=-1;y<12;y++)for(let x=-1;x<12;x++){const cx=x*r*1.75+(y%2?r*.875:0),cy=y*r*1.52;
+    g.beginPath();for(let k=0;k<6;k++){const a=Math.PI/6+k*Math.PI/3;g.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r)}g.closePath();g.stroke()}},{repeat:true});
+const grilleBars=()=>canvasTex('grillebars',256,256,(g,w,h)=>{g.fillStyle='#060606';g.fillRect(0,0,w,h);
+  for(let y=0;y<h;y+=32){const gr=g.createLinearGradient(0,y,0,y+18);gr.addColorStop(0,'#cfd3d8');gr.addColorStop(.5,'#6c7177');gr.addColorStop(1,'#1c1d20');g.fillStyle=gr;g.fillRect(0,y+4,w,14)}},{repeat:true});
+const plateTex=(txt,state)=>canvasTex('plate'+txt,512,256,(g,w,h)=>{g.fillStyle='#f4f4ef';g.fillRect(0,0,w,h);
+  const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(60,110,190,.35)');gr.addColorStop(.5,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(190,60,60,.25)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  g.strokeStyle='#22314d';g.lineWidth=10;g.strokeRect(8,8,w-16,h-16);g.fillStyle='#1d2c4f';g.font='bold 34px Arial,Helvetica,sans-serif';g.textAlign='center';g.fillText(state,w/2,52);
+  let fs=120;g.font='bold '+fs+'px "Arial Narrow",Arial,Helvetica,sans-serif';while(g.measureText(txt).width>w-60&&fs>40){fs-=4;g.font='bold '+fs+'px "Arial Narrow",Arial,Helvetica,sans-serif'}g.fillStyle='#14203a';g.fillText(txt,w/2,150+fs*.33);g.font='bold 22px Arial';g.fillText('SUBURBAN PRIDE',w/2,236)});
+const stickerTex=()=>canvasTex('sticker',512,160,(g,w,h)=>{const r=30;g.fillStyle='#fbfbf6';g.beginPath();g.moveTo(r,0);g.arcTo(w,0,w,h,r);g.arcTo(w,h,0,h,r);g.arcTo(0,h,0,0,r);g.arcTo(0,0,w,0,r);g.fill();
+  g.strokeStyle='#1a7a3a';g.lineWidth=8;g.stroke();const cx=80,cy=80,R=58;g.fillStyle='#fff';g.beginPath();g.arc(cx,cy,R,0,7);g.fill();g.lineWidth=4;g.strokeStyle='#111';g.stroke();
+  const pent=(x,y,s,rot)=>{g.beginPath();for(let k=0;k<5;k++){const a=rot+k*Math.PI*2/5;g.lineTo(x+Math.cos(a)*s,y+Math.sin(a)*s)}g.closePath();g.fill()};g.fillStyle='#111';pent(cx,cy,19,-Math.PI/2);
+  for(let k=0;k<5;k++){const a=-Math.PI/2+k*Math.PI*2/5+Math.PI/5;const px=cx+Math.cos(a)*48,py=cy+Math.sin(a)*48;g.save();g.beginPath();g.arc(cx,cy,R-2,0,7);g.clip();pent(px,py,17,a);g.restore();
+    g.beginPath();g.moveTo(cx+Math.cos(a)*19*.81,cy+Math.sin(a)*19*.81);g.lineTo(px-Math.cos(a)*14,py-Math.sin(a)*14);g.lineWidth=3;g.stroke()}
+  g.fillStyle='#1a7a3a';g.font='bold 54px Arial,Helvetica,sans-serif';g.textAlign='left';g.fillText('SOCCER',158,76);g.fillStyle='#16181c';g.font='bold 46px Arial,Helvetica,sans-serif';g.fillText('DAD ON BOARD',158,128)});
+const shadowTex=()=>canvasTex('ao',128,256,(g,w,h)=>{const img=g.createImageData(w,h);for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+    const x=(i+.5)/w*2-1,y=(j+.5)/h*2-1,d=Math.pow(Math.pow(Math.abs(x),4)+Math.pow(Math.abs(y),4),.25),a=Math.pow(clamp(1-(d-.55)/.45,0,1),1.6);const o=(j*w+i)*4;img.data[o]=img.data[o+1]=img.data[o+2]=0;img.data[o+3]=a*255}
+  g.putImageData(img,0,0)},{srgb:false});
+const ledTex=()=>canvasTex('led',256,32,(g,w,h)=>{g.fillStyle='#1a1a1a';g.fillRect(0,0,w,h);for(let i=0;i<16;i++){const x=i*16+8;const gr=g.createRadialGradient(x,16,1,x,16,8);gr.addColorStop(0,'#fff');gr.addColorStop(.6,'#cfe2ff');gr.addColorStop(1,'#333');g.fillStyle=gr;g.fillRect(x-7,4,14,24)}});
+
+/* ---------------------------------------------------------------- type definitions (metres) */
+/* top/belt/bot/hw/rw: [x, value, fillet] keys along the car (x: rear -> front)
+   top: centre-line top surface, belt: window sill line, bot: rocker/bumper underside (arches are cut automatically),
+   hw: body half width, rw: half width of the roof/greenhouse top */
+const TYPES={
+minivan:{L:5.10,H:1.77,wr:.365,tw:.235,rimR:.229,axles:[1.57,-1.46],Ra:.415,endF:.16,endR:.13,capP:2.6,capPF:3.6,
+  top:[[-2.42,1.60],[-2.26,1.712,.14],[-.6,1.765,.9],[.5,1.69,.35],[1.52,1.14,.2],[2.05,1.07,.25],[2.39,1.0]],
+  belt:[[-2.42,1.13],[-2.0,1.11],[-.9,1.075],[.5,1.05],[1.52,1.05],[2.0,1.0],[2.39,.95]],
+  bot:[[-2.42,.50],[-2.18,.37,.12],[-1.95,.27],[1.95,.27],[2.15,.32,.1],[2.39,.36]],
+  hw:[[-2.42,.90],[-2.12,.975,.2],[-1.2,.995],[1.2,.995],[2.0,.96,.25],[2.39,.86]],
+  rw:[[-2.42,.79],[-1.6,.83],[.3,.83],[.9,.86],[1.45,.92]],
+  crown:.05,re:.085,rb:.07,tumble:.03,tuck:.045,shoulder:.7,bow:.014,
+  cowl:1.52,roofF:.5,roofR:-2.25,
+  windows:[[1.40,1.17],[1.12,.30],[.21,-.86],[-.95,-2.24]],pillarBlack:[1,2],
+  rearGlass:{y0:1.19,y1:1.56,hw0:.67,hw1:.60,r:.07},
+  head:[[.32,.80],[.80,.76],[.86,.90],[.44,.94]],drl:[[.40,.915],[.80,.875]],
+  grille:{y0:.68,y1:.90,hw0:.30,hw1:.38,bars:true},intake:{y0:.40,y1:.61,hw0:.68,hw1:.58},plateF:.51,
+  tail:[[.60,.97],[.86,.95],[.83,1.42],[.70,1.44]],tailSide:[1.0,1.40,.15,1.02,1.40],
+  plateR:.83,rearBumperY:.70,
+  seams:{doorF:1.13,doors:[.255,-.90],bottomY:.37},handles:[[.42,0],[.08,0]],slidingTrack:true,mirrorX:1.36,
+  rails:true,seats:[[.55,2],[-.40,2],[-1.40,3]],wiperRear:true,sticker:true,plateTxt:'SOCR DAD'},
+sedan:{L:4.85,H:1.445,wr:.335,tw:.235,rimR:.229,axles:[1.445,-1.375],Ra:.385,endF:.20,endR:.16,capP:2.3,
+  top:[[-2.265,1.03],[-2.0,1.065,.1],[-1.68,1.08,.1],[-.88,1.41,.32],[-.15,1.445,.45],[.38,1.40,.35],[1.10,1.0,.18],[1.75,.925,.3],[2.225,.86]],
+  belt:[[-2.265,1.0],[-1.6,1.02],[-.5,.985],[1.08,.96],[1.7,.88],[2.225,.81]],
+  bot:[[-2.265,.40],[-2.0,.30,.1],[-1.8,.205],[1.8,.205],[2.05,.25,.1],[2.225,.29]],
+  hw:[[-2.265,.85],[-1.9,.905,.25],[-.5,.92],[1.1,.92],[1.85,.885,.25],[2.225,.82]],
+  rw:[[-1.6,.64],[-.75,.68],[0,.69],[.35,.69],[1.08,.80]],
+  crown:.04,re:.075,rb:.065,tumble:.018,tuck:.035,shoulder:.72,bow:.012,
+  cowl:1.10,roofF:.38,roofR:-.86,
+  windows:[[1.0,.06],[-.02,-.88],[-.94,-1.30]],pillarBlack:[0],
+  rearGlass:{auto:[-.92,-1.62]},capPF:3,
+  head:[[.34,.72],[.80,.69],[.86,.79],[.48,.82]],drl:[[.44,.805],[.82,.77]],
+  grille:{y0:.64,y1:.79,hw0:.28,hw1:.36,bars:true},intake:{y0:.33,y1:.57,hw0:.64,hw1:.54},plateF:.45,
+  tail:[[.40,.88],[.84,.86],[.85,.99],[.44,1.0]],tailSide:[.87,.99,.22,.92,.99],
+  plateR:.62,rearBumperY:.56,trunk:true,exhaust:true,
+  seams:{doorF:1.04,doors:[.02,-.92],bottomY:.30},handles:[[.18,0],[-.78,0]],mirrorX:.96,
+  seats:[[.15,2],[-.82,3]],plateTxt:'HOA PRES'},
+suv:{L:4.70,H:1.72,wr:.37,tw:.245,rimR:.241,axles:[1.40,-1.35],Ra:.43,endF:.18,endR:.12,capP:2.4,capPF:3.4,rakeF:.1,
+  top:[[-2.23,1.58],[-2.05,1.69,.12],[-.6,1.72,.9],[.35,1.665,.3],[1.15,1.17,.18],[1.8,1.10,.3],[2.15,1.06]],
+  belt:[[-2.23,1.21],[-1.7,1.19],[0,1.13],[1.15,1.12],[1.75,1.06],[2.15,1.0]],
+  bot:[[-2.23,.56],[-1.98,.44,.1],[-1.75,.32],[1.75,.32],[1.95,.38,.1],[2.15,.42]],
+  hw:[[-2.23,.88],[-1.95,.94,.2],[-.4,.955],[1.2,.955],[1.85,.93,.25],[2.15,.87]],
+  rw:[[-2.23,.75],[-1.4,.775],[0,.785],[.4,.79],[1.15,.85]],
+  crown:.045,re:.085,rb:.06,tumble:.016,tuck:.03,shoulder:.7,bow:.014,
+  cowl:1.15,roofF:.35,roofR:-1.98,
+  windows:[[1.06,.12],[.04,-.92],[-1.0,-1.82]],pillarBlack:[0,1],
+  rearGlass:{y0:1.28,y1:1.58,hw0:.62,hw1:.57,r:.07},
+  head:[[.42,.92],[.84,.89],[.88,1.0],[.50,1.02]],drl:[[.48,1.005],[.85,.985]],
+  grille:{y0:.66,y1:.98,hw0:.38,hw1:.44,chrome:true},intake:{y0:.42,y1:.60,hw0:.70,hw1:.62},plateF:.54,
+  tail:[[.50,1.04],[.86,1.02],[.86,1.14],[.52,1.15]],tailSide:[1.03,1.15,.22,1.07,1.16],
+  plateR:.88,rearBumperY:.74,
+  seams:{doorF:1.00,doors:[.07,-.97],bottomY:.40},handles:[[.24,0],[-.74,0]],mirrorX:1.05,
+  rails:true,cladding:true,seats:[[.10,2],[-.90,3]],plateTxt:'CARPOOL'},
+hatch:{L:4.25,H:1.46,wr:.317,tw:.225,rimR:.216,axles:[1.245,-1.385],Ra:.365,endF:.17,endR:.12,capP:2.3,
+  top:[[-2.005,1.12],[-1.93,1.30,.05],[-1.74,1.39,.14],[-.7,1.46,.7],[.22,1.40,.35],[.95,.99,.17],[1.55,.89,.3],[1.955,.82]],
+  belt:[[-2.005,.99],[-1.5,1.0],[0,.955],[.95,.935],[1.5,.84],[1.955,.74]],
+  bot:[[-2.005,.40],[-1.78,.30,.1],[-1.6,.20],[1.55,.20],[1.78,.25,.08],[1.955,.32]],
+  hw:[[-2.005,.835],[-1.75,.885,.2],[-.3,.895],[.95,.895],[1.6,.865,.2],[1.955,.80]],
+  rw:[[-2.005,.66],[-1.5,.68],[0,.70],[.3,.70],[.95,.78]],
+  crown:.04,re:.075,rb:.06,tumble:.016,tuck:.03,shoulder:.72,bow:.012,
+  cowl:.95,roofF:.22,roofR:-1.70,
+  windows:[[.87,.0],[-.08,-.90],[-.97,-1.52]],pillarBlack:[0],
+  rearGlass:{auto:[-1.78,-1.99]},
+  head:[[.36,.68],[.78,.65],[.83,.73],[.48,.765]],drl:[[.44,.75],[.80,.72]],
+  grille:{y0:.64,y1:.735,hw0:.30,hw1:.36},intake:{y0:.33,y1:.56,hw0:.60,hw1:.50},plateF:.45,
+  tail:[[.50,.90],[.80,.88],[.80,.99],[.52,1.0]],tailSide:[.90,1.0,.2,.93,1.0],
+  plateR:.70,rearBumperY:.56,
+  seams:{doorF:.92,doors:[-.04,-.96],bottomY:.29},handles:[[.10,0],[-.78,0]],mirrorX:.86,
+  seats:[[.0,2],[-.95,3]],plateTxt:'LIL DAD',hatchSpoiler:true},
+pickup:{L:5.60,H:1.93,wr:.41,tw:.275,rimR:.254,axles:[1.85,-1.70],Ra:.475,endF:.15,endR:.09,capP:3.2,
+  top:[[-2.71,1.30],[-.78,1.32,.03],[-.69,1.915,.07],[.20,1.925,.3],[1.0,1.36,.16],[2.35,1.30,.15],[2.65,1.22]],
+  belt:[[-2.71,1.29],[-.78,1.30],[1.0,1.29],[2.3,1.25],[2.65,1.16]],
+  bot:[[-2.71,.62],[-1.0,.56],[1.0,.52],[2.2,.47],[2.65,.48]],
+  hw:[[-2.71,.985],[-2.3,1.0,.2],[-.8,1.005],[0,1.015],[1.5,1.015],[2.25,.995,.2],[2.65,.95]],
+  rw:[[-.78,.80],[0,.82],[1.0,.93]],
+  crown:.035,re:.06,rb:.05,tumble:.012,tuck:.025,shoulder:.62,bow:.008,
+  cowl:1.0,roofF:.20,roofR:-.70,
+  windows:[[.92,.0],[-.07,-.66]],pillarBlack:[0],
+  rearGlass:{y0:1.45,y1:1.78,hw0:.66,hw1:.60,r:.05,view:'cabback'},
+  head:[[.53,.98],[.90,.96],[.92,1.19],[.55,1.19]],drl:[[.58,1.165],[.89,1.165]],
+  grille:{y0:.80,y1:1.20,hw0:.48,hw1:.50,bars:true,chrome:true},intake:{y0:.70,y1:.78,hw0:.60,hw1:.62},plateF:.62,
+  tail:[[.86,.96],[.985,.96],[.985,1.27],[.86,1.27]],tailSide:[.96,1.27,.06,.96,1.27],
+  plateR:.62,rearBumperY:.70,bed:{x0:-2.64,x1:-.84,hw:.88,floor:.86},tailgate:true,
+  seams:{doorF:1.00,doors:[.02,-.68],bottomY:.58},handles:[[.18,0],[-.55,0]],mirrorX:.92,
+  seats:[[.10,2],[-.48,3]],plateTxt:'BIG DAD'},
+workvan:{L:5.40,H:2.46,wr:.36,tw:.235,rimR:.203,axles:[1.75,-1.55],Ra:.41,endF:.16,endR:.07,capP:3.2,
+  top:[[-2.63,2.36],[-2.48,2.43,.1],[.40,2.44,.5],[.95,2.12,.25],[1.55,1.24,.15],[2.2,1.10,.25],[2.54,.98]],
+  belt:[[-2.63,1.26],[1.55,1.25],[2.15,1.06],[2.54,.94]],
+  bot:[[-2.63,.46],[-2.35,.38,.08],[-2.1,.36],[2.1,.37],[2.54,.40]],
+  hw:[[-2.63,1.0],[-2.4,1.02,.12],[1.3,1.025],[2.1,.985,.25],[2.54,.90]],
+  rw:[[-2.63,.94],[0,.96],[.9,.95],[1.55,.97]],
+  crown:.05,re:.11,rb:.06,tumble:.012,tuck:.025,shoulder:.62,bow:.006,
+  cowl:1.55,roofF:.95,roofR:-2.45,
+  windows:[[1.48,.62]],pillarBlack:[],
+  rearGlass:{y0:1.55,y1:2.05,hw0:.82,hw1:.80,r:.06,split:true},
+  head:[[.48,.90],[.88,.92],[.86,1.06],[.56,1.04]],drl:[[.56,1.03],[.85,1.05]],
+  grille:{y0:.66,y1:.98,hw0:.44,hw1:.46,bars:true},intake:{y0:.40,y1:.58,hw0:.70,hw1:.66},plateF:.50,
+  tail:[[.88,.80],[.99,.80],[.99,1.30],[.88,1.30]],tailSide:[.80,1.30,.05,.80,1.30],
+  plateR:.58,rearBumperY:.62,barnDoors:true,steelBumpers:true,
+  seams:{doorF:1.42,doors:[.58,-.75],bottomY:.42},handles:[[.72,0],[.45,0]],slidingTrack:true,mirrorX:1.45,
+  seats:[[.75,2]],bulkhead:.35,rimStyle:'steel',plateTxt:'FIXIT'}
+};
+
+/* ---------------------------------------------------------------- body loft */
+function prep(S){if(S._p)return S;S._p=1;for(const k of['top','belt','bot','hw','rw'])S[k+'F']=profile(S[k]);
+  S.x0=S.top[0][0];S.x1=S.top[S.top.length-1][0];return S}
+function section(S,x){
+  const yt=S.topF(x),yBelt=Math.min(S.beltF(x),yt-.022),ybase=S.botF(x),ys=ybase+(yBelt-ybase)*S.shoulder;
+  let yA=-1;for(const ax of S.axles){const dx=x-ax;if(Math.abs(dx)<S.Ra)yA=Math.max(yA,Math.min(ys-.05,S.wr+Math.sqrt(S.Ra*S.Ra-dx*dx)))}
+  const yb=ybase,arch=yA>yb;
+  const wB=S.hwF(x),wL=wB-S.tuck,wBelt=wB-S.tumble,gh=yt-yBelt,k=smooth(.05,.25,gh);
+  const wT=lerp(wBelt-.012,Math.min(S.rwF(x),wBelt-.03),k);
+  const crownH=Math.min(S.crown,gh*.4),re=clamp(gh*.3,.008,S.re),yEdge=yt-crownH,yC=yEdge-re;
+  const P=[],rb=S.rb,zc=wL-rb;
+  for(let i=0;i<4;i++)P.push([zc*i/3,yb]);
+  for(let i=1;i<=3;i++){const a=-Math.PI/2+i/3*Math.PI/2;P.push([zc+rb*Math.cos(a),yb+rb+rb*Math.sin(a)])}
+  const y0=yb+rb,c=[wB+.006,lerp(y0,ys,.55)];
+  for(let i=1;i<=5;i++){const t=i/5,u=1-t;P.push([u*u*wL+2*u*t*c[0]+t*t*wB,u*u*y0+2*u*t*c[1]+t*t*ys])}
+  for(let i=1;i<=3;i++){const t=i/3;P.push([lerp(wB,wBelt,t)+.003*Math.sin(Math.PI*t),lerp(ys,yBelt,t)])}
+  for(let i=1;i<=7;i++){const t=i/7;P.push([lerp(wBelt,wT,t)+S.bow*k*Math.sin(Math.PI*t),lerp(yBelt,yC,t)])}
+  for(let i=1;i<=3;i++){const a=i/3*Math.PI/2;P.push([wT-re+re*Math.cos(a),yC+re*Math.sin(a)])}
+  for(let i=1;i<=6;i++){const t=i/6;P.push([(wT-re)*(1-t),yt-crownH*(1-t)*(1-t)])}
+  if(arch)for(const p of P)if(p[1]<yA)p[1]=yA;
+  return{P,yt,yb:arch?yA:yb,yBase:yb,yBelt,wB,wBelt,wT,yC,ys,gh,re}}
+const UNDER_ROWS=6;
+
+function buildBody(S){
+  const step=.07,xs=[];for(let x=S.x0;x<S.x1;x+=step)xs.push(x);xs.push(S.x1);
+  const add=x=>{if(x>S.x0&&x<S.x1)xs.push(x)};
+  for(const k of['top','bot','belt'])for(const q of S[k]){add(q[0]);if(!q[2]){add(q[0]-.015);add(q[0]+.015)}}
+  for(const ax of S.axles){for(let i=0;i<=16;i++)add(ax-S.Ra*Math.cos(i/16*Math.PI));add(ax-S.Ra-.0015);add(ax+S.Ra+.0015);add(ax-S.Ra+.0015);add(ax+S.Ra-.0015)}
+  xs.sort((a,b)=>a-b);const X=[xs[0]];for(const x of xs)if(x-X[X.length-1]>.0012)X.push(x);
+  const rings=X.map(x=>({x,s:section(S,x)}));
+  /* end caps: rings shrink to the centre with a superellipse profile */
+  const cap=(r0,dir,R)=>{const s=r0.s,cy=(s.yb+s.yt)/2,K=10,out=[],cp=dir>0?(S.capPF||S.capP):S.capP;
+    for(let k=1;k<=K;k++){const th=k/K*Math.PI/2,sc=Math.pow(Math.cos(th),2/cp),dx=R*Math.pow(Math.sin(th),2/cp);
+      out.push({x:r0.x+dir*dx,s:{P:s.P.map(([z,y])=>[z*sc,cy+(y-cy)*sc])},cap:true})}return out};
+  const all=[...cap(rings[0],-1,S.endR).reverse(),...rings,...cap(rings[rings.length-1],1,S.endF)];
+  const M=all[0].s.P.length,tris=[];
+  const eF=rings[rings.length-1].s,eR=rings[0].s,cyF=(eF.yb+eF.yt)/2,cyR=(eR.yb+eR.yt)/2,rkF=S.rakeF??.08,rkR=S.rakeR??.08;
+  const fA=Math.max(S.x1-.7,S.axles[0]+S.Ra+.04),rA=Math.min(S.x0+.6,S.axles[1]-S.Ra-.04);
+  const swF=Math.min(S.sweepF??.22,.5*(S.x1-fA)/1.5),swR=Math.min(S.sweepR??.1,.5*(rA-S.x0)/1.5),wzF=eF.wB,wzR=eR.wB;
+  const shear=(x,y,z,cap)=>{const wF=x>0?(cap?1:smooth(fA,S.x1,x)):0,wR=x<0?(cap?1:smooth(rA,S.x0,x)):0;
+    return rkF*(cyF-y)*wF+rkR*(y-cyR)*wR-swF*Math.pow(Math.min(1,z/wzF),2.2)*wF+swR*Math.pow(Math.min(1,z/wzR),2.2)*wR};
+  const pt=(i,j,sg)=>{const r=all[i],p=r.s.P[j];return V3(r.x+shear(r.x,p[1],p[0],r.cap),p[1],p[0]*sg)};
+  for(const sg of[1,-1])for(let i=0;i<all.length-1;i++)for(let j=0;j<M-1;j++){
+    const a=pt(i,j,sg),b=pt(i+1,j,sg),c=pt(i+1,j+1,sg),d=pt(i,j+1,sg),cls=j<3?'under':'paint';
+    const push=(p,q,r)=>{const ar=q.clone().sub(p).cross(r.clone().sub(p)).lengthSq();if(ar>1e-14)tris.push({p:[p,q,r],cls})};
+    if(sg>0){push(a,b,c);push(a,c,d)}else{push(a,c,b);push(a,d,c)}}
+  const flat=new Float32Array(tris.length*9);tris.forEach((t,i)=>{for(let c=0;c<3;c++){flat[i*9+c*3]=t.p[c].x;flat[i*9+c*3+1]=t.p[c].y;flat[i*9+c*3+2]=t.p[c].z}});
+  const N=creaseNormals(flat,40);tris.forEach((t,i)=>{t.n=[0,1,2].map(c=>V3(N[i*9+c*3],N[i*9+c*3+1],N[i*9+c*3+2]));const ny=(t.n[0].y+t.n[1].y+t.n[2].y)/3;if(t.cls==='under')t.cls=ny<-.6?'under':'paint';else if(ny<-.985)t.cls='under'});
+  const dm={};for(const v of['side','front','rear','top'])dm[v]=new DMap(v,flat,v==='top'?.016:.012);
+  return{tris,dm,flat,X}}
+
+/* coarse interior shell (rendered BackSide: only the far inner walls show through the glass) */
+function shell(S,o){const xs=[];for(let x=S.x0+.1;x<S.x1-.08;x+=.18)xs.push(x);xs.push(S.x1-.08);
+  const rings=xs.map(x=>{const s=section(S,x),cy=(s.yb+s.yt)/2;return{x,cy,P:s.P.filter((_,j)=>j%2===0||j===s.P.length-1).map(([z,y])=>[Math.max(0,z*.965-.025),cy+(y-cy)*.95])}});
+  const M=rings[0].P.length,pt=(i,j,sg)=>V3(rings[i].x,rings[i].P[j][1],rings[i].P[j][0]*sg),up=V3(0,1,0);
+  const tri=(a,b,c)=>{const n=b.clone().sub(a).cross(c.clone().sub(a)).normalize();if(!isFinite(n.x))return;o.tri('interior',a,b,c,n,n,n)};
+  for(const sg of[1,-1]){for(let i=0;i<rings.length-1;i++)for(let j=0;j<M-1;j++){const a=pt(i,j,sg),b=pt(i+1,j,sg),c=pt(i+1,j+1,sg),d=pt(i,j+1,sg);if(sg>0){tri(a,b,c);tri(a,c,d)}else{tri(a,c,b);tri(a,d,c)}}
+    for(const[i,dir]of[[0,-1],[rings.length-1,1]]){const c=V3(rings[i].x,rings[i].cy,0);for(let j=0;j<M-1;j++){const a=pt(i,j,sg),b=pt(i,j+1,sg);if(dir*sg>0)tri(c,a,b);else tri(c,b,a)}}}}
+
+/* cut a convex hole (in a depth-map view) out of the body, exactly */
+function cutHole(B,view,poly,tol=.03){const dm=B.dm[view],P=ccw(simplify(ccw(poly),.0025)),n=P.length;
+  let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const p of P){a0=Math.min(a0,p[0]);a1=Math.max(a1,p[0]);b0=Math.min(b0,p[1]);b1=Math.max(b1,p[1])}
+  const out=[];
+  for(const t of B.tris){const pr=t.p.map(p=>{const q=dm.proj(view==='side'?V3(p.x,p.y,Math.abs(p.z)):p);return q});
+    if(Math.max(pr[0][0],pr[1][0],pr[2][0])<a0||Math.min(pr[0][0],pr[1][0],pr[2][0])>a1||Math.max(pr[0][1],pr[1][1],pr[2][1])<b0||Math.min(pr[0][1],pr[1][1],pr[2][1])>b1){out.push(t);continue}
+    const ca=(pr[0][0]+pr[1][0]+pr[2][0])/3,cb=(pr[0][1]+pr[1][1]+pr[2][1])/3,cd=(pr[0][2]+pr[1][2]+pr[2][2])/3,dd=dm.depth(ca,cb);
+    if(dd==null||Math.abs(dd-cd)>tol){out.push(t);continue}
+    let rem=t.p.map((p,i)=>({a:pr[i][0],b:pr[i][1],p,n:t.n[i]}));
+    const clip=(poly,e,keepIn)=>{const A=P[e],Bp=P[(e+1)%n],ex=Bp[0]-A[0],ey=Bp[1]-A[1],sd=v=>ex*(v.b-A[1])-ey*(v.a-A[0]);const res=[];
+      for(let i=0;i<poly.length;i++){const u=poly[i],w=poly[(i+1)%poly.length],su=keepIn?sd(u):-sd(u),sw=keepIn?sd(w):-sd(w);
+        if(su>=0)res.push(u);if((su>=0)!==(sw>=0)){const k=su/(su-sw);res.push({a:lerp(u.a,w.a,k),b:lerp(u.b,w.b,k),p:u.p.clone().lerp(w.p,k),n:u.n.clone().lerp(w.n,k).normalize()})}}
+      return res};
+    for(let e=0;e<n&&rem.length>=3;e++){const o=clip(rem,e,false);if(o.length>=3)for(let i=1;i<o.length-1;i++)out.push({p:[o[0].p,o[i].p,o[i+1].p],n:[o[0].n,o[i].n,o[i+1].n],cls:t.cls});rem=clip(rem,e,true)}}
+  B.tris=out}
+
+/* ---------------------------------------------------------------- per-type geometry kit (cached) */
+const KITS={};
+function kit(type){if(KITS[type])return KITS[type];const S=prep(TYPES[type]);const B=buildBody(S),dm=B.dm,o=new Out();
+  const sec=x=>section(S,x);
+  /* --- glazing outlines --- */
+  const sideWin=([xf,xr])=>{const pts=[];const n=Math.max(4,Math.ceil((xf-xr)/.04));
+    for(let i=0;i<=n;i++){const x=lerp(xr,xf,i/n),s=sec(x),yb=s.yBelt+.02,yt=s.yC-.012;if(yt>yb+.01){pts.push([x,yb],[x,yt])}}
+    return pts.length>=3?roundPoly(simplify(hull(pts),.002),.035):null};
+  const wins=S.windows.map(sideWin);
+  const front=()=>{const xa=S.cowl-.05,xb=S.roofF+.04,sa=sec(xa),sb=sec(xb);
+    return roundPoly([[-(sa.wT-.075),sa.yt+.012],[sa.wT-.075,sa.yt+.012],[sb.wT-sb.re-.03,sb.yC+.01],[0,sb.yt-.02],[-(sb.wT-sb.re-.03),sb.yC+.01]],[.05,.05,.07,.3,.07])};
+  const ws=front();
+  let rg;const RG=S.rearGlass;
+  if(RG.auto){const[xa,xb]=RG.auto,sa=sec(xa),sb=sec(xb);rg={view:'rear',poly:roundPoly([[-(sb.wT-.07),sb.yt+.025],[sb.wT-.07,sb.yt+.025],[sa.wT-sa.re-.03,sa.yC+.0],[0,sa.yt-.025],[-(sa.wT-sa.re-.03),sa.yC]],[.05,.05,.06,.3,.06])}}
+  else if(RG.view==='cabback'){rg={view:'rearcab',poly:trap(RG.y0,RG.y1,RG.hw0,RG.hw1,RG.r)}}
+  else rg={view:'rear',poly:trap(RG.y0,RG.y1,RG.hw0,RG.hw1,RG.r)};
+  /* holes */
+  for(const w of wins)if(w)cutHole(B,'side',insetPoly(ccw(w),.012));
+  cutHole(B,'front',insetPoly(ccw(ws),.03));
+  if(rg.view==='rear')cutHole(B,'rear',insetPoly(ccw(rg.poly),.03));
+  if(S.bed){const b=S.bed;cutHole(B,'top',[[b.x0,-b.hw],[b.x1,-b.hw],[b.x1,b.hw],[b.x0,b.hw]],.05)}
+  /* body into buckets */
+  for(const t of B.tris)o.tri(t.cls,t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2]);
+  /* interior shell: body pushed inward, seen through the glass */
+  shell(S,o);
+  /* --- glass with black frit / surrounds --- */
+  wins.forEach((w,i)=>{if(w)patch(o,dm.side,w,{bands:[{w:.016,mat:'gblack'}],fill:'glass',off:.004,mirror:true})});
+  (S.pillarBlack||[]).forEach(i=>{const a=S.windows[i],b=S.windows[i+1];if(!a||!b)return;const xa=a[1]+.012,xb=b[0]-.012,s1=sec(xa),s2=sec(xb);
+    patch(o,dm.side,quad([[xb,s2.yBelt+.012],[xa,s1.yBelt+.012],[xa,s1.yC-.004],[xb,s2.yC-.004]],.01),{fill:'gblack',off:.0045,mirror:true})});
+  patch(o,dm.front,ws,{bands:[{w:.05,mat:'gblack'}],fill:'glass',off:.004});
+  if(rg.view==='rear')patch(o,dm.rear,rg.poly,{bands:[{w:.045,mat:'gblack'}],fill:'glass',off:.004});
+  /* chrome belt/window trim (minivan, sedan) */
+  if(type==='minivan'||type==='sedan'){const xf=S.windows[0][0],xr=S.windows[S.windows.length-1][1],pts=[];for(let x=xr;x<=xf;x+=.05)pts.push([x,sec(x).yBelt+.008]);pts.push([xf,sec(xf).yBelt+.008]);
+    ribbon(o,dm.side,pts,.014,{mat:'chrome',off:.005,mirror:true})}
+  /* --- front --- */
+  const yF=y=>y;
+  patch(o,dm.front,quad(S.head,.035),{bands:[{w:.007,mat:'gblack'},{w:.016,mat:'gblack'}],fill:'head',off:.006,mirror:true,raise:.004});
+  ribbon(o,dm.front,S.drl,.013,{mat:'drl',off:.011,mirror:true});
+  {const H=quad(S.head,.035),c=centroid(H);let z0=1e9,z1=-1e9;for(const p of H){z0=Math.min(z0,p[0]);z1=Math.max(z1,p[0])}
+    for(const f of[.38,.62]){const z=lerp(z0,z1,f);ribbon(o,dm.front,[[z,c[1]-.035],[z,c[1]+.025]],.006,{mat:'gblack',off:.0105,mirror:true})}}
+  for(const[pz,py]of S.proj||[])patch(o,dm.front,circleP(pz,py,.03,20),{bands:[{w:.006,mat:'chrome'}],fill:'lens',off:.012,mirror:true,raise:.003});
+  const G=S.grille;patch(o,dm.front,trap(yF(G.y0),yF(G.y1),G.hw0,G.hw1,.035),{bands:[{w:.016,mat:G.chrome?'chrome':'gblack'}],fill:G.bars?'grilleBars':'grille',off:.005});
+  const I=S.intake;patch(o,dm.front,trap(I.y0,I.y1,I.hw0,I.hw1,.05),{bands:[{w:.014,mat:'gblack'}],fill:'grille',off:.004});
+  patch(o,dm.front,rectP(0,S.plateF,.305,.152,.012),{fill:'plateF',off:.012});
+  /* lower lip / valance */
+  ribbon(o,dm.front,[[-(I.hw0+.06),S.botF(S.x1)+.035],[I.hw0+.06,S.botF(S.x1)+.035]],.05,{mat:'trim',off:.006});
+  /* --- rear --- */
+  patch(o,dm.rear,quad(S.tail,.025),{bands:[{w:.006,mat:'gblack'},{w:.03,mat:'tail'}],fill:'brake',off:.006,mirror:true,raise:.003});
+  {const[y0,y1,len,y0f,y1f]=S.tailSide,ym=(y0+y1)/2;let xc=S.x0-S.endR;for(;xc<S.x0+.6;xc+=.005){const d=dm.side.depth(xc,ym);if(d!=null&&d>S.hwF(xc+.3)-.07)break}
+    S._tailSide=[[xc-.005,y0],[xc+len,y0f],[xc+len,y1f],[xc-.005,y1]]}
+  patch(o,dm.side,quad(S._tailSide,.025),{bands:[{w:.006,mat:'gblack'},{w:.025,mat:'tail'}],fill:'brake',off:.0065,mirror:true,raise:.003});
+  patch(o,dm.rear,rectP(0,S.plateR,.305,.152,.012),{fill:'plateR',off:.01});
+  ribbon(o,dm.rear,[[-.24,S.plateR+.1],[.24,S.plateR+.1]],.028,{mat:'chrome',off:.008});
+  const rb0=S.botF(S.x0);
+  patch(o,dm.rear,trap(rb0+.02,rb0+.12,.62,.66,.04),{fill:'trim',off:.006});
+  ribbon(o,dm.rear,[[-.95,S.rearBumperY],[.95,S.rearBumperY]],.006,{mat:'trim',off:.003});
+  ribbon(o,dm.front,[[-.95,S.intake.y1+.05],[.95,S.intake.y1+.05]],.005,{mat:'trim',off:.003});
+  if(S.exhaust)for(const z of[-.5,.5]){const d=dm.rear.depth(z,rb0+.06)??-S.L/2;const g=new T.CylinderGeometry(.04,.04,.12,20,1,true);o.geo('chrome',g,mat4(-d+.0,rb0+.06,z,0,0,Math.PI/2));
+    o.geo('under',new T.CircleGeometry(.036,20),mat4(-d-.05,rb0+.06,z,0,-Math.PI/2,0))}
+  /* tailgate / trunk shut lines */
+  if(S.trunk){const y0=S.rearBumperY+.01,ytop=sec(S.x0).yt-.02;ribbon(o,dm.rear,[[-.82,y0],[.82,y0]],.006,{mat:'trim',off:.003});
+    for(const sg of[-1,1]){const pts=[];for(let x=S.x0+.05;x<=-1.52;x+=.04)pts.push([x,sg*(sec(x).wT-.06)]);ribbon(o,dm.top,pts,.006,{mat:'trim',off:.003})}}
+  else if(S.tailgate){ribbon(o,dm.rear,[[-.86,.70],[.86,.70]],.007,{mat:'trim',off:.003});ribbon(o,dm.rear,[[-.80,1.22],[.80,1.22]],.03,{mat:'trim',off:.005})}
+  else if(S.barnDoors){ribbon(o,dm.rear,[[0,S.rearBumperY+.02],[0,2.3]],.008,{mat:'trim',off:.003});
+    const RG=S.rearGlass;for(const sg of[-1,1])patch(o,dm.rear,quad([[sg*.04,RG.y0],[sg*RG.hw0,RG.y0],[sg*RG.hw1,RG.y1],[sg*.04,RG.y1]],.04),{bands:[{w:.03,mat:'gblack'}],fill:'glass',off:.004});
+    for(const sg of[-1,1])cutHole(B,'rear',[[sg*.07,RG.y0+.03],[sg*(RG.hw0-.03),RG.y0+.03],[sg*(RG.hw1-.03),RG.y1-.03],[sg*.07,RG.y1-.03]]);
+    ribbon(o,dm.rear,[[-.06,1.35],[-.02,1.35]],.03,{mat:'trim',off:.008})}
+  else{const RG=S.rearGlass,y0=S.rearBumperY+.01,hw=RG.hw0+.05;ribbon(o,dm.rear,[[-hw,RG.y1+.06],[-hw,y0],[hw,y0],[hw,RG.y1+.06]],.006,{mat:'trim',off:.003})}
+  /* --- sides: door seams, handles, mirrors, cladding --- */
+  const sm=S.seams;const sideLine=(x,yb)=>{const s=sec(x);return[[x,yb],[x,s.yBelt-.004]]};
+  const doorLines=[sm.doorF,...sm.doors];for(const x of doorLines)ribbon(o,dm.side,sideLine(x,sm.bottomY),.009,{mat:'trim',off:.003,mirror:true});
+  {const pts=[];for(let x=sm.doors[sm.doors.length-1];x<=sm.doorF;x+=.05)pts.push([x,sm.bottomY]);pts.push([sm.doorF,sm.bottomY]);ribbon(o,dm.side,pts,.006,{mat:'trim',off:.003,mirror:true})}
+  /* hood shut lines */
+  {const xh=S.cowl-.03,pts=[];const xe=S.x1-.25;for(let x=xh;x<=xe;x+=.04)pts.push([x,sec(x).wT-.07]);for(const sg of[1,-1])ribbon(o,dm.top,pts.map(p=>[p[0],p[1]*sg]),.004,{mat:'trim',off:.003,graze:.6})}
+  for(const[hx]of S.handles){const s=sec(hx),y=s.yBelt-.075,q=dm.side.at(hx,y,0);if(!q)continue;
+    const g=rbox(.2,.034,.03,.012,2);const m=M4().lookAt(V3(),q.n,V3(0,1,0));const r=new T.Euler().setFromRotationMatrix(m);
+    const mm=mat4(q.p.x,q.p.y,q.p.z+.006,0,0,0);o.geo(type==='workvan'||type==='pickup'?'trim':'chrome',g,mm);o.geo(type==='workvan'||type==='pickup'?'trim':'chrome',g,mat4(q.p.x,q.p.y,-q.p.z-.006))}
+  {const x=S.mirrorX,s=sec(x),q=dm.side.at(x,s.yBelt+.06,0);if(q){const hz=q.p.z;for(const sg of[1,-1]){
+      const base=rbox(.12,.08,.06,.02,2);o.geo('trim',base,mat4(x,s.yBelt+.06,sg*(hz+.02)));
+      const hous=rbox(.11,.15,.24,.05,3);hous.translate(0,0,.11);o.geo('paint',hous,mat4(x-.02,s.yBelt+.1,sg*(hz+.01),0,sg*.12,0,1,1,sg));
+      const glass=rbox(.012,.12,.2,.006,2);glass.translate(0,0,.11);o.geo('chrome',glass,mat4(x-.08,s.yBelt+.1,sg*(hz+.01),0,sg*.12,0,1,1,sg));
+      const blink=rbox(.03,.02,.14,.01,2);blink.translate(0,0,.13);o.geo('drl',blink,mat4(x+.035,s.yBelt+.04,sg*(hz+.01),0,sg*.12,0,1,1,sg))}}}
+  /* wheel arch lips and liners */
+  for(const ax of S.axles){const s=sec(ax);const zW=S.hwF(ax)-S.tw/2-.018;
+    const lip=[];for(let i=0;i<=32;i++){const a=Math.PI*(i/32);lip.push([ax+Math.cos(a)*(S.Ra+.0),S.wr+Math.sin(a)*(S.Ra+.0)])}
+    if(S.cladding)ribbon(o,dm.side,lip,.075,{mat:'clad',off:.005,w0:0,w1:.075,mirror:true,raise:.008});
+    else ribbon(o,dm.side,lip,.025,{mat:'paint',off:.001,w0:0,w1:.025,mirror:true,raise:.004});
+    const lg=new T.CylinderGeometry(S.Ra-.012,S.Ra-.012,S.hwF(ax)*2-.06,32,1,true,Math.PI/2,Math.PI);lg.rotateX(Math.PI/2);o.geo('under',lg,mat4(ax,S.wr,0))}
+  if(S.cladding){const pts=[];const xa=S.axles[1]+S.Ra+.01,xb=S.axles[0]-S.Ra-.01;pts.push([xa,S.botF(0)+.08],[xb,S.botF(0)+.08]);ribbon(o,dm.side,pts,.16,{mat:'clad',off:.005,mirror:true,raise:.006})}
+  /* minivan sliding-door track, fuel door */
+  if(S.slidingTrack){const x0=S.seams.doors[S.seams.doors.length-1]-.04,pts=[];for(let x=x0;x>=S.x0+.25;x-=.05)pts.push([x,sec(x).yBelt-.035]);ribbon(o,dm.side,pts,.022,{mat:'trim',off:.004,mirror:true})}
+  {const x=S.axles[1]+S.Ra*.15,y=S.wr+S.Ra+.18;ribbon(o,dm.side,roundPoly([[x-.08,y-.08],[x+.08,y-.08],[x+.08,y+.08],[x-.08,y+.08]],.03),.005,{mat:'trim',closed:true,off:.003})}
+  /* roof rails */
+  if(S.rails){const xa=S.roofF+.1,xb=S.x0+.18,pts=[];const n=24;for(let i=0;i<=n;i++){const x=lerp(xa,xb,i/n),s=sec(x),z=s.wT-.1,y=(dm.top.depth(x,z)??s.yt)+(i===0||i===n?.02:.055);pts.push(V3(x,y,z))}
+    for(const sg of[1,-1]){const c=new T.CatmullRomCurve3(pts.map(p=>V3(p.x,p.y,p.z*sg)));o.geo('rail',new T.TubeGeometry(c,48,.018,8,false));
+      for(const x of[xa,xb]){const s=sec(x),z=s.wT-.1,y=dm.top.depth(x,z)??s.yt;o.geo('trim',rbox(.12,.05,.05,.02,2),mat4(x+(x===xa?-.02:.02),y+.02,z*sg))}}}
+  /* wipers */
+  {const s=sec(S.cowl-.02);for(const[z0,z1]of[[-.62,.0],[-.02,.55]]){const pts=[];for(let i=0;i<=10;i++){const z=lerp(z0,z1,i/10);pts.push([z,s.yt+.035+i*.004])}ribbon(o,dm.front,pts,.018,{mat:'trim',off:.02})}}
+  if(S.wiperRear){const RG=S.rearGlass;ribbon(o,dm.rear,[[.02,RG.y0+.03],[.38,RG.y0+.24]],.014,{mat:'trim',off:.012});o.geo('trim',rbox(.03,.05,.05,.02,2),mat4(-(dm.rear.depth(0,RG.y0+.02)??0)-.01,RG.y0+.02,0))}
+  /* sticker */
+  if(S.sticker)patch(o,dm.rear,rectP(-.45,S.rearBumperY-.07,.27,.085,.015),{fill:'sticker',off:.007});
+  /* antenna fin */
+  {const x=S.x0+.45,y=dm.top.depth(x,0)??S.H;const g=rbox(.18,.06,.06,.028,3);g.translate(0,0,0);o.geo('gblack',g,mat4(x,y+.02,0,0,0,0,1,1,.8))}
+  /* pickup bed */
+  if(S.bed){const b=S.bed,ytop=sec(-1.5).yt,h=ytop-b.floor+.02;const g=new T.BoxGeometry(b.x1-b.x0,h,b.hw*2,1,1,1);
+    const idx=g.index.array;const keep=[];for(let i=0;i<idx.length;i+=3){const ny=g.attributes.normal.getY(idx[i]);if(ny<.5)keep.push(idx[i],idx[i+2],idx[i+1])}
+    g.setIndex(keep);const g2=g.toNonIndexed();const nn=g2.attributes.normal;for(let i=0;i<nn.count;i++)nn.setXYZ(i,-nn.getX(i),-nn.getY(i),-nn.getZ(i));
+    o.geo('bedliner',g2,mat4((b.x0+b.x1)/2,b.floor+h/2,0));
+    for(const sg of[1,-1]){const g3=rbox(b.x1-b.x0+.02,.03,.09,.012,2);o.geo('trim',g3,mat4((b.x0+b.x1)/2,ytop+.01,sg*(b.hw+.03)))}
+    o.geo('trim',rbox(.06,.03,b.hw*2+.1,.012,2),mat4(b.x0-.02,ytop+.01,0));
+    /* cab back glass */
+    const RG=S.rearGlass,xb=-.70;const cb=new Out();const gl=new T.PlaneGeometry(RG.hw0*2,RG.y1-RG.y0);
+    o.geo('gblack',rbox(.02,RG.y1-RG.y0+.07,RG.hw0*2+.07,.02,2),mat4(-.775,(RG.y0+RG.y1)/2,0));
+    o.geo('glass',rbox(.012,RG.y1-RG.y0,RG.hw0*2,.03,2),mat4(-.79,(RG.y0+RG.y1)/2,0))}
+  /* workvan: bulkhead behind seats, side step */
+  if(S.bulkhead!=null){o.geo('interior',new T.BoxGeometry(.03,1.6,1.9),mat4(S.bulkhead,1.25,0))}
+  /* steel/black bumpers for the work van and pickup */
+  if(S.steelBumpers||type==='pickup'){const mat=type==='pickup'?'chrome':'trim';
+    const bump=(view,yc,h,dep,sgn)=>{const d=dm[view],pts=[],hw=S.hwF(sgn>0?S.x1-.25:S.x0+.25)-.01;for(let i=0;i<=24;i++){const z=lerp(-hw,hw,i/24);let dd=-1e9;for(const yy of[yc-h/2,yc,yc+h/2]){const v=d.depth(z,yy);if(v!=null)dd=Math.max(dd,v)}
+        if(dd<-1e8)continue;const p=d.world(z,yc,dd+dep*.25);pts.push(p)}
+      if(pts.length<4)return;const sh=new T.Shape();const r=Math.min(.04,h*.3),w2=dep/2,h2=h/2;sh.moveTo(-w2+r,-h2);sh.lineTo(w2-r,-h2);sh.quadraticCurveTo(w2,-h2,w2,-h2+r);sh.lineTo(w2,h2-r);sh.quadraticCurveTo(w2,h2,w2-r,h2);sh.lineTo(-w2+r,h2);sh.quadraticCurveTo(-w2,h2,-w2,h2-r);sh.lineTo(-w2,-h2+r);sh.quadraticCurveTo(-w2,-h2,-w2+r,-h2);
+      const c=new T.CatmullRomCurve3(pts);const g=new T.ExtrudeGeometry(sh,{steps:40,bevelEnabled:false,extrudePath:c,curveSegments:3});o.geo(mat,geoCrease(g,50));
+      for(const e of[0,pts.length-1]){const cap=rbox(dep,h,.03,.012,2);o.geo(mat,cap,mat4(pts[e].x,yc,pts[e].z))}};
+    const ybF=S.botF(S.x1)+.05,ybR=S.botF(S.x0)+.05;bump('front',ybF+.1,.2,.14,1);bump('rear',ybR+.08,.17,.13,-1)}
+  /* interior: seats, dash, wheel */
+  {const hip=Math.max(S.botF(0)+.28,sec(0).yBelt-.47),zs={2:[-.38,.38],3:[-.45,0,.45]};const dashX=S.cowl-.15,sd=sec(dashX);
+    o.geo('seat',rbox(.55,.22,sec(dashX).wB*2-.25,.08,3),mat4(dashX,sd.yBelt-.07,0));
+    const wheelG=new T.TorusGeometry(.18,.022,8,28);o.geo('trim',wheelG,mat4(dashX-.32,sd.yBelt+.02,-.38,0,Math.PI/2,0).multiply(M4().makeRotationY(0)).multiply(M4().makeRotationX(0)));
+    for(const[sx,n]of S.seats){const lim=Math.min(S.topF(sx-.35),S.topF(sx-.2))-.1-hip,bh=clamp(lim-.24,.3,.62);for(const z of zs[n]){const w=n===3?.42:.5;o.geo('seat',rbox(.5,.13,w,.05,2),mat4(sx,hip,z));o.geo('seat',rbox(.13,bh,w,.05,2),mat4(sx-.27,hip+.02+bh/2,z,0,0,-.18));
+      o.geo('seat',rbox(.1,.15,w*.55,.04,2),mat4(sx-.33,hip+bh+.1,z,0,0,-.18))}}}
+  const geos=o.build();
+  /* wheels */
+  const wheel=wheelGeos(S);
+  KITS[type]={S,geos,wheel,dm,sec,ws,wins,rg};return KITS[type]}
+
+/* ---------------------------------------------------------------- wheels */
+const WG={};
+function rimGeo(rimR,tw,style){const key=rimR+'|'+tw+'|'+style;if(WG[key])return WG[key];
+  const Rf=rimR-.012,n=style==='alloy'||style==='black'?10:style==='steel'?8:5,hub=.27*Rf,outR=.86*Rf,depth=.022;
+  const shape=new T.Shape();shape.absarc(0,0,Rf,0,Math.PI*2,false);
+  const ww=style==='alloy'||style==='black'?[.022,.017]:style==='steel'?[.0,.0]:[.05,.036];
+  if(style==='steel'){for(let i=0;i<n;i++){const a=(i+.5)/n*Math.PI*2,c=[Math.cos(a)*Rf*.62,Math.sin(a)*Rf*.62];const h=new T.Path();h.absellipse(c[0],c[1],Rf*.11,Rf*.07,0,Math.PI*2,true,a);shape.holes.push(h)}}
+  else for(let i=0;i<n;i++){const a0=i/n*Math.PI*2,a1=(i+1)/n*Math.PI*2,pts=[],eps=(r,w)=>Math.asin(Math.min(.9,w/2/r)),R0=hub+.012,R1=outR;
+    for(let k=0;k<=3;k++){const r=lerp(R0,R1,k/3),w=lerp(ww[0],ww[1],k/3),a=a0+eps(r,w);pts.push([Math.cos(a)*r,Math.sin(a)*r])}
+    for(let k=1;k<6;k++){const a=lerp(a0+eps(R1,ww[1]),a1-eps(R1,ww[1]),k/6);pts.push([Math.cos(a)*R1,Math.sin(a)*R1])}
+    for(let k=3;k>=0;k--){const r=lerp(R0,R1,k/3),w=lerp(ww[0],ww[1],k/3),a=a1-eps(r,w);pts.push([Math.cos(a)*r,Math.sin(a)*r])}
+    for(let k=3;k>0;k--){const a=lerp(a0+eps(R0,ww[0]),a1-eps(R0,ww[0]),k/4);pts.push([Math.cos(a)*R0,Math.sin(a)*R0])}
+    const rp=roundPoly(pts.slice().reverse(),n>5?.008:.014,3);const h=new T.Path();h.moveTo(rp[0][0],rp[0][1]);for(let k=1;k<rp.length;k++)h.lineTo(rp[k][0],rp[k][1]);h.closePath();shape.holes.push(h)}
+  const g=new T.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.006,bevelSize:.005,bevelSegments:1,curveSegments:36});
+  const p=g.attributes.position;for(let i=0;i<p.count;i++){const r=Math.hypot(p.getX(i),p.getY(i)),d=style==='steel'?.012:.03;p.setZ(i,p.getZ(i)+d*(1-clamp(r/Rf,0,1))-(style==='steel'?0:.0))}
+  const face=geoCrease(g,35);const o=new Out();o.geo('rim',face);
+  o.geo('rim',new T.TorusGeometry(rimR-.004,.011,6,48),null);
+  const capR=style==='steel'?.07:.045;const cap=new T.CylinderGeometry(capR*.9,capR,.016,28);cap.rotateX(Math.PI/2);o.geo(style==='steel'?'rim':'disc',cap,mat4(0,0,depth+(style==='steel'?.012:.03)+.008));
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2+Math.PI/10,r=style==='steel'?.06:.068;const nut=new T.CylinderGeometry(.009,.011,.016,6);nut.rotateX(Math.PI/2);o.geo('rim',nut,mat4(Math.cos(a)*r,Math.sin(a)*r,depth+(style==='steel'?.012:.024)+.006))}
+  const b=o.build();for(const k in b){b[k].translate(0,0,tw/2-.045-depth)}return WG[key]=b}
+function wheelGeos(S){const R=S.wr,tw=S.tw,rr=S.rimR,hw=tw/2,key='w'+R+tw+rr;if(WG[key])return WG[key];
+  const pr=[[rr+.004,-hw*.82],[rr+.012,-hw*.92],[lerp(rr,R,.45),-hw*1.0],[R-.035,-hw*.98],[R-.012,-hw*.9],[R-.002,-hw*.72],[R,-hw*.4],[R,0],[R,hw*.4],[R-.002,hw*.72],[R-.012,hw*.9],[R-.035,hw*.98],[lerp(rr,R,.45),hw*1.0],[rr+.012,hw*.92],[rr+.004,hw*.82]];
+  const pts=[];for(let i=0;i<pr.length-1;i++){const a=pr[i],b=pr[i+1];for(let k=0;k<2;k++){const t=k/2;pts.push(new T.Vector2(lerp(a[0],b[0],t),lerp(a[1],b[1],t)))}}pts.push(new T.Vector2(...pr[pr.length-1]));
+  const tyre=new T.LatheGeometry(pts,44);tyre.rotateX(Math.PI/2);
+  /* barrel (inside of the rim) and brake disc */
+  const o=new Out();const bar=new T.CylinderGeometry(rr-.006,rr-.006,tw*.82,40,1,true);bar.rotateX(Math.PI/2);o.geo('disc',bar);
+  const disc=new T.CylinderGeometry(rr*.78,rr*.78,.024,40);disc.rotateX(Math.PI/2);o.geo('disc',disc,mat4(0,0,tw/2-.12));
+  const hubG=new T.CylinderGeometry(.075,.08,.06,24);hubG.rotateX(Math.PI/2);o.geo('disc',hubG,mat4(0,0,tw/2-.1));
+  const inner=o.build();const cal=rbox(.07,.15,.06,.02,2);
+  return WG[key]={tyre,inner,caliper:cal}}
+
+/* ---------------------------------------------------------------- materials */
+const MAT={};
+const col=c=>new T.Color(c).convertSRGBToLinear();
+function shared(){if(MAT.ok)return MAT;MAT.ok=1;const S=(o)=>new T.MeshStandardMaterial(o),Ph=o=>new T.MeshPhysicalMaterial(o);
+  MAT.under=S({color:col('#0c0c0d'),roughness:.9,side:T.DoubleSide});
+  MAT.trim=S({color:col('#0d0e10'),roughness:.55,metalness:0});
+  MAT.clad=S({color:col('#121315'),roughness:.75,metalness:0});
+  MAT.seam=S({color:col('#020202'),roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  MAT.gblack=Ph({color:col('#050506'),roughness:.12,metalness:0,clearcoat:1,clearcoatRoughness:.04,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+  MAT.lens=new T.MeshPhysicalMaterial({color:col('#1a1d22'),roughness:.05,metalness:.2,clearcoat:1,clearcoatRoughness:.02});
+  MAT.headIn=S({color:col('#1b1e22'),roughness:.18,metalness:.9});
+  MAT.chrome=S({color:col('#e8eaee'),roughness:.06,metalness:1});
+  MAT.rail=S({color:col('#9da2a8'),roughness:.32,metalness:.9});
+  MAT.interior=S({color:col('#1d1e20'),roughness:.95,side:T.BackSide});
+  MAT.seat=S({color:col('#2a2b2e'),roughness:.9});
+  MAT.bedliner=S({color:col('#141414'),roughness:.95,side:T.DoubleSide});
+  MAT.grille=S({color:col('#ffffff'),map:grilleTex(),roughness:.45,metalness:.4});MAT.grille.map.repeat.set(3,1.4);
+  MAT.grilleBars=S({color:col('#ffffff'),map:grilleBars(),roughness:.3,metalness:.7});MAT.grilleBars.map.repeat.set(1,3);
+  MAT.plateF=S({map:plateTex('HT 4DAD','SUBURBIA'),roughness:.4,metalness:.1});
+  MAT.sticker=S({map:stickerTex(),roughness:.5,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+  MAT.tyre=S({color:col('#141415'),roughness:.86,metalness:0,normalMap:treadNormal()});MAT.tyre.normalScale.set(1,1);
+  MAT.barrel=S({color:col('#55585c'),roughness:.5,metalness:.8,side:T.DoubleSide});
+  MAT.disc=S({color:col('#6f7276'),roughness:.4,metalness:.9,side:T.DoubleSide});
+  MAT.caliper=S({color:col('#8f1c18'),roughness:.4,metalness:.2});
+  MAT.rims={stock:S({color:col('#b9bdc3'),roughness:.26,metalness:.9}),alloy:Ph({color:col('#eef0f2'),roughness:.08,metalness:1,clearcoat:1,clearcoatRoughness:.03}),
+    black:Ph({color:col('#0b0b0c'),roughness:.25,metalness:.5,clearcoat:1,clearcoatRoughness:.05}),steel:S({color:col('#a3a7ac'),roughness:.38,metalness:.85})};
+  MAT.cap=S({color:col('#2a2d33'),roughness:.3,metalness:.6});
+  MAT.bar=S({color:col('#141414'),roughness:.35,metalness:.6});
+  MAT.shadow=new T.MeshBasicMaterial({map:shadowTex(),transparent:true,depthWrite:false,opacity:.82,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  for(const k of['grille','grilleBars','plateF','lens','chrome','trim','clad'])Object.assign(MAT[k],{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+  return MAT}
+const PAINT={minivan:'#3e5872',sedan:'#8c1d1d',suv:'#2c3a4a',hatch:'#e6e6e2',pickup:'#1d1e21',workvan:'#f2f2ef'};
+
+/* ---------------------------------------------------------------- upgrades */
+function addUpgrades(type,K,u,root,mats){const S=K.S,dm=K.dm,sec=K.sec,o=new Out(),extra=[];
+  const roofY=(x,z)=>dm.top.depth(x,z)??S.H;
+  if(u.roofRack){const xa=S.roofF+.3,xb=S.roofR+.12;const zr=sec((xa+xb)/2).wT-.1;
+    if(!S.rails)for(const sg of[1,-1]){for(const x of[xa+.08,xb-.08]){const y=roofY(x,zr);o.geo('trim',rbox(.1,.07,.06,.02,2),mat4(x,y+.03,zr*sg))}
+      o.geo('rail',rbox(xa-xb,.035,.04,.015,2),mat4((xa+xb)/2,roofY((xa+xb)/2,zr)+.075,zr*sg))}
+    const yR=Math.max(roofY(xa-.2,zr),roofY(xb+.2,zr))+(S.rails?.055:.06);
+    for(const x of[xa-.2,xb+.2]){o.geo('bar',rbox(.07,.03,zr*2+.12,.012,2),mat4(x,yR+.035,0));for(const sg of[1,-1])o.geo('bar',rbox(.09,yR+.05-roofY(x,zr),.06,.015,2),mat4(x,(yR+.05+roofY(x,zr))/2,sg*zr))}
+    /* aero cargo box */
+    const len=Math.min(1.75,xa-xb+.45),bw=.82,bh=.36;const g=rbox(len,bh,bw,.15,4);const p=g.attributes.position;
+    for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const t=smooth(len*.1,len/2,x);y=-bh/2+(y+bh/2)*(1-.45*t);z*=1-.18*t*t;const tr=smooth(-len/2,-len*.3,-x);y=-bh/2+(y+bh/2)*(1-.12*tr);p.setXYZ(i,x,y,z)}
+    g.computeVertexNormals();o.geo('cargo',g,mat4((xa+xb)/2-.05,yR+.07+bh/2,0));
+    o.geo('trim',rbox(len-.08,.012,bw-.02,.006,2),mat4((xa+xb)/2-.05,yR+.07+bh*.42,0))}
+  if(u.bullBar){const yb=Math.max(.32,S.botF(S.x1)+.02),yt=Math.min(S.grille.y1+.02,sec(S.x1-.3).yt-.04);const zb=.5;
+    const xf=z=>Math.max(dm.front.depth(z,(yb+yt)/2)??S.x1,dm.front.depth(z,yt-.04)??S.x1,dm.front.depth(z,yb+.05)??S.x1)+.07;
+    const fx=xf(0);for(const sg of[1,-1]){const c=new T.CatmullRomCurve3([V3(fx-.02,yb,sg*zb),V3(fx+.02,yb+.2,sg*zb),V3(fx+.04,yt-.06,sg*zb),V3(fx+.03,yt,sg*(zb-.06)),V3(fx+.03,yt+.01,sg*.25),V3(fx+.03,yt+.01,0)]);
+      o.geo('bull',new T.TubeGeometry(c,40,.03,12,false))}
+    o.geo('bull',new T.CylinderGeometry(.026,.026,zb*2,12),mat4(fx+.03,(yb+yt)/2,0,Math.PI/2,0,0));
+    o.geo('bull',rbox(.24,.03,zb*2+.08,.012,2),mat4(fx-.08,yb-.03,0,0,0,.25));
+    for(const sg of[1,-1])o.geo('bull',rbox(.18,.06,.06,.02,2),mat4(fx-.12,yb+.08,sg*.35))}
+  if(u.lightBar){const x=type==='pickup'||type==='workvan'?S.roofF-.08:S.roofF+.15,zr=sec(x).wT-.18,y=roofY(x,0)+.06;const len=Math.min(1.2,zr*2);
+    o.geo('bar',rbox(.09,.1,len,.025,3),mat4(x,y+.03,0));for(const sg of[1,-1])o.geo('bar',rbox(.1,.06,.03,.01,2),mat4(x-.03,y-.02,sg*(len/2-.08)));
+    const led=new T.PlaneGeometry(len-.06,.055);led.rotateY(Math.PI/2);o.geo('ledbar',led,mat4(x+.0465,y+.03,0))}
+  if(u.spoiler){if(S.trunk){const xs=S.x0+.12,s=sec(xs),y=s.yt;const wing=new T.ExtrudeGeometry(new T.Shape([new T.Vector2(0,0),new T.Vector2(.26,.01),new T.Vector2(.25,.035),new T.Vector2(.02,.05)]),{depth:s.wT*2-.08,bevelEnabled:true,bevelSize:.006,bevelThickness:.006,bevelSegments:2});
+      wing.translate(-.13,0,-(s.wT-.04));o.geo('paint',wing,mat4(xs+.02,y+.085,0,0,0,-.04));for(const sg of[1,-1])o.geo('paint',rbox(.1,.09,.03,.012,2),mat4(xs+.03,y+.04,sg*(s.wT-.3)))}
+    else if(type==='pickup'){const xs=S.x0+.05;o.geo('paint',rbox(.12,.03,S.bed.hw*2+.1,.012,2),mat4(xs,sec(xs).yt+.03,0,0,0,.25))}
+    else{const xs=S.x0+.1,s=sec(xs),w=s.wT*2-.04,y=s.yt-.02;const sh=new T.Shape([new T.Vector2(.25,0),new T.Vector2(-.12,-.03),new T.Vector2(-.14,.0),new T.Vector2(.25,.035)]);
+      const g=new T.ExtrudeGeometry(sh,{depth:w,bevelEnabled:true,bevelSize:.008,bevelThickness:.008,bevelSegments:2});g.translate(0,0,-w/2);o.geo('paint',g,mat4(xs,y,0,0,0,.1));
+      o.geo('brakeBar',rbox(.02,.02,.4,.008,2),mat4(xs-.14,y-.02,0))}}
+  const geos=o.build();return geos}
+
+/* ---------------------------------------------------------------- assembly */
+function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';shared();const K=kit(type),S=K.S,u=Object.assign({rims:S.rimStyle||'stock',tint:.55},opts.upgrades||{});
+  const paintHex=u.paint??opts.color??PAINT[type];
+  const root=new T.Group();root.name='vehicle_'+type;const body=new T.Group();body.name='bodyRoot';root.add(body);
+  const paint=new T.MeshPhysicalMaterial({color:col(paintHex),metalness:.5,roughness:.36,clearcoat:1,clearcoatRoughness:.05});
+  if(new T.Color(paintHex).getHSL({}).l>.75){paint.metalness=.15;paint.roughness=.3}
+  const tint=clamp(u.tint,0,1);
+  const glass=new T.MeshPhysicalMaterial({color:col('#0b1014').lerp(col('#010203'),tint),roughness:.03,metalness:0,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:lerp(.38,.92,tint),depthWrite:false,envMapIntensity:1.6});
+  const head=new T.MeshStandardMaterial({color:col('#c9d0d8'),roughness:.07,metalness:1,emissive:col('#fff3df'),emissiveIntensity:0});
+  const drl=new T.MeshStandardMaterial({color:col('#ffffff'),roughness:.2,emissive:col('#eef4ff'),emissiveIntensity:1.6});
+  const tail=new T.MeshPhysicalMaterial({color:col('#6a0b0b'),roughness:.08,metalness:.1,clearcoat:1,emissive:col('#ff1408'),emissiveIntensity:.08});
+  const brake=new T.MeshPhysicalMaterial({color:col('#8a0d0d'),roughness:.12,metalness:.2,clearcoat:1,emissive:col('#ff1a0c'),emissiveIntensity:.1});
+  const barLed=new T.MeshStandardMaterial({map:ledTex(),emissiveMap:ledTex(),emissive:col('#ffffff'),emissiveIntensity:.3,roughness:.2});
+  const cargo=new T.MeshPhysicalMaterial({color:col('#0e0f11'),roughness:.25,metalness:.2,clearcoat:1,clearcoatRoughness:.06});
+  const bull=new T.MeshStandardMaterial({color:col('#17181a'),roughness:.42,metalness:.55});
+  const plateR=new T.MeshStandardMaterial({map:plateTex(S.plateTxt||'HT 4DAD','SUBURBIA'),roughness:.4,metalness:.1});
+  for(const m of[glass,head,drl,tail,brake,plateR])Object.assign(m,{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+  const M=Object.assign({},MAT,{paint,glass,head,drl,tail,brake,ledbar:barLed,cargo,bull,plateR,brakeBar:brake});
+  let tris=0,calls=0;
+  const addMesh=(g,m,parent,cast=true)=>{const mesh=new T.Mesh(g,m);mesh.castShadow=cast&&!m.transparent;mesh.receiveShadow=true;parent.add(mesh);tris+=g.attributes.position.count/3;calls++;return mesh};
+  for(const k in K.geos){const m=M[k];if(!m){console.warn('vehicles: no material',k);continue}const mesh=addMesh(K.geos[k],m,body,k!=='interior'&&k!=='seat');if(k==='glass')mesh.renderOrder=2}
+  const ug=addUpgrades(type,K,u,root,M);for(const k in ug)addMesh(ug[k],M[k],body);
+  /* wheels */
+  const W=K.wheel,rim=rimGeo(S.rimR,S.tw,u.rims==='stock'?(S.rimStyle||'stock'):u.rims),rimMat=MAT.rims[u.rims]||MAT.rims.stock;
+  const wheels=[],steer=[];
+  for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018;const piv=new T.Object3D();piv.position.set(ax,S.wr,sg*zW);root.add(piv);
+    const spin=new T.Group();piv.add(spin);const hold=new T.Group();if(sg<0)hold.rotation.y=Math.PI;spin.add(hold);
+    addMesh(W.tyre,MAT.tyre,hold);addMesh(rim.rim,rimMat,hold);addMesh(rim.disc?mergeG([rim.disc,W.inner.disc]):W.inner.disc,MAT.disc,hold,false);
+    const cal=new T.Mesh(W.caliper,MAT.caliper);cal.position.set(-S.rimR*.62*Math.cos(.5),S.rimR*.62*Math.sin(.5),sg*(S.tw/2-.075));cal.rotation.z=.5;piv.add(cal);tris+=W.caliper.attributes.position.count/3;calls++;
+    wheels.push(spin);if(ax===S.axles[0])steer.push(piv)}
+  /* contact shadow */
+  const sh=new T.Mesh(new T.PlaneGeometry(S.L+.5,S.hwF(0)*2+.55),MAT.shadow);sh.rotation.x=-Math.PI/2;sh.position.y=.006;sh.renderOrder=1;root.add(sh);calls++;tris+=2;
+  const bb=new T.Box3();for(const k in K.geos){K.geos[k].computeBoundingBox();bb.union(K.geos[k].boundingBox)}
+  root.userData={type,size:{l:+(bb.max.x-bb.min.x).toFixed(3),w:+(Math.max(S.hwF(S.axles[0]),S.hwF(0),S.hwF(S.axles[1]))*2).toFixed(3),h:+bb.max.y.toFixed(3)},wheels,steer,wheelRadius:S.wr,lights:{head:[head],tail:[tail],brake:[brake],bar:u.lightBar?[barLed]:[],drl:[drl]},
+    body:[paint],glass:[glass],bodyRoot:body,contactShadow:sh,upgrades:u,stats:{triangles:Math.round(tris),drawCalls:calls},_s:{roll:0,pitch:0,last:0,acc:0}};
+  return root}
+
+function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,o.dt??1/60),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
+  const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z+=da;
+  for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12);
+  const acc=dt>0?(sp-s.last)/dt:0;s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
+  const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
+  s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch;
+  const hl=!!o.headlights;for(const m of d.lights.head)m.emissiveIntensity=hl?3.2:0;for(const m of d.lights.tail)m.emissiveIntensity=hl?1.4:.08;
+  for(const m of d.lights.brake)m.emissiveIntensity=o.braking?5:(hl?1.2:.1);for(const m of d.lights.bar)m.emissiveIntensity=hl?4:.3}
+
+HT.Vehicles={init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),stats:v=>v.userData.stats,
+  /* pre-build the cached geometry for some or all types (spreads the one-off cost) */
+  warm(types=Object.keys(TYPES)){shared();for(const t of types)kit(t)}};
+})();
