@@ -18,7 +18,12 @@ const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);co
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
 async function startGame(pg){await pg.evaluate(()=>{const b=document.getElementById('bStart');if(b)b.click()});await pg.keyboard.press('Enter');
-  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200)}
+  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200);
+  /* characters stream in the background now: wait until every model is in (the game's own job start does the same for its cast) */
+  const ok=await pg.waitForFunction(()=>HT.People&&(HT.People.ok||HT.People.failed),null,{timeout:60000,polling:500}).then(()=>pg.evaluate(()=>HT.People.ok)).catch(()=>false);
+  if(!ok)return;/* fallback runs: no people files */
+  await pg.evaluate(()=>HT.People.preload(HT.People.keys.filter(k=>!/^(wife|son|daughter)$/.test(k))));
+  await pg.evaluate(()=>{const P=__ht.P;if(P.dude&&!P.dude.rb&&__ht.dude){/* the dad was built before his model arrived */__ht.enterHub()}})}
 /* page-side helpers, installed once the game is up */
 function helpers(){
   const H=window.__ht,PP=HT.People,T=THREE;
@@ -321,7 +326,7 @@ function helpers(){
   ok('zero console errors',errs.length===0,errs.slice(0,5));
   if(want('fallback')){/* people GLBs unreachable: the box dudes must take over and a mission still runs */
     const ctx2=await b.newContext({viewport:{width:960,height:540}});
-    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(u.pathname.includes('/assets/people/'))return r.fulfill({status:404,body:'nf'});
+    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(/\/people\/|\/assets\/opt\/boot\./.test(u.pathname))return r.fulfill({status:404,body:'nf'});/* source, optimised copies and the boot pack that carries the first people */
       const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx2.newPage();const e2=[];q.on('pageerror',e=>e2.push(e.message));
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0});await q.goto('http://repo.local/index.html');

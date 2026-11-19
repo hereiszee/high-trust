@@ -107,11 +107,11 @@ function load(n,url,cb){gltf.load(url,g=>{g.scene.traverse(o=>{if(o.isMesh){o.ca
 load('car','../assets/props/car_sedan.glb',s=>{s.position.set(-10.5,0,7.5);s.rotation.y=-.9;scene.add(s);s.traverse(o=>{if(o.isMesh){o.userData.surface='vehicle';targets.push(o)}})});
 load('barrel','../assets/props/barrel_red.glb',s=>{s.position.set(2,0,4);scene.add(s)});
 load('crate','../assets/props/crate.glb',s=>{s.position.set(-3,0,3);scene.add(s);props.pistol&&placeOnCrate()});
-load('pistol','../assets/props/gun_pistol.glb',s=>{s.position.set(-3,.0,3);s.scale.setScalar(1);scene.add(s);props.crate&&placeOnCrate()});
+load('pistol','../assets/guns/ph_pistol.glb',s=>{s.position.set(-3,.0,3);s.scale.setScalar(1);scene.add(s);props.crate&&placeOnCrate()});
 function placeOnCrate(){const b=new THREE.Box3().setFromObject(props.crate);props.pistol.position.set(-3,b.max.y+.02,3);props.pistol.rotation.set(0,.6,0)}
 load('trash','../assets/props/trashbag.glb',s=>{s.position.set(6,0,3.5);scene.add(s)});
 let dad=null,mixer=null;
-load('dad','../assets/chars/dad_casual.glb',(s,g)=>{s.position.set(9,0,1);s.rotation.y=-.6;scene.add(s);dad=s;s.traverse(o=>{if(o.isMesh){o.userData.surface='cloth';targets.push(o)}});
+load('dad','../assets/people/rocketbox/dad_player.glb',(s,g)=>{s.position.set(9,0,1);s.rotation.y=-.6;scene.add(s);dad=s;s.traverse(o=>{if(o.isMesh){o.userData.surface='cloth';targets.push(o)}});
   if(g.animations.length){mixer=new THREE.AnimationMixer(s);const c=g.animations.find(a=>/idle/i.test(a.name))||g.animations[0];mixer.clipAction(c).play()}});
 /* ---- post: like RENDER in index.html, with the FX grade hook */
 const FSV='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
