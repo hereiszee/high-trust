@@ -361,15 +361,15 @@ function section(S,x){
   return{P,yt,yb:arch?yA:yb,yBase:yb,yBelt,wB,wBelt,wT,yC,ys,gh,re}}
 const UNDER_ROWS=6;
 
-function buildBody(S){
-  const step=.07,xs=[];for(let x=S.x0;x<S.x1;x+=step)xs.push(x);xs.push(S.x1);
+function buildBody(S,L={}){
+  const step=L.step||.07,xs=[];for(let x=S.x0;x<S.x1;x+=step)xs.push(x);xs.push(S.x1);
   const add=x=>{if(x>S.x0&&x<S.x1)xs.push(x)};
-  for(const k of['top','bot','belt'])for(const q of S[k]){add(q[0]);if(!q[2]){add(q[0]-.015);add(q[0]+.015)}}
-  for(const ax of S.axles){for(let i=0;i<=16;i++)add(ax-S.Ra*Math.cos(i/16*Math.PI));add(ax-S.Ra-.0015);add(ax+S.Ra+.0015);add(ax-S.Ra+.0015);add(ax+S.Ra-.0015)}
+  for(const k of['top','bot','belt'])for(const q of S[k]){add(q[0]);if(!q[2]&&!L.coarse){add(q[0]-.015);add(q[0]+.015)}}
+  const AN=L.archN||16;for(const ax of S.axles){for(let i=0;i<=AN;i++)add(ax-S.Ra*Math.cos(i/AN*Math.PI));add(ax-S.Ra-.0015);add(ax+S.Ra+.0015);add(ax-S.Ra+.0015);add(ax+S.Ra-.0015)}
   xs.sort((a,b)=>a-b);const X=[xs[0]];for(const x of xs)if(x-X[X.length-1]>.0012)X.push(x);
-  const rings=X.map(x=>({x,s:section(S,x)}));
+  const rings=X.map(x=>{const s=section(S,x);if(L.ring)s.P=L.ring.map(j=>s.P[j]);return{x,s}});
   /* end caps: rings shrink to the centre with a superellipse profile */
-  const cap=(r0,dir,R)=>{const s=r0.s,cy=(s.yb+s.yt)/2,K=10,out=[],cp=dir>0?(S.capPF||S.capP):S.capP;
+  const cap=(r0,dir,R)=>{const s=r0.s,cy=(s.yb+s.yt)/2,K=L.K||10,out=[],cp=dir>0?(S.capPF||S.capP):S.capP;
     for(let k=1;k<=K;k++){const th=k/K*Math.PI/2,sc=Math.pow(Math.cos(th),2/cp),dx=R*Math.pow(Math.sin(th),2/cp);
       out.push({x:r0.x+dir*dx,s:{P:s.P.map(([z,y])=>[z*sc,cy+(y-cy)*sc])},cap:true})}return out};
   const all=[...cap(rings[0],-1,S.endR).reverse(),...rings,...cap(rings[rings.length-1],1,S.endF)];
@@ -381,12 +381,12 @@ function buildBody(S){
     return rkF*(cyF-y)*wF+rkR*(y-cyR)*wR-swF*Math.pow(Math.min(1,z/wzF),2.2)*wF+swR*Math.pow(Math.min(1,z/wzR),2.2)*wR};
   const pt=(i,j,sg)=>{const r=all[i],p=r.s.P[j];return V3(r.x+shear(r.x,p[1],p[0],r.cap),p[1],p[0]*sg)};
   for(const sg of[1,-1])for(let i=0;i<all.length-1;i++)for(let j=0;j<M-1;j++){
-    const a=pt(i,j,sg),b=pt(i+1,j,sg),c=pt(i+1,j+1,sg),d=pt(i,j+1,sg),cls=j<3?'under':'paint';
+    const a=pt(i,j,sg),b=pt(i+1,j,sg),c=pt(i+1,j+1,sg),d=pt(i,j+1,sg),cls=(L.ring?L.ring[j]:j)<3?'under':'paint';
     const push=(p,q,r)=>{const ar=q.clone().sub(p).cross(r.clone().sub(p)).lengthSq();if(ar>1e-14)tris.push({p:[p,q,r],cls})};
     if(sg>0){push(a,b,c);push(a,c,d)}else{push(a,c,b);push(a,d,c)}}
   const flat=new Float32Array(tris.length*9);tris.forEach((t,i)=>{for(let c=0;c<3;c++){flat[i*9+c*3]=t.p[c].x;flat[i*9+c*3+1]=t.p[c].y;flat[i*9+c*3+2]=t.p[c].z}});
   const N=creaseNormals(flat,40);tris.forEach((t,i)=>{t.n=[0,1,2].map(c=>V3(N[i*9+c*3],N[i*9+c*3+1],N[i*9+c*3+2]));const ny=(t.n[0].y+t.n[1].y+t.n[2].y)/3;if(t.cls==='under')t.cls=ny<-.6?'under':'paint';else if(ny<-.985)t.cls='under'});
-  const dm={};for(const v of['side','front','rear','top'])dm[v]=new DMap(v,flat,v==='top'?.016:.012);
+  const dm={};if(!L.noDm)for(const v of['side','front','rear','top'])dm[v]=new DMap(v,flat,v==='top'?.016:.012);
   return{tris,dm,flat,X}}
 
 /* coarse interior shell (rendered BackSide: only the far inner walls show through the glass) */
@@ -555,10 +555,16 @@ function kit(type){if(KITS[type])return KITS[type];const S=prep(TYPES[type]);con
     const wheelG=new T.TorusGeometry(.18,.022,8,28);o.geo('trim',wheelG,mat4(dashX-.32,sd.yBelt+.02,-.38,0,Math.PI/2,0).multiply(M4().makeRotationY(0)).multiply(M4().makeRotationX(0)));
     for(const[sx,n]of S.seats){const lim=Math.min(S.topF(sx-.35),S.topF(sx-.2))-.1-hip,bh=clamp(lim-.24,.3,.62);for(const z of zs[n]){const w=n===3?.42:.5;o.geo('seat',rbox(.5,.13,w,.05,2),mat4(sx,hip,z));o.geo('seat',rbox(.13,bh,w,.05,2),mat4(sx-.27,hip+.02+bh/2,z,0,0,-.18));
       o.geo('seat',rbox(.1,.15,w*.55,.04,2),mat4(sx-.33,hip+bh+.1,z,0,0,-.18))}}}
-  const geos=o.build();
-  /* wheels */
-  const wheel=wheelGeos(S);
-  KITS[type]={S,geos,wheel,dm,sec,ws,wins,rg};return KITS[type]}
+  /* brake calipers (static, behind the spokes) */
+  for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018;o.geo('caliper',rbox(.07,.15,.06,.02,2),mat4(ax-S.rimR*.62*Math.cos(.5),S.wr+S.rimR*.62*Math.sin(.5),sg*zW+sg*(S.tw/2-.075),0,0,.5))}
+  const built=o.build(),OPT=['paint','paint2','glass','wood','woodTrim','mural','pin'];
+  const flakeUV=g=>{if(!g)return g;const p=g.attributes.position,n=g.attributes.normal,uv=g.attributes.uv;for(let i=0;i<p.count;i++){const ax=Math.abs(n.getX(i)),ay=Math.abs(n.getY(i)),az=Math.abs(n.getZ(i));
+      uv.setXY(i,(az>=ax&&az>=ay?p.getX(i):ax>=ay?p.getZ(i):p.getX(i))*5,(ay>ax&&ay>az?p.getZ(i):p.getY(i))*5)}uv.needsUpdate=true;return g};
+  flakeUV(built.paint);flakeUV(built.paint2);
+  const K={type,S,dm,sec,ws,wins,rg,paint:built.paint,paint2:built.paint2,paintAll:mergeGeos([built.paint,built.paint2]),glass:built.glass,
+    multi:packMulti(o,Object.keys(o.b).filter(k=>!OPT.includes(k)),{plate:S.plateTxt}),fin:{wood:packMulti(o,['wood','woodTrim']),mural:packMulti(o,['mural']),twotone:packMulti(o,['pin'])}};
+  K.counts={};for(const k in o.b)K.counts[k]=o.b[k].p.length/9;
+  return KITS[type]=K}
 
 /* ---------------------------------------------------------------- wheels */
 const WG={};
@@ -591,38 +597,108 @@ function wheelGeos(S){const R=S.wr,tw=S.tw,rr=S.rimR,hw=tw/2,key='w'+R+tw+rr;if(
   const inner=o.build();const cal=rbox(.07,.15,.06,.02,2);
   return WG[key]={tyre,inner,caliper:cal}}
 
-/* ---------------------------------------------------------------- materials */
-const MAT={};
+/* ---------------------------------------------------------------- materials: one atlas + per-vertex PBR */
+/* Everything except paint, glass and the contact shadow is drawn by ONE MeshStandardMaterial per car
+   ("multi"): base colour, roughness, metalness and emissive come from vertex attributes, textures from a shared
+   atlas (grille, plates, sticker, wood, mural, LEDs, tyre tread/sidewall normals). Lamps are emissive channels
+   driven by uniforms, and wheel spin/steer is a vertex rotation (attribute `wheel`), so a whole car is ~5 draw calls. */
 const col=c=>new T.Color(c).convertSRGBToLinear();
-function shared(){if(MAT.ok)return MAT;MAT.ok=1;const S=(o)=>new T.MeshStandardMaterial(o),Ph=o=>new T.MeshPhysicalMaterial(o);
-  MAT.under=S({color:col('#0c0c0d'),roughness:.9,side:T.DoubleSide});
-  MAT.trim=S({color:col('#0d0e10'),roughness:.55,metalness:0});
-  MAT.clad=S({color:col('#121315'),roughness:.75,metalness:0});
-  MAT.seam=S({color:col('#020202'),roughness:.9,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-  MAT.gblack=Ph({color:col('#050506'),roughness:.12,metalness:0,clearcoat:1,clearcoatRoughness:.04,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-  MAT.lens=new T.MeshPhysicalMaterial({color:col('#1a1d22'),roughness:.05,metalness:.2,clearcoat:1,clearcoatRoughness:.02});
-  MAT.headIn=S({color:col('#1b1e22'),roughness:.18,metalness:.9});
-  MAT.chrome=S({color:col('#e8eaee'),roughness:.06,metalness:1});
-  MAT.rail=S({color:col('#9da2a8'),roughness:.32,metalness:.9});
-  MAT.interior=S({color:col('#1d1e20'),roughness:.95,side:T.BackSide});
-  MAT.seat=S({color:col('#2a2b2e'),roughness:.9});
-  MAT.bedliner=S({color:col('#141414'),roughness:.95,side:T.DoubleSide});
-  MAT.grille=S({color:col('#ffffff'),map:grilleTex(),roughness:.45,metalness:.4});MAT.grille.map.repeat.set(3,1.4);
-  MAT.grilleBars=S({color:col('#ffffff'),map:grilleBars(),roughness:.3,metalness:.7});MAT.grilleBars.map.repeat.set(1,3);
-  MAT.plateF=S({map:plateTex('HT 4DAD','SUBURBIA'),roughness:.4,metalness:.1});
-  MAT.sticker=S({map:stickerTex(),roughness:.5,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
-  MAT.tyre=S({color:col('#141415'),roughness:.86,metalness:0,normalMap:treadNormal()});MAT.tyre.normalScale.set(1,1);
-  MAT.barrel=S({color:col('#55585c'),roughness:.5,metalness:.8,side:T.DoubleSide});
-  MAT.disc=S({color:col('#6f7276'),roughness:.4,metalness:.9,side:T.DoubleSide});
-  MAT.caliper=S({color:col('#8f1c18'),roughness:.4,metalness:.2});
-  MAT.rims={stock:S({color:col('#b9bdc3'),roughness:.26,metalness:.9}),alloy:Ph({color:col('#eef0f2'),roughness:.08,metalness:1,clearcoat:1,clearcoatRoughness:.03}),
-    black:Ph({color:col('#0b0b0c'),roughness:.25,metalness:.5,clearcoat:1,clearcoatRoughness:.05}),steel:S({color:col('#a3a7ac'),roughness:.38,metalness:.85}),
-    chrome:S({color:col('#f2f3f5'),roughness:.03,metalness:1}),gold:S({color:col('#d6aa4c'),roughness:.16,metalness:1}),spinner:S({color:col('#f0f0f0'),roughness:.04,metalness:1})};
-  MAT.woodTrim=S({color:col('#c9a86a'),roughness:.4});
-  MAT.cap=S({color:col('#2a2d33'),roughness:.3,metalness:.6});
-  MAT.bar=S({color:col('#141414'),roughness:.35,metalness:.6});
+const CH={head:1,tail:2,brake:3,bar:4,drl:5,amber:6,rev:7};
+/* bucket -> {c colour, r roughness, m metalness, e emissive colour, ch channel, tex atlas region, dbl double-sided, flip inward} */
+const SPEC={
+  under:{c:'#0c0c0d',r:.9},liner:{c:'#0a0a0b',r:.95,dbl:1},trim:{c:'#0d0e10',r:.55},clad:{c:'#141517',r:.78},seam:{c:'#030303',r:.9},
+  gblack:{c:'#050506',r:.1},headIn:{c:'#15181c',r:.2,m:.9},lens:{c:'#1a1d22',r:.05,m:.2},chrome:{c:'#e8eaee',r:.06,m:1},rail:{c:'#9da2a8',r:.32,m:.9},
+  interior:{c:'#1d1e20',r:.95,flip:1},seat:{c:'#2a2b2e',r:.9},bedliner:{c:'#141414',r:.95,dbl:1},
+  grille:{c:'#ffffff',r:.45,m:.4,tex:'grille'},grilleBars:{c:'#ffffff',r:.3,m:.7,tex:'bars'},plateF:{c:'#ffffff',r:.4,m:.1,tex:'plateF'},plateR:{c:'#ffffff',r:.4,m:.1,tex:'plateR'},
+  sticker:{c:'#ffffff',r:.5,tex:'sticker'},woodTrim:{c:'#c9a86a',r:.4},wood:{c:'#ffffff',r:.35,tex:'wood'},mural:{c:'#ffffff',r:.3,tex:'mural'},pin:{c:'#e8eaee',r:.06,m:1},
+  head:{c:'#c9d0d8',r:.07,m:1,e:'#fff3df',ch:CH.head},reflector:{c:'#d9dee4',r:.1,m:1,e:'#fff3df',ch:CH.head},drl:{c:'#ffffff',r:.2,e:'#eef4ff',ch:CH.drl},
+  tail:{c:'#6a0b0b',r:.08,m:.1,e:'#ff1408',ch:CH.tail},brake:{c:'#8a0d0d',r:.12,m:.2,e:'#ff1a0c',ch:CH.brake},brakeBar:{c:'#8a0d0d',r:.12,m:.2,e:'#ff1a0c',ch:CH.brake},
+  rev:{c:'#d8dadc',r:.1,m:.6,e:'#ffffff',ch:CH.rev},amber:{c:'#c26a10',r:.2,m:.1,e:'#ff8a1a',ch:CH.amber},fog:{c:'#e8eef4',r:.06,m:.8,e:'#fff6e0',ch:CH.head},
+  ledbar:{c:'#ffffff',r:.2,tex:'led',e:'#ffffff',ch:CH.bar},ledamber:{c:'#ffe2b0',r:.2,tex:'led',e:'#ffa020',ch:CH.bar},
+  cargo:{c:'#0e0f11',r:.22,m:.2},bull:{c:'#17181a',r:.42,m:.55},bar:{c:'#141414',r:.35,m:.6},
+  tyre:{c:'#151516',r:.86,tex:'tyre'},disc:{c:'#6f7276',r:.4,m:.9,dbl:1},caliper:{c:'#8f1c18',r:.4,m:.2},cap:{c:'#2a2d33',r:.3,m:.6},
+  'rim:stock':{c:'#b9bdc3',r:.24,m:.9},'rim:alloy':{c:'#eef0f2',r:.08,m:1},'rim:black':{c:'#0b0b0c',r:.22,m:.5},'rim:steel':{c:'#a3a7ac',r:.38,m:.85},
+  'rim:chrome':{c:'#f2f3f5',r:.03,m:1},'rim:gold':{c:'#d6aa4c',r:.16,m:1},'rim:spinner':{c:'#f0f0f0',r:.04,m:1},
+  /* LOD1 flat-shaded classes */
+  lodGlass:{c:'#0c1116',r:.05,m:.1},lodPaint:{c:'#ffffff',r:.35,pnt:1}};
+const PLATES=['HT 4DAD','SOCR DAD','HOA PRES','CARPOOL','LIL DAD','BIG DAD','FIXIT'];
+let ATLAS=null;
+function atlas(){if(ATLAS)return ATLAS;const W=2048,H=1024,R={};
+  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
+  const n=document.createElement('canvas');n.width=W;n.height=H;const gn=n.getContext('2d');gn.fillStyle='rgb(128,128,255)';gn.fillRect(0,0,W,H);
+  const reg=(name,x,y,w,h,pad=4)=>{R[name]=[(x+pad)/W,1-(y+h-pad)/H,(x+w-pad)/W,1-(y+pad)/H];return[x+pad,y+pad,w-2*pad,h-2*pad]};
+  const put=(src,x,y,w,h)=>g.drawImage(src.image||src,x,y,w,h);
+  /* row 0: tyre (normal map: tread + sidewall lettering) */
+  {const[x,y,w,h]=reg('tyre',0,0,2048,256,0);gn.drawImage(tyreNormalCanvas(),x,y,w,h)}
+  {const[x,y,w,h]=reg('grille',0,256,512,256);put(grilleTex(),x,y,w,h)}
+  {const[x,y,w,h]=reg('bars',512,256,512,256);put(grilleBars(),x,y,w,h)}
+  {const[x,y,w,h]=reg('sticker',1024,256,512,160);put(stickerTex(),x,y,w,h)}
+  {const[x,y,w,h]=reg('led',1024,432,512,64);put(ledTex(),x,y,w,h)}
+  {const[x,y,w,h]=reg('wood',0,512,1024,256);put(woodTex(),x,y,w,h)}
+  {const[x,y,w,h]=reg('mural',1024,512,1024,256);put(muralTex(),x,y,w,h)}
+  PLATES.forEach((t,i)=>{const[x,y,w,h]=reg('plate:'+t,i*256,768,256,128,3);put(plateTex(t,'SUBURBIA'),x,y,w,h)});
+  reg('white',1600,900,64,64,8);
+  const tc=new T.CanvasTexture(c);tc.encoding=T.sRGBEncoding;tc.anisotropy=8;const tn=new T.CanvasTexture(n);tn.anisotropy=8;
+  return ATLAS={R,map:tc,normal:tn}}
+/* tyre normal: tread blocks across the middle, sidewall ribs and raised lettering on both walls */
+function tyreNormalCanvas(){const w=2048,h=256,hc=document.createElement('canvas');hc.width=w;hc.height=h;const g=hc.getContext('2d');
+  g.fillStyle='#4d4d4d';g.fillRect(0,0,w,h);
+  /* lettering on the walls (v 0..0.18 and 0.82..1 of the lathe profile) */
+  g.fillStyle='#9a9a9a';g.font='bold 26px Arial,Helvetica,sans-serif';g.textBaseline='middle';
+  for(const yy of[22,h-22])for(let k=0;k<2;k++){const x0=k*w/2;g.fillText('SUBURBAN  TOURING  A/S',x0+120,yy);g.fillText('235/60 R18  103H',x0+620,yy)}
+  const img=g.getImageData(0,0,w,h).data,Hh=new Float32Array(w*h);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const v=j/h,u=i/w;let hh=img[(j*w+i)*4]/255*.6;
+    if(v>.2&&v<.8){hh=1;for(const gv of[.37,.5,.63])if(Math.abs(v-gv)<.016)hh=0;const ph=(u*96+(v<.5?0:.5))%1;
+      if((v<.37||v>.63)&&ph<.12)hh=Math.min(hh,.15);if(v>.39&&v<.61&&Math.abs(ph-.55)<.03)hh=Math.min(hh,.4);if(v<.26||v>.74)hh=lerp(hh,.3,smooth(.74,.8,Math.max(v,1-v)))}
+    else hh+=.03*Math.sin(v*300);Hh[j*w+i]=hh}
+  const c=document.createElement('canvas');c.width=w;c.height=h;const gc=c.getContext('2d'),out=gc.createImageData(w,h);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const l=Hh[j*w+(i+w-1)%w],r=Hh[j*w+(i+1)%w],u=Hh[Math.max(0,j-1)*w+i],d=Hh[Math.min(h-1,j+1)*w+i];
+    const nx=(l-r)*3,ny=(d-u)*3,L=Math.hypot(nx,ny,1),o=(j*w+i)*4;out.data[o]=(nx/L*.5+.5)*255;out.data[o+1]=(ny/L*.5+.5)*255;out.data[o+2]=(1/L*.5+.5)*255;out.data[o+3]=255}
+  gc.putImageData(out,0,0);return c}
+
+/* pack buckets of an Out into one geometry with the multi-material attributes */
+function packMulti(o,names,opt={}){const A=atlas(),pos=[],nor=[],uv=[],colA=[],pbr=[],em=[],ech=[],pnt=[];
+  for(const m of names){const B=o.b[m];if(!B||!B.p.length)continue;const sp=SPEC[opt.remap&&opt.remap[m]||m]||SPEC.trim,c=col(sp.c),e=sp.e?col(sp.e):null;
+    const rg=A.R[sp.tex==='plateR'?'plate:'+(opt.plate||PLATES[0]):sp.tex==='plateF'?'plate:'+PLATES[0]:(sp.tex||'white')]||A.R.white;
+    const emit=(i,flipN)=>{pos.push(B.p[i*3],B.p[i*3+1],B.p[i*3+2]);const s=flipN?-1:1;nor.push(B.n[i*3]*s,B.n[i*3+1]*s,B.n[i*3+2]*s);
+      const u=B.u[i*2]||0,v=B.u[i*2+1]||0;uv.push(sp.tex?rg[0]+(rg[2]-rg[0])*clamp(u,0,1):(rg[0]+rg[2])/2,sp.tex?rg[1]+(rg[3]-rg[1])*clamp(v,0,1):(rg[1]+rg[3])/2);
+      colA.push(c.r,c.g,c.b);pbr.push(sp.r??.5,sp.m??0);if(e)em.push(e.r,e.g,e.b);else em.push(0,0,0);ech.push(sp.ch||0);pnt.push(sp.pnt||0)};
+    const nv=B.p.length/3;
+    for(let t=0;t<nv;t+=3){if(sp.flip){emit(t,1);emit(t+2,1);emit(t+1,1)}else{emit(t);emit(t+1);emit(t+2)}if(sp.dbl){emit(t,1);emit(t+2,1);emit(t+1,1)}}}
+  if(!pos.length)return null;const g=new T.BufferGeometry(),F=(a,n)=>new T.Float32BufferAttribute(a,n);
+  g.setAttribute('position',F(pos,3));g.setAttribute('normal',F(nor,3));g.setAttribute('uv',F(uv,2));g.setAttribute('color',F(colA,3));
+  g.setAttribute('pbr',F(pbr,2));g.setAttribute('em',F(em,3));g.setAttribute('ech',F(ech,1));g.setAttribute('pnt',F(pnt,1));
+  if(opt.wheel){const wv=[];for(let i=0;i<pos.length/3;i++)wv.push(...opt.wheel);g.setAttribute('wheel',F(wv,4))}
+  g.computeBoundingSphere();g.computeBoundingBox();return g}
+function mergeGeos(gs){gs=gs.filter(Boolean);if(!gs.length)return null;const g=new T.BufferGeometry();
+  for(const k in gs[0].attributes){const n=gs[0].attributes[k].itemSize;let len=0;for(const x of gs)len+=x.attributes[k]?x.attributes[k].array.length:x.attributes.position.count*n;
+    const arr=new Float32Array(len);let off=0;for(const x of gs){const a=x.attributes[k];if(a)arr.set(a.array,off);else if(k==='wheel')for(let i=0;i<x.attributes.position.count;i++)arr[off+i*4+3]=1;off+=a?a.array.length:x.attributes.position.count*n}
+    g.setAttribute(k,new T.BufferAttribute(arr,n))}
+  g.computeBoundingSphere();g.computeBoundingBox();return g}
+/* the per-car multi material (cheap: one shared shader program) */
+function multiMat(){const A=atlas(),U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uSpin:{value:0},uSteer:{value:0},uPaint:{value:new T.Color(1,1,1)}};
+  const m=new T.MeshStandardMaterial({vertexColors:true,map:A.map,normalMap:A.normal,roughness:1,metalness:1});m.userData.U=U;
+  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.U);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>',`#include <common>
+attribute vec2 pbr;attribute vec3 em;attribute float ech;attribute float pnt;attribute vec4 wheel;uniform float uCh[8];uniform float uSpin;uniform float uSteer;uniform vec3 uPaint;
+varying vec2 vPbr;varying vec3 vEm;
+vec3 wrot(vec3 p){if(wheel.w>1.5){float s=sin(uSpin),c=cos(uSpin);p=vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);if(wheel.w>2.5){float s2=sin(uSteer),c2=cos(uSteer);p=vec3(c2*p.x+s2*p.z,p.y,-s2*p.x+c2*p.z);}}return p;}`)
+      .replace('#include <beginnormal_vertex>','vec3 objectNormal=wrot(vec3(normal));')
+      .replace('#include <begin_vertex>','vec3 transformed=wheel.w>1.5?wrot(position-wheel.xyz)+wheel.xyz:vec3(position);')
+      .replace('#include <color_vertex>',`#include <color_vertex>
+vPbr=pbr;int ci=int(ech+.5);float k=0.;for(int i=0;i<8;i++){if(i==ci)k=uCh[i];}vEm=em*k;
+#ifdef USE_COLOR
+if(pnt>.5)vColor=uPaint;
+#endif`);
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPbr;varying vec3 vEm;')
+      .replace('#include <roughnessmap_fragment>','float roughnessFactor=vPbr.x;')
+      .replace('#include <metalnessmap_fragment>','float metalnessFactor=vPbr.y;')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vEm;')};
+  return m}
+const MAT={};
+function shared(){if(MAT.ok)return MAT;MAT.ok=1;
   MAT.shadow=new T.MeshBasicMaterial({map:shadowTex(),transparent:true,depthWrite:false,opacity:.82,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
-  for(const k of['grille','grilleBars','plateF','lens','chrome','trim','clad'])Object.assign(MAT[k],{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+  MAT.flake=normalFromHeight('flake',256,256,(u,v)=>{const h=Math.sin(u*913.1+Math.sin(v*377.3)*3)*Math.sin(v*811.7+Math.cos(u*511.9)*3);return h*.5+.5},1.2);
   return MAT}
 const PAINT={minivan:'#3e5872',sedan:'#8c1d1d',suv:'#2c3a4a',hatch:'#e6e6e2',pickup:'#1d1e21',workvan:'#f2f2ef'};
 
@@ -656,89 +732,111 @@ function addUpgrades(type,K,u,root,mats){const S=K.S,dm=K.dm,sec=K.sec,o=new Out
     else{const xs=S.x0+.1,s=sec(xs),w=s.wT*2-.04,y=s.yt-.02;const sh=new T.Shape([new T.Vector2(.25,0),new T.Vector2(-.12,-.03),new T.Vector2(-.14,.0),new T.Vector2(.25,.035)]);
       const g=new T.ExtrudeGeometry(sh,{depth:w,bevelEnabled:true,bevelSize:.008,bevelThickness:.008,bevelSegments:2});g.translate(0,0,-w/2);o.geo('paint',g,mat4(xs,y,0,0,0,.1));
       o.geo('brakeBar',rbox(.02,.02,.4,.008,2),mat4(xs-.14,y-.02,0))}}
-  const geos=o.build();return geos}
+  return o}
 
 /* ---------------------------------------------------------------- assembly */
 const FINISHES={solid:1,twotone:1,wood:1,mural:1};
 const RIMGEO={stock:'stock',chrome:'stock',steel:'steel',alloy:'alloy',black:'alloy',gold:'alloy',spinner:'spinner',spinners:'spinner'};
-function build(type,opts){shared();const K=kit(type),S=K.S,u=Object.assign({rims:S.rimStyle||'stock',tint:.55},opts.upgrades||{});
+const WP={};
+/* all four wheels (tyre + rim + disc) in one geometry; the `wheel` attribute lets the shader spin and steer them */
+function wheelPack(K,rims,lod){const S=K.S,key=K.type+'|'+rims+'|'+(lod||0);if(WP[key])return WP[key];const parts=[];
+  const rk=rims==='stock'&&S.rimStyle?S.rimStyle:rims,mk='rim:'+rk;
+  let W,rim;if(!lod){W=wheelGeos(S);rim=rimGeo(S.rimR,S.tw,rims==='stock'?(S.rimStyle||'stock'):RIMGEO[rims])}
+  for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018,o=new Out(),pm=M4().makeTranslation(ax,S.wr,sg*zW).multiply(sg<0?M4().makeRotationY(Math.PI):M4());
+    if(lod){const ty=new T.CylinderGeometry(S.wr,S.wr,S.tw,14,1,true);ty.rotateX(Math.PI/2);o.geo('tyre',ty,pm);const rf=new T.CircleGeometry(S.rimR,10);rf.translate(0,0,S.tw/2-.03);o.geo(mk,rf,pm);
+      const sw=new T.RingGeometry(S.rimR,S.wr,14,1);sw.translate(0,0,S.tw/2);o.geo('tyre',sw,pm)}
+    else{o.geo('tyre',W.tyre,pm);o.geo(mk,rim.rim,pm);if(rim.disc)o.geo('disc',rim.disc,pm);o.geo('disc',W.inner.disc,pm)}
+    parts.push(packMulti(o,['tyre',mk,'disc'],{wheel:[ax,S.wr,sg*zW,ax===S.axles[0]?3:2]}))}
+  return WP[key]=mergeGeos(parts)}
+const UPC={};
+function upgradeGeos(type,K,u){const key=type+JSON.stringify([u.roofRack||0,!!u.bullBar,u.lightBar||0,!!u.spoiler]);if(UPC[key])return UPC[key];
+  const o=addUpgrades(type,K,u),b=o.build();
+  return UPC[key]={paint:b.paint||null,multi:packMulti(o,Object.keys(o.b).filter(k=>k!=='paint'),{remap:u.lightBar==='amber'?{ledbar:'ledamber'}:null})}}
+
+/* LOD1: coarse loft, glass/lamps as vertex colours, paint via uniform: 2 draw calls */
+const KL={};
+function kitLod(type){if(KL[type])return KL[type];const S=prep(TYPES[type]);
+  const B=buildBody(S,{step:.3,coarse:1,archN:6,K:3,noDm:1,ring:[0,3,6,9,11,13,14,17,21,22,24,25,27,29,30]}),o=new Out();
+  const inPoly=(P,x,y)=>{let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c};
+  const head=hull(S.head),tail=hull(S.tail),gr=trap(S.grille.y0,S.grille.y1,S.grille.hw0,S.grille.hw1,0),RG=S.rearGlass;
+  for(const t of B.tris){const c=t.p[0].clone().add(t.p[1]).add(t.p[2]).multiplyScalar(1/3),n=t.n[0].clone().add(t.n[1]).add(t.n[2]).normalize();let m=t.cls==='under'?'under':'lodPaint';
+    if(m!=='under'){const s=section(S,clamp(c.x,S.x0,S.x1)),az=Math.abs(c.z);
+      if(Math.abs(n.z)>.45&&c.y>s.yBelt+.01&&c.y<s.yC+.02&&S.windows.some(([f,r])=>c.x<f&&c.x>r))m='lodGlass';
+      else if(n.x>.35&&c.x>S.roofF-.2&&c.x<S.cowl+.1&&c.y>S.topF(S.cowl)+.01)m='lodGlass';
+      else if(n.x<-.35&&c.x<S.roofR+.2&&(RG.auto?c.y>S.topF(RG.auto[1])+.02:(c.y>RG.y0&&c.y<RG.y1&&az<RG.hw0)))m='lodGlass';
+      else if(n.x>.4&&inPoly(head,az,c.y))m='head';else if(n.x<-.4&&inPoly(tail,az,c.y))m='tail';else if(n.x>.4&&inPoly(gr,c.z,c.y))m='trim'}
+    o.tri(m,t.p[0],t.p[1],t.p[2],t.n[0],t.n[1],t.n[2])}
+  return KL[type]={type,S,multi:packMulti(o,Object.keys(o.b))}}
+
+function lightProxy(U,ch){return{get emissiveIntensity(){return U.uCh.value[ch]},set emissiveIntensity(v){U.uCh.value[ch]=v},isLightChannel:true}}
+function build(type,opts){shared();const lod=+opts.lod||0,K=lod?null:kit(type),S=prep(TYPES[type]),u=Object.assign({rims:S.rimStyle||'stock',tint:.55},opts.upgrades||{});
   if(u.rims==='spinners')u.rims='spinner';if(!(u.rims in RIMGEO))u.rims='stock';
   const fin=typeof u.paint==='string'&&FINISHES[u.paint]?u.paint:'solid';
   const paintHex=(u.paint!=null&&!FINISHES[u.paint])?u.paint:(opts.color??PAINT[type]);
-  const root=new T.Group();const body=new T.Group();body.name='bodyRoot';root.add(body);
-  const paint=new T.MeshPhysicalMaterial({color:col(paintHex),metalness:.5,roughness:.36,clearcoat:1,clearcoatRoughness:.05});
-  if(new T.Color(paintHex).getHSL({}).l>.75){paint.metalness=.15;paint.roughness=.3}
-  const paint2=fin==='twotone'?new T.MeshPhysicalMaterial({color:col('#5a3a28'),metalness:.4,roughness:.38,clearcoat:1,clearcoatRoughness:.06}):paint;
-  const tint=clamp(+u.tint||0,0,1);
-  const glass=new T.MeshPhysicalMaterial({color:col('#0b1014').lerp(col('#010203'),tint),roughness:.03,metalness:0,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:lerp(.38,.92,tint),depthWrite:false,envMapIntensity:1.6});
-  const head=new T.MeshStandardMaterial({color:col('#c9d0d8'),roughness:.07,metalness:1,emissive:col('#fff3df'),emissiveIntensity:0});
-  const drl=new T.MeshStandardMaterial({color:col('#ffffff'),roughness:.2,emissive:col('#eef4ff'),emissiveIntensity:1.6});
-  const tail=new T.MeshPhysicalMaterial({color:col('#6a0b0b'),roughness:.08,metalness:.1,clearcoat:1,emissive:col('#ff1408'),emissiveIntensity:.08});
-  const brake=new T.MeshPhysicalMaterial({color:col('#8a0d0d'),roughness:.12,metalness:.2,clearcoat:1,emissive:col('#ff1a0c'),emissiveIntensity:.1});
-  const amber=u.lightBar==='amber';
-  const barLed=new T.MeshStandardMaterial({map:ledTex(),emissiveMap:ledTex(),emissive:col(amber?'#ffa020':'#ffffff'),color:col(amber?'#ffd9a0':'#ffffff'),emissiveIntensity:.3,roughness:.2});
-  const cargo=new T.MeshPhysicalMaterial({color:col('#0e0f11'),roughness:.25,metalness:.2,clearcoat:1,clearcoatRoughness:.06});
-  const bull=new T.MeshStandardMaterial({color:col('#17181a'),roughness:.42,metalness:.55});
-  const plateR=new T.MeshStandardMaterial({map:plateTex(S.plateTxt||'HT 4DAD','SUBURBIA'),roughness:.4,metalness:.1});
-  const wood=new T.MeshStandardMaterial({map:woodTex(),roughness:.35,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-  const mural=new T.MeshPhysicalMaterial({map:muralTex(),roughness:.3,clearcoat:1,clearcoatRoughness:.05,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-  for(const m of[glass,head,drl,tail,brake,plateR])Object.assign(m,{polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
-  const M=Object.assign({},MAT,{pin:MAT.chrome,paint,paint2,glass,head,drl,tail,brake,ledbar:barLed,cargo,bull,plateR,brakeBar:brake,wood,mural});
-  let tris=0,calls=0;const own=[];
-  const addMesh=(g,m,parent,cast=true)=>{const mesh=new T.Mesh(g,m);mesh.castShadow=cast&&!m.transparent;mesh.receiveShadow=true;parent.add(mesh);tris+=g.attributes.position.count/3;calls++;return mesh};
-  for(const k in K.geos){if((k==='wood'||k==='woodTrim')&&fin!=='wood')continue;if(k==='pin'&&fin!=='twotone')continue;if(k==='mural'&&fin!=='mural')continue;
-    const m=M[k];if(!m){console.warn('vehicles: no material',k);continue}const mesh=addMesh(K.geos[k],m,body,k!=='interior'&&k!=='seat');if(k==='glass')mesh.renderOrder=2}
-  const ug=addUpgrades(type,K,u,root,M);for(const k in ug){own.push(ug[k]);addMesh(ug[k],M[k],body)}
-  /* wheels */
-  const W=K.wheel,rim=rimGeo(S.rimR,S.tw,u.rims==='stock'?(S.rimStyle||'stock'):RIMGEO[u.rims]),rimMat=MAT.rims[u.rims]||MAT.rims.stock;
-  const wheels=[],steer=[];
-  for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018;const piv=new T.Object3D();piv.position.set(ax,S.wr,sg*zW);root.add(piv);
-    const spin=new T.Group();piv.add(spin);const hold=new T.Group();if(sg<0)hold.rotation.y=Math.PI;spin.add(hold);
-    addMesh(W.tyre,MAT.tyre,hold);addMesh(rim.rim,rimMat,hold);addMesh(rim.disc?mergeG([rim.disc,W.inner.disc]):W.inner.disc,MAT.disc,hold,false);
-    const cal=new T.Mesh(W.caliper,MAT.caliper);cal.position.set(-S.rimR*.62*Math.cos(.5),S.rimR*.62*Math.sin(.5),sg*(S.tw/2-.075));cal.rotation.z=.5;piv.add(cal);tris+=W.caliper.attributes.position.count/3;calls++;
-    wheels.push(spin);if(ax===S.axles[0])steer.push(piv)}
-  /* contact shadow: never casts (callers often set castShadow on every mesh) */
+  const root=new T.Group(),body=new T.Group();body.name='bodyRoot';root.add(body);
+  const mm=multiMat(),U=mm.userData.U;U.uPaint.value.copy(col(paintHex));
+  let paint=null,paint2=null,glass=null;const own=[],mats=[mm];let tris=0,calls=0;
+  const add=(g,m,parent,cast=true)=>{if(!g)return null;const mesh=new T.Mesh(g,m);mesh.castShadow=cast&&!m.transparent;mesh.receiveShadow=true;parent.add(mesh);tris+=g.attributes.position.count/3;calls++;return mesh};
+  let wheelsMesh;
+  if(lod){const KLd=kitLod(type);add(KLd.multi,mm,body);wheelsMesh=add(wheelPack({type,S},u.rims,1),mm,root)}
+  else{
+    paint=new T.MeshPhysicalMaterial({color:col(paintHex),metalness:.5,roughness:.36,clearcoat:1,clearcoatRoughness:.04,normalMap:MAT.flake,normalScale:new T.Vector2(.12,.12)});
+    if(new T.Color(paintHex).getHSL({}).l>.75){paint.metalness=.12;paint.roughness=.3;paint.normalScale.set(.04,.04)}
+    paint2=fin==='twotone'?new T.MeshPhysicalMaterial({color:col('#5a3a28'),metalness:.4,roughness:.38,clearcoat:1,clearcoatRoughness:.05,normalMap:MAT.flake,normalScale:new T.Vector2(.1,.1)}):paint;
+    const tint=clamp(+u.tint||0,0,1);
+    glass=new T.MeshPhysicalMaterial({color:col('#0b1014').lerp(col('#010203'),tint),roughness:.03,metalness:0,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:lerp(.42,.93,tint),depthWrite:false,envMapIntensity:1.6,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+    mats.push(paint,glass);if(paint2!==paint)mats.push(paint2);
+    if(fin==='twotone'){add(K.paint,paint,body);add(K.paint2,paint2,body);add(K.fin.twotone,mm,body)}else add(K.paintAll,paint,body);
+    if(fin==='wood')add(K.fin.wood,mm,body);if(fin==='mural')add(K.fin.mural,mm,body);
+    add(K.multi,mm,body);const gm=add(K.glass,glass,body);if(gm)gm.renderOrder=2;
+    const ug=upgradeGeos(type,K,u);add(ug.paint,paint,body);add(ug.multi,mm,body);
+    wheelsMesh=add(wheelPack(K,u.rims,0),mm,root)}
+  /* wheel/steer nodes keep the documented interface; the shader reads them every frame */
+  const wheels=[],steer=[];for(const ax of S.axles)for(const sg of[1,-1]){const zW=S.hwF(ax)-S.tw/2-.018,piv=new T.Object3D();piv.position.set(ax,S.wr,sg*zW);root.add(piv);const spin=new T.Object3D();piv.add(spin);wheels.push(spin);if(ax===S.axles[0])steer.push(piv)}
+  wheelsMesh.onBeforeRender=()=>{U.uSpin.value=wheels[0].rotation.z;U.uSteer.value=steer[0].rotation.y};
   const shg=new T.PlaneGeometry(S.L+.5,S.hwF(0)*2+.55);own.push(shg);const sh=new T.Mesh(shg,MAT.shadow);sh.rotation.x=-Math.PI/2;sh.position.y=.006;sh.renderOrder=1;
   Object.defineProperty(sh,'castShadow',{get:()=>false,set(){}});root.add(sh);calls++;tris+=2;
-  const bb=new T.Box3();for(const k in K.geos){K.geos[k].computeBoundingBox();bb.union(K.geos[k].boundingBox)}
-  const hwMax=Math.max(S.hwF(S.axles[0]),S.hwF(0),S.hwF(S.axles[1]));
-  const ud={type,size:{l:+(bb.max.x-bb.min.x).toFixed(3),w:+(hwMax*2).toFixed(3),h:+bb.max.y.toFixed(3)},len:+(bb.max.x-bb.min.x).toFixed(3),wid:+(hwMax*2).toFixed(3),
-    wheels,steer,wheelRadius:S.wr,wheelBase:S.axles[0]-S.axles[1],lights:{head:[head],tail:[tail],brake:[brake],bar:u.lightBar?[barLed]:[],drl:[drl]},
-    body:[paint,paint2],glass:[glass],bodyRoot:body,parts:{body,glass,wheels,rear:null},contactShadow:sh,
+  const bb=new T.Box3().setFromObject(body);const hwMax=Math.max(S.hwF(S.axles[0]),S.hwF(0),S.hwF(S.axles[1]));
+  const L=lightProxy;
+  const ud={type,lod,size:{l:+(bb.max.x-bb.min.x).toFixed(3),w:+(hwMax*2).toFixed(3),h:+bb.max.y.toFixed(3)},len:+(bb.max.x-bb.min.x).toFixed(3),wid:+(hwMax*2).toFixed(3),
+    wheels,steer,wheelRadius:S.wr,wheelBase:S.axles[0]-S.axles[1],
+    lights:{head:[L(U,CH.head)],tail:[L(U,CH.tail)],brake:[L(U,CH.brake)],bar:u.lightBar?[L(U,CH.bar)]:[],drl:[L(U,CH.drl)],amber:[L(U,CH.amber)],reverse:[L(U,CH.rev)]},
+    body:paint?[paint,paint2]:[],glass:glass?[glass]:[],material:mm,bodyRoot:body,parts:{body,glass,wheels,rear:null},contactShadow:sh,
     colliders:[{x0:bb.min.x,z0:-hwMax,x1:bb.max.x,z1:hwMax}],upgrades:u,color:paintHex,
-    stats:{triangles:Math.round(tris),drawCalls:calls,tris:Math.round(tris),calls},_own:own,_mats:[paint,paint2,glass,head,drl,tail,brake,barLed,cargo,bull,plateR,wood,mural],
+    stats:{triangles:Math.round(tris),drawCalls:calls,tris:Math.round(tris),calls},_own:own,_mats:mats,
     _s:{roll:0,pitch:0,last:0,acc:0,head:false,flash:0,t:0},damage:0};
   return{root,ud}}
 
 /* group.userData also carries setUpgrades(u), setColor(hex), setLights(on), flashBar(seconds), setDamage(0..1), dispose() */
 function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
-  const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);return root}
+  const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);applyLights(root,false);return root}
 function api(root,type,opts){const ud=root.userData;
   ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
     disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
     const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
     for(const k in ud)delete ud[k];Object.assign(ud,nu);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);applyLights(root,false)};
-  ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)};
+  ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.material.userData.U.uPaint.value.copy(c);
+    if(ud.body[0]){ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)}};
   ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};
   ud.flashBar=t=>{ud._s.flash=t||0};
   ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;for(const m of new Set(ud.body)){m.roughness=lerp(m.userData.r0??(m.userData.r0=m.roughness),.8,f);m.clearcoat=lerp(1,.15,f)}};
   ud.dispose=()=>{disposeOwn(ud)};}
 function disposeOwn(ud){for(const g of ud._own||[])g.dispose();for(const m of ud._mats||[])if(m&&m.dispose)m.dispose()}
-function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head;
-  for(const m of d.lights.head)m.emissiveIntensity=hl?3.2:0;for(const m of d.lights.tail)m.emissiveIntensity=hl?1.4:.08;
-  for(const m of d.lights.brake)m.emissiveIntensity=braking?5:(hl?1.2:.1);
-  for(const m of d.lights.bar)m.emissiveIntensity=s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)}
+function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head,c=d.material.userData.U.uCh.value;
+  c[CH.head]=hl?3.2:0;c[CH.tail]=hl?1.4:.08;c[CH.brake]=braking?5:(hl?1.2:.1);c[CH.drl]=1.6;c[CH.amber]=.25;c[CH.rev]=s.rev?2.5:0;
+  c[CH.bar]=d.lights.bar.length?(s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)):0}
 
 function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,Math.max(0,o.dt??1/60)),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
   const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z=(w.rotation.z+da)%(Math.PI*2);
   for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12||1);
   if(dt>0){const acc=clamp((sp-s.last)/dt,-15,15);s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
     const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
-    s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch}
-  if(o.headlights!=null)s.head=!!o.headlights;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking)}
+    s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);if(!d.lod){d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch}}
+  if(o.headlights!=null)s.head=!!o.headlights;s.rev=sp<-.3;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking);
+  const U=d.material.userData.U;U.uSpin.value=d.wheels[0].rotation.z;U.uSteer.value=d.steer[0].rotation.y}
 
 const stats=v=>{const d=v.userData;if(d&&d.stats)return d.stats;let t=0,c=0;v.traverse(o=>{if(o.isMesh){c++;t+=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3}});return{triangles:t,drawCalls:c,tris:t,calls:c}};
-HT.Vehicles={init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),TYPES:Object.keys(TYPES),stats,
-  /* pre-build the cached geometry for some or all types (spreads the one-off cost) */
-  warm(types=Object.keys(TYPES)){shared();for(const t of types)kit(t)}};
+HT.Vehicles={_kit:t=>kit(t),init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),TYPES:Object.keys(TYPES),stats,
+  /* pre-build the cached geometry for some or all types (spreads the one-off cost); lod 1 = traffic/parked */
+  warm(types=Object.keys(TYPES),lod=0){shared();atlas();for(const t of types)lod?kitLod(t):kit(t)}};
 })();
