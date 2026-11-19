@@ -122,3 +122,7 @@ No files. All effect textures are generated procedurally in code at startup. Ori
 ## Firearms and first-person arms
 
 See assets/credits/guns.md.
+
+## Vehicles (js/vehicles.js)
+
+No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.
