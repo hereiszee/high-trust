@@ -797,10 +797,10 @@ function updEmitters(dt){
       while(h.acc>=1){h.acc-=1;_ew.fromArray(o.offset||[0,.3,-2.2]);o.object.localToWorld(_ew);_ed.fromArray(o.dir||[0,0,-1]).transformDirection(o.object.matrixWorld);
         const sp=rnd(.6,1.4)*(1+h.intensity),sh=o.shade||.62;smoke(_ew.x,_ew.y,_ew.z,_ed.x*sp+rnd(-.1,.1),_ed.y*sp+rnd(.05,.25),_ed.z*sp+rnd(-.1,.1),rnd(.9,1.6),.05,rnd(.35,.6)*(1+h.intensity*.5),[sh,sh,sh*1.04],.16+.12*h.intensity,{drag:1.6,grav:-.25,tile:S.WISP})}}
     else if(h.type==='hood'){/* a hurt car: steam (h.steam) or smoke from under the hood, attached to o.object; h.intensity 0..1, h.shade 0 (black) .. 1 (white) */
-      if(!o.object||h.intensity<=0)continue;h.acc+=dt*(2.5+16*h.intensity)*Q.amb;
+      if(!o.object||h.intensity<=0)continue;h.acc+=dt*(3+22*h.intensity)*Q.amb;
       while(h.acc>=1){h.acc-=1;_ew.fromArray(o.offset||[1.6,1,0]);_ew.x+=rnd(-.25,.25);_ew.z+=rnd(-.3,.3);o.object.localToWorld(_ew);
         const st=!!h.steam,sh=h.shade==null?(st?.92:.4):h.shade,it=h.intensity,i=smoke(_ew.x,_ew.y,_ew.z,rnd(-.25,.25)+(o.wind||.15),rnd(.7,1.4)*(st?1.5:1)*(.7+it*.6),rnd(-.25,.25),
-          rnd(1.3,2.4)*(st?.75:1.25),.12,rnd(.6,1.1)*(.6+it)*(st?.8:1.15),[sh,sh,sh*1.02],st?.18+.1*it:.26+.3*it,{tile:st?S.WISP:undefined,drag:.8,grav:st?-.5:-.28,fi:.08,fo:.45});
+          rnd(1.5,2.6)*(st?.8:1.35),.18,rnd(.9,1.6)*(.65+it)*(st?.85:1.2),[sh,sh,sh*1.02],st?.24+.14*it:.34+.32*it,{tile:st?S.WISP:undefined,drag:.8,grav:st?-.5:-.28,fi:.08,fo:.45});
         if(i>=0)ALP.rv[i]=rnd(-.6,.6)}}
     else if(h.type==='drag'){/* sparks from a bumper scraping the road: h.speed (m/s) drives the rate; o.offset is the scrape point on o.object */
       if(!o.object)continue;const v=h.speed||0;if(v<2.5)continue;h.acc+=dt*(6+v*2.2)*h.intensity*Q.amb;

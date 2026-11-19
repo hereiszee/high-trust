@@ -498,12 +498,12 @@ function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);c
   if(gp==='spoiler'){if(v.spoiler||v.perf.sport)return set('equipped',v.perf.sport&&!v.spoiler?'Comes with Sport Mode':null);return}
   if(gp==='horn'){if(g.horn===o)return set('equipped');if(g.ownedHorns.includes(o))return set('owned');if(o==='entertainer'){const r=cosReq({done:['benny']},s);if(r)set('locked',r)}return}}
 /* applies a paid purchase (status already checked) */
-function garApply(kind,id,s){const G=HT.Garage,g=s.garage,v=actV(s);
+function garApply(kind,id,s,st){const G=HT.Garage,g=s.garage,v=actV(s);
   if(kind==='gar'||kind==='car'){const before=vehMaxHp(g.active,g);const r=G.buy(g,kind==='car'?'v_'+id:id,Object.assign(garCtx(s),{cash:1e12}));
     if(r.ok&&kind==='gar'){const after=vehMaxHp(g.active,g);g.hp[g.active]=Math.min(after,(g.hp[g.active]||before)+(after-before))}
     return}
   g.purchases=(g.purchases||0)+(kind==='rep'?0:1);
-  if(kind==='rep'){repApply(id,s);return}
+  if(kind==='rep'){repApply(id,s,st);return}
   if(kind==='stick'){const i=+id;g.ownedStickers.push(i);putSticker(g,i);return}
   const[gp,o]=id.split(':');
   if(gp==='paint'||gp==='rims'||gp==='tint'){g.ownedCos[gp].push(o);v[gp]=o}
@@ -530,12 +530,12 @@ function repPrice(id,s){const q=repairQuote(s),row=k=>(q.rows.find(r=>r.id===k)|
   if(id==='patch'){const d=discountFor('auto',s);return Math.max(0,Math.min(q.total-1,Math.floor(s.cash/(1-d)/2)*2))}
   return q.total}
 /* what a repair job leaves the car at: {hp, lamps, tyre} */
-function repFix(id,s){const q=repairQuote(s),t=q.car,f={hp:q.hp,lamps:(t.lamps||[0,0,0,0]).slice(0,4),tyre:t.tyre?1:0};
+function repFix(id,s,st){const q=repairQuote(s),t=q.car,f={hp:q.hp,lamps:(t.lamps||[0,0,0,0]).slice(0,4),tyre:t.tyre?1:0};
   if(id==='lights')f.lamps=[0,0,0,0];else if(id==='tyre')f.tyre=0;
-  else if(id==='patch')f.hp=Math.min(q.maxHp,q.hp+repPrice('patch',s)/2);/* the engine first: it is the bottom of the bar */
+  else if(id==='patch')f.hp=Math.min(q.maxHp,q.hp+(st?st.base:repPrice('patch',s))/2);/* the engine first: it is the bottom of the bar */
   else{f.hp=q.maxHp;f.lamps=[0,0,0,0];f.tyre=0}
   return f}
-function repApply(id,s){const t=repCar(s),f=repFix(id,s),g=s.garage;
+function repApply(id,s,st){const t=repCar(s),f=repFix(id,s,st),g=s.garage;
   if(t.own&&!REPAIR_CAR){g.hp[g.active]=f.hp;g.wear=g.wear||{};g.wear[g.active]={lamps:f.lamps,tyre:f.tyre}}
   else{t.hp=f.hp;t.lamps=f.lamps;t.tyre=f.tyre}
   if(t.onRepair)try{t.onRepair(f,{id})}catch(e){console.error(e)}
@@ -570,7 +570,7 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
   else if(kind==='sup'){s.flags[SUPPLIES[id].flag]=true}
-  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s);if(kind!=='rep')ev='boughtCar'}
+  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s,st);if(kind!=='rep')ev='boughtCar'}
   if(ev)s.events.push(ev);
   if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats')}
   return{ok:true,price:st.price,delivered:deliverLater?'pending':'now',status:st}}
@@ -1298,6 +1298,10 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
     const renderBay=()=>{if(!bay)return;const G=HT.Garage;if(!G){bay.innerHTML='<div class="htm-baytx"><div class="htm-kicker">Dad\'s Auto</div><p class="htm-blurb">Sal is out. (js/carai.js is not loaded.)</p></div>';return}
       const e=m.sel&&entries().find(x=>x.key===m.sel);let pv=null;
       if(e&&(e.kind==='cos'||e.kind==='gar'||e.kind==='stick')&&!(e.kind==='gar'&&e.id.startsWith('v_'))&&!(e.kind==='cos'&&e.id.startsWith('horn'))){const st=status(e.kind,e.id,store);if(st.state!=='equipped')pv=vanStatsWith(e.kind,e.id)}
+      if(REPAIR_CAR&&!REPAIR_CAR.own&&m.tab==='repair'){/* fixing a borrowed car: it's the one on the lift */const t=REPAIR_CAR,q=repairQuote(Save.data);
+        bay.innerHTML=`<div class="htm-bayvan">${thumbHTML('car',t.type,{type:t.type,opts:{color:t.color,upgrades:{}}})}</div><div class="htm-baytx"><div class="htm-kicker">${esc(t.name)} · borrowed</div>
+          <p class="htm-blurb">${q.total?esc(t.owner)+' lent you this in good faith. Sal can make it look like it never happened.':'Good as the day '+esc(t.owner)+' lent it to you.'}</p>${hpBar(q.hp,q.maxHp,t.owner+"'s car")}</div>`;
+        if(lastPrev!==null){lastPrev=null;if(m.onPreview)try{m.onPreview(null)}catch(err){}}return}
       const now=vehicleStats(),vs=pv||now,g=Save.data.garage,bars=vanBars(vs),b0=vanBars(now);
       const inst=G.ownedIds(g).map(id=>garItem(id)).filter(c=>c.group!=='vehicle').map(c=>c.name);
       const veh={type:vs.type,opts:vs.makeOpts,stats:vs};

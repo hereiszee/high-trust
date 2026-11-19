@@ -1230,7 +1230,7 @@ function enterCar(e){if(!e||!e.obj||CV)return;
   swapLod(e,0);setCarSolid(e,false);if(e.tile&&L.g[e.tile[1]]){L.g[e.tile[1]][e.tile[0]]=(L.def.under&&L.def.under.V)||',';e.tile=null}
   if(e===VAN)VAN.type=VAN.obj.userData.type||'minivan';CV=e;e.stats=carStats(e);e.base=Object.assign({},e.stats);
   const CA=HTM('CarAI');e.car=CA&&CA.make?CA.make(e.type,{x:e.pos.x,z:e.pos.z,yaw:e.yaw,stats:e.stats}):{x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:0,steer:0,vdx:0,vdz:0,slip:0,hp:100,stats:e.stats,bump:0,t:0};
-  e.car.hp=carHp(e);e.car.topMul=1;e.spd=0;e.steer=0;syncCar(e);DRV.bandQ=carBand(e);
+  carBindHp(e);e.car.topMul=1;e.spd=0;e.steer=0;syncCar(e);DRV.bandQ=carBand(e);
   DRV.fp0=P.fp;P.fp=false;DRV.lights=null;DRV.lPrev=!!keys.l;camDist=feel(e).cam[0];
   P.yaw=e.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;vm.visible=false;engine(true,e);snd('reload',.6);carLook(e);
   if(carHp(e)<=0){try{ENG&&ENG.stall&&ENG.stall(true)}catch(_){}HUD.feed("It won't start. "+(e===VAN?"Call Dad's Auto.":'It needs a tow.'),'bad')}
@@ -1318,18 +1318,22 @@ function carBand(e){const f=carFrac(e);return f<=0?5:f<.12?4:f<.3?3:f<.5?2:f<.7?
 function carWear(e){const g=carSave(e);if(g){g.wear=g.wear||{};return g.wear[g.active]||(g.wear[g.active]={lamps:[0,0,0,0],tyre:0})}return e.wear||(e.wear={lamps:[0,0,0,0],tyre:0})}
 const carBare=e=>!e.obj&&e!==VAN;
 function carSetHp(e,v){const m=carHpMax(e);v=clamp(v,0,m);const g=carSave(e);if(g){g.hp[g.active]=v;try{SAVEM.touch('garage')}catch(_){}}else e.hp=v;
-  if(e.car&&e.car!==e)e.car.hp=v;e.dmg=m>0?1-v/m:0;carLook(e);return v}
+  e.dmg=m>0?1-v/m:0;carLook(e);return v}
+/* the driven car's physics body (HT.CarAI car, e.car) reads and writes the same health: code that does e.car.hp -= x (chases, rams,
+   HT.CarAI.impact) lands in carDamage, and HT.CarAI.drive's 'no throttle at 0' sees the real value */
+function carBindHp(e){const c=e.car;if(!c||c===e)return;Object.defineProperty(c,'hp',{configurable:true,enumerable:true,get:()=>carHp(e),
+  set:v=>{const h=carHp(e);if(v<h-1e-6)carDamage(e,h-v,'ai');else if(v>h+1e-6)carRepair(e,v-h,{fresh:false})}})}
 /* the car's look from its health: paint wear, smashed lamps, hazards when broken down */
 function carLook(e){const ud=e.obj&&e.obj.userData;if(!ud)return;const f=carFrac(e),w=carWear(e);e.dmg=1-f;
   try{if(ud.setDamage)ud.setDamage(e.dmg);if(ud.setLamps)ud.setLamps(w.lamps);if(ud.setHazard)ud.setHazard(f<=0)}catch(_){}}
 /* a model rebuilt or loaded damaged (save, lod swap): dents to match its health, scattered deterministically */
-function carRedent(e){const ud=e.obj&&e.obj.userData;if(!ud||!ud.mod||!ud.bodyRoot)return;const want=Math.round((1-carFrac(e))*8);let n=ud.dentN|0,seed=((e.name||'van').charCodeAt(0)*977+n*131)%2147483647||7;
+function carRedent(e){const ud=e.obj&&e.obj.userData;if(!ud||!ud.bodyRoot||!ud.body||!ud.body[0])return;const want=Math.round((1-carFrac(e))*8);let n=ud.dentN|0,seed=((e.name||'van').charCodeAt(0)*977+n*131)%2147483647||7;
   const rnd=()=>{seed=seed*16807%2147483647;return seed/2147483647};while(n<want){const a=rnd()*6.283;dentCar(e,{x:Math.cos(a),z:Math.sin(a)},9+rnd()*9);n++}}
 function carSwapModel(e,nv){if(!nv||!e.obj)return;const old=e.obj,solid=!!e.meshes;setCarSolid(e,false);nv.position.copy(old.position);nv.rotation.copy(old.rotation);
   if(old.parent){old.parent.add(nv);old.parent.remove(old)}try{old.userData.dispose&&old.userData.dispose()}catch(_){}e.obj=nv;e._seatObj=null;if(solid)setCarSolid(e,true);
   if(DRV.ex&&CV===e)DRV.ex.o.object=nv;const F=e.fx;if(F)for(const k in F)if(F[k]&&F[k].o)F[k].o.object=nv}
 /* a fresh, dent-free model (after Dad's Auto): the family van keeps its saved parts and paint */
-function carFresh(e){if(!e.obj||!e.obj.userData.mod)return;let nv=null;if(e===VAN){const lk=vanLook();nv=makeVan(lk.color,lk.type,lk.upgrades)}else nv=carModel(e.type,e.color,0);
+function carFresh(e){const u=e.obj&&e.obj.userData;if(!u||!(u.mod||u.bodyRoot))return;let nv=null;if(e===VAN){const lk=vanLook();nv=makeVan(lk.color,lk.type,lk.upgrades)}else nv=carModel(e.type,e.color,0);
   if(nv&&e===VAN)nv.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});carSwapModel(e,nv)}
 const carName=e=>e===VAN?'the minivan':e.name+"'s "+feel(e).label;
 function carSay(e,s){return s.replace(/\{n\}/g,e&&e.name||'Jen').replace(/\{t\}/g,feel(e).label)}
@@ -1369,7 +1373,7 @@ function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!los
   if(sp>10&&Math.abs(lx)>.35&&Math.random()<.6){const i=(lx>0?0:2)+(lz>0?1:0);if(!w.lamps[i]){w.lamps[i]=1;if(CV===e)radio(speaker()||'you',pick(["There goes a headlight.","Was that glass? That was glass.","One-eyed Willy. That's what we call her now."]))}}
   if(sp>13&&Math.abs(lz)>.45&&!w.tyre&&Math.random()<.3){w.tyre=1;e.pullDir=lz>0?1:-1;try{if(ENG&&ENG.thump)ENG.thump(1)}catch(_){}if(CV===e)try{HUD.feed('Flat tyre','bad')}catch(_){}}
   if(carSave(e))try{SAVEM.touch('garage')}catch(_){}
-  if(ud&&ud.mod)dentCar(e,push,sp);carLook(e);
+  if(ud&&ud.bodyRoot)dentCar(e,push,sp);carLook(e);/* (bodyRoot, not .mod: setUpgrades drops .mod on the van) */
   /* a parked car on the other end takes it too, and its owner notices */
   if(L&&L.cars){const S=carSize(e);let v=null,bd=1e9;for(const c of L.cars){if(c===e||!c.obj||c===CV)continue;const ox=c.pos.x-e.pos.x,oz=c.pos.z-e.pos.z,d=Math.hypot(ox,oz),S2=carSize(c);
       if(d<S.l/2+S2.l/2+1&&(ox*-push.x+oz*-push.z)/(d||1)>.2&&d<bd){bd=d;v=c}}
@@ -2454,7 +2458,7 @@ function vanApply(){const lk=vanLook(),vs=lk.vs;
   /* another vehicle bought or chosen at Dad's Auto: swap the model in place */
   if(v.userData.type&&lk.type!==v.userData.type){const nv=makeVan(lk.color,lk.type,lk.upgrades);if(nv){const par=v.parent;if(par){par.add(nv);par.remove(v)}VAN.obj=nv;syncVan();carLook(VAN);carRedent(VAN);return}}
   if(v.userData.setUpgrades){try{if(v.userData.setColor)v.userData.setColor(lk.color);v.userData.setUpgrades(lk.upgrades)}catch(e){console.warn('van upgrades failed',e)}}
-  carLook(VAN)}
+  carLook(VAN);carRedent(VAN)}/* setUpgrades rebuilds the body: its dents come back to match the saved health */
 function vanPreview(p){const v=VAN.obj;if(!v||!v.userData.setUpgrades)return;try{if(p&&p.opts){if(p.opts.color&&v.userData.setColor)v.userData.setColor(p.opts.color);v.userData.setUpgrades(p.opts.upgrades||{})}else vanApply()}catch(e){}}
 function metaHorn(){const vs=vanStats();if(!vs||!vs.horn||!vs.horn.id||vs.horn.id==='stock'||!HT.Menus||!HT.Menus.playHorn)return false;try{HT.Menus.playHorn({notes:vs.horn.notes});return true}catch(e){return false}}
 
