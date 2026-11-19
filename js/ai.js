@@ -53,10 +53,15 @@ AI.DIFFICULTY={
   normal:{maxShooters:2,pool:3,reaction:.6,first:.4,acc:1,  aim:1,  aggression:1, flank:true, hear:1,moveAcc:.7,sprintAcc:.6},
   hard:  {maxShooters:3,pool:4,reaction:.4,first:0, acc:1.15,aim:.8,aggression:1.3,flank:true,hear:1.2,moveAcc:.8,sprintAcc:.7},
 };
+/* per-mission tuning (used by index.html and the node sims): the chop shop is most players' first fight and the compound
+   throws the most men at once, so both give the dad a longer beat on first contact and miss more while he keeps moving */
+AI.MISSION_DIFF=[Object.assign({},AI.DIFFICULTY.normal,{reaction:.8,first:.9,acc:.85,moveAcc:.55,sprintAcc:.45}),null,null,
+  Object.assign({},AI.DIFFICULTY.normal,{reaction:.75,first:.8,acc:.85,moveAcc:.55,sprintAcc:.45})];
+AI.missionDiff=(i,name)=>(!name||name==='normal')&&AI.MISSION_DIFF[i]||AI.DIFFICULTY[name||'normal']||AI.DIFFICULTY.normal;
 AI.roleFor=(gun,boss)=>boss?'boss':gun==='shotgun'||gun==='double'?'shotgunner':gun==='hunter'?'marksman':(gun==='smg'||gun==='nailer')&&R()<.6?'rusher':'grunt';
 
 /* ================= navigation ================= */
-const NAV_DEF={tile:2,solid:'#hctTfVQ',losBlock:'#htVcTf',lowCover:'cTf',structural:'#hV',radius:.35,colliders:null,inside:null};
+const NAV_DEF={tile:2,solid:'#hctTfVQ',losBlock:'#htVcTf',lowCover:'cTf',structural:'#hV',radius:.35,colliders:null,inside:null,lowReach:2.4};
 /* grid: array of strings or char arrays (the game's L.g). opts: tile, solid, losBlock, lowCover (crouch-height blockers),
    structural (chars that make doorways), colliders (world rects {x0,z0,x1,z1} that block cells whose centre they cover, e.g. L.colliders) */
 AI.buildNav=function(grid,opts){
@@ -77,11 +82,14 @@ AI.buildNav=function(grid,opts){
   nav.wx=i=>(i%W+.5)*T;nav.wz=i=>(((i/W)|0)+.5)*T;
   nav.walkAt=(x,z)=>{const i=nav.cellOf(x,z);return i>=0&&walk[i]===1};
 
-  /* line of sight, sampled every 0.5 m like the game's losClear(). High blockers always block; low cover blocks
-     when either end is crouched (a crouched man behind a crate is hidden, a standing one shoots over it) */
+  /* line of sight, sampled every 0.5 m like the game's losClear(). High blockers always block. Low cover (crates, hedges)
+     only hides a crouched man it is close to: a crate next to a standing dad 15 m away doesn't hide a crouched hoodie,
+     the dad's eye (and camera) look straight over it. crouch: 'a' or 'b' = that end is crouched, true = both, falsy = neither */
+  const LR=o.lowReach;
   nav.los=function(ax,az,bx,bz,crouch){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);
     for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n,gx=Math.floor(x/T),gz=Math.floor(z/T);
-      if(gx<0||gz<0||gx>=W||gz>=H)return false;const k=gz*W+gx;if(hi[k]||(crouch&&lo[k]))return false}return true};
+      if(gx<0||gz<0||gx>=W||gz>=H)return false;const k=gz*W+gx;if(hi[k])return false;
+      if(crouch&&lo[k]){const da=d*i/n,db=d-da;if(crouch==='a'?da<LR:crouch==='b'?db<LR:(da<LR||db<LR))return false}}return true};
 
   /* circle of radius r at (x,z) clear of non-walkable cells */
   function clearPt(x,z,r){const cx=Math.floor(x/T),cz=Math.floor(z/T);if(!W_(cx,cz))return false;const fx=x-cx*T,fz=z-cz*T;
@@ -199,7 +207,7 @@ AI.buildNav=function(grid,opts){
         else n=dw||sw?'the '+[dw,sw].filter(Boolean).join('-')+' room':'the middle room'}
       else if(!ins.length){const ns=r.z/(H*T)<.3?'north':r.z/(H*T)>.7?'south':'',ew=r.x/(W*T)<.3?'west':r.x/(W*T)>.7?'east':'';n=ns+ew?'the '+ns+ew+' side':'the yard'}
       else if(rooms.filter(x=>!x.indoor).length===1)n='outside';else n=q.depth<-dMax*.5?'out front':q.depth>dMax*.5?'the back yard':'the side yard';
-      if(used[n])n=n.replace('the ','the other ');used[n]=1;r.name=n}}
+      if(used[n])n=n.replace('the ','the other ');used[n]=1;r.name=n;r.where=/^(out|outside)/.test(n)?n:(r.indoor?'in ':'over in ')+n}}
   nav.door=door;nav.doorId=dId;nav.room=room;nav.rooms=rooms;nav.doors=doors;
   nav.roomAt=(x,z)=>{const i=nav.cellOf(x,z);return i>=0?room[i]:-1};
   nav.isDoor=(x,z)=>{const i=nav.cellOf(x,z);return i>=0&&door[i]===1};
@@ -217,7 +225,7 @@ AI.buildNav=function(grid,opts){
     coverAt[k]=covers.length;covers.push({i:k,x,z,dirs,high:high>0,low:low>0&&!high,door:door[k]===1,room:room[k]})}
   nav.covers=covers;nav.coverAt=coverAt;
   /* how a spot hides from a threat at (tx,tz): 'stand' (high cover), 'crouch' (low cover) or null (exposed) */
-  nav.hides=function(sp,tx,tz){if(!nav.los(tx,tz,sp.x,sp.z,false))return'stand';if(!nav.los(tx,tz,sp.x,sp.z,true))return'crouch';return null};
+  nav.hides=function(sp,tx,tz){if(!nav.los(tx,tz,sp.x,sp.z,false))return'stand';if(!nav.los(tx,tz,sp.x,sp.z,'b'))return'crouch';return null};
   /* where to shoot from: low cover peeks over (stand up in place); high cover leans out to a side */
   nav.peekFrom=function(sp,tx,tz,hideStance){
     if(hideStance==='crouch'&&nav.los(sp.x,sp.z,tx,tz,false))return{side:'over',x:sp.x,z:sp.z};
@@ -270,7 +278,7 @@ AI.BARKS={
   contactLeft:["Contact left!","Left side! Left side!"],
   contactRight:["Contact right!","On your right, buddy!"],
   contactBehind:["Behind us!","Check six! Like the minivan mirrors!"],
-  contactRoom:["Contact, {room}!","One in {room}!"],
+  contactRoom:["Contact, {where}!","One {where}!","Hoodie {where}!"],
   covering:["Covering you!","Go, I got you!","Reload, I've got this side."],
   reloading:["Reloading!","Changing mags, cover me!","Hang on, reloading."],
   enemyReloading:["He's reloading, push!","He's dry! Go!"],
@@ -300,7 +308,7 @@ AI.isOut=isOut;
 /* shared shooting budget across squads (optional) */
 AI.pool=function(o){o=o||{};return{max:o.maxShooters||3,holders:new Set(),peak:0,squads:[]}};
 /* a squad blackboard shared by a group of enemies */
-AI.squad=function(nav,o){o=o||{};const diff=AI.DIFFICULTY[o.difficulty||'normal']||AI.DIFFICULTY.normal;
+AI.squad=function(nav,o){o=o||{};const diff=o.diff||AI.DIFFICULTY[o.difficulty||'normal']||AI.DIFFICULTY.normal;
   const sq={nav,name:o.name||'crew',diff,max:o.maxShooters||diff.maxShooters,pool:o.pool||null,members:[],tokens:new Map(),
     threats:new Map(),morale:1,lossT:-1e9,requests:[],flanker:null,flankT:-1e9,advancer:null,advanceT:0,alert:false,alertT:-1e9,hunt:false,
     barker:o.barker||AI.barker(),claims:new Map(),peak:0,stats:{lost:0,surrendered:0},t:0,rooms:new Set()};
@@ -385,7 +393,7 @@ function perceive(a,ai,world){const nav=world.nav,t=world.t;let best=null,bs=1e9
   const range=ai.gun.range>40?60:38,fov=alert?2.2:1.1;
   for(const th of world.threats||[]){if(th.down)continue;const d=hyp(th.x-a.pos.x,th.z-a.pos.z);if(d>range)continue;
     const ang=Math.atan2(th.x-a.pos.x,th.z-a.pos.z);let df=Math.abs(((ang-a.yaw+Math.PI*3)%(Math.PI*2))-Math.PI);
-    if(df>fov&&d>(alert?9:6))continue;if(!nav.los(a.pos.x,a.pos.z,th.x,th.z,crouched||th.crouch))continue;
+    if(df>fov&&d>(alert?9:6))continue;if(!nav.los(a.pos.x,a.pos.z,th.x,th.z,crouched&&th.crouch?true:crouched?'a':th.crouch?'b':false))continue;
     const s=d*(th.isPlayer?.8:1);if(s<bs){bs=s;best=th}}
   return best}
 
@@ -400,11 +408,12 @@ function chooseCover(a,ai,world,m,mode){const nav=world.nav,sq=a.squad,t=world.t
     if(d<want[0])s-=(want[0]-d)*2.5;else if(d>want[1]+4)s-=(d-want[1]-4)*(mode==='advance'?1.6:.7);
     if(mode==='advance')s-=Math.max(0,d-curD+2)*2;if(mode==='retreat'&&depth)s+=((depth[sp.room]??0)-curDepth)*7+d*.3;
     if(ai.role==='marksman')s+=Math.min(d,30)*.3;
+    if(mode==='retreat'){if(d<8)s-=(8-d)*2;if(ai.role==='boss'&&sp.room===nav.roomAt(ai.post.x,ai.post.z))s+=14}
     if(ai.cover&&ai.cover.spot===sp)s+=3;if(sp.door)s-=3;
     if(sq)for(const o of sq.members){if(o===a||isOut(o))continue;const od=hyp(o.pos.x-sp.x,o.pos.z-sp.z);if(od<2.5)s-=(2.5-od)*1.5}
     cand.push([s,sp,d])}
   cand.sort((p,q)=>q[0]-p[0]);let checked=0;
-  for(const[s0,sp,d]of cand){if(checked++>40)break;const hide=nav.hides(sp,m.x,m.z);if(!hide)continue;
+  for(const[s0,sp,d]of cand){if(checked++>80)break;const hide=nav.hides(sp,m.x,m.z);if(!hide)continue;
     let s=s0;if(hide==='crouch')s-=.6;const peek=nav.peekFrom(sp,m.x,m.z,hide);s+=peek?5:-9*role.cover;
     /* don't run across his line of fire to get there if a closer option exists */
     if(s>bs){bs=s;best={spot:sp,hide,peek,score:s}}}
@@ -458,10 +467,10 @@ AI.think=function(a,world,dt){const ai=memOf(a,world),nav=world.nav,t=world.t,sq
     if(atGoal(a,ai)){ai.mode='search';ai.searchT=t+rr(8,12);ai.searchPts=null;ai.lkp={x:ai.inv.x,z:ai.inv.z,t}}}
   else if(ai.mode==='search')doSearch(a,ai,world,dt,I,decide,role);
   else if(ai.mode==='combat'){
+    /* boss phases: checked every frame he is fighting, so a big burst during his reaction still triggers both */
+    if(ai.role==='boss')bossPhases(a,ai,world,I);
     if(ai.sub==='react'){I.face=thr;ai.stance='stand';if(t>=ai.react){ai.sub='seek';ai.cover=null}}
     else{
-      /* boss phases */
-      if(ai.role==='boss')bossPhases(a,ai,world,I);
       /* lost contact long enough: search */
       if(!vis&&ai.lkp&&t-ai.lkp.t>(ai.role==='boss'?20:8)&&!(sq&&sq.hunt)&&ai.sub!=='retreat'){releaseAll(a,ai);ai.mode='search';ai.searchT=t+rr(12,18);ai.searchPts=null;ai.path=null;queueBark(a,'searching',t)}
       else if(decide&&thr)combatDecide(a,ai,world,thr,vis,role);
@@ -583,12 +592,14 @@ function combatAct(a,ai,world,dt,I,thr,th,role){const nav=world.nav,t=world.t,sq
   case'cover':{const cv=ai.cover;if(!cv){ai.sub='seek';break}const sp=cv.spot;
     if(ai.phase==='hide'){ai.stance=cv.hide==='crouch'?'crouch':'stand';ai.aimT=0;ai.firstShot=true;
       /* caught in the open by someone walking round the cover: shoot back if allowed, otherwise move */
-      const real=(world.threats||[]).find(x=>x.id===ai.target&&!x.down);
-      if(real&&nav.los(real.x,real.z,a.pos.x,a.pos.z,ai.stance==='crouch')){
+      /* anyone (not just his target) who can see him where he hides has flanked the spot */
+      const seers=(world.threats||[]).filter(x=>!x.down&&hyp(x.x-a.pos.x,x.z-a.pos.z)<40&&nav.los(x.x,x.z,a.pos.x,a.pos.z,ai.stance==='crouch'?'b':false));
+      const real=seers.find(x=>x.id===ai.target)||seers.find(x=>x.isPlayer)||seers[0];
+      if(real){
         if(sq&&sq.requestFire(a,t,1)){cv.peek={side:'flanked',x:a.pos.x,z:a.pos.z};ai.phase='peek';ai.exposeT=t;ai.burstDone=false;ai.aimT=ai.gun.aim*.4;ai.shotT=Math.min(ai.shotT,t)}
         else{queueBark(a,'flanked',t);ai.cover=null;ai.sub='seek';ai.thinkT=0}
         break}
-      const dx=sp.x-a.pos.x,dz=sp.z-a.pos.z,dl=hyp(dx,dz);if(dl>.12){I.dir={x:dx/dl,z:dz/dl};I.speed=Math.min(2.5,dl*4)}
+      const dx=sp.x-a.pos.x,dz=sp.z-a.pos.z,dl=hyp(dx,dz);if(dl>.12){I.dir={x:dx/dl,z:dz/dl};I.speed=Math.min(4.2,dl*7)}/* duck back fast */
       if(ai.reloadT>0)break;
       if(t>=ai.phaseT){const pri=(ai.role==='boss'?1:0)+(sq&&sq.advancer&&sq.advancer!==a?1:0);
         cv.peek=nav.peekFrom(sp,thr.x,thr.z,cv.hide);
@@ -639,12 +650,12 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
   ai.thinkT-=dt;const decide=ai.thinkT<=0;if(decide)ai.thinkT=rr(.25,.35);
   if(decide){let best=null,bs=1e9;ai.visible=[];
     for(const e of live){const d=hyp(e.pos.x-a.pos.x,e.pos.z-a.pos.z);if(d>32)continue;const crouch=e.ai&&e.ai.stance==='crouch';
-      if(!nav.los(a.pos.x,a.pos.z,e.pos.x,e.pos.z,crouch))continue;const alert=e.ai?e.ai.mode!=='idle':!!e.alert;if(!alert&&hyp(e.pos.x-P.x,e.pos.z-P.z)>15)continue;
+      if(!nav.los(a.pos.x,a.pos.z,e.pos.x,e.pos.z,crouch?'b':false))continue;const alert=e.ai?e.ai.mode!=='idle':!!e.alert;if(!alert&&hyp(e.pos.x-P.x,e.pos.z-P.z)>15)continue;
       ai.visible.push(e);
       /* covering the dad while he reloads or zip-ties: whoever is closest to him first */
       const dpe=hyp(e.pos.x-P.x,e.pos.z-P.z);const s=(P.reloading||P.busy?dpe*1.5:d)+(e.ai&&e.ai.phase==='peek'||e.ai&&e.ai.sub==='rush'?-6:0);if(s<bs){bs=s;best=e}
       if(!ai.seen.has(e)){ai.seen.add(e);if(alert){const w=AI.dirWord(P.x,P.z,fx,fz,e.pos.x,e.pos.z);const ev={front:'contactFront',left:'contactLeft',right:'contactRight',behind:'contactBehind'}[w];
-        const rid=nav.roomAt(e.pos.x,e.pos.z),rn=nav.rooms[rid]&&nav.rooms[rid].name;if(rn&&rid!==nav.roomAt(P.x,P.z)&&R()<.4)say('contactRoom',{room:rn});else say(ev);I.callout={dir:w,id:e.id,room:rn}}}}
+        const rid=nav.roomAt(e.pos.x,e.pos.z),rn=nav.rooms[rid]&&nav.rooms[rid].name;if(rn&&rid!==nav.roomAt(P.x,P.z)&&R()<.4)say('contactRoom',{room:rn,where:nav.rooms[rid].where||'in '+rn});else say(ev);I.callout={dir:w,id:e.id,room:rn}}}}
     ai.target=best;
     if(best&&best.ai&&best.ai.intent&&best.ai.intent.reloading&&R()<.3)say('enemyReloading');
     if(best&&best.ai&&best.ai.sub==='flank'&&R()<.3)say('enemyFlanking')}
@@ -669,7 +680,8 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
     let gx=d.x+ax*side*nav.tile*.9+az*lat,gz=d.z+az*side*nav.tile*.9+ax*lat;const c=nav.nearestWalkable(gx,gz,2);if(c>=0&&nav.door[c]){gx+=az*lat*.6;gz+=ax*lat*.6}
     goal={x:gx,z:gz};speed=3.5;ai.stackSide=side;ai.stackDoor=d;if(t-ai.stackT>8){ai.stackT=t;say('stack')}}
   else if(ai.stackDoor&&!P.crouch){const d=ai.stackDoor;const ax=d.axis==='x'?1:0,az=1-ax;const side=Math.sign((P.x-d.x)*ax+(P.z-d.z)*az)||1;
-    if(side!==ai.stackSide){ai.breachT=t+4;say('breach')}ai.stackDoor=null}
+    /* the dad standing up (or stepping through) from a stack is the go signal */
+    ai.breachT=t+4;say('breach');ai.stackDoor=null}
   if(ai.breachT>t&&mode==='follow')speed=6;
 
   /* fight: cover near the dad that hides from my target and can peek it */
@@ -692,7 +704,7 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
   /* fire */
   if(ai.target&&mode!=='revive'){const e=ai.target,d=hyp(e.pos.x-a.pos.x,e.pos.z-a.pos.z);I.face={x:e.pos.x,z:e.pos.z};ai.aimT+=dt;ai.fireT-=dt;
     const crouch=e.ai&&e.ai.stance==='crouch';
-    if(ai.fireT<=0&&ai.aimT>.35&&nav.los(a.pos.x,a.pos.z,e.pos.x,e.pos.z,crouch)){ai.fireT=gun.cd*rr(.8,1.3);I.fire=true;I.targetId=e.id;
+    if(ai.fireT<=0&&ai.aimT>.35&&nav.los(a.pos.x,a.pos.z,e.pos.x,e.pos.z,crouch?'b':false)){ai.fireT=gun.cd*rr(.8,1.3);I.fire=true;I.targetId=e.id;
       I.dmg=gun.close&&d<gun.close[0]?gun.close[1]:gun.dmg;I.hitChance=clamp(gun.acc*AI.ALLY_SUPPORT*clamp(1.2-d/35,.2,1)*(crouch?.8:1)*(I.speed>0?.85:1)*(e.ai&&e.ai.intent&&e.ai.intent.speed>0?.8:1),.03,.9);ai.stance='stand'}}
   else{ai.aimT=0;if(!I.face){I.face=I.dir&&I.speed>.5?{x:a.pos.x+I.dir.x,z:a.pos.z+I.dir.z}:{x:a.pos.x+fx*3,z:a.pos.z+fz*3}}}
   if(I.speed>0){const mv=hyp(a.pos.x-ai.lastPos.x,a.pos.z-ai.lastPos.z);if(mv<I.speed*dt*.15)ai.stuckT+=dt;else ai.stuckT=0;if(ai.stuckT>1.5){ai.stuckT=0;ai.path=null}}
@@ -709,6 +721,8 @@ function formationSlot(a,world,P,fx,fz,rx,rz){const nav=world.nav,cam=world.came
 function inCamCone(cam,P,x,z){const cfx=-Math.sin(cam.yaw),cfz=-Math.cos(cam.yaw);const dx=x-cam.x,dz=z-cam.z,d=hyp(dx,dz);if(d<.8)return true;
   const along=dx*cfx+dz*cfz;const reach=hyp(P.x-cam.x,P.z-cam.z)+6;if(along<0||along>reach)return false;return Math.abs(dx*cfz-dz*cfx)<Math.max(.9,along*Math.tan(.42))}
 AI.inCamCone=inCamCone;
+/* the strip down the middle of the dad's view out to 22 m: where his crosshair (and his bullets) go */
+function inFireLane(cam,x,z){const cfx=-Math.sin(cam.yaw),cfz=-Math.cos(cam.yaw),dx=x-cam.x,dz=z-cam.z,along=dx*cfx+dz*cfz;if(along<0||along>22)return false;return Math.abs(dx*cfz-dz*cfx)<Math.max(1.2,along*.2)}
 function yieldSpot(a,world,P){const nav=world.nav;const c0=nav.cellOf(a.pos.x,a.pos.z);let best=null,bs=1e9;const cx=c0%nav.W,cz=(c0/nav.W)|0;
   for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const x=cx+dx,z=cz+dz;if(!nav.walkable(x,z))continue;const k=z*nav.W+x;if(nav.door[k])continue;
     const wx=nav.wx(k),wz=nav.wz(k);const dp=hyp(wx-P.x,wz-P.z);if(dp<1.5)continue;const s=hyp(wx-a.pos.x,wz-a.pos.z)-Math.min(dp,4)*.3;if(s<bs){bs=s;best={x:wx,z:wz}}}
@@ -716,7 +730,7 @@ function yieldSpot(a,world,P){const nav=world.nav;const c0=nav.cellOf(a.pos.x,a.
 function allyCover(a,ai,world,e){const nav=world.nav,P=world.player;let best=null,bs=-1e9;
   for(const sp of nav.covers){const dp=hyp(sp.x-P.x,sp.z-P.z);if(dp>7||dp<1.2)continue;const d=hyp(sp.x-e.pos.x,sp.z-e.pos.z);if(d<4)continue;
     if((world.allies||[]).some(o=>o!==a&&o.ai&&o.ai.cover&&o.ai.cover.spot===sp))continue;
-    let s=-hyp(sp.x-a.pos.x,sp.z-a.pos.z)*.4-dp*.3;if(sp.door)s-=4;if(inCamCone(world.camera||{x:P.x,z:P.z,yaw:P.yaw},P,sp.x,sp.z))s-=3;if(s<bs-6)continue;
+    let s=-hyp(sp.x-a.pos.x,sp.z-a.pos.z)*.4-dp*.3;if(sp.door)s-=4;const cm=world.camera||{x:P.x,z:P.z,yaw:P.yaw};if(inCamCone(cm,P,sp.x,sp.z)||inFireLane(cm,sp.x,sp.z))s-=9;if(s<bs-6)continue;
     const hide=nav.hides(sp,e.pos.x,e.pos.z);if(!hide)continue;const pk=nav.peekFrom(sp,e.pos.x,e.pos.z,hide);s+=pk?3:-2;if(s>bs){bs=s;best={spot:sp,hide,peek:pk}}}
   return best}
 

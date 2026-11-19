@@ -24,11 +24,11 @@ const navs=levels.map(L=>AI.buildNav(L.g,{colliders:L.colliders}));
 
 console.log('\nNavigation');
 /* game's losClear for comparison */
-function gameLos(L,ax,az,bx,bz,blk){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=Math.floor(x/2),gz=Math.floor(z/2);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;if(blk.includes(L.g[gz][gx]))return false}return true}
+function gameLos(L,ax,az,bx,bz,blk,low,reach){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=Math.floor(x/2),gz=Math.floor(z/2);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;const c=L.g[gz][gx];if(blk.includes(c))return false;if(low&&low.includes(c)&&d-d*i/n<reach)return false}return true}
 navs.forEach((nav,mi)=>{const L=levels[mi];let losSame=0,losN=0;
   for(let k=0;k<1500;k++){const ax=rnd()*L.W*2,az=rnd()*L.H*2,bx=rnd()*L.W*2,bz=rnd()*L.H*2;losN++;
-    if(nav.los(ax,az,bx,bz,true)===gameLos(L,ax,az,bx,bz,'#htVcTf')&&nav.los(ax,az,bx,bz,false)===gameLos(L,ax,az,bx,bz,'#htV'))losSame++}
-  check(`${MAPS[mi].id}: line of sight matches the game's losClear (crouched = LOSBLOCK, standing = high blockers)`,losSame===losN,`${losSame}/${losN}`);
+    if(nav.los(ax,az,bx,bz,'b')===gameLos(L,ax,az,bx,bz,'#htV','cTf',2.4)&&nav.los(ax,az,bx,bz,false)===gameLos(L,ax,az,bx,bz,'#htV'))losSame++}
+  check(`${MAPS[mi].id}: line of sight matches the game's losClear (standing = high blockers; crouched = plus low cover within 2.4 m of him)`,losSame===losN,`${losSame}/${losN}`);
   /* paths */
   const walk=[];for(let k=0;k<nav.N;k++)if(nav.walk[k])walk.push(k);
   let tried=0,found=0,bad=0,cut=0,thin=0,ratio=[];
@@ -56,7 +56,8 @@ console.log('\nCover on alert (stationary dad, every map enemy alerted, 6 s to s
       for(const s of spawns){if(hyp(s.x-px,s.z-pz)>26)continue;const gun=s.boss?'revolver':['pistol','rifle','smg','shotgun','rifle'][ags.length%5];const e={id:'e'+ags.length,pos:{x:s.x,z:s.z},yaw:Math.atan2(px-s.x,pz-s.z),hp:75,maxHp:s.boss?420:75,gun,boss:s.boss,state:'idle'};
         e.role=AI.roleFor(gun,s.boss);if(e.role==='rusher'&&ags.length%2)e.role='grunt';sq.add(e);ags.push(e)}
       if(!ags.length)continue;
-      const dt=1/20;let t=0;for(let i=0;i<120;i++){t+=dt;const w={nav,t,threats:[P],agents:ags};sq.update(dt,w);for(const e of ags){const I=AI.think(e,w,dt);AI.move(e,I,dt);
+      /* 6.4 s: the 6 s window plus the squad's first-contact beat (AI.DIFFICULTY.normal.first) */
+      const dt=1/20;let t=0;for(let i=0;i<128;i++){t+=dt;const w={nav,t,threats:[P],agents:ags};sq.update(dt,w);for(const e of ags){const I=AI.think(e,w,dt);AI.move(e,I,dt);
         /* same push-out as the game's collide() against whole solid cells */
         for(let pass=0;pass<2;pass++){const cx=Math.floor(e.pos.x/2),cz=Math.floor(e.pos.z/2);for(let z=cz-1;z<=cz+1;z++)for(let x=cx-1;x<=cx+1;x++){if(nav.walkable(x,z))continue;const x0=x*2,z0=z*2,x1=x0+2,z1=z0+2,r=.35;
           if(e.pos.x+r>x0&&e.pos.x-r<x1&&e.pos.z+r>z0&&e.pos.z-r<z1){const ox1=e.pos.x+r-x0,ox2=x1-(e.pos.x-r),oz1=e.pos.z+r-z0,oz2=z1-(e.pos.z-r);if(Math.min(ox1,ox2)<Math.min(oz1,oz2))e.pos.x+=ox1<ox2?-ox1:ox2;else e.pos.z+=oz1<oz2?-oz1:oz2}}}}}

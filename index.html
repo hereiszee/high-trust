@@ -1057,16 +1057,12 @@ function shootAt(src,target,acc,dmg,isEnemy){
 const AI=window.HT.AI;
 let aiWorld=null,eidSeq=1;const noiseQ=[];
 const aiStats={thinkMs:0,thinks:0,allyMs:0,allyCalls:0,barks:[]};
-/* per-mission tuning. The chop shop is most players' first fight and the compound throws the most men at once, so
-   both give the dad a longer beat on first contact and miss more while he keeps moving */
-const AI_DIFF=[{...AI.DIFFICULTY.normal,reaction:.8,first:.9,acc:.85,moveAcc:.55,sprintAcc:.45},AI.DIFFICULTY.normal,AI.DIFFICULTY.normal,
-  {...AI.DIFFICULTY.normal,reaction:.7,first:.7,acc:.9,moveAcc:.6,sprintAcc:.5}];
-function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.nav)return;const df=AI_DIFF[M.i]||AI.DIFFICULTY.normal;
+function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.nav)return;const df=AI.missionDiff(M.i);/* per-mission tuning lives in js/ai.js (AI.MISSION_DIFF) so the node sims test the same numbers */
   M.aiDiff=df;M.pool=AI.pool({maxShooters:df.pool});M.squads=new Map();M.barker=AI.barker();M.crewBarker=AI.barker({gap:1.2});
   if(m.type==='waves'&&L.grill&&L.waveSpawns.length)M.dir=AI.director(L.nav,{spawns:L.waveSpawns,defend:L.grill,waves:m.waves})}
 /* one squad per indoor room, one for everything outside */
 function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
-  let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{pool:M.pool,barker:M.barker,name:String(key)});s.diff=M.aiDiff;s.max=M.aiDiff.maxShooters;M.squads.set(key,s)}return s}
+  let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
 /* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
 function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;noiseQ.push({x:from.x,z:from.z,r,t:simT,kind:'gun',id});AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
 function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
@@ -1108,14 +1104,19 @@ const _m4a=new THREE.Matrix4(),_m4b=new THREE.Matrix4(),_bx=new THREE.Box3();
 function bodyTop(d){d.root.updateMatrixWorld(true);_m4a.copy(d.root.matrixWorld).invert();let top=0;
   for(const m of d.meshes){if(!m.geometry)continue;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();_bx.copy(m.geometry.boundingBox).applyMatrix4(_m4b.multiplyMatrices(_m4a,m.matrixWorld));top=Math.max(top,_bx.max.y)}
   return top*d.root.scale.y}
-const CROUCH_TOP=1.0,CROUCH_LEAN=.75;
+/* the third-person camera sits ~2 m up and looks over the crate, so the body also has to stay tucked against it:
+   head to about 0.95 m, kneeling with the shins behind, leaning in so the head ends up just behind the crate face */
+const CROUCH_TOP=.95,CROUCH_LEAN=.75,CROUCH_REACH=.5;
 function deepCrouch(ent,d,on,dt){ent.ck=(ent.ck||0)+((on?1:0)-(ent.ck||0))*Math.min(1,dt*12);const k=ent.ck;if(k<.01)return;
-  const r=d.root;if(ent.topH==null){ent.topH=bodyTop(d);
-    ent.hipH=d.legs&&d.legs[0]?d.legs[0].position.y*r.scale.y:ent.topH*.45;r.rotation.order='YXZ'}
-  const h=ent.hipH,top=ent.topH,th=CROUCH_LEAN*k,sink=Math.max(0,h+(top-h)*Math.cos(CROUCH_LEAN)-CROUCH_TOP)*k;
-  const back=h*Math.sin(th)+.2*k,fx=Math.sin(ent.yaw),fz=Math.cos(ent.yaw);
+  const r=d.root;if(ent.topH==null){ent.topH=bodyTop(d);ent.hipH=d.legs&&d.legs[0]?d.legs[0].position.y*r.scale.y:ent.topH*.45;r.rotation.order='YXZ';
+    const h=ent.hipH,top=ent.topH;let lean=CROUCH_LEAN,sink=h+(top-h)*Math.cos(lean)-CROUCH_TOP;
+    if(h-sink<.15){sink=h-.15;lean=Math.acos(clamp((CROUCH_TOP-.15)/(top-h),-1,1))}/* tall men (the King) lean further instead of sinking through the floor */
+    ent.crouchFit={lean,sink:Math.max(0,sink),back:Math.max(0,(top-h)*Math.sin(lean)-CROUCH_REACH)}}
+  const h=ent.hipH,f=ent.crouchFit,th=f.lean*k,sink=f.sink*k,fx=Math.sin(ent.yaw),fz=Math.cos(ent.yaw);
+  /* pivot at the hip: root offset so the hip stays over the feet's spot (minus a little room for long torsos) */
+  const back=h*Math.sin(th)+f.back*k;
   r.rotation.x=th;r.position.set(ent.pos.x-fx*back,h-h*Math.cos(th)-sink,ent.pos.z-fz*back);
-  const a=Math.acos(clamp((h-sink)/h,-1,1));for(const l of d.legs||[])l.rotation.x=-a-th;for(const m of d.arms||[])m.rotation.x-=th}
+  const a=Math.acos(clamp((h-sink)/h,-1,1));for(const l of d.legs||[])l.rotation.x=a-th;for(const m of d.arms||[])m.rotation.x-=th}
 function moveToward(ent,gx,gz,speed,dt){
   const dx=gx-ent.pos.x,dz=gz-ent.pos.z,d=Math.hypot(dx,dz);if(d<.3||(d<1.3&&!walkable(tx(gx),tx(gz))))return false;
   let tx_=gx,tz_=gz;
