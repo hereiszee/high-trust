@@ -1,0 +1,311 @@
+{
+ "idle": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_idle_neutral_01"
+ },
+ "idle_look": {
+  "duration": 4.633,
+  "frames": 140,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_idle_look_around_01"
+ },
+ "idle_nervous": {
+  "duration": 9.0,
+  "frames": 271,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_idle_nervous_01"
+ },
+ "idle_angry": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_idle_angry_01"
+ },
+ "crouch_idle": {
+  "duration": 6.867,
+  "frames": 207,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_crouch_idle"
+ },
+ "sit": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_sit_chair_idle_neutral_01"
+ },
+ "sit_breathe": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox m_sit_chair_breathe_01"
+ },
+ "walk": {
+  "duration": 1.2,
+  "frames": 37,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 1.012,
+  "source": "Rocketbox m_walk_neutral_01"
+ },
+ "walk_fast": {
+  "duration": 1.067,
+  "frames": 33,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 1.495,
+  "source": "Rocketbox m_walk_fast_01"
+ },
+ "jog": {
+  "duration": 0.767,
+  "frames": 24,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 2.411,
+  "source": "Rocketbox m_run_slow_01"
+ },
+ "run": {
+  "duration": 0.767,
+  "frames": 24,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 3.075,
+  "source": "Rocketbox m_run_neutral"
+ },
+ "sprint": {
+  "duration": 0.6,
+  "frames": 19,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 5.839,
+  "source": "Rocketbox m_run_fast_01"
+ },
+ "f_idle": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox f_idle_neutral_01"
+ },
+ "f_walk": {
+  "duration": 1.2,
+  "frames": 37,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 1.214,
+  "source": "Rocketbox f_walk_neutral_01"
+ },
+ "f_sit": {
+  "duration": 8.0,
+  "frames": 241,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Rocketbox f_sit_chair_breathe_01"
+ },
+ "crouch_walk": {
+  "duration": 2.0,
+  "frames": 61,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.626,
+  "source": "Quaternius UAL Crouch_Fwd_Loop"
+ },
+ "pistol_idle": {
+  "duration": 1.667,
+  "frames": 51,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Idle_Loop"
+ },
+ "pistol_aim": {
+  "duration": 0.167,
+  "frames": 6,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Aim_Neutral"
+ },
+ "pistol_aim_up": {
+  "duration": 0.167,
+  "frames": 6,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Aim_Up"
+ },
+ "pistol_aim_down": {
+  "duration": 0.167,
+  "frames": 6,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Aim_Down"
+ },
+ "pistol_fire": {
+  "duration": 0.633,
+  "frames": 20,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Shoot"
+ },
+ "pistol_reload": {
+  "duration": 1.667,
+  "frames": 51,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Pistol_Reload"
+ },
+ "death": {
+  "duration": 2.4,
+  "frames": 73,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Death01"
+ },
+ "hit_chest": {
+  "duration": 0.333,
+  "frames": 11,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Hit_Chest"
+ },
+ "hit_head": {
+  "duration": 0.433,
+  "frames": 14,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Hit_Head"
+ },
+ "hit_knockback": {
+  "duration": 0.833,
+  "frames": 26,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Hit_Knockback"
+ },
+ "punch": {
+  "duration": 1.0,
+  "frames": 31,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Punch_Cross"
+ },
+ "interact": {
+  "duration": 2.0,
+  "frames": 61,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Interact"
+ },
+ "idle_arms_folded": {
+  "duration": 2.5,
+  "frames": 76,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Idle_FoldArms_Loop"
+ },
+ "ual_crouch_idle": {
+  "duration": 2.933,
+  "frames": 89,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0,
+  "source": "Quaternius UAL Crouch_Idle_Loop"
+ },
+ "strafe_left": {
+  "duration": 0.8,
+  "frames": 25,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "Quaternius Ultimate Modular Men Run_Left"
+ },
+ "strafe_right": {
+  "duration": 0.8,
+  "frames": 25,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "Quaternius Ultimate Modular Men Run_Right"
+ },
+ "run_back": {
+  "duration": 0.833,
+  "frames": 26,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 2.467,
+  "source": "Quaternius Ultimate Modular Men Run_Back"
+ },
+ "rifle_aim": {
+  "duration": 4.0,
+  "frames": 121,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "procedural (IK) on Rocketbox idle"
+ },
+ "_rifle_origin_frame0": [
+  -0.1419,
+  1.4641,
+  0.237
+ ],
+ "rifle_fire": {
+  "duration": 0.3,
+  "frames": 10,
+  "loop": false,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "procedural (IK)"
+ },
+ "hands_up": {
+  "duration": 4.0,
+  "frames": 121,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "procedural (IK) on Rocketbox idle"
+ },
+ "kneel_cuffed": {
+  "duration": 4.0,
+  "frames": 121,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "procedural (IK) on Rocketbox idle"
+ },
+ "kneel_hands_up": {
+  "duration": 4.0,
+  "frames": 121,
+  "loop": true,
+  "inPlace": true,
+  "speed_m_s": 0.0,
+  "source": "procedural (IK) on Rocketbox idle"
+ }
+}
