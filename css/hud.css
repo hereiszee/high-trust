@@ -20,11 +20,20 @@
              only where text sits over unknown content for long (subs, prompt,
              cards). One accent per element. Numbers are tabular.
    ===================================================================== */
-@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700;800&family=Bowlby+One&display=swap");
+/* fonts: self-hosted latin subsets (SIL OFL 1.1, licences in assets/fonts/). font-display:block, the files are
+   local and preloaded by the page, so the first paint never flashes a wide fallback through the condensed UI */
+@font-face{font-family:"Barlow";font-style:normal;font-weight:500;font-display:block;src:url(../assets/fonts/barlow-500.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:600;font-display:block;src:url(../assets/fonts/barlow-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:700;font-display:block;src:url(../assets/fonts/barlow-700.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:500;font-display:block;src:url(../assets/fonts/barlow-condensed-500.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:600;font-display:block;src:url(../assets/fonts/barlow-condensed-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:700;font-display:block;src:url(../assets/fonts/barlow-condensed-700.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:800;font-display:block;src:url(../assets/fonts/barlow-condensed-800.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Bowlby One";font-style:normal;font-weight:400;font-display:block;src:url(../assets/fonts/bowlby-one-400.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
 .ht-root{
   --ht-display:"Bowlby One","Arial Black",Impact,sans-serif;
-  --ht-ui:"Barlow Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --ht-ui:"Barlow Condensed","Roboto Condensed","Arial Narrow","Liberation Sans Narrow","Nimbus Sans Narrow","Helvetica Neue",system-ui,sans-serif;
   --ht-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --t-2xs:10px;--t-xs:11px;--t-s:13px;--t-m:15px;--t-l:18px;--t-xl:24px;--t-2xl:34px;--t-3xl:48px;--t-hero:clamp(56px,10vw,120px);
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
@@ -323,12 +332,13 @@
 .ht-tb[data-a=use]{width:62px;height:62px;right:calc(var(--sa-r) + 120px);bottom:calc(var(--sa-b) + 70px);background:rgba(255,201,74,.3)}
 .ht-tb[data-a=reload]{width:50px;height:50px;right:calc(var(--sa-r) + 198px);bottom:calc(var(--sa-b) + 112px)}
 .ht-tb[data-a=crouch]{width:50px;height:50px;right:calc(var(--sa-r) + 196px);bottom:calc(var(--sa-b) + 46px)}
+.ht-tb[data-a=jump]{width:64px;height:64px;right:calc(var(--sa-r) + 32px);bottom:calc(var(--sa-b) + 26px)}
 .ht-tb[data-a=swap]{width:50px;height:50px;right:calc(var(--sa-r) + 40px);bottom:calc(var(--sa-b) + 214px)}
 .ht-tb[data-a=view]{width:50px;height:50px;right:calc(var(--sa-r) + 104px);bottom:calc(var(--sa-b) + 228px)}
 .ht-tb[data-a=pause]{width:40px;height:40px;right:calc(var(--sa-r) + 16px);top:calc(var(--sa-t) + 12px)}
 .ht-tb[data-a=map]{width:40px;height:40px;right:calc(var(--sa-r) + 64px);top:calc(var(--sa-t) + 12px)}
 .ht-tb[data-a=pause] svg,.ht-tb[data-a=map] svg{width:18px;height:18px;margin:0}
-.ht-root.touch.m-drive .ht-tb[data-a=aim],.ht-root.touch.m-drive .ht-tb[data-a=reload],.ht-root.touch.m-drive .ht-tb[data-a=crouch],.ht-root.touch.m-drive .ht-tb[data-a=swap],.ht-root.touch.m-drive .ht-tb[data-a=fire]{display:none}
+.ht-root.touch.m-drive .ht-tb[data-a=aim],.ht-root.touch.m-drive .ht-tb[data-a=reload],.ht-root.touch.m-drive .ht-tb[data-a=crouch],.ht-root.touch.m-drive .ht-tb[data-a=swap],.ht-root.touch.m-drive .ht-tb[data-a=fire],.ht-root.touch.m-drive .ht-tb[data-a=jump]{display:none}
 .ht-root.touch.m-drive .ht-tb[data-a=use]{right:calc(var(--sa-r) + 24px);bottom:calc(var(--sa-b) + 250px)}
 .ht-root.touch.m-hub .ht-tb[data-a=fire],.ht-root.touch.m-hub .ht-tb[data-a=aim],.ht-root.touch.m-hub .ht-tb[data-a=reload],.ht-root.touch.m-home .ht-tb[data-a=fire],.ht-root.touch.m-home .ht-tb[data-a=aim],.ht-root.touch.m-home .ht-tb[data-a=reload]{opacity:.35}
 
@@ -358,6 +368,7 @@
    ===================================================================== */
 .ht-scr{position:absolute;inset:0;pointer-events:auto;display:flex;opacity:0;transition:opacity var(--d3) var(--e-out);overflow:hidden}
 .ht-scr.on{opacity:1}
+.ht-scr.out{pointer-events:none}/* a screen fading out never takes clicks meant for the next one */
 .ht-scr .scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,11,14,.94) 0%,rgba(9,11,14,.82) 34%,rgba(9,11,14,.35) 64%,rgba(9,11,14,.12) 100%)}
 .ht-scr .scrim.full{background:rgba(9,11,14,.66);backdrop-filter:blur(10px) saturate(.9);-webkit-backdrop-filter:blur(10px) saturate(.9)}
 .ht-scr .col{position:relative;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--sa-t) + var(--s7)) var(--s7) calc(var(--sa-b) + var(--s7)) calc(var(--sa-l) + clamp(24px,6vw,88px));width:min(620px,100%);max-height:100%;overflow:auto}
@@ -417,6 +428,7 @@
 /* result */
 .ht-result .scrim{background:rgba(9,11,14,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .ht-result .col{margin:0 auto;width:min(640px,100%);padding-left:calc(var(--sa-l) + var(--s5));padding-right:calc(var(--sa-r) + var(--s5));align-items:stretch}
+.ht-result .col>*{flex-shrink:0}
 .ht-result .stamp{align-self:flex-start;font:400 var(--t-m)/1 var(--ht-display);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--sun);padding:7px 12px 6px;border-radius:var(--r1);transform:rotate(-2deg)}
 .ht-result.fail .stamp{background:var(--alarm);color:#fff}
 .ht-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-radius:var(--r2);overflow:hidden;margin:4px 0 var(--s4)}
@@ -522,7 +534,8 @@
 .ht-root.compact .ht-wp .slots{display:none}
 .ht-root.compact .ht-wp .info .fm{display:none}
 .ht-root.compact .ht-wp .hint{order:9;height:auto}
-.ht-root.compact .ht-drv{right:auto;left:calc(var(--edge) + var(--sa-l));bottom:calc(var(--sa-b) + 176px);transform:scale(.66);transform-origin:left bottom}
+/* phones: the joystick owns the bottom-left, so the speedometer sits bottom-right (the touch fire/aim buttons are hidden while driving) */
+.ht-root.compact .ht-drv{right:calc(var(--edge) + var(--sa-r));left:auto;bottom:calc(var(--sa-b) + 18px);transform:scale(.66);transform-origin:right bottom}
 .ht-root.compact .ht-drv .hint{display:none}
 .ht-root.compact .ht-sub{bottom:calc(var(--sa-b) + 274px);max-width:calc(100vw - 32px);width:max-content}
 .ht-root.compact .ht-sub span{font-size:var(--t-m)}
