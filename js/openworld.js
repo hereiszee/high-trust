@@ -325,6 +325,8 @@ function classifyDetail(u,B){const trees=new Set();for(const l of B.lod)for(cons
       for(const c of o.children){const nm=c.name.slice(2);if(DET_BLD.has(nm))u.detail.push(c);else if(MID_BLD.has(nm))u.mid.push(c)}}}
   const ctr=m=>{const g=m.geometry;if(m.isInstancedMesh&&g.boundingSphere)return g.boundingSphere;if(!g.boundingSphere)g.computeBoundingSphere();return g.boundingSphere};
   u.detailS=u.detail.map(ctr);u.tuftS=u.tufts.map(ctr);
+  /* world.js tufts read as dark specks against the bright lawns: lift their instance colours toward the lawn's tone */
+  for(const m of u.tufts)if(m.instanceColor){const a=m.instanceColor.array;for(let i=0;i<a.length;i+=3){a[i]*=1.55;a[i+1]*=1.7;a[i+2]*=1.25}m.instanceColor.needsUpdate=true}
   /* small street furniture doesn't cast into the (small, expensive) shadow pass */
   for(const m of u.detail)if(m.name!=='w:fence')m.castShadow=false;
   u.near=null}
@@ -407,9 +409,12 @@ function chainlink(B,ch){const gv=B.gbOf('galv'),fab=B.fab||(B.fab=new (HW().GB)
     for(let a=a0;a<=a1+.01;a+=TILE){const p=P(a,0);gv.addGeo(cyl(.035,.035,H+.05,8),M4(p[0],(H+.05)/2,p[2]))}
     const rail=cyl(.022,.022,a1-a0,6);rail.rotateZ(Math.PI/2);if(!hz)rail.rotateY(Math.PI/2);const pm=P((a0+a1)/2,H);gv.addGeo(rail,M4(pm[0],pm[1],pm[2]));
     const L=a1-a0;const q=[P(a0,.04),P(a1,.04),P(a1,H),P(a0,H)];fab.quad(q[0],q[1],q[2],q[3],[[0,0],[L/.7,0],[L/.7,H/.7],[0,H/.7]],null,hz?[0,0,1]:[1,0,0])}}
-function fabricMat(){if(MC.fabric)return MC.fabric;const t=C.ASSETS&&C.ASSETS.tex&&C.ASSETS.tex('fence');
-  const m=new THREE.MeshStandardMaterial({color:lin('#8e9499'),metalness:.7,roughness:.4,side:THREE.DoubleSide,alphaTest:.5});
-  if(t&&t.alphaMap){m.alphaMap=t.alphaMap}else{const c=canvas(64,64),x=c.getContext('2d');x.strokeStyle='#fff';x.lineWidth=3;for(let i=-64;i<128;i+=16){x.beginPath();x.moveTo(i,0);x.lineTo(i+64,64);x.moveTo(i+64,0);x.lineTo(i,64);x.stroke()}m.alphaMap=new THREE.CanvasTexture(c);m.alphaMap.wrapS=m.alphaMap.wrapT=THREE.RepeatWrapping}
+function fabricMat(){if(MC.fabric)return MC.fabric;
+  /* generated diamond mesh: wires thick enough to survive mipmapping at distance (the streamed fence alpha thins out to nothing) */
+  const c=canvas(128,128),x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,128,128);x.strokeStyle='#fff';x.lineWidth=7;x.lineCap='round';
+  for(let i=-128;i<=256;i+=64){x.beginPath();x.moveTo(i,0);x.lineTo(i+128,128);x.stroke();x.beginPath();x.moveTo(i+128,0);x.lineTo(i,128);x.stroke()}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;
+  const m=new THREE.MeshStandardMaterial({color:lin('#9aa1a6'),metalness:.6,roughness:.45,side:THREE.DoubleSide,alphaTest:.35,alphaMap:t});
   return MC.fabric=m}
 function gardenBed(B,b){const wd=B.gbOf('fence'),soil=B.gbOf('mulch');const x0=b.x0*TILE+.1,x1=(b.x1+1)*TILE-.1,z0=b.z-.8,z1=b.z+.8;
   wd.box(x0,0,z0,x1,.45,z0+.08,1,null,{});wd.box(x0,0,z1-.08,x1,.45,z1,1,null,{});wd.box(x0,0,z0,x0+.08,.45,z1,1,null,{});wd.box(x1-.08,0,z0,x1,.45,z1,1,null,{});

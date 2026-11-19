@@ -1086,7 +1086,7 @@ function owRegions(){const def=WORLD,v=prog.world;if(HUD.minimap.setRegions)HUD.
 function owPins(){const def=WORLD,v=prog.world,pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
   MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
-  HUD.minimap.setPins(pins)}
+  HUD.minimap.setPins(pins);owRegions()}
 /* teleports: a car's speed also lives in its physics state (e.car) */
 function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
 /* enterHub hook: bridge state, coming back from a job puts the van and the crew back at the site's ring */
@@ -1104,6 +1104,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
    if(OWS.moodK==null||Math.abs(k-OWS.moodK)>.005){OWS.moodK=k;mood=owLerpMood(MOODS.world,MOODS.riverLow,k);applyMood()}}
   const reg=O.regionAt(P.pos.x,P.pos.z);
   if(reg!==OWS.region){const first=OWS.region===null;OWS.region=reg;
+    try{FX.ambient({leaves:true,pollen:reg!=='route9',density:reg==='river'?1.3:reg==='route9'?.6:1})}catch(e){}
     if(reg==='river'&&!prog.world.visited.river){prog.world.visited.river=true;for(const id of['center','mart'])if(!prog.world.pins.includes(id))prog.world.pins.push(id);owPins()}
     prog.world.visited[reg]=true;
     if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
