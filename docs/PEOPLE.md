@@ -53,3 +53,22 @@ HT.People.debugHitboxes(true)        // shows the hitboxes as magenta wireframe
 
 ## Guns (js/guns.js)
 `equip()` builds guns with `makeGun()`, which uses `HT.Guns.model()`. `People.equip` places them with `HT.Guns.handAttach(type)` and picks the clip family from `clipStyle`. Pistol-style guns are the pistol, revolver, nailer and sawed-off; every other gun uses the rifle clips. Long guns get a two-bone IK for the left arm: the palm goes to the middle of the pump (measured from the `pump` node) or to the forend points in `SUPPORT`, the hand turns to cup under the gun, and the IK blends with the aim and hold weights. Screenshots: `ik_long_guns_aim.jpg`, `ik_long_guns_low_ready.jpg` and `ik_shotgun_close.jpg`.
+
+## Polish round 2
+- **Explicit cues, no wrappers:** `cue(fn, dude, …)` is called directly from:
+  - `fire()`, with the pump or bolt cycle
+  - `reload()`, with its duration
+  - `hurtEnemy`, with a `head` flag that plays `hit_head`; beanbag hits included
+  - `killEnemy`, `hurtAlly`, `shootAt`, and the zip-tie (`interact`)
+- **Restore before mix:** every bone edited procedurally (pelvis, spine, neck, head, both arms) goes back to its post-mixer value before `mixer.update`. Three's mixer skips writing bones whose value didn't change, so without this the offsets pile up.
+- **Closed-loop gun aim:** after posing, the barrel's measured pitch and yaw are corrected through the arms (pitch) and Spine2 (yaw). The barrel follows the view within 0.01 rad for both rifle and pistol, whatever the base clip (crouch, strafe, hip yaw).
+- **Hip-yaw locomotion:** sideways and diagonal moves turn the pelvis toward the travel direction and counter-turn the spine. Any speed uses the forward or backward gaits, so there are no slow-motion strafe clips.
+- **Crouch:** the crouch idle is now Rocketbox `crouch_idle`. The crouch-walk cadence is capped at 2.4×, and the crouch hinge applies mostly when standing still.
+- **Head look:** when not aiming, the head and neck follow the look pitch.
+- **Rick's hand-off (`pose mode:'offer'`):** the carbine lies across his front at chest height, both hands on it through two-bone IK.
+- **Rick's hair:** greyed to salt-and-pepper.
+- **Regression checks:**
+  - pitch ±0.9 held for 300 steps while idle, aiming, crouched, firing and reloading, with 3 guns
+  - the barrel follows the view
+  - the hand rises with pitch
+  - the camera never sits inside the head
