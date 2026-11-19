@@ -44,6 +44,8 @@ function isShoulder(x,z){return(z===19&&x>=100&&x<=139)||(z===23&&x>=104&&x<=139
 const R9={x0:100,x1:141};
 /* Route 9 frontage on the empty lawns: a self-storage yard and two billboards (metres; colliders + set piece 'r9lots') */
 const R9_STORAGE=[{x0:254,z0:6,x1:278,z1:12},{x0:254,z0:20,x1:278,z1:26}],R9_PAD={x0:250,z0:2,x1:280,z1:32};
+/* block party on Benny's depot lot (metres): bounce house, two long tables */
+const PARTY={x0:418,z0:29,x1:436,z1:37},PARTY_COLS=[{x0:419,z0:30,x1:422.2,z1:33.2,ph:3},{x0:425,z0:30.6,x1:431,z1:31.6,ph:.8},{x0:425,z0:34.4,x1:431,z1:35.4,ph:.8}];
 const R9_BILL=[{x:268,z:34.6,ry:0,ad:0},{x:266,z:52.6,ry:Math.PI,ad:1}];
 
 /* ================= colliders, spatial hash, raycast proxies ================= */
@@ -190,8 +192,13 @@ OW.build=(def,lvl,ctx)=>{if(ctx)C=Object.assign(C||{},ctx);const t0=performance.
   if(W_){/* lot fences between Maple houses: run world.js's rule once for the whole world, record the segments (drawn per chunk) and keep its colliders */
     const segs=[],dummy={r:rng(5),gbOf:()=>({box(){},obox(){}}),lvl:{colliders:[]}},orig=W_.fence;W_.fence=(B,ax,az,bx,bz)=>segs.push([ax,az,bx,bz]);
     try{W_.lotFences(dummy,ws.houses)}catch(e){console.warn('lot fences failed',e)}W_.fence=orig;ws.fenceSegs=segs;for(const c of dummy.lvl.colliders)S.push(Object.assign(c,{ph:1.9,k:'yardfence'}))}
+  /* trust set pieces with bodies: the block party's bounce house and tables, the moving truck (all start switched off) */
+  ws.toggleCols=PARTY_COLS.map(r=>{const c={x0:r.x0,z0:r.z0,x1:r.x1,z1:r.z1,ph:r.ph,k:'party',home:r};S.push(c);return c});
+  ws.truckCol={x0:-1e4,z0:-1e4,x1:-1e4,z1:-1e4,ph:2.6,k:'truck',off:true};
   S.push({x0:-10,z0:-10,x1:0,z1:def.H*TILE+10,ph:0},{x0:def.W*TILE,z0:-10,x1:def.W*TILE+10,z1:def.H*TILE+10,ph:0},{x0:-10,z0:-10,x1:def.W*TILE+10,z1:0,ph:0},{x0:-10,z0:def.H*TILE,x1:def.W*TILE+10,z1:def.H*TILE+10,ph:0});
-  lvl.colliders.push(...S);lvl.nStatic=lvl.colliders.length;makeHash(lvl,S);ws.barricadeCols=S.filter(c=>c.barricade);
+  lvl.colliders.push(...S);lvl.nStatic=lvl.colliders.length;makeHash(lvl,S);lvl.colliders.push(ws.truckCol);
+  for(const c of ws.toggleCols)Object.assign(c,{x0:-1e4,z0:-1e4,x1:-1e4,z1:-1e4,off:true});   /* hashed at home, switched on by the block party */
+  prepRowBlocks(ws);ws.barricadeCols=S.filter(c=>c.barricade);
   /* cull units: chunks (lazy) + set pieces */
   for(const ch of def.chunks){const u={kind:'chunk',ch,i:ch.i,built:false,group:null,box:{x0:ch.box.x0-8,z0:ch.box.z0-8,x1:ch.box.x1+8,z1:ch.box.z1+8,y1:22},visible:false,dress:[]};ws.units.push(u);ws.chunks.push(u)}
   for(const id in def.sites){const s=def.sites[id];ws.units.push({kind:'site',site:s,built:false,box:{x0:s.box.x0-2,z0:s.box.z0-2,x1:s.box.x1+2,z1:s.box.z1+2,y1:8},visible:false,dress:[]})}
@@ -247,6 +254,9 @@ function stepUnit(u,budget){if(u.ready)return true;const t0=performance.now();
   catch(e){console.warn('open world: unit failed',u.kind,u.i,e)}
   u.ms+=performance.now()-t0;finishUnit(u);return true}
 function finishUnit(u){u.gen=null;u.ready=true;const t0=performance.now();
+  /* set-piece dressing in Riverside follows the trust of the block it stands in */
+  if(u.sp&&u.sp.id==='riverlots'&&WS.blockT)placeTruck(WS);
+  if(u.kind==='set')for(const d of u.dress){if(d.blk!=null)continue;const o=d.on||d.off;if(!o)continue;o.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(o);if(bb.isEmpty())continue;const c=bb.getCenter(new THREE.Vector3());d.blk=blockOf(c.x,c.z)}
   u.group.traverse(o=>{if(o.userData&&o.userData.wkey){if(!o.name)o.name='w:'+o.userData.wkey;delete o.userData.wkey}});
   /* tree impostor sheets are frustum-culled per chunk (their shader only hides near trees, it never moves far ones) */
   u.group.traverse(o=>{if(o.isMesh&&o.name==='w:imp'){o.geometry.computeBoundingSphere();o.frustumCulled=true}});
@@ -341,7 +351,11 @@ function lampDir(ws,l){const isR=(x,z)=>{const k=ws.K[z*ws.def.W+x];return k==='
 
 /* road markings with extents (SPEC2 A.3.4): centre lines, Route 9 arterial lines, crosswalks and stop bars */
 function markings(B,ch,box){const ws=WS,def=ws.def,pg=B.gbOf('paint'),Y=-.12+.004,WH=[.92,.91,.88],YE=[.85,.55,.1];
-  const P=(x0,z0,x1,z1,c)=>{const cx=(x0+x1)/2,cz=(z0+z1)/2;if(cx<box.x0||cx>=box.x1||cz<box.z0||cz>=box.z1)return;pg.floor(x0,z0,x1,z1,Y,3,()=>c)};
+  const P=(x0,z0,x1,z1,c)=>{const cx=(x0+x1)/2,cz=(z0+z1)/2;if(cx<box.x0||cx>=box.x1||cz<box.z0||cz>=box.z1)return;
+    if(cx>=152*TILE){/* Riverside: a fresh coat and a worn one (faded, gaps), swapped by block trust */const blk=blockOf(cx,cz),GBc=HW().GB;
+      const f=(B.rpaint||(B.rpaint={}))[blk]||(B.rpaint[blk]=new GBc()),w=(B.rpaintF||(B.rpaintF={}))[blk]||(B.rpaintF[blk]=new GBc());f.floor(x0,z0,x1,z1,Y,3,()=>c);
+      if((Math.floor(cx*3.1+cz*1.7)%4)!==0)w.floor(x0,z0,x1,z1,Y,3,()=>[c[0]*.55,c[1]*.55,c[2]*.55]);return}
+    pg.floor(x0,z0,x1,z1,Y,3,()=>c)};
   const gch=(x,z)=>def.ground[z]&&def.ground[z][x];
   for(const r of def.roads){const c=r.k+1;
     const hz=r.o==='h';const isInter=t=>{const s1=hz?gch(t,r.k-1):gch(r.k-1,t),s2=hz?gch(t,r.k+3):gch(r.k+3,t);
@@ -383,6 +397,8 @@ function intersections(B,ch,box){const ws=WS,def=ws.def,W_=HW(),r=B.r;const hs=d
   const m=gbMesh(sg,MC.signsOW,{shadow:true});if(m)B.group.add(m)}
 
 /* rowhouses ('r'), warehouses ('x') and the named commercial buildings ('A') whose centre lies in this chunk */
+function prepRowBlocks(ws){const def=ws.def;if(ws.rowBlocks&&ws.rowBlocks.prepped)return;const sideCount=(z,x0,x1)=>{let n=0;if(z<0||z>=def.H)return 0;for(let x=x0;x<=x1;x++)if('sp,'.includes(def.ground[z][x]))n++;return n};
+  ws.rowBlocks=blocksOf(def,'r');ws.rowBlocks.forEach((b,i)=>{const north=sideCount(b.z0-1,b.x0,b.x1)+sideCount(b.z0-2,b.x0,b.x1),south=sideCount(b.z1+1,b.x0,b.x1)+sideCount(b.z1+2,b.x0,b.x1);b.facing=south>=north?'+z':'-z';b.h=8.2+((i*37)%5)*.5});ws.rowBlocks.prepped=true}
 function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx,cz)=>cx>=box.x0&&cx<box.x1&&cz>=box.z0&&cz<box.z1;
   const sideCount=(z,x0,x1)=>{let n=0;if(z<0||z>=def.H)return 0;for(let x=x0;x<=x1;x++)if('sp,'.includes(def.ground[z][x]))n++;return n};
   ws.rowBlocks=ws.rowBlocks||blocksOf(def,'r');ws.whBlocks=ws.whBlocks||blocksOf(def,'x');
@@ -403,8 +419,14 @@ function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx
     if(g){g.position.set(cx,0,cz);g.userData._owCol=b.col||'#cfc6b4';g.userData._owRoof='#5a5856';blds.push(g)}else B.gbOf('plinth').box(cx-w/2,0,cz-d/2,cx+w/2,4.5,cz+d/2,2,null,{})}}
 
 /* chain-link: galvanised posts every tile, top rail, diamond-mesh fabric (alpha tested) */
-function chainlink(B,ch){const gv=B.gbOf('galv'),fab=B.fab||(B.fab=new (HW().GB)());const H=2.05;
-  for(const r of ch.chainlink){const hz=r.o==='h';const a0=(hz?r.x0:r.z0)*TILE,a1=((hz?r.x1:r.z1)+1)*TILE,c=tc(hz?r.z0:r.x0);
+function chainlink(B,ch){const GBc=HW().GB;const H=2.05;const def=WS.def;
+  for(const r of ch.chainlink){const hz=r.o==='h';
+    /* Riverside back-yard fences (between the two rowhouse rows of a block) can become white pickets */
+    const yard=hz&&r.x0>=160&&def.map[r.z0-1]&&'gz'.includes(def.map[r.z0-1][r.x0])&&def.map[r.z0+1]&&'gz'.includes(def.map[r.z0+1][r.x0])&&def.map[r.z0-2]&&def.map[r.z0-2][r.x0]==='r';
+    let gv=B.gbOf('galv'),fab=B.fab||(B.fab=new GBc());
+    if(yard){const blk=blockOf(tc(r.x0),tc(r.z0)),y=(B.yardChain||(B.yardChain={}))[blk]||(B.yardChain[blk]={fab:new GBc(),posts:new GBc(),picket:new GBc()});gv=y.posts;fab=y.fab;
+      const pk=y.picket,z=tc(r.z0),a0=r.x0*TILE,a1=(r.x1+1)*TILE;for(let x=a0+.06;x<a1;x+=.16)pk.box(x-.04,0,z-.012,x+.04,1.0+((Math.floor(x/.16))%2)*.04,z+.012,1,null,{});
+      for(const y0 of[.25,.75])pk.box(a0,y0,z-.03,a1,y0+.07,z-.012,1,null,{});for(let x=a0;x<=a1+.01;x+=2)pk.box(x-.05,0,z-.05,x+.05,1.1,z+.05,1,null,{})}const a0=(hz?r.x0:r.z0)*TILE,a1=((hz?r.x1:r.z1)+1)*TILE,c=tc(hz?r.z0:r.x0);
     const P=(a,y)=>hz?[a,y,c]:[c,y,a];
     for(let a=a0;a<=a1+.01;a+=TILE){const p=P(a,0);gv.addGeo(cyl(.035,.035,H+.05,8),M4(p[0],(H+.05)/2,p[2]))}
     const rail=cyl(.022,.022,a1-a0,6);rail.rotateZ(Math.PI/2);if(!hz)rail.rotateY(Math.PI/2);const pm=P((a0+a1)/2,H);gv.addGeo(rail,M4(pm[0],pm[1],pm[2]));
@@ -636,32 +658,59 @@ SETPIECES.push({id:'backdrop',box:def=>({x0:-400,z0:-400,x1:def.W*TILE+400,z1:de
   W_.buildInst(B);for(const l of B.lod)ws.lod.push(l)}});
 
 /* ================= Riverside dressing (SPEC2 A.7): built per chunk, toggled by trust ================= */
-function riversideDressing(ws,u,B,ch,box){const def=ws.def,W_=HW();
-  /* street lamps: one working and one broken version per brokenUntil group */
-  const groups={};for(const l of ch.lamps){if(l.hood!=='river')continue;(groups[l.brokenUntil]||(groups[l.brokenUntil]=[])).push(l)}
-  for(const v in groups){for(const broken of[false,true]){if(broken&&+v===0)continue;const save=B.gb;B.gb={};
-      for(const l of groups[v])W_.streetLamp(B,l.x,l.z,lampDir(ws,l));
-      const parts=B.gb;B.gb=save;const grp=new THREE.Group();
-      if(broken)tiltLamps(parts,groups[v],ws);   /* pole tilted 0.22 rad about its base, head dark */
-      const lh=gbMesh(parts.lamphead,W_.matFor(B,'lamphead'),{shadow:true});if(lh)grp.add(lh);
-      const lg=gbMesh(parts.lampglass,broken?stdMat('deadglass',{color:'#3a3d40',roughness:.3}):W_.matFor(B,'lampglass'));if(lg)grp.add(lg);
-      u.group.add(grp);u.dress.push(broken?{t:+v,off:grp}:{t:+v,on:grp})}}
-  /* graffiti tags grouped by clearAt */
-  const tg={};for(const t of ch.tags)(tg[t.clearAt]||(tg[t.clearAt]=[])).push(t);
-  for(const v in tg){const gb=new (W_.GB)();for(const t of tg[v]){const c=t.design,u0=(c%4)*.25,v0=1-Math.floor(c/4)*.5;const s=Math.sin(t.ry),co=Math.cos(t.ry),hw=t.w/2,hh=t.h/2;
-      const fx=t.face[0],fz=t.face[1];const ox=t.kind==='z'?fx*.04:0,oz=t.kind==='z'?fz*.04:0;
-      const P=(a,b)=>[t.x+ox+fz*a,t.y+b,t.z+oz-fx*a];
-      gb.quad(P(-hw,-hh),P(hw,-hh),P(hw,hh),P(-hw,hh),[[u0,v0-.5],[u0+.25,v0-.5],[u0+.25,v0],[u0,v0]],null,[fx,0,fz])}
-    const m=gbMesh(gb,grafMat(),{order:2});if(m){u.group.add(m);u.dress.push({t:+v,off:m})}}
-  /* trash bags and shopping carts (gone at tier 1) */
-  const tr=new THREE.Group();let any=false;for(const o of ch.trash){any=true;if(o.kind==='bag'){const bag=bagMesh();bag.position.set(o.x+(o.tx*7%5-2)*.15,0,o.z);bag.rotation.y=o.tx*1.3;tr.add(bag)}else tr.add(cartMesh(o))}
-  if(any){u.group.add(tr);tr.updateMatrixWorld(true);compact(tr,[]);u.dress.push({t:20,off:tr})}
-  /* chalk on the sidewalks near porches (tier 3) */
-  if(ch.chalk.length){const gb=new (W_.GB)();for(const c of ch.chalk){const i=c.design,u0=(i%3)/3,v0=1-Math.floor(i/3)*.5;const s=.85,co=Math.cos(c.yaw),sn=Math.sin(c.yaw),P=(a,b)=>[c.x+a*co+b*sn,.006,c.z-a*sn+b*co];
-      gb.quad(P(-s,-s),P(-s,s),P(s,s),P(s,-s),[[u0,v0-.5],[u0,v0],[u0+1/3,v0],[u0+1/3,v0-.5]],null,[0,1,0])}
-    const m=gbMesh(gb,chalkMat(),{order:2});if(m){u.group.add(m);u.dress.push({t:50,on:m})}}
-  /* boarded windows on rowhouse fronts, flower boxes at tier 4 */
-  rowDressing(ws,u,B,box)}
+/* Trust-driven dressing without mesh swaps: every Riverside item is emitted once into a merged mesh per material per chunk, and each vertex carries
+   aBT = (block id, from, until). A small vertex-shader patch hides vertices whose block's trust (uniform uBT[25], eased toward its target each frame)
+   is outside [from, until). A trust change costs 25 uniform writes. These meshes don't cast shadows (the depth pass doesn't know about aBT). */
+const BTU={uBT:{value:new Float32Array(25)},uGT:{value:0}},BTT=new Float32Array(25);
+const BTMAT=new Map();
+function btMat(m){if(!m)return m;let o=BTMAT.get(m);if(o)return o;o=m.clone();const prev=m.onBeforeCompile,prevKey=m.customProgramCacheKey?m.customProgramCacheKey():'';
+  o.onBeforeCompile=(sh,r)=>{if(prev)prev.call(o,sh,r);sh.uniforms.uBT=BTU.uBT;sh.uniforms.uGT=BTU.uGT;
+    sh.vertexShader='attribute vec3 aBT;uniform float uBT[25];uniform float uGT;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+    float btT=aBT.x<0.?uGT:uBT[int(aBT.x+.5)];if(btT<aBT.y||btT>=aBT.z)transformed=vec3(0.,-1.0e4,0.);`)};
+  o.customProgramCacheKey=()=>prevKey+'|htbt';BTMAT.set(m,o);return o}
+function stateBins(u,put){const GBc=HW().GB,acc={};
+  const add=(prefix,blk,from,until,fn)=>{const tmp={},g=key=>tmp[key]||(tmp[key]=new GBc());fn(g);
+    for(const key in tmp){const src=tmp[key];if(!src.n)continue;const k=prefix+'|'+key,a=acc[k]||(acc[k]={gb:new GBc(),bt:[]});appendGB(a.gb,src);
+      const f=from==null?-1e9:from,t=until==null?1e9:until;for(let i=0;i<src.n;i++)a.bt.push(blk,f,t)}};
+  const flush=(prefix,mats,o)=>{for(const k in acc){const[pre,key]=k.split('|');if(pre!==prefix)continue;const a=acc[k];delete acc[k];
+      const mat=typeof mats==='function'?mats(key):mats[key]||mats.default;if(!mat)continue;const geo=a.gb.geo();geo.setAttribute('aBT',new THREE.Float32BufferAttribute(a.bt,3));
+      const m=new THREE.Mesh(geo,btMat(mat));m.castShadow=false;m.receiveShadow=true;const oo=(o&&o[key])||(o&&o.default)||{};if(oo.order)m.renderOrder=oo.order;m.name='bt:'+key;u.group.add(m)}};
+  return{add,flush}}
+/* called by OW.dress (targets) and OW.update (easing) */
+function setBT(ws,eased){const T=ws.blockT;if(!T)return;BTU.uGT.value=ws.trust||0;for(let b=0;b<25;b++){BTT[b]=T[b];if(!eased)BTU.uBT.value[b]=T[b]}}
+function easeBT(dt){const v=BTU.uBT.value;for(let b=0;b<25;b++){const d=BTT[b]-v[b];if(d)v[b]+=Math.abs(d)<.5?d:d*Math.min(1,dt*2.2)}}
+function riversideDressing(ws,u,B,ch,box){const def=ws.def,W_=HW();if(box.x1<=152*TILE)return;
+  const put=(obj,d)=>{if(!obj)return;u.group.add(obj);u.dress.push(d)};const S=stateBins(u,put);
+  /* street lamps: lit from brokenUntil on, tilted with a dead lens before that */
+  for(const l of ch.lamps){if(l.hood!=='river')continue;const blk=blockOf(l.x,l.z),lamp=(broken)=>g=>{const save=B.gb;B.gb={};W_.streetLamp(B,l.x,l.z,lampDir(ws,l));const parts=B.gb;B.gb=save;
+      if(broken)tiltLamps(parts,[l],ws);if(parts.lamphead)appendGB(g('head'),parts.lamphead);if(parts.lampglass)appendGB(g(broken?'dead':'lit'),parts.lampglass)};
+    if(l.brokenUntil>0)S.add('lamp',blk,null,l.brokenUntil,lamp(true));S.add('lamp',blk,l.brokenUntil||null,null,lamp(false))}
+  S.flush('lamp',{head:W_.matFor(B,'lamphead'),lit:W_.matFor(B,'lampglass'),dead:stdMat('deadglass',{color:'#3a3d40',roughness:.3})},{head:{shadow:true}});
+  /* graffiti until its clearAt; where a tag cleared at 50+, a small mural panel from 75 */
+  for(const t of ch.tags){const blk=blockOf(t.x,t.z),c=t.design,u0=(c%4)*.25,v0=1-Math.floor(c/4)*.5,hw=t.w/2,hh=t.h/2,fx=t.face[0],fz=t.face[1];const ox=t.kind==='z'?fx*.04:0,oz=t.kind==='z'?fz*.04:0;
+    const P=(a,b)=>[t.x+ox+fz*a,t.y+b,t.z+oz-fx*a];S.add('wall',blk,null,t.clearAt,g=>g('tag').quad(P(-hw,-hh),P(hw,-hh),P(hw,hh),P(-hw,hh),[[u0,v0-.5],[u0+.25,v0-.5],[u0+.25,v0],[u0,v0]],null,[fx,0,fz]));
+    if(t.clearAt>=50&&t.kind!=='z'){const mu=(t.design%4)*.25,mw=1.15,mh=.85;S.add('wall',blk,75,null,g=>g('mural').quad(P(-mw,-mh),P(mw,-mh),P(mw,mh),P(-mw,mh),[[mu,0],[mu+.25,0],[mu+.25,1],[mu,1]],null,[fx,0,fz]))}}
+  /* chalk (50) */
+  for(const c of ch.chalk){const blk=blockOf(c.x,c.z),i=c.design,u0=(i%3)/3,v0=1-Math.floor(i/3)*.5,s=.85,co=Math.cos(c.yaw),sn=Math.sin(c.yaw),P=(a,b)=>[c.x+a*co+b*sn,.006,c.z-a*sn+b*co];
+    S.add('wall',blk,50,null,g=>g('chalk').quad(P(-s,-s),P(-s,s),P(s,s),P(s,-s),[[u0,v0-.5],[u0,v0],[u0+1/3,v0],[u0+1/3,v0-.5]],null,[0,1,0]))}
+  S.flush('wall',{tag:grafMat(),mural:muralMat(),chalk:chalkMat()},{default:{order:2}});
+  /* trash and carts (gone at 20) */
+  const tr={};for(const o of ch.trash){const blk=blockOf(o.x,o.z);const g=tr[blk]||(tr[blk]=new THREE.Group());if(o.kind==='bag'){const bag=bagMesh();bag.position.set(o.x+(o.tx*7%5-2)*.15,0,o.z);bag.rotation.y=o.tx*1.3;g.add(bag)}else g.add(cartMesh(o))}
+  for(const blk in tr){const g=tr[blk];u.group.add(g);g.updateMatrixWorld(true);compact(g,[]);u.dress.push({blk:+blk,t:20,off:g})}
+  /* lane paint: worn below 30, fresh above */
+  for(const k of['rpaint','rpaintF'])for(const blk in (B[k]||{})){const gbx=B[k][blk];S.add('road',+blk,k==='rpaint'?30:null,k==='rpaint'?null:30,g=>appendGB(g('paint'),gbx))}
+  streetLife(ws,u,B,ch,box,S);
+  S.flush('road',{paint:W_.matFor(B,'paint'),hole:potholeMat(),patch:W_.matFor(B,'road'),pit:stdMat('pitsoil',{color:'#3a2c20',roughness:1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4})},{default:{order:1}});
+  /* back-yard chain-link -> white pickets (65) */
+  for(const blk in (B.yardChain||{})){const y=B.yardChain[blk];S.add('yard',+blk,null,65,g=>{appendGB(g('fab'),y.fab);appendGB(g('posts'),y.posts)});S.add('yard',+blk,65,null,g=>appendGB(g('picket'),y.picket))}
+  S.flush('yard',{fab:fabricMat(),posts:W_.matFor(B,'galv'),picket:stdMat('picket',{color:'#f2efe6',roughness:.7})},{default:{shadow:true}});
+  rowDressing(ws,u,B,box,S);
+  S.flush('vc',{vc:stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1}),fbox:W_.matFor(B,'fence'),ply:W_.matFor(B,'ply'),grime:grimeMat(),post:W_.matFor(B,'galv'),
+    sale:stdMat('signSale',{map:ctex(signCanvas(['FOR SALE','BARB KOWALSKI · 555-0142'],{bg:'#fbfbf6',fg:'#b8323a',fg2:'#1d1d1d',w:512,h:320})),roughness:.6}),
+    sold:stdMat('signSold',{map:ctex(signCanvas(['SOLD!','WELCOME, NEIGHBOR'],{bg:'#b8323a',fg:'#fff',fg2:'#ffd23f',w:512,h:320})),roughness:.6})},{grime:{order:2},fbox:{shadow:true},vc:{shadow:true}});
+  streetTrees(ws,u,ch,put)}
+/* copy one world.js builder's geometry into another */
+function appendGB(dst,src){const o=dst.n;for(let i=0;i<src.P.length;i++)dst.P.push(src.P[i]);for(let i=0;i<src.N.length;i++)dst.N.push(src.N[i]);for(let i=0;i<src.U.length;i++)dst.U.push(src.U[i]);for(let i=0;i<src.K.length;i++)dst.K.push(src.K[i]);for(const i of src.I)dst.I.push(i+o);dst.n+=src.n}
 function tiltLamps(parts,list,ws){/* rotate each lamp's vertices about its own base: vertices are assigned to the nearest lamp */
   for(const k in parts){const P=parts[k].P;for(let i=0;i<P.length;i+=3){let best=null,bd=1e9;for(const l of list){const d=Math.abs(P[i]-l.x)+Math.abs(P[i+2]-l.z);if(d<bd){bd=d;best=l}}
     const dir=lampDir(ws,best),ax=dir[1],az=-dir[0];/* tip away from the road */const a=-.22,y=P[i+1],dx=P[i]-best.x,dz=P[i+2]-best.z;
@@ -677,23 +726,70 @@ function cartMesh(o){const g=new THREE.Group(),wm=stdMat('cartwire',{color:'#b8b
   const base=new THREE.Mesh(new THREE.BoxGeometry(.85,.03,.5),wm);base.position.y=.22;g.add(base);const h=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.55),rd);h.position.set(-.5,1.05,0);g.add(h);
   for(const[x,z]of[[.35,.22],[.35,-.22],[-.35,.22],[-.35,-.22]]){const w=new THREE.Mesh(cyl(.06,.06,.04,8),stdMat('tyreK',{color:'#151515'}));w.rotation.x=Math.PI/2;w.position.set(x,.06,z);g.add(w)}
   g.position.set(o.x,0,o.z);g.rotation.set(0,o.yaw||0,o.tx%3===0?1.4:0);if(o.tx%3===0)g.position.y=.3;return g}
-function rowDressing(ws,u,B,box){const def=ws.def;if(!ws.rowBlocks)return;
-  const ply=new (HW().GB)(),ply2=new (HW().GB)(),fb=new (HW().GB)(),fl=new (HW().GB)();
+/* rowhouse fronts per block: boards (35/70), grime (gone at 45), tired doors -> painted doors (55), FOR SALE (25-45) -> SOLD (45-60) signs,
+   flower boxes (70), bikes by the stoops (72). Door and window positions follow HT.Buildings' rowhouse layout. */
+function rowDressing(ws,u,B,box,S){const def=ws.def;if(!ws.rowBlocks)return;
+  const DOORC=[[.18,.42,.31],[.72,.2,.23],[.17,.29,.42],[.88,.63,.19],[.42,.25,.54],[.12,.37,.42]];
   ws.rowBlocks.forEach((b,bi)=>{const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(cx<box.x0||cx>=box.x1||cz<box.z0||cz>=box.z1||!b.facing)return;
+    const blk=blockOf(cx,cz);if(blk<0)return;
     const W=(b.x1-b.x0+1)*TILE-.2,D=(b.z1-b.z0+1)*TILE-.2,n=Math.max(1,Math.round(W/5.2)),uw=W/n,rot=b.facing==='+z'?0:Math.PI,cs=Math.cos(rot),sn=Math.sin(rot),base=1.05,top=b.h;
-    const R=(x,z)=>[cx+x*cs+z*sn,cz-x*sn+z*cs];const zf=D/2+.07;
-    for(let i=0;i<n;i++){const ux0=-W/2+i*uw;const wins=[{s:i%2?uw*.36:uw*.64,y0:base+.7,w:1,h:1.8}];for(let f=1;f*2.95+base+2.5<top+(i%2?.25:0)-.4;f++)for(const s of[uw*.28,uw*.72])wins.push({s,y0:base+f*2.95+.6,w:.95,h:1.7});
-      const ru=def.rowUnits.find(q=>Math.abs(q.cx-R(ux0+uw/2,0)[0])<3&&Math.abs(q.cz-cz)<4);const until=ru?ru.boardedUntil:((bi*5+i)%3===0?35:0);
-      wins.forEach((w,k)=>{const xa=ux0+w.s-w.w/2-.08,xb=ux0+w.s+w.w/2+.08;const a=R(xa,zf),c=R(xb,zf),nn=[sn*1,0,cs*1];
-        if(until&&(k%2===0||until===70)){const gb=until===70?ply2:ply;gb.quad([a[0],w.y0-.08,a[1]],[c[0],w.y0-.08,c[1]],[c[0],w.y0+w.h+.08,c[1]],[a[0],w.y0+w.h+.08,a[1]],[[0,0],[1,0],[1,1.6],[0,1.6]],null,nn)}
-        else if(k>0&&k<3){/* window boxes with flowers */const a2=R(xa+.05,zf+.18),c2=R(xb-.05,zf+.18);const y=w.y0-.12;
-          fb.box(Math.min(a[0],c2[0]),y-.2,Math.min(a[1],c2[1]),Math.max(a[0],c2[0]),y,Math.max(a[1],c2[1]),1,null,{});
-          for(let t=.1;t<.95;t+=.16){const px=a[0]+(c[0]-a[0])*t+sn*.1,pz=a[1]+(c[1]-a[1])*t+cs*.1;fl.addGeo(new THREE.IcosahedronGeometry(.09,0),M4(px,y+.06,pz),1,[[.9,.2,.3],[.95,.8,.2],[.85,.4,.8]][Math.floor(t*10)%3])}}})}});
-  const pm=HW().matFor(B,'ply');
-  const m1=gbMesh(ply,pm,{shadow:false}),m2=gbMesh(ply2,pm);if(m1){u.group.add(m1);u.dress.push({t:35,off:m1})}if(m2){u.group.add(m2);u.dress.push({t:70,off:m2})}
-  const fbm=gbMesh(fb,HW().matFor(B,'fence'),{shadow:true});const flm=gbMesh(fl,stdMat('flowers',{color:'#ffffff',vertexColors:true,roughness:.7}));
-  if(fbm||flm){const grp=new THREE.Group();if(fbm)grp.add(fbm);if(flm)grp.add(flm);u.group.add(grp);u.dress.push({t:70,on:grp})}}
-
+    const R2=(x,z)=>[cx+x*cs+z*sn,cz-x*sn+z*cs];const zf=D/2+.07,nn=[sn,0,cs];
+    const Q=(gb,xa,xb,y0,y1,z,col,uv)=>{const a=R2(xa,z),c=R2(xb,z);gb.quad([a[0],y0,a[1]],[c[0],y0,c[1]],[c[0],y1,c[1]],[a[0],y1,a[1]],uv||[[0,0],[1,0],[1,1],[0,1]],col||null,nn)};
+    for(let i=0;i<n;i++){const ux0=-W/2+i*uw,uh=top+(i%2?.25:0);const wins=[{s:i%2?uw*.36:uw*.64,y0:base+.7,w:1,h:1.8}];for(let f=1;f*2.95+base+2.5<uh-.4;f++)for(const s0 of[uw*.28,uw*.72])wins.push({s:s0,y0:base+f*2.95+.6,w:.95,h:1.7});
+      const ru=def.rowUnits.find(q=>Math.abs(q.cx-R2(ux0+uw/2,0)[0])<3&&Math.abs(q.cz-cz)<4);const until=ru?ru.boardedUntil:((bi*5+i)%3===0?35:0);
+      wins.forEach((w,k)=>{const xa=ux0+w.s-w.w/2-.08,xb=ux0+w.s+w.w/2+.08;
+        if(until&&(k%2===0||until===70))S.add('vc',blk,null,until,g=>Q(g('ply'),xa,xb,w.y0-.08,w.y0+w.h+.08,zf,null,[[0,0],[1,0],[1,1.6],[0,1.6]]));
+        else if(k>0&&k<3)S.add('vc',blk,70,null,g=>{const y=w.y0-.12,a=R2(xa,zf),c2=R2(xb-.05,zf+.18);g('fbox').box(Math.min(a[0],c2[0]),y-.2,Math.min(a[1],c2[1]),Math.max(a[0],c2[0]),y,Math.max(a[1],c2[1]),1,null,{});
+          for(let t=.1;t<.95;t+=.16){const pp=R2(xa+(xb-xa)*t,zf+.09);g('vc').addGeo(new THREE.IcosahedronGeometry(.09,0),M4(pp[0],y+.06,pp[1]),1,[[.9,.2,.3],[.95,.8,.2],[.85,.4,.8]][Math.floor(t*10)%3])}});
+        S.add('vc',blk,null,45,g=>Q(g('grime'),ux0+w.s-w.w/2-.05,ux0+w.s+w.w/2+.05,w.y0-1.4,w.y0-.02,zf+.14,null))});
+      S.add('vc',blk,null,45,g=>Q(g('grime'),ux0,ux0+uw,.2,1.6,zf+.13,null,[[0,.5],[1,.5],[1,1],[0,1]]));
+      const dS=ux0+(i%2?uw-1.0:1.0),dc=DOORC[(bi*7+i*3)%DOORC.length];
+      S.add('vc',blk,null,55,g=>Q(g('vc'),dS-.48,dS+.48,base+.02,base+2.4,D/2+.035,[.36,.35,.33]));S.add('vc',blk,55,null,g=>Q(g('vc'),dS-.48,dS+.48,base+.02,base+2.4,D/2+.035,dc));
+      if(i%3===1){const bp=R2(dS+(i%2?-1.3:1.3),D/2+1.4);S.add('vc',blk,72,null,g=>bike(g('vc'),bp[0],bp[1],rot+Math.PI/2+.25))}}
+    /* yard sign on the first unit: FOR SALE, then SOLD */
+    const sp=R2(-W/2+.6,D/2+1.0);S.add('vc',blk,25,60,g=>g('post').box(sp[0]-.03,0,sp[1]-.03,sp[0]+.03,1.1,sp[1]+.03,1,null,{}));
+    for(const[kind,a0,a1]of[['sale',25,45],['sold',45,60]])S.add('vc',blk,a0,a1,g=>{const a=R2(-W/2+.25,D/2+1.0),c=R2(-W/2+.95,D/2+1.0);for(const dz of[.02,-.02]){const A=[a[0]+nn[0]*dz,.62,a[1]+nn[2]*dz],Cc=[c[0]+nn[0]*dz,.62,c[1]+nn[2]*dz];
+      g(kind).quad(A,Cc,[Cc[0],1.08,Cc[2]],[A[0],1.08,A[2]],dz>0?[[0,0],[1,0],[1,1],[0,1]]:[[1,0],[0,0],[0,1],[1,1]],null,[nn[0]*Math.sign(dz),0,nn[2]*Math.sign(dz)])}});
+    /* benches go into the same vc bins (streetLife) */});}
+function bike(gb,x,z,yaw){const c=Math.cos(yaw),s=Math.sin(yaw),P=(a,y)=>M4(x+a*c,y,z-a*s,yaw);const col=[[.75,.15,.15],[.15,.35,.7],[.2,.6,.3]][Math.floor(Math.abs(x*7+z))%3];
+  for(const a of[-.5,.5]){const w=new THREE.TorusGeometry(.32,.025,6,16);gb.addGeo(w,P(a,.34),1,[.08,.08,.08])}
+  const tube=(a0,y0,a1,y1)=>{const g=new THREE.CylinderGeometry(.022,.022,Math.hypot(a1-a0,y1-y0),5);g.rotateZ(Math.atan2(a0-a1,y1-y0));gb.addGeo(g,P((a0+a1)/2,(y0+y1)/2),1,col)};
+  tube(-.5,.34,-.05,.72);tube(-.05,.72,.42,.75);tube(-.05,.72,.05,.34);tube(.05,.34,.5,.34);tube(.42,.75,.5,.34);tube(.42,.75,.4,.95)}
+function grimeTex(){if(TX.gm)return TX.gm;const c=canvas(128,256),x=c.getContext('2d'),r=rng(12);x.clearRect(0,0,128,256);
+  /* soot blotches and wide rain streaks: reads on dark brick at street distance */
+  for(let i=0;i<9;i++){const px=r()*128,py=r()*90,R=20+r()*40,g=x.createRadialGradient(px,py,0,px,py,R);g.addColorStop(0,'rgba(18,15,12,.7)');g.addColorStop(1,'rgba(18,15,12,0)');x.fillStyle=g;x.fillRect(0,0,128,256)}
+  for(let i=0;i<14;i++){const px=r()*128,w=8+r()*22,len=90+r()*160,g=x.createLinearGradient(0,0,0,len);g.addColorStop(0,'rgba(22,18,14,.85)');g.addColorStop(1,'rgba(22,18,14,0)');x.fillStyle=g;x.fillRect(px-w/2,0,w,len)}
+  const g=x.createLinearGradient(0,140,0,256);g.addColorStop(0,'rgba(20,18,14,0)');g.addColorStop(1,'rgba(20,18,14,.75)');x.fillStyle=g;x.fillRect(0,140,128,116);return TX.gm=ctex(c)}
+function grimeMat(){return MC.grime||(MC.grime=new THREE.MeshStandardMaterial({map:grimeTex(),transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}))}
+function muralTex(){if(TX.mu)return TX.mu;const c=canvas(1024,256),x=c.getContext('2d'),r=rng(21);const pal=[['#ffd23f','#3fa7e8','#e8395b'],['#7fdc6e','#ff8c2a','#2b4a6b'],['#c58cff','#ffd23f','#2ae8c8'],['#ff7ab6','#3a7bd5','#f4f1e8']];
+  for(let i=0;i<4;i++){const[a,b,d]=pal[i],X=i*256;x.fillStyle=b;x.fillRect(X,0,256,256);x.fillStyle=a;x.beginPath();x.arc(X+70,70,40,0,6.28);x.fill();x.fillStyle=d;
+    for(let k=0;k<5;k++){x.beginPath();x.ellipse(X+40+k*45,200-(k%2)*30,30,50,0,0,6.28);x.fill()}x.strokeStyle='#fff';x.lineWidth=6;x.beginPath();x.moveTo(X+20,140);for(let k=0;k<8;k++)x.lineTo(X+20+k*30,140+Math.sin(k)*14);x.stroke();
+    x.fillStyle='#fff';x.font='900 30px "Arial Black", Impact';x.textAlign='center';x.fillText(['GROW','HOME','TOGETHER','RIVERSIDE'][i],X+170,60)}return TX.mu=ctex(c)}
+function muralMat(){return MC.mural||(MC.mural=new THREE.MeshStandardMaterial({map:muralTex(),roughness:.85,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6,side:THREE.DoubleSide}))}
+function potholeTex(){if(TX.ph)return TX.ph;const c=canvas(256,256),x=c.getContext('2d'),r=rng(31);x.clearRect(0,0,256,256);
+  for(let i=0;i<3;i++){const px=60+r()*136,py=60+r()*136,R=18+r()*30;x.fillStyle='rgba(18,18,18,.85)';x.beginPath();for(let k=0;k<=16;k++){const a=k/16*6.283,rr=R*(.7+r()*.5);k?x.lineTo(px+Math.cos(a)*rr,py+Math.sin(a)*rr):x.moveTo(px+Math.cos(a)*rr,py+Math.sin(a)*rr)}x.fill()}
+  x.strokeStyle='rgba(12,12,12,.8)';x.lineWidth=2;for(let i=0;i<9;i++){let px=r()*256,py=r()*256;x.beginPath();x.moveTo(px,py);for(let k=0;k<6;k++){px+=(r()-.5)*60;py+=(r()-.5)*60;x.lineTo(px,py)}x.stroke()}return TX.ph=ctex(c)}
+function potholeMat(){return MC.hole||(MC.hole=new THREE.MeshStandardMaterial({map:potholeTex(),transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6}))}
+/* streets: potholes and cracks (gone at 40) -> neat patches, tree pits, benches and bike racks (50) */
+function streetLife(ws,u,B,ch,box,S){const def=ws.def,K=ws.K,Wd=def.W;const h=(x,z)=>((x*73856093)^(z*19349663))>>>0;u.treeSpots=[];
+  for(let z=ch.z0;z<=ch.z1;z++)for(let x=Math.max(ch.x0,153);x<=ch.x1;x++){const k=K[z*Wd+x],X=tc(x),Z=tc(z),blk=blockOf(X,Z),hv=h(x,z);if(blk<0)continue;
+    if(k==='road'&&def.map[z][x]===','&&hv%9===0){const s=.7+(hv%7)*.12,a=(hv%628)/100,co=Math.cos(a),sn=Math.sin(a),P=(p,q)=>[X+p*co+q*sn,-.115,Z-p*sn+q*co];
+      S.add('road',blk,null,40,g=>g('hole').quad(P(-s,-s),P(-s,s),P(s,s),P(s,-s),[[0,0],[0,1],[1,1],[1,0]],null,[0,1,0]));
+      S.add('road',blk,40,null,g=>g('patch').floor(X-s*.8,Z-s*.6,X+s*.8,Z+s*.6,-.116,3,()=>[.55,.55,.56]))}
+    const side=()=>{for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]])if(K[(z+dz)*Wd+x+dx]==='road'&&!isShoulder(x+dx,z+dz))return[dx,dz];return null};
+    if(def.map[z][x]==='s'&&hv%7===0){const road=side();if(!road)continue;let clear=true;for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const c=def.map[z+dz]&&def.map[z+dz][x+dx];if(c==='l')clear=false}if(!clear)continue;
+      const px=X+road[0]*.45,pz=Z+road[1]*.45;S.add('road',blk,null,null,g=>g('pit').floor(px-.55,pz-.55,px+.55,pz+.55,.008,1));u.treeSpots.push({x:px,z:pz,r:hv,blk})}
+    else if(def.map[z][x]==='s'&&hv%17===1){const road=side();if(!road)continue;const yaw=Math.atan2(road[0],road[1]),c=Math.cos(yaw),sn=Math.sin(yaw),P=(a,b,y)=>[X-road[0]*.3+a*c+b*sn,y,Z-road[1]*.3-a*sn+b*c];
+      S.add('vc',blk,50,null,g=>{const gb=g('vc');if(hv%2){gb.obox(...P(0,0,.45),.8,.03,.22,yaw+Math.PI/2,1,[.55,.38,.22]);gb.obox(...P(0,-.2,.72),.8,.12,.02,yaw+Math.PI/2,1,[.55,.38,.22]);for(const a of[-.65,.65])gb.obox(...P(a,0,.22),.03,.22,.2,yaw+Math.PI/2,1,[.12,.12,.12])}
+        else for(let k=0;k<4;k++){const t=new THREE.TorusGeometry(.32,.025,5,12,Math.PI);const p=P((k-1.5)*.5,0,0);gb.addGeo(t,M4(p[0],0,p[2],yaw),1,[.2,.45,.7])}})}}}
+/* street trees in the pits: saplings at 30, young trees at 55, full canopy at 80 (instanced glTF, one stage visible per block) */
+function streetTrees(ws,u,ch,put){const W_=HW(),parts=W_.partsOf('tree_oak')||W_.partsOf('tree_tall');if(!parts||!u.treeSpots||!u.treeSpots.length)return;const dm=new THREE.Object3D(),mm=new THREE.Matrix4();
+  const by={};for(const q of u.treeSpots)(by[q.blk]||(by[q.blk]=[])).push(q);
+  for(const blk in by){const L=by[blk];for(const[st,t,until]of[[.36,30,55],[.66,55,80],[.95,80,null]]){const grp=new THREE.Group();
+      for(const part of parts.parts){const im=new THREE.InstancedMesh(part.geo,part.mat,L.length);L.forEach((q,i)=>{dm.position.set(q.x,0,q.z);dm.rotation.set(0,q.r%6,0);dm.scale.setScalar(st*(.9+(q.r%5)*.05));dm.updateMatrix();mm.multiplyMatrices(dm.matrix,part.m);im.setMatrixAt(i,mm)});
+        const g2=new THREE.BufferGeometry();for(const k in part.geo.attributes)g2.setAttribute(k,part.geo.attributes[k]);if(part.geo.index)g2.setIndex(part.geo.index);g2.groups=part.geo.groups;
+        const c=blockCentre(+blk);g2.boundingSphere=new THREE.Sphere(new THREE.Vector3(c.x,6,c.z),40);im.geometry=g2;im.castShadow=st>.6;im.receiveShadow=true;grp.add(im)}
+      put(grp,{blk:+blk,t,until,on:grp})}}}
 /* mural on the Dock St warehouse at 3rd St, OPEN neon + awning at the mart, block party banner: global dressing pieces */
 SETPIECES.push({id:'riverside',box:def=>({x0:310,z0:0,x1:464,z1:160,y1:12}),build(ws,u){const def=ws.def,g=u.group;
   /* mural (tier 4) */
@@ -727,14 +823,82 @@ SETPIECES.push({id:'riverside',box:def=>({x0:310,z0:0,x1:464,z1:160,y1:12}),buil
       g.add(grp);return grp};
     const wd=mk('weeds'),sd=mk('seedlings'),bl=mk('bloom');u.dress.push({t:50,off:wd},{t:50,on:sd,until:70},{t:70,on:bl})}}});
 
+/* ---- Riverside renovations: pocket park (60), little free library + picnic corner (70), community garden (80), block party (90), moving truck (follows the renovation front) ---- */
+SETPIECES.push({id:'riverlots',box:def=>({x0:300,z0:0,x1:464,z1:160,y1:10}),build(ws,u){const def=ws.def,g=u.group,W_=HW();
+  const wood=stdMat('rlwood',{color:'#9a6b43',roughness:.7}),metal=stdMat('rlmetal',{color:'#2a2d31',metalness:.6,roughness:.4}),leaf=stdMat('rlleaf',{color:'#4d8a3a',roughness:.9}),soil=stdMat('rlsoil',{color:'#3e2e22',roughness:1});
+  const B=(w,h,d,m,x,y,z,ry=0,par)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.y=ry;o.castShadow=true;o.receiveShadow=true;(par||g).add(o);return o};
+  const bench=(par,x,z,ry)=>{B(1.6,.06,.42,wood,x,.45,z,ry,par);B(1.6,.3,.05,wood,x-Math.sin(ry)*.2,.7,z-Math.cos(ry)*.2,ry,par);for(const a of[-.65,.65])B(.06,.45,.4,metal,x+Math.cos(ry)*a,.22,z-Math.sin(ry)*a,ry,par)};
+  const shrub=(par,x,z,s)=>{const m=new THREE.Mesh(new THREE.IcosahedronGeometry(.6*s,1),leaf);m.position.set(x,.5*s,z);m.castShadow=true;par.add(m)};
+  /* pocket park under the community center */
+  {const P=new THREE.Group();g.add(P);const x0=208*TILE+1,x1=219*TILE-1,z0=30*TILE+.6,z1=33*TILE-.6;
+    const path=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,1.4),stdMat('parkpath',{color:'#c9bfae',roughness:.95}));path.rotation.x=-Math.PI/2;path.position.set((x0+x1)/2,.012,(z0+z1)/2);P.add(path);
+    for(let x=x0+2;x<x1-1;x+=5)bench(P,x,z0+.6,Math.PI);for(let x=x0+4.5;x<x1-1;x+=5){shrub(P,x,z1-.8,1.1);shrub(P,x+1,z1-.6,.8)}
+    const slide=new THREE.Group();slide.position.set(x1-3,0,(z0+z1)/2);P.add(slide);B(1.2,.08,1.2,stdMat('slideR',{color:'#d8392b'}),0,1.3,0,0,slide);for(const sx of[-.55,.55])for(const sz of[-.55,.55])B(.07,1.3,.07,metal,sx,.65,sz,0,slide);
+    const ch=B(.5,.05,2.4,stdMat('slideY',{color:'#f2c230'}),0,.7,1.6,0,slide);ch.rotation.x=.55;
+    u.dress.push({t:60,on:P})}
+  /* little free library + picnic corner in the middle of the mart block */
+  {const P=new THREE.Group();g.add(P);const cx=181*TILE,cz=14*TILE+1;B(.08,1.2,.08,wood,cx-3,.6,cz,0,P);const box=B(.7,.6,.45,stdMat('lflRed',{color:'#b8323a',roughness:.6}),cx-3,1.5,cz,0,P);
+    const roofL=new THREE.Mesh(new THREE.ConeGeometry(.55,.35,4),stdMat('lflRoof',{color:'#3d3b39'}));roofL.rotation.y=Math.PI/4;roofL.position.set(cx-3,1.98,cz);P.add(roofL);
+    const lc=signCanvas(['LITTLE FREE','LIBRARY · TAKE ONE'],{bg:'#f4f0e6',fg:'#b8323a',fg2:'#1d1d1d',w:256,h:160});const lab=new THREE.Mesh(new THREE.PlaneGeometry(.6,.36),stdMat('lflLab',{map:ctex(lc)}));lab.position.set(cx-3,1.5,cz+.231);P.add(lab);
+    B(1.9,.06,.8,wood,cx+1,.75,cz,0,P);for(const dz of[-.65,.65])B(1.9,.05,.28,wood,cx+1,.45,cz+dz,0,P);for(const sx of[-.8,.8])B(.06,.75,.6,wood,cx+1+sx,.37,cz,0,P);
+    for(const px of[cx-6,cx+5]){B(1.2,.45,1.2,wood,px,.22,cz,0,P);for(let k=0;k<5;k++){const f=new THREE.Mesh(new THREE.SphereGeometry(.13,6,4),stdMat('flw'+k,{color:['#e8395b','#ffd23f','#c58cff','#ff8c2a','#ffffff'][k]}));f.position.set(px-.35+k*.18,.55,cz+(k%2?.2:-.2));P.add(f)}}
+    u.dress.push({t:70,on:P})}
+  /* community garden on the empty strip along River Rd by the docks */
+  {const P=new THREE.Group();g.add(P);const x0=154*TILE+.8,x1=159*TILE-.8;for(let z=67*TILE;z<77*TILE;z+=3.2){B(x1-x0,.4,1.3,wood,(x0+x1)/2,.2,z+.8,0,P);const top=B(x1-x0-.12,.05,1.18,soil,(x0+x1)/2,.41,z+.8,0,P);top.castShadow=false;
+      for(let x=x0+.5;x<x1-.3;x+=.7){const pl=new THREE.Mesh(new THREE.IcosahedronGeometry(.2,0),leaf);pl.position.set(x,.58,z+.8);P.add(pl)}}
+    const gc=signCanvas(['RIVERSIDE GROWS','COMMUNITY GARDEN · PICK WHAT YOU NEED'],{bg:'#2c7a3b',fg:'#fff',fg2:'#ffd23f',w:768,h:256});for(const sx of[-1,1])B(.08,1.6,.08,wood,(x0+x1)/2+sx*1.1,.8,66*TILE+.9,0,P);
+    const gs=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.8),stdMat('garsign',{map:ctex(gc),side:THREE.DoubleSide}));gs.position.set((x0+x1)/2,1.45,66*TILE+.9);P.add(gs);u.dress.push({t:80,on:P})}
+  /* the block party on Benny's lot: tables with cloths, chairs, grills, bounce house, balloons, string lights */
+  {const P=new THREE.Group();g.add(P);const{x0,z0,x1,z1}=PARTY;const cloth=[stdMat('cloth1',{color:'#e8395b'}),stdMat('cloth2',{color:'#3fa7e8'}),stdMat('cloth3',{color:'#f4f1ea'})];
+    for(const[i,z]of[[0,31.1],[1,34.9]]){B(6,.06,1,cloth[i],428,.78,z,0,P);B(6.05,.3,1.02,cloth[i],428,.62,z,0,P);for(let x=425.6;x<431;x+=1.1)for(const dz of[-.85,.85]){B(.42,.05,.42,stdMat('chair',{color:'#2a2d31'}),x,.45,z+dz,0,P);B(.42,.4,.04,stdMat('chair',{}),x,.68,z+dz+Math.sign(dz)*.2,0,P)}}
+    const sb=new THREE.Group();g.add(sb);const save=[];/* reuse world.js's grill and bounce house */
+    {const BB=newB(ws,sb,'hub',{x0:209,z0:14,x1:218,z1:18},0,91);W_.bounce(BB,420.6,31.6);W_.grill(BB,434.5,30.5);W_.grill(BB,434.5,35);W_.finish(BB,{bare:true,before:q=>{if(q.tuf)q.tuf.length=0;if(q.flw)q.flw.length=0}});P.add(sb)}
+    const bal=['#e8395b','#ffd23f','#3fa7e8','#7fdc6e','#c58cff'];for(let k=0;k<10;k++){const m=new THREE.Mesh(new THREE.SphereGeometry(.22,10,8),stdMat('bal'+k%5,{color:bal[k%5],roughness:.3}));m.scale.y=1.2;m.position.set(424+k*.9,2.3+(k%3)*.3,29.2);P.add(m)}
+    const bulb=basicGlow('pbulb','#ffd890',4),wire=stdMat('wireOW',{color:'#1a1a1a'});for(const z of[30,33,36]){const pts=[];for(let i=0;i<=12;i++){const t=i/12;pts.push(new THREE.Vector3(x0+t*(x1-x0),3.6-Math.sin(t*Math.PI)*.6,z))}
+      P.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),20,.01,4),wire));for(let i=1;i<12;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.06,6,4),bulb);b.position.copy(pts[i]).y-=.08;P.add(b)}}
+    for(const x of[x0,x1])for(const z of[30,33,36]){const pole=B(.06,3.7,.06,metal,x,1.85,z,0,P)}
+    u.dress.push({t:90,on:P})}
+  /* moving truck + boxes + welcome banner: placed at the block whose renovation is happening now (see placeTruck) */
+  {const T=new THREE.Group();T.visible=false;g.add(T);ws.truck=T;const van=C.makeVehicle&&C.makeVehicle('workvan','#f4f1ea',{lod:1});if(van){van.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});T.add(van);T.userData.van=van}
+    const card=stdMat('boxes',{color:'#b48a58',roughness:.9});for(let k=0;k<6;k++)B(.55+(k%3)*.1,.4+(k%2)*.12,.45,card,-1.3+(k%3)*.6,.22+Math.floor(k/3)*.45,2.0,k*.3,T);
+    const rp=B(.9,.05,2.2,stdMat('ramp',{color:'#8a8f93',metalness:.6}),-3.2,.35,0,0,T);rp.rotation.z=.3;
+    const wc=signCanvas(['WELCOME TO','THE NEIGHBORHOOD!'],{bg:'#ffd23f',fg:'#b8323a',fg2:'#2b4a6b',w:768,h:256});const wb=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.85),stdMat('welcome',{map:ctex(wc),side:THREE.DoubleSide}));wb.position.set(.5,1.6,3.1);T.add(wb);T.userData.banner=wb}}});
+/* the moving truck parks in front of the rowhouse block whose trust is closest to the renovation front (local trust 45-70) */
+function placeTruck(ws){const T=ws.truck,col=ws.truckCol;if(!T)return;let best=null,bd=1e9;
+  for(const b of ws.rowBlocks||blocksOf(ws.def,'r')){if(!b.facing)continue;const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2,blk=blockOf(cx,cz);if(blk<0)continue;const t=ws.blockT[blk];if(t<45||t>=70)continue;const d=Math.abs(t-55)+((b.x0*7+b.z0)%5)*.1;if(d<bd){bd=d;best=b}}
+  if(!best){T.visible=false;if(col){col.x0=col.z0=col.x1=col.z1=-1e4;col.off=true}return}
+  const s=best.facing==='+z'?1:-1,cx=(best.x0+best.x1+1)*TILE/2+2,zf=s>0?(best.z1+1)*TILE:best.z0*TILE,z=zf+s*(TILE+1.8);/* kerb lane in front of the block */
+  T.position.set(cx,0,z);T.rotation.y=s>0?0:Math.PI;T.visible=true;if(T.userData.van)T.userData.van.position.set(0,0,0);
+  if(col){Object.assign(col,{x0:cx-2.5,x1:cx+2.5,z0:z-1.15,z1:z+1.15,off:false})}}
 /* ================= dressing ================= */
-function dressUnit(u,t){for(const d of u.dress){const on=t>=d.t&&(d.until==null||t<d.until);if(d.on)d.on.visible=on;if(d.off)d.off.visible=!on}}
+/* ---- per-block trust: Riverside improves outward from the places the dads helped (job sites won, the church, the community center) ---- */
+/* 25 blocks between the street lines (RX 156/172/188/204/220, RZ 6/20/34/48/62); id = col*5+row, -1 outside Riverside */
+const RB_X=[152,172,188,204,220,232],RB_Z=[0,20,34,48,62,80];
+function blockOf(x,z){const t=x/TILE,u=z/TILE;if(t<152)return -1;let c=0,r=0;while(c<4&&t>=RB_X[c+1])c++;while(r<4&&u>=RB_Z[r+1])r++;return c*5+r}
+function blockCentre(b){const c=Math.floor(b/5),r=b%5;return{x:(RB_X[c]+RB_X[c+1])*TILE/2,z:(RB_Z[r]+RB_Z[r+1])*TILE/2}}
+function trustSources(ws){const def=ws.def,src=[];const add=(x,z,w)=>src.push({x,z,w:w||1});
+  const ch=def.buildings.find(b=>b.id==='church'),cc=def.buildings.find(b=>b.id==='center');
+  if(cc)add((cc.x0+cc.x1+1)*TILE/2,(cc.z0+cc.z1+1)*TILE/2,1);if(ch)add((ch.x0+ch.x1+1)*TILE/2,(ch.z0+ch.z1+1)*TILE/2,.8);
+  for(const id of (C.riverDone?C.riverDone():[])){const st=def.sites[id];if(st)add((st.box.x0+st.box.x1)/2,(st.box.z0+st.box.z1)/2,1.3)}
+  return src}
+/* local trust at a point: the region's trust plus a bonus near sources, the far blocks lagging behind until trust is high */
+function localTrust(ws,x,z,T){if(T>=99.5)return 100;if(T<=0)return 0;const src=ws.tsrc||(ws.tsrc=trustSources(ws));let best=1e9;for(const q of src)best=Math.min(best,Math.hypot(q.x-x,q.z-z)/q.w);
+  const B=Math.min(25,T*.8),k=best<150?1-best/150:-(best-150)/150*(1-T/100);return Math.max(0,Math.min(100,T+B*k))}
+OW.blockTrust=(x,z)=>{const ws=WS;if(!ws)return 0;const T=ws.trust==null?0:ws.trust;const b=blockOf(x,z);if(b<0)return T;return ws.blockT?ws.blockT[b]:localTrust(ws,x,z,T)};
+OW.snapTrust=()=>{BTU.uBT.value.set(BTT)};
+OW.blocks=()=>{const ws=WS;if(!ws||!ws.blockT)return[];return ws.blockT.map((t,b)=>({b,...blockCentre(b),t}))};
+function dressUnit(u,t){const bt=WS&&WS.blockT;for(const d of u.dress){const tt=d.blk!=null&&d.blk>=0&&bt?bt[d.blk]:t;const on=tt>=d.t&&(d.until==null||tt<d.until);if(d.on)d.on.visible=on;if(d.off)d.off.visible=!on}}
 OW.dress=(t,force)=>{const ws=WS;if(!ws)return null;t=+t||0;const G=HT.WorldGen;const tier=G&&G.tierOf?G.tierOf(t):0;
-  if(!force&&ws.trust===t)return tier;ws.trust=t;ws.tier=tier;for(const u of ws.units)if(u.built)dressUnit(u,t);return tier};
+  if(!force&&ws.trust===t)return tier;ws.trust=t;ws.tier=tier;ws.tsrc=null;
+  ws.blockT=[];for(let b=0;b<25;b++){const c=blockCentre(b);ws.blockT[b]=localTrust(ws,c.x,c.z,t)}
+  setBT(ws,!!ws.btEase);ws.btEase=true;
+  placeTruck(ws);{const on=ws.blockT[blockOf((PARTY.x0+PARTY.x1)/2,(PARTY.z0+PARTY.z1)/2)]>=90;for(const c of ws.toggleCols||[]){if(on)Object.assign(c,{x0:c.home.x0,z0:c.home.z0,x1:c.home.x1,z1:c.home.z1,off:false});else Object.assign(c,{x0:-1e4,z0:-1e4,x1:-1e4,z1:-1e4,off:true})}}
+  for(const u of ws.units)if(u.built)dressUnit(u,t);if(ws.onDress)try{ws.onDress(t)}catch(e){console.warn(e)}return tier};
+OW.sourcesChanged=()=>{if(WS){WS.tsrc=null;const t=WS.trust;WS.trust=null;OW.dress(t)}};
 
 /* ================= per frame ================= */
 const _v=new THREE.Vector3(),_b=new THREE.Box3();
-OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;dt=dt||1/30;ws.t+=dt;
+OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
   const fogFar=C.fogFar?C.fogFar():200;const R=Math.min(ws.R||(ws.R=200),fogFar+8);ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
@@ -747,6 +911,7 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;dt=dt||1
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}
       const mn=d<ws.MID;if(mn!==u.mnear){u.mnear=mn;for(const m of u.mid)m.visible=mn;if(u.dressRoot)u.dressRoot.visible=mn}}}
+  easeBT(dt);
   for(const w of ws.water){w.nm.offset.x=Math.sin(ws.t*.05)*.02;w.nm.offset.y-=dt*.018}
   /* nearby raycast proxies, every 0.5 s or after moving 8 m */
   const p=C.player?C.player():camera.position;ws.solT=(ws.solT||0)-dt;
