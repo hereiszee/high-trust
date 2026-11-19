@@ -96,3 +96,7 @@ Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion 
 | tex2/corrugated_{col,nrm,rgh}.jpg | Corrugated Iron 02 | Poly Haven (Sergej Majboroda, Jenelle van Heerden) | CC0 | https://polyhaven.com/a/corrugated_iron_02 |
 | tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
 | tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
+
+## Effects (js/fx.js)
+
+No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
