@@ -4,15 +4,21 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
 const OUT=path.join(__dirname,'../docs/screenshots/riverside-jobs');fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
-  await p.evaluate(async()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(2);H.render.apply('high');
+  await p.evaluate(async()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(2);H.render.apply('high');H.openBridge();H.ow.buildAll();H.enterHub();H.step(2);
     for(let i=0;i<60&&!H.assets.stream.idle();i++)await new Promise(r=>setTimeout(r,500))});
-  const shot=async(name,fn,arg)=>{try{await p.evaluate(fn,arg);await p.evaluate(()=>{const H=window.__ht;H.ow&&H.ow.update(H.camera);H.draw();H.draw()});await p.waitForTimeout(150);
+  const shot=async(name,fn,arg)=>{try{await p.evaluate(fn,arg);await p.evaluate(()=>{const H=window.__ht;H.ow&&H.ow.buildAll();H.ow&&H.ow.update(H.camera);H.draw();H.draw()});
+      /* banners put the HUD in its letterbox state: wait them out (real time) */
+      for(let i=0;i<12;i++){const c=await p.evaluate(()=>{window.__ht.draw();return !!document.querySelector('.cine')});if(!c)break;await p.waitForTimeout(400)}await p.evaluate(()=>{const H=window.__ht;H.draw();H.draw()});
+      /* a few real frames so the HUD's timed parts (minimap, meters) catch up; the harness pauses requestAnimationFrame otherwise */
+      await p.evaluate(async()=>{window.__rafOn=true;if(window.__rafPending){const f=window.__rafPending;window.__rafPending=null;requestAnimationFrame(f)}await new Promise(r=>setTimeout(r,450));window.__rafOn=false;await new Promise(r=>setTimeout(r,80))});
       await p.screenshot({path:path.join(OUT,name+'.jpg'),type:'jpeg',quality:84});console.log('shot',name)}catch(e){console.log('FAIL',name,String(e).slice(0,300))}};
   const prep=(i,done,trustR)=>p.evaluate(([i,done,trustR])=>{const H=window.__ht;H.prog.done.fill(false);for(const d of done)H.prog.done[d]=true;H.prog.trustR=trustR;if(H.mode!=='hub')H.enterHub();H.openBridge();H.startMissionWorld(i);H.step(2)},[i,done,trustR]);
   const calm=`for(const e of H.enemies){e.thinkT=0}`;
   /* the bridge-opening beat: Rick's job just done */
   await shot('bridge-opening-beat',async()=>{const H=window.__ht;H.prog.done.fill(false);H.prog.done[0]=H.prog.done[1]=true;H.save&&(H.save.flags.act2Intro=false);H.WM.beat=false;H.enterHub();H.step(2);
-    const V=H.VAN;H.P.yaw=-Math.PI/2;await new Promise(r=>setTimeout(r,1700))});
+    const V=H.VAN;H.P.yaw=-Math.PI/2;await new Promise(r=>setTimeout(r,1700));
+    /* cards animate in on requestAnimationFrame, which the harness pauses: let it run for a moment (the game is paused behind the card) */
+    window.__rafOn=true;if(window.__rafPending){const f=window.__rafPending;window.__rafPending=null;requestAnimationFrame(f)}await new Promise(r=>setTimeout(r,900));window.__rafOn=false;await new Promise(r=>setTimeout(r,100))});
   await p.evaluate(()=>{const H=window.__ht;const a=H.UIacts&&H.UIacts['result:go'];if(a)a();H.step(1)});
   /* mid-mission at each site: over the dad's shoulder, facing the action */
   const face=(x,z)=>p.evaluate(([x,z])=>{const H=window.__ht,P=H.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));P.pitch=-.12},[x,z]);
@@ -37,9 +43,8 @@ const OUT=path.join(__dirname,'../docs/screenshots/riverside-jobs');fs.mkdirSync
   await shot('job5-dee-mid',()=>{const H=window.__ht;H.P.aim=false;for(const s of H.suspects)s.id=true;H.M.ids=4;H.step(200);const P=H.P;const e=H.enemies.find(e=>e.state==='idle');if(e){P.yaw=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.pitch=-.08}H.step(40)});
   /* Benny: the escort and the truck chase */
   await prep(7,[0,1,4,5,6],40);
-  await shot('escort',()=>{const H=window.__ht,k=H.keys;for(let s=0;s<260;s++){const tr=H.truck,e=H.CV;if(!tr||!e)break;const c=tr.car,f={x:-Math.sin(c.yaw),z:-Math.cos(c.yaw)},gx=c.x-f.x*10,gz=c.z-f.z*10,dx=gx-e.pos.x,dz=gz-e.pos.z,dd=Math.hypot(dx,dz);let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
+  await shot('job7-benny-escort',()=>{const H=window.__ht,k=H.keys;for(let s=0;s<260;s++){const tr=H.truck,e=H.CV;if(!tr||!e)break;const c=tr.car,f={x:-Math.sin(c.yaw),z:-Math.cos(c.yaw)},gx=c.x-f.x*10,gz=c.z-f.z*10,dx=gx-e.pos.x,dz=gz-e.pos.z,dd=Math.hypot(dx,dz);let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
       k.a=dd>2&&d>.06;k.d=dd>2&&d<-.06;k.w=dd>2&&e.spd<Math.min(12,dd*.8);k.s=e.spd>Math.min(12,dd*.8)+1.5;H.step(1)}for(const x of['w','a','s','d'])k[x]=false;H.P.yaw=H.CV.yaw;H.P.pitch=-.2;H.step(3)});
-  await shot('job7-benny-mid',()=>{const H=window.__ht;const a=H.WJ;H.M.phase!=='ambush'&&H.step(1);})
   await shot('truck-chase',()=>{const H=window.__ht,k=H.keys;H.M.phase='court';H.M.courtT=4;H.step(2);for(let s=0;s<90;s++){const ch=H.chase,e=H.CV;if(!ch||!e)break;const c=ch.car,dx=c.x-e.pos.x,dz=c.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;k.a=d>.05;k.d=d<-.05;k.w=true;k.shift=true;H.step(1)}
     for(const x of['w','a','s','d','shift'])k[x]=false;H.P.yaw=H.CV.yaw;H.P.pitch=-.18;H.step(1)});
   /* the Duke getaway chase */
@@ -47,6 +52,8 @@ const OUT=path.join(__dirname,'../docs/screenshots/riverside-jobs');fs.mkdirSync
     for(let s=0;s<110;s++){const ch=H.chase,e=H.CV;if(!ch||!e||ch.state!=='run')break;const c=ch.car,dx=c.x-e.pos.x,dz=c.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;k.a=d>.05;k.d=d<-.05;k.w=Math.hypot(dx,dz)>14;k.s=Math.hypot(dx,dz)<9;k.shift=Math.hypot(dx,dz)>25;H.step(1)}
     for(const x of['w','a','s','d','shift'])k[x]=false;H.P.yaw=H.CV.yaw;H.P.pitch=-.16;H.step(1)});
   /* Riverside Flats at two trust tiers: Main St at 2nd St, looking east */
-  for(const [t,name] of [[5,'riverside-trust-5'],[55,'riverside-trust-55']])await shot(name,t=>{const H=window.__ht;H.prog.done.fill(false);H.prog.done[0]=H.prog.done[1]=true;H.enterHub();H.openBridge();H.dress(t);H.prog.trustR=t;
-      const P=H.P;P.pos.set(356,0,46);H.collide(P.pos,.35);P.yaw=-Math.PI/2+.25;P.pitch=-.08;H.step(4);H.dress(t);H.ow.buildAll();H.step(2)},t);
+  for(const [t,name] of [[5,'riverside-trust-5'],[75,'riverside-trust-75']])await shot(name,t=>{const H=window.__ht;H.prog.done.fill(false);H.prog.done[0]=H.prog.done[1]=true;H.enterHub();H.openBridge();H.prog.trustR=t;H.dress(t);
+      const P=H.P;P.pos.set(381,0,47);H.collide(P.pos,.35);P.yaw=-0.62;P.pitch=-.05;H.step(4);H.ow.buildAll();H.ow.dress(t,true);H.step(2)},t);
+  await shot('finale-card',async()=>{const H=window.__ht;if(H.mode!=='hub')H.enterHub();H.prog.done.fill(true);H.prog.trustR=72;H.prog.trust=74;H.WM.finaleSeen=false;H.save&&(H.save.flags.finale2=false);H.enterHub();
+    window.__rafOn=true;if(window.__rafPending){const f=window.__rafPending;window.__rafPending=null;requestAnimationFrame(f)}await new Promise(r=>setTimeout(r,900));window.__rafOn=false;await new Promise(r=>setTimeout(r,100))});
   console.log('console errors:',errs.length?errs.slice(0,5):'none');await b.close()})();
