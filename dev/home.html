@@ -13,6 +13,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#16181c;color:#f6f1e3;
 #deco{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:90vw}
 #deco span{background:rgba(22,24,28,.85);border:1px solid #555;border-radius:4px;padding:4px 8px;font-size:12px}
 #deco span.on{border-color:#ffc94a;color:#ffc94a}
+body.shot #hud,body.shot #prompt,body.shot #xh{display:none!important}
 </style>
 <div id="hud"></div><div id="prompt" hidden></div><div id="sub"></div><div id="xh"></div><div id="deco" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -54,7 +55,7 @@ function buildEnv(hdr){const pm=new THREE.PMREMGenerator(renderer);const h=hdr;c
 /* ---- post chain (copied from index.html RENDER) ---- */
 const FSV='varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
 const DEPTH='uniform sampler2D tDepth;uniform float cNear,cFar;uniform vec2 pS;float zAt(vec2 uv){float d=texture2D(tDepth,uv).x;return 2.*cNear*cFar/(cFar+cNear-(d*2.-1.)*(cFar-cNear));}vec3 pAt(vec2 uv){float z=zAt(uv);return vec3((uv*2.-1.)*z/pS,-z);}';
-const aoMat=new THREE.ShaderMaterial({defines:{SAMPLES:16},depthTest:false,depthWrite:false,uniforms:{tDepth:{value:null},cNear:{value:.05},cFar:{value:420},pS:{value:new THREE.Vector2(1,1)},texel:{value:new THREE.Vector2()},radius:{value:1},power:{value:4}},
+const aoMat=new THREE.ShaderMaterial({defines:{SAMPLES:16},depthTest:false,depthWrite:false,uniforms:{tDepth:{value:null},cNear:{value:.05},cFar:{value:420},pS:{value:new THREE.Vector2(1,1)},texel:{value:new THREE.Vector2()},radius:{value:+(Q.get('aor')||.45)},power:{value:+(Q.get('aop')||1.6)}},
   vertexShader:FSV,fragmentShader:'varying vec2 vUv;uniform vec2 texel;uniform float radius,power;'+DEPTH+`void main(){float d0=texture2D(tDepth,vUv).x;if(d0>=.9999){gl_FragColor=vec4(1.);return;}vec3 p=pAt(vUv);
   vec3 px=pAt(vUv+vec2(texel.x,0.)),nx=pAt(vUv-vec2(texel.x,0.)),py=pAt(vUv+vec2(0.,texel.y)),ny=pAt(vUv-vec2(0.,texel.y));vec3 dx=abs(px.z-p.z)<abs(nx.z-p.z)?px-p:p-nx,dy=abs(py.z-p.z)<abs(ny.z-p.z)?py-p:p-ny;vec3 n=normalize(cross(dx,dy));
   float z=-p.z;vec2 rUv=radius*pS*.5/z;float noise=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));float ao=0.;
@@ -136,12 +137,20 @@ function frame(){requestAnimationFrame(frame);const now=performance.now(),dt=Mat
 requestAnimationFrame(frame);
 /* ---- scripted views for screenshots ---- */
 const SHOTS={
-  entry:[2.6,3.4,2.75,-.12],entry2:[4.6,2.6,1.55,-.08],living:[3.4,.9,-2.25,-.12],living2:[8.6,4.6,.9,-.1],kitchen:[4.6,8.4,1.25,-.14],kitchen2:[2.4,5.3,2.85,-.1],dining:[5.4,5.2,-2.4,-.12],
+  entry:[2.6,3.4,2.75,-.12],entry2:[4.6,2.6,1.55,-.08],living:[3.3,4.4,-1.95,-.16],living2:[8.6,4.6,.9,-.1],kitchen:[4.6,8.4,1.25,-.14],kitchen2:[2.4,5.3,2.85,-.1],dining:[5.4,5.2,-2.4,-.12],
   hall:[10.07,9.3,0,-.05],bedroom:[11.0,5.1,-.85,-.18],garage:[-.8,8.9,1.0,-.12],garage2:[-1.2,2.0,2.2,-.15],locker:[-3.8,7.6,1.75,-.2],
-  yard:[7.3,15.5,.15,-.12],yard2:[-4,21.5,-2.5,-.1],deck:[11.5,15.5,.6,-.15],front:[2,-9,-0.2,.05],top:[4,12,0,-1.2]};
+  yard:[7.3,15.5,.15,-.12],lawn:[10.5,22.6,.75,-.08],sitview:[7.9,5.0,.95,-.22],hall2:[8.2,5.1,-1.57,-.08],front2:[2.2,-3.2,-.3,.0],yard2:[-4,21.5,-2.5,-.1],deck:[11.5,15.5,.6,-.15],front:[2,-9,-0.2,.05],top:[4,12,0,-1.2]};
 window.__shotList=()=>(Q.get('shots')||'living').split(',');
-window.__shot=n=>{const s=SHOTS[n];if(!s)return false;window.__frozen=true;P.pos.set(s[0],0,s[1]);P.yaw=s[2];P.pitch=s[3];if(n==='top'){camera.position.set(4,30,10);camera.rotation.set(-1.45,0,0);draw();return true}
+window.__shot=n=>{document.body.classList.add('shot');
+  if(n==='sit'){home.forceActivity('tyler','seat:f1');home.forceActivity('maddie','seat:f1');home.forceActivity('jen','seat:f12');home.forceActivity('biscuit','dogbed');n='sitview'}
+  if(n==='overview'){home.setCutaway(true);window.__frozen=true;camera.position.set(4.5,15,17.5);camera.lookAt(4.2,0,4.6);if(dad)dad.root.visible=false;for(let i=0;i<20;i++)home.update(1/30,P.pos);draw();return true}
+  if(home.cutaway)home.setCutaway(false);
+  if(n==='cook'){home.forceActivity('jen','cook');home.forceActivity('maddie','island');n='kitchen'}
+  if(n.startsWith('deco')){const D=HT.Home.decorate;if(!D.active)D.start({owned:HT.Home.allOwned(),cutaway:n==='deco_ok'||n==='deco_bad'});const[sel,tx,tz,r]={deco_ok:['armchair',6.9,1.0,2],deco_bad:['tv65',5.2,2.0,0],deco_wall:['familyphoto',9.3,9.2,3],deco_yard:['trampoline',2.0,21.0,0]}[n];
+    D.select(sel);D.r=r;window.__frozen=true;const cp=n==='deco_yard'?V3(3.5,6.5,13.2):n==='deco_wall'?V3(6.2,1.7,8.6):V3(4.2,6.5,7.6);camera.position.copy(cp);const tgt=V3(tx,n==='deco_wall'?1.55:0,tz);camera.lookAt(tgt);
+    const look=n==='deco_wall'?V3(9.3,1.55,9.2):tgt;D.aim(camera.position,look.clone().sub(camera.position).normalize(),[]);if(dad)dad.root.visible=false;draw();return true}
+  if(HT.Home.decorate&&HT.Home.decorate.active&&!n.startsWith('deco'))HT.Home.decorate.exit();const s=SHOTS[n];if(!s)return false;window.__frozen=true;P.pos.set(s[0],0,s[1]);P.yaw=s[2];P.pitch=s[3];if(n==='top'){camera.position.set(4,30,10);camera.rotation.set(-1.45,0,0);draw();return true}
   for(let i=0;i<40;i++)step(1/30);camUpdate(1);draw();return true};
-window.__info=()=>home?Object.assign(home.stats(),{calls:renderer.info.render.calls,failed:HT.Home._internal.LIB.failed}):null;
+window.__info=()=>home?Object.assign(home.stats(),{top:(()=>{const m={};home.group.traverse(o=>{if(o.isMesh){const g=o.geometry;let n=(g.index?g.index.count:g.attributes.position.count)/3;let p=o,k=o.name||'?';while(p){if(p.name&&p.name.startsWith('person'))k=p.name;p=p.parent}if(o.parent&&o.parent.parent&&!o.name.startsWith('merged'))k=k+'@'+(o.material.name||'');m[k]=(m[k]||0)+n}});return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,25).map(e=>e[0]+':'+Math.round(e[1]))})(),calls:renderer.info.render.calls,failed:HT.Home._internal.LIB.failed}):null;
 })();
 </script>
