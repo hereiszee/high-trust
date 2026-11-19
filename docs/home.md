@@ -28,8 +28,8 @@ Units are metres. The group's origin sits at the world origin: x points east, z 
 | `H.vanSpot` | `{x:-3.7, z:4.5, yaw:0}` (nose to the garage door). Park the game's van here. The cells are blocked for decor; the van brings its own collider. |
 | `H.aoHint` | `{radius:.45, power:2.5}`. The game's SSAO radius of 1 m leaves dark halos indoors; use about .45 / 1.6–2.5 while home. |
 | `H.dispose()` | Removes the group and frees the probe. |
-| `catalog`, `catalogById` | 39 items: `{id,name,price,fp:[w,d] cells of 0.5 m, zone:'in'/'out'/'any', h, tags, layer?, seats?, wall?, ww, wh, y}`. Covers SPEC D.5 plus extras. Starter items (price 0) are flagged `starter`. |
-| `starterLayout()`, `fullLayout()`, `allOwned()` | The sparse starter house, a fully furnished house, and an owned map for testing. |
+| `catalog`, `catalogById` | The 33 furniture ids of `HT.CATALOG.furniture` (js/save.js), one-to-one. Names, prices, zones, `max` and `cells` are copied from `HT.CATALOG` at build time when it is loaded. `fp` is this module's own footprint in 0.5 m cells, because the house's grid is 0.5 m. `HT.CATALOG`'s 1 m `cells` are only used for menu display. Wall items: `frame`, `plaque`, `dartboard`. |
+| `starterLayout()`, `fullLayout()`, `allOwned()` | The starter house (the save's starter `owned` set: sofa, coffeetable, armchair, dining, 2 chairs, dogbed, picnic; an old TV on moving boxes stands in until a `tv` is bought), a fully furnished house, and an owned map for testing. |
 | `validate(layout, owned) → {layout, dropped}` | Drops unknown, invalid or not-owned entries, each with a `why`. Refund the dropped items. |
 | `autoPlace(layout, id) → layout/null` | Puts a new purchase in the first valid spot. |
 | `decorate.*` | See below. |
@@ -37,19 +37,20 @@ Units are metres. The group's origin sits at the world origin: x points east, z 
 | `lineState()` / `setLineState(s)` | Persist this in `SAVE.family` so lines don't repeat until a pool is exhausted. |
 | `makeStandIn(role)` | Default person for roles `spouse, son, daughter, dog, dad`: the family glbs plus `dad_casual` clips, with a bone-bent sit pose. Any `makePerson(role)` must return `{root, setAnim(name), update(dt)}`. Animation names used: `idle walk run sit wave talk cook phone play lie eat happy`. `person.seatH` (metres) is set before `setAnim('sit')`. |
 
-Layout format: `{v:1, items:[{uid,id,x,z,r}]}` for floor items, where `x,z` is the min-corner cell (0.5 m cells, so `x*0.5` metres) and `r` is the number of quarter turns (0 = faces +z). Wall items use `{uid,id,wx,wz,y,r}`.
+Layout format (identical to `HT.Save.data.furniture.placed`, so `HT.Save`'s sanitiser keeps it): `{uid,id,x,z,r}` with integer values. Floor items: `x,z` is the min-corner cell in 0.5 m cells, and `r` is the number of quarter turns (0 = faces +z/back yard, 1 = +x, 2 = −z/street, 3 = −x). Wall items: `x,z` is the wall point in decimetres. Every API accepts either the raw `placed` array or `{items:[…]}`; `validate`, `autoPlace`, `decorate.layout()` and `onChange` all return `{v:1,items}`, so store `.items` into `furniture.placed`. Note that SAVE_DEFAULT's `starterPlaced()` uses the old SPEC 1 m coordinates, which don't fit this house: `validate` drops them. On the first visit, if `placed` is empty or everything was dropped, use `HT.Home.starterLayout().items` (same ids as the default owned set).
 
 Decorate rules: the zone must be indoor or yard; the item must not sit on a blocked fixture or a reserved doorway/fixture front; it must not overlap other items (rugs use their own floor layer); it must not be within 0.3 m of the people passed in; and a BFS from the front door must still reach the locker, workbench, laptop, slider, yard, garage, bedroom and grill. Items are pushed flush against a wall within 0.45 m behind them. Wall items snap to painted wall spans every 0.25 m and avoid windows, cabinets and the TV wall's fixtures.
 
 ## Integration steps for index.html
 
 1. Load the module after the three.js add-ons: `<script src="js/home.js"></script>`.
-2. At boot: `HT.Home.init({assets:ASSETS, renderer, makePerson: (window.HT.People && HT.People.make) || undefined})`. Await it together with `ASSETS.ready`.
+2. At boot: `HT.Home.init({assets:ASSETS, renderer, makePerson})`, awaited together with `ASSETS.ready`. A working rocketbox factory (`makeRocketbox(role)`, about 20 lines with the pelvis hip-height scaling, `f_*` clips for wife and daughter, and `seatH` offsets) is in `dev/home.html`; copy it, or wrap your own people loader. The dog has no rocketbox model, so return `null` for `'dog'` and the module uses the Shiba stand-in.
 3. In `enterHome()`, replace `buildLevel(HOME)` with:
    ```js
    if(L&&L.group)scene.remove(L.group);
    HT.Home.setLineState(SAVE.family);
-   const H=HOME3=HT.Home.build({layout:SAVE.furniture.layout||HT.Home.starterLayout(), owned:SAVE.furniture.owned, trust:prog.trust, timeOfDay:15});
+   const S=HT.Save.data; let lay={items:S.furniture.placed};if(!HT.Home.validate(lay,S.furniture.owned).layout.items.length)lay=HT.Home.starterLayout();
+   const H=HOME3=HT.Home.build({layout:lay, owned:S.furniture.owned, trust:prog.trust, timeOfDay:15});
    scene.add(H.group); H.bakeReflections(renderer,scene);
    for(const d of H.dropped) refund(d.id);
    L={def:{id:'home',type:'home'},group:H.group,colliders:H.colliders,solids:H.solids,W:1,H:1,g:[['#']],start:V3(H.spawn.x,0,H.spawn.z),items:[],stashes:[],spawns:[],markers:[],ammo:[]};
@@ -63,13 +64,13 @@ Decorate rules: the zone must be indoor or yard; the item must not sit on a bloc
 5. Decorate (B key, or the Dadazon card button):
    ```js
    HT.Home.decorate.start({owned:SAVE.furniture.owned, cutaway:true, people:[P.pos],
-     onChange:L=>{SAVE.furniture.layout=L;saveGame()}, onExit:L=>{SAVE.furniture.layout=L;saveGame()}});
+     onChange:L=>{HT.Save.data.furniture.placed=L.items;HT.Save.touch('furniture')}, onExit:L=>{HT.Save.data.furniture.placed=L.items;HT.Save.touch('furniture')}});
    // each frame: HT.Home.decorate.aim(camera.position, camFwd(), [P.pos]); show decorate.aimInfo.why as the prompt
    // click/E: decorate.place()   R: decorate.rotate()   X/right-click: decorate.remove()   M: decorate.move()
    // Tab/wheel: decorate.cycle(±1)   Esc: decorate.exit()   inventory strip: decorate.inventory()
    ```
    Pitch the camera down (or raise the boom) while decorating; with cutaway on, you see the room from above.
-6. Purchases: `SAVE.furniture.owned[id]++`, then optionally `SAVE.furniture.layout=HT.Home.autoPlace(SAVE.furniture.layout,id)||SAVE.furniture.layout`. Push `'boughtFurniture'` (or `'flamingo'`) to `SAVE.events`.
+6. Purchases go through `HT.Economy.buy`. Afterwards, optionally `const L=HT.Home.autoPlace(placed,id); if(L){placed=L.items}`. In `HT.Home.familyLine` you can pass `event:'flamingo'` for the flamingo.
 7. `exitHome()`: `SAVE.family=HT.Home.lineState(); HOME3.dispose();` restore the AO uniforms, then `enterHub({at:'home'})`.
 8. `__ht`: expose `get home(){return HOME3}`.
 
