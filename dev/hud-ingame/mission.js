@@ -41,7 +41,7 @@ const L=require('./lib.js');const DPR=+process.env.DPR||1;const MI=+(process.env
   console.log('reload ring',await ev(()=>document.querySelector('.ht-rlr').classList.contains('on')));await L.shot(page,'reload_wide');
   for(const k of ['1','2','3']){await step(40);await page.keyboard.press(k);await step(4);await page.waitForTimeout(450);
     console.log('gun',k,await ev(()=>document.querySelector('.ht-xh').dataset.t));
-    await page.screenshot({path:'docs/screenshots/hud-ingame/xh_'+k+'.jpg',type:'jpeg',quality:84,clip:{x:540,y:260,width:200,height:200}})}
+    await page.screenshot({path:'docs/screenshots/hud-ingame/xh_'+k+'.jpg',type:'jpeg',quality:84,clip:{x:540,y:260,width:200,height:200},timeout:180000})}
   // damage + ally down
   await ev(()=>{const P=__ht.P;P.hp=100});await step(1);
   await ev(()=>{const P=__ht.P,e=__ht.enemies.find(e=>e.state==='idle');e.alert=true;e.target=P;P.hp=62;const a=__ht.allies[0];a.down=true;a.hp=0;a.downT=6})

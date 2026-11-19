@@ -11,7 +11,7 @@ const L=require('./lib.js');const DPR=+process.env.DPR||1;
   // damage arc
   await ev(()=>{const P=__ht.P,e=__ht.enemies[0];e.alert=true;e.target=P;P.hp-=30});await frames(2);await ev(()=>{for(const p of document.querySelectorAll('.ht-dmg path'))for(const a of p.getAnimations()){a.currentTime=300;a.pause()}});
   console.log('dmg arcs',await ev(()=>document.querySelectorAll('.ht-dmg path').length));
-  await page.screenshot({path:'docs/screenshots/hud-ingame/damage_arc_wide.jpg',type:'jpeg',quality:84});
+  await page.screenshot({path:'docs/screenshots/hud-ingame/damage_arc_wide.jpg',type:'jpeg',quality:84,timeout:180000});
   // Esc opens pause, P closes, P opens, Esc closes
   const st=()=>ev(()=>({screen:HT.HUD.screen}));
   await page.keyboard.press('Escape');await page.waitForTimeout(400);console.log('esc ->',await st());
