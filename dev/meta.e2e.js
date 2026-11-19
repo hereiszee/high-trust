@@ -50,7 +50,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await step(60);
   /* family in their routines: Jen cooking, Tyler at the island, Maddie on the couch, Biscuit in his bed; seen from the living room */
   await ev(()=>{const H=window.__ht.home;H.forceActivity('jen','cook');H.forceActivity('tyler','island');H.forceActivity('maddie','seat');H.forceActivity('biscuit','dogbed')});await step(20);
-  await ev(()=>{const h=window.__ht;h.P.pos.set(6.4,0,3.4);h.P.yaw=Math.atan2(-(2.4-6.4),-(6.6-3.4));h.P.pitch=-.16;h.step(2)});
+  await ev(()=>{const h=window.__ht;h.place(7.6,2.2,Math.atan2(-(2.4-7.6),-(7.2-2.2)),-.2);h.step(2)});
   await shot('03-living-room-family');
   await ev(()=>{const h=window.__ht;h.P.fp=true;h.step(1)});await shot('03b-family-first-person');await ev(()=>{const h=window.__ht;h.P.fp=false;h.step(1)});
   /* locker */
@@ -84,8 +84,11 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   ok(dec.ok,'found a valid spot for the ghost');await shot('06-decorate-ghost');
   const placed=await ev(()=>window.HT.Home.decorate.place());ok(placed.ok,'placed via decorate');
   await key('b');await step(1);ok(await ev(()=>!window.__ht.deco.on),'decorate off');
+  /* the garage exit puts you behind the wheel */
+  await ev(()=>window.__ht.exitHome('garage'));await sleep(300);await step(2);
+  ok(await ev(()=>window.__ht.mode==='hub'&&window.__ht.VAN.on),'"Take the van" from the garage: driving on the street');
+  await ev(()=>{const h=window.__ht;h.VAN.on=false;h.enterHub({at:'home'})});await sleep(100);
   /* Hank's Hardware */
-  await ev(()=>window.__ht.exitHome('front'));await sleep(100);
   await ev(()=>{const h=window.__ht,s=h.hubx.shops.find(s=>s.kind==='hardware');h.P.pos.set(s.x,0,s.z);h.step(1);h.use=true;h.step(1)});await sleep(400);
   ok(await ev(()=>window.HT.Menus.isOpen()),'hardware shop open');
   const hw=await ev(()=>window.HT.Economy.buy('furn','flamingo','hardware'));ok(hw&&hw.ok!==false,'bought a flamingo at Hank\'s');

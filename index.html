@@ -1617,7 +1617,7 @@ function signTex(lines){const c=document.createElement('canvas');c.width=512;c.h
   x.font='bold 74px Georgia,"Times New Roman",serif';x.fillText(lines[0],256,104);x.font='800 40px Rubik,Arial,sans-serif';x.fillStyle='#16181c';x.fillText(lines[1],256,186);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
 function metaMarkers(){const out=[];if(mode!=='hub')return out;const p=VAN.on?VAN.pos:P.pos;
-  if(HUBX.home){const h=HUBX.home,d=Math.hypot(h.x-p.x,h.z-p.z);if(d>3.5)out.push({id:'home',kind:'home',label:'Home',x:h.x,z:h.z,dist:d,screen:project(h.x,2.6,h.z)})}
+  if(HUBX.home){const h=HUBX.home,d=Math.hypot(h.x-p.x,h.z-p.z);if(d>22)out.push({id:'home',kind:'home',label:'Home',x:h.x,z:h.z,dist:d,screen:project(h.x,2.6,h.z)})}
   for(const s of HUBX.shops){const d=Math.hypot(s.x-p.x,s.z-p.z);if(d<32&&d>3.5)out.push({id:s.kind,kind:s.kind==='auto'?'garage':'shop',label:s.label,x:s.x,z:s.z,dist:d,screen:project(s.x,2.6,s.z)})}
   return out}
 function metaHubEnter(o){HUBX.shops=[];HUBX.sprites=[];HUBX.home=null;if(!L||!L.houses)return;
@@ -1761,6 +1761,7 @@ function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
   else if(a==='next')D.cycle(1);else if(a==='prev')D.cycle(-1)}
 function decoPeople(){const out=[P.pos];if(HOME3&&HOME3.family)for(const m of HOME3.family)out.push(m.pos);return out}
 function decoUpd(dt){const D=HOMEM.decorate;
+  UI.obj=null;/* the panel says it all */
   if(mouseDown){mouseDown=false;decoAct('place')}if(P.aim){P.aim=false;decoAct('remove')}
   const info=D.aim(camera.position,camFwd(),decoPeople());
   DECO.msgT-=dt;const inv=D.inventory(),sel=D.selected?HOMEM.catalogById[D.selected]:null;const cnt=sel?(inv.find(i=>i.id===sel.id)||{count:0}).count:0;
@@ -1790,7 +1791,7 @@ function metaKey(e,k){if(window.HT&&HT.Menus&&HT.Menus.isOpen())return true;
 addEventListener('wheel',e=>{if(DECO.on&&running)decoAct(e.deltaY>0?'next':'prev')},{passive:true});
 function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({get save(){return SV()},get cash(){const s=SV();return s?s.cash:0},grant(n){if(!SAVEM)return 0;SAVEM.addCash?SAVEM.addCash(n):(SV().cash+=n);metaSave(true);return SV().cash},
   saveGame:()=>metaSave(true),resetSave:()=>{SAVEM.reset();metaFixSave(SV());metaSave(true)},enterHome,exitHome,openShop,openLocker,decoStart,decoStop,decoAct,
-  get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
+  get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},place(x,z,yaw,pitch){P.pos.set(x,0,z);collide(P.pos,.35);if(yaw!=null)P.yaw=yaw;if(pitch!=null)P.pitch=pitch;return{x:P.pos.x,z:P.pos.z}},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
