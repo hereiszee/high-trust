@@ -50,3 +50,6 @@ HT.People.debugHitboxes(true)        // shows the hitboxes as magenta wireframe
 
 ## Tests
 `node dev/people-check.js [--shots] [--only=combat,missions,perf,shots,fallback,lowq]`. It needs no server. Screenshots go to `docs/screenshots/people/`.
+
+## Guns (js/guns.js)
+`equip()` builds guns with `makeGun()`, which uses `HT.Guns.model()`. `People.equip` places them with `HT.Guns.handAttach(type)` and picks the clip family from `clipStyle`. Pistol-style guns are the pistol, revolver, nailer and sawed-off; every other gun uses the rifle clips. Long guns get a two-bone IK for the left arm: the palm goes to the middle of the pump (measured from the `pump` node) or to the forend points in `SUPPORT`, the hand turns to cup under the gun, and the IK blends with the aim and hold weights. Screenshots: `ik_long_guns_aim.jpg`, `ik_long_guns_low_ready.jpg` and `ik_shotgun_close.jpg`.

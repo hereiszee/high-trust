@@ -106,6 +106,12 @@ function helpers(){
     ok('standing up behind the crate exposes the head',r.standHead>=59,r.standHead);
   }
 
+  if(want('combat')){/* procedural offsets must not pile up while a static aim clip holds (mixer skips unchanged bones) */
+    const r=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;P.fp=false;const out={};
+      for(const g of['pistol','shotgun']){H.dude.equip(P.dude,g);P.aim=true;P.pitch=.45;H.step(40);const b=P.dude.body.getObjectByName('Bip01_R_Hand'),q0=b.getWorldQuaternion(new THREE.Quaternion());
+        H.step(60);const q1=b.getWorldQuaternion(new THREE.Quaternion());out[g]=+(q0.angleTo(q1)).toFixed(4)}P.pitch=0;P.aim=false;return out});
+    ok('aim pitch holds steady (no build-up over 2 s; idle breathing allowed)',Object.values(r).every(v=>v<.06),r)}
+
   if(want('missions'))for(let i=0;i<4;i++){
     const t0=Date.now();
     const r=await p.evaluate(i=>{const H=__ht;H.startMission(i);const L=H.L,M=()=>H.M;const out={i,enemies:H.enemies.length,skinned:H.enemies.filter(e=>e.dude.rb).length,allies:H.allies.length};
@@ -168,6 +174,15 @@ function helpers(){
     await shot('boss',()=>{const H=__ht,b=H.L.boss,P=H.P;P.dude.root.visible=false;const a=b.yaw;T_.cam(b.pos.x+Math.sin(a)*2.6,1.7,b.pos.z+Math.cos(a)*2.6,b.pos.x,1.25,b.pos.z)});
     await shot('boss_close',()=>{const H=__ht,b=H.L.boss;const a=b.yaw;T_.cam(b.pos.x+Math.sin(a+.3)*1.25,1.75,b.pos.z+Math.cos(a+.3)*1.25,b.pos.x,1.52,b.pos.z)});
     await shot('boss_armed',()=>{const H=__ht,b=H.L.boss,P=H.P;b.alert=true;for(let i=0;i<20;i++){b.thinkT=1e9;b.target=null;H.step(1)}P.dude.root.visible=false;const a=b.yaw+.7;T_.cam(b.pos.x+Math.sin(a)*2.6,1.6,b.pos.z+Math.cos(a)*2.6,b.pos.x,1.2,b.pos.z)});
+  }
+
+  if(SHOTS&&want('ik')){/* support hand on the forend: aiming and low-ready, side-on */
+    await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+    for(const[n,aim]of[['ik_long_guns_aim',1],['ik_long_guns_low_ready',0]])
+      await shot(n,aim=>{const H=__ht,P=H.P;const g=['shotgun','double','beanbag','hunter','rifle','smg'];T_.lineup(g.map((x,i)=>({role:'thug',variant:['thug_hoodie','thug_track','thug_beanie','thug_red'][i%4],gun:x,aim,turn:Math.PI/2})),{dist:3.4,spacing:.85,steps:30});
+        const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x,1.35,P.pos.z,P.pos.x+f[0]*3.4,1.2,P.pos.z+f[1]*3.4);P.dude.root.visible=false;H.render.draw()},aim);
+    await shot('ik_shotgun_close',()=>{const H=__ht,P=H.P;T_.lineup([{role:'thug',variant:'thug_red',gun:'shotgun',aim:1,turn:Math.PI/2}],{dist:1.6,steps:30});const d=T_.row[0];const q=d.root.position;
+      const f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];T_.cam(P.pos.x+f[0]*.3,1.45,P.pos.z+f[1]*.3,q.x,1.3,q.z)});
   }
 
   if(want('perf')){
