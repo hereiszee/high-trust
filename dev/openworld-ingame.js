@@ -36,8 +36,8 @@ const drive=(p,wps,steps,boost)=>p.evaluate(([wps,steps,boost])=>{const H=window
     const ms=(performance.now()-t0)/10;const ft=H.fastTravel('auto');return{n,ms,ft}});await p.waitForTimeout(700);
   const ftp=await p.evaluate(()=>{const H=window.__ht,a=H.WORLD.places.auto;return Math.hypot(H.VAN.pos.x-a.x,H.VAN.pos.z-a.z)});
   ok(g.n>1,'GPS route to the job site ('+g.n+' points, '+g.ms.toFixed(1)+' ms per solve)');ok(g.ft&&ftp<1,"fast travel to Dad's Auto puts the van on the pin ("+ftp.toFixed(2)+' m)');
-  const rg=await p.evaluate(()=>{const H=window.__ht;if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(330,0,43);H.step(3);const w=H.prog.world;return{region:H.region,river:w.visited.river,pins:w.pins.slice()}});
-  ok(rg.region==='river'&&rg.river&&rg.pins.includes('center')&&rg.pins.includes('mart'),'crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked');
+  const rg=await p.evaluate(()=>{const H=window.__ht;if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(330,0,43);H.step(3);const w=H.owW?H.owW():H.prog.world;return{region:H.region,river:w.visited.river,pins:w.pins.slice(),mode:H.mode,lvl:H.L.def.id,p:[H.P.pos.x,H.P.pos.z],save:!!(H.SAVE&&H.SAVE.world)}});
+  ok(rg.region==='river'&&rg.river&&rg.pins.includes('center')&&rg.pins.includes('mart'),'crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked'+(rg.region==='river'&&rg.river?'':' '+JSON.stringify(rg)));
   const f=await p.evaluate(()=>{const H=window.__ht,L=H.L,k=H.keys,V=H.VAN,P=H.P;H.JOB=null;let inside=0,ends=0,oob=0;const keys=['w','a','s','d','shift'];
     const ins=(x,z)=>{for(const c of L.cgrid({x,z},0))if(c.ph!==undefined&&x>c.x0+.05&&x<c.x1-.05&&z>c.z0+.05&&z<c.z1-.05)return c;return null};
     for(let seg=0;seg<60;seg++){if(seg%4===1&&!V.on&&Math.hypot(V.pos.x-P.pos.x,V.pos.z-P.pos.z)<4)H.enterVan();if(seg%4===3&&V.on){V.spd=0;H.exitVan()}
