@@ -188,7 +188,7 @@ function setBase(d,name,instant){const rb=d.rb;if(!clips(name,rb.hip))name=rb.id
 
 /* ---------- public driving API ---------- */
 P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
-  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;if(rb.force)Object.assign(inp,rb.force);
+  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;inp.air=o.air||null;if(rb.force)Object.assign(inp,rb.force);
   if(dt>0){const x=r.position.x,z=r.position.z;if(rb.lx!==null){const dx=x-rb.lx,dz=z-rb.lz,dd=Math.hypot(dx,dz);
       if(dd<3){const s=Math.sin(r.rotation.y),c=Math.cos(r.rotation.y);const k=1-Math.exp(-dt*10);const sc=r.scale.x||1;
         /* local: +x = character's left, +z = forward; scaled characters take longer strides */
@@ -278,7 +278,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   for(const k in rb.lw){const tgt=k===rb.base?1:0;const w=rb.lw[k];rb.lw[k]=tgt>w?Math.min(1,w+dt/fade):Math.max(0,w-dt/fade);sum+=rb.lw[k]}
   if(sum<=0){rb.lw[rb.base]=1;sum=1}
   if(rb.getUp>0)rb.getUp-=dt;
-  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k);a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
+  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k)*(1-.85*(rb.airHold||0));a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
   /* upper-body layers: one-shot > aim > hold > locomotion arms */
   const gun=rb.gunType,pist=rb.style==='pistol',longGun=gun&&!pist;
   const v=Math.hypot(rb.vx,rb.vz);
@@ -299,8 +299,11 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* the mixer skips writing a bone whose animated value did not change, so undo last frame's procedural offsets (aim pitch, hinge, IK) first or they accumulate */
   {const B=rb.bones,N=PROC_BONES;
    if(rb.pre)for(const n of N)if(B[n]&&rb.pre[n])B[n].quaternion.copy(rb.pre[n]);
+   if(rb.airPre)rb.airB.forEach((b,i)=>{if(b)b.quaternion.copy(rb.airPre[i])});/* same for the jump/land leg offsets */
    rb.mixer.update(dt);
-   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion)}
+   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion);
+   const AB=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));rb.airPre=rb.airPre||AB.map(b=>b?b.quaternion.clone():null);AB.forEach((b,i)=>{if(b)rb.airPre[i].copy(b.quaternion)})}
+  applyAir(d,dt);
   /* phase for the first-person bob and footsteps */
   const ba=rb.acts[rb.base];if(ba&&ba.lo&&SPEED[rb.base]){rb.phase=ba.lo.time/ba.c.dur;d.walk=rb.phase*Math.PI*4}else d.walk*=.9;
   /* aim pitch: split between spine and both upper arms (rotating both arms about the shoulder line keeps the support hand on the gun) */
@@ -324,6 +327,31 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* bodies stay a while, then sink away */
   if(rb.dead){rb.deadT+=dt;if(rb.deadT>12){d.body.position.y=-Math.min(1,(rb.deadT-12)/2.5)*.6;if(rb.deadT>14.5)d.root.visible=false}}}
 
+/* ---------- procedural jump / fall / land / vault (the clip set has none) ----------
+   inp.air = {k:'jump'|'fall'|'land'|'vault'|'climb'|'mantle', t, vy, amt}: knees tuck, arms balance, landings absorb.
+   Applied on top of the clip pose, before the aim layer, so a raised gun stays on target. */
+const AIR_B=['Bip01_L_Thigh','Bip01_R_Thigh','Bip01_L_Calf','Bip01_R_Calf','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_Spine','Bip01_L_Foot','Bip01_R_Foot'];
+function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const S=rb.air||(rb.air={tuck:0,dip:0,lean:0,arms:0,split:0});
+  let tuck=0,dip=0,lean=0,arms=0,split=0,hold=0;
+  if(a){const t=a.t||0;
+    if(a.k==='jump'){tuck=.25+.55*Math.min(1,t/.22);arms=.7;lean=.06;split=.25;hold=1}
+    else if(a.k==='fall'){tuck=.45+.25*Math.min(1,t/.4);arms=.9;lean=.02;split=.15;hold=1}
+    else if(a.k==='land'){const e=t<.22?t/.22:Math.pow(1-(t-.22)/.78,1.6);/* fast absorb, slow rise */dip=(a.amt||.3)*e;tuck=dip*.9;lean=dip*.35;arms=.4*(1-t)}
+    else if(a.k==='vault'){const e=Math.sin(Math.PI*Math.min(1,t));tuck=.3+.9*e;lean=.45*e;split=.35*e;arms=.2;hold=1}
+    else{/* climb / mantle: knee up onto the ledge, then push up */const e=Math.sin(Math.PI*Math.min(1,t*1.1));tuck=.2+.8*e;lean=.35*e;dip=.25*(1-t);split=.5*e;hold=1}}
+  const k=Math.min(1,dt*(a&&a.k==='land'?24:14));S.tuck+=(tuck-S.tuck)*k;S.dip+=(dip-S.dip)*k;S.lean+=(lean-S.lean)*k;S.arms+=(arms-S.arms)*k;S.split+=(split-S.split)*k;
+  rb.airHold=(rb.airHold||0)+(hold-(rb.airHold||0))*Math.min(1,dt*12);
+  if(S.tuck<.003&&S.dip<.003&&S.lean<.003&&S.arms<.003){if(!a)d.body.position.y=0;return}
+  const B=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));const rq=d.root.getWorldQuaternion(new T.Quaternion()),left=new T.Vector3(1,0,0).applyQuaternion(rq),fwdW=new T.Vector3(0,0,1).applyQuaternion(rq);
+  /* knees: thigh forward (negative about the character's left axis), shin folds back about twice as far; one leg leads */
+  const tl=S.tuck*(1+S.split*.6),tr=S.tuck*(1-S.split*.6);
+  rotWorld(B[0],left,-.95*tl);rotWorld(B[1],left,-.95*tr);rotWorld(B[2],left,1.55*tl);rotWorld(B[3],left,1.55*tr);
+  rotWorld(B[7],left,-.45*tl);rotWorld(B[8],left,-.45*tr);
+  if(S.lean>.003)rotWorld(B[6],left,S.lean*.5);
+  /* arms out for balance (only without a gun up; the aim layer owns the arms then) */
+  if(S.arms>.003&&!(rb.gunType&&rb.in.aim)){rotWorld(B[4],fwdW,-.55*S.arms);rotWorld(B[5],fwdW,.55*S.arms)}
+  /* landing absorb: hips sink while the knees bend (feet stay near the floor) */
+  d.body.position.y=-(S.dip*.22+S.tuck*(a&&(a.k==='land'||a.k==='climb'||a.k==='mantle')?.06:0))}
 P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;
   for(let i=P.live.length-1;i>=0;i--){const d=P.live[i];const rb=d.rb;
     if(!d.root.parent){if(++rb.orphan>90){P.live.splice(i,1);rb.mixer.stopAllAction()}continue}rb.orphan=0;
