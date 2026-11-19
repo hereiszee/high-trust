@@ -689,12 +689,24 @@ function buildLevel(def){
       const m=box((x-s)*TILE,3.2,TILE,def.wall,(s+x)*TILE/2,1.6,tileC(z));addSolid(m,s*TILE,z*TILE,x*TILE,z*TILE+TILE);
       box((x-s)*TILE+.02,.12,TILE+.02,'#5b5550',(s+x)*TILE/2,3.2,tileC(z),group)}else x++}}
   /* houses */
-  const seen=new Set(),houses=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
+  const seen=new Set(),houses=[],statics=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
   let hseed=1;
+  /* Hank's Hardware on the corner of Ridgeview and Linden (hub only): replaces two house lots; lvl.shopDoor marks the entrance for the shop integration */
+  if(def.id==='hub'){const lot={x0:35,z0:11,x1:40,z1:17};for(let z=lot.z0;z<=lot.z1;z++)for(let x=lot.x0;x<=lot.x1;x++){g[z][x]='h';seen.add(z*W+x)}
+    const w=10,d=12,cx=lot.x0*TILE+.4+w/2,cz=(lot.z1+1)*TILE-.4-d/2;let sg=null;const B_=HTM('Buildings');
+    if(B_&&B_.shop){try{sg=B_.shop({kind:'hardware',w,d,facing:'+z',seed:3})}catch(e){console.warn('shop failed',e);sg=null}}
+    if(sg){sg.position.set(cx,0,cz);group.add(sg);sg.traverse(m=>{if(m.isMesh){lvl.solids.push(m);m.castShadow=m.castShadow!==false;m.receiveShadow=true}});statics.push(sg)}
+    else{const m=box(w,4.6,d,'#b9b2a4',cx,2.3,cz,group);lvl.solids.push(m)}
+    lvl.colliders.push({x0:cx-w/2,z0:cz-d/2,x1:cx+w/2,z1:cz+d/2});
+    const dr=sg&&sg.userData.door;lvl.shopDoor={kind:'hardware',name:"Hank's Hardware",x:cx+(dr?dr.x:0),z:dr?cz+dr.z:cz+d/2,nx:0,nz:1};
+    if(WB&&HW.shopFront){try{HW.shopFront(WB,{x0:cx-w/2,x1:cx+w/2,z:cz+d/2,door:lvl.shopDoor})}catch(e){console.warn('shop front failed',e)}}}
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){if(g[z][x]!=='h'||seen.has(z*W+x))continue;let x1=x;while(x1<W&&g[z][x1]==='h')x1++;let z1=z;while(z1<H&&g[z1][x]==='h')z1++;
     for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen.add(zz*W+xx);
     const facing=houseFacing(g,x,z,x1,z1),home=px_>=x-1&&px_<=x1&&Math.abs(pz_-z)<=2&&!houses.some(h=>h.home);
-    const hs=placeHouse(lvl,WB,{x0:x*TILE+.15,z0:z*TILE+.15,x1:x1*TILE-.15,z1:z1*TILE-.15},facing,(hseed++)*7919+x*31+z,home);hs.home=home;houses.push(hs)}
+    const lot={x0:x*TILE+.15,z0:z*TILE+.15,x1:x1*TILE-.15,z1:z1*TILE-.15},fp={...lot},sd=(hseed++)*7919+x*31+z;let drive=null;
+    /* hub lots get a driveway beside the house: the house narrows, the slab runs to the street */
+    if(def.id==='hub'&&WB&&!home&&fp.x1-fp.x0>9&&(facing==='+z'||facing==='-z')){const dw=3;if((sd>>3)%2){drive={x0:fp.x1-dw+.2,x1:fp.x1};fp.x1-=dw}else{drive={x0:fp.x0,x1:fp.x0+dw-.2};fp.x0+=dw}}
+    const hs=placeHouse(lvl,WB,fp,facing,sd,home);hs.home=home;hs.lot=lot;hs.drive=drive;houses.push(hs);if(hs.group)statics.push(hs.group)}
   lvl.houses=houses;
   if(WB&&houses.length){try{for(const h of houses)HW.yard(WB,h);HW.lotFences(WB,houses)}catch(e){console.warn('yards failed',e)}}
   const lowQ=RENDER.q==='low';
@@ -704,24 +716,24 @@ function buildLevel(def){
     else if(ch==='f'){if(WB&&HW.hedge(WB,X,Z,true)){lvl.solids.push(HW.proxy(WB,2,1.2,.8,X,.6,Z));lvl.colliders.push({x0:X-1,z0:Z-.4,x1:X+1,z1:Z+.4})}
       else{const m=box(TILE,1.2,.8,'#3f6e35',X,.6,Z);addSolid(m,X-1,Z-.4,X+1,Z+.4)}}
     else if(ch==='t'){lvl.colliders.push({x0:X-.45,z0:Z-.45,x1:X+.45,z1:Z+.45});
-      if(WB){const edge=x===0||z===0||x===W-1||z===H-1;if(!edge||(x+z)%(lowQ?4:3)===0)HW.tree(WB,X,Z,{s:edge?1.15:1});lvl.solids.push(HW.proxy(WB,.5,3,.5,X,1.5,Z))}
+      if(WB){const edge=x===0||z===0||x===W-1||z===H-1;if(!edge||(x+z)%(lowQ?4:3)===0)HW.tree(WB,X,Z,{s:edge?1.15:1,edge:edge?[x===0?-1:x===W-1?1:0,z===0?-1:z===H-1?1:0]:null});lvl.solids.push(HW.proxy(WB,.5,3,.5,X,1.5,Z))}
       else{const tr=box(.5,2.4,.5,'#5a4030',X,1.2,Z);group.add(tr);lvl.solids.push(tr);const top=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0),mat(pick(['#3f6e35','#4b7f3d','#5a9148'])));top.position.set(X,3.2,Z);top.castShadow=true;group.add(top);lvl.solids.push(top)}}
     else if(ch==='T'){let bags;if(WB){bags=HW.stash(WB,X,Z);lvl.solids.push(HW.proxy(WB,1.8,.85,1.1,X,.425,Z));lvl.colliders.push({x0:X-.9,z0:Z-.55,x1:X+.9,z1:Z+.55})}
       else{const m=box(1.8,.85,1.1,'#5a4636',X,.425,Z);addSolid(m,X-.9,Z-.55,X+.9,Z+.55);bags=[];for(let i=0;i<4;i++)bags.push(box(.32,.18,.24,'#f1f1f1',X-.5+i*.33,.95,Z+rand(-.2,.2),group));bags.push(box(.25,.12,.18,'#c0c0c0',X+.6,.92,Z-.3,group))}
       lvl.stashes.push({x:X,z:Z,prog:0,done:false,bags})}
     else if(ch==='I'){let pile;if(WB)pile=HW.pile(WB,X,Z);else{pile=new THREE.Group();for(let i=0;i<5;i++)box(rand(.35,.6),rand(.25,.45),rand(.35,.6),pick(['#b8874f','#c99c66','#a77a44']),rand(-.4,.4),.2+i*.12,rand(-.4,.4),pile);pile.position.set(X,0,Z);group.add(pile)}lvl.items.push({x:X,z:Z,mesh:pile,got:false})}
     else if(ch==='a'){let m;if(WB)m=HW.ammo(WB,X,Z);else{m=new THREE.Group();box(.7,.4,.45,'#3f5a33',0,.2,0,m);box(.72,.06,.47,'#ffc94a',0,.34,0,m);m.position.set(X,0,Z);group.add(m)}lvl.ammo.push({x:X,z:Z,mesh:m,got:false})}
-    else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+    else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);statics.push(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
       lvl.exit={x:X+2.6,z:Z};const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));ring.position.set(X+2.6,.03,Z);group.add(ring);lvl.exitRing=ring}
     else if(ch==='V'){if(def.id==='hub')Z+=(g[z-1]&&g[z-1][x]==='s')?-.5:(g[z+1]&&g[z+1][x]==='s')?.5:0;const k=(x*7+z*13)%CAR_TYPES.length;const v=makeVan(CAR_COLS[(x+z)%CAR_COLS.length],CAR_TYPES[k]);v.position.set(X,WB?HW.groundY(lvl,X,Z):0,Z);
-      if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
+      if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);statics.push(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
     else if(ch==='Q'){if(WB){HW.grill(WB,X,Z).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});HW.bounce(WB,X,Z+9).traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
       else{const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
         const bh=new THREE.Group();box(3,1.6,3,'#e5533d',0,.8,0,bh);box(3.1,.6,3.1,'#2f5d9e',0,1.9,0,bh);box(.6,.6,.6,'#ffc94a',-1.2,2.5,-1.2,bh);box(.6,.6,.6,'#ffc94a',1.2,2.5,1.2,bh);bh.position.set(X,0,Z+9);group.add(bh);bh.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
       lvl.colliders.push({x0:X-.7,z0:Z-.5,x1:X+.7,z1:Z+.5});lvl.grill={x:X,z:Z};lvl.colliders.push({x0:X-1.55,z0:Z+9-1.55,x1:X+1.55,z1:Z+9+1.55});lvl.bounce={x:X,z:Z+9}}
     else if(ch==='P'){lvl.start=V3(X,0,Z)}
     else if(ch==='l'){lvl.colliders.push({x0:X-.2,z0:Z-.2,x1:X+.2,z1:Z+.2});if(!WB){const m=box(.16,4.2,.16,'#3a3d42',X,2.1,Z);group.add(m);lvl.solids.push(m);box(.9,.12,.3,'#3a3d42',X+.4,4.2,Z,group);box(.4,.06,.24,'#fff6c8',X+.6,4.12,Z,group)}
-      else lvl.solids.push(HW.proxy(WB,.2,7,.2,X,3.5,Z))}
+      else{const pr=HW.proxy(WB,.2,7,.2,X,3.5,Z);pr.userData.camSkip=true;lvl.solids.push(pr)}}
     else if(ch==='E'||ch==='B'){lvl.spawns.push({x:X,z:Z,boss:ch==='B'})}
     else if(ch==='S'){lvl.waveSpawns.push({x:X,z:Z})}
     else if('1234'.includes(ch)){lvl.markers.push({i:+ch-1,x:X,z:Z})}
@@ -729,8 +741,12 @@ function buildLevel(def){
   if(WB){try{HW.finish(WB)}catch(e){console.warn('world finish failed',e)}
     /* parked cars the world module picked along the curbs */
     for(const pc of WB.parked||[]){const k=Math.floor(pc.x*3+pc.z)%CAR_TYPES.length;const v=makeVehicle(CAR_TYPES[k],CAR_COLS[Math.floor(pc.x+pc.z)%CAR_COLS.length]);if(!v)continue;
-      v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
-      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}}
+      v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);statics.push(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}
+    /* houses, shop and parked cars are static: merge them per material (keeps draw calls down), one box proxy each for rays */
+    if(HW.mergeStatic){try{const gone=HW.mergeStatic(WB,statics);if(gone.size)lvl.solids=lvl.solids.filter(m=>!gone.has(m))}catch(e){console.warn('static merge failed',e)}}}
+  /* camera booms ignore thin props (lamp posts) so the view never snaps in when passing one */
+  lvl.camSolids=lvl.solids.filter(m=>!(m.userData&&m.userData.camSkip));
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
   setMood(def);
@@ -849,11 +865,11 @@ function updDriveCam(dt){
   camLookT-=dt;if(camLookT<=0&&Math.abs(VAN.spd)>2){let d=VAN.yaw-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;P.yaw+=d*Math.min(1,dt*2.6);P.pitch+=(-.22-P.pitch)*Math.min(1,dt*1.5)}
   P.pitch=clamp(P.pitch,-.9,.25);
   const tgt=V3(VAN.pos.x,1.8,VAN.pos.z),fw=camFwd(),want=tgt.clone().addScaledVector(fw,-8.5).add(V3(0,1.3,0));want.y=Math.max(.7,want.y);
-  const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();ray.set(tgt,dir);ray.near=0;ray.far=len;const h=ray.intersectObjects(L.solids,false)[0];
+  const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();ray.set(tgt,dir);ray.near=0;ray.far=len;const h=ray.intersectObjects(L.camSolids||L.solids,false)[0];
   const dist=h?Math.max(1.5,h.distance-.3):len;camDist=dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*4);
   camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2);
   const fov=CFG.fov+Math.max(0,VAN.spd)*.45;camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
-  sunFollow(VAN.pos.x,VAN.pos.z,fw.x,fw.z);
+  sunFollow(VAN.pos.x,VAN.pos.z,fw.x,fw.z);const HW=HTM('World');if(HW&&HW.focus)HW.focus(tgt);
 }
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[['Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
@@ -1144,17 +1160,18 @@ function updCamera(dt){
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vm.position.set(P.aim?.0:.24,-.22+Math.sin(P.dude.walk)*.01+(P.aim?.05:0),P.reloadT>0?-.32:-.45);vm.rotation.x=P.reloadT>0?.6:0}
   else{const back=P.aim?1.5:2.7,side=P.aim?.62:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
-    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.solids,false)[0]:null;
+    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
     const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
     const fwdH=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
     const want=pivot.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));want.y=Math.max(.45,want.y);
     const dir=want.clone().sub(pivot),len=dir.length();dir.normalize();ray.set(pivot,dir);ray.near=0;ray.far=len;
-    const h=L?ray.intersectObjects(L.solids,false)[0]:null;const dist=h?Math.max(.15,h.distance-.25):len;
+    const h=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;const dist=h?Math.max(.15,h.distance-.25):len;
     camDist=dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*8);
     camera.position.copy(pivot).addScaledVector(dir,Math.min(camDist,len));camera.position.y=Math.max(.3,camera.position.y);
     const cd=camera.position.distanceTo(eye);if(P.dude)P.dude.root.visible=cd>.9;
     for(const a of allies){a.dude.root.visible=Math.hypot(a.pos.x-camera.position.x,a.pos.z-camera.position.z)>1}}
   if(P.fp)for(const a of allies)a.dude.root.visible=true;
+  {const HW=HTM('World');if(HW&&HW.focus)HW.focus(eye)}
   sunFollow(P.pos.x,P.pos.z,-Math.sin(P.yaw),-Math.cos(P.yaw));
 }
 
