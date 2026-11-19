@@ -100,3 +100,13 @@ Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion 
 ## Effects (js/fx.js)
 
 No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
+
+## Firearms (assets/guns/) and first-person arms (js/guns.js)
+
+| Local file | Used as | Source asset | Author | License | Source URL | Processing |
+|---|---|---|---|---|---|---|
+| guns/ph_pistol.glb | Garage Pistol | Service Pistol | Poly Haven (Mateusz Sadek) | CC0 | https://polyhaven.com/a/service_pistol | 2k glTF; second finish variant + empty magazine removed; textures re-encoded to 1024px JPG; packed to GLB (glTF-Transform) |
+| guns/ph_bolt_rifle.glb | Deer Season | Bolt Action Rifle 7.62 | Poly Haven (Mateusz Sadek) | CC0 | https://polyhaven.com/a/bolt_action_rifle_7_62 | 2k glTF; textures re-encoded to 1024px JPG; packed to GLB |
+| guns/oga_m4a1.glb | Rick's Carbine | M4A1 Assault Rifle | BigWhyaaa (OpenGameArt) | CC0 | https://opengameart.org/content/m4a1-assault-rifle | FBX converted in-browser with three.js (FBXLoader -> GLTFExporter), scaled cm -> m, metal/rough packed into one texture, textures 1024px JPG |
+
+Procedural (built in code in js/guns.js, no external assets): revolver, pump shotgun, beanbag shotgun, side-by-side and sawed-off, SMG, cordless nailer, all attachments (red dot, suppressor, extended magazines, vertical foregrip), cartridges and shells, and the first-person arms, gloved hands and sleeves. All procedural textures (steel, walnut, checkering, polymer, leather, cloth) are generated at runtime on canvas.
