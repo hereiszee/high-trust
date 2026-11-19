@@ -61,7 +61,11 @@ AI.missionDiff=(i,name)=>(!name||name==='normal')&&AI.MISSION_DIFF[i]||AI.DIFFIC
 AI.roleFor=(gun,boss)=>boss?'boss':gun==='shotgun'||gun==='double'?'shotgunner':gun==='hunter'?'marksman':(gun==='smg'||gun==='nailer')&&R()<.6?'rusher':'grunt';
 
 /* ================= navigation ================= */
-const NAV_DEF={tile:2,solid:'#hctTfVQ',losBlock:'#htVcTf',lowCover:'cTf',structural:'#hV',radius:.35,colliders:null,inside:null,lowReach:2.4};
+const NAV_DEF={tile:2,solid:'#hctTfVQ',losBlock:'#htVcTf',lowCover:'cTf',structural:'#hV',radius:.35,colliders:null,inside:null,lowReach:2.4,
+  /* real footprint of low cover inside its cell (half extents, metres): the game's crates are 1.7 m, hedges 2 x 0.8, tables 1.8 x 1.1 */
+  lowBox:{c:[.85,.85],f:[1,.4],T:[.9,.55]},
+  /* same for thin high blockers, e.g. {t:[.3,.3]} for a tree trunk; chars not listed block their whole cell like a wall */
+  hiBox:{}};
 /* grid: array of strings or char arrays (the game's L.g). opts: tile, solid, losBlock, lowCover (crouch-height blockers),
    structural (chars that make doorways), colliders (world rects {x0,z0,x1,z1} that block cells whose centre they cover, e.g. L.colliders) */
 AI.buildNav=function(grid,opts){
@@ -85,11 +89,21 @@ AI.buildNav=function(grid,opts){
   /* line of sight, sampled every 0.5 m like the game's losClear(). High blockers always block. Low cover (crates, hedges)
      only hides a crouched man it is close to: a crate next to a standing dad 15 m away doesn't hide a crouched hoodie,
      the dad's eye (and camera) look straight over it. crouch: 'a' or 'b' = that end is crouched, true = both, falsy = neither */
-  const LR=o.lowReach;
-  nav.los=function(ax,az,bx,bz,crouch){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);
+  const LR=o.lowReach,LB=o.lowBox||{},HB=o.hiBox||{};
+  /* exact segment vs. the prop's box in cell k: [t0,t1] along a->b, or null */
+  const segBox=(k,ax,az,bx,bz,b)=>{const cx=nav.wx(k),cz=nav.wz(k),dx=bx-ax,dz=bz-az;let t0=0,t1=1;
+    for(let q=0;q<2;q++){const p=q?az:ax,d=q?dz:dx,lo_=(q?cz:cx)-b[q],hi_=(q?cz:cx)+b[q];
+      if(Math.abs(d)<1e-9){if(p<=lo_||p>=hi_)return null}else{let u0=(lo_-p)/d,u1=(hi_-p)/d;if(u0>u1){const w=u0;u0=u1;u1=w}if(u0>t0)t0=u0;if(u1<t1)t1=u1;if(t0>=t1)return null}}
+    return[t0,t1]};
+  /* walls block like the game's losClear (samples every 0.5 m). Props with a footprint (thin trunks; low crates and hedges,
+     which only matter when someone is crouched and close to them) are tested exactly against their box. */
+  nav.los=function(ax,az,bx,bz,crouch){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5)*2;let last=-1;
     for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n,gx=Math.floor(x/T),gz=Math.floor(z/T);
-      if(gx<0||gz<0||gx>=W||gz>=H)return false;const k=gz*W+gx;if(hi[k])return false;
-      if(crouch&&lo[k]){const da=d*i/n,db=d-da;if(crouch==='a'?da<LR:crouch==='b'?db<LR:(da<LR||db<LR))return false}}return true};
+      if(gx<0||gz<0||gx>=W||gz>=H){if(!(i&1))return false;continue}const k=gz*W+gx;if(k===last)continue;
+      if(hi[k]){const hb=HB[ch[k]];if(!hb){if(!(i&1)){return false}continue}last=k;if(segBox(k,ax,az,bx,bz,hb))return false;continue}
+      last=k;if(!crouch||!lo[k])continue;const lb=LB[ch[k]];let t0=0,t1=1;if(lb){const r=segBox(k,ax,az,bx,bz,lb);if(!r)continue;t0=r[0];t1=r[1]}
+      const nearA=t0*d<LR,nearB=(1-t1)*d<LR;if(crouch==='a'?nearA:crouch==='b'?nearB:(nearA||nearB))return false}
+    return true};
 
   /* circle of radius r at (x,z) clear of non-walkable cells */
   function clearPt(x,z,r){const cx=Math.floor(x/T),cz=Math.floor(z/T);if(!W_(cx,cz))return false;const fx=x-cx*T,fz=z-cz*T;
@@ -220,12 +234,19 @@ AI.buildNav=function(grid,opts){
     for(let d=0;d<8;d++){const dx=D8[d][0],dz=D8[d][1],nx=cx+dx,nz=cz+dz;if(!inb(nx,nz))continue;const j=nz*W+nx;if(!hi[j]&&!lo[j])continue;
       if(dx&&dz&&(!W_(cx+dx,cz)||!W_(cx,cz+dz)))continue;/* diagonal only counts at an outside corner */
       const isLow=!hi[j];dirs.push({dx:dx/(dx&&dz?SQ2:1),dz:dz/(dx&&dz?SQ2:1),low:isLow});if(isLow)low++;else high++;if(!(dx&&dz)){hx+=dx;hz+=dz}}
-    if(!dirs.length)continue;const hl=hyp(hx,hz)||1;const sh=hx||hz?.4:0;
+    if(!dirs.length)continue;
+    /* only a diagonal neighbour (an outside corner): tuck in towards it so the corner actually covers the body */
+    if(!hx&&!hz&&dirs.length===1){hx=Math.sign(dirs[0].dx);hz=Math.sign(dirs[0].dz)}
+    const hl=hyp(hx,hz)||1;const sh=hx||hz?.4:0;
     let x=nav.wx(k)+hx/hl*sh,z=nav.wz(k)+hz/hl*sh;if(!clearPt(x,z,o.radius)){x=nav.wx(k);z=nav.wz(k)}
     coverAt[k]=covers.length;covers.push({i:k,x,z,dirs,high:high>0,low:low>0&&!high,door:door[k]===1,room:room[k]})}
   nav.covers=covers;nav.coverAt=coverAt;
   /* how a spot hides from a threat at (tx,tz): 'stand' (high cover), 'crouch' (low cover) or null (exposed) */
-  nav.hides=function(sp,tx,tz){if(!nav.los(tx,tz,sp.x,sp.z,false))return'stand';if(!nav.los(tx,tz,sp.x,sp.z,'b'))return'crouch';return null};
+  /* a body is ~0.7 m wide: the lines to both shoulders have to be blocked too, or a crate corner only covers half of him */
+  const SH=.3;
+  const blockedAll=(sp,tx,tz,c)=>{const dx=sp.x-tx,dz=sp.z-tz,l=hyp(dx,dz)||1,px=-dz/l*SH,pz=dx/l*SH;
+    return!nav.los(tx,tz,sp.x,sp.z,c)&&!nav.los(tx,tz,sp.x+px,sp.z+pz,c)&&!nav.los(tx,tz,sp.x-px,sp.z-pz,c)};
+  nav.hides=function(sp,tx,tz){if(blockedAll(sp,tx,tz,false))return'stand';if(blockedAll(sp,tx,tz,'b'))return'crouch';return null};
   /* where to shoot from: low cover peeks over (stand up in place); high cover leans out to a side */
   nav.peekFrom=function(sp,tx,tz,hideStance){
     if(hideStance==='crouch'&&nav.los(sp.x,sp.z,tx,tz,false))return{side:'over',x:sp.x,z:sp.z};

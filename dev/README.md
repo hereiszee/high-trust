@@ -49,3 +49,10 @@ HT.CarAI.simulateChase({seed, carType, max, vehicle, crew, gap, trace})
 - **Road graph** is 60 nodes / 81 edges, not 64/85: dead-end stubs under 4 tiles are pruned (riverbank and lot-fence ends).
 - **Rubber band** retuned to d>80 ×0.65, d>50 ×0.8, d<20 ×1.05 so a stock van usually catches the Duke.
 - **AI cars** don't steer around parked cars. Keep parked cars off AI routes, or pass `ctx.blocked`.
+
+## Game AI in the real game (`js/ai.js`, see `docs/AI.md`)
+
+- `node dev/ai.test.js` — module tests and node mission sims (`--quick`, `--write`).
+- `node dev/ai-ingame.js [--missions 0,1,2,3] [--no-shots]` — loads `index.html` in headless Chromium (SwiftShader), plays every mission with a scripted dad through `window.__ht.step()`, and checks cover against the dad's real camera and shoulder rays, crouch hitbox heights, fire tokens, flankers, boss phases, waves, crew vs camera, stacking, and the surrender/zip-tie/trust rules. It writes `docs/screenshots/ai-ingame/evidence.txt`, `evidence.json` and jpg screenshots.
+- `node dev/ai-ingame-fair.js [--seeds 6] [--write]` — win rate and health per mission for a steady and a casual scripted player.
+- `dev/ai-ingame-lib.js` serves the repo to the browser through Playwright request routing (no server process) and pauses the page's own loop once assets are loaded; `dev/ai-ingame-bot.js` and `dev/ai-ingame-probe.js` are injected into the page.

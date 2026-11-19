@@ -10,7 +10,15 @@ const lines=[];const log=s=>{console.log(s);lines.push(s)};
 (async()=>{const {b,p,errs,loadMs}=await open({viewport:{width:1280,height:720}});
   await p.addScriptTag({path:path.join(__dirname,'ai-ingame-bot.js')});await p.addScriptTag({path:path.join(__dirname,'ai-ingame-probe.js')});
   log(`loaded index.html in ${loadMs} ms (assets done)`);
-  const shot=async name=>{if(!SHOTS)return;await p.evaluate(()=>__ht.draw());await p.screenshot({path:path.join(OUT,name+'.jpg'),type:'jpeg',quality:82});log('  screenshot docs/screenshots/ai-ingame/'+name+'.jpg')};
+  /* screenshot: let pending UI timers (the result card) fire, hide the cards and the banner, then render from the game camera,
+     or from a free camera {from:[x,y,z],at:[x,y,z]} without moving the dad's */
+  const shot=async(name,view)=>{if(!SHOTS)return;await p.waitForTimeout(1300);
+    await p.evaluate(view=>{for(const el of document.querySelectorAll('#cTitle,#cResult,#cBrief,#cPause'))el.hidden=true;document.getElementById('banner').classList.remove('on');
+      /* the paused render loop never expires old tracers and dust puffs: hide them for the picture (the game removes them itself) */
+      for(const o of __ht.scene.children){if(o.isLine||(o.isMesh&&o.geometry&&o.geometry.parameters&&o.geometry.parameters.width===.08))o.visible=false}
+      const H=__ht,ban=document.getElementById('banner');ban.style.visibility='hidden';if(!view){H.draw();ban.classList.remove('on');return}H.draw();ban.classList.remove('on');const c=H.camera,o=c.position.clone(),q=c.quaternion.clone();c.position.set(...view.from);c.lookAt(new THREE.Vector3(...view.at));
+      for(const a of H.allies)a.dude.root.visible=true;H.render.draw();c.position.copy(o);c.quaternion.copy(q)},view||null);
+    await p.screenshot({path:path.join(OUT,name+'.jpg'),type:'jpeg',quality:82});log('  screenshot docs/screenshots/ai-ingame/'+name+'.jpg')};
   const evidence={loadMs,missions:[]};
   /* ---------- full playthroughs ---------- */
   for(const mi of MISSIONS){
@@ -21,7 +29,7 @@ const lines=[];const log=s=>{console.log(s);lines.push(s)};
     for(;;){res=await p.evaluate(()=>{const H=__ht;const t0=performance.now();let n=0;
         while(n<240&&H.M.state==='go'&&H.M.elapsed<400){__bot.tick(1/30);H.step(1);__probe.tick();n++;if(__probe.R.snap)break}
         return{state:H.M.state,t:H.simT,snap:__probe.R.snap,ms:performance.now()-t0,n}});
-      if(res.snap){await shot(res.snap);await p.evaluate(()=>{__probe.R.snaps.push(__probe.R.snap);__probe.R.snap=null})}
+      if(res.snap){await shot(res.snap,await p.evaluate(()=>__probe.R.snapView||null));await p.evaluate(()=>{__probe.R.snaps.push(__probe.R.snap);__probe.R.snap=null;__probe.R.snapView=null})}
       if(res.state!=='go'||res.n===0)break}
     const r=await p.evaluate(()=>{const H=__ht,M=H.M,R=__probe.R;const s=H.aiStats;
       return{mission:M.def.title,type:M.def.type,result:M.state,simTime:+M.elapsed.toFixed(1),kills:M.kills,cuffs:M.cuffs,trust:H.prog.trust,reinforced:M.reinforced||0,
@@ -57,6 +65,7 @@ const lines=[];const log=s=>{console.log(s);lines.push(s)};
       return{door:{x:+d.x.toFixed(1),z:+d.z.toFixed(1),axis:d.axis,room:nav.rooms[d.rooms.find(i=>nav.rooms[i].indoor)]?.name},allies:H.allies.map(a=>({id:a.id,state:a.ai.intent.state,stance:a.ai.stance,distDoor:+Math.hypot(a.pos.x-d.x,a.pos.z-d.z).toFixed(2),onDoorway:nav.isDoor(a.pos.x,a.pos.z),
           sameSideAsDad:Math.sign((a.pos.x-d.x)*ax+(a.pos.z-d.z)*az)===side})),barks:H.aiStats.barks.filter(b=>b.ev==='stack').map(b=>b.who+': '+b.text)}});
     log(`\n== crew stack (mission 3, house door, dad crouched beside it, no fight on): ${JSON.stringify(r)}`);evidence.stack=r;await shot('m3-crew-stack-at-door');
+    await shot('m3-crew-stack-at-door-overhead',await p.evaluate(()=>{const H=__ht,P=H.P,f=[-Math.sin(P.yaw),-Math.cos(P.yaw)];return{from:[P.pos.x-f[0]*3.5,5.5,P.pos.z-f[1]*3.5],at:[P.pos.x+f[0]*2,0,P.pos.z+f[1]*2]}}));
     const r2=await p.evaluate(()=>{const H=__ht,P=H.P;P.crouch=false;const n0=H.aiStats.barks.length;
       for(let i=0;i<75;i++){H.keys.w=true;H.step(1)}H.keys.w=false;H.step(45);return{breach:H.aiStats.barks.slice(n0).filter(b=>b.ev==='breach').map(b=>b.who+': '+b.text),crewInside:H.allies.filter(a=>H.L.nav.rooms[H.L.nav.roomAt(a.pos.x,a.pos.z)].indoor).length}});
     log(`  dad stands and walks through → ${JSON.stringify(r2)}`);evidence.breach=r2}
@@ -86,8 +95,9 @@ const lines=[];const log=s=>{console.log(s);lines.push(s)};
       const ai=AI.mem(e,{t:H.simT});Object.assign(ai,{mode:'combat',sub:'cover',cover:{spot:sp,hide:'crouch',peek:{side:'over',x:sp.x,z:sp.z}},phase:'hide',phaseT:H.simT+999,target:'player',lkp:{x:sp._pp.x,z:sp._pp.z,t:H.simT},visT:H.simT,stance:'crouch',glanceT:H.simT+999,retreated:true});
       /* a second one standing in the open beside him, for comparison */
       e2.state='idle';const s2=nav.nearestWalkable(sp.x+(sp.x-sp._pp.x)*.0+2.2,sp.z+2.2);e2.pos.set(nav.wx(s2),0,nav.wz(s2));AI.mem(e2,{t:H.simT}).mode='idle';
-      P.pos.set(sp._pp.x,0,sp._pp.z);P.crouch=false;for(const a of H.allies)a.down=true,a.downT=999;H.step(20);__bot.aimAt(new THREE.Vector3(sp.x,.9,sp.z));H.step(1);__bot.aimAt(new THREE.Vector3(sp.x,.9,sp.z));H.step(1);for(const a of H.allies)a.dude.root.visible=false});
-    await shot('m0-hoodie-crouched-behind-crate')}
+      P.pos.set(sp._pp.x,0,sp._pp.z);P.crouch=false;for(const a of H.allies)a.down=true,a.downT=999;H.step(20);__bot.aimAt(new THREE.Vector3(sp.x,.9,sp.z));H.step(1);__bot.aimAt(new THREE.Vector3(sp.x,.9,sp.z));H.step(1);for(const a of H.allies)a.dude.root.visible=false;
+      const dx=sp.x-sp._pp.x,dz=sp.z-sp._pp.z,l=Math.hypot(dx,dz);window.__side={from:[sp.x-dz/l*4.2+dx/l*1.2,1.7,sp.z+dx/l*4.2+dz/l*1.2],at:[sp.x-dx/l*.6,.6,sp.z-dz/l*.6]}});
+    await shot('m0-hoodie-crouched-behind-crate-dad-view');await shot('m0-hoodie-crouched-behind-crate-side-view',await p.evaluate(()=>window.__side))}
   /* ---------- a passive dad (doesn't shoot, can't die) in the compound yard: squads, tokens, flankers across rooms ---------- */
   {const r=await p.evaluate(()=>{const H=__ht,P=H.P,AI=H.AI;H.startMission(3);__probe.reset(3);const L=H.L,nav=L.nav;
       /* stand in the yard in front of the house, where the yard guards and the front rooms both have a view */

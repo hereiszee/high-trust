@@ -23,12 +23,16 @@ const levels=MAPS.map(m=>Sim.prepLevel(m));
 const navs=levels.map(L=>AI.buildNav(L.g,{colliders:L.colliders}));
 
 console.log('\nNavigation');
-/* game's losClear for comparison */
-function gameLos(L,ax,az,bx,bz,blk,low,reach){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=Math.floor(x/2),gz=Math.floor(z/2);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;const c=L.g[gz][gx];if(blk.includes(c))return false;if(low&&low.includes(c)&&d-d*i/n<reach)return false}return true}
+/* game's losClear for comparison; low = crouch-height chars that block only near the crouched end b, inside the prop's real footprint */
+const FOOT={c:[.85,.85],f:[1,.4],T:[.9,.55]};
+function gameLos(L,ax,az,bx,bz,blk,low,reach){const d=hyp(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=Math.floor(x/2),gz=Math.floor(z/2);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;const c=L.g[gz][gx];if(blk.includes(c))return false}
+  if(low){const m=Math.ceil(d/.05);for(let i=1;i<m;i++){const x=ax+(bx-ax)*i/m,z=az+(bz-az)*i/m;const gx=Math.floor(x/2),gz=Math.floor(z/2);if(gx<0||gz<0||gx>=L.W||gz>=L.H)continue;const c=L.g[gz][gx],f=FOOT[c];
+    if(low.includes(c)&&f&&Math.abs(x-(gx*2+1))<f[0]&&Math.abs(z-(gz*2+1))<f[1]&&d-d*i/m<reach)return false}}return true}
 navs.forEach((nav,mi)=>{const L=levels[mi];let losSame=0,losN=0;
   for(let k=0;k<1500;k++){const ax=rnd()*L.W*2,az=rnd()*L.H*2,bx=rnd()*L.W*2,bz=rnd()*L.H*2;losN++;
     if(nav.los(ax,az,bx,bz,'b')===gameLos(L,ax,az,bx,bz,'#htV','cTf',2.4)&&nav.los(ax,az,bx,bz,false)===gameLos(L,ax,az,bx,bz,'#htV'))losSame++}
-  check(`${MAPS[mi].id}: line of sight matches the game's losClear (standing = high blockers; crouched = plus low cover within 2.4 m of him)`,losSame===losN,`${losSame}/${losN}`);
+  /* the reference samples every 5 cm, the module tests prop boxes exactly: allow a few grazing-edge disagreements */
+  check(`${MAPS[mi].id}: line of sight matches the game's losClear (standing = high blockers; crouched = plus low cover within 2.4 m of him)`,losSame>=losN*.997,`${losSame}/${losN}`);
   /* paths */
   const walk=[];for(let k=0;k<nav.N;k++)if(nav.walk[k])walk.push(k);
   let tried=0,found=0,bad=0,cut=0,thin=0,ratio=[];

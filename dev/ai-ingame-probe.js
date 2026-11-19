@@ -6,7 +6,7 @@ window.__probe=(()=>{const H=__ht,AI=H.AI,P=H.P,cam=H.camera,B=__bot;const ray=n
     maxConc:0,reacts:[],poolPeak:0,poolMax:H.M.pool?H.M.pool.max:0,noToken:0,
     cover:{checked:0,hidden:0,unshootable:0,shotRays:0,leaks:[],rays:0,rayHits:0,maxTopCrouched:0,crouchedN:0},flanks:[],boss:{events:[],retreatRoom:null},waves:[],spawns:[],
     crew:{frames:0,inCone:0,occl:0,crosshair:0,hiddenNearCam:0},snaps:[],snap:null,done:{}};prev={subs:new Map(),n:H.enemies.length,wave:0,phase2:0,reinf:0,bossSub:null,trust:H.prog.trust,cuffs:0,shotSurr:H.prog.shotSurr,morale:[]}}
-  function snap(label){if(!R.done[label]){R.done[label]=1;R.snap=label;return true}return false}
+  function snap(label,view){if(!R.done[label]){R.done[label]=1;R.snap=label;R.snapView=view||null;return true}return false}
   function tick(){if(!R)return;ticks++;const t=H.simT-R.t0,M=H.M,L=H.L;if(!M)return;
     if(H.prog.trust!==prev.trust){R.trustEv.push({t:+t.toFixed(1),d:+(H.prog.trust-prev.trust).toFixed(1),why:M.cuffs!==prev.cuffs?'zip-tie':H.prog.shotSurr!==prev.shotSurr?'shot a surrendered man':M.state!=='go'?'mission end':'?'});prev.trust=H.prog.trust}
     prev.cuffs=M.cuffs;prev.shotSurr=H.prog.shotSurr;
@@ -27,13 +27,14 @@ window.__probe=(()=>{const H=__ht,AI=H.AI,P=H.P,cam=H.camera,B=__bot;const ray=n
       if(b.ai.phase2!==prev.phase2){R.boss.events.push({t:+t.toFixed(1),bossSub:b.ai.sub,phase:b.ai.phase2,hpFrac:+f.toFixed(2),room:L.nav.rooms[L.nav.roomAt(b.pos.x,b.pos.z)].name});prev.phase2=b.ai.phase2}
       if((M.reinforced||0)!==prev.reinf){R.boss.events.push({t:+t.toFixed(1),reinforced:M.reinforced,hpFrac:+f.toFixed(2)});prev.reinf=M.reinforced||0;R.boss.reinfT=t}
       if(b.ai.sub!==prev.bossSub){if(prev.bossSub==='retreat'||b.ai.sub==='retreat')R.boss.events.push({t:+t.toFixed(1),sub:b.ai.sub,room:L.nav.rooms[L.nav.roomAt(b.pos.x,b.pos.z)].name,distDad:+b.pos.distanceTo(P.pos).toFixed(1)});prev.bossSub=b.ai.sub}
-      if(R.boss.reinfT&&t-R.boss.reinfT>1.2)snap('m3-boss-reinforcements')}
+      if(R.boss.reinfT&&t-R.boss.reinfT>1.2){/* overhead of the King and the three who answered his call */
+        const g=[b,...H.enemies.slice(-3)];const cx=g.reduce((s,e)=>s+e.pos.x,0)/g.length,cz=g.reduce((s,e)=>s+e.pos.z,0)/g.length;snap('m3-boss-reinforcements',{from:[cx,13,cz+9],at:[cx,0,cz]})}}
     /* new enemies (waves, lookouts, reinforcements) */
     if(H.enemies.length>prev.n){const dad={x:P.pos.x,z:P.pos.z,fx:-Math.sin(P.yaw),fz:-Math.cos(P.yaw),fov:.96};
       for(const e of H.enemies.slice(prev.n))R.spawns.push({t:+t.toFixed(1),wave:M.dir?M.dir.wave:null,dist:+e.pos.distanceTo(P.pos).toFixed(1),seen:M.dir?M.dir.seenBy(dad,e.pos.x,e.pos.z):L.nav.los(P.pos.x,P.pos.z,e.pos.x,e.pos.z,false),lane:!!e.lane});prev.n=H.enemies.length}
     if(M.dir&&M.dir.wave!==prev.wave){prev.wave=M.dir.wave;R.waves.push({wave:M.dir.wave,t:+t.toFixed(1),moraleBefore:prev.morale,moraleAfter:[...M.squads.values()].map(s=>+s.morale.toFixed(2))});R.waveT=t}
     if(M.squads)prev.morale=[...M.squads.values()].map(s=>+s.morale.toFixed(2));
-    if(M.dir&&R.waveT&&t-R.waveT>5&&t-R.waveT<6)snap('m2-wave-'+M.dir.wave);
+    if(M.dir&&R.waveT&&t-R.waveT>5&&t-R.waveT<6)snap('m2-wave-'+M.dir.wave,{from:[L.grill.x,24,L.grill.z+16],at:[L.grill.x,0,L.grill.z-2]});
     if(ticks===90)snap('m'+R.i+'-crew-follow');
     /* cover: anyone hiding behind cover from the dad, checked against the dad's real camera rays */
     if(ticks%6===0)for(const e of H.enemies){if(e.state!=='idle'||!e.ai||e.ai.sub!=='cover'||e.ai.phase!=='hide'||!e.ai.cover)continue;const sp=e.ai.cover.spot;

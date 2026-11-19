@@ -1,0 +1,2226 @@
+{
+ "loadMs": 14635,
+ "missions": [
+  {
+   "mission": "Return to Sender",
+   "type": "loot",
+   "result": "won",
+   "simTime": 79.5,
+   "kills": 2,
+   "cuffs": 8,
+   "trust": 98,
+   "reinforced": 0,
+   "thinkUsPerCall": 9.64,
+   "thinkCalls": 6191,
+   "thinkMsPerSimSecond": 0.751,
+   "allyUsPerCall": 13.33,
+   "probe": {
+    "i": 0,
+    "t0": 0,
+    "trustEv": [
+     {
+      "t": 7.1,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 11,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 17.1,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 21.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 26.3,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 27.3,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 32.9,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 47.3,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 79.5,
+      "d": 16,
+      "why": "mission end"
+     }
+    ],
+    "moraleBefore": [],
+    "minHp": 87.19999999999999,
+    "dmg": 12.800000000000011,
+    "lastHp": 100,
+    "firstCombat": 0.33,
+    "firstShotDad": 18.8,
+    "eShots": 33,
+    "eShotsDad": 21,
+    "hitChMove": [
+     1.1096309239302817,
+     14
+    ],
+    "hitChStill": [
+     1.1551054974045536,
+     7
+    ],
+    "maxConc": 3,
+    "reacts": [
+     18.03,
+     1.2,
+     2.53,
+     20.73,
+     11.87
+    ],
+    "poolPeak": 3,
+    "poolMax": 3,
+    "noToken": 0,
+    "cover": {
+     "checked": 76,
+     "hidden": 67,
+     "unshootable": 76,
+     "shotRays": 0,
+     "leaks": [
+      {
+       "id": "e5",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 17.5,
+       "hit": 10,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e5",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 18.2,
+       "hit": 10,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e4",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 11.8,
+       "hit": 2,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.97
+      },
+      {
+       "id": "e6",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8.7,
+       "hit": 32,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.88
+      },
+      {
+       "id": "e6",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8.4,
+       "hit": 33,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.96
+      },
+      {
+       "id": "e6",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8,
+       "hit": 22,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e6",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8.7,
+       "hit": 20,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e6",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 9.4,
+       "hit": 18,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e10",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 16,
+       "hit": 29,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      }
+     ],
+     "rays": 3648,
+     "rayHits": 176,
+     "maxTopCrouched": 0,
+     "crouchedN": 0
+    },
+    "flanks": [],
+    "boss": {
+     "events": [],
+     "retreatRoom": null
+    },
+    "waves": [],
+    "spawns": [],
+    "crew": {
+     "frames": 477,
+     "inCone": 37,
+     "occl": 1,
+     "crosshair": 3,
+     "hiddenNearCam": 26
+    },
+    "snaps": [
+     "m0-crew-follow"
+    ],
+    "snap": null,
+    "done": {
+     "m0-crew-follow": 1
+    },
+    "snapView": null
+   },
+   "barks": [
+    {
+     "t": 0.33,
+     "who": "e2",
+     "ev": "investigate",
+     "text": "Somebody check the side door."
+    },
+    {
+     "t": 0.47,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 10.07,
+     "who": "e8",
+     "ev": "idle",
+     "text": "Somebody ordered forty pounds of dog food. Forty."
+    },
+    {
+     "t": 14.33,
+     "who": "e7",
+     "ev": "spotted",
+     "text": "Dads! We got dads!"
+    },
+    {
+     "t": 15.23,
+     "who": "gary",
+     "ev": "contactRoom",
+     "text": "One in the front hallway!"
+    },
+    {
+     "t": 18.4,
+     "who": "gary",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    },
+    {
+     "t": 18.83,
+     "who": "e5",
+     "ev": "rush",
+     "text": "He's hiding! Push!"
+    },
+    {
+     "t": 22.57,
+     "who": "e4",
+     "ev": "flanked",
+     "text": "He's flanking!"
+    },
+    {
+     "t": 23,
+     "who": "e6",
+     "ev": "friendDown",
+     "text": "Man down!"
+    },
+    {
+     "t": 26.4,
+     "who": "gary",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 27.3,
+     "who": "e6",
+     "ev": "rush",
+     "text": "He's reloading! Go go go!"
+    },
+    {
+     "t": 28.97,
+     "who": "e3",
+     "ev": "advance",
+     "text": "Going forward, cover me!"
+    },
+    {
+     "t": 29.4,
+     "who": "gary",
+     "ev": "contactRight",
+     "text": "Contact right!"
+    },
+    {
+     "t": 29.43,
+     "who": "e10",
+     "ev": "spotted",
+     "text": "Somebody's dad is here!"
+    },
+    {
+     "t": 32.67,
+     "who": "e3",
+     "ev": "hit",
+     "text": "He got me!"
+    },
+    {
+     "t": 37.13,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Clear. Somebody vacuum this place."
+    },
+    {
+     "t": 41.57,
+     "who": "gary",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    },
+    {
+     "t": 44.07,
+     "who": "e10",
+     "ev": "hit",
+     "text": "That's gonna bruise!"
+    },
+    {
+     "t": 48.3,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Clear!"
+    },
+    {
+     "t": 54.2,
+     "who": "gary",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 62.5,
+     "who": "gary",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 73.13,
+     "who": "gary",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    }
+   ],
+   "botShots": 241,
+   "botLog": [
+    [
+     "cuff",
+     7.1,
+     "e2"
+    ],
+    [
+     "cuff",
+     11,
+     "e1"
+    ],
+    [
+     "cuff",
+     17,
+     "e7"
+    ],
+    [
+     "cuff",
+     21.6,
+     "e5"
+    ],
+    [
+     "cuff",
+     26.2,
+     "e8"
+    ],
+    [
+     "cuff",
+     27.3,
+     "e9"
+    ],
+    [
+     "cuff",
+     32.9,
+     "e6"
+    ],
+    [
+     "cuff",
+     47.2,
+     "e10"
+    ]
+   ],
+   "hp": 100,
+   "enemies": 10,
+   "roomNames": [
+    "outside",
+    "the front-right room",
+    "the front-left room",
+    "the back-right room",
+    "the back room",
+    "the back-left room",
+    "the front hallway"
+   ],
+   "wallSec": 7.9
+  },
+  {
+   "mission": "Fourth Quarter",
+   "type": "stash",
+   "result": "won",
+   "simTime": 61.3,
+   "kills": 2,
+   "cuffs": 6,
+   "trust": 90,
+   "reinforced": 0,
+   "thinkUsPerCall": 10.06,
+   "thinkCalls": 2883,
+   "thinkMsPerSimSecond": 0.473,
+   "allyUsPerCall": 10.38,
+   "probe": {
+    "i": 1,
+    "t0": 79.53333333333138,
+    "trustEv": [
+     {
+      "t": 4.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 6.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 21.9,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 24.7,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 30.4,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 40.9,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 61.3,
+      "d": 16,
+      "why": "mission end"
+     }
+    ],
+    "moraleBefore": [],
+    "minHp": 92,
+    "dmg": 8,
+    "lastHp": 100,
+    "firstCombat": 0.3,
+    "firstShotDad": 11.63,
+    "eShots": 26,
+    "eShotsDad": 10,
+    "hitChMove": [
+     1.2963753745469986,
+     9
+    ],
+    "hitChStill": [
+     0.2604004425937254,
+     1
+    ],
+    "maxConc": 2,
+    "reacts": [
+     3.87,
+     9.43,
+     1.8
+    ],
+    "poolPeak": 2,
+    "poolMax": 3,
+    "noToken": 0,
+    "cover": {
+     "checked": 55,
+     "hidden": 47,
+     "unshootable": 55,
+     "shotRays": 0,
+     "leaks": [
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 6.8,
+       "hit": 4,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 2.09
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 7.4,
+       "hit": 1,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.96
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8,
+       "hit": 6,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8.2,
+       "hit": 30,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.83
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 8.1,
+       "hit": 10,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.87
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 6,
+       "hit": 28,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.97
+      },
+      {
+       "id": "e17",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 5.4,
+       "hit": 30,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e18",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 12.6,
+       "hit": 32,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      }
+     ],
+     "rays": 2640,
+     "rayHits": 141,
+     "maxTopCrouched": 0,
+     "crouchedN": 0
+    },
+    "flanks": [],
+    "boss": {
+     "events": [],
+     "retreatRoom": null
+    },
+    "waves": [],
+    "spawns": [],
+    "crew": {
+     "frames": 368,
+     "inCone": 74,
+     "occl": 5,
+     "crosshair": 12,
+     "hiddenNearCam": 43
+    },
+    "snaps": [
+     "m1-crew-follow"
+    ],
+    "snap": null,
+    "done": {
+     "m1-crew-follow": 1
+    },
+    "snapView": null
+   },
+   "barks": [
+    {
+     "t": 79.83,
+     "who": "e11",
+     "ev": "spotted",
+     "text": "Cargo shorts, twelve o'clock!"
+    },
+    {
+     "t": 79.83,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 82.23,
+     "who": "e17",
+     "ev": "investigate",
+     "text": "You hear that?"
+    },
+    {
+     "t": 82.47,
+     "who": "gary",
+     "ev": "contactRoom",
+     "text": "Hoodie in the other front room!"
+    },
+    {
+     "t": 84.6,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 85.47,
+     "who": "e17",
+     "ev": "spotted",
+     "text": "Is that... a polo shirt?"
+    },
+    {
+     "t": 87.63,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 89.37,
+     "who": "e17",
+     "ev": "flanked",
+     "text": "Where's he shooting from?!"
+    },
+    {
+     "t": 92.77,
+     "who": "gary",
+     "ev": "covering",
+     "text": "Go, I got you!"
+    },
+    {
+     "t": 93.43,
+     "who": "e17",
+     "ev": "hit",
+     "text": "Ow! Ow!"
+    },
+    {
+     "t": 95.17,
+     "who": "e18",
+     "ev": "investigate",
+     "text": "Probably a raccoon. Go look."
+    },
+    {
+     "t": 97.8,
+     "who": "rick",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 99.03,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 103.83,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Clear!"
+    },
+    {
+     "t": 107.8,
+     "who": "e18",
+     "ev": "searching",
+     "text": "Check behind the minivan."
+    },
+    {
+     "t": 108.7,
+     "who": "rick",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    },
+    {
+     "t": 115.23,
+     "who": "e18",
+     "ev": "searching",
+     "text": "I can smell sunscreen. He's close."
+    },
+    {
+     "t": 118.37,
+     "who": "gary",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 118.77,
+     "who": "e18",
+     "ev": "hit",
+     "text": "My good hoodie!"
+    },
+    {
+     "t": 122.9,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Clear. Somebody vacuum this place."
+    },
+    {
+     "t": 126.9,
+     "who": "rick",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    },
+    {
+     "t": 136.7,
+     "who": "gary",
+     "ev": "yield",
+     "text": "After you."
+    }
+   ],
+   "botShots": 124,
+   "botLog": [
+    [
+     "cuff",
+     84.1,
+     "e12"
+    ],
+    [
+     "cuff",
+     86.1,
+     "e14"
+    ],
+    [
+     "cuff",
+     101.4,
+     "e13"
+    ],
+    [
+     "cuff",
+     104.2,
+     "e11"
+    ],
+    [
+     "cuff",
+     109.9,
+     "e15"
+    ],
+    [
+     "cuff",
+     120.4,
+     "e18"
+    ]
+   ],
+   "hp": 100,
+   "enemies": 8,
+   "roomNames": [
+    "outside",
+    "the front-right room",
+    "the front room",
+    "the other front room",
+    "the front-left room",
+    "the back-right room",
+    "the back room",
+    "the back-left room"
+   ],
+   "wallSec": 4.5
+  },
+  {
+   "mission": "Block Party",
+   "type": "waves",
+   "result": "won",
+   "simTime": 65.1,
+   "kills": 7,
+   "cuffs": 15,
+   "trust": 100,
+   "reinforced": 0,
+   "thinkUsPerCall": 18.76,
+   "thinkCalls": 3273,
+   "thinkMsPerSimSecond": 0.943,
+   "allyUsPerCall": 8.79,
+   "probe": {
+    "i": 2,
+    "t0": 140.86666666666125,
+    "trustEv": [
+     {
+      "t": 2.6,
+      "d": -10,
+      "why": "shot a surrendered man"
+     },
+     {
+      "t": 10.8,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 24.7,
+      "d": -10,
+      "why": "shot a surrendered man"
+     },
+     {
+      "t": 39.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 41,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 43.4,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 43.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 45.2,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 45.9,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 48,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 48.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 56.9,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 58.1,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 58.8,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 60.3,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 62.4,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 65.1,
+      "d": 14,
+      "why": "zip-tie"
+     }
+    ],
+    "moraleBefore": [],
+    "minHp": 92,
+    "dmg": 8,
+    "lastHp": 100,
+    "firstCombat": 0.07,
+    "firstShotDad": 2.4,
+    "eShots": 12,
+    "eShotsDad": 12,
+    "hitChMove": [
+     0.17444701705185955,
+     4
+    ],
+    "hitChStill": [
+     0.78200740480748,
+     8
+    ],
+    "maxConc": 2,
+    "reacts": [
+     1.57,
+     3.77,
+     1.13,
+     1.5,
+     6.3
+    ],
+    "poolPeak": 2,
+    "poolMax": 3,
+    "noToken": 0,
+    "cover": {
+     "checked": 17,
+     "hidden": 14,
+     "unshootable": 14,
+     "shotRays": 88,
+     "leaks": [
+      {
+       "id": "e24",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 19.7,
+       "hit": 28,
+       "shot": 28,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.86
+      },
+      {
+       "id": "e24",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 19.3,
+       "hit": 30,
+       "shot": 30,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.85
+      },
+      {
+       "id": "e24",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 19,
+       "hit": 30,
+       "shot": 30,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.87
+      }
+     ],
+     "rays": 816,
+     "rayHits": 88,
+     "maxTopCrouched": 1.1669452182417932,
+     "crouchedN": 14
+    },
+    "flanks": [],
+    "boss": {
+     "events": [],
+     "retreatRoom": null
+    },
+    "waves": [
+     {
+      "wave": 1,
+      "t": 0,
+      "moraleBefore": [],
+      "moraleAfter": [
+       1
+      ]
+     },
+     {
+      "wave": 2,
+      "t": 11.1,
+      "moraleBefore": [
+       0.13
+      ],
+      "moraleAfter": [
+       1
+      ]
+     },
+     {
+      "wave": 3,
+      "t": 29.4,
+      "moraleBefore": [
+       0
+      ],
+      "moraleAfter": [
+       1
+      ]
+     }
+    ],
+    "spawns": [
+     {
+      "t": 0,
+      "wave": 1,
+      "dist": 26.8,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 0,
+      "wave": 1,
+      "dist": 26.3,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 0,
+      "wave": 1,
+      "dist": 24.6,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 2.6,
+      "wave": 1,
+      "dist": 28.7,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 2.6,
+      "wave": 1,
+      "dist": 27.5,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 11.1,
+      "wave": 2,
+      "dist": 38.7,
+      "seen": true,
+      "lane": true
+     },
+     {
+      "t": 11.1,
+      "wave": 2,
+      "dist": 43.4,
+      "seen": true,
+      "lane": true
+     },
+     {
+      "t": 11.1,
+      "wave": 2,
+      "dist": 41.3,
+      "seen": true,
+      "lane": true
+     },
+     {
+      "t": 14.6,
+      "wave": 2,
+      "dist": 37.3,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 14.6,
+      "wave": 2,
+      "dist": 39.5,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 14.6,
+      "wave": 2,
+      "dist": 41.4,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 18.5,
+      "wave": 2,
+      "dist": 42,
+      "seen": true,
+      "lane": true
+     },
+     {
+      "t": 29.4,
+      "wave": 3,
+      "dist": 34.1,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 29.4,
+      "wave": 3,
+      "dist": 34.8,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 29.4,
+      "wave": 3,
+      "dist": 32.9,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 32.6,
+      "wave": 3,
+      "dist": 21.2,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 32.6,
+      "wave": 3,
+      "dist": 20.5,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 32.6,
+      "wave": 3,
+      "dist": 22,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 36,
+      "wave": 3,
+      "dist": 34.2,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 36,
+      "wave": 3,
+      "dist": 34.1,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 36,
+      "wave": 3,
+      "dist": 32,
+      "seen": false,
+      "lane": true
+     },
+     {
+      "t": 40,
+      "wave": 3,
+      "dist": 39,
+      "seen": false,
+      "lane": true
+     }
+    ],
+    "crew": {
+     "frames": 390,
+     "inCone": 120,
+     "occl": 2,
+     "crosshair": 13,
+     "hiddenNearCam": 55
+    },
+    "snaps": [
+     "m2-crew-follow",
+     "m2-wave-1",
+     "m2-wave-2",
+     "m2-wave-3"
+    ],
+    "snap": null,
+    "done": {
+     "m2-crew-follow": 1,
+     "m2-wave-1": 1,
+     "m2-wave-2": 1,
+     "m2-wave-3": 1
+    },
+    "waveT": 29.43333333333166,
+    "snapView": null
+   },
+   "barks": [
+    {
+     "t": 140.93,
+     "who": "gary",
+     "ev": "contactRight",
+     "text": "Contact right!"
+    },
+    {
+     "t": 141.57,
+     "who": "e21",
+     "ev": "hit",
+     "text": "Ow! Ow!"
+    },
+    {
+     "t": 141.83,
+     "who": "e19",
+     "ev": "friendDown",
+     "text": "Man down!"
+    },
+    {
+     "t": 143.5,
+     "who": "dave",
+     "ev": "contactBehind",
+     "text": "Behind us!"
+    },
+    {
+     "t": 145.43,
+     "who": "e23",
+     "ev": "hit",
+     "text": "That's gonna bruise!"
+    },
+    {
+     "t": 147.07,
+     "who": "gary",
+     "ev": "covering",
+     "text": "Go, I got you!"
+    },
+    {
+     "t": 151.97,
+     "who": "dave",
+     "ev": "clear",
+     "text": "Clear!"
+    },
+    {
+     "t": 155.6,
+     "who": "dave",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 157.07,
+     "who": "gary",
+     "ev": "covering",
+     "text": "Covering you!"
+    },
+    {
+     "t": 158.83,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 160.13,
+     "who": "e28",
+     "ev": "friendDown",
+     "text": "They got him!"
+    },
+    {
+     "t": 165.57,
+     "who": "dave",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 166,
+     "who": "e30",
+     "ev": "hit",
+     "text": "He got me!"
+    },
+    {
+     "t": 170.2,
+     "who": "dave",
+     "ev": "clear",
+     "text": "Clear. Somebody vacuum this place."
+    },
+    {
+     "t": 172,
+     "who": "rick",
+     "ev": "covering",
+     "text": "Reload, I've got this side."
+    },
+    {
+     "t": 173.67,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 173.93,
+     "who": "e35",
+     "ev": "hit",
+     "text": "My good hoodie!"
+    },
+    {
+     "t": 174.13,
+     "who": "e33",
+     "ev": "flanked",
+     "text": "Where's he shooting from?!"
+    },
+    {
+     "t": 176.9,
+     "who": "dave",
+     "ev": "contactBehind",
+     "text": "Check six! Like the minivan mirrors!"
+    },
+    {
+     "t": 178.67,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 182.37,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 187.13,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Room's clear."
+    }
+   ],
+   "botShots": 502,
+   "botLog": [
+    [
+     "cuff",
+     151.7,
+     "e20"
+    ],
+    [
+     "cuff",
+     180.4,
+     "e30"
+    ],
+    [
+     "cuff",
+     181.8,
+     "e26"
+    ],
+    [
+     "cuff",
+     184.2,
+     "e22"
+    ],
+    [
+     "cuff",
+     184.5,
+     "e25"
+    ],
+    [
+     "cuff",
+     186.1,
+     "e34"
+    ],
+    [
+     "cuff",
+     186.7,
+     "e35"
+    ],
+    [
+     "cuff",
+     188.8,
+     "e29"
+    ],
+    [
+     "cuff",
+     189.4,
+     "e36"
+    ],
+    [
+     "cuff",
+     197.8,
+     "e40"
+    ],
+    [
+     "cuff",
+     199,
+     "e38"
+    ],
+    [
+     "cuff",
+     199.6,
+     "e37"
+    ],
+    [
+     "cuff",
+     201.1,
+     "e32"
+    ],
+    [
+     "cuff",
+     203.3,
+     "e31"
+    ],
+    [
+     "cuff",
+     205.9,
+     "e39"
+    ]
+   ],
+   "hp": 100,
+   "enemies": 22,
+   "roomNames": [
+    "the yard"
+   ],
+   "wallSec": 16.5
+  },
+  {
+   "mission": "The Kingpin",
+   "type": "boss",
+   "result": "won",
+   "simTime": 62,
+   "kills": 6,
+   "cuffs": 10,
+   "trust": 100,
+   "reinforced": 3,
+   "thinkUsPerCall": 11.96,
+   "thinkCalls": 7559,
+   "thinkMsPerSimSecond": 1.458,
+   "allyUsPerCall": 9.78,
+   "probe": {
+    "i": 3,
+    "t0": 205.96666666665755,
+    "trustEv": [
+     {
+      "t": 16.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 24.7,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 26.4,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 26.7,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 31.6,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 34.8,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 35.1,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 40.2,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 46,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 54.4,
+      "d": 4,
+      "why": "zip-tie"
+     },
+     {
+      "t": 62,
+      "d": 10,
+      "why": "mission end"
+     }
+    ],
+    "moraleBefore": [],
+    "minHp": 54,
+    "dmg": 46,
+    "lastHp": 100,
+    "firstCombat": 0.03,
+    "firstShotDad": 10.2,
+    "eShots": 71,
+    "eShotsDad": 41,
+    "hitChMove": [
+     2.752693342885424,
+     29
+    ],
+    "hitChStill": [
+     2.16004456397259,
+     12
+    ],
+    "maxConc": 4,
+    "reacts": [
+     2.23,
+     3.3,
+     2.57,
+     6.1,
+     8.03,
+     9.23,
+     4.23,
+     5.87,
+     2.1,
+     3,
+     14.33,
+     4.47
+    ],
+    "poolPeak": 3,
+    "poolMax": 3,
+    "noToken": 0,
+    "cover": {
+     "checked": 124,
+     "hidden": 114,
+     "unshootable": 124,
+     "shotRays": 0,
+     "leaks": [
+      {
+       "id": "e45",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 4.5,
+       "hit": 25,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.77
+      },
+      {
+       "id": "e45",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 4.8,
+       "hit": 29,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.96
+      },
+      {
+       "id": "e45",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 4.7,
+       "hit": 14,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e47",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 7,
+       "hit": 32,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e52",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 13.4,
+       "hit": 30,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 2.01
+      },
+      {
+       "id": "e52",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 13.4,
+       "hit": 32,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.98
+      },
+      {
+       "id": "e47",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 6.2,
+       "hit": 33,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 1.95
+      },
+      {
+       "id": "e54",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 13.4,
+       "hit": 12,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 2.12
+      },
+      {
+       "id": "e54",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 14,
+       "hit": 18,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 2.12
+      },
+      {
+       "id": "e54",
+       "hide": "stand",
+       "crouched": false,
+       "dist": 14.6,
+       "hit": 13,
+       "shot": 0,
+       "top": 1.95,
+       "pcrouch": false,
+       "camY": 2.14
+      }
+     ],
+     "rays": 5952,
+     "rayHits": 238,
+     "maxTopCrouched": 0,
+     "crouchedN": 0
+    },
+    "flanks": [
+     {
+      "t": 19.2,
+      "id": "e51",
+      "ownFighting": 1,
+      "neighbours": 1,
+      "cross": true
+     }
+    ],
+    "boss": {
+     "events": [
+      {
+       "t": 26.9,
+       "bossSub": "move",
+       "phase": 1,
+       "hpFrac": 0.63,
+       "room": "the middle room"
+      },
+      {
+       "t": 26.9,
+       "reinforced": 3,
+       "hpFrac": 0.63
+      },
+      {
+       "t": 29.6,
+       "bossSub": "retreat",
+       "phase": 2,
+       "hpFrac": 0.3,
+       "room": "the middle room"
+      },
+      {
+       "t": 29.6,
+       "sub": "retreat",
+       "room": "the middle room",
+       "distDad": 1.3
+      }
+     ],
+     "retreatRoom": null,
+     "reinfT": 26.86666666666514
+    },
+    "waves": [],
+    "spawns": [
+     {
+      "t": 26.9,
+      "wave": null,
+      "dist": 14.2,
+      "seen": false,
+      "lane": false
+     },
+     {
+      "t": 26.9,
+      "wave": null,
+      "dist": 13.1,
+      "seen": false,
+      "lane": false
+     },
+     {
+      "t": 26.9,
+      "wave": null,
+      "dist": 12.3,
+      "seen": false,
+      "lane": false
+     }
+    ],
+    "crew": {
+     "frames": 372,
+     "inCone": 117,
+     "occl": 7,
+     "crosshair": 21,
+     "hiddenNearCam": 49
+    },
+    "snaps": [
+     "m3-crew-follow",
+     "m3-boss-reinforcements"
+    ],
+    "snap": null,
+    "done": {
+     "m3-crew-follow": 1,
+     "m3-boss-reinforcements": 1
+    },
+    "snapView": null
+   },
+   "barks": [
+    {
+     "t": 206,
+     "who": "e41",
+     "ev": "spotted",
+     "text": "Visor! Guy in a visor!"
+    },
+    {
+     "t": 206.03,
+     "who": "doug",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 207.4,
+     "who": "e44",
+     "ev": "friendDown",
+     "text": "They got him!"
+    },
+    {
+     "t": 212.97,
+     "who": "e48",
+     "ev": "investigate",
+     "text": "Was that a leaf blower?"
+    },
+    {
+     "t": 213.63,
+     "who": "e45",
+     "ev": "spotted",
+     "text": "Somebody's dad is here!"
+    },
+    {
+     "t": 213.63,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 215.77,
+     "who": "rick",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 216.43,
+     "who": "e48",
+     "ev": "hit",
+     "text": "He got me!"
+    },
+    {
+     "t": 218.33,
+     "who": "e45",
+     "ev": "flanked",
+     "text": "He's flanking!"
+    },
+    {
+     "t": 220.3,
+     "who": "gary",
+     "ev": "contactRoom",
+     "text": "Contact, in the middle room!"
+    },
+    {
+     "t": 222,
+     "who": "e46",
+     "ev": "spotted",
+     "text": "It's the neighborhood watch!"
+    },
+    {
+     "t": 222.33,
+     "who": "rick",
+     "ev": "contactBehind",
+     "text": "Check six! Like the minivan mirrors!"
+    },
+    {
+     "t": 223.5,
+     "who": "e52",
+     "ev": "flanked",
+     "text": "Where's he shooting from?!"
+    },
+    {
+     "t": 223.97,
+     "who": "dave",
+     "ev": "contactRoom",
+     "text": "Hoodie in the middle room!"
+    },
+    {
+     "t": 225.17,
+     "who": "e51",
+     "ev": "flanking",
+     "text": "Taking the side, keep him busy!"
+    },
+    {
+     "t": 227.17,
+     "who": "dave",
+     "ev": "enemyFlanking",
+     "text": "Watch the side!"
+    },
+    {
+     "t": 227.5,
+     "who": "e46",
+     "ev": "advance",
+     "text": "Moving up!"
+    },
+    {
+     "t": 228.4,
+     "who": "gary",
+     "ev": "covering",
+     "text": "Reload, I've got this side."
+    },
+    {
+     "t": 229.13,
+     "who": "e49",
+     "ev": "hit",
+     "text": "That's gonna bruise!"
+    },
+    {
+     "t": 229.6,
+     "who": "e47",
+     "ev": "flanked",
+     "text": "He's on our side!"
+    },
+    {
+     "t": 230.53,
+     "who": "rick",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 231.23,
+     "who": "e50",
+     "ev": "friendDown",
+     "text": "Man down!"
+    },
+    {
+     "t": 232,
+     "who": "gary",
+     "ev": "yield",
+     "text": "Coming through? Go ahead."
+    },
+    {
+     "t": 232.83,
+     "who": "e50",
+     "ev": "bossCall",
+     "text": "Boys! Get in here!"
+    },
+    {
+     "t": 233.3,
+     "who": "dave",
+     "ev": "contactRoom",
+     "text": "One out front!"
+    },
+    {
+     "t": 234.13,
+     "who": "doug",
+     "ev": "contactBehind",
+     "text": "Behind us!"
+    },
+    {
+     "t": 234.47,
+     "who": "e52",
+     "ev": "retreat",
+     "text": "Nope. Nope. Back room!"
+    },
+    {
+     "t": 235.53,
+     "who": "e50",
+     "ev": "bossRetreat",
+     "text": "You'll never take my package room!"
+    },
+    {
+     "t": 235.63,
+     "who": "e56",
+     "ev": "flanked",
+     "text": "He's on our side!"
+    },
+    {
+     "t": 236.1,
+     "who": "gary",
+     "ev": "contactFront",
+     "text": "Twelve o'clock, hoodie!"
+    },
+    {
+     "t": 236.33,
+     "who": "e55",
+     "ev": "friendDown",
+     "text": "Bro's down!"
+    },
+    {
+     "t": 238.63,
+     "who": "dave",
+     "ev": "contactFront",
+     "text": "Contact front!"
+    },
+    {
+     "t": 239.1,
+     "who": "e46",
+     "ev": "advance",
+     "text": "Going forward, cover me!"
+    },
+    {
+     "t": 240.23,
+     "who": "gary",
+     "ev": "enemyReloading",
+     "text": "He's dry! Go!"
+    },
+    {
+     "t": 241.5,
+     "who": "rick",
+     "ev": "yield",
+     "text": "After you."
+    },
+    {
+     "t": 245.77,
+     "who": "gary",
+     "ev": "clear",
+     "text": "Room's clear."
+    }
+   ],
+   "botShots": 271,
+   "botLog": [
+    [
+     "cuff",
+     222.6,
+     "e45"
+    ],
+    [
+     "cuff",
+     230.6,
+     "e49"
+    ],
+    [
+     "cuff",
+     232.3,
+     "e51"
+    ],
+    [
+     "cuff",
+     232.6,
+     "e48"
+    ],
+    [
+     "cuff",
+     237.6,
+     "boss"
+    ],
+    [
+     "cuff",
+     240.7,
+     "e55"
+    ],
+    [
+     "cuff",
+     241.1,
+     "e56"
+    ],
+    [
+     "cuff",
+     246.2,
+     "e47"
+    ],
+    [
+     "cuff",
+     251.9,
+     "e42"
+    ],
+    [
+     "cuff",
+     260.3,
+     "e41"
+    ]
+   ],
+   "hp": 100,
+   "enemies": 16,
+   "roomNames": [
+    "out front",
+    "out front",
+    "the front-right room",
+    "the front room",
+    "the front-left room",
+    "the right room",
+    "the middle room",
+    "the left room",
+    "the back-right room",
+    "the King's office",
+    "the back-left room"
+   ],
+   "wallSec": 10.3
+  }
+ ],
+ "stack": {
+  "door": {
+   "x": 27,
+   "z": 19,
+   "axis": "z",
+   "room": "the front room"
+  },
+  "allies": [
+   {
+    "id": "gary",
+    "state": "stack",
+    "stance": "crouch",
+    "distDoor": 2.74,
+    "onDoorway": false,
+    "sameSideAsDad": true
+   },
+   {
+    "id": "rick",
+    "state": "stack",
+    "stance": "crouch",
+    "distDoor": 2.88,
+    "onDoorway": false,
+    "sameSideAsDad": true
+   },
+   {
+    "id": "dave",
+    "state": "stack",
+    "stance": "crouch",
+    "distDoor": 3.51,
+    "onDoorway": false,
+    "sameSideAsDad": true
+   },
+   {
+    "id": "doug",
+    "state": "stack",
+    "stance": "crouch",
+    "distDoor": 3.95,
+    "onDoorway": false,
+    "sameSideAsDad": true
+   }
+  ],
+  "barks": [
+   "gary: Stacked up. Your call."
+  ]
+ },
+ "breach": {
+  "breach": [
+   "gary: Breaching! Wipe your feet!"
+  ],
+  "crewInside": 4
+ },
+ "crouch": {
+  "0": {
+   "samples": 42,
+   "hidden": 31,
+   "unshootable": 37,
+   "maxTop": 1.08,
+   "leaks": [
+    {
+     "boss": false,
+     "dist": 8.1,
+     "dadCrouch": false,
+     "camY": 2,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.1,
+     "dadCrouch": false,
+     "camY": 1.99,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.6,
+     "dadCrouch": false,
+     "camY": 2.04,
+     "hit": 1,
+     "shot": 1,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.6,
+     "dadCrouch": true,
+     "camY": 1.44,
+     "hit": 1,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.6,
+     "dadCrouch": false,
+     "camY": 2.07,
+     "hit": 2,
+     "shot": 1,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 11.3,
+     "dadCrouch": false,
+     "camY": 2.02,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    }
+   ],
+   "bossTop": null,
+   "shotPose": {
+    "e": "e70",
+    "x": 29,
+    "z": 3.4
+   }
+  },
+  "3": {
+   "samples": 42,
+   "hidden": 37,
+   "unshootable": 42,
+   "maxTop": 1.095,
+   "leaks": [
+    {
+     "boss": false,
+     "dist": 8.2,
+     "dadCrouch": false,
+     "camY": 2.07,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.1,
+     "dadCrouch": false,
+     "camY": 2.04,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.1,
+     "dadCrouch": false,
+     "camY": 2.08,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.2,
+     "dadCrouch": false,
+     "camY": 2.03,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    },
+    {
+     "boss": false,
+     "dist": 8.2,
+     "dadCrouch": false,
+     "camY": 2.07,
+     "hit": 2,
+     "shot": 0,
+     "top": 1.08
+    }
+   ],
+   "bossTop": 1.095
+  }
+ },
+ "passive": {
+  "flanks": [
+   {
+    "t": 3,
+    "id": "e105",
+    "ownFighting": 4,
+    "neighbours": 1,
+    "cross": false
+   }
+  ],
+  "tokPeak": 3,
+  "poolMax": 3,
+  "tokOver": 0,
+  "perSquadPeak": {
+   "2": 1,
+   "4": 1,
+   "5": 1,
+   "6": 1,
+   "7": 1,
+   "9": 2,
+   "10": 0,
+   "out": 2
+  },
+  "squadMax": 2,
+  "shots": 149,
+  "noToken": 0,
+  "maxConc": 4,
+  "modes": "combat/cover combat/move combat/move idle/post combat/cover combat/cover",
+  "dmgSoaked": 76
+ },
+ "surrender": {
+  "surrenderAt": 395.6,
+  "squadMorale": 0.84,
+  "chanceNow": 0.54,
+  "inSquadAlive": false,
+  "squadSurrendered": 1,
+  "executed": true,
+  "trustDelta": -10,
+  "shotSurrDelta": 1,
+  "cuffed": true,
+  "cuffTrustDelta": 4
+ },
+ "consoleErrors": []
+}

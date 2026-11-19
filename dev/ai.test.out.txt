@@ -9,7 +9,7 @@
   ok   rick: paths never enter solid cells or cut corners  ·  solid cells 0, corner cuts 0, smoothed segments through solids 0
   ok   rick: string pulling shortens paths  ·  median len/grid 0.978
   ok   rick: cover spots, rooms and doorways found  ·  263 cover spots (41 low), 8 rooms, 11 doorways
-  ok   dave: line of sight matches the game's losClear (standing = high blockers; crouched = plus low cover within 2.4 m of him)  ·  1500/1500
+  ok   dave: line of sight matches the game's losClear (standing = high blockers; crouched = plus low cover within 2.4 m of him)  ·  1499/1500
   ok   dave: A* finds every reachable pair  ·  400/400
   ok   dave: paths never enter solid cells or cut corners  ·  solid cells 0, corner cuts 0, smoothed segments through solids 0
   ok   dave: string pulling shortens paths  ·  median len/grid 0.958
@@ -19,16 +19,16 @@
   ok   doug: paths never enter solid cells or cut corners  ·  solid cells 0, corner cuts 0, smoothed segments through solids 0
   ok   doug: string pulling shortens paths  ·  median len/grid 0.972
   ok   doug: cover spots, rooms and doorways found  ·  332 cover spots (66 low), 11 rooms, 11 doorways
-  ok   gary: alerted enemies end in cover that blocks the dad's line of sight  ·  87.7% (136/155)
+  ok   gary: alerted enemies end in cover that blocks the dad's line of sight  ·  92.3% (143/155)
   ok   rick: alerted enemies end in cover that blocks the dad's line of sight  ·  90.1% (109/121)
-  ok   dave: alerted enemies end in cover that blocks the dad's line of sight  ·  87.4% (132/151)
-  ok   doug: alerted enemies end in cover that blocks the dad's line of sight  ·  81.7% (165/202)
-  ok   all maps: cover rate over 80%  ·  86.2%; rushers are excluded on purpose (70 rusher cases, 24 took cover)
+  ok   dave: alerted enemies end in cover that blocks the dad's line of sight  ·  91.4% (138/151)
+  ok   doug: alerted enemies end in cover that blocks the dad's line of sight  ·  81.2% (164/202)
+  ok   all maps: cover rate over 80%  ·  88.1%; rushers are excluded on purpose (70 rusher cases, 22 took cover)
   ok   hit chance falls with distance, target speed, crouch, cover and suppression  ·  10 m 0.30, 25 m 0.15, moving 0.21, crouched 0.22, suppressed 0.16
   ok   first shot and early shots are telegraphed (less accurate)  ·  first 0.18, at telegraph 0.22, settled 0.30
-  ok   never more than the token limit aiming or shooting at once  ·  limit 2, peak 2, 140 shots, 0 without a token
-  ok   the squad still fights (shots fired)  ·  140 shots in 20 s
-  ok   squad members spread over cover spots (no two on one spot)  ·  cover seek seek cover cover cover
+  ok   never more than the token limit aiming or shooting at once  ·  limit 2, peak 2, 125 shots, 0 without a token
+  ok   the squad still fights (shots fired)  ·  125 shots in 20 s
+  ok   squad members spread over cover spots (no two on one spot)  ·  cover cover cover cover cover cover
   ok   losses lower morale and raise the surrender chance  ·  morale 0.63, chance 0.50 -> 0.59
   ok   at 66% he calls reinforcements, spawned out of the dad's sight  ·  3 spawn points
   ok   at 33% he falls back to a deeper room and fights from cover  ·  room depth 1 -> 1, state cover
@@ -39,22 +39,22 @@
   ok   nobody stacks in the doorway itself  ·  0 on door cells
   ok   bark catalogue has 80+ short lines  ·  115 lines, longest 51 chars
   ok   barks are throttled per event and do not repeat back to back  ·  4 "spotted" lines in 20 s of asking every 0.1 s
-  ok   gary · Return to Sender: the scripted dad wins  ·  15/16 won (lost: {"player down":1})
+  ok   gary · Return to Sender: the scripted dad wins  ·  16/16 won
   ok   gary · Return to Sender: shooters never exceed the token budget  ·  peak 3 at once, budget 3
   ok   gary · Return to Sender: nobody ends a frame inside a solid cell  ·  0
-  ok   gary · Return to Sender: hiding enemies are actually hidden from the dad  ·  96.5% of 13499 hide frames
-  ok   rick · Fourth Quarter: the scripted dad wins  ·  16/16 won
+  ok   gary · Return to Sender: hiding enemies are actually hidden from the dad  ·  96.5% of 13363 hide frames
+  ok   rick · Fourth Quarter: the scripted dad wins  ·  15/16 won (lost: {"clock ran out":1})
   ok   rick · Fourth Quarter: shooters never exceed the token budget  ·  peak 3 at once, budget 3
   ok   rick · Fourth Quarter: nobody ends a frame inside a solid cell  ·  0
-  ok   rick · Fourth Quarter: hiding enemies are actually hidden from the dad  ·  80.6% of 831 hide frames
+  ok   rick · Fourth Quarter: hiding enemies are actually hidden from the dad  ·  88.0% of 939 hide frames
   ok   dave · Block Party: the scripted dad wins  ·  16/16 won
   ok   dave · Block Party: shooters never exceed the token budget  ·  peak 2 at once, budget 3
   ok   dave · Block Party: nobody ends a frame inside a solid cell  ·  0
-  ok   dave · Block Party: hiding enemies are actually hidden from the dad  ·  94.1% of 11203 hide frames
-  ok   dave · Block Party: spawns are out of sight and never stacked  ·  11/352 spawned in view, 0 stacked
-  ok   doug · The Kingpin: the scripted dad wins  ·  15/16 won (lost: {"player down":1})
+  ok   dave · Block Party: hiding enemies are actually hidden from the dad  ·  95.1% of 12532 hide frames
+  ok   dave · Block Party: spawns are out of sight and never stacked  ·  18/352 spawned in view, 0 stacked
+  ok   doug · The Kingpin: the scripted dad wins  ·  12/16 won (lost: {"player down":4})
   ok   doug · The Kingpin: shooters never exceed the token budget  ·  peak 3 at once, budget 3
   ok   doug · The Kingpin: nobody ends a frame inside a solid cell  ·  0
-  ok   doug · The Kingpin: hiding enemies are actually hidden from the dad  ·  92.0% of 12965 hide frames
-  ok   doug · The Kingpin: spawns are out of sight and never stacked  ·  0/48 spawned in view, 0 stacked
-  ok   same seed, same fight  ·  t 60.0, hp 100.0, shots 40
+  ok   doug · The Kingpin: hiding enemies are actually hidden from the dad  ·  93.5% of 13622 hide frames
+  ok   doug · The Kingpin: spawns are out of sight and never stacked  ·  0/42 spawned in view, 0 stacked
+  ok   same seed, same fight  ·  t 40.2, hp 0.0, shots 101
