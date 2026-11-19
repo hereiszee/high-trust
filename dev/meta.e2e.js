@@ -11,7 +11,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const ctx=await browser.newContext({viewport:{width:1280,height:720}});
   const page=await ctx.newPage();const errors=[];
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});page.on('pageerror',e=>errors.push(String(e)));
-  const shot=async(n,keepBanner)=>{if(SHOTS){await page.evaluate(()=>window.__ht.draw());await page.screenshot({path:OUT+n+'.jpg',type:'jpeg',quality:86})}};
+  const shot=async(n)=>{if(SHOTS){await page.evaluate(()=>window.__ht.draw());await page.screenshot({path:OUT+n+'.jpg',type:'jpeg',quality:86})}};
   const ev=(f,a)=>page.evaluate(f,a);
   const key=async(k,n=1)=>{for(let i=0;i<n;i++){await page.keyboard.press(k);await sleep(60)}};
   const closeMenus=async()=>{for(let i=0;i<4&&await ev(()=>window.HT.Menus.isOpen());i++){await key('Escape');await sleep(150)}await sleep(150)};
@@ -24,6 +24,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await page.click('.ht-title [data-act=newgame]');await sleep(400);
   ok(await ev(()=>window.__ht.mode==='hub'),'hub after start');
   ok(await ev(()=>window.__ht.cash===0),'cash starts at 0');
+  await ev(()=>window.__ht.homeInit&&window.__ht.homeInit());/* the house loads on demand (docs/PERF.md) */
   await page.waitForFunction(()=>window.__ht.homeReady,null,{timeout:120000});
   /* job 1: run Gary's job quickly with a scripted finish */
   await ev(()=>{const h=window.__ht;h.startMission(0);const M=h.M;M.got=4;M.cuffs=2;M.elapsed=200;for(const it of h.L.items)it.got=true;M.exitOpen=true;h.P.pos.set(h.L.exit.x,0,h.L.exit.z)});
@@ -45,6 +46,15 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await ev(()=>{window.__ht.use=true;window.__ht.step(1)});await sleep(200);
   ok(await ev(()=>window.__ht.mode==='home'),'walked inside');
   await step(60);
+  /* doorways vs the dad: standing height from the character model, every home door measured with rays against the house's solids */
+  const fit=await ev(()=>{const h=window.__ht,T=THREE,b=new T.Box3();const body=h.P.dude.body||h.P.dude.root;b.setFromObject(body);const tall=+(b.max.y-b.min.y).toFixed(3);
+    const H=h.home,rc=new T.Raycaster(),out=[];for(const d of H.doors){if(d.cx==null)continue;
+      const c=new T.Vector3(d.cx,.05,d.cz);rc.set(c,new T.Vector3(0,1,0));rc.far=4;const up=rc.intersectObjects(H.solids,false)[0];
+      const ax=d.alongX?new T.Vector3(1,0,0):new T.Vector3(0,0,1);let w=0;for(const sg of[1,-1]){rc.set(new T.Vector3(d.cx,1.0,d.cz),ax.clone().multiplyScalar(sg));rc.far=3;const hh=rc.intersectObjects(H.solids,false)[0];w+=hh?hh.distance:3}
+      out.push({id:d.id||'door',clear:up?+up.distance.toFixed(2):null,wide:+w.toFixed(2)})}return{tall,doors:out}});
+  console.log('   dad height',fit.tall,'m · home doors',JSON.stringify(fit.doors));
+  ok(fit.tall>1.6&&fit.tall<1.95,'dad standing height measured: '+fit.tall+' m');
+  ok(fit.doors.length>=5&&fit.doors.every(d=>(d.clear==null||d.clear>=2.1)&&d.wide>=.999),'every home doorway is at least 2.10 m clear and 1.00 m wide');
   const fam=await ev(()=>window.__ht.home.family.map(m=>m.who+':'+m.root.children.length));ok(fam.length===4,'family present: '+fam.join(' '));
   ok(await ev(()=>{const u=window.__ht.ui;return !!(u.sub||true)}),'greeting');
   await step(60);
@@ -58,7 +68,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   ok(/locker/i.test(lk),'locker prompt: '+lk);
   await ev(()=>{window.__ht.use=true;window.__ht.step(1)});await sleep(500);
   ok(await ev(()=>window.HT.Menus.isOpen()),'locker open');await shot('04-locker');
-  await key('Escape');await sleep(300);ok(await ev(()=>!window.HT.Menus.isOpen()&&window.__ht.running),'locker closed, game running');
+  await key('Escape');await sleep(400);ok(await ev(()=>!window.HT.Menus.isOpen()&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc closes the locker without pausing ('+await ev(()=>window.__ht.hudScreen)+')');
   /* Dadazon on the laptop */
   await ev(()=>window.__ht.grant(3000));
   await ev(()=>{const h=window.__ht,it=h.home.interactables.find(i=>i.id==='laptop');h.P.pos.set(it.x,0,it.z);h.step(1);h.use=true;h.step(1)});await sleep(500);
@@ -66,14 +76,30 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const before=await ev(()=>window.__ht.cash);
   const r=await ev(()=>window.HT.Economy.buy('furn','tv','dadazon'));ok(r&&r.ok!==false,'bought a TV on Dadazon');
   const r2=await ev(()=>window.HT.Economy.buy('furn','plant','dadazon'));
+  const rg=await ev(()=>window.HT.Economy.buy('gun','nailer','dadazon'));ok(rg&&rg.ok!==false,'ordered the Weekend Nailer on Dadazon'+(rg&&rg.reason?' ('+rg.reason+')':''));
+  ok(await ev(()=>/after your next job/.test(window.HT.CATALOG.stores.dadazon.tag)),'Dadazon says boxes arrive after your next job');
   await key('e');await sleep(150);await key('e');await sleep(300);await shot('05-dadazon');
-  await closeMenus();
-  ok(await ev(()=>window.__ht.save.pending.length>=1),'order pending until next visit');
+  await key('Escape');await sleep(400);
+  ok(await ev(()=>!window.HT.Menus.isOpen()&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc closes Dadazon without pausing');
+  ok(await ev(()=>window.__ht.save.pending.length===3),'3 orders pending');
   ok(await ev(()=>window.__ht.cash)<before,'cash spent');
-  /* decorate: place the plant we already own? nothing in storage yet → go outside and back for delivery */
+  /* nothing arrives until a job is done: out the front door, no boxes yet */
   await ev(()=>window.__ht.exitHome('front'));await sleep(200);
-  ok(await ev(()=>window.__ht.mode==='hub'),'outside again');
+  ok(await ev(()=>window.__ht.mode==='hub'&&!window.__ht.hubx.porch),'outside again, no boxes before the next job');
+  /* Rick's job, scripted finish */
+  await ev(()=>{const h=window.__ht;h.startMission(1);const M=h.M;M.smashed=3;for(const s of h.L.stashes)s.done=true;M.elapsed=120;M.t=40;M.exitOpen=true;if(M.intro)M.intro.done=true;h.P.pos.set(h.L.exit.x,0,h.L.exit.z)});
+  await step(3);await sleep(1500);ok(await ev(()=>window.__ht.hudScreen==='result'),'job 2 result');
+  await page.click('[data-act="result:go"]');await sleep(300);
+  ok(await ev(()=>!!window.__ht.hubx.porch&&window.__ht.save.porch===3),'Dadazon boxes on the porch after the job');
+  await ev(()=>{const h=window.__ht,H=h.hubx.home;h.place(H.x+H.nx*3.2+(-H.nz)*1.2,H.z+H.nz*3.2+H.nx*1.2,Math.atan2(H.nx*3.2-H.nz*1.2,H.nz*3.2+H.nx*1.2),-.42);h.step(2)});
+  await shot('10-porch-boxes');
+  await ev(()=>{const h=window.__ht,H=h.hubx.home;h.place(H.x+H.nx*.4,H.z+H.nz*.4);h.step(1)});
+  ok(await ev(()=>/Dadazon boxes/.test((window.__ht.prompt||{}).text)),'porch prompt: '+await ev(()=>(window.__ht.prompt||{}).text));
+  await ev(()=>{window.__ht.use=true;window.__ht.step(1)});await sleep(100);
+  ok(await ev(()=>window.__ht.save.owned.guns.includes('nailer')&&!window.__ht.save.pending.length&&!window.__ht.hubx.porch),'opened the boxes: nailer owned, nothing pending, porch clear');
   await ev(()=>window.__ht.enterHome());await sleep(200);await step(5);
+  const rack=await ev(()=>window.__ht.home.rack);ok(rack&&rack.hanging.includes('nailer'),'nailer hangs on the garage rack: '+JSON.stringify(rack));
+  await ev(()=>{const h=window.__ht;h.P.fp=true;h.place(-5.15,4.65,Math.PI/2,-.1);h.step(2)});await shot('11-garage-rack');await ev(()=>{const h=window.__ht;h.P.fp=false;h.step(1)});
   const lay=await ev(()=>window.__ht.save.furniture.placed.map(i=>i.id));ok(lay.includes('tv'),'delivered TV auto-placed: '+lay.join(','));
   /* decorate: pick up the TV and move it */
   await key('b');await step(2);ok(await ev(()=>window.__ht.deco.on),'decorate mode on');
@@ -84,15 +110,36 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   ok(dec.ok,'found a valid spot for the ghost');await shot('06-decorate-ghost');
   const placed=await ev(()=>window.HT.Home.decorate.place());ok(placed.ok,'placed via decorate');
   await key('b');await step(1);ok(await ev(()=>!window.__ht.deco.on),'decorate off');
+  await key('b');await step(1);await key('Escape');await sleep(200);
+  ok(await ev(()=>!window.__ht.deco.on&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc leaves decorate mode without pausing');
+  /* pointer-lock path: the browser drops the lock on Esc */
+  await page.mouse.click(640,360);await sleep(300);
+  const gotLock=await ev(()=>document.pointerLockElement===document.querySelector('canvas'));
+  if(gotLock){await key('b');await step(1);await ev(()=>document.exitPointerLock());await sleep(300);
+    ok(await ev(()=>!window.__ht.deco.on&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'lock lost while decorating: decorate ends, no pause');
+    /* browsers refuse a re-lock for about a second after one ends: the click-to-relock path */
+    let re=false;for(let i=0;i<6&&!re;i++){await sleep(400);await page.mouse.click(640,360);await sleep(200);re=await ev(()=>!!document.pointerLockElement)}
+    ok(re,'click re-locks the pointer after decorate');await ev(()=>document.exitPointerLock());await sleep(300);
+    ok(await ev(()=>window.__ht.hudScreen==='pause'),'lock lost while playing still pauses');await key('Escape');await sleep(200)}
+  else console.log('   (pointer lock unavailable headless: lock-loss path not exercised)');
   /* the garage exit puts you behind the wheel */
   await ev(()=>window.__ht.exitHome('garage'));await sleep(300);await step(2);
   ok(await ev(()=>window.__ht.mode==='hub'&&window.__ht.VAN.on),'"Take the van" from the garage: driving on the street');
   await ev(()=>{const h=window.__ht;h.VAN.on=false;h.enterHub({at:'home'})});await sleep(100);
+  /* full map: Esc closes it, no pause */
+  await key('m');await sleep(200);const mapOpen=await ev(()=>!window.__ht.running);
+  await key('Escape');await sleep(400);ok(mapOpen&&await ev(()=>window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc closes the full map without pausing');
   /* Hank's Hardware */
   await ev(()=>{const h=window.__ht,s=h.hubx.shops.find(s=>s.kind==='hardware');h.P.pos.set(s.x,0,s.z);h.step(1);h.use=true;h.step(1)});await sleep(400);
   ok(await ev(()=>window.HT.Menus.isOpen()),'hardware shop open');
   const hw=await ev(()=>window.HT.Economy.buy('furn','flamingo','hardware'));ok(hw&&hw.ok!==false,'bought a flamingo at Hank\'s');
-  await shot('07-hardware');await closeMenus();
+  const hg=await ev(()=>window.HT.Economy.buy('gun','revolver','hardware'));ok(hg&&hg.ok!==false,'bought the revolver at Hank\'s'+(hg&&hg.reason?' ('+hg.reason+')':''));
+  const ha=await ev(()=>{const A=window.HT.CATALOG.attachments;const id=Object.keys(A).find(k=>window.HT.Economy.status('att',k,'hardware').state==='buy');return id?{id,r:window.HT.Economy.buy('att',id,'hardware')}:null});
+  ok(ha&&ha.r&&ha.r.ok!==false,'bought an attachment at Hank\'s: '+(ha&&ha.id));
+  ok(await ev(()=>window.__ht.save.owned.guns.includes('revolver')),'revolver owned immediately');
+  await shot('07-hardware');await key('Escape');await sleep(400);
+  ok(await ev(()=>!window.HT.Menus.isOpen()&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc closes Hank\'s without pausing');
+  ok(await ev(()=>window.HT.Economy.setLoadout('side','revolver').ok),'revolver selectable as sidearm');
   ok(await ev(()=>window.__ht.save.furniture.placed.some(i=>i.id==='flamingo')),'flamingo placed in the yard right away');
   /* Dad's Auto */
   await ev(()=>{const h=window.__ht,s=h.hubx.shops.find(s=>s.kind==='auto');h.P.pos.set(s.x,0,s.z);h.step(1);h.use=true;h.step(1)});await sleep(400);
@@ -116,6 +163,9 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   ok(snap===snap2,'save restored after reload');
   ok(await ev(()=>window.__ht.prog.done[0]===true),'prog restored (job 1 done)');
   ok(await ev(()=>{const u=window.__ht.VAN.obj.userData.upgrades;return u.rims==='chrome'&&u.roofRack==='cargo'}),'van upgrades restored on the hub van');
+  /* purchases ride along on the next job */
+  const nextJob=await ev(()=>{const h=window.__ht;h.enterHub();h.startMission(2);h.step(3);return h.P.weapons.slice()});
+  ok(nextJob.includes('revolver'),'revolver carried into the next job: '+nextJob.join('/'));
   /* all four missions start, with the saved loadout */
   for(let i=0;i<4;i++){const r=await ev(i=>{const h=window.__ht;h.enterHub();h.startMission(i);h.step(10);return{mode:h.mode,w:h.P.weapons.slice(),enemies:h.enemies.length+(h.M.def.type==='waves'?1:0)}},i);
     ok(r.mode==='mission'&&r.w.length>=2&&r.enemies>0,'mission '+i+' starts · guns '+r.w.join('/'))}

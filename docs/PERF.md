@@ -118,9 +118,12 @@ to parsing nine module scripts, preparing the rigged characters and building the
 SwiftShader makes worse.
 
 Second merge (main 0506df4: enterable home, borrowable cars, more people): first visit at 10 Mbit/s 3.8–4.2 s (4 runs),
-3.1–3.4 MB before Start, second visit 2.7–4.2 s. The house (`HT.Home.init`, ~13 MB) no longer loads at `ASSETS.ready`: it
-starts when the player comes within 40 m of the front door in the hub, or once everything else has streamed; the door
-prompt already says "unlocking…" until it is ready. js/people.js streams its extra crew variants itself after `ready`;
+3.1–3.4 MB before Start, second visit 2.7–4.2 s. The house (`HT.Home.init`, ~13 MB with the family) no longer loads at `ASSETS.ready`: it
+starts when the player walks up to the front door (within 15 m) or uses it; the door says "Unlocking the front door…"
+and lets the player in as soon as it is ready. A job started from the UI (`startMissionWhenReady`) holds on
+"Loading the crew…" for at most 10 s until its crew, boss and core enemy looks are prepared, so nobody appears as a box
+stand-in; `__ht.startMission` stays synchronous for tests. Static batching covers houses only: every car can be borrowed
+and swaps its level of detail, so vehicles stay individual objects. js/people.js streams its extra crew variants itself after `ready`;
 they get the optimised files through the URL modifier.
 
 ## How loading works now
@@ -167,12 +170,16 @@ without the worker (blocked, unsupported, `file://`).
 
 ## Asset pipeline (for everyone adding assets)
 
+After merging anything that adds or changes files under `assets/`, from the repo root:
+
 ```
-cd tools && npm install        # once: gltf-transform, meshoptimizer, sharp, playwright is pre-installed
-node tools/build-assets.js     # from the repo root; ~35 s cold, under a second when nothing changed
+(cd tools && npm install) && node tools/build-assets.js && node dev/check-build.js && git add assets/opt sw.js && git commit -m "Rebuild optimised assets"
 ```
 
-Then commit the source file **and** the changes under `assets/opt/` plus `sw.js`.
+`npm install` is needed once per checkout (gltf-transform, meshoptimizer, sharp). The build takes ~40 s cold and well
+under a minute incrementally (unchanged sources are reused). `node dev/check-build.js` exits 1 when any source asset
+changed or was added since the last build (content hashes, not file dates), so it can gate a deploy. If the build is
+skipped the game still works, it just loads the original files for whatever is missing.
 
 Rules:
 - Put sources where they always went: `assets/tex/<name>_col|_nrm|_rgh|_alpha.jpg`, `assets/tex2/…`,
@@ -217,8 +224,8 @@ Slower than ~45 fps steps down (two steps when below ~30 fps) and blocks climbin
 60 fps windows step up; a level that proved too slow twice is never retried. The pause menu shows the current
 Auto level. Resolution scale is applied as renderer pixel ratio (preset cap × scale).
 
-**Static batching.** On a level's first frame, house and parked-car meshes that share a material are merged per
-32 m cell (originals stay in place, invisible, so raycasts and colliders are unchanged; their matrices are
+**Static batching.** On a level's first frame, house meshes that share a material are merged per
+32 m cell (cars are excluded since they became borrowable) (originals stay in place, invisible, so raycasts and colliders are unchanged; their matrices are
 frozen). Parts smaller than 0.45 m (lenses, plates, nuts, small trims) stop casting shadows. Glass, interior
 cards, skirts and glow strips from js/buildings.js no longer cast shadows (the game used to override that).
 
