@@ -7,7 +7,13 @@ const ROOT=path.resolve(__dirname,'..');
 const OUT=path.join(ROOT,'docs','screenshots','people');
 const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only=(argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
 const want=k=>!only.length||only.includes(k);
+/* no --only: run the blocks in separate browsers (one page through every mission and shot set outgrows the headless renderer's memory) */
+if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process');let bad=0;
+  for(const g of['combat','missions,perf','roster,fallback,lowq','shots,boss','ik,polish']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
+    console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
+  console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
+const PP_KEYS=23;
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
@@ -29,6 +35,7 @@ function helpers(){
     spot(x,z,r,a0=0){const rc=new T.Raycaster();for(const rr of[r,r*.7,r*.5,r*1.4])for(let k=0;k<24;k++){const a=a0+k/24*Math.PI*2;const px=x+Math.sin(a)*rr,pz=z+Math.cos(a)*rr;
         const eye=new T.Vector3(px,1.65,pz),tg=new T.Vector3(x,1.2,z),d=tg.clone().sub(eye);const L=d.length();rc.set(eye,d.normalize());rc.far=L+.5;
         const h=rc.intersectObjects(H.dude.solids,false)[0];if(h&&h.distance<L+.3)continue;
+        /* and back again: single-sided walls only show from one side */rc.set(tg,eye.clone().sub(tg).normalize());rc.far=L+.6;if(rc.intersectObjects(H.dude.solids,false)[0])continue;
         const lo=new T.Vector3(px,.5,pz),d2=new T.Vector3(x,.5,z).sub(lo);rc.set(lo,d2.normalize());rc.far=rr;const h2=rc.intersectObjects(H.dude.solids,false)[0];if(h2)continue;return{x:px,z:pz,a}}return null},
     live(){return H.enemies.filter(e=>e.state==='idle')},
     /* stand off from enemy e and shoot until he is down or gives up */
@@ -78,6 +85,7 @@ function helpers(){
     await p.evaluate(()=>__ht.startMission(0));
     const r=await p.evaluate(()=>{const H=__ht,P=H.P,e=T_.live()[0];const out={};
       for(const o of H.enemies)if(o!==e){o.pos.set(o.pos.x+500,0,o.pos.z+500)}/* nobody else in the way */
+      for(const a of H.allies){a.down=true;a.downT=1e9;a.hp=0}/* the crew must not add damage of their own */
       P.fp=true;P.aim=true;P.cur='pistol';
       /* stand the dad 6 m from the enemy with a clear line, enemy facing him */
       const E0=e.pos.clone();const sp=T_.spot(E0.x,E0.z,6);P.pos.set(sp.x,0,sp.z);P.yaw=Math.atan2(-(E0.x-sp.x),-(E0.z-sp.z));
@@ -234,6 +242,21 @@ function helpers(){
       await shot(n,pv=>{const H=__ht,P=H.P;P.aim=true;P.pitch=pv;H.step(20);T_.rel(1.6,1.5,1.3,2.8,.6);P.pitch=0},pv);
     await shot('pump_cycle',()=>{const H=__ht,P=H.P;H.give('shotgun');H.dude.equip(P.dude,'shotgun');P.cur='shotgun';P.aim=true;P.pitch=0;H.step(20);H.mouse=true;H.step(1);H.mouse=false;H.step(7);T_.rel(.7,1.55,1.4,1.6,.6)});
   }
+
+  if(want('roster')){/* the whole street-crew pool, the crew and the Riverside job-givers */
+    const r=await p.evaluate(async()=>{const PP=HT.People;await PP.preload(PP.keys);return{all:PP.keys.filter(k=>PP.has(k)),thugs:PP.roles.thug.filter(k=>PP.has(k))}});
+    ok('roster: all character files load and prepare',r.all.length===PP_KEYS,r.all.length+' of '+PP_KEYS);
+    ok('at least 10 street-crew variants',r.thugs.length>=10,r.thugs.join(','));
+    const v=await p.evaluate(()=>{const H=__ht;H.startMission(3);const ks=H.enemies.map(e=>e.dude.rb&&e.dude.rb.key);let rep=0;for(let i=1;i<ks.length;i++)if(ks[i]===ks[i-1])rep++;return{ks,rep,distinct:new Set(ks).size}});
+    ok('spawns spread over the pool, no two in a row alike',v.rep===0&&v.distinct>=Math.min(8,v.ks.length-2),v);
+    if(SHOTS){await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+      await shot('roster_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map((v,i)=>({role:'thug',variant:v,gun:i%3?'rifle':'pistol'})),{dist:6.2,spacing:.78,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.45,P.pos.z,P.pos.x-Math.sin(P.yaw)*6.2,1.05,P.pos.z-Math.cos(P.yaw)*6.2)});
+      await shot('roster_crew_and_neighbours',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug','earl','dee','rosa','benny'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.5,P.pos.z,P.pos.x-Math.sin(P.yaw)*5.6,1.1,P.pos.z-Math.cos(P.yaw)*5.6)});
+      await shot('roster_faces_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map(v=>({role:'thug',variant:v})),{dist:3.2,spacing:.5,steps:30});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.62,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.55,P.pos.z-Math.cos(P.yaw)*3.2)});
+    }}
 
   if(want('perf')){
     const r=await p.evaluate(()=>{const H=__ht;H.startMission(3);const n=H.enemies.length+H.allies.length+1;
