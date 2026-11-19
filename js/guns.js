@@ -221,7 +221,7 @@ B.rifle=function(){const src=LOADED.rifle;if(!src)return B.rifleProc();
   const root=group('rifleSrc');const m=src.clone(true);root.add(m);/* already -Z forward */
   const magN=srcNode(m,'Magazine'),ch=srcNode(m,'Charging_Handle'),dust=srcNode(m,'Ejector_Lid'),trig=srcNode(m,'Trigger');
   const parts={mag:magN,bolt:ch,dust,trigger:trig};
-  return{g:root,parts,grip:[-.062,-.03],muzzle:[.536,.039,0],eject:[.035,.03,.02],sight:{s:-.07,y:.069},rail:[-.03,.075,.06],
+  return{g:root,parts,grip:[-.062,-.03],muzzle:[.536,.039,0],eject:[.035,.03,.02],sight:{s:-.07,y:.069},rail:[-.03,.0495,.06],
     hand:[.15,.015],magDrop:[0,-.16,0],ammo:'556',kind:'rifle',len:.86,dustCover:true}};
 B.rifleProc=function(){const g=group('rifle');const al=mat('alloy');g.add(ext([[-.08,0],[.12,0],[.12,.06],[-.08,.06]],.03,al));g.add(tube(.008,.12,.5,.035,mat('parkerized')));
   return{g,parts:{},grip:[-.06,-.03],muzzle:[.5,.035,0],eject:[.03,.04,.02],sight:{s:-.06,y:.08},ammo:'556',kind:'rifle',len:.8}};
@@ -403,9 +403,9 @@ B.smg=function(){const g=group('smg');const st=mat('parkerized'),pol=mat('polyme
   g.add(mag);
   /* retractable stock: two rods + butt plate */
     {const stk=group('stock');for(const sx of[-1,1]){stk.add(tube(.0038,-.13,.0,0,st,{x:sx*.019,seg:12}))}/* collapsed */
-   stk.add(ext([[-.145,-.075,.006],[-.125,-.075],[-.125,.02],[-.145,.02,.006]],.05,pol,{bevel:.005}));
-   stk.add(ext([[-.149,-.077],[-.144,-.077],[-.144,.022],[-.149,.022]],.052,mat('rubber'),{bevel:.002,wear:false}));
-   place(stk,-.1,bore-.01);g.add(stk)}
+   stk.add(ext([[-.145,-.08,.006],[-.125,-.08],[-.125,.01],[-.145,.01,.006]],.05,pol,{bevel:.005}));
+   stk.add(ext([[-.149,-.082],[-.144,-.082],[-.144,.012],[-.149,.012]],.052,mat('rubber'),{bevel:.002,wear:false}));
+   place(stk,-.1,bore-.035);g.add(stk)}
   return{g,parts:{mag,bolt,trigger:trig},grip:[-.04,bore-.035],muzzle:[.36,bore,0],eject:[.075,bore+.004,.02],sight:{s:-.068,y:bore+.034},sightFront:[.335,bore+.036],rail:[-.03,bore+.024,.12],
     hand:[.24,bore-.03],magDrop:[0,-.2,0],ammo:'9mm',kind:'smg',len:.7}};
 
@@ -476,7 +476,7 @@ function finalize(D,type,att){const root=group('gun_'+type);const off=group('gun
     if(D.kind==='pistol'&&D.parts.slide){const rd=pistolDot();/* slide cut in front of rear sight */const sl=D.parts.slide;
       const wp=V(0,.079,-.0);const dot=rd;dot.position.set(0,.0795,.005);/* in pistol source space this sits on the slide */
       const holder=group('rmrHolder');holder.add(dot);D.g.add(holder);holder.userData.followSlide=true;D.rmr=holder;sight={s:-.005,y:.0795+.016};applied.redDot=true}
-    else if(D.rail){const rd=redDot();const s=D.rail[0]+.02,y=D.rail[1];place(rd,s,y);D.g.add(rd);sight={s:s-.04,y:y+rd.userData.dotY};applied.redDot=true}}
+    else if(D.rail){const rd=redDot();const s=D.rail[0]+(D.kind==='rifle'?.06:.02),y=D.rail[1];if(D.kind==='rifle'){const rs=srcNode(D.g,'Sight');if(rs)rs.visible=false}place(rd,s,y);D.g.add(rd);sight={s:s-.04,y:y+rd.userData.dotY};applied.redDot=true}}
   if(att.suppressor&&D.kind!=='break'&&D.kind!=='revolver'&&D.kind!=='nailer'&&D.kind!=='pump'){
     const r=D.kind==='pistol'?.0145:D.kind==='hunter'?.019:.018,len=D.kind==='pistol'?.13:.16;const sp=suppressor(r,len);place(sp,D.muzzle[0]-.008,D.muzzle[1],D.muzzle[2]);D.g.add(sp);D.muzzle=[D.muzzle[0]-.008+len,D.muzzle[1],D.muzzle[2]];applied.suppressor=true}
   if(att.extMag&&D.parts.mag){const m=D.parts.mag;
@@ -750,7 +750,7 @@ function viewmodel(type,opts={}){type=ALIAS[type]||type;const C=VMC[type]||VMC.p
     else if(st==='break'){play('reload',dur,(t)=>{const open=kf(t,[[0,0],[.1,0],[.2,1],[.84,1],[.92,0]]);const hold=kf(t,[[0,0],[.1,1],[.9,1],[1,0]]);
         const Lk=t<.3?{to:C.L,w:1}:t<.5?{to:low(Lbreech),from:C.L,w:1,mix:kf(t,[[.3,0],[.45,1]])}:t<.78?{to:Lbreech,from:low(Lbreech),w:1,mix:kf(t,[[.5,0],[.64,1]])}:{to:C.L,from:Lbreech,w:1,mix:kf(t,[[.78,0],[.86,1]])};
         shellProp.visible=t>.5&&t<.68;
-        return{barrels:open,anim:{p:[-.03*hold,.05*hold,.05*hold],r:[-.05*hold,.3*hold,.4*hold]},L:Lk,shellsIn:t>.68||t<.22}},
+        return{barrels:open,anim:{p:[-.06*hold,.08*hold,.02*hold],r:[.12*hold,.65*hold,.35*hold]},L:Lk,shellsIn:t>.68||t<.22}},
         {ev:[[.22,()=>{ejectShell('12ga',.7);ejectShell('12ga',.8);emit('breakOpen')}],[.68,()=>emit('shellsIn')],[.9,()=>emit('breakClose')]]})}
     else if(st==='stripper'){play('reload',dur,(t)=>{const hold=kf(t,[[0,0],[.12,1],[.88,1],[1,0]]);const up=kf(t,[[0,0],[.12,0],[.2,1],[.8,1],[.88,0]]),back=kf(t,[[0,0],[.2,0],[.28,1],[.72,1],[.8,0]]);
         const Lk=t<.3?{to:C.L,w:1}:t<.7?{to:t<.42?low(Lport):LtopLoad,from:t<.42?C.L:low(Lport),w:1,mix:t<.42?kf(t,[[.3,0],[.42,1]]):kf(t,[[.42,0],[.52,1]])}:{to:C.L,from:LtopLoad,w:1,mix:kf(t,[[.7,0],[.85,1]])};
