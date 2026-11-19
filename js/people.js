@@ -262,7 +262,11 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* apply weights */
   for(const n in rb.acts){const a=rb.acts[n];const lw=(rb.lw[n]||0)/sum;setW(a.lo,lw,n);setW(a.sp,(WS[n]||0)+remS*lw,n);setW(a.ar,(WA[n]||0)+remA*lw,n);
     if(!(rb.lw[n]>0)&&n!==rb.base)delete rb.lw[n]}
-  rb.mixer.update(dt);
+  /* the mixer skips writing a bone whose animated value did not change, so undo last frame's procedural offsets first or they accumulate */
+  {const B=rb.bones,N=['Bip01_Spine','Bip01_Neck','Bip01_Spine1','Bip01_Spine2','Bip01_L_UpperArm','Bip01_R_UpperArm'];
+   if(rb.pre)for(const n of N)if(B[n]&&rb.pre[n])B[n].quaternion.copy(rb.pre[n]);
+   rb.mixer.update(dt);
+   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion)}
   /* phase for the first-person bob and footsteps */
   const ba=rb.acts[rb.base];if(ba&&ba.lo&&SPEED[rb.base]){rb.phase=ba.lo.time/ba.c.dur;d.walk=rb.phase*Math.PI*4}else d.walk*=.9;
   /* aim pitch: split between spine and both upper arms (rotating both arms about the shoulder line keeps the support hand on the gun) */
