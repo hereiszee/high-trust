@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gun Bench</title>
+<style>
+:root{--bg:#15171a;--fg:#e8e6e1;--mut:#9aa0a6;--acc:#f0b54a}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:13px/1.4 system-ui,sans-serif;overflow:hidden}
+#ui{position:fixed;left:12px;top:10px;z-index:3;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+#ui button{background:#23262b;color:var(--fg);border:1px solid #3a3f46;border-radius:6px;padding:5px 9px;cursor:pointer;font:inherit}
+#ui button.on{border-color:var(--acc);color:var(--acc)}
+#hint{position:fixed;left:12px;bottom:10px;color:var(--mut);z-index:3}
+#label{position:fixed;right:14px;top:10px;z-index:3;text-align:right;font-weight:600;letter-spacing:.02em}
+#label small{display:block;font-weight:400;color:var(--mut)}
+#scope{position:fixed;inset:0;pointer-events:none;z-index:2;display:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 31vmin,#000 31.4vmin)}
+#scope:before,#scope:after{content:"";position:absolute;background:#000}
+#scope:before{left:50%;top:18vh;bottom:18vh;width:1px}
+#scope:after{top:50%;left:18vw;right:18vw;height:1px}
+#xhair{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#0f0;z-index:2;display:none}
+canvas{display:block}
+</style></head><body>
+<div id="ui"></div><div id="label"></div><div id="scope"></div><div id="xhair"></div>
+<div id="hint">Drag to orbit (models) · 1-4: hip / ADS / fire / reload · Space: fire · R: reload · E: equip · W: walk · Shift: sprint</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="../js/guns.js"></script>
+<script>
+'use strict';
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;renderer.physicallyCorrectLights=false;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x2a2d31);
+const camera=new THREE.PerspectiveCamera(30,innerWidth/innerHeight,.01,100);
+const sun=new THREE.DirectionalLight(0xfff1dc,2.2);sun.position.set(1.2,2.6,2.4);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0002;
+Object.assign(sun.shadow.camera,{left:-1.6,right:1.6,top:2,bottom:-1,near:.1,far:10});scene.add(sun);
+const hemi=new THREE.HemisphereLight(0xcfe3ff,0x5b4a36,.35);scene.add(hemi);
+/* bench: dark wood-ish table */
+const benchTop=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x24221f,roughness:.8}));benchTop.rotation.x=-Math.PI/2;benchTop.receiveShadow=true;scene.add(benchTop);
+const rack=new THREE.Mesh(new THREE.PlaneGeometry(4,2.2),new THREE.MeshStandardMaterial({color:0x2c2f33,roughness:.9}));rack.position.set(0,.8,-.12);rack.receiveShadow=true;rack.visible=false;scene.add(rack);
+/* viewmodel scene: background is a simple street-ish backdrop so arms read against something */
+const vmScene=new THREE.Scene();const vmCam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.01,60);vmScene.add(vmCam);
+const back=new THREE.Scene();back.background=new THREE.Color(0x9db4c8);back.fog=new THREE.Fog(0xb7c6d2,30,140);
+{const tl=new THREE.TextureLoader();const T=(n,rep,srgb)=>{const t=tl.load('../assets/tex/'+n+'.jpg');t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);if(srgb)t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t};
+ const sky=tl.load('../assets/sky/sky_2k.jpg',t=>{t.encoding=THREE.sRGBEncoding;t.mapping=THREE.EquirectangularReflectionMapping;back.background=t});
+ const pm=(n,rep,o={})=>new THREE.MeshStandardMaterial(Object.assign({map:T(n+'_col',rep,1),normalMap:T(n+'_nrm',rep),roughnessMap:T(n+'_rgh',rep),roughness:1},o));
+ const g=new THREE.Mesh(new THREE.PlaneGeometry(200,200),pm('asphalt',60));g.rotation.x=-Math.PI/2;g.position.y=-1.62;back.add(g);
+ const walk=new THREE.Mesh(new THREE.BoxGeometry(200,.15,4),pm('sidewalk',30));walk.position.set(0,-1.55,-9);back.add(walk);
+ const brick=pm('brick',1),siding=pm('siding',1);
+ for(let i=0;i<9;i++){const w=7+(i%3)*2,h=4+(i*37%5),bx=new THREE.Mesh(new THREE.BoxGeometry(w,h,6),i%2?brick:siding);bx.position.set(-30+i*8,-1.6+h/2,-15-(i%2)*3);back.add(bx)}
+ back.add(new THREE.HemisphereLight(0xdfeaff,0x6b5a46,.5));const d=new THREE.DirectionalLight(0xfff0d6,1.5);d.position.set(.5,1,.3);back.add(d)}
+vmScene.add(new THREE.HemisphereLight(0xcfe3ff,0x5b4a36,.45));{const l=new THREE.DirectionalLight(0xfff0d6,1.8);l.position.set(.5,1,.3);vmScene.add(l)}
+let envMap=null;let dbgCam=null;
+new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('../assets/sky/sky_1k.hdr',t=>{
+  /* like the game: the sky panorama has no ground, so darken the lower half to a dirt/grass bounce and clip the sun */
+  {const{width:W,height:H,data:D}=t.image;const enc=c=>{const m=Math.max(...c);if(m<1e-6)return[0,0,0,0];const e=Math.ceil(Math.log2(m));const sc=256/Math.pow(2,e);return[c[0]*sc,c[1]*sc,c[2]*sc,e+128]};
+   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const o=(y*W+x)*4,sc=Math.pow(2,D[o+3]-128)/256;let c=[D[o]*sc,D[o+1]*sc,D[o+2]*sc];const k=Math.min(1,Math.max(0,(y-H/2)/(H*.04)));
+     const pk=Math.max(...c);if(pk>4)c=c.map(v=>v*4/pk);if(k>0)c=c.map((v,i)=>v*(1-k)+[.16,.15,.11][i]*k);const r=enc(c);D[o]=r[0];D[o+1]=r[1];D[o+2]=r[2];D[o+3]=r[3]}}const pm=new THREE.PMREMGenerator(renderer);envMap=pm.fromEquirectangular(t).texture;scene.environment=envMap;vmScene.environment=envMap;back.environment=envMap;window.envReady=true},undefined,()=>{window.envReady=true});
+
+const state={mode:'models',gun:'pistol',att:{},vm:null,models:[],turn:0,drag:null,auto:true,moving:false,sprint:false,ads:0,firing:false};
+const NAMES={pistol:'Garage Pistol',revolver:'The Retirement Plan',nailer:'Weekend Nailer',shotgun:"Grandpa's Pump",double:"Uncle Ray's Side-by-Side",sawedoff:'Sawed-off',beanbag:'The Talking-To',rifle:"Rick's Carbine",smg:'The Carpool',hunter:'Deer Season'};
+function clearModels(){rack.visible=false;state.models.forEach(m=>scene.remove(m));state.models=[]}
+function tris(o){let n=0;o.traverse(c=>{if(c.isMesh&&c.visible){const g=c.geometry;n+=(g.index?g.index.count:g.attributes.position.count)/3}});return Math.round(n)}
+/* single gun on a turntable */
+function showModel(type,att,angle){state.mode='model';clearModels();const m=HT.Guns.model(type,{attachments:att});
+  const L=m.userData.length||.5;m.position.set(0,.12,0);scene.add(m);state.models.push(m);
+  const box=new THREE.Box3().setFromObject(m);const c=box.getCenter(new THREE.Vector3());m.position.sub(c).add(new THREE.Vector3(0,.0,0));m.position.y+=box.getSize(new THREE.Vector3()).y/2+.02;
+  state.turnTarget=m;state.turn=angle!=null?angle:state.turn;state.auto=angle==null;
+  const d=L*2.1+.15;camera.fov=30;camera.position.set(0,d*.32,d);camera.lookAt(0,box.getSize(new THREE.Vector3()).y/2,0);camera.updateProjectionMatrix();
+  label(NAMES[type]||type,tris(m)+' triangles');return tris(m)}
+/* the whole arsenal laid on the bench */
+function showLineup(att){state.mode='lineup';clearModels();const list=HT.Guns.TYPES;state.turnTarget=null;
+  /* gun rack: right side of each gun facing the camera, muzzle to the right */
+  list.forEach((t,i)=>{const m=HT.Guns.model(t,{attachments:att});m.rotation.y=-Math.PI/2;const col=i%2,row=Math.floor(i/2);
+    const w=new THREE.Group();w.add(m);scene.add(w);const b=new THREE.Box3().setFromObject(w);const c=b.getCenter(new THREE.Vector3());
+    m.position.sub(c);w.position.set(col?.68:-.68,1.36-row*.3,0);state.models.push(w)});
+  rack.visible=true;camera.fov=30;camera.position.set(0,.76,3.1);camera.lookAt(0,.76,0);camera.updateProjectionMatrix();label('Arsenal',list.length+' guns')}
+function label(a,b){document.getElementById('label').innerHTML=a+(b?'<small>'+b+'</small>':'')}
+/* first-person */
+function showVM(type,att,o={}){state.mode='vm';if(state.vm){vmCam.remove(state.vm)}const rig=HT.Guns.viewmodel(type,{attachments:att,sleeve:o.sleeve||'#5d6b4f',skin:o.skin||'#c58c68',gloves:o.gloves===true,character:o.character});
+  vmCam.add(rig);state.vm=rig;state.gun=type;state.ads=0;vmCam.fov=72;vmCam.updateProjectionMatrix();
+  rig.onEject=(info)=>{};label(NAMES[type]||type,'viewmodel · '+tris(rig)+' triangles');return rig}
+/* deterministic stepping for screenshots */
+window.stepVM=(sec,inp)=>{const r=state.vm;const n=Math.ceil(sec/(1/60));for(let i=0;i<n;i++)r.update(1/60,Object.assign({moving:state.moving,sprint:state.sprint,ads:state.ads,look:{dx:0,dy:0}},inp||{}))};
+window.bench={showModel,showLineup,showVM,state,renderOnce:()=>render(0),
+  /* debug: look at the viewmodel from another camera (camera-space coordinates) */
+  vmFocus:(view,dist,fov)=>{const r=state.vm;r.updateMatrixWorld(true);const b=new THREE.Box3();r.userData.gun.traverse(o=>{if(o.isMesh&&o.visible)b.expandByObject(o)});const c=b.getCenter(new THREE.Vector3());const d=dist||.5;
+    const off={right:[d,0,0],left:[-d,0,0],below:[0,-d,.0001],above:[0,d,.0001],front:[0,0,-d]}[view]||view;bench.vmView([c.x+off[0],c.y+off[1],c.z+off[2]],[c.x,c.y,c.z],fov||40)},
+  vmView:(e,t,fov)=>{if(!e){dbgCam=null;return}dbgCam=new THREE.PerspectiveCamera(fov||40,innerWidth/innerHeight,.005,10);vmCam.add(dbgCam);dbgCam.position.set(...e);dbgCam.lookAt(vmCam.localToWorld(new THREE.Vector3(...t)))}};
+const clock=new THREE.Clock();let paused=false;window.pauseLoop=v=>paused=v;
+function render(dt){
+  if(state.mode==='vm'){if(state.vm&&dt)state.vm.update(dt,{moving:state.moving,sprint:state.sprint,ads:state.ads,look:state.look||{dx:0,dy:0}});state.look={dx:0,dy:0};
+    const sc=state.vm&&state.vm.userData.scoped&&state.vm.adsT>.92;document.getElementById('scope').style.display=sc?'block':'none';if(state.vm)state.vm.visible=!sc;
+    vmCam.fov=72*(1-(state.vm?state.vm.adsT:0)*(1-(state.vm?state.vm.userData.adsFov:1)));vmCam.updateProjectionMatrix();
+    if(dbgCam){vmScene.updateMatrixWorld(true);renderer.setClearColor(0x30343a);renderer.autoClear=true;renderer.render(vmScene,dbgCam);return}
+    renderer.autoClear=true;const c=vmCam.clone();renderer.render(back,c);renderer.autoClear=false;renderer.clearDepth();renderer.render(vmScene,vmCam);renderer.autoClear=true}
+  else{if(state.turnTarget&&state.auto&&dt)state.turnTarget.rotation.y+=dt*.5;else if(state.turnTarget)state.turnTarget.rotation.y=state.turn;renderer.render(scene,camera)}}
+function loop(){requestAnimationFrame(loop);if(paused)return;render(Math.min(.05,clock.getDelta()))}
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=vmCam.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();vmCam.updateProjectionMatrix()});
+/* UI */
+function ui(){const u=document.getElementById('ui');u.innerHTML='';const add=(t,f,on)=>{const b=document.createElement('button');b.textContent=t;if(on)b.className='on';b.onclick=f;u.appendChild(b)};
+  add('Lineup',()=>{showLineup(state.att);ui()},state.mode==='lineup');
+  HT.Guns.TYPES.forEach(t=>add(NAMES[t]||t,()=>{state.gun=t;state.mode==='vm'?showVM(t,state.att):showModel(t,state.att);ui()},state.gun===t&&state.mode!=='lineup'));
+  add(state.mode==='vm'?'World model':'First person',()=>{state.mode==='vm'?showModel(state.gun,state.att):showVM(state.gun,state.att);ui()});
+  ['redDot','suppressor','extMag','foregrip'].forEach(k=>add(k,()=>{state.att[k]=!state.att[k];state.mode==='vm'?showVM(state.gun,state.att):state.mode==='lineup'?showLineup(state.att):showModel(state.gun,state.att);ui()},state.att[k]))}
+addEventListener('keydown',e=>{const r=state.vm;if(e.key==='1')state.ads=0;if(e.key==='2')state.ads=1;if(r&&(e.key===' '||e.key==='3'))r.fire();if(r&&(e.key==='r'||e.key==='4'))r.reload(2.2,Math.random()<.5);if(r&&e.key==='e')r.equip();
+  if(e.key==='w')state.moving=!state.moving;if(e.key==='Shift')state.sprint=true});
+addEventListener('keyup',e=>{if(e.key==='Shift')state.sprint=false});
+addEventListener('mousedown',e=>{if(e.target.tagName!=='CANVAS')return;if(state.mode==='vm'){if(e.button===2)state.ads=1;else state.vm&&state.vm.fire()}else state.drag={x:e.clientX,a:state.turn,auto:state.auto}});
+addEventListener('mouseup',e=>{if(e.button===2)state.ads=0;state.drag=null});addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('mousemove',e=>{if(state.drag){state.auto=false;state.turn=state.drag.a+(e.clientX-state.drag.x)*.01}if(state.mode==='vm')state.look={dx:e.movementX,dy:e.movementY}});
+HT.Guns.init({base:'../assets/guns/',charBase:'../assets/people/rocketbox/',character:'dad_player'}).then(()=>{const q=new URLSearchParams(location.search);if(q.get('gun'))state.gun=q.get('gun');
+  if(q.get('mode')==='vm')showVM(state.gun,state.att);else if(q.get('gun'))showModel(state.gun,state.att);else showLineup(state.att);ui();window.benchReady=true;loop()});
+</script>
+</body></html>

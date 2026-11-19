@@ -109,7 +109,11 @@ Conventions: `e.yaw` uses the character convention, forward = (sin yaw, cos yaw)
 - `buildLevel` ends with one line that builds `lvl.nav` for missions (`losBlock:'#htVcf'`: stash tables are 0.85 m, too low to hide a crouched man, so they are not cover).
 - `updEnemy` / `updAlly` keep their dead / cuffed / surrender / down branches and hand off to `aiEnemy` / `aiAlly` when a nav exists; the old code stays as the hub fallback.
 - `hurtEnemy` uses `AI.surrenderChance(e,.5)`; the Block Party wave block uses `AI.director` and resets squad morale each wave.
-- Crouch pose (`deepCrouch`): crouched enemies and crew kneel, lean in and sink so every hitbox stays under 0.95-1.1 m (crate top 1.15 m), measured from the model's own height, so the taller King fits too.
+- Guns: `aiSyncGuns()` copies acc, damage, burst, cooldown, range band and the close-range damage step from the combat table `NPC_GUNS`/`npcGun` into `AI.GUNS` / `AI.ALLY_GUNS` at mission start, so gun stats have one source. The AI only adds magazine, reload, aim telegraph and range.
+- Hunter laser: `aiEnemy` sets `e.target` and `e.fireT` (time left in the aim telegraph) so the combat code's `hunterLaser()` shows while a hunter lines up a shot.
+- Voices: barks go to `radio()` (subtitles) and to `HT.Audio.voice` with the speaker's position (`thug_alert`, `thug_hurt`, `thug_surrender`, `dad_alert`; see `AI_VOICE`). Surrender and hurt grunts are detected in `aiTick`, so the combat functions stay untouched.
+- Characters: the skinned people (`js/people.js`) crouch with `pose(...,{mode:'crouch',aim:true})`; their crouch-aim hinge keeps the head under 1.15 m. `deepCrouch` now only applies to the box-figure fallback.
+- Crouch pose for the box fallback (`deepCrouch`): crouched enemies and crew kneel, lean in and sink so every hitbox stays under 0.95-1.1 m (crate top 1.15 m), measured from the model's own height, so the taller King fits too.
 - `window.__ht` adds `AI`, `aiWorld`, `aiStats` (think() timing, bark log), `rayTargets` and `simT` for the headless checks.
 
 ## Known weaknesses
@@ -117,4 +121,5 @@ Conventions: `e.yaw` uses the character convention, forward = (sin yaw, cos yaw)
 - Third-person camera: from ~2 m up and 2.7 m behind, the camera can see a sliver of a man hiding behind a wall corner or the edge of a crate that the dad's shoulder can't. `fire()`'s shoulder check stops those shots, but the player can see him.
 - Grid resolution: cover is per 2 m cell. Diagonal (outside-corner) crate spots are the weakest; a grazing ray still reaches 1-2 of 75 probe points in some cases.
 - The park has little real cover (eight crates; tree trunks are 0.5 m), so wave crews mostly fight in the open or behind crates.
-- The crouch pose is a whole-body lean on box characters; if the character models change height, `deepCrouch` re-measures them, but the look of the pose is approximate.
+- The King (scale 1.2) crouch-aims with his crown about 1.16 m up, just over a 1.15 m crate. The camera can graze it from above, but in the crate test no shot from the dad's shoulder landed.
+- No left/right lean when peeking: `HT.People` has no lean cue, so a peek is the body stepping out to the side.
