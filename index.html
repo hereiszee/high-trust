@@ -1702,7 +1702,7 @@ function puff(p){FX.impact(p,V3(0,1,0),'wood',{big:true,decal:false})}
 /* ================= COMBAT ================= */
 function speaker(){const a=allies.filter(x=>!x.down);return a.length?pick(a).id:null}
 function hurtEnemy(e,dmg,by,opt={}){
-  if(e.state==='dead'||e.state==='cuffed')return;
+  if(e.state==='dead'||e.state==='cuffed')return;if(by==='ally'&&e.script&&e.script.kind==='to')return;/* the crew leaves the Duke's run for his car to the dad */
   /* beanbag: never kills, never an execution; a hit on someone who already gave up costs a little trust */
   if(opt.nonlethal){if(e.state==='surrender'){if(simT-(e.surrAt||0)>=SURR_GRACE&&simT-(e.beanAt||-9)>1){e.beanAt=simT;addTrust(-1);const s=speaker();if(s)radio(s,"Okay, he gets it.",true)}return}
     e.hp=Math.max(1,e.hp-dmg);e.alert=true;cue('hit',e.dude,!!opt.head);if(!e.last)e.last=P.pos.clone();if(e.hp<e.maxhp*.6&&(!e.boss||!e.triedSurr)){e.triedSurr=true;surrender(e)}return}
