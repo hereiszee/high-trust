@@ -964,8 +964,10 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause()})}
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){HUD.show('title',UI.title)}
+/* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
+function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
-  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
+  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',a=>{
   if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
   else if(UI.acts[a])UI.acts[a]();
@@ -1655,7 +1657,7 @@ function hudEvents(){
       HUD.damage(src?{x:src.pos.x,z:src.pos.z}:{angle:0},UI.hp-P.hp)}}
   UI.hp=P.hp}
 function hud(dt){
-  if(mode==='title'){$('lock').hidden=true;return}
+  if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
   const drv=VAN.on&&mode==='hub',mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
   /* crosshair spread: same formula fire() uses */
@@ -2017,13 +2019,13 @@ RENDER.apply(CFG.gfx);
 initModules();
 try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}
 try{FX.init({scene,camera,renderer,assets:ASSETS,quality:CFG.gfx,groundAt:worldGroundAt});FX.setQuality(RENDER.q);FX.bindGrade(RENDER.post&&RENDER.mats.grade?RENDER.mats.grade.uniforms:null)}catch(e){console.warn('FX init failed',e)}
-buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;
+buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();
 /* title card: progress bar while assets stream in; the button unlocks when everything settled (or after the 25s timeout) */
 showTitle();
 ASSETS.onProgress((f,A)=>{if(!A.done)HUD.set('title',{progress:f})});
 ASSETS.ready.then(A=>{const miss=A.failed.length;
   HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
-  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove()}
+  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();titlePose()}
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
