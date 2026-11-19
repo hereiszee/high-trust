@@ -9,9 +9,9 @@ Design source: `docs/design/SPEC.md` sections A (weapon feel) and B (pickups).
 |---|---|---|
 | `js/fx.js` (`HT.FX`) | Loaded and used for muzzle flashes, tracers, impacts and decals, brass and hulls, camera shake and kick, damage direction, hit pulse, low-health grade, pickup glow, zip-tie `+TRUST` pop. The grade pass gets `FX.GRADE` (desaturate, hurt, blur, pulse). | `const FX` is a no-op proxy, so every call does nothing. |
 | `js/audio.js` (`HT.Audio`) | Loaded. Used for per-gun shots (the player's own and positional NPC shots), mechanics (`dry`, `reload_out`, `reload_in`, `pump`, `bolt`, `shell`, `equip`), impacts by surface, hit and kill ticks, pickup UI, footsteps, near-miss whizz, shell bounces, the minivan engine, horn and crash, and music and ambience states (hub, tension, combat, victory or fail). `snd()` forwards to `HT.Audio.legacy`. | The built-in synth: `gunSnd(id)` plays the SPEC A.2 recipes (crack, body, thump, tail and echo, mech), `sfx()` plays clicks, and `snd()` keeps its old behaviour. |
-| `js/guns.js` (`HT.Guns`) | Adapter only. The script tag is **not** added yet, because the file is still on `work/guns`. When it is present: `makeGun()` wraps `HT.Guns.model()` (turned 180°, since the module's guns point down -Z), `setViewGun()` builds `HT.Guns.viewmodel(type)` into the view-model scene, `vmKick()` calls `rig.fire()`, `reload()` calls `rig.reload(dur, empty)`, `vmPose()` calls `rig.update(dt, {ads, moving, sprint, crouch})`, and `HT.Guns.init({assets})` runs at boot. | Procedural box-and-cylinder guns, nine different silhouettes, plus forearms and a per-gun spring kick. |
+| `js/guns.js` (`HT.Guns`) | Loaded. `makeGun()` wraps `HT.Guns.model()` (turned 180°, because the module's guns point down -Z) for every held, NPC and pickup gun. `setViewGun()` builds `HT.Guns.viewmodel(type)` (arms and hands included) into the view-model scene. `vmKick()` calls `rig.fire()`, `reload()` calls `rig.reload(dur, empty)`, and `vmPose()` calls `rig.update(dt, {ads, moving, sprint, crouch})` and sets `vmCam.fov` from `rig.adsT` and `userData.adsFov`. The first-person `muzzle()` uses `rig.userData.muzzle`, so flashes and tracers leave the real barrel. `HT.Guns.init({assets})` runs at boot, and the guns are rebuilt when it resolves. | Procedural box-and-cylinder guns, nine different silhouettes, plus forearms and a per-gun spring kick (`vmS`). |
 
-To turn on `guns.js`, add `<script src="js/guns.js"></script>` next to `fx.js`/`audio.js`. No other change is needed.
+Not wired yet: `HT.Guns.attachToHand` (Rocketbox hand bones). `index.html` still uses the box characters with a `gunHold` group. Whoever swaps the characters should call `attachToHand(bone, makeGun(type), type)` inside `equip()`.
 
 ## Data (`WEAPONS`, `AMMO`, `NPC_GUNS`, `MISSION_ARMS`)
 
@@ -21,7 +21,7 @@ Ammo is typed: `P.pool[type]`. Each `P.ammo[gun]` is `{mag, res}`, where `res` i
 
 ## Functions and regions touched
 
-- **Script tags**: `js/fx.js`, `js/audio.js`.
+- **Script tags**: `js/fx.js`, `js/audio.js`, `js/guns.js`.
 - **RENDER**: `GradeShader` uniforms and GLSL (`fxSample` and `fxGrade`), `R.apply` (FX quality and `bindGrade`), `R.mats.grade`.
 - **Removed**: `flashTex`, `flashes`, `muzzleFlash`, `updFlashes`, the `flash` PointLight, `tracerMat*`, `tracer()`, `puffG`. `puff()` is now a one-line FX dust call, used by the stash smash.
 - **AUDIO**: `initAudio` (also calls `HT.Audio.init` and wires the FX shell and near-miss hooks), and `snd` (bridge).

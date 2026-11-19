@@ -184,6 +184,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>
+<script src="js/guns.js"></script>
 <script src="js/buildings.js"></script>
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
@@ -882,7 +883,8 @@ function setViewGun(t){if(vmGun)vm.remove(vmGun);vmGun=null;if(vmRig){vm.remove(
 function vmKick(c){if(vmRig){try{vmRig.fire&&vmRig.fire()}catch(e){}return}vmS.vz+=c.back*60;vmS.vrx+=c.rise*60;vmS.vrz+=rand(-1,1)*c.roll*60;vmS.vx+=rand(-1,1)*c.side*60}
 function vmSpring(dt,c){const h=Math.min(dt,1/60),n=Math.max(1,Math.round(dt/h));for(let i=0;i<n;i++)for(const k of['x','y','z','rx','rz']){const vk='v'+k,acc=-c.k*vmS[k]-c.damp*vmS[vk];vmS[vk]+=acc*dt/n;vmS[k]+=vmS[vk]*dt/n}}
 function vmPose(dt){const w=WEAPONS[P.cur]||WEAPONS.pistol,t=P.adsT,rl=P.reloadT>0;
-  if(vmRig){vm.position.set(0,0,0);vm.rotation.set(0,0,0);try{vmRig.update(dt,{ads:t,moving:P.moving,sprint:keys.shift&&!P.aim&&P.moving,crouch:P.crouch})}catch(e){}
+  if(vmRig){vm.position.set(0,0,0);vm.rotation.set(0,0,0);try{vmRig.update(dt,{ads:t,moving:P.moving,sprint:keys.shift&&!P.aim&&P.moving,crouch:P.crouch});
+      const f=72*(1-(vmRig.adsT||0)*(1-(vmRig.userData.adsFov||1)));if(Math.abs(vmCam.fov-f)>.01){vmCam.fov=f;vmCam.updateProjectionMatrix()}}catch(e){}
     vm.visible=vm.visible&&!P.scoped;scopeEl().style.display=P.scoped?'block':'none';return}
   const ax=w.slot==='side'?.0:.0,ay=w.slot==='side'?-.17:-.15;
   vm.position.set(lerp(.24,ax,t)+vmS.x,lerp(-.22,ay,t)+Math.sin(P.dude.walk)*.01*(1-t*.7)+vmS.y,(rl?-.32:lerp(-.45,-.36,t))+vmS.z);
@@ -1163,7 +1165,9 @@ function curSpread(){const w=WEAPONS[P.cur];if(!w)return .01;const mf=clamp(P.sp
 function fallMul(w,d){return d<=w.fall[0]?1:d>=w.fall[1]?w.fall[2]:1-(1-w.fall[2])*(d-w.fall[0])/(w.fall[1]-w.fall[0])}
 const ray=new THREE.Raycaster();
 function camFwd(){return V3(-Math.sin(P.yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(P.yaw)*Math.cos(P.pitch))}
-function muzzle(){const w=WEAPONS[P.cur];if(P.fp){const len=w&&w.slot==='side'?.85:1.1;return V3(lerp(.24,.0,P.adsT),lerp(-.16,-.08,P.adsT),-len).applyQuaternion(camera.quaternion).add(camera.position)}
+function muzzle(){const w=WEAPONS[P.cur];
+  if(P.fp&&vmRig&&vmRig.userData.muzzle){try{vmCam.updateMatrixWorld(true);const m=vmCam.worldToLocal(vmRig.userData.muzzle.getWorldPosition(V3()));if(m.z<-.2)return camera.localToWorld(m.multiplyScalar(1.6))}catch(e){}}
+  if(P.fp){const len=w&&w.slot==='side'?.85:1.1;return V3(lerp(.24,.0,P.adsT),lerp(-.16,-.08,P.adsT),-len).applyQuaternion(camera.quaternion).add(camera.position)}
   const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));const m=P.pos.clone().add(V3(0,P.crouch?1.05:1.38,0)).addScaledVector(f,.9).addScaledVector(r,.33);
   const o=P.pos.clone().add(V3(0,P.crouch?1.05:1.38,0)),d=m.clone().sub(o),l=d.length();ray.set(o,d.normalize());ray.near=0;ray.far=l;const h=L?ray.intersectObjects(L.solids,false)[0]:null;return h?o.addScaledVector(d,Math.max(0,h.distance-.08)):m}
 function ejectShell(id){const w=WEAPONS[id];if(!w||!w.shell)return;const mz=muzzle(),fwd=camFwd();const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));FX.shell(mz.addScaledVector(fwd,-.3),right.add(V3(0,.5,0)).normalize(),w.shell)}
