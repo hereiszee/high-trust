@@ -716,9 +716,16 @@ function nextStep(fx,fz,gxw,gzw){
 /* colliders are 2D boxes; c.h (optional) is the world height of a low one's top (crate, table, hedge, car). No h = full height.
    feet (optional, the player's): a box whose top is within MOVE.step of the feet or below them is stood on, not pushed against */
 const MOVE={g:22,v0:6.8,coyote:.1,buf:.12,step:.26,air:2.6,sup:.2,vaultMax:1.3,mantleMax:2.05};
-function collide(p,r,feet){const fy=feet==null?-1e9:feet;for(let pass=L.cgrid?3:1;pass--;)for(const c of L.cgrid?L.cgrid(p,r):L.colliders){if(c.h!=null&&fy>=c.h-MOVE.step)continue;if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){
+function collide(p,r,feet){const fy=feet==null?-1e9:feet;for(let pass=L.cgrid?3:1;pass--;)for(const c of L.cgrid?L.cgrid(p,r):L.colliders){if(c.h!=null&&fy>=c.h-MOVE.step)continue;if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){if(c.ob){obPush(p,r,c.ob);continue}
   const ox1=p.x+r-c.x0,ox2=c.x1-(p.x-r),oz1=p.z+r-c.z0,oz2=c.z1-(p.z-r);const mx=Math.min(ox1,ox2),mz=Math.min(oz1,oz2);
   if(mx<mz)p.x+=ox1<ox2?-ox1:ox2;else p.z+=oz1<oz2?-oz1:oz2}}}
+/* oriented box colliders (cars): c.ob={x,z,fx,fz,hl,hw}, x0..z1 stays the enclosing box for broad checks */
+function obLocal(px,pz,b){const dx=px-b.x,dz=pz-b.z;return[dx*b.fx+dz*b.fz,dx*-b.fz+dz*b.fx]}
+function obHit(px,pz,r,b){const[a,c]=obLocal(px,pz,b),qa=a-clamp(a,-b.hl,b.hl),qc=c-clamp(c,-b.hw,b.hw);return qa*qa+qc*qc<r*r}
+function obPush(p,r,b){const[a,c]=obLocal(p.x,p.z,b);let na,nc,d;const ca=clamp(a,-b.hl,b.hl),cc=clamp(c,-b.hw,b.hw);
+  if(ca!==a||cc!==c){const qa=a-ca,qc=c-cc,l=Math.hypot(qa,qc);if(l>=r)return;d=r-l;na=qa/l;nc=qc/l}
+  else{const pa=b.hl-Math.abs(a),pc=b.hw-Math.abs(c);if(pa<pc){na=Math.sign(a)||1;nc=0;d=pa+r}else{na=0;nc=Math.sign(c)||1;d=pc+r}}
+  p.x+=(na*b.fx-nc*b.fz)*d;p.z+=(na*b.fz+nc*b.fx)*d}
 /* low colliders by tile, rebuilt when the level or its collider list changes */
 function hcIndex(){if(L._hc&&L._hcN===L.colliders.length)return L._hc;const m=new Map();
   for(const c of L.colliders){if(c.h==null)continue;for(let z=Math.floor(c.z0/TILE);z<=Math.floor(c.z1/TILE);z++)for(let x=Math.floor(c.x0/TILE);x<=Math.floor(c.x1/TILE);x++){const k=z*4096+x;let a=m.get(k);if(!a)m.set(k,a=[]);a.push(c)}}
@@ -731,7 +738,7 @@ function supportAt(x,z,feet,r=MOVE.sup){let y=baseGroundY(x,z),c=null;if(!L)retu
   return{y,c}}
 function worldGroundAt(x,z){return L?supportAt(x,z,1e9,0).y:0}
 /* would a body of radius r with its feet at y overlap anything solid at (x,z)? */
-function solidAt(x,z,r,feet,skip){for(const c of L.colliders){if(c===skip||(c.h!=null&&feet>=c.h-MOVE.step))continue;if(x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1)return c}return null}
+function solidAt(x,z,r,feet,skip){for(const c of L.cgrid?L.cgrid({x,z},r):L.colliders){if(c===skip||(c.h!=null&&feet>=c.h-MOVE.step))continue;if(x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1&&(!c.ob||obHit(x,z,r,c.ob)))return c}return null}
 
 /* ================= STATE ================= */
 const prog=metaBindProg({done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});
@@ -747,11 +754,12 @@ function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
    signatures and only fill UI, which hud() turns into one state object per frame. */
 const HUD=HT.HUD.init(document.body.appendChild(document.createElement('div')));
+HUD.blockKeys=()=>!!(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen());/* no M map while a shop/locker/home menu is up */
 {const au=HUD.settingsSchema.find(g=>g.tab==='audio');if(au){const v=au.items.find(i=>i.k==='voice');if(v){v.k='ambience';v.l='Ambience'}}}/* js/audio.js has master, sfx, music and ambience buses, no voice bus */
 const VOL_DEF={master:90,sfx:100,music:50,ambience:75};
 HUD.settings={subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience};P.fp=!!CFG.fp;
 const subQ=[];let subT=0,bannerT=0,hitT=0,hurtFlash=0;
-const UI={obj:null,prompt:null,marker:null,sub:null,route:null,acts:{},title:{progress:0},M:null,hp:100,n:{},down:new Map()};
+const UI={obj:null,prompt:null,marker:null,sub:null,route:null,acts:{},title:{progress:0,premise:'Packages are vanishing, a chop shop opened on Industrial Way, and somebody is dealing out of the duplex on Birch. You and the guys would rather be grilling.'},M:null,hp:100,n:{},down:new Map()};
 function radio(who,text,front){const n=who==='you'?'You':(HOMIES[who]?.name||who);if(front)subQ.unshift([n,text]);else subQ.push([n,text]);if(subQ.length>4)subQ.length=4}
 function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
   const intro=mode==='mission'&&M&&M.elapsed<.5&&t===M.def.title.toUpperCase();
@@ -958,11 +966,14 @@ function carModel(type,color,lod){const V_=HTM('Vehicles');if(!V_||!V_.make)retu
 function regCar(lvl,v,x,z,col,tile){if(!v||!v.userData.mod||!(lvl.def.id==='hub'||lvl.def.world))return null;const cars=lvl.cars||(lvl.cars=[]),y=v.rotation.y-Math.PI/2;
   const e={type:v.userData.type||'sedan',obj:v,pos:V3(x,0,z),yaw:y,spd:0,steer:0,col,bump:0,stats:null,owner:'neighbour',name:NEIGHBOURS[(cars.length*7)%NEIGHBOURS.length],
     color:v.userData.color,home:{x,z,yaw:y},dmg:0,odo:0,tile:tile||null,meshes:[]};
-  v.traverse(m=>{if(m.isMesh)e.meshes.push(m)});cars.push(e);return e}
+  v.traverse(m=>{if(m.isMesh&&m!==v.userData.contactShadow)e.meshes.push(m)});const sh=v.userData.contactShadow,si=sh?lvl.solids.indexOf(sh):-1;if(si>=0)lvl.solids.splice(si,1);
+  cars.push(e);if(col){const L0=L;L=lvl;syncCar(e);L=L0}return e}
+/* other world builders can hand over their cars: registerCar(threeGroupFromHT.Vehicles, x, z) adds a tight collider and makes it borrowable */
+function registerCar(v,x,z){if(!L)return null;const col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(col);v.traverse(m=>{if(m.isMesh&&m!==v.userData.contactShadow)L.solids.push(m)});return regCar(L,v,x,z,col)}
 function carSize(e){const s=e.obj&&e.obj.userData.size;return s&&s.l?s:{l:4.4,w:2,h:1.8}}
 function groundAt(x,z){const HW=HTM('World');if(!HW||!HW.groundY||!L)return 0;try{return HW.groundY(L,x,z)||0}catch(_){return 0}}
 /* the car's meshes block bullets and the camera while parked, not while you sit in it */
-function setCarSolid(e,on){if(e===VAN||!L)return;if(on){if(e.meshes)return;e.meshes=[];e.obj.traverse(m=>{if(m.isMesh){L.solids.push(m);e.meshes.push(m)}});return}
+function setCarSolid(e,on){if(e===VAN||!L)return;if(on){if(e.meshes)return;e.meshes=[];e.obj.traverse(m=>{if(m.isMesh&&m!==e.obj.userData.contactShadow){L.solids.push(m);e.meshes.push(m)}});return}
   if(!e.meshes)return;const s=new Set(e.meshes);let j=0;for(let i=0;i<L.solids.length;i++)if(!s.has(L.solids[i]))L.solids[j++]=L.solids[i];L.solids.length=j;e.meshes=null}
 /* hero model while you drive (and while it carries dents); the light parked model once you walk away */
 function swapLod(e,lod){if(e===VAN||!e.obj||(e.obj.userData.lod|0)===lod)return;const nv=carModel(e.type,e.color,lod);if(!nv)return;const old=e.obj,solid=!!e.meshes;
@@ -989,8 +1000,9 @@ function makeHubVan(){const v=makeVan('#35577d','minivan',{roofRack:true});if(!v
   VAN.home={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};(L.cars||(L.cars=[])).unshift(VAN);BORROW.car=null;syncVan()}
 /* place the car's model and its parked footprint */
 function syncCar(e){const v=e.obj;if(!v)return;v.position.set(e.pos.x,groundAt(e.pos.x,e.pos.z),e.pos.z);v.rotation.set(0,e.yaw+Math.PI/2,0);
-  const c=e.col;if(!c)return;if(CV===e){Object.assign(c,VAN_OFF);return}const S=carSize(e),a=Math.abs(Math.sin(e.yaw)),b=Math.abs(Math.cos(e.yaw)),hl=S.l/2,hw=S.w/2,hx=a*hl+b*hw,hz=b*hl+a*hw;
-  c.x0=e.pos.x-hx;c.x1=e.pos.x+hx;c.z0=e.pos.z-hz;c.z1=e.pos.z+hz}
+  const c=e.col;if(!c)return;if(CV===e){Object.assign(c,VAN_OFF);return}const S=carSize(e),a=Math.abs(Math.sin(e.yaw)),b=Math.abs(Math.cos(e.yaw)),hl=S.l/2+.04,hw=S.w/2+.04,hx=a*hl+b*hw,hz=b*hl+a*hw;
+  c.x0=e.pos.x-hx;c.x1=e.pos.x+hx;c.z0=e.pos.z-hz;c.z1=e.pos.z+hz;
+  c.ob=e.obj.userData.mod?{x:e.pos.x,z:e.pos.z,fx:-Math.sin(e.yaw),fz:-Math.cos(e.yaw),hl:hl,hw:hw}:null}
 function syncVan(){syncCar(VAN)}
 function engine(on,e){const F=feel(e||CV),A=AU();if(A){try{if(on&&!ENG){ENG=A.vehicle();ENG.door&&ENG.door(F.door)}else if(!on&&ENG&&ENG.stop){ENG.door&&ENG.door(F.door);ENG.stop();ENG=null}}catch(err){}return}if(!AC)return;if(on&&!ENG){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=380;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AC.destination);o.start();o2.start();ENG={o,o2,g}}
   else if(!on&&ENG){try{ENG.o.stop();ENG.o2.stop()}catch(e){}ENG=null}}
@@ -1192,12 +1204,12 @@ function setObj(t,lines){UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?
 /* ================= INPUT ================= */
 const cv=renderer.domElement;let locked=false;
 function canvasFocus(){try{cv.focus({preventScroll:true})}catch(e){}}
-let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused=false;
+let lockFailed=false,lockWanted=false,pauseOpen=false,everLocked=false,mapPaused=false,selfExit=false;/* selfExit: the next unlock is ours, not the player's Esc */
 function requestLock(){if(COARSE)return;lockWanted=true;try{let r;try{r=cv.requestPointerLock({unadjustedMovement:true})}catch(e){r=null}
   if(r&&r.catch)r.catch(()=>{try{const r2=cv.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{lockFailed=true})}catch(e){lockFailed=true}});else if(!r)cv.requestPointerLock()}catch(e){lockFailed=true}}
-function releaseLock(){lockWanted=false;try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
-document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){try{document.exitPointerLock()}catch(e){}}}
-  if(was&&!locked&&lockWanted&&running)openPause()});
+function releaseLock(){lockWanted=false;try{if(document.pointerLockElement){selfExit=true;document.exitPointerLock()}}catch(e){}mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false}
+document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){selfExit=true;try{document.exitPointerLock()}catch(e){}}}
+  if(was&&!locked){if(selfExit)selfExit=false;else if(lockWanted&&running)openPause()}});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
   if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
@@ -1227,8 +1239,10 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause()})}
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){HUD.show('title',UI.title)}
+/* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
+function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
-  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
+  buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',a=>{
   if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
   else if(UI.acts[a])UI.acts[a]();
@@ -1410,8 +1424,8 @@ function fire(){
         if(w.root&&Math.random()<w.root){e.rootT=.6;e.rootAt=e.pos.clone()}}}
   }
   /* pellets are summed per target so one blast can't both make a man give up and then hit him again */
-  for(const [e,d] of dmgBy){P.lastHitDir=fwd;if(hurtEnemy(e,d,'player',{nonlethal:w.nonlethal,gun:id,head:!!(fire.heads&&fire.heads.has(e))})==='dead')killed=true}if(fire.heads)fire.heads.clear();
-  if(anyHit){hitT=.18;HUD.hit(killed?'kill':'hit');const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
+  for(const [e,d] of dmgBy){P.lastHitDir=fwd;if(hurtEnemy(e,d,'player',{nonlethal:w.nonlethal,gun:id,head:!!(fire.heads&&fire.heads.has(e))})==='dead')killed=true}const headed=!!(fire.heads&&fire.heads.size);if(fire.heads)fire.heads.clear();
+  if(anyHit){hitT=.18;HUD.hit(headed?(killed?'head':'headhit'):killed?'kill':'hit');const A=AU();if(A)try{A.ui(killed?'kill':'hitmarker')}catch(_){}}
   /* recoil: pattern-driven climb + jitter, recovered over time (rDebt) */
   const p=w.rc.pat[Math.min(n,w.rc.pat.length-1)];
   const kv=w.rc.v*p[0]*lerp(1,w.rc.adsMul,P.adsT)*(P.crouch?.8:1),kh=w.rc.h*(p[1]+w.rc.hBias+rand(-1,1));
@@ -1520,7 +1534,7 @@ function updPickups(dt,busy){
 /* automatic ammo: ammo bags, dropped boxes and the ammo in a dropped gun you already carry come to you within PK_R (a short magnet), with a toast.
    A full pouch says so once per ammo type until you spend some. A surrendered man's gun waits for the zip-tie. */
 const PK_R=1.25;
-function toast(txt,col){if(HUD&&HUD.feed){try{HUD.feed(txt,'info');return}catch(e){}}if(!document.body)return;let el=$('pkToast');
+function toast(txt,col){if(HUD&&HUD.ammoToast){try{HUD.ammoToast(txt,col);return}catch(e){}}if(!document.body)return;let el=$('pkToast');
   if(!el){el=document.createElement('div');el.id='pkToast';el.style.cssText='position:fixed;left:50%;bottom:27%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none;z-index:3';document.body.appendChild(el)}
   const d=document.createElement('div');d.textContent=txt;d.style.cssText='font:800 15px/1 var(--body,sans-serif);letter-spacing:.05em;color:#f6f1e3;background:rgba(18,20,24,.66);padding:7px 13px 7px 11px;border-left:3px solid '+(col||'#ffc94a')+';border-radius:3px;text-shadow:0 1px 2px rgba(0,0,0,.5);transition:opacity .35s,transform .35s;opacity:0;transform:translateY(8px)';
   el.appendChild(d);while(el.children.length>3)el.firstChild.remove();void d.offsetWidth;d.style.opacity='1';d.style.transform='none';
@@ -1921,7 +1935,7 @@ function hudEvents(){
       HUD.damage(src?{x:src.pos.x,z:src.pos.z}:{angle:0},UI.hp-P.hp)}}
   UI.hp=P.hp}
 function hud(dt){
-  if(mode==='title'){$('lock').hidden=true;return}
+  if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
   const drv=VAN.on&&mode==='hub',mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
   /* crosshair spread: same formula fire() uses */
@@ -2284,15 +2298,15 @@ RENDER.apply(CFG.gfx);
 initModules();
 try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}
 try{FX.init({scene,camera,renderer,assets:ASSETS,quality:CFG.gfx,groundAt:worldGroundAt});FX.setQuality(RENDER.q);FX.bindGrade(RENDER.post&&RENDER.mats.grade?RENDER.mats.grade.uniforms:null)}catch(e){console.warn('FX init failed',e)}
-buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;
+buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();
 /* title card: progress bar while assets stream in; the button unlocks when everything settled (or after the 25s timeout) */
 showTitle();
 ASSETS.onProgress((f,A)=>{if(!A.done)HUD.set('title',{progress:f})});
 ASSETS.ready.then(A=>{const miss=A.failed.length;
   HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
-  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove()}
+  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();titlePose()}
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
