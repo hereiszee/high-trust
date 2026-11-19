@@ -43,21 +43,21 @@ await p.evaluate(()=>{HT.Shop.close()});await p.waitForTimeout(300);
 const st=await p.evaluate(()=>{const e=__e;return{top:e.stats.maxSpeed,base:e.base.maxSpeed,band:__ht.carBand(e)}});ok(st.band===0,'handling back to stock after the repair',st);
 await view();await shot('after-repair-borrowed');
 /* returning it repaired: a thank-you instead of a ding */
-const tr=await p.evaluate(()=>{const h=__ht,t0=h.prog.trust;h.exitVehicle();const r=h.settleBorrow(false);return{r,d:h.prog.trust-t0}});ok(tr.r===1&&tr.d===1,'paid-for repair: thank-you, +1 trust',tr);
+const tr=await p.evaluate(()=>{const h=__ht,t0=h.prog.trust+(h.prog.trustR||0);h.exitVehicle();const r=h.settleBorrow(false);return{r,d:h.prog.trust+(h.prog.trustR||0)-t0}});ok(tr.r===1&&tr.d===1,'paid-for repair: thank-you, +1 trust',tr);
 /* trust scales with damage left, fires once per owner, capped */
 const sc=await p.evaluate(()=>{const h=__ht,out=[];const cs=h.vehicles.filter(v=>v.owner==='neighbour'&&v!==__e).slice(0,5);const amt=[5,15,40,70,90];
-  cs.forEach((e,i)=>{h.P.pos.set(e.pos.x,0,e.pos.z);const t0=h.prog.trust;h.enterVehicle(e);h.carDamage(e,h.carHpMax(e)*amt[i]/100,'test');h.exitVehicle();const r=h.settleBorrow(false);out.push([e.name,amt[i],r,h.prog.trust-t0])});
+  cs.forEach((e,i)=>{h.P.pos.set(e.pos.x,0,e.pos.z);const t0=h.prog.trust+(h.prog.trustR||0);h.enterVehicle(e);h.carDamage(e,h.carHpMax(e)*amt[i]/100,'test');h.exitVehicle();const r=h.settleBorrow(false);out.push([e.name,amt[i],r,h.prog.trust+(h.prog.trustR||0)-t0])});
   const again=cs[2];h.P.pos.set(again.pos.x,0,again.pos.z);h.enterVehicle(again);h.carDamage(again,30,'test');h.exitVehicle();out.push(['again',again.name,h.settleBorrow(false)]);return out});
 ok(sc[0][3]===0&&sc[1][3]===-1&&sc[2][3]===-2&&sc[3][3]===-3&&sc[5][2]===0,'trust scales with damage left (5%:0, 15%:-1, 40%:-2, 70%:-3), once per owner, session cap -6',sc);
 /* a broken-down borrowed car goes home on a flatbed */
 const th=await p.evaluate(()=>{const h=__ht;h.BORROW.minus=0;h.BORROW.dinged.clear();const e=h.vehicles.filter(v=>v.owner==='neighbour'&&v!==__e)[6];h.P.pos.set(e.pos.x,0,e.pos.z);h.enterVehicle(e);
-  h.carDamage(e,1e3,'test');h.step(10);h.exitVehicle();const t0=h.prog.trust,c0=h.cash;h.P.pos.set(e.pos.x+Math.cos(e.yaw)*2,0,e.pos.z-Math.sin(e.yaw)*2);h.step(1);__ht.draw();const pr=h.prompt&&h.prompt.text||h.prompt;const r=h.towCar(e);
-  return{prompt:pr,r,trust:h.prog.trust-t0,cash:h.cash-c0,home:Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),hp:h.carHp(e),tab:h.save.garage.tab}});
+  h.carDamage(e,1e3,'test');h.step(10);h.exitVehicle();const t0=h.prog.trust+(h.prog.trustR||0),c0=h.cash;h.P.pos.set(e.pos.x+Math.cos(e.yaw)*2,0,e.pos.z-Math.sin(e.yaw)*2);h.step(1);__ht.draw();const pr=h.prompt&&h.prompt.text||h.prompt;const r=h.towCar(e);
+  return{prompt:pr,r,trust:h.prog.trust+(h.prog.trustR||0)-t0,cash:h.cash-c0,home:Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),hp:h.carHp(e),tab:h.save.garage.tab}});
 ok(/towed home/.test(th.prompt||'')&&th.trust===-3&&th.cash===-120&&th.home<.01,'broken borrowed car: towed home, -$120, -3 trust',th);
 /* parked car you hit: damaged, its owner notices (capped) */
 const pk=await p.evaluate(()=>{const h=__ht,cs=h.vehicles.filter(v=>v.owner==='neighbour');const a=cs[8],b=cs[9];h.P.pos.set(a.pos.x,0,a.pos.z);h.enterVehicle(a);
-  /* line it up nose-to-side with b and crash */const t0=h.prog.trust;a.pos.set(b.pos.x+Math.sin(b.yaw+Math.PI/2)*3.2,0,b.pos.z+Math.cos(b.yaw+Math.PI/2)*3.2);a.yaw=b.yaw+Math.PI/2;a.car.x=a.pos.x;a.car.z=a.pos.z;a.car.yaw=a.yaw;
-  const lost=h.crash(a,18);return{lost,victim:h.carHp(b),vmax:h.carHpMax(b),trust:h.prog.trust-t0}});
+  /* line it up nose-to-side with b and crash */const t0=h.prog.trust+(h.prog.trustR||0);a.pos.set(b.pos.x+Math.sin(b.yaw+Math.PI/2)*3.2,0,b.pos.z+Math.cos(b.yaw+Math.PI/2)*3.2);a.yaw=b.yaw+Math.PI/2;a.car.x=a.pos.x;a.car.z=a.pos.z;a.car.yaw=a.yaw;
+  const lost=h.crash(a,18);return{lost,victim:h.carHp(b),vmax:h.carHpMax(b),trust:h.prog.trust+(h.prog.trustR||0)-t0}});
 ok(pk.lost>0&&pk.victim<pk.vmax&&pk.trust===-1,'hit a parked car: it takes damage, owner notices (-1)',pk);
 await p.evaluate(()=>{const h=__ht;h.exitVehicle();h.BORROW.car=null});
 /* the family van: damage persists in the save, the Repair tab shows it, tow when broken */

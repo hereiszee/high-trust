@@ -1294,9 +1294,9 @@ function settleBorrow(job){const e=BORROW.car;job=job&&CV===e;BORROW.car=null;if
   if(carHp(e)<=0&&CV!==e){const r=towHome(e,true);return r?r.trust:0}
   const dent=(1-carFrac(e))-BORROW.dmg0,away=Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),moved=e.odo-BORROW.odo0,at=P.pos.clone().setY(2.2);
   let pen=dent>=.6?3:dent>=.3?2:dent>=.1?1:0;if(!job&&away>45&&moved>20)pen=Math.max(pen,2);
-  if(pen){if(BORROW.minus>-6&&!BORROW.dinged.has(e.name)){BORROW.dinged.add(e.name);const t=-Math.min(pen,6+BORROW.minus);BORROW.minus+=t;addTrust(t);
+  if(pen){if(BORROW.minus>-6&&!BORROW.dinged.has(e.name)){BORROW.dinged.add(e.name);const t=-Math.min(pen,6+BORROW.minus);BORROW.minus+=t;addTrust(t,carHood(e));
       try{FX.trustPop(at,t+' TRUST',{sub:dent>=.1?e.name+' is counting the dents':e.name+"'s going to mention this at the block party",color:'#ff6a4d'})}catch(_){}radio(e.name,pick(DING_LINES));return t}return 0}
-  if(e.fixed&&dent<.06||!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1);
+  if(e.fixed&&dent<.06||!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1,carHood(e));
       try{FX.trustPop(at,'+1 TRUST',{sub:(e.fixed?'Fixed up · thanks, ':'Returned · thanks, ')+e.name})}catch(_){}radio(e.name,pick(e.fixed?FIXED_LINES:RETURN_LINES));return 1}}
   return 0}
 /* a dent where the car hit something (drawn by carCrash / carRedent): push is the collision push-out (world), sp the impact speed.
@@ -1370,6 +1370,8 @@ function carSwapModel(e,nv){if(!nv||!e.obj)return;const old=e.obj,solid=!!e.mesh
 function carFresh(e){const u=e.obj&&e.obj.userData;if(!u||!(u.mod||u.bodyRoot))return;let nv=null;if(e===VAN){const lk=vanLook();nv=makeVan(lk.color,lk.type,lk.upgrades)}else nv=carModel(e.type,e.color,0);
   if(nv&&e===VAN)nv.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});carSwapModel(e,nv)}
 const carName=e=>e===VAN?'the minivan':e.name+"'s "+feel(e).label;
+/* trust from a neighbour's car goes to the neighbourhood it lives in (Maple Heights or Riverside) */
+function carHood(e){try{const O=L&&L.ow&&OW();if(O&&O.regionAt&&e&&e.home)return O.regionAt(e.home.x,e.home.z)==='river'?'river':'maple'}catch(_){}return undefined}
 function carSay(e,s){return s.replace(/\{n\}/g,e&&e.name||'Jen').replace(/\{t\}/g,feel(e).label)}
 
 /* damage: amount in HP. Crossing into a worse band while you drive it: crew quip, chime, warning; reaching 0 breaks it down */
@@ -1414,7 +1416,7 @@ function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!los
     if(v){const got=carImpact(v,sp*.85,{x:-push.x,z:-push.z},false,{cause:'parked'});if(got>0){if(v!==VAN&&got>2.5){swapLod(v,0);dentCar(v,{x:-push.x,z:-push.z},sp*.85);carLook(v)}if(v!==VAN&&v!==BORROW.car)carNoticed(v,got)}}}
   return lost}
 /* an owner who saw you hit (or shoot) their parked car: a small trust hit, once per owner, -3 a session at most */
-function carNoticed(e,got){if(got<3||!e.name)return;const B=BORROW;B.bumped=B.bumped||new Set();B.bmin=B.bmin||0;if(B.bumped.has(e.name)||B.bmin<=-3)return;B.bumped.add(e.name);B.bmin--;addTrust(-1);
+function carNoticed(e,got){if(got<3||!e.name)return;const B=BORROW;B.bumped=B.bumped||new Set();B.bmin=B.bmin||0;if(B.bumped.has(e.name)||B.bmin<=-3)return;B.bumped.add(e.name);B.bmin--;addTrust(-1,carHood(e));
   try{FX.trustPop(e.pos.clone().setY(2.2),'-1 TRUST',{sub:e.name+' saw that',color:'#ff6a4d'})}catch(_){}radio(e.name,carSay(e,pick(BUMP_LINES)))}
 /* bullets: the dad's car soaks part of what's aimed at him; shooting a parked car dents it (its owner notices) */
 function carShot(obj,dmg){if(!L||!L.cars||!obj)return 0;let e=null;for(const c of L.cars)if(c.meshes&&c.meshes.includes(obj)){e=c;break}if(!e)return 0;
@@ -1458,7 +1460,7 @@ function towVan(){const shop=HUBX.shops.find(s=>s.kind==='auto'),r=ECON&&ECON.to
 function towHome(e,auto){if(!e||e===VAN)return null;const r=ECON&&ECON.towCharge?ECON.towCharge(TOW_FEE_HOME):{paid:0,tab:0};if(CV===e)exitCar();if(BORROW.car===e)BORROW.car=null;
   carFxOff(e);e.pos.set(e.home.x,0,e.home.z);e.yaw=e.home.yaw;e.spd=0;if(e.car)e.car.spd=0;carRepair(e,'full');syncCar(e);
   try{HUD.feed(carSay(e,pick(TOW_LINES)),'bad',r.tab?'tab '+money(r.tab):'-'+money(r.paid))}catch(_){}
-  const B=BORROW,at=P.pos.clone().setY(2.2);let t=0;if(B.minus>-6&&!B.dinged.has(e.name)){B.dinged.add(e.name);t=-Math.min(3,6+B.minus);B.minus+=t;addTrust(t);
+  const B=BORROW,at=P.pos.clone().setY(2.2);let t=0;if(B.minus>-6&&!B.dinged.has(e.name)){B.dinged.add(e.name);t=-Math.min(3,6+B.minus);B.minus+=t;addTrust(t,carHood(e));
     try{FX.trustPop(at,t+' TRUST',{sub:carSay(e,'{n} got the {t} back on a flatbed'),color:'#ff6a4d'})}catch(_){}}
   radio(e.name,pick(["A FLATBED. In front of the whole street.","I lent you a car and got back a lawn ornament.","Sal said it 'sort of just died'. Cars don't just die!"]));
   if(typeof metaSave==='function')metaSave();return{trust:t,...r}}
