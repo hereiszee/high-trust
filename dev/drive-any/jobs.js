@@ -1,0 +1,18 @@
+const open=require('./harness.js');(async()=>{const fb=process.argv[2]==='fallback';const o=await open(fb?{}:{});const p=o.page;const R={};const ev=(f,a)=>p.evaluate(f,a);
+await ev(()=>{const h=__ht;window.T={h,car:(t,own)=>h.vehicles.find(v=>v.type===t&&(own?v.owner==='player':v.owner!=='player')),clear(){for(const k in h.keys)h.keys[k]=false},get(e){h.P.pos.set(e.pos.x,0,e.pos.z);return h.enterVehicle(e)}}});
+R.walkInto=await ev(()=>{const h=T.h,e=T.car('sedan');T.get(e);h.keys.w=true;h.step(20);T.clear();h.keys[' ']=true;h.step(40);T.clear();h.exitVehicle();
+  const r={x:Math.cos(e.yaw),z:-Math.sin(e.yaw)},S=e.obj.userData.size;h.P.pos.set(e.pos.x+r.x*(S.w/2+2.5),0,e.pos.z+r.z*(S.w/2+2.5));
+  h.P.yaw=Math.atan2(r.x,r.z);/* face the car: forward=(-sin,-cos) = -r */h.keys.w=true;h.step(60);T.clear();
+  const d=Math.abs((h.P.pos.x-e.pos.x)*r.x+(h.P.pos.z-e.pos.z)*r.z);return{halfWidth:+(S.w/2).toFixed(2),stoppedAt:+d.toFixed(2),blocked:d>S.w/2}});
+console.log('walkInto',JSON.stringify(R.walkInto));
+R.jobVan=await ev(()=>{const h=T.h;h.prog.done=[true,true,true,false];h.enterHub();const v=T.car('minivan',true);T.get(v);h.setJob(3);const d=h.L.dests[3];
+  v.pos.set(d.x+8,0,d.z);v.yaw=-Math.PI/2*-1;h.step(1);/* drive into the ring */let i=0;v.pos.set(d.x,0,d.z);h.step(2);return{mode:h.M?'mission':'hub',mission:h.M&&h.M.i,driving:h.VAN.on}});
+console.log('jobVan',JSON.stringify(R.jobVan));
+R.jobBorrowed=await ev(()=>{const h=T.h;h.enterHub();const t0=h.prog.trust;const e=T.car('hatch');T.get(e);const riders=h.allies.filter(a=>a.ride).length;h.setJob(3);const d=h.L.dests[3];e.pos.set(d.x,0,d.z);h.step(2);
+  return{crew:h.allies.length,riders,mode:h.M?'mission':'hub',mission:h.M&&h.M.i,trustDelta:h.prog.trust-t0,borrowedSettled:h.BORROW.car===null}});
+console.log('jobBorrowed',JSON.stringify(R.jobBorrowed));
+R.noFit=await ev(()=>{const h=T.h;h.enterHub();const e=T.car('sedan');T.get(e);h.allies[0].ride=false;h.setJob(3);const d=h.L.dests[3];e.pos.set(d.x,0,d.z);h.step(2);
+  h.draw();const pr=document.querySelector('.ht-pr');return{mode:h.M?'mission':'hub',prompt:pr.classList.contains('off')?null:pr.textContent}});
+console.log('noFit',JSON.stringify(R.noFit));
+R.vehicles=await ev(()=>T.h.vehicles.map(v=>v.type+':'+v.owner).join(','));
+console.log('vehicles',R.vehicles);console.log('errors',o.errs);await o.close()})();

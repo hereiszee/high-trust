@@ -809,7 +809,7 @@ const CAR_FEEL={
  sedan:  {label:'sedan',   seats:4,bed:0,max:30,  boostMax:38,acc:12, boostAcc:15,brake:27,hbrake:21,turn:1.75,steerResp:8.5,grip:10.5,roll:.85,cam:[7.6,1.1], eng:1.12,gears:5,horn:'short', door:'close',rear:1, torque:0},
  suv:    {label:'SUV',     seats:7,bed:0,max:26.5,boostMax:34,acc:8.2,boostAcc:11, brake:22,hbrake:19,turn:1.42,steerResp:6,  grip:8,   roll:2.3,cam:[9,1.5],   eng:.9,  gears:4,horn:'long',  door:'close',rear:1, torque:0},
  pickup: {label:'pickup',  seats:2,bed:4,max:23.5,boostMax:32,acc:7.6,boostAcc:11, brake:23,hbrake:20,turn:1.62,steerResp:7,  grip:8.5, roll:1.5,cam:[9.4,1.6], eng:.72, gears:3,horn:'long',  door:'close',rear:.45,torque:9},
- workvan:{label:'work van',seats:2,bed:4,max:20,  boostMax:27,acc:6,  boostAcc:8.5,brake:20,hbrake:17,turn:1.3,steerResp:5.2,grip:7.5, roll:1.9,cam:[10,2.1],  eng:.8,  gears:4,horn:'short', door:'slide',rear:1, torque:0}};
+ workvan:{label:'work van',seats:2,bed:4,max:20,  boostMax:27,acc:6,  boostAcc:8.5,brake:20,hbrake:17,turn:1.3,steerResp:5.2,grip:7.5, roll:1.9,cam:[9.6,1.6], eng:.8,  gears:4,horn:'short', door:'slide',rear:1, torque:0}};
 const feel=e=>CAR_FEEL[e&&e.type]||CAR_FEEL.minivan;
 /* seats in the car's frame: [forward, hip height, right(+)/left(-), turn]; seat 0 is the driver (left). Cargo seats (bed) come last */
 const SEATS={
@@ -915,17 +915,25 @@ function settleBorrow(job){const e=BORROW.car;job=job&&CV===e;BORROW.car=null;if
   if(!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1);
       try{FX.trustPop(at,'+1 TRUST',{sub:'Returned · thanks, '+e.name})}catch(_){}radio(e.name,pick(RETURN_LINES));return 1}}
   return 0}
-/* a dent where the car hit something: push is the collision push-out (world), sp the impact speed. Dents the hero paint shell in place */
+/* a dent where the car hit something: push is the collision push-out (world), sp the impact speed.
+   Crumples the hero body in place (paint shell and trim pushed in along the hit, crease shading) and scuffs the paint around it */
 function dentCar(e,push,sp){const ud=e.obj.userData,add=Math.min(.22,(sp-5)*.013);e.dmg=Math.min(1,e.dmg+add);if(ud.setDamage)ud.setDamage(e.dmg);
-  const paint=ud.body&&ud.body[0];if(!paint)return;let m=null;e.obj.traverse(o=>{if(!m&&o.isMesh&&o.material===paint)m=o});if(!m)return;
-  if(!m.userData.dentOwn){m.geometry=m.geometry.clone();(ud._own||(ud._own=[])).push(m.geometry);m.userData.dentOwn=1}
+  const paint=ud.body&&ud.body[0];if(!paint||!ud.bodyRoot)return;
   const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw),S=carSize(e);
-  const t=Math.min(S.l/2/Math.max(1e-3,Math.abs(lx)),S.w/2/Math.max(1e-3,Math.abs(lz))),px=lx*t,pz=lz*t,py=S.h*.42+(Math.random()-.5)*.2;
-  const g=m.geometry,pa=g.attributes.position,na=g.attributes.normal,R=.45+sp*.02,dep=Math.min(.16,.04+sp*.006)*(1.15-e.dmg*.8);/* later dents go shallower: the shell crumples, never inverts */
-  for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),d=Math.hypot(x-px,(y-py)*1.3,z-pz);if(d>=R)continue;const w=(1-d/R)*(1-d/R),nx=na.getX(i),ny=na.getY(i),nz=na.getZ(i);
-    const h=Math.sin(x*41.3+z*17.1+y*29.7)*43758.5,j=h-Math.floor(h)-.5;pa.setXYZ(i,x-nx*dep*w*(1+j*.6),y-ny*dep*w*.6,z-nz*dep*w*(1+j*.6));
-    const k=w*.9;let ox=nx+j*k,oy=ny+Math.sin(h)*k*.5,oz=nz-j*k;const ol=Math.hypot(ox,oy,oz)||1;na.setXYZ(i,ox/ol,oy/ol,oz/ol)}
-  pa.needsUpdate=true;na.needsUpdate=true;g.computeBoundingSphere()}
+  const t=Math.min(S.l/2/Math.max(1e-3,Math.abs(lx)),S.w/2/Math.max(1e-3,Math.abs(lz))),P_={x:lx*t,y:S.h*(.3+Math.random()*.15),z:lz*t};
+  const R=.55+sp*.025,dep=Math.min(.26,.06+sp*.009)*(1.15-e.dmg*.8);/* later dents go shallower: the shell crumples, never inverts */
+  if(!paint.vertexColors){paint.vertexColors=true;paint.needsUpdate=true;if(ud.body[1]&&ud.body[1]!==paint){ud.body[1].vertexColors=true;ud.body[1].needsUpdate=true}}
+  ud.bodyRoot.traverse(m=>{if(!m.isMesh)return;const isPaint=ud.body.includes(m.material);if(!isPaint&&m.material!==ud.material)return;
+    if(!m.userData.dentOwn){m.geometry=m.geometry.clone();(ud._own||(ud._own=[])).push(m.geometry);m.userData.dentOwn=1}
+    const g=m.geometry;if(isPaint&&!g.attributes.color){const c=new Float32Array(g.attributes.position.count*3).fill(1);g.setAttribute('color',new THREE.BufferAttribute(c,3))}
+    dentGeo(g,P_,lx,lz,R,dep,isPaint)})}
+function dentGeo(g,c,lx,lz,R,dep,scuff){const pa=g.attributes.position,na=g.attributes.normal,ca=scuff?g.attributes.color:null;let n=0;
+  for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),d=Math.hypot(x-c.x,(y-c.y)*1.4,z-c.z);if(d>=R)continue;n++;
+    const w=Math.pow(1-d/R,1.6),h=Math.sin(x*41.3+z*17.1+y*29.7)*43758.5,j=h-Math.floor(h)-.5,k=dep*w*(1+j*.7);
+    pa.setXYZ(i,x-lx*k,y-k*.25,z-lz*k);
+    if(na){const nx=na.getX(i)+j*w*1.1,ny=na.getY(i)+Math.sin(h)*w*.6,nz=na.getZ(i)-j*w*1.1,nl=Math.hypot(nx,ny,nz)||1;na.setXYZ(i,nx/nl,ny/nl,nz/nl)}
+    if(ca){const s=1-Math.min(.55,w*.75+(j>.3?.2*w:0));ca.setXYZ(i,Math.min(ca.getX(i),s),Math.min(ca.getY(i),s*.97),Math.min(ca.getZ(i),s*.93))}}
+  if(!n)return;pa.needsUpdate=true;if(na)na.needsUpdate=true;if(ca)ca.needsUpdate=true;g.computeBoundingSphere()}
 function readDrive(){let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}return{thr,st,hb:!!keys[' '],boost:!!keys.shift}}
 const autoLights=()=>mood===MOODS.dusk;
