@@ -17,10 +17,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 /* camera helpers run in the page: place the player, set yaw/pitch, optionally first person */
 const SHOTS=[
   ['hub-1-spawn',{hub:true}],
-  ['hub-2-street',{hub:true,pos:[60,0,44],yaw:-Math.PI/2,pitch:-.1}],
-  ['hub-3-shops',{hub:true,pos:[52,0,19],yaw:.35,pitch:-.04}],
-  ['hub-4-edge',{hub:true,pos:[112,0,14],yaw:-1.5,pitch:-.05}],
-  ['hub-5-lawns',{hub:true,pos:[98,0,39],yaw:.35,pitch:-.28}],
+  ['hub-2-street',{hub:true,rel:[0,6],yaw:-Math.PI/2,pitch:-.08}],
+  ['hub-3-shops',{hub:true,shop:'hardware'}],
+  ['hub-4-auto',{hub:true,shop:'auto'}],
+  ['hub-5-lawns',{hub:true,rel:[-12,4],yaw:.4,pitch:-.25}],
   ['drive-1',{hub:true,drive:2.5}],
   ['drive-2',{hub:true,drive:5.5}],
   ['m1-start',{m:0}],['m1-room',{m:0,pos:[48,0,16],yaw:-2.2,pitch:-.05}],['m1-fp',{m:0,pos:[20,0,34],yaw:-1.4,fp:true}],
@@ -44,7 +44,8 @@ const SHOTS=[
       if(!same){if(o.hub)h.enterHub();else h.startMission(o.m)}
       for(const k in h.keys)h.keys[k]=false;h.VAN.on&&(h.VAN.on=false);
       h.P.fp=!!o.fp;if(o.pos)h.P.pos.set(o.pos[0],0,o.pos[2]);if(o.yaw!=null)h.P.yaw=o.yaw;if(o.pitch!=null)h.P.pitch=o.pitch;
-      if(o.shop&&h.L.shopDoor){const d=h.L.shopDoor;h.P.pos.set(d.x+d.nx*9+3,0,d.z+d.nz*9);h.P.yaw=Math.atan2(d.nx,d.nz)+.3;h.P.pitch=-.08}
+      if(o.rel)h.P.pos.set(h.L.start.x+o.rel[0],0,h.L.start.z+o.rel[1]);
+      if(o.shop){const dd=h.L.ow&&h.L.ow.def&&h.L.ow.def.doors;const d=dd&&dd[o.shop==='hardware'?'store':'auto'];if(d){const nz=o.shop==='hardware'?1:-1;h.P.pos.set(d.x+2,0,d.z+nz*12);h.P.yaw=nz>0?0.15:Math.PI+.15;h.P.pitch=-.06}}
       if(o.drive){const v=h.L.vanStart;h.P.pos.set(h.VAN.pos.x+1.5,0,h.VAN.pos.z);h.use=true;h.step(1);h.keys.w=true;h.step(Math.round(o.drive*30));
         if(o.steer){h.keys[o.steer]=true;h.step(Math.round(o.drive2*30));h.keys[o.steer]=false}h.step(10)}
       h.step(2);},{o,same:cur===lvl&&!o.drive});
