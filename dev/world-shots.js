@@ -18,7 +18,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const SHOTS=[
   ['hub-1-spawn',{hub:true}],
   ['hub-2-street',{hub:true,pos:[60,0,44],yaw:-Math.PI/2,pitch:-.1}],
-  ['hub-3-shop',{hub:true,shop:true}],
+  ['hub-3-shops',{hub:true,pos:[52,0,19],yaw:.35,pitch:-.04}],
   ['hub-4-edge',{hub:true,pos:[112,0,14],yaw:-1.5,pitch:-.05}],
   ['hub-5-lawns',{hub:true,pos:[98,0,39],yaw:.35,pitch:-.28}],
   ['drive-1',{hub:true,drive:2.5}],
@@ -35,8 +35,8 @@ const SHOTS=[
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errors.push(m.type()+': '+m.text())});
   await page.addInitScript(qq=>{try{localStorage.setItem('ht-cfg',JSON.stringify({sens:7,ads:55,fov:74,inv:false,gfx:qq}))}catch(e){}},q);
   await page.goto(`http://localhost:${port}/index.html`);
-  await page.waitForFunction(()=>!document.getElementById('bStart').disabled,null,{timeout:90000});
-  await page.click('#bStart');await wait(3000);
+  await page.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});
+  await page.evaluate(()=>{const b=document.getElementById('bStart');if(b)b.click()});await page.keyboard.press('Enter');await wait(3000);
   const stats={};let cur=null;
   for(const[name,o]of SHOTS){if(filter&&!name.includes(filter))continue;
     const lvl=o.hub?'hub':'m'+(o.m+1);

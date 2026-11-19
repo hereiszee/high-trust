@@ -315,6 +315,8 @@ W.begin=lvl=>{const def=lvl.def,id=def.id||'hub';
   B.k=(x,z)=>x<0||z<0||x>=B.W||z>=B.H?'out':B.kinds[z][x];
   B.gbOf=key=>B.gb[key]||(B.gb[key]=new GB());
   B.furn=new THREE.Group();B.group.add(B.furn);
+  /* tiles that carry wall furniture: AI cover spots there are dropped after the nav is built (W.pruneCover) */
+  B.furnCells=new Set();
   lvl.world=B;return B};
 W.groundY=(lvl,x,z)=>{const B=lvl&&lvl.world;if(!B||!B.hub)return 0;const k=B.k(Math.floor(x/TILE),Math.floor(z/TILE));return k==='road'?ROADY:0};
 
@@ -623,7 +625,7 @@ function rug(B,X,Z,yaw,w,d,kind){const gb=B.gbOf(kind);const c=Math.cos(yaw),sn=
 function hang(B,name,sp,y,o={}){const f=fit(name,o);if(!f)return null;const yaw=Math.atan2(-sp.dx,-sp.dz);const off=1-f.d/2-.015;const u=o.along||0;return place(B,name,sp.cx+sp.dx*off+sp.dz*u,sp.cz+sp.dz*off+sp.dx*u,yaw,{...o,y,hang:true})}
 function dress(B){const r=B.r,low=B.q==='low';B.furn=B.furn||new THREE.Group();if(!B.furn.parent)B.group.add(B.furn);const spots=wallSpots(B);const used=new Set();
   const take=(pred)=>{for(let k=0;k<40;k++){if(!spots.length)return null;const i=Math.floor(r()*spots.length),sp=spots[i];if(pred&&!pred(sp))continue;
-      if([...used].some(u=>{const[a,b]=u.split(',').map(Number);return Math.abs(a-sp.x)<=1&&Math.abs(b-sp.z)<=1}))continue;spots.splice(i,1);used.add(sp.x+','+sp.z);return sp}return null};
+      if([...used].some(u=>{const[a,b]=u.split(',').map(Number);return Math.abs(a-sp.x)<=1&&Math.abs(b-sp.z)<=1}))continue;spots.splice(i,1);used.add(sp.x+','+sp.z);B.furnCells.add(sp.x+','+sp.z);return sp}return null};
   const flat=sp=>!sp.corner;
   const id=B.id;
   /* per style: [weight, fn(spot)], small:true items are skipped on Low */
@@ -652,7 +654,7 @@ function dress(B){const r=B.r,low=B.q==='low';B.furn=B.furn||new THREE.Group();i
   const n=Math.min(spots.length,low?7:22);
   for(let i=0;i<n;i++){let k=r()*tot,e=set[0];for(const it of set){k-=it[0];if(k<=0){e=it;break}}if(low&&e[3])continue;const sp=take(e[2]);if(!sp)continue;try{e[1](sp)}catch(err){console.warn('dress item failed',err)}}
   /* the King keeps a safe by his desk */
-  if(id==='doug'){for(const sp of wallSpots(B)){if(Math.abs(sp.x-B.bossTile[0])<=4&&Math.abs(sp.z-B.bossTile[1])<=3&&!used.has(sp.x+','+sp.z)){against(B,'pixel_combination_safe',sp,{h:1.0});used.add(sp.x+','+sp.z);break}}}
+  if(id==='doug'){for(const sp of wallSpots(B)){if(Math.abs(sp.x-B.bossTile[0])<=4&&Math.abs(sp.z-B.bossTile[1])<=3&&!used.has(sp.x+','+sp.z)){against(B,'pixel_combination_safe',sp,{h:1.0});used.add(sp.x+','+sp.z);B.furnCells.add(sp.x+','+sp.z);break}}}
   /* rugs on open floor */
   if(!low){const rugK=id==='doug'?'rugfine':id==='rick'?'rugworn':null;if(rugK){let c=0;for(let t=0;t<80&&c<(id==='doug'?6:4);t++){const x=1+Math.floor(r()*(B.W-2)),z=1+Math.floor(r()*(B.H-2));let ok=true;
       for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)if(B.k(x+dx,z+dz)!=='inside')ok=false;if(!ok)continue;rug(B,x*TILE+1+(r()-.5)*.6,z*TILE+1+(r()-.5)*.6,r()<.7?0:Math.PI/2,id==='doug'?3.2:2.4,id==='doug'?2.2:1.6,rugK);c++}}}
@@ -661,6 +663,10 @@ function dress(B){const r=B.r,low=B.q==='low';B.furn=B.furn||new THREE.Group();i
       const nm=id==='doug'?(r()<.6?'fancy_picture_frame_01':'hanging_picture_frame_01'):(r()<.4?'dartboard':'hanging_picture_frame_01');hang(B,nm,sp,nm==='dartboard'?1.7:1.75,{w:nm==='fancy_picture_frame_01'?1.0:nm==='dartboard'?.46:.62});c++}}
   else if(!low&&id==='gary'){const free=wallSpots(B).filter(sp=>!used.has(sp.x+','+sp.z)&&!sp.corner);let c=0;for(const sp of free){if(c>=4)break;if(r()<.6)continue;hang(B,'dartboard',sp,1.7,{w:.46});c++}}}
 W.place=place;
+/* AI nav: drop cover spots on tiles occupied by furniture so nobody crouches inside a sofa; walkability is untouched */
+W.pruneCover=(lvl,nav)=>{const B=lvl&&lvl.world;if(!B||!nav||!nav.covers||!B.furnCells.size)return 0;const keep=[],W_=nav.W||lvl.W;let n=0;
+  for(const c of nav.covers){const x=c.i%W_,z=(c.i/W_)|0;if(B.furnCells.has(x+','+z)){n++;continue}keep.push(c)}
+  if(n){nav.covers.length=0;nav.covers.push(...keep);if(nav.coverAt){nav.coverAt.fill(-1);keep.forEach((c,j)=>nav.coverAt[c.i]=j)}}return n};
 /* string of party bulbs hanging between two points */
 function stringLights(B,a,b,sag){const wire=B.gbOf('wire'),bl=B.gbOf('bulb');const A=new THREE.Vector3(...a),Bv=new THREE.Vector3(...b);const pts=[];
   for(let k=0;k<=16;k++){const t=k/16,p=A.clone().lerp(Bv,t);p.y-=sag*4*t*(1-t);pts.push(p)}wire.addGeo(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.008,4),new THREE.Matrix4());
@@ -1044,7 +1050,7 @@ const DECALS={d_floor:()=>decalMat('d_floor',floorDecalTex(),{rough:.35}),d_pudd
   d_leakA:()=>{const t=C.ASSETS.decal&&C.ASSETS.decal('leak_a');return t?decalMat('d_leakA',t,{rough:.9}):null},d_leakB:()=>{const t=C.ASSETS.decal&&C.ASSETS.decal('leak_b');return t?decalMat('d_leakB',t,{rough:.9}):null},
   d_graf:()=>decalMat('d_graf',graffitiTex(),{rough:.7}),d_post:()=>decalMat('d_post',posterTex(),{rough:.8}),d_manhole:()=>decalMat('d_mh',manholeTex(),{rough:.55}),d_drain:()=>decalMat('d_drain',drainTex(),{rough:.6}),
   leaves:()=>plain('leavesF','#4b7f3d',{rough:.9,vcol:true})};
-const FADE_KEYS={lamphead:[1,2.6],lampglass:[1,2.6],galv:[.8,2],signs:[.8,2],pole:[1,2.6],insul:[1,2.6],transformer:[1,2.6],fence:[.6,1.6],leaves:[2,4.5],hedgecore:[.6,1.6],wire:[1,2.6]};
+const FADE_KEYS={lamphead:[1,2.6],lampglass:[1,2.6],galv:[.8,2],signs:[.8,2],pole:[1,2.6],insul:[1,2.6],transformer:[1,2.6],fence:[.6,1.6],leaves:[2,4.5],hedgecore:[.6,1.6],wire:[1,2.6],joist:[.5,1.2],roofsheet:[.5,1.2],ceil:[.4,1],roof:[.5,1.2]};
 W.finish=B=>{
   if(B.hub)hubDressing(B);
   if(!B.hub){if(B.id==='dave')park(B);else{dress(B);if(B.id==='doug')compound(B);if(B.id==='gary')yardOutside(B)}lights(B)}

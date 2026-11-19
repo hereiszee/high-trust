@@ -634,15 +634,7 @@ function buildLevel(def){
   /* houses */
   const seen=new Set(),houses=[],statics=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
   let hseed=1;
-  /* Hank's Hardware on the corner of Ridgeview and Linden (hub only): replaces two house lots; lvl.shopDoor marks the entrance for the shop integration */
-  if(def.id==='hub'){const lot={x0:35,z0:11,x1:40,z1:17};for(let z=lot.z0;z<=lot.z1;z++)for(let x=lot.x0;x<=lot.x1;x++){g[z][x]='h';seen.add(z*W+x)}
-    const w=10,d=12,cx=lot.x0*TILE+.4+w/2,cz=(lot.z1+1)*TILE-.4-d/2;let sg=null;const B_=HTM('Buildings');
-    if(B_&&B_.shop){try{sg=B_.shop({kind:'hardware',w,d,facing:'+z',seed:3})}catch(e){console.warn('shop failed',e);sg=null}}
-    if(sg){sg.position.set(cx,0,cz);group.add(sg);sg.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});statics.push(sg)}
-    else{const m=box(w,4.6,d,'#b9b2a4',cx,2.3,cz,group);lvl.solids.push(m)}
-    lvl.colliders.push({x0:cx-w/2,z0:cz-d/2,x1:cx+w/2,z1:cz+d/2});
-    const dr=sg&&sg.userData.door;lvl.shopDoor={kind:'hardware',name:"Hank's Hardware",x:cx+(dr?dr.x:0),z:dr?cz+dr.z:cz+d/2,nx:0,nz:1};
-    if(WB&&HW.shopFront){try{HW.shopFront(WB,{x0:cx-w/2,x1:cx+w/2,z:cz+d/2,door:lvl.shopDoor})}catch(e){console.warn('shop front failed',e)}}}
+  /* the shops (Hank's Hardware, Dad's Auto) are placed on cleared lots by metaHubEnter; HW.shopFront can dress their forecourts */
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){if(g[z][x]!=='h'||seen.has(z*W+x))continue;let x1=x;while(x1<W&&g[z][x1]==='h')x1++;let z1=z;while(z1<H&&g[z1][x]==='h')z1++;
     for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen.add(zz*W+xx);
     const facing=houseFacing(g,x,z,x1,z1),home=px_>=x-1&&px_<=x1&&Math.abs(pz_-z)<=2&&!houses.some(h=>h.home);
@@ -693,6 +685,7 @@ function buildLevel(def){
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
   if(def.id!=='hub'&&window.HT&&window.HT.AI)lvl.nav=window.HT.AI.buildNav(g,{colliders:lvl.colliders,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});
+  if(lvl.nav&&HW&&HW.pruneCover){try{HW.pruneCover(lvl,lvl.nav)}catch(e){console.warn('cover prune failed',e)}}
   setMood(def);
   HUD.minimap.setLevel(def.map,{tile:TILE,pad:def.pad,lines:def.lines,under:def.under,floor:def.floor,inside:def.inside,interior:def.id!=='hub',name:def.place||'Maple Heights'});if(def.id!=='hub')HUD.minimap.setPins([]);
   L=lvl;return lvl;
