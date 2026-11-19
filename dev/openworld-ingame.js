@@ -23,7 +23,8 @@ const drive=(p,wps,steps,boost)=>p.evaluate(([wps,steps,boost])=>{const H=window
   ok(s.id==='world'&&s.H==='H','hub is the world (L.def.id='+s.id+', L.g[10][19]='+s.H+')');
   ok(s.bad===0,'collider hash equals brute force on 1000 random queries ('+s.cols+' colliders)');
   log('     first build '+s.st.buildMs+' ms (title screen, start area only; the rest streams in), re-entering the cached world '+Math.round(s.again)+' ms');
-  await p.evaluate(()=>{const H=window.__ht,V=H.VAN;V.pos.set(40,0,41.5);V.yaw=-Math.PI/2;H.syncVan();H.enterVan()});
+  /* scripted driving and the fuzz run without ambient traffic (it yields to the player, so a centre-line autopilot can deadlock it) */
+  await p.evaluate(()=>{const H=window.__ht,V=H.VAN;H.OWS.noTraffic=true;V.pos.set(40,0,41.5);V.yaw=-Math.PI/2;H.syncVan();H.enterVan()});
   let d=await drive(p,[[200,41.5],[270,42],[330,43]],460,true);ok(d.x<141*2,'closed barricade stops the van (x='+d.x.toFixed(1)+' m, barricade at 282)');
   await p.evaluate(()=>window.__ht.openBridge());
   d=await drive(p,[[330,43],[379,43],[379,71],[315,71],[315,43],[420,43]],1100,false);ok(d.wp===5&&d.maxZ>65&&d.region==='river','bridge open: across into Riverside and around the 3rd St / Ash St / River Rd block ('+JSON.stringify(d)+')');
@@ -53,6 +54,9 @@ const drive=(p,wps,steps,boost)=>p.evaluate(([wps,steps,boost])=>{const H=window
         for(let h=0;h<4;h++){const a=h*Math.PI/2,fx=Math.sin(a),fz=Math.cos(a);window.__cam(x-fx*6,3.2,z-fz*6,x+fx*20,1.5,z+fz*20);const m=window.__measure();w={main:Math.max(w.main,m.main),shadow:Math.max(w.shadow,m.shadow),tris:Math.max(w.tris,m.tris)}}out[n]=w}
       return out},q);
     for(const n in r)ok(r[n].main<=450&&r[n].shadow<=120,q+' '+n+': '+r[n].main+' draw calls, '+r[n].shadow+' shadow calls, '+Math.round(r[n].tris/1000)+'k triangles (worst of 4 headings)')}
+  const tr=await p.evaluate(()=>{const H=window.__ht;H.OWS.noTraffic=false;if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(240,0,49);let n=0,moved=0;const first=new Map();
+    for(let k=0;k<20;k++){H.draw();H.step(30);const c=H.ow.trafficCars();n=Math.max(n,c.length);for(const q of c){const key=q.type;if(!first.has(q))first.set(q,q)}moved=Math.max(moved,...c.map(q=>q.spd))}return{n,moved}});
+  ok(tr.n>=3&&tr.moved>5,'ambient traffic: '+tr.n+' cars wander the road graph near Route 9 (top speed '+tr.moved.toFixed(1)+' m/s)');
   ok(errs.length===0,'no console errors'+(errs.length?': '+errs.slice(0,3).join(' | '):''));
   log(fails?fails+' FAILED':'all passed');
   if(process.argv.includes('--write'))fs.writeFileSync(path.join(__dirname,'../docs/screenshots/open-world/evidence.txt'),out.join('\n')+'\n');
