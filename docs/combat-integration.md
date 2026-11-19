@@ -15,6 +15,8 @@ Not wired yet: `HT.Guns.attachToHand` (Rocketbox hand bones). `index.html` still
 
 ## Data (`WEAPONS`, `AMMO`, `NPC_GUNS`, `MISSION_ARMS`)
 
+When `js/save.js` is loaded before the main script, `HT.CATALOG.guns` and `HT.CATALOG.ammo` are deep-merged over these tables, so the catalogue is the single source of stats. Its numbers match SPEC A.2 exactly; only three `short` names differ. The game keeps the feel-only fields the catalogue lacks: `rc.pat`, `vm`, `chamber`, `shell`, `shellDelay`, `quiet`, `root`, `nonlethal` and `scope`. Catalogue guns without a recoil pattern are dropped.
+
 The SPEC A.1 model covers all 9 guns: `name short slot ammo auto dmg head rate mag reserve pellets range fall spread{hip,ads,move,bloom*} rc{v,h,hBias,adsMul,rec,pat} ads{zoom,t,speed} speed reload{tac,empty}|{shell} chamber equip fsa vm{back,rise,roll,side,k,damp} shell`, plus the specials (`quiet`, `root`, `nonlethal`, `scope`).
 `SLOT_KEYS=['side','p1','p2']` replaces `ORDER`. `P.loadout` holds the three slots. `P.weapons` is derived from it (in slot order), so Q, the mouse wheel and the HUD keep working.
 Ammo is typed: `P.pool[type]`. Each `P.ammo[gun]` is `{mag, res}`, where `res` is a getter and setter on the shared pool, so old code like `P.ammo[w].res+=...` still works. The pistol and the SMG share 9mm.
