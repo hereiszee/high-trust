@@ -18,16 +18,15 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const SHOTS=[
   ['hub-1-spawn',{hub:true}],
   ['hub-2-street',{hub:true,pos:[60,0,44],yaw:-Math.PI/2,pitch:-.1}],
-  ['hub-3-lawns',{hub:true,pos:[40,0,36],yaw:.6,pitch:-.35}],
-  ['hub-4-corner',{hub:true,pos:[56,0,56],yaw:-2.4,pitch:-.12}],
-  ['hub-5-shop',{hub:true,shop:true}],
-  ['hub-6-edge',{hub:true,pos:[112,0,14],yaw:-1.5,pitch:-.05}],
+  ['hub-3-shop',{hub:true,shop:true}],
+  ['hub-4-edge',{hub:true,pos:[112,0,14],yaw:-1.5,pitch:-.05}],
+  ['hub-5-lawns',{hub:true,pos:[98,0,39],yaw:.35,pitch:-.28}],
   ['drive-1',{hub:true,drive:2.5}],
-  ['drive-2',{hub:true,drive:5,steer:'d',drive2:1.2}],
-  ['m1-start',{m:0}],['m1-mid',{m:0,pos:[30,0,20],yaw:Math.PI,pitch:-.1}],['m1-room',{m:0,pos:[48,0,16],yaw:-2.2,pitch:-.05}],['m1-fp',{m:0,pos:[20,0,34],yaw:-1.4,fp:true}],
-  ['m2-start',{m:1}],['m2-mid',{m:1,pos:[30,0,20],yaw:Math.PI,pitch:-.05}],['m2-room',{m:1,pos:[22,0,28],yaw:-.6,pitch:-.05}],['m2-fp',{m:1,pos:[34,0,26],yaw:1.7,fp:true}],
-  ['m3-start',{m:2}],['m3-mid',{m:2,pos:[40,0,20],yaw:.5,pitch:-.15}],['m3-side',{m:2,pos:[12,0,8],yaw:-2.3,pitch:-.12}],['m3-fp',{m:2,pos:[30,0,10],yaw:Math.PI,fp:true}],
-  ['m4-start',{m:3}],['m4-yard',{m:3,pos:[28,0,14],yaw:Math.PI,pitch:-.1}],['m4-room',{m:3,pos:[30,0,42],yaw:-.3,pitch:-.05}],['m4-fp',{m:3,pos:[18,0,34],yaw:-1.6,fp:true}],
+  ['drive-2',{hub:true,drive:5.5}],
+  ['m1-start',{m:0}],['m1-room',{m:0,pos:[48,0,16],yaw:-2.2,pitch:-.05}],['m1-fp',{m:0,pos:[20,0,34],yaw:-1.4,fp:true}],
+  ['m2-start',{m:1}],['m2-room',{m:1,pos:[22,0,28],yaw:-.6,pitch:-.05}],['m2-fp',{m:1,pos:[34,0,26],yaw:1.7,fp:true}],
+  ['m3-start',{m:2}],['m3-park',{m:2,pos:[40,0,20],yaw:.5,pitch:-.15}],['m3-side',{m:2,pos:[12,0,8],yaw:-2.3,pitch:-.12}],
+  ['m4-start',{m:3}],['m4-yard',{m:3,pos:[28,0,14],yaw:Math.PI,pitch:-.1}],['m4-fp',{m:3,pos:[18,0,34],yaw:-1.6,fp:true}],
 ];
 (async()=>{
   await new Promise(r=>srv.listen(0,r));const port=srv.address().port;fs.mkdirSync(OUT,{recursive:true});

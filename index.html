@@ -742,7 +742,7 @@ function buildLevel(def){
     /* parked cars the world module picked along the curbs */
     for(const pc of WB.parked||[]){const k=Math.floor(pc.x*3+pc.z)%CAR_TYPES.length;const v=makeVehicle(CAR_TYPES[k],CAR_COLS[Math.floor(pc.x+pc.z)%CAR_COLS.length]);if(!v)continue;
       v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);statics.push(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
-      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}
+      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5,wd=sz.w-.2;const hx=(ax?sz.l:wd)/2,hz=(ax?wd:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}
     /* houses, shop and parked cars are static: merge them per material (keeps draw calls down), one box proxy each for rays */
     if(HW.mergeStatic){try{const gone=HW.mergeStatic(WB,statics);if(gone.size)lvl.solids=lvl.solids.filter(m=>!gone.has(m))}catch(e){console.warn('static merge failed',e)}}}
   /* camera booms ignore thin props (lamp posts) so the view never snaps in when passing one */

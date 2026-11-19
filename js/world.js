@@ -314,6 +314,7 @@ W.begin=lvl=>{const def=lvl.def,id=def.id||'hub';
   B.kinds=[];B.bossTile=[0,0];for(let z=0;z<B.H;z++){B.kinds[z]=[];for(let x=0;x<B.W;x++){B.kinds[z][x]=kindOf(B,x,z);if(B.g[z][x]==='B')B.bossTile=[x,z]}}
   B.k=(x,z)=>x<0||z<0||x>=B.W||z>=B.H?'out':B.kinds[z][x];
   B.gbOf=key=>B.gb[key]||(B.gb[key]=new GB());
+  B.furn=new THREE.Group();B.group.add(B.furn);
   lvl.world=B;return B};
 W.groundY=(lvl,x,z)=>{const B=lvl&&lvl.world;if(!B||!B.hub)return 0;const k=B.k(Math.floor(x/TILE),Math.floor(z/TILE));return k==='road'?ROADY:0};
 
@@ -583,6 +584,9 @@ W.cardboard=(B,parent,w,h,d,x,y,z,ry)=>{const m=new THREE.Mesh(new THREE.BoxGeom
 /* ---------- mission interiors: furniture against walls, rugs, wall art; never on a path, never a collider ---------- */
 /* place a model by its bounding box: centred on (X,Z), base on the floor, scaled to a target width/height/depth */
 function fit(name,o){const P=partsOf(name);if(!P)return null;const bb=P.bb,sx=bb.max.x-bb.min.x,sy=bb.max.y-bb.min.y,sz=bb.max.z-bb.min.z;const s=o.s||(o.w?o.w/sx:o.h?o.h/sy:o.d?o.d/sz:1);return{s,w:sx*s,h:sy*s,d:sz*s,bb}}
+/* a model instance baked into the level's static merge (for multi-part models that appear a few dozen times) */
+function staticModel(B,name,x,y,z,yaw,s){const P=partsOf(name);if(!P)return false;const root=new THREE.Object3D();root.position.set(x,y,z);root.rotation.y=yaw;root.scale.setScalar(s);B.furn.add(root);
+  for(const part of P.parts){const m=new THREE.Mesh(part.geo,part.mat);m.matrixAutoUpdate=false;m.matrix.copy(part.m);m.castShadow=!NOSHADOW_MODELS.has(name);m.receiveShadow=true;root.add(m)}return true}
 function place(B,name,X,Z,yaw,o={}){const f=fit(name,o);if(!f)return null;const{s,bb}=f;const cx=(bb.min.x+bb.max.x)/2*s,cz=(bb.min.z+bb.max.z)/2*s;const c=Math.cos(yaw),sn=Math.sin(yaw);
   const px=X-(cx*c+cz*sn),py=(o.y||0)-(o.hang?(bb.min.y+bb.max.y)/2:bb.min.y)*s,pz=Z-(-cx*sn+cz*c);
   if(o.inst||!B.furn){inst(B,name,px,py,pz,yaw,s,s,o.opts);return f}
@@ -778,9 +782,9 @@ function hubDressing(B){const r=B.r,lines=B.def.lines||[];const isR=(x,z)=>B.k(x
   const avoid=[...(B.lvl.dests||[]).map(d=>[d.x,d.z]),B.lvl.vanStart?[B.lvl.vanStart.x,B.lvl.vanStart.z]:[0,0]];
   B.parked=B.parked||[];
   for(const zc of hs)for(let tries=0;tries<4;tries++){const x=Math.floor(4+r()*(B.W-8));if(!isR(x,zc)||!isR(x-1,zc)||!isR(x+1,zc))continue;let bad=false;for(let dx=-2;dx<=2;dx++)if(isR(x+dx,zc-2)||isR(x+dx,zc+2)||!isR(x+dx,zc))bad=true;
-    const side=r()<.5?-1:1,X=x*TILE+1,Z=(zc+side)*TILE+1-side*.1;if(avoid.some(([ax,az])=>Math.hypot(ax-X,az-Z)<26))bad=true;if(B.parked.some(p=>Math.hypot(p.x-X,p.z-Z)<10))bad=true;if(bad)continue;B.parked.push({x:X,z:Z,yaw:side>0?0:Math.PI})}
+    const side=r()<.5?-1:1,X=x*TILE+1,Z=(zc+side)*TILE+1+side*.28;if(avoid.some(([ax,az])=>Math.hypot(ax-X,az-Z)<26))bad=true;if(B.parked.some(p=>Math.hypot(p.x-X,p.z-Z)<10))bad=true;if(bad)continue;B.parked.push({x:X,z:Z,yaw:side>0?0:Math.PI})}
   for(const xc of vs)for(let tries=0;tries<3;tries++){const z=Math.floor(4+r()*(B.H-8));if(!isR(xc,z))continue;let bad=false;for(let dz=-2;dz<=2;dz++)if(isR(xc-2,z+dz)||isR(xc+2,z+dz)||!isR(xc,z+dz))bad=true;
-    const side=r()<.5?-1:1,X=(xc+side)*TILE+1-side*.1,Z=z*TILE+1;if(avoid.some(([ax,az])=>Math.hypot(ax-X,az-Z)<26))bad=true;if(B.parked.some(p=>Math.hypot(p.x-X,p.z-Z)<10))bad=true;if(bad)continue;B.parked.push({x:X,z:Z,yaw:side>0?Math.PI/2:-Math.PI/2})}
+    const side=r()<.5?-1:1,X=(xc+side)*TILE+1+side*.28,Z=z*TILE+1;if(avoid.some(([ax,az])=>Math.hypot(ax-X,az-Z)<26))bad=true;if(B.parked.some(p=>Math.hypot(p.x-X,p.z-Z)<10))bad=true;if(bad)continue;B.parked.push({x:X,z:Z,yaw:side>0?Math.PI/2:-Math.PI/2})}
 }
 function stopSign(B,x,z,yaw){const sg=B.gbOf('signs');const c=Math.cos(yaw),s=Math.sin(yaw),R=.38,y=2.25;const ctr=[x+s*.045,y,z+c*.045];
   const P=a=>[ctr[0]+Math.cos(a)*R*c,y+Math.sin(a)*R,ctr[2]-Math.cos(a)*R*s];const uv=a=>[.25+Math.cos(a)*.242,.125+Math.sin(a)*.121];
@@ -804,7 +808,7 @@ W.yard=(B,f)=>{/* f: {x0,z0,x1,z1 (footprint), door:{x,z,nx,nz} world, seed} */
     const e=P(.95,b0,0),e2=P(.95,b1,0);B.gbOf('trimdark').obox((e[0]+e2[0])/2,.03,(e[2]+e2[2])/2,Math.hypot(e2[0]-e[0],e2[2]-e[2])/2,.04,.02,Math.atan2(-(e2[2]-e[2]),e2[0]-e[0]),1)}
   if(f.drive)driveway(B,f,nx,nz,r);
   /* mailbox at the walk's end, a bin by the side of the house */
-  const mb=P(reach-.1,1.0,0);inst(B,'mailbox',mb[0],0,mb[2],Math.atan2(nx,nz)+Math.PI,1);
+  const mb=P(reach-.1,1.0,0);staticModel(B,'mailbox',mb[0],0,mb[2],Math.atan2(nx,nz)+Math.PI,1);
   if(r()<.7){const bn=P(.7,bmax+.55,0);W.bin(B,bn[0],bn[2],Math.atan2(nx,nz)+(r()-.5)*.4,r()<.5)}};
 /* concrete driveway beside the house, across the verge and sidewalk to the gutter; sometimes a car on it */
 function driveway(B,f,nx,nz,r){const d=f.drive;const front=nz>0?f.z1:f.z0;let reach=0;
@@ -845,7 +849,7 @@ function buildTufts(B,list,flowers){if(!list||!list.length)return;const geo=new 
     /* blades share the ground's up normal on both faces (no back-face flip, which turned the far side of every tuft black) and get a root-to-tip gradient */
     mat.onBeforeCompile=sh=>{sh.vertexShader='varying float vTip;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvTip=uv.y;');
       sh.fragmentShader='varying float vTip;\n'+sh.fragmentShader.replace('#include <normal_fragment_begin>','vec3 normal=normalize(vNormal);vec3 geometryNormal=normal;').replace('#include <map_fragment>','#include <map_fragment>\ndiffuseColor.rgb*=mix(.72,1.12,vTip);')};mat.customProgramCacheKey=()=>'httuft'}
-  const chunk=30,cells={};for(let i=0;i<list.length;i+=4){const k=Math.floor(list[i]/chunk)+','+Math.floor(list[i+1]/chunk);(cells[k]||(cells[k]=[])).push(i)}
+  const chunk=64,cells={};for(let i=0;i<list.length;i+=4){const k=Math.floor(list[i]/chunk)+','+Math.floor(list[i+1]/chunk);(cells[k]||(cells[k]=[])).push(i)}
   const d=new THREE.Object3D(),col=new THREE.Color();
   for(const k in cells){const L=cells[k];const im=new THREE.InstancedMesh(geo,mat,L.length);const box=new THREE.Box3();
     L.forEach((i,j)=>{d.position.set(list[i],0,list[i+1]);d.rotation.set(0,list[i+3],0);d.scale.set(list[i+2],list[i+2]*(.8+((j*7)%5)*.1),list[i+2]);d.updateMatrix();im.setMatrixAt(j,d.matrix);
@@ -1050,7 +1054,7 @@ W.finish=B=>{
     if(FADE_KEYS[key])fadeMat(m,FADE_KEYS[key][0],FADE_KEYS[key][1]);
     const mesh=new THREE.Mesh(gb.geo(),m);mesh.receiveShadow=true;mesh.castShadow=!B.shadowless.has(key)&&!key.startsWith('d_');if(key.startsWith('d_')||key==='paint'||key==='joint')mesh.renderOrder=1;mesh.userData.wkey=key;B.group.add(mesh);
     if(key==='ext'||key==='int'||key==='cap')B.lvl.solids.push(mesh)}
-  if(B.furn){try{W.mergeStatic(B,[B.furn],1e5,true)}catch(e){console.warn('furniture merge failed',e)}}
+  if(B.furn&&B.furn.children.length){try{W.mergeStatic(B,[B.furn],1e5,true)}catch(e){console.warn('furniture merge failed',e)}}
   buildInst(B);buildTufts(B,B.tuf,false);buildTufts(B,B.flw,true);
   W._last=B;W.quality(B.q,B);
   return B};
