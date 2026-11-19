@@ -182,6 +182,9 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/buildings.js"></script>
+<script src="js/vehicles.js"></script>
+<script src="js/world.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -224,7 +227,8 @@ function box(w,h,d,c,x=0,y=0,z=0,parent){const m=new THREE.Mesh(boxG,mat(c));m.s
 /* ================= ASSETS ================= */
 /* everything optional: any file that fails or is late leaves the procedural look in place */
 const ASSETS=(()=>{
-  const TEX=['asphalt','sidewalk','grass','brick','siding','roof','plaster','concfloor','woodfloor','metal','rustmetal','fence'];
+  const TEX=['asphalt','sidewalk','grass','brick','siding','roof','plaster','concfloor','woodfloor','metal','rustmetal','fence','plywood','mulch','paintwall','pavers'];
+  const WORLD={hanging_industrial_lamp:550,pull_chain_light_socket:335,wooden_picnic_table:527,shrub_02:1160},DECALS=['leak_a','leak_b','asphalt_patch'];
   const CHARS=['dad_casual','dad_beard','dad_worker','thug_hoodie','thug_punk','boss_suit'];
   const PROPS={car_van:190,car_suv:220,car_sedan:185,car_hatchback:210,gun_pistol:57,gun_shotgun:40,gun_rifle:121,street_lamp:883,mailbox:17,trash_can:305,crate:84,crate_long:84,crate_slat:90,pallet:70,barrel_red:250,barrel_blue:189,couch:191,table_low:194,table_dining:203,trashbag:260,tyre:240,utility_box:279,cardboard_box:520,chest_wood:310,tree_oak:619,tree_tall:425,tree_pine:339,bush:164};
   const A={textures:{},gltfs:{},skyImg:null,skyTex:null,env:null,done:false,failed:[],progress:0};
@@ -249,9 +253,11 @@ const ASSETS=(()=>{
       g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});A.gltfs[name]=g;ok()},prog,bad)});
   for(const n of CHARS)loadGltf(n,'assets/chars/'+n+'.glb',n==='dad_casual'?1280:1200);
   for(const n in PROPS)loadGltf(n,'assets/props/'+n+'.glb',PROPS[n]);
+  for(const n in WORLD)loadGltf(n,'assets/world/'+n+'.glb',WORLD[n]);
+  A.decals={};for(const n of DECALS)add('world/'+n,40,(ok,bad)=>{texLoader.load('assets/world/'+n+'.png',t=>{t.encoding=THREE.sRGBEncoding;t.anisotropy=aniso();A.decals[n]=t;ok()},undefined,bad)});
   add('sky_2k',124,(ok,bad)=>{texLoader.load('assets/sky/sky_2k.jpg',t=>{t.encoding=THREE.sRGBEncoding;A.skyTex=t;A.skyImg=t.image;ok()},undefined,bad)});
   add('sky_1k.hdr',1435,(ok,bad,prog)=>{if(!THREE.RGBELoader)return bad();new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('assets/sky/sky_1k.hdr',t=>{A.hdr=t;ok()},prog,bad)});
-  setTimeout(()=>{if(!A.done){A.timedOut=true;for(const it of items)if(!it.settled)A.failed.push(it.name);console.warn('asset load timed out, continuing with fallbacks');finish()}},25000);
+  setTimeout(()=>{if(!A.done){A.timedOut=true;for(const it of items)if(!it.settled)A.failed.push(it.name);console.warn('asset load timed out, continuing with fallbacks');finish()}},120000);
   /* getters for the rest of the game */
   A.tex=n=>{const s=A.textures[n];return s&&s.map?s:null};
   const pbrCache={};
@@ -270,6 +276,7 @@ const ASSETS=(()=>{
     return uvCache[key]=g};
   A.scaleUV=(g,su,sv=su)=>{const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*su,uv.getY(i)*sv);uv.needsUpdate=true;return g};
   A.gltf=n=>A.gltfs[n]||null;
+  A.decal=n=>A.decals[n]||null;
   /* independent copy of a model (skinned models get their own skeleton); materials are shared, clone before tinting */
   A.model=n=>{const g=A.gltfs[n];if(!g)return null;const c=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(g.scene):g.scene.clone(true);return c};
   A.clips=()=>{const g=A.gltfs.dad_casual;return g?g.animations:[]};
@@ -404,7 +411,7 @@ const RENDER=(()=>{
     R.post=G.post&&POST_OK;
     if(R.post&&!R.composer){try{build()}catch(e){console.warn('post-processing unavailable',e);R.post=false;R.composer=null}}
     if(R.composer){scenePass.ao=G.ao||0;aoMat.defines.SAMPLES=G.ao||8;aoMat.needsUpdate=true;bloomScale=G.bloom||.5}
-    resize()};
+    resize();const HW=HTM('World');if(HW&&HW.quality)HW.quality(R.q)};
   let t0=performance.now();
   R.draw=()=>{skyDome.position.copy(camera.position);
     if(R.post&&R.composer){grade.uniforms.time.value=(performance.now()-t0)/1000;renderer.autoClear=true;
@@ -626,12 +633,41 @@ const TILE=2;
 let L=null;
 const SOLID='#hctTfVQ', LOSBLOCK='#htVcTf';
 function tileC(i){return i*TILE+TILE/2}
+/* optional modules (js/buildings.js, js/vehicles.js, js/world.js): each one is used when present and falls back to the built-in look */
+const HTM=n=>window.HT&&window.HT[n]?window.HT[n]:null;
+function initModules(){
+  try{const W_=HTM('World');if(W_)W_.init({ASSETS,renderer,quality:()=>RENDER.q})}catch(e){console.warn('world module init failed',e)}
+  for(const n of['Buildings','Vehicles']){const m=HTM(n);try{if(m&&m.init)m.init({assets:ASSETS})}catch(e){console.warn(n+' module init failed',e)}}}
+const HOUSE_STYLES=['ranch','colonial','craftsman','cape'];
+const CAR_TYPES=['sedan','suv','hatch','pickup','workvan','sedan','suv','minivan'],CAR_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#1f2226','#6d7378','#7a5a3a'];
+function makeVehicle(type,color,upgrades){const V_=HTM('Vehicles');if(V_&&V_.make){try{const v=V_.make(type,{color,upgrades:upgrades||{}});if(v){v.userData.mod=true;v.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});return v}}catch(e){console.warn('vehicle module failed',e)}}return null}
+function makeVan(col='#b9c0c7',type='minivan',up){return makeVehicle(type,col,up)||makeVanBox(col)}
+/* which side of a house footprint faces the street: nearest sidewalk or road tile */
+function houseFacing(g,x0,z0,x1,z1){const H=g.length,W=g[0].length;let best='+z',bd=99;const hit=c=>c==='s'||c===','||c==='l';
+  for(let k=0;k<4;k++){const tests={'+z':[...Array(x1-x0)].map((_,i)=>g[z1+k]&&g[z1+k][x0+i]),'-z':[...Array(x1-x0)].map((_,i)=>g[z0-1-k]&&g[z0-1-k][x0+i]),'+x':[...Array(z1-z0)].map((_,i)=>g[z0+i]&&g[z0+i][x1+k]),'-x':[...Array(z1-z0)].map((_,i)=>g[z0+i]&&g[z0+i][x0-1-k])};
+    for(const f in tests)if(k<bd&&tests[f].some(hit)){bd=k;best=f}}
+  return best}
+/* one entry point for every house: the buildings module when present, else the world module's merged fallback, else a box */
+function placeHouse(lvl,WB,fp,facing,seed,home){const w=fp.x1-fp.x0,d=fp.z1-fp.z0,cx=(fp.x0+fp.x1)/2,cz=(fp.z0+fp.z1)/2;let grp=null;const B_=HTM('Buildings');
+  if(B_&&B_.house){try{grp=B_.house({w,d,seed,style:HOUSE_STYLES[seed%HOUSE_STYLES.length],facing,home:!!home})}catch(e){console.warn('buildings module failed',e);grp=null}}
+  if(!grp&&WB){try{grp=HTM('World').fallbackHouse(WB,{w,d,seed,facing,cx,cz})}catch(e){console.warn('fallback house failed',e);grp=null}}
+  if(grp){grp.position.set(cx,0,cz);lvl.group.add(grp);grp.traverse(m=>{if(m.isMesh){lvl.solids.push(m);if(!m.userData.noShadow){m.castShadow=true;m.receiveShadow=true}}})}
+  else{const c=['#d9c7a3','#a9c1cf','#c9a9a0','#b9c9a0','#e0d6c2','#9fb3c8'][seed%6];const m=box(w,4,d,c,cx,2,cz,lvl.group);lvl.solids.push(m);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*.74,2.4,4),mat('#6d4c41'));roof.rotation.y=Math.PI/4;roof.scale.set(w/Math.max(w,d),1,d/Math.max(w,d));roof.position.set(cx,5.2,cz);roof.castShadow=true;lvl.group.add(roof)}
+  lvl.colliders.push({x0:fp.x0,z0:fp.z0,x1:fp.x1,z1:fp.z1});
+  const fn={'+z':[0,1],'-z':[0,-1],'+x':[1,0],'-x':[-1,0]}[facing];const dr=grp&&grp.userData&&grp.userData.door;
+  const door=dr?{x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}:{x:cx+fn[0]*w/2,z:cz+fn[1]*d/2,nx:fn[0],nz:fn[1]};
+  return{...fp,fn,door,seed,group:grp}}
 function buildLevel(def){
-  if(L&&L.group)scene.remove(L.group);
+  if(L&&L.group){scene.remove(L.group);L.group.traverse(o=>{if(o.userData&&o.userData.wkey&&o.geometry)o.geometry.dispose()})}
   const rows=def.map,H=rows.length,W=Math.max(...rows.map(r=>r.length));
   const g=rows.map(r=>(r+def.pad.repeat(W)).slice(0,W).split(''));
   const group=new THREE.Group();scene.add(group);
   const lvl={def,W,H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:[],start:V3(tileC(1),0,tileC(1)),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[]};
+  for(let z=0;z<H;z++)for(let x=0;x<W;x++){const ch=g[z][x];if(ch==='D')lvl.vanStart={x:tileC(x),z:tileC(z)};else if('5678'.includes(ch))(lvl.dests||(lvl.dests=[]))[+ch-5]={x:tileC(x),z:tileC(z)}}
+  const HW=HTM('World');let WB=null;if(HW){try{WB=HW.begin(lvl)}catch(e){console.warn('world module failed',e);WB=null}}
+  let worldGround=false;if(WB){try{HW.ground(WB);worldGround=true}catch(e){console.warn('world ground failed',e)}}
+  if(!worldGround){
   const px=16,cv=document.createElement('canvas');cv.width=W*px;cv.height=H*px;const cx=cv.getContext('2d');
   const COL={',':'#3b3d43','.':'#8f8b82','g':'#5d8a4a','s':'#b7b2a6'};
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){const ch=g[z][x];let base=COL[ch];
@@ -645,45 +681,62 @@ function buildLevel(def){
   const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;tex.encoding=THREE.sRGBEncoding;
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(W*TILE,H*TILE),new THREE.MeshStandardMaterial({map:tex,roughness:.95,metalness:0}));
   ground.rotation.x=-Math.PI/2;ground.position.set(W*TILE/2,0,H*TILE/2);ground.receiveShadow=true;group.add(ground);
-  const outer=new THREE.Mesh(new THREE.PlaneGeometry(400,400),mat('#4c7340'));outer.rotation.x=-Math.PI/2;outer.position.set(W*TILE/2,-.02,H*TILE/2);group.add(outer);
+  const outer=new THREE.Mesh(new THREE.PlaneGeometry(400,400),mat('#4c7340'));outer.rotation.x=-Math.PI/2;outer.position.set(W*TILE/2,-.02,H*TILE/2);group.add(outer)}
   const addSolid=(m,x0,z0,x1,z1)=>{group.add(m);if(m.isMesh)lvl.solids.push(m);lvl.colliders.push({x0,z0,x1,z1})};
+  let worldWalls=false;if(WB){try{worldWalls=!!HW.walls(WB)}catch(e){console.warn('world walls failed',e)}}
   for(let z=0;z<H;z++){let x=0;while(x<W){if(g[z][x]==='#'){const s=x;while(x<W&&g[z][x]==='#')x++;
+      if(worldWalls){lvl.colliders.push({x0:s*TILE,z0:z*TILE,x1:x*TILE,z1:z*TILE+TILE});continue}
       const m=box((x-s)*TILE,3.2,TILE,def.wall,(s+x)*TILE/2,1.6,tileC(z));addSolid(m,s*TILE,z*TILE,x*TILE,z*TILE+TILE);
       box((x-s)*TILE+.02,.12,TILE+.02,'#5b5550',(s+x)*TILE/2,3.2,tileC(z),group)}else x++}}
-  const seen=new Set();const HC=['#d9c7a3','#a9c1cf','#c9a9a0','#b9c9a0','#e0d6c2','#9fb3c8'];
+  /* houses */
+  const seen=new Set(),houses=[];let pz_=-1,px_=-1;for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]==='P'){px_=x;pz_=z}
+  let hseed=1;
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){if(g[z][x]!=='h'||seen.has(z*W+x))continue;let x1=x;while(x1<W&&g[z][x1]==='h')x1++;let z1=z;while(z1<H&&g[z1][x]==='h')z1++;
     for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen.add(zz*W+xx);
-    const w=(x1-x)*TILE,d=(z1-z)*TILE,cxp=x*TILE+w/2,czp=z*TILE+d/2,c=pick(HC);
-    const m=box(w-.3,4,d-.3,c,cxp,2,czp);addSolid(m,x*TILE+.15,z*TILE+.15,x1*TILE-.15,z1*TILE-.15);
-    const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*.74,2.4,4),mat('#6d4c41'));roof.rotation.y=Math.PI/4;roof.scale.set(w/Math.max(w,d),1,d/Math.max(w,d));roof.position.set(cxp,5.2,czp);roof.castShadow=true;group.add(roof);
-    const front=z1*TILE-.1;const back=z*TILE+.1;const fz=z>H/2?back:front;
-    box(1,2.1,.1,'#6b4a2f',cxp,1.05,fz,group);box(1.2,1,.1,'#cfe3ef',cxp-w/3,2.3,fz,group);box(1.2,1,.1,'#cfe3ef',cxp+w/3,2.3,fz,group)}
+    const facing=houseFacing(g,x,z,x1,z1),home=px_>=x-1&&px_<=x1&&Math.abs(pz_-z)<=2&&!houses.some(h=>h.home);
+    const hs=placeHouse(lvl,WB,{x0:x*TILE+.15,z0:z*TILE+.15,x1:x1*TILE-.15,z1:z1*TILE-.15},facing,(hseed++)*7919+x*31+z,home);hs.home=home;houses.push(hs)}
+  lvl.houses=houses;
+  if(WB&&houses.length){try{for(const h of houses)HW.yard(WB,h);HW.lotFences(WB,houses)}catch(e){console.warn('yards failed',e)}}
+  const lowQ=RENDER.q==='low';
   for(let z=0;z<H;z++)for(let x=0;x<W;x++){const ch=g[z][x],X=tileC(x);let Z=tileC(z);
-    if(ch==='c'){const m=box(1.7,1.15,1.7,pick(['#8b6a45','#7d5f3d','#6f7a54']),X,.575,Z);addSolid(m,X-.85,Z-.85,X+.85,Z+.85)}
-    else if(ch==='f'){const m=box(TILE,1.2,.8,'#3f6e35',X,.6,Z);addSolid(m,X-1,Z-.4,X+1,Z+.4)}
-    else if(ch==='t'){const tr=box(.5,2.4,.5,'#5a4030',X,1.2,Z);addSolid(tr,X-.45,Z-.45,X+.45,Z+.45);const top=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0),mat(pick(['#3f6e35','#4b7f3d','#5a9148'])));top.position.set(X,3.2,Z);top.castShadow=true;group.add(top);lvl.solids.push(top)}
-    else if(ch==='T'){const m=box(1.8,.85,1.1,'#5a4636',X,.425,Z);addSolid(m,X-.9,Z-.55,X+.9,Z+.55);const bags=[];for(let i=0;i<4;i++)bags.push(box(.32,.18,.24,'#f1f1f1',X-.5+i*.33,.95,Z+rand(-.2,.2),group));bags.push(box(.25,.12,.18,'#c0c0c0',X+.6,.92,Z-.3,group));lvl.stashes.push({x:X,z:Z,prog:0,done:false,bags})}
-    else if(ch==='I'){const pile=new THREE.Group();for(let i=0;i<5;i++)box(rand(.35,.6),rand(.25,.45),rand(.35,.6),pick(['#b8874f','#c99c66','#a77a44']),rand(-.4,.4),.2+i*.12,rand(-.4,.4),pile);pile.position.set(X,0,Z);group.add(pile);lvl.items.push({x:X,z:Z,mesh:pile,got:false})}
-    else if(ch==='a'){const m=new THREE.Group();box(.7,.4,.45,'#3f5a33',0,.2,0,m);box(.72,.06,.47,'#ffc94a',0,.34,0,m);m.position.set(X,0,Z);group.add(m);lvl.ammo.push({x:X,z:Z,mesh:m,got:false})}
-    else if(ch==='X'){const v=makeVan();v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+    if(ch==='c'){if(WB&&HW.crate(WB,X,Z)){const p=HW.proxy(WB,1.7,1.15,1.7,X,.575,Z);lvl.solids.push(p);lvl.colliders.push({x0:X-.85,z0:Z-.85,x1:X+.85,z1:Z+.85})}
+      else{const m=box(1.7,1.15,1.7,pick(['#8b6a45','#7d5f3d','#6f7a54']),X,.575,Z);addSolid(m,X-.85,Z-.85,X+.85,Z+.85)}}
+    else if(ch==='f'){if(WB&&HW.hedge(WB,X,Z,true)){lvl.solids.push(HW.proxy(WB,2,1.2,.8,X,.6,Z));lvl.colliders.push({x0:X-1,z0:Z-.4,x1:X+1,z1:Z+.4})}
+      else{const m=box(TILE,1.2,.8,'#3f6e35',X,.6,Z);addSolid(m,X-1,Z-.4,X+1,Z+.4)}}
+    else if(ch==='t'){lvl.colliders.push({x0:X-.45,z0:Z-.45,x1:X+.45,z1:Z+.45});
+      if(WB){const edge=x===0||z===0||x===W-1||z===H-1;if(!edge||(x+z)%(lowQ?4:3)===0)HW.tree(WB,X,Z,{s:edge?1.15:1});lvl.solids.push(HW.proxy(WB,.5,3,.5,X,1.5,Z))}
+      else{const tr=box(.5,2.4,.5,'#5a4030',X,1.2,Z);group.add(tr);lvl.solids.push(tr);const top=new THREE.Mesh(new THREE.IcosahedronGeometry(1.5,0),mat(pick(['#3f6e35','#4b7f3d','#5a9148'])));top.position.set(X,3.2,Z);top.castShadow=true;group.add(top);lvl.solids.push(top)}}
+    else if(ch==='T'){let bags;if(WB){bags=HW.stash(WB,X,Z);lvl.solids.push(HW.proxy(WB,1.8,.85,1.1,X,.425,Z));lvl.colliders.push({x0:X-.9,z0:Z-.55,x1:X+.9,z1:Z+.55})}
+      else{const m=box(1.8,.85,1.1,'#5a4636',X,.425,Z);addSolid(m,X-.9,Z-.55,X+.9,Z+.55);bags=[];for(let i=0;i<4;i++)bags.push(box(.32,.18,.24,'#f1f1f1',X-.5+i*.33,.95,Z+rand(-.2,.2),group));bags.push(box(.25,.12,.18,'#c0c0c0',X+.6,.92,Z-.3,group))}
+      lvl.stashes.push({x:X,z:Z,prog:0,done:false,bags})}
+    else if(ch==='I'){let pile;if(WB)pile=HW.pile(WB,X,Z);else{pile=new THREE.Group();for(let i=0;i<5;i++)box(rand(.35,.6),rand(.25,.45),rand(.35,.6),pick(['#b8874f','#c99c66','#a77a44']),rand(-.4,.4),.2+i*.12,rand(-.4,.4),pile);pile.position.set(X,0,Z);group.add(pile)}lvl.items.push({x:X,z:Z,mesh:pile,got:false})}
+    else if(ch==='a'){let m;if(WB)m=HW.ammo(WB,X,Z);else{m=new THREE.Group();box(.7,.4,.45,'#3f5a33',0,.2,0,m);box(.72,.06,.47,'#ffc94a',0,.34,0,m);m.position.set(X,0,Z);group.add(m)}lvl.ammo.push({x:X,z:Z,mesh:m,got:false})}
+    else if(ch==='X'){const v=makeVan('#35577d','minivan',{roofRack:true});v.position.set(X,0,Z);v.rotation.y=Math.PI/2;group.add(v);addSolid(new THREE.Group(),X-1.1,Z-2.3,X+1.1,Z+2.3);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
       lvl.exit={x:X+2.6,z:Z};const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));ring.position.set(X+2.6,.03,Z);group.add(ring);lvl.exitRing=ring}
-    else if(ch==='V'){if(def.id==='hub')Z+=(g[z-1]&&g[z-1][x]==='s')?-.5:(g[z+1]&&g[z+1][x]==='s')?.5:0;const v=makeVan(pick(['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a']));v.position.set(X,0,Z);group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
-    else if(ch==='Q'){const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);addSolid(new THREE.Group(),X-.7,Z-.5,X+.7,Z+.5);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});lvl.grill={x:X,z:Z};
-      const bh=new THREE.Group();box(3,1.6,3,'#e5533d',0,.8,0,bh);box(3.1,.6,3.1,'#2f5d9e',0,1.9,0,bh);box(.6,.6,.6,'#ffc94a',-1.2,2.5,-1.2,bh);box(.6,.6,.6,'#ffc94a',1.2,2.5,1.2,bh);bh.position.set(X,0,Z+9);group.add(bh);lvl.colliders.push({x0:X-1.55,z0:Z+9-1.55,x1:X+1.55,z1:Z+9+1.55});bh.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});lvl.bounce={x:X,z:Z+9}}
+    else if(ch==='V'){if(def.id==='hub')Z+=(g[z-1]&&g[z-1][x]==='s')?-.5:(g[z+1]&&g[z+1][x]==='s')?.5:0;const k=(x*7+z*13)%CAR_TYPES.length;const v=makeVan(CAR_COLS[(x+z)%CAR_COLS.length],CAR_TYPES[k]);v.position.set(X,WB?HW.groundY(lvl,X,Z):0,Z);
+      if(v.userData.mod&&def.id==='hub'&&(x+z)%2)v.rotation.y=Math.PI;group.add(v);addSolid(new THREE.Group(),X-2.3,Z-1.1,X+2.3,Z+1.1);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
+    else if(ch==='Q'){if(WB){HW.grill(WB,X,Z).traverse(m=>{if(m.isMesh)lvl.solids.push(m)});HW.bounce(WB,X,Z+9).traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
+      else{const q=new THREE.Group();box(1.2,.9,.8,'#222',0,.6,0,q);box(1.3,.08,.9,'#555',0,1.08,0,q);for(let i=0;i<3;i++)box(.3,.08,.3,'#7a3b20',-.35+i*.35,1.15,0,q);q.position.set(X,0,Z);group.add(q);q.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+        const bh=new THREE.Group();box(3,1.6,3,'#e5533d',0,.8,0,bh);box(3.1,.6,3.1,'#2f5d9e',0,1.9,0,bh);box(.6,.6,.6,'#ffc94a',-1.2,2.5,-1.2,bh);box(.6,.6,.6,'#ffc94a',1.2,2.5,1.2,bh);bh.position.set(X,0,Z+9);group.add(bh);bh.traverse(m=>{if(m.isMesh)lvl.solids.push(m)})}
+      lvl.colliders.push({x0:X-.7,z0:Z-.5,x1:X+.7,z1:Z+.5});lvl.grill={x:X,z:Z};lvl.colliders.push({x0:X-1.55,z0:Z+9-1.55,x1:X+1.55,z1:Z+9+1.55});lvl.bounce={x:X,z:Z+9}}
     else if(ch==='P'){lvl.start=V3(X,0,Z)}
-    else if(ch==='D'){lvl.vanStart={x:X,z:Z}}
-    else if('5678'.includes(ch)){(lvl.dests||(lvl.dests=[]))[+ch-5]={x:X,z:Z}}
-    else if(ch==='l'){const m=box(.16,4.2,.16,'#3a3d42',X,2.1,Z);addSolid(m,X-.2,Z-.2,X+.2,Z+.2);box(.9,.12,.3,'#3a3d42',X+.4,4.2,Z,group);box(.4,.06,.24,'#fff6c8',X+.6,4.12,Z,group)}
+    else if(ch==='l'){lvl.colliders.push({x0:X-.2,z0:Z-.2,x1:X+.2,z1:Z+.2});if(!WB){const m=box(.16,4.2,.16,'#3a3d42',X,2.1,Z);group.add(m);lvl.solids.push(m);box(.9,.12,.3,'#3a3d42',X+.4,4.2,Z,group);box(.4,.06,.24,'#fff6c8',X+.6,4.12,Z,group)}
+      else lvl.solids.push(HW.proxy(WB,.2,7,.2,X,3.5,Z))}
     else if(ch==='E'||ch==='B'){lvl.spawns.push({x:X,z:Z,boss:ch==='B'})}
     else if(ch==='S'){lvl.waveSpawns.push({x:X,z:Z})}
     else if('1234'.includes(ch)){lvl.markers.push({i:+ch-1,x:X,z:Z})}
   }
+  if(WB){try{HW.finish(WB)}catch(e){console.warn('world finish failed',e)}
+    /* parked cars the world module picked along the curbs */
+    for(const pc of WB.parked||[]){const k=Math.floor(pc.x*3+pc.z)%CAR_TYPES.length;const v=makeVehicle(CAR_TYPES[k],CAR_COLS[Math.floor(pc.x+pc.z)%CAR_COLS.length]);if(!v)continue;
+      v.position.set(pc.x,HW.groundY(lvl,pc.x,pc.z),pc.z);v.rotation.y=pc.yaw;group.add(v);v.traverse(m=>{if(m.isMesh)lvl.solids.push(m)});
+      const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}}
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
   setMood(def);
   L=lvl;return lvl;
 }
-function makeVan(col='#b9c0c7'){const v=new THREE.Group();box(4.4,1.7,2,col,0,1.15,0,v);box(1.3,1,2.02,'#2b3440',1.4,1.5,0,v);box(2.4,.7,2.04,'#2b3440',-.6,1.6,0,v);box(.1,.3,1.6,'#ffe9a8',2.2,.9,0,v);box(4.5,.14,2.1,'#7a8188',0,.38,0,v);
+function makeVanBox(col='#b9c0c7'){const v=new THREE.Group();box(4.4,1.7,2,col,0,1.15,0,v);box(1.3,1,2.02,'#2b3440',1.4,1.5,0,v);box(2.4,.7,2.04,'#2b3440',-.6,1.6,0,v);box(.1,.3,1.6,'#ffe9a8',2.2,.9,0,v);box(4.5,.14,2.1,'#7a8188',0,.38,0,v);
   for(const[x,z]of[[1.4,.95],[1.4,-.95],[-1.4,.95],[-1.4,-.95]]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.25,12),mat('#1b1b1b'));w.rotation.x=Math.PI/2;w.position.set(x,.38,z);v.add(w)}
   box(1.3,.25,.05,'#ffffff',-1,1.4,1.02,v);return v}
 
@@ -758,7 +811,7 @@ function setViewGun(t){if(vmGun)vm.remove(vmGun);vmGun=makeGun(t);box(.13,.13,.5
 const VAN={on:false,obj:null,pos:V3(),yaw:0,spd:0,steer:0,col:null,bump:0},VAN_OFF={x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1};
 let JOB=null,camLookT=0,ENG=null,destRings=[],objKey='';
 const DRIVE_LINES=["Seatbelts. I'm not asking.","Nobody touch the radio presets.","I call shotgun. The seat. Not the gun.","Signal before you merge. We're the good guys.","This van has seen three soccer seasons and a divorce. It can handle this."];
-function makeHubVan(){const v=makeVan('#35577d');box(3.4,.08,1.6,'#2a2a2a',-.3,2.04,0,v);for(const z of[-.7,.7])box(3.2,.1,.08,'#888',-.3,2.12,z,v);
+function makeHubVan(){const v=makeVan('#35577d','minivan',{roofRack:true});if(!v.userData.mod){box(3.4,.08,1.6,'#2a2a2a',-.3,2.04,0,v);for(const z of[-.7,.7])box(3.2,.1,.08,'#888',-.3,2.12,z,v)}
   L.group.add(v);VAN.obj=v;VAN.pos.set(L.vanStart.x,0,L.vanStart.z);VAN.yaw=-Math.PI/2;VAN.spd=0;VAN.steer=0;VAN.on=false;VAN.col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(VAN.col);syncVan()}
 function syncVan(){const v=VAN.obj;v.position.set(VAN.pos.x,0,VAN.pos.z);v.rotation.y=VAN.yaw+Math.PI/2;v.rotation.x=0;v.rotation.z=clamp(-VAN.steer*VAN.spd*.004,-.06,.06)*0;
   const c=VAN.col;if(VAN.on){Object.assign(c,VAN_OFF);return}const a=Math.abs(Math.sin(VAN.yaw)),b=Math.abs(Math.cos(VAN.yaw)),hx=a*2.2+b*1,hz=b*2.2+a*1;
@@ -786,7 +839,8 @@ function updVan(dt){
   let hit=false;for(const o of[1.45,-1.45]){const pt=VAN.pos.clone().addScaledVector(f,o),q=pt.clone();collide(q,1.05);const dx=q.x-pt.x,dz=q.z-pt.z;if(dx*dx+dz*dz>1e-6){VAN.pos.x+=dx;VAN.pos.z+=dz;hit=true}}
   if(hit){if(Math.abs(v)>5&&VAN.bump<=0){snd('hit',Math.min(1,Math.abs(v)/15));hurtFlash=Math.min(.5,Math.abs(v)/40);VAN.bump=.4;const sp=speaker();if(sp&&Math.abs(v)>11&&Math.random()<.5)radio(sp,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}VAN.spd*=Math.abs(v)>5?-.25:.6}
   VAN.bump-=dt;
-  syncVan();VAN.obj.rotation.z=clamp(VAN.steer*v*.0035,-.05,.05);VAN.obj.rotation.x=0;
+  syncVan();VAN.obj.rotation.x=0;
+  const VM=HTM('Vehicles');if(VAN.obj.userData.mod&&VM&&VM.update){VAN.obj.rotation.z=0;try{VM.update(VAN.obj,{speed:v,steer:VAN.steer,braking:!!hb||(thr<0&&v>.5)||(thr>0&&v<-.5),headlights:mood===MOODS.dusk,dt})}catch(e){}}else VAN.obj.rotation.z=clamp(VAN.steer*v*.0035,-.05,.05);
   P.pos.set(VAN.pos.x,0,VAN.pos.z);P.dude.root.visible=false;vm.visible=false;
   for(const a of allies){a.pos.set(VAN.pos.x,0,VAN.pos.z);a.dude.root.visible=false}
   if(ENG){ENG.o.frequency.value=38+Math.abs(v)*4.2+(thr?8:0);ENG.o2.frequency.value=19+Math.abs(v)*2.1;ENG.g.gain.setTargetAtTime(running?.03+Math.abs(v)*.0012:0,AC.currentTime,.05)}
@@ -1207,6 +1261,10 @@ function hud(dt){
 }
 
 /* ================= LOOP ================= */
+/* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
+function groundPass(sign){const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
+  for(const e of[P,...allies,...npcs]){const r=e.dude&&e.dude.root;if(r)r.position.y+=sign*HW.groundY(L,r.position.x,r.position.z)}
+  if(sign>0&&VAN.obj)VAN.obj.position.y=HW.groundY(L,VAN.pos.x,VAN.pos.z)}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
@@ -1221,21 +1279,22 @@ function frame(now){
   for(let i=puffs.length-1;i>=0;i--){const p=puffs[i];p.t-=dt;p.v.y-=9*dt;p.m.position.addScaledVector(p.v,dt);if(p.t<=0){scene.remove(p.m);puffs.splice(i,1)}}
   flash.intensity*=Math.pow(.0005,dt);
   if(L)hud(dt);
-  updFlashes(dt);RENDER.draw();
+  updFlashes(dt);groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
 function start(){if(!ASSETS.done)return;initAudio();$('cTitle').hidden=true;enterHub();canvasFocus();requestLock()}
 $('bStart').onclick=start;
 RENDER.apply(CFG.gfx);
+initModules();
 buildLevel(HUB);makePlayer();P.pos.copy(L.start);P.yaw=.4;P.pitch=-.12;
 /* title card: progress bar while assets stream in; the button unlocks when everything settled (or after the 25s timeout) */
 ASSETS.onProgress((f,A)=>{$('ldB').style.width=Math.round(f*100)+'%';if(!A.done)$('ldT').textContent='Loading the neighborhood · '+Math.round(f*100)+'%'});
 ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock in';
   const miss=A.failed.length;$('ld').classList.toggle('warn',!!miss);
   $('ldT').textContent=miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready';
-  if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}
+  initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}
   if(!$('cTitle').hidden)b.focus()});
-window.__ht={assets:ASSETS,render:RENDER,P,get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt)}},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
