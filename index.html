@@ -3297,7 +3297,7 @@ function jrFinish(ok,res){if(!M)return;const m=M.def,j=JR&&JR.get(m.id),s=SV();l
   if(j&&!j.builtin){if(j.payout)try{const ex=(j.payout(M,ok)||[]).filter(l=>l&&l[0]&&isFinite(l[1])).map((l,k)=>({id:'job'+k,label:l[0],amount:l[1]}));M.payX=M.payX||{};M.payX.extra=(M.payX.extra||[]).concat(ex)}catch(e){console.warn('job payout failed',e)}
     if(j.end&&!M.replay)try{j.end(M,ok)}catch(e){console.warn('job end failed',e)}}
   const SVM=window.HT&&HT.Save;let rec=null;
-  if(s&&SVM&&SVM.recordRun)try{rec=SVM.recordRun(s,m.id,{ok,t:Math.round(M.elapsed),score:M.score!=null?M.score:null,medal,replay:!!M.replay,trustGain:M.trustGain||0,clean:M.clean!==false})}catch(e){console.warn('recordRun failed',e)}
+  if(s&&SVM&&SVM.recordRun)try{rec=SVM.recordRun(s,m.id,{ok,t:Math.round(M.elapsed),score:M.score!=null?M.score:null,medal,replay:!!M.replay,trustGain:M.trustGain||0,clean:M.clean!==false,story:!m.repeatable})}catch(e){console.warn('recordRun failed',e)}
   if(rec&&rec.bonus){M.payX=M.payX||{};M.payX.extra=(M.payX.extra||[]).concat([{id:'medal',label:(medal>=3?'Gold':'Silver')+' medal · first time',amount:rec.bonus}])}
   if(ok&&res)res.stats=(res.stats||[]).concat([['Medal',['—','Bronze','Silver','Gold'][medal],M.replay?'replay · half pay':(j&&j.def.medals?j.def.medals[Math.min(medal,3)-1]||'':'')]]);
   if(SAVEM&&SAVEM.touch)try{SAVEM.touch('jobs','calendar')}catch(_){}}
