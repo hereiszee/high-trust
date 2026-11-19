@@ -2159,9 +2159,12 @@ function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptor
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
-function groundPass(sign){const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
+function groundPass(sign){if(L)stepPass(sign);const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
   for(const e of[P,...allies,...npcs]){const r=e.dude&&e.dude.root;if(r)r.position.y+=sign*HW.groundY(L,r.position.x,r.position.z)}
   if(sign>0&&VAN.obj)VAN.obj.position.y=HW.groundY(L,VAN.pos.x,VAN.pos.z)}
+/* crew, neighbours and enemies have no feet height of their own: for the draw, stand them on any curb, step or porch top under them (within a step) */
+function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.dude&&e.dude.root;if(!r)continue;
+  if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
@@ -2203,7 +2206,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);
 /* character test hooks (dev/people scripts) */
-window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]}};
+window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]},groundPass,supportAt,baseGroundY};
 requestAnimationFrame(frame);
 })();
 </script>
