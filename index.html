@@ -813,8 +813,8 @@ function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math
 function updVan(dt){
   let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}
-  const boost=keys.shift,MAX=boost?25:17;let v=VAN.spd;
-  if(thr>0)v+=(v<0?24:boost?11:8)*dt*thr;else if(thr<0)v-=(v>0?24:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
+  const boost=keys.shift,MAX=boost?33:25;let v=VAN.spd;
+  if(thr>0)v+=(v<0?24:boost?12:9)*dt*thr;else if(thr<0)v-=(v>0?24:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
   const hb=keys[' '];if(hb)v-=Math.sign(v)*Math.min(Math.abs(v),20*dt);
   VAN.spd=v=clamp(v,-8,MAX);VAN.steer+=(st-VAN.steer)*Math.min(1,dt*7);
   VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55-Math.min(.75,Math.abs(v)/35))*Math.sign(v)*(hb?1.5:1)*dt;
