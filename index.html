@@ -4,6 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="css/menus.css">
 <style>
 /* Layout: full-bleed 3D view; HUD hugs the corners like a shooter; briefings are paper index cards over the scene. Single deliberate look. */
 :root{
@@ -185,6 +186,9 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/buildings.js"></script>
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
+<script src="js/save.js"></script>
+<script src="js/home.js"></script>
+<script src="js/audio.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -761,7 +765,7 @@ function collide(p,r){for(const c of L.colliders){if(p.x+r>c.x0&&p.x-r<c.x1&&p.z
   if(mx<mz)p.x+=ox1<ox2?-ox1:ox2;else p.z+=oz1<oz2?-oz1:oz2}}}
 
 /* ================= STATE ================= */
-const prog={done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0};
+const prog=metaBindProg({done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});
 let mode='title',M=null,running=false,simT=0;
 const P={pos:V3(),yaw:0,pitch:0,hp:100,regenT:0,crouch:false,aim:false,fp:false,weapons:['pistol'],cur:'pistol',ammo:{},fireT:0,reloadT:0,dude:null,moving:false,recoilKick:0};
 let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
@@ -818,7 +822,7 @@ function syncVan(){const v=VAN.obj;v.position.set(VAN.pos.x,0,VAN.pos.z);v.rotat
   c.x0=VAN.pos.x-hx;c.x1=VAN.pos.x+hx;c.z0=VAN.pos.z-hz;c.z1=VAN.pos.z+hz}
 function engine(on){if(!AC)return;if(on&&!ENG){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=380;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AC.destination);o.start();o2.start();ENG={o,o2,g}}
   else if(!on&&ENG){try{ENG.o.stop();ENG.o2.stop()}catch(e){}ENG=null}}
-function honk(){if(!AC)return;const t=AC.currentTime;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
+function honk(){if(metaHorn())return;if(!AC)return;const t=AC.currentTime;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
 function enterVan(){VAN.on=true;syncVan();P.yaw=VAN.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;P.dude.root.visible=false;vm.visible=false;engine(true);snd('reload',.6);
   for(const a of allies){a.dude.root.visible=false;a.target=null}const sp=speaker();if(sp)radio(sp,pick(DRIVE_LINES))}
 function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));
@@ -830,11 +834,11 @@ function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math
 function updVan(dt){
   let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}
-  const boost=keys.shift,MAX=boost?25:17;let v=VAN.spd;
-  if(thr>0)v+=(v<0?24:boost?11:8)*dt*thr;else if(thr<0)v-=(v>0?24:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
+  const boost=keys.shift,MAX=(boost?25:17)*VANK.top;let v=VAN.spd;
+  if(thr>0)v+=(v<0?24*VANK.brake:(boost?11:8)*VANK.accel)*dt*thr;else if(thr<0)v-=(v>0?24*VANK.brake:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
   const hb=keys[' '];if(hb)v-=Math.sign(v)*Math.min(Math.abs(v),20*dt);
   VAN.spd=v=clamp(v,-8,MAX);VAN.steer+=(st-VAN.steer)*Math.min(1,dt*7);
-  VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55-Math.min(.75,Math.abs(v)/35))*Math.sign(v)*(hb?1.5:1)*dt;
+  VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55*VANK.turn-Math.min(.75,Math.abs(v)/(35*VANK.grip)))*Math.sign(v)*(hb?1.5:1)*dt;
   const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw));VAN.pos.addScaledVector(f,v*dt);
   let hit=false;for(const o of[1.45,-1.45]){const pt=VAN.pos.clone().addScaledVector(f,o),q=pt.clone();collide(q,1.05);const dx=q.x-pt.x,dz=q.z-pt.z;if(dx*dx+dz*dz>1e-6){VAN.pos.x+=dx;VAN.pos.z+=dz;hit=true}}
   if(hit){if(Math.abs(v)>5&&VAN.bump<=0){snd('hit',Math.min(1,Math.abs(v)/15));hurtFlash=Math.min(.5,Math.abs(v)/40);VAN.bump=.4;const sp=speaker();if(sp&&Math.abs(v)>11&&Math.random()<.5)radio(sp,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}VAN.spd*=Math.abs(v)>5?-.25:.6}
@@ -857,11 +861,12 @@ function updDriveCam(dt){
 }
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[['Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
-function enterHub(){
+function enterHub(o){
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
   P.pos.copy(L.start);P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
+  metaHubEnter(o);
   const next=prog.done.findIndex(d=>!d);
   P.weapons=['pistol'];if(prog.done[0])P.weapons.push('shotgun');if(prog.done[1])P.weapons.push('rifle');if(!P.weapons.includes(P.cur))P.cur='pistol';fillAmmo();equip(P.dude,P.cur);setViewGun(P.cur);
   if(next===-1){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
@@ -891,6 +896,7 @@ function startMission(i){
   M={i,def:m,t:m.time||0,wave:0,waveT:3,waveAge:0,got:0,smashed:0,state:'go',kills:0,cuffs:0,elapsed:0,bossDone:null,exitOpen:false};
   P.pos.copy(L.start);P.yaw=Math.PI;P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
   P.weapons=[...m.weapons];P.cur=i===0?'pistol':P.weapons[P.weapons.length-1];fillAmmo();equip(P.dude,P.cur);setViewGun(P.cur);
+  metaMissionStart(i);
   {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));/* crew beside and ahead of the dad, out of the camera's line */
    m.crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);spawnAlly(c,L.start.x+r.x*2.2*side+f.x*(1.8+row*1.3),L.start.z+r.z*2.2*side+f.z*(1.8+row*1.3))})}
   for(const s of L.spawns){const e=spawnEnemy(s.x,s.z,s.boss);if(s.boss)L.boss=e}
@@ -909,6 +915,7 @@ function endMission(ok,why,title){
   $('rsRetry').hidden=ok;$('rsGo').textContent='Back to the cul-de-sac';
   const mi=M.i;
   $('rsRetry').onclick=()=>{$('cResult').hidden=true;startMission(mi)};$('rsGo').onclick=()=>{$('cResult').hidden=true;enterHub();canvasFocus()};
+  metaResult(ok);
   setTimeout(()=>{$('cResult').hidden=false;$('rsGo').focus()},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust);
@@ -951,6 +958,7 @@ function closePause(){pauseOpen=false;$('cPause').hidden=true;running=true;last=
 $('pResume').onclick=closePause;
 $('pHub').onclick=()=>{pauseOpen=false;$('cPause').hidden=true;if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()};
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+  if(metaKey(e,k))return;
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
   if(card&&k==='tab'){const f=[...card.querySelectorAll('button,input')].filter(el=>!el.hidden&&el.offsetParent);if(f.length){const i=f.indexOf(document.activeElement);const n=e.shiftKey?(i<=0?f.length-1:i-1):(i+1)%f.length;f[n].focus();e.preventDefault()}return}
   if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(k)&&running)e.preventDefault();
@@ -1039,7 +1047,7 @@ function killEnemy(e){e.state='dead';equip(e.dude,null);if(e.tag){e.tag.remove()
   if(e.boss&&M)M.bossDone='down';
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
 function hurtPlayer(d){if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
-function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp<=0){a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
+function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
 function shootAt(src,target,acc,dmg,isEnemy){
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
@@ -1142,7 +1150,7 @@ function updCamera(dt){
   const base=P.aim?CFG.fov*(P.fp?.7:.8):CFG.fov;/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vm.position.set(P.aim?.0:.24,-.22+Math.sin(P.dude.walk)*.01+(P.aim?.05:0),P.reloadT>0?-.32:-.45);vm.rotation.x=P.reloadT>0?.6:0}
-  else{const back=P.aim?1.5:2.7,side=P.aim?.62:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
+  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
     ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.solids,false)[0]:null;
     const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
@@ -1156,6 +1164,7 @@ function updCamera(dt){
     for(const a of allies){a.dude.root.visible=Math.hypot(a.pos.x-camera.position.x,a.pos.z-camera.position.z)>1}}
   if(P.fp)for(const a of allies)a.dude.root.visible=true;
   sunFollow(P.pos.x,P.pos.z,-Math.sin(P.yaw),-Math.cos(P.yaw));
+  if(mode==='home')homeCam(dt);
 }
 
 /* ================= MISSION LOGIC ================= */
@@ -1211,7 +1220,7 @@ function updMission(dt){
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
 function updHub(dt){
-  let prompt=null,target=null;
+  let prompt=null,target=null;const mp=metaHubUpd(dt);
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
     if(JOB===null)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
@@ -1223,7 +1232,7 @@ function updHub(dt){
       if(Math.hypot(VAN.pos.x-d.x,VAN.pos.z-d.z)<4.5){const j=JOB;setPrompt(null);showMarker(null);startMission(j);return}}
   }else if(VAN.obj&&Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<3.6){prompt=prompt||KE+' · Drive the minivan';if(useTap&&!prompt.includes('Talk')){useTap=false;enterVan()}}
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
-  hubObj();setPrompt(prompt);showMarker(target);
+  hubObj();setPrompt(mp||prompt);showMarker(target);
 }
 
 /* ================= HUD ================= */
@@ -1260,6 +1269,321 @@ function hud(dt){
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
 }
 
+/* ================= META: save, payout, home, shops, minivan upgrades ================= */
+/* glue for js/save.js (HT.Save/Economy/Shop/Locker), js/home.js (HT.Home), the two hub shops and the van's upgrades.
+   Every module is optional: with one missing, the game plays exactly as before. */
+/* tables live in functions so metaBindProg() can run from the STATE section, before this code has executed */
+function metaAlias(){return{tv:'tv65',lamp:'floorlamp',frame:'familyphoto',plaque:'trophyshelf',toolchest:'toolcart'}}
+function metaBlurbs(){return{modernchair:"Real leather. You'll tell guests it's real leather.",ottoman:"Feet up. Not on the coffee table. On this.",
+  sidetable:"A lamp and a coaster in one honest piece of furniture.",cubeshelf:"Nine cubes. Eight hold toys. One holds a single sock.",
+  runner:"Keeps the hallway quiet when you sneak to the fridge at midnight.",gnome:"His name is Gerald. He's seen things.",
+  planter:"Petunias. Jen picked them. You water them. Mostly.",print:"A sailboat. None of you sail.",fancyart:"Thrift store. The frame cost more than the painting.",
+  clock:"Runs four minutes fast so nobody is late to soccer."}}
+/* reconcile the shop's furniture list with what the house can actually place: same ids where they match, aliases where they're the same thing */
+function metaCatalog(){const C=window.HT&&window.HT.CATALOG,Hm=HTM('Home');if(!C||!Hm||C._homeSynced)return;C._homeSynced=1;
+  const F=C.furniture,O=C.furnOrder,A=metaAlias(),mapped=new Set(Object.values(A)),B=metaBlurbs();
+  for(const id of Object.keys(F)){if(!Hm.catalogById[A[id]||id]){delete F[id];const i=O.indexOf(id);if(i>=0)O.splice(i,1)}}
+  for(const c of Hm.catalog){if(c.starter||F[c.id]||mapped.has(c.id))continue;const tags=c.tags||[],out=c.zone==='out',gar=tags.includes('garage');
+    F[c.id]={name:c.name,room:c.wall?'Wall':out?'Backyard':gar?'Garage':'Living room',price:c.price,cells:c.wall?[1,1]:[Math.max(1,Math.round(c.fp[0]/2)),Math.max(1,Math.round(c.fp[1]/2))],
+      zone:c.wall?'in':(c.zone||'in'),tags:tags.slice(),model:null,hw:out||gar,fans:[],blurb:B[c.id]||'Exactly what the house was missing, according to you.'};O.push(c.id)}
+  if(C.stores){Object.assign(C.stores.hardware,{name:'Hank’s Hardware',sub:'& Sporting'});Object.assign(C.stores.auto,{name:'Dad’s Auto',sub:'& Tire'})}}
+/* first load of a save made before the house existed: the house's starter furniture replaces the old placement list */
+function metaFixSave(s){if(!s||!s.furniture)return;const f=s.furniture,Hm=HTM('Home');
+  if(!f.homeV){const fresh=!(s.prog&&s.prog.missionsRun)&&!(s.stats&&s.stats.spent);if(fresh)f.owned={dining:1,dogbed:1,picnic:1};
+    f.placed=[];f.layout=Hm?Hm.starterLayout():{v:1,items:[]};f.homeV=1;f.seen=Object.assign({},f.owned)}
+  if(!f.seen||typeof f.seen!=='object')f.seen=Object.assign({},f.owned)
+  if(!f.layout||!Array.isArray(f.layout.items))f.layout=Hm?Hm.starterLayout():{v:1,items:[]}}
+function metaBindProg(p){const S=HTM('Save');if(!S)return p;
+  try{metaCatalog();S.on('load',metaFixSave);S.bindProg(p);metaFixSave(S.data)}catch(e){console.warn('save bind failed',e)}return p}
+
+const SAVEM=HTM('Save'),ECON=HTM('Economy'),HOMEM=HTM('Home');
+const SV=()=>SAVEM?SAVEM.data:null;
+function metaSave(now){if(!SAVEM)return;try{now?SAVEM.saveNow():SAVEM.save()}catch(e){console.warn('save failed',e)}}
+const money=n=>ECON&&ECON.money?ECON.money(n):'$'+Math.round(n).toLocaleString('en-US');
+const AUD=()=>{const A=HTM('Audio');return A&&A.state&&A.state.ctx?A:null};
+function aud(f){try{const A=AUD();if(A)f(A)}catch(e){}}
+let HOME3=null,homeReady=false,homeLoading=null;
+
+/* ---------- small DOM additions (cash row, title/pause/result buttons, decorate panel) ---------- */
+(function metaDom(){const st=document.createElement('style');st.textContent=`
+#cashRow{margin-top:7px}#cashV{color:var(--leaf)}
+#deco{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);width:min(620px,calc(100vw - 32px));background:rgba(22,24,28,.86);border:1px solid rgba(246,241,227,.35);border-radius:6px;padding:10px 14px 11px;text-shadow:none;font-size:13px}
+#deco .h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}#deco .h b{font-family:var(--display);font-weight:400;font-size:17px;color:var(--sun);letter-spacing:.02em}
+#deco .it{font-weight:800;font-size:15px;margin:4px 0 2px}#deco .it small{font-weight:600;opacity:.65;font-size:12px;margin-left:6px}
+#deco .why{min-height:17px;font-weight:600;color:var(--leaf)}#deco .why.bad{color:var(--alarm)}
+#deco .strip{display:flex;gap:6px;overflow:hidden;margin:7px 0 8px;mask-image:linear-gradient(90deg,#000 85%,transparent)}
+#deco .strip span{flex:none;padding:3px 8px;border:1px solid rgba(246,241,227,.3);border-radius:3px;font-size:11.5px;font-weight:700;white-space:nowrap;opacity:.75}
+#deco .strip span.on{background:var(--sun);color:var(--ink);border-color:var(--sun);opacity:1}
+#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;font-weight:600;opacity:.9}#deco .k i{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);padding:0 5px;border-radius:3px;margin-right:4px;font-size:11px}
+.card .btn.small{font-size:15px;padding:6px 14px}
+.rs-pay{margin:0 0 14px}`;document.head.appendChild(st);
+  const tr=$('trust');if(tr){const r=document.createElement('div');r.className='row';r.id='cashRow';r.innerHTML='<span>Cash</span><span id="cashV">$0</span>';tr.appendChild(r)}
+  const d=document.createElement('div');d.className='hud';d.id='deco';d.hidden=true;document.body.appendChild(d)})();
+function cashHud(){const s=SV();if(s&&$('cashV'))$('cashV').textContent=money(s.cash)}
+if(SAVEM){SAVEM.on('cash',cashHud);SAVEM.on('load',cashHud);cashHud()}
+
+/* ---------- title: continue / new game ---------- */
+function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
+function metaTitle(){if(!SAVEM)return;const b=$('bStart'),box=b.parentNode;if($('bNew'))return;
+  const n=document.createElement('button');n.className='btn ghost';n.id='bNew';n.textContent='New game';box.appendChild(n);
+  const sync=()=>{const has=hasSave();n.hidden=!has;if(!b.disabled)b.textContent=has?'Continue':'Clock in';
+    if(has){const s=SV(),done=s.prog.done.filter(Boolean).length;$('ldT').textContent='Saved game · '+done+'/4 jobs · '+money(s.cash)+' in the coffee can'}};
+  let armed=false;n.onclick=()=>{if(!armed){armed=true;n.textContent='Start over? Click again';setTimeout(()=>{armed=false;n.textContent='New game'},3000);return}
+    SAVEM.reset();metaFixSave(SV());metaSave(true);armed=false;n.textContent='New game';sync();start()};
+  sync()}
+ASSETS.ready.then(()=>setTimeout(metaTitle,0));
+
+/* ---------- pause: reset save ---------- */
+(function(){if(!SAVEM)return;const box=$('cPause')&&$('cPause').querySelector('.btns');if(!box)return;const b=document.createElement('button');b.className='btn ghost';b.id='pReset';b.textContent='Reset save';box.appendChild(b);
+  let armed=false;b.onclick=()=>{if(!armed){armed=true;b.textContent='Erase everything? Click again';setTimeout(()=>{armed=false;b.textContent='Reset save'},3500);return}
+    armed=false;b.textContent='Reset save';if(DECO.on)decoStop();SAVEM.reset();metaFixSave(SV());metaSave(true);if(HOME3)homeTeardown();pauseOpen=false;$('cPause').hidden=true;enterHub();canvasFocus();requestLock();banner('NEW SATURDAY','Save erased',2)}})();
+
+/* ---------- menus (shops, locker) over the paused game ---------- */
+function openMenu(fn){if(!SAVEM||!HTM('Shop')||(HT.Menus&&HT.Menus.isOpen()))return false;if(!running&&!(mode==='hub'||mode==='home'))return false;
+  running=false;releaseLock();setPrompt(null);aud(A=>A.ui('click'));
+  fn({onClose:()=>{running=true;last=performance.now();canvasFocus();requestLock();furnSync();vanApply();cashHud();metaSave()}});return true}
+/* newly owned furniture (bought at Hank's or delivered by Dadazon) goes straight into the house, once; things you put away stay in storage */
+function furnSync(){const s=SV();if(!s||!HOMEM)return 0;const f=s.furniture;let n=0;f.seen=f.seen||{};
+  for(const id in f.owned){const own=f.owned[id]|0,seen=f.seen[id]|0;for(let k=seen;k<own;k++){const L2=HOMEM.autoPlace(f.layout,homeIdOf(id));if(L2){f.layout=L2;n++}}f.seen[id]=own}
+  for(const id in f.seen)if(!(id in f.owned))delete f.seen[id];
+  if(n){SAVEM.touch('furniture');if(HOME3)HOME3.setLayout(f.layout)}return n}
+function openShop(kind){return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r)})))}
+function openLocker(tab){return openMenu(o=>HT.Locker.open(Object.assign(o,{tab,onChange:()=>{metaSave()}})))}
+function homeIdOf(id){return metaAlias()[id]||id}
+function metaOnBuy(r){aud(A=>A.ui('cash'));
+  if(r.kind==='gun'&&r.delivered!=='pending'){const g=HT.CATALOG.guns[r.id];banner('NEW GUN',(g?g.name:r.id)+' is in your gun locker',2)}
+  if(r.kind==='veh'||r.kind==='cos')vanApply();metaSave()}
+
+/* ---------- payout ---------- */
+function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=0;metaLoadout(MISSIONS[i]);metaSave()}
+function metaResult(ok){if(!M||!ECON)return;const m=M.def;let pay=null;
+  try{pay=ECON.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
+    bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:prog.trust,rerun:!!M.rerun});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return}
+  /* Coach Rick hands over the carbine once his job is done */
+  const s=SV();if(ok&&m.giver==='rick'&&!s.owned.guns.includes('rifle')){s.owned.guns.push('rifle');if(!s.loadout.p2&&s.loadout.p1!=='rifle')s.loadout.p2='rifle';SAVEM.touch('owned','loadout');setTimeout(()=>banner('NEW GUN',"Rick's Carbine is yours now. It's in the gun locker.",2.6),1400)}
+  metaSave(true);
+  const meta=$('rsBody').querySelector('.meta');if(meta)meta.insertAdjacentHTML('beforeend','<b>Payout</b><span>'+money(pay.total)+' · '+money(s.cash)+' total</span>');
+  const box=document.createElement('div');box.className='rs-pay';$('rsBody').appendChild(box);
+  try{ECON.renderPayout(box,pay,{delay:ok?900:1200})}catch(e){box.textContent='Paid '+money(pay.total)}
+  aud(A=>A.ui('cash'));
+  $('rsGo').textContent='Head home';$('rsGo').onclick=()=>{$('cResult').hidden=true;enterHub({at:'curb'});canvasFocus();requestLock()};
+  let g=$('rsHub');if(!g){g=document.createElement('button');g.className='btn ghost';g.id='rsHub';$('rsGo').parentNode.appendChild(g)}
+  g.hidden=false;g.textContent='Back to the cul-de-sac';g.onclick=()=>{$('cResult').hidden=true;enterHub();canvasFocus();requestLock()};
+  M.pay=pay;return pay}
+
+/* ---------- loadout (adapter: the saved locker loadout onto the game's weapon table) ---------- */
+function metaWeapon(id){if(WEAPONS[id])return WEAPONS[id];const g=HT.CATALOG&&HT.CATALOG.guns[id];if(!ECON||!g)return null;const w=ECON.weaponStats(id);
+  const r=w.reload.tac||w.reload.empty||(w.reload.shell?w.reload.shell.start+w.reload.shell.each*3+w.reload.shell.end:2);
+  return WEAPONS[id]={name:g.name,key:'',dmg:w.dmg,rate:w.rate,mag:w.mag,reserve:w.reserve,spread:w.spread.hip,aimSpread:w.spread.ads,pellets:w.pellets||1,auto:!!w.auto,reload:r,range:w.range,recoil:w.rc.v,
+    snd:g.cls==='Shotgun'?'shotgun':g.slot==='side'?'pistol':'rifle',meta:1}}
+function metaLoadout(m){const s=SV();if(!s)return;try{
+  const Lo=s.loadout,list=[Lo.side,Lo.p1,Lo.p2].filter(Boolean).filter(metaWeapon);
+  /* a job's lender gun (Rick's carbine on his own job) rides along if you don't own it yet */
+  for(const w of m.weapons)if(!list.includes(w)&&!s.owned.guns.includes(w)&&WEAPONS[w]&&list.length<3)list.push(w);
+  if(!list.length)return;list.forEach((w,k)=>{WEAPONS[w].key=String(k+1);ORDER[k]=w});ORDER.length=Math.max(3,list.length);for(let k=list.length;k<3;k++)ORDER[k]=null;
+  P.weapons=list;P.cur=Lo.p1&&list.includes(Lo.p1)?Lo.p1:list[0];fillAmmo();
+  const extra={};try{for(const a of ECON.ammoFor())for(const g of a.guns)extra[g]=a.extra||0}catch(e){}
+  for(const w of list)if(extra[w])P.ammo[w].res+=extra[w];
+  equip(P.dude,P.cur);setViewGun(P.cur);
+  const f=s.flags;if(f.rangeDay||f.zipPack||f.icePack){M.zipPack=f.zipPack;M.icePack=f.icePack;f.rangeDay=f.zipPack=f.icePack=false;SAVEM.touch('flags')}}catch(e){console.warn('loadout failed',e)}}
+
+/* ---------- minivan: saved upgrades → visible parts + handling ---------- */
+const VANK={top:1,accel:1,brake:1,turn:1,grip:1};
+function vanLook(){const s=SV();if(!ECON||!s)return{color:'#35577d',upgrades:{roofRack:true}};const vs=ECON.vehicleStats(),v=s.vehicle;
+  const rims={hub:'stock',steel:'black',chrome:'chrome',gold:'gold',offroad:'alloy'}[vs.rims.style]||'stock';
+  return{color:vs.paint.col,upgrades:{paint:vs.paint.col,rims,roofRack:vs.roofBox?'cargo':false,bullBar:vs.bullBar,lightBar:vs.lightBar?'amber':false,tint:[0,.55,.92][v.tint|0]||0,spoiler:(v.engine|0)>=3},vs}}
+function vanApply(){const lk=vanLook(),vs=lk.vs;if(vs){VANK.top=vs.top;VANK.accel=vs.accel;VANK.brake=vs.brake;VANK.grip=vs.grip;VANK.turn=1+(vs.grip-1)*.8}
+  const v=VAN.obj;if(v&&v.userData.setUpgrades){try{v.userData.setUpgrades(lk.upgrades)}catch(e){console.warn('van upgrades failed',e)}}}
+function metaHorn(){const s=SV();if(!s||!ECON||!HT.Menus||!HT.Menus.playHorn)return false;const vs=ECON.vehicleStats();if(!vs.horn||vs.horn.id==='stock')return false;try{HT.Menus.playHorn(vs.horn);return true}catch(e){return false}}
+
+/* ---------- hub: the player's house, Hank's Hardware, Dad's Auto ---------- */
+/* until the bigger world places them, the two shops take two pairs of lots across the street from the house */
+const SHOP_LOTS=[{kind:'hardware',x0:17,z0:1,x1:27,z1:4,facing:'+z',label:"Hank's Hardware"},{kind:'auto',x0:35,z0:1,x1:45,z1:4,facing:'+z',label:"Dad's Auto"}];
+(function clearShopLots(){if(!HTM('Buildings'))return;const g=HUB.map.map(r=>r.split(''));
+  for(const s of SHOP_LOTS){let ok=true;for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)if(!g[z]||!'hgt'.includes(g[z][x]))ok=false;
+    if(!ok){s.skip=true;continue}for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)g[z][x]='g'}
+  g.forEach((r,i)=>HUB.map[i]=r.join(''))})();
+const HUBX={home:null,shops:[],sprites:[]};
+function labelSprite(text,sub,col='#ffc94a'){const c=document.createElement('canvas');c.width=512;c.height=sub?208:150;const x=c.getContext('2d');
+  x.font='64px "Bowlby One","Arial Black",Impact,sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.lineWidth=14;x.strokeStyle='rgba(22,24,28,.85)';
+  x.strokeText(text,256,62);x.fillStyle=col;x.fillText(text,256,62);
+  if(sub){x.font='800 32px Rubik,system-ui,sans-serif';x.lineWidth=9;x.strokeText(sub,256,140);x.fillStyle='#f6f1e3';x.fillText(sub,256,140)}
+  x.beginPath();x.moveTo(236,sub?178:116);x.lineTo(276,sub?178:116);x.lineTo(256,sub?202:142);x.closePath();x.fillStyle=col;x.fill();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,fog:false,toneMapped:false,transparent:true}));
+  s.scale.set(2.6,2.6*c.height/512,1);s.renderOrder=5;return s}
+function signTex(lines){const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');x.fillStyle='#f6f1e3';x.fillRect(0,0,512,256);
+  x.strokeStyle='#2f5d9e';x.lineWidth=14;x.strokeRect(14,14,484,228);x.fillStyle='#2f5d9e';x.textAlign='center';x.textBaseline='middle';
+  x.font='bold 74px Georgia,"Times New Roman",serif';x.fillText(lines[0],256,104);x.font='800 40px Rubik,Arial,sans-serif';x.fillStyle='#16181c';x.fillText(lines[1],256,186);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
+function metaHubEnter(o){{const g=$('rsHub');if(g)g.hidden=true}HUBX.shops=[];HUBX.sprites=[];HUBX.home=null;if(!L||!L.houses)return;
+  /* the player's house: the one the hub marks as home (nearest the spawn) */
+  const h=L.houses.find(x=>x.home)||L.houses.slice().sort((a,b)=>Math.hypot((a.x0+a.x1)/2-L.start.x,(a.z0+a.z1)/2-L.start.z)-Math.hypot((b.x0+b.x1)/2-L.start.x,(b.z0+b.z1)/2-L.start.z))[0];
+  if(h&&h.door){const d=h.door,nx=d.nx,nz=d.nz,tx_=-nz,tz_=nx;HUBX.home={x:d.x+nx*.9,z:d.z+nz*.9,nx,nz,door:d,house:h};
+    const sp=labelSprite('HOME','The Millers · E to go inside');sp.position.set(d.x+nx*.6,4.1,d.z+nz*.6);L.group.add(sp);HUBX.sprites.push({s:sp,y:4.1});
+    /* porch light: a warm lamp by the door, always on for this house */
+    const pl=new THREE.PointLight(0xffcf96,1.6,9,2);pl.position.set(d.x+nx*.7+tx_*.75,2.55,d.z+nz*.7+tz_*.75);L.group.add(pl);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),glowMat('#ffd9a0',3));bulb.position.copy(pl.position);L.group.add(bulb);
+    /* name board on a post at the end of the front walk */
+    let reach=2;for(let s=.5;s<9;s+=.5){const gx=tx(d.x+nx*s),gz=tx(d.z+nz*s),c=L.g[gz]&&L.g[gz][gx];if(c==='s'||c===','||c==='l'){reach=s-.4;break}}
+    const bx=d.x+nx*reach-tx_*1.15,bz=d.z+nz*reach-tz_*1.15,post=box(.08,1.15,.08,'#f2f1ec',bx,.575,bz,L.group);L.solids.push(post);
+    const brd=new THREE.Mesh(new THREE.PlaneGeometry(.78,.39),new THREE.MeshStandardMaterial({map:signTex(['The Millers','1412 Maple']),roughness:.6}));
+    const brd2=brd.clone();for(const[b,k]of[[brd,1],[brd2,-1]]){b.position.set(bx+nx*.05*k,1.02,bz+nz*.05*k);b.rotation.y=Math.atan2(nx*k,nz*k);b.castShadow=true;L.group.add(b)}
+    box(.78,.05,.12,'#2f5d9e',bx,1.24,bz,L.group).rotation.y=Math.atan2(nx,nz)}
+  /* shops */
+  const B_=HTM('Buildings');
+  for(const s of SHOP_LOTS){if(s.skip||!B_)continue;const x0=s.x0*TILE,z0=s.z0*TILE,x1=(s.x1+1)*TILE,z1=(s.z1+1)*TILE,cx=(x0+x1)/2,cz=(z0+z1)/2;let grp=null;
+    try{grp=B_.shop({kind:s.kind,w:x1-x0-.6,d:z1-z0-.6,facing:s.facing,seed:s.kind==='auto'?3:1})}catch(e){console.warn('shop build failed',e)}if(!grp)continue;
+    grp.position.set(cx,0,cz);L.group.add(grp);grp.traverse(m=>{if(m.isMesh){L.solids.push(m);m.castShadow=true;m.receiveShadow=true}});
+    L.colliders.push({x0:x0+.3,z0:z0+.3,x1:x1-.3,z1:z1-.3});
+    const dr=grp.userData.door||{x:0,z:(z1-z0)/2,nx:0,nz:1};const door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz};
+    const sp=labelSprite(s.label.toUpperCase(),s.kind==='auto'?'Upgrades · paint · horns':'Guns · tools · yard stuff','#f6f1e3');sp.position.set(door.x+door.nx*.5,3.6,door.z+door.nz*.5);sp.scale.multiplyScalar(.85);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.6});
+    HUBX.shops.push({kind:s.kind,label:s.label,x:door.x+door.nx*.9,z:door.z+door.nz*.9,door,bay:{x:cx+(s.kind==='auto'?3:0),z:z1+3}})}
+  vanApply();
+  if(o&&o.at&&HUBX.home){const H_=HUBX.home;
+    if(o.at==='home'||o.at==='curb'){P.pos.set(H_.x+H_.nx*.8,0,H_.z+H_.nz*.8);P.yaw=Math.atan2(-H_.nx,-H_.nz);collide(P.pos,.35)}
+    if(o.at==='curb'){P.yaw=Math.atan2(H_.nx,H_.nz);/* face the house */
+      const p=V3(H_.x+H_.nx*5.5,0,H_.z+H_.nz*5.5);P.pos.copy(p);collide(P.pos,.35)}}
+  if(o&&o.at==='van'&&VAN.obj){P.pos.copy(VAN.pos);setTimeout(()=>{if(mode==='hub'&&!VAN.on)enterVan()},0)}}
+function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprites)s.s.position.y=s.y+Math.sin(t*2.2)*.08;
+  let best=null,bd=1e9;const cand=[];if(HUBX.home)cand.push({id:'home',x:HUBX.home.x,z:HUBX.home.z,r:2.1,label:homeReady?'Go inside':'Go inside (unlocking…)'});
+  for(const s of HUBX.shops){cand.push({id:s.kind,x:s.x,z:s.z,r:2.3,label:s.label});if(s.kind==='auto')cand.push({id:'autobay',x:s.bay.x,z:s.bay.z,r:7,label:'Pull into '+s.label,van:1})}
+  for(const c of cand){if(!!c.van!==VAN.on)continue;const p=VAN.on?VAN.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&d<bd){bd=d;best=c}}
+  if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
+  if(VAN.on&&Math.abs(VAN.spd)>3)return null;
+  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else banner('','Jen is looking for the spare key…',1.4)}
+    else if(best.id==='hardware')openShop('hardware');else openShop('auto');return null}
+  return KE+' · '+best.label}
+
+/* ---------- people at home: the realistic family (assets/people/rocketbox) when present, else the module's stand-ins ---------- */
+const RB={g:{},clips:null,loading:null};
+function rbLoad(){if(RB.loading)return RB.loading;const gl=THREE.GLTFLoader?new THREE.GLTFLoader():null;if(!gl||!THREE.SkeletonUtils)return RB.loading=Promise.resolve();
+  const ld=n=>new Promise(r=>gl.load('assets/people/rocketbox/'+n+'.glb',g=>{RB.g[n]=g;r()},undefined,()=>{console.warn('family model failed, using stand-in:',n);r()}));
+  return RB.loading=Promise.all(['anims','wife','son','daughter'].map(ld)).then(()=>{RB.clips=RB.g.anims?RB.g.anims.animations:null})}
+function rbPerson(role){const key={spouse:'wife',son:'son',daughter:'daughter'}[role],g=key&&RB.g[key];if(!g||!RB.clips)return null;
+  const model=THREE.SkeletonUtils.clone(g.scene),root=new THREE.Group();root.name='person:'+role;root.add(model);
+  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
+  let hip=.8952;g.scene.traverse(o=>{if(o.userData&&o.userData.hipHeight)hip=o.userData.hipHeight});const k=hip/.8952,fem=role!=='son';
+  const mixer=new THREE.AnimationMixer(model),acts={};
+  const act=n=>{if(acts[n])return acts[n];const c=RB.clips.find(c=>c.name===n);if(!c)return null;const cc=c.clone();
+    if(Math.abs(k-1)>.01)for(const tr of cc.tracks)if(/Pelvis\.position$/.test(tr.name)){tr.values=tr.values.slice();for(let i=0;i<tr.values.length;i++)tr.values[i]*=k}
+    return acts[n]=mixer.clipAction(cc)};
+  const MAP={idle:fem?'f_idle':'idle',walk:fem?'f_walk':'walk',run:'jog',sit:fem?'f_sit':'sit',wave:'interact',talk:'idle_look',cook:'interact',phone:'idle_look',play:'jog',lie:fem?'f_sit':'sit',eat:fem?'f_sit':'sit',happy:'interact'};
+  let cur=null,curN='';
+  const P_={root,role,height:role==='spouse'?1.68:role==='son'?1.4:1.3,pose:'',lookYaw:0,
+    setAnim(name){const want=MAP[name]||MAP.idle;P_.pose=name;if(want===curN)return;const a=act(want)||act(MAP.idle);if(!a)return;
+      const once=name==='wave'||name==='happy';a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);a.clampWhenFinished=false;a.fadeIn(.3).play();
+      if(cur&&cur!==a)cur.fadeOut(.3);cur=a;curN=want;if(once){P_.onceT=a.getClip().duration-.35}},
+    update(dt){mixer.update(dt);if(P_.onceT!=null){P_.onceT-=dt;if(P_.onceT<=0){P_.onceT=null;const p=P_.pose;curN='';P_.setAnim('idle');P_.pose=p}}
+      const sit=/^(sit|lie|eat)$/.test(P_.pose);model.position.y=sit?(P_.seatH||.45)-.45*k:0}};
+  P_.setAnim('idle');return P_}
+function familyPerson(role){try{const Pm=HTM('People');if(Pm&&Pm.make){const key={spouse:'wife',son:'son',daughter:'daughter'}[role];if(key){const p=Pm.make(key,{family:true,role});if(p&&p.root&&p.setAnim&&p.update)return p}}}catch(e){console.warn('People.make failed',e)}
+  return rbPerson(role)}
+function homeInit(){if(homeLoading||!HOMEM)return homeLoading;
+  homeLoading=Promise.all([HOMEM.init({assets:ASSETS,renderer,makePerson:familyPerson}),rbLoad()]).then(()=>{homeReady=true}).catch(e=>{console.warn('home init failed',e);homeReady=true});return homeLoading}
+ASSETS.ready.then(()=>homeInit());
+
+/* ---------- home mode ---------- */
+let homeVan=null,homeHint=0;
+function pickEvent(ev){const pr=['win_doug','win_dave','win_rick','win_gary','fail','flamingo','boughtFurniture','boughtGun','boughtAttachment'];let best=null;
+  for(const e of ev){const k=pr.indexOf(e);if(k>=0&&(best===null||k<pr.indexOf(best)))best=e}return best}
+function enterHome(){if(!HOMEM||!homeReady)return false;const s=SV();
+  if(VAN.on){VAN.on=false;engine(false)}DECO.on=false;
+  mode='home';M=null;JOB=null;objKey='';clearChars();destRings=[];showMarker(null);setPrompt(null);
+  if(L&&L.group){scene.remove(L.group);L.group.traverse(o=>{if(o.userData&&o.userData.wkey&&o.geometry)o.geometry.dispose()})}
+  /* deliveries first, so new furniture is already in the room */
+  let got=[];try{got=ECON?ECON.deliverPending():[]}catch(e){}
+  furnSync();
+  if(s)HOMEM.setLineState(s.family);
+  const H=HOME3=HOMEM.build({layout:s?s.furniture.layout:HOMEM.starterLayout(),owned:s?homeOwnedMap():null,trust:prog.trust,timeOfDay:15});
+  scene.add(H.group);try{H.bakeReflections(renderer,scene)}catch(e){}
+  /* the van, parked in the garage with all its parts */
+  const lk=vanLook();homeVan=makeVan(lk.color,'minivan',lk.upgrades);const vs=H.vanSpot||{x:-3.7,z:4.5,yaw:0};homeVan.position.set(vs.x,0,vs.z);homeVan.rotation.y=(vs.yaw||0)+Math.PI/2;H.group.add(homeVan);
+  H.colliders.push({x0:vs.x-1.05,z0:vs.z-2.35,x1:vs.x+1.05,z1:vs.z+2.35});homeVan.traverse(m=>{if(m.isMesh)H.solids.push(m)});
+  L={def:{id:'home',type:'home'},group:H.group,colliders:H.colliders,solids:H.solids,W:1,H:1,g:[['#']],start:V3(H.spawn.x,0,H.spawn.z),items:[],stashes:[],spawns:[],markers:[],ammo:[],houses:[],waveSpawns:[]};
+  bannerT=0;$('banner').classList.remove('on');subQ.length=0;
+  setMood({id:'hub'});makePlayer();P.pos.copy(L.start);P.yaw=H.spawn.yaw;P.pitch=-.12;P.hp=100;P.crouch=false;P.aim=false;P.weapons=[P.cur];equip(P.dude,null);vm.visible=false;
+  const am=RENDER.mats.aoMat.uniforms;am.radius.value=(H.aoHint&&H.aoHint.radius)||.45;am.power.value=2;
+  rebuildTargets();camDist=1.2;
+  let line=null;try{const ev=s?s.events:[];const e=pickEvent(ev);line=H.onEnter({event:e,trust:prog.trust,shotSurrUp:s&&prog.shotSurr>(s.family.lastShotSurr||0)});if(s){s.events.length=0;s.family.lastShotSurr=prog.shotSurr}}catch(e){console.warn(e)}
+  if(line&&line.text)radio(line.name||line.who,line.text);
+  const furn=got.filter(e=>e.kind==='furn'),other=got.filter(e=>e.kind!=='furn');
+  if(got.length){const C=HT.CATALOG;const names=got.map(e=>(e.kind==='furn'?C.furniture[e.id]:e.kind==='gun'?C.guns[e.id]:C.attachments[e.id])||{name:e.id}).map(x=>x.name);
+    banner('DELIVERED',names.slice(0,3).join(' · ')+(names.length>3?' +'+(names.length-3)+' more':''),3);radio('Biscuit','*Your Dadazon order has arrived. Biscuit has opened it.*')}
+  if(furn.length)radio('Jen',"New furniture's in. I put it where it fit. Press B if you want to move it around.");else if(other.length)radio('Jen',"Package for you. It's in the gun safe. I didn't look. I looked.");
+  setObj('Home',[]);homeHint=6;
+  aud(A=>{A.ambience('home');A.setIndoor&&A.setIndoor(true);A.voice&&A.voice('dog',null,{vol:.5})});
+  metaSave(true);running=true;return true}
+function homeOwnedMap(){const s=SV(),o={},A=metaAlias();for(const id in s.furniture.owned){const h=A[id]||id;if(HOMEM.catalogById[h])o[h]=(o[h]||0)+s.furniture.owned[id]}return o}
+function homeTeardown(){if(DECO.on)decoStop(true);const s=SV();if(s&&HOMEM)Object.assign(s.family,HOMEM.lineState());
+  if(homeVan&&homeVan.userData.dispose){try{homeVan.userData.dispose()}catch(e){}}homeVan=null;
+  if(HOME3){HOME3.dispose();HOME3=null}const am=RENDER.mats.aoMat.uniforms;am.radius.value=1;am.power.value=4;
+  aud(A=>{A.ambience(null);A.setIndoor&&A.setIndoor(false)})}
+function exitHome(via){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null;metaSave(true);enterHub({at:via==='garage'?'van':'home'});canvasFocus()}
+function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){}
+  if(DECO.on){decoUpd(dt);return}
+  let best=null,bd=1e9;const fam=H.familyInteractables?H.familyInteractables():[];
+  for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
+  const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Grab a root beer',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
+  setPrompt(best?KE+' · '+(LBL[best.id]||best.label):null);
+  homeHint-=dt;setObj('Home',homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
+  if(!best||!useTap)return;useTap=false;const id=best.id;
+  if(id==='locker')openLocker('loadout');else if(id==='workbench')openLocker('attach');else if(id==='laptop')openShop('dadazon');
+  else if(id==='front'||id==='door')exitHome('front');else if(id==='garage')exitHome('garage');
+  else if(id==='family'){const l=best.who==='biscuit'||/^Pet/.test(best.label)?H.pet():H.talk(best.who,{trust:prog.trust});if(l&&l.text)radio(l.name||best.who,l.text);
+    aud(A=>A.voice&&A.voice(best.who==='biscuit'?'dog':best.who==='jen'?'dad_ok':'kid',null,{vol:.6}));metaSave()}
+  else if(id==='fridge'){P.hp=100;radio('you',pick(["Root beer. The good kind, in the glass bottle.","Somebody ate my leftover brisket. I know who.","There's a note on the milk that says DAD NO. Fair."]))}
+  else if(id==='tv'){radio('you',pick(["Fourth and two and they punt. Unbelievable.","Highlights. It's all the same three highlights.","Jen, do we have the sports package? Since when?"]))}
+  else if(id==='bed'){P.hp=100;radio('you',pick(["Just resting my eyes.","Five minutes. Ten, tops.","This mattress knows my name."]))}
+  else if(id==='grill'){radio('you',pick(["Charcoal. Gas is for people who give up.","Burgers at six. Tell the kids.","Big Dave would say the coals aren't ready. Big Dave isn't here."]))}
+  else if(best.label)radio('you',best.label)}
+
+/* ---------- decorating ---------- */
+const DECO={on:false,msg:'',msgT:0,html:''};
+function decoStart(){if(!HOME3||!HOMEM)return;const D=HOMEM.decorate;const s=SV();
+  D.start({owned:homeOwnedMap(),cutaway:true,people:[P.pos],onChange:Lo=>{s.furniture.layout=Lo;SAVEM.touch('furniture')},onExit:Lo=>{s.furniture.layout=Lo;SAVEM.touch('furniture');metaSave(true)}});
+  DECO.on=true;DECO.msg='';P.pitch=Math.min(P.pitch,-.75);setPrompt(null);$('deco').hidden=false;$('xh').classList.add('deco');aud(A=>A.ui('click'))}
+function decoStop(quiet){if(!DECO.on)return;DECO.on=false;try{HOMEM.decorate.exit()}catch(e){}$('deco').hidden=true;P.pitch=-.12;if(!quiet)aud(A=>A.ui('back'))}
+function decoFlash(t,bad){DECO.msg=t;DECO.bad=!!bad;DECO.msgT=2.2;if(bad)aud(A=>A.ui('denied'))}
+function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
+  if(a==='place'){r=D.place();if(r.ok){decoFlash('Placed. Looks good.');aud(A=>A.ui('click'))}else decoFlash(r.reason||"Doesn't fit there",true)}
+  else if(a==='rotate'){D.rotate()}
+  else if(a==='remove'){r=D.remove();if(r.ok)decoFlash('Put away in storage');else decoFlash(r.reason,true)}
+  else if(a==='move'){if(D.move())decoFlash('Picked it up. Click to put it down.');else decoFlash('Aim at something you placed',true)}
+  else if(a==='next')D.cycle(1);else if(a==='prev')D.cycle(-1)}
+function decoPeople(){const out=[P.pos];if(HOME3&&HOME3.family)for(const m of HOME3.family)out.push(m.pos);return out}
+function decoUpd(dt){const D=HOMEM.decorate;
+  if(mouseDown){mouseDown=false;decoAct('place')}if(P.aim){P.aim=false;decoAct('remove')}
+  const info=D.aim(camera.position,camFwd(),decoPeople());
+  DECO.msgT-=dt;const inv=D.inventory(),sel=D.selected?HOMEM.catalogById[D.selected]:null;const cnt=sel?(inv.find(i=>i.id===sel.id)||{count:0}).count:0;
+  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aim + M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
+  const bad=DECO.msgT>0?DECO.bad:!!(sel&&(!info||info.why));
+  const strip=inv.slice(0,14).map(i=>'<span class="'+(i.id===D.selected?'on':'')+'">'+i.name.replace(/\s*\(.*\)/,'')+(i.count>1?' ×'+i.count:'')+'</span>').join('');
+  const h='<div class="h"><b>Decorating</b><span>'+(inv.length?inv.reduce((a,i)=>a+i.count,0)+' in storage':'Storage empty')+'</span></div>'+
+    '<div class="it">'+(sel?sel.name+'<small>'+(D.moving?'moving':cnt+' left')+'</small>':'Nothing selected')+'</div><div class="why'+(bad?' bad':'')+'">'+why+'</div>'+
+    (strip?'<div class="strip">'+strip+'</div>':'')+
+    '<div class="k"><span><i>Click</i>/<i>'+KE+'</i>place</span><span><i>R</i>rotate</span><span><i>Tab</i>/<i>wheel</i>next item</span><span><i>M</i>move</span><span><i>X</i>/<i>right click</i>put away</span><span><i>B</i>done</span></div>';
+  if(h!==DECO.html){DECO.html=h;$('deco').innerHTML=h}
+  if(useTap){useTap=false;decoAct('place')}}
+function homeCam(dt){if(!HOME3)return;
+  if(DECO.on){/* look down into the cut-away rooms from above and behind the dad */
+    P.pitch=clamp(P.pitch,-1.35,-.32);const fh=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
+    camera.position.set(P.pos.x,4.6,P.pos.z).addScaledVector(fh,-2.6);camera.rotation.set(P.pitch,P.yaw,0);if(P.dude)P.dude.root.visible=true;return}
+  /* tight rooms: if the boom has collapsed, go first person instead of staring at the back of a head */
+  if(!P.fp&&camDist<.55){camera.position.copy(P.pos).add(V3(0,1.62,0));if(P.dude)P.dude.root.visible=false}
+  camera.position.y=Math.min(camera.position.y,2.3)}
+function metaKey(e,k){if(window.HT&&HT.Menus&&HT.Menus.isOpen())return true;
+  if(mode!=='home'||!running||pauseOpen||e.repeat)return false;
+  if(k==='b'){DECO.on?decoStop():decoStart();return true}
+  if(!DECO.on)return false;
+  const A={r:'rotate',x:'remove',m:'move',tab:'next',q:'prev',enter:'place',e:'place'}[k];if(!A)return false;
+  if(k==='tab')e.preventDefault();if(A==='place')useTap=false;decoAct(A);return true}
+addEventListener('wheel',e=>{if(DECO.on&&running)decoAct(e.deltaY>0?'next':'prev')},{passive:true});
+function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({get save(){return SV()},get cash(){const s=SV();return s?s.cash:0},grant(n){if(!SAVEM)return 0;SAVEM.addCash?SAVEM.addCash(n):(SV().cash+=n);cashHud();metaSave(true);return SV().cash},
+  saveGame:()=>metaSave(true),resetSave:()=>{SAVEM.reset();metaFixSave(SV());metaSave(true)},enterHome,exitHome,openShop,openLocker,decoStart,decoStop,decoAct,
+  get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running}}))}
+/* the synthesized audio engine wakes on the first gesture (browsers need one) */
+{const wake=()=>{const A=HTM('Audio');if(A&&A.init){try{A.init()}catch(e){}}removeEventListener('pointerdown',wake,true);removeEventListener('keydown',wake,true)};addEventListener('pointerdown',wake,true);addEventListener('keydown',wake,true)}
+
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
 function groundPass(sign){const HW=HTM('World');if(!HW||!L)return;if(sign>0&&HW.update)HW.update(L,camera.position);if(!L.world||!L.world.hub)return;
@@ -1271,7 +1595,7 @@ function frame(now){
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);
     for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);
-    if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);
+    if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
   if(L)updCamera(dt);
@@ -1296,8 +1620,9 @@ ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock 
   if(!$('cTitle').hidden)b.focus()});
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt)}},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
+metaExpose(window.__ht);
 requestAnimationFrame(frame);
 })();
 </script>

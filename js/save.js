@@ -3,7 +3,7 @@
      HT.CATALOG  all shop/catalogue data (guns, attachments, furniture, supplies, vehicle upgrades)
      HT.Save     versioned 'ht-save' storage with migration, corruption recovery, change events, export/import
      HT.Economy  payout maths, prices, buy/sell rules, unlock conditions, weapon/vehicle stat helpers, payout renderer
-     HT.Shop     full-screen store menu (Dadazon, Maple Hardware, the auto shop)
+     HT.Shop     full-screen store menu (Dadazon, Hank’s Hardware, the auto shop)
      HT.Locker   gun locker / workbench menu
    No dependencies. The DOM parts only run in a browser. */
 (function(root){
@@ -114,7 +114,7 @@ const FURNITURE={
 const FURN_ORDER=Object.keys(FURNITURE);
 const FAMILY={jen:{name:'Jen',col:'#c25b7a'},maddie:{name:'Maddie',col:'#4a8a7a'},tyler:{name:'Tyler',col:'#e5a83a'},biscuit:{name:'Biscuit',col:'#d9a45b'}};
 
-/* Consumables, Maple Hardware only. Each sets a flag the next mission reads and clears. */
+/* Consumables, Hank’s Hardware only. Each sets a flag the next mission reads and clears. */
 const SUPPLIES={
   rangeDay:{name:'Range Day Box',price:40,flag:'rangeDay',fx:'+1 extra mag of every ammo type at the next mission',blurb:"Bulk ammo, the same way you buy paper towels: too much, and proud of it."},
   zipPack:{name:'Zip-Tie Contractor Pack',price:30,flag:'zipPack',fx:'Zip-tie 25% faster during the next mission',blurb:"Five hundred zip-ties. Also good for cable management, which you will never do."},
@@ -176,8 +176,8 @@ const COSMETICS={
 
 const STORES={
   dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Delivered after your next outing.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
-  hardware:{name:'Maple Hardware',sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now'},
-  auto:{name:'Lug Nuts & Sons',sub:'Auto',who:'Industrial Way · Bay 2',tag:'We work on minivans. We do not judge minivans.',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['cos','Cosmetics']],deliver:'now'}};
+  hardware:{name:'Hank’s Hardware',sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now'},
+  auto:{name:'Dad’s Auto',sub:'Auto',who:'Maple Street · Bay 2',tag:'We work on minivans. We do not judge minivans.',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['cos','Cosmetics']],deliver:'now'}};
 
 const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
   supplies:SUPPLIES,vehicle:VEHICLE,vehOrder:VEH_ORDER,cosmetics:COSMETICS,stores:STORES,family:FAMILY};
@@ -460,7 +460,7 @@ function sell(kind,id,s){s=S(s);const v=sellValue(kind,id,s);
   else if(kind==='furn'){const own=s.furniture.owned[id]||0,placed=s.furniture.placed.filter(p=>p.id===id).length;
     if(own-placed<1)return{ok:false,reason:own?'Pick it up off the floor first (Decorate mode).':"You don't own that."};
     s.furniture.owned[id]=own-1}
-  else return{ok:false,reason:"Lug Nuts & Sons doesn't do refunds."};
+  else return{ok:false,reason:"Dad’s Auto doesn't do refunds."};
   const old=s.cash;s.cash+=v;
   if(mine(s)){emit('cash',s.cash,old);Save.touch('owned','loadout','attOn','furniture')}
   return{ok:true,amount:v}}
@@ -1157,7 +1157,7 @@ const Locker={
       if(own){if(g.slot==='side')btns=inSlot?'<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>Your sidearm</span></button>':`<button class="htm-btn" data-nav data-act="equip" data-slot="side"><span>Holster it · Sidearm</span></button>`;
         else{btns=['p1','p2'].map(k=>L[k]===id?`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>In ${slotName[k]}</span></button>`:`<button class="htm-btn${k===tgt?'':' alt'}" data-nav data-act="equip" data-slot="${k}"><span>${L[k]?'Swap into':'Put in'} ${slotName[k]}</span></button>`).join('');
           if(inSlot&&L.p2)btns+=`<button class="htm-ghost" data-nav data-act="swapp">⇅ Swap primaries</button>`;if(inSlot==='p2')btns+=`<button class="htm-ghost" data-nav data-act="unequip">Leave it home</button>`}}
-      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
+      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Hank’s Hardware':''}`:g.price?money(g.price)+' at Hank’s Hardware or on Dadazon':'';
         btns=`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span><i class="htm-lock"></i>Not in your locker</span></button>`+(a.collect?`<div class="htm-collect"><span>${esc(how)}</span><span class="htm-meter"><i style="width:${100*a.collect.n/a.collect.need}%"></i></span><b>${a.collect.n}/${a.collect.need}</b></div>`:`<div class="htm-note">${esc(how)}</div>`)}
       const mods=g.att.map(sl=>{const a=(s.attOn[id]||{})[sl];return a?`<i class="on">${esc(ATTACHMENTS[a].name)}</i>`:''}).join('');
       return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id)}</div>${inSlot?`<span class="htm-stamp s-eq">${slotName[inSlot]}</span>`:''}</div>
@@ -1182,7 +1182,7 @@ const Locker={
         <p class="htm-blurb">Topped up for free before every job. Dad's Ammo Bags on the job refill whatever you carry.</p>
         ${am.map(a=>`<div class="htm-arow" style="--c:${a.col}"><div class="htm-ahead"><i></i><b>${esc(a.name)}</b><span>${a.guns.map(g=>esc(GUNS[g].short)).join(' · ')}</span><em>${a.reserve}${a.extra?` <u>+${a.extra}</u>`:''} <small>/ ${a.cap}</small></em></div>
           <div class="htm-atrack"><i style="width:${100*a.reserve/a.cap}%"></i>${a.extra?`<i class="x" style="left:${100*a.reserve/a.cap}%;width:${100*Math.min(a.extra,a.cap-a.reserve)/a.cap}%"></i>`:''}</div></div>`).join('')}
-        <div class="htm-facts">${[['Rooftop cargo box',vs.spareMags?'+1 spare mag each':'Not installed · Lug Nuts & Sons'],['Range Day Box',s.flags.rangeDay?'Packed: +1 mag each':'Not packed · Maple Hardware'],['Zip-ties',s.flags.zipPack?'Contractor pack: 25% faster':'Standard']].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></div>`};
+        <div class="htm-facts">${[['Rooftop cargo box',vs.spareMags?'+1 spare mag each':'Not installed · Dad’s Auto'],['Range Day Box',s.flags.rangeDay?'Packed: +1 mag each':'Not packed · Hank’s Hardware'],['Zip-ties',s.flags.zipPack?'Contractor pack: 25% faster':'Standard']].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></div>`};
     m.select=(key,how)=>{if(m.sel===key&&how!=='force')return;m.sel=key;for(const b of ui.grid.querySelectorAll('.htm-item'))b.classList.toggle('sel',b.dataset.key===key);m.renderDetail()};
     m.setTab=(id,dir)=>{if(m.tab===id)return;m.tab=id;ui.el.dataset.tab=id;ui.el.querySelector('.htm-title').firstChild.textContent=id==='attach'?'Workbench':'Gun Locker';
       m.refreshKeys();m.renderGrid();ui.gridwrap.scrollTop=0;
@@ -1217,7 +1217,7 @@ const Locker={
       if(act==='unequip'){setLoadout('p2',null);sfx('toggle');toast(m,'Leaving it in the locker','good');changed();return}
       if(act==='noop'){sfx('error');shake(t);return}
       if(act==='att'){const id=m.sel.split(':')[1],sl=t.dataset.slot,a=t.dataset.att||null;
-        if(a&&!Save.data.owned.att.includes(a)){sfx('error');shake(t);toast(m,ATTACHMENTS[a].name+': '+money(ATTACHMENTS[a].price)+' at Maple Hardware or on Dadazon','bad');return}
+        if(a&&!Save.data.owned.att.includes(a)){sfx('error');shake(t);toast(m,ATTACHMENTS[a].name+': '+money(ATTACHMENTS[a].price)+' at Hank’s Hardware or on Dadazon','bad');return}
         const r=setAttachment(id,sl,a);if(!r.ok){sfx('error');toast(m,r.reason,'bad');return}sfx(a?'equip':'toggle');changed();return}};
     runMenu(m);m.target='p1';
     m.setTab(tabs.find(t=>t[0]===opts.tab)?opts.tab:'loadout',1);
