@@ -8,6 +8,7 @@ const OUT=path.join(ROOT,'docs','screenshots','people');
 const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only=(argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
 const want=k=>!only.length||only.includes(k);
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
+const PP_KEYS=23;
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
@@ -234,6 +235,21 @@ function helpers(){
       await shot(n,pv=>{const H=__ht,P=H.P;P.aim=true;P.pitch=pv;H.step(20);T_.rel(1.6,1.5,1.3,2.8,.6);P.pitch=0},pv);
     await shot('pump_cycle',()=>{const H=__ht,P=H.P;H.give('shotgun');H.dude.equip(P.dude,'shotgun');P.cur='shotgun';P.aim=true;P.pitch=0;H.step(20);H.mouse=true;H.step(1);H.mouse=false;H.step(7);T_.rel(.7,1.55,1.4,1.6,.6)});
   }
+
+  if(want('roster')){/* the whole street-crew pool, the crew and the Riverside job-givers */
+    const r=await p.evaluate(async()=>{const PP=HT.People;await PP.preload(PP.keys);return{all:PP.keys.filter(k=>PP.has(k)),thugs:PP.roles.thug.filter(k=>PP.has(k))}});
+    ok('roster: all character files load and prepare',r.all.length===PP_KEYS,r.all.length+' of '+PP_KEYS);
+    ok('at least 10 street-crew variants',r.thugs.length>=10,r.thugs.join(','));
+    const v=await p.evaluate(()=>{const H=__ht;H.startMission(3);const ks=H.enemies.map(e=>e.dude.rb&&e.dude.rb.key);let rep=0;for(let i=1;i<ks.length;i++)if(ks[i]===ks[i-1])rep++;return{ks,rep,distinct:new Set(ks).size}});
+    ok('spawns spread over the pool, no two in a row alike',v.rep===0&&v.distinct>=Math.min(8,v.ks.length-2),v);
+    if(SHOTS){await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+      await shot('roster_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map((v,i)=>({role:'thug',variant:v,gun:i%3?'rifle':'pistol'})),{dist:6.2,spacing:.78,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.45,P.pos.z,P.pos.x-Math.sin(P.yaw)*6.2,1.05,P.pos.z-Math.cos(P.yaw)*6.2)});
+      await shot('roster_crew_and_neighbours',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug','earl','dee','rosa','benny'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.5,P.pos.z,P.pos.x-Math.sin(P.yaw)*5.6,1.1,P.pos.z-Math.cos(P.yaw)*5.6)});
+      await shot('roster_faces_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map(v=>({role:'thug',variant:v})),{dist:3.2,spacing:.5,steps:30});P.dude.root.visible=false;
+        T_.cam(P.pos.x,1.62,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.55,P.pos.z-Math.cos(P.yaw)*3.2)});
+    }}
 
   if(want('perf')){
     const r=await p.evaluate(()=>{const H=__ht;H.startMission(3);const n=H.enemies.length+H.allies.length+1;

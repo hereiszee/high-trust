@@ -15,13 +15,20 @@ const HT=window.HT=window.HT||{};
 const T=window.THREE;
 const BASE='assets/people/rocketbox/';
 const REF_HIP=.8952;
-const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'];
-const GAME_KEYS=KEYS.slice(0,10);/* loaded with the game; family loads on demand (preload) */
+/* street crews: one neutral streetwear look across a broad, even mix of people (no costume coding) */
+const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red','thug_fro','thug_jacket','thug_brown','thug_cap','thug_f_hood','thug_f_leather'];
+const NEIGHBOURS=['earl','dee','rosa','benny'];
+const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4),NEIGHBOURS);
+const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other crew variants stream in right after, neighbours and family on demand */
+const STREAM_KEYS=THUGS.slice(4);
 const ROLE={you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
-  thug:['thug_hoodie','thug_track','thug_beanie','thug_red']};
-const SCALE={dad_dave:1.15,boss:1.06};
+  earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',thug:THUGS};
+const SCALE={dad_dave:1.15,boss:1.06,benny:1.04};
+/* per-character fix-ups: hide parts of the source outfit, add a fabric cap (sRGB) */
+const HIDE={earl:/helmet|tools/};const CAP_ADD={earl:'#2f4a6e'};
 const IDLE={dad_player:'idle',dad_gary:'idle_look',dad_rick:'idle',dad_dave:'idle',dad_doug:'idle',thug_hoodie:'idle_nervous',thug_track:'idle_angry',thug_beanie:'idle_nervous',thug_red:'idle_angry',boss:'idle_arms_folded',wife:'f_idle',son:'idle',daughter:'f_idle'};
-const FEMALE={wife:1,daughter:1};
+const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1,dee:1,rosa:1};
+Object.assign(IDLE,{thug_fro:'idle_angry',thug_jacket:'idle_nervous',thug_brown:'idle_angry',thug_cap:'idle_nervous',thug_f_hood:'f_idle',thug_f_leather:'f_idle',earl:'idle_look',dee:'f_idle',rosa:'f_idle',benny:'idle'});
 /* ground speed each clip was recorded at (m/s), and where the left foot starts relative to 'walk' (fraction of a cycle) */
 const SPEED={walk:1.012,walk_fast:1.495,jog:2.411,run:3.075,sprint:5.839,f_walk:1.214,crouch_walk:.626,strafe_left:3,strafe_right:3,run_back:2.47};
 const PHASE={run:.5};
@@ -46,7 +53,7 @@ P.files=()=>GAME_KEYS.concat(['anims']).map(k=>({name:'rb_'+k,url:BASE+k+'.glb'}
 P.init=function(o){o=o||{};if(o.assets)A=o.assets;if(o.quality)qualityFn=o.quality;
   if(P._initDone)return P.ready;P._initDone=true;
   const wait=A&&A.ready?A.ready:Promise.resolve();
-  wait.then(()=>{try{if(prepareAll())resolveReady(P);else{P.failed=true;rejectReady(new Error('people assets missing'))}}catch(e){console.warn('people: prepare failed',e);P.failed=true;rejectReady(e)}});
+  wait.then(()=>{try{if(prepareAll()){resolveReady(P);setTimeout(()=>P.preload(STREAM_KEYS),0)}else{P.failed=true;rejectReady(new Error('people assets missing'))}}catch(e){console.warn('people: prepare failed',e);P.failed=true;rejectReady(e)}});
   return P.ready};
 function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
 function prepareAll(){const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
@@ -93,6 +100,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
       if(low&&m.normalMap&&!/head/.test(m.name)){m.normalMap=null;m.needsUpdate=true}}});
   /* Coach Rick reads too young: salt-and-pepper hair */
   if(key==='dad_rick')s.traverse(o=>{if(o.isMesh&&o.material&&/opacity|hair/i.test(o.material.name)&&o.material.map)greyHair(o.material.map,.72)});
+  if(HIDE[key])s.traverse(o=>{if(o.isMesh&&o.material&&HIDE[key].test(o.material.name)){o.visible=false;o.castShadow=false}});
+  if(CAP_ADD[key]&&!B('acc_cap')){const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,new T.Color(CAP_ADD[key]).convertSRGBToLinear(),key))}
   /* caps: replace the stiff helmet-like shell with a proper fabric baseball cap */
   const cap=B('acc_cap');if(cap){const col=(cap.material&&cap.material.color)?cap.material.color.clone():new T.Color(.05,.05,.1);cap.visible=false;cap.castShadow=false;
     const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,col,key))}
@@ -121,7 +130,7 @@ function fabricNormal(){if(capNrm)return capNrm;const S=256,c=document.createEle
   x.putImageData(id,0,0);capNrm=new T.CanvasTexture(c);capNrm.wrapS=capNrm.wrapT=T.RepeatWrapping;return capNrm}
 /* skull extent in head-bone space, from head + hair vertices above the eyes */
 function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vector3(),bb=new T.Box3();let n=0;
-  s.traverse(o=>{if(!o.isMesh||/acc_|hit_/.test(o.name))return;const p=o.geometry.attributes.position;const sk=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;if(!sk||!o.skeleton)return;
+  s.traverse(o=>{if(!o.isMesh||!o.visible||/acc_|hit_/.test(o.name))return;const p=o.geometry.attributes.position;const sk=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;if(!sk||!o.skeleton)return;
     const hb=o.skeleton.bones.indexOf(head);if(hb<0)return;
     for(let i=0;i<p.count;i++){let w=0;const si=[sk.getX(i),sk.getY(i),sk.getZ(i),sk.getW(i)],ws=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)];for(let k=0;k<4;k++)if(si[k]===hb)w+=ws[k];if(w<.5)continue;
       v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);if(v.x<.1)continue;bb.expandByPoint(v);n++}});
@@ -164,7 +173,13 @@ function makeChain(){/* gold rope chain over the shirt, hangs from the neck onto
   const pend=new T.Mesh(new T.CylinderGeometry(.03,.03,.008,16),gold);pend.rotation.x=Math.PI/2;pend.position.set(.085,.155,0);const g=new T.Group();g.add(m);g.add(pend);return g}
 
 /* ---------- instances ---------- */
-function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:k[Math.floor(Math.random()*k.length)];return k}
+/* crews: a shuffle bag over the variants that are loaded, so the spread stays even and no two spawned in a row look alike */
+const bags={};
+function draw(list,role){const avail=list.filter(k=>tpl[k]||gltf(k));if(!avail.length)return list[0];let b=bags[role];
+  if(!b||!b.q.length||b.n!==avail.length){const q=avail.slice();for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]]}
+    if(b&&b.last&&q.length>1&&q[q.length-1]===b.last)[q[0],q[q.length-1]]=[q[q.length-1],q[0]];bags[role]=b={q,n:avail.length,last:b&&b.last}}
+  const k=b.q.pop();b.last=k;return k}
+function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:draw(k,role);return k}
 P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null){try{if(!prepareAll())P.failed=true}catch(e){P.failed=true}}if(!P.ok||!T.SkeletonUtils)return null;const key=resolveKey(role,o.variant);const t=tpl[key]||prep(key);if(!t)return null;
   const body=T.SkeletonUtils.clone(t.scene);body.name='rb_'+key;
   const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);

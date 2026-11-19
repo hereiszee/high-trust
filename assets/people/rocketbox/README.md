@@ -59,3 +59,13 @@ To play an upper-body clip (for example rifle_aim) over legs that walk, keep onl
 - **Guns:** tested with `assets/props/gun_*.glb` (muzzle −Z, origin at the top of the grip). Add the gun as a child of `Bip01_R_Hand` with:
   - rifle: `position (0.0989, -0.0154, 0.0539)`, `quaternion (-0.4003, 0.4100, 0.7039, -0.4198)`. This fits `rifle_aim` and `rifle_fire` exactly; the left hand cups the handguard.
   - pistol: `position (0.0787, 0.0006, 0.0687)`, `quaternion (0.4079, -0.4620, -0.5513, 0.5623)`. This fits `pistol_*`.
+
+## Roster round 2
+- **Street crews:** 10 variants in the same neutral streetwear: thug_hoodie, thug_track, thug_beanie, thug_red, thug_fro, thug_jacket, thug_brown, thug_cap, thug_f_hood and thug_f_leather. Each spawn draws from a shuffle bag over the loaded variants, so the mix stays even and no two in a row look alike. The first four are in the ASSETS manifest; the other six stream in right after the game starts.
+- **Coach Rick:** now Male_Adult_12, with a red cap and whistle.
+- **Riverside job-givers (load on demand):**
+  - earl: Construction_Male_03; the helmet and tools are hidden at runtime and he gets a blue cap.
+  - dee: Business_Female_01.
+  - rosa: Medical_Female_01.
+  - benny: Male_Adult_05, with a pink cap.
+- Use `makeDude({role:'earl'})`, or call `HT.People.preload(['earl'])` first.
