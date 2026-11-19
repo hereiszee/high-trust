@@ -32,6 +32,18 @@ async function networkFirst(req) {
     const r = await fetch(req); if (r.ok) c.put(req, r.clone()); return r;
   } catch (err) { const hit = await c.match(req, { ignoreSearch: true }); if (hit) return hit; throw err }
 }
+/* the page sends what it loaded before this worker was in control: cache it (mostly straight from the HTTP cache) */
+self.addEventListener('message', e => {
+  const list = e.data && e.data.warm; if (!Array.isArray(list)) return;
+  e.waitUntil((async () => { for (const href of list.slice(0, 400)) { try {
+    const u = new URL(href); let name;
+    if (u.origin === self.location.origin) name = u.pathname.includes('/assets/opt/') && !u.pathname.endsWith('/manifest.json') ? C_ASSETS : C_SHELL;
+    else if (CDN.test(href)) name = C_CDN; else continue;
+    const c = await caches.open(name); if (await c.match(href)) continue;
+    const r = await fetch(href, { mode: u.origin === self.location.origin || !/fonts\.googleapis/.test(href) ? 'cors' : 'no-cors', credentials: 'omit' });
+    if (r.ok || r.type === 'opaque') await c.put(href, r);
+  } catch (err) { } } })());
+});
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const u = new URL(req.url);

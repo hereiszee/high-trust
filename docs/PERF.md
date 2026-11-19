@@ -4,7 +4,81 @@ The live site showed "SLOW CONNECTION · 16 FILES DIDN'T LOAD · USING THE BACKY
 27.6 MB in 118 files before the Start button enabled and gave up after 25 s. This page records what was measured,
 what changed, and how to keep it fast.
 
-@@NUMBERS@@
+## Before → after
+
+Measured with `tools/perf/measure.js` against `tools/perf/serve.js` (gzip like GitHub Pages), headless Chromium
+with SwiftShader, 1280×720. "Before" is commit c6acded (what the live site ran), "after" is this branch.
+
+### Loading
+
+| | before | after |
+|---|---|---|
+| bytes on the wire before Start (gzip, like Pages) | 19.5 MB (27.6 MB uncompressed) | **2.1 MB** (1.5 MB of it the boot pack) |
+| requests before Start | 131 (118 from this site, 10 CDN scripts, 3 font files) | **19** (14 from this site, 2 CDN scripts, 3 font files) |
+| first visit, 10 Mbit/s + 40 ms (CDP throttling) | 21.2 s (20.9 s in a second run); the live site hit the 25 s timeout | **3.4–3.6 s** (three runs) |
+| first visit, unthrottled local | 9.9 s | **1.5 s** |
+| second visit, throttled | 6.2 s (HTTP cache, 118 revalidations) | **1.6 s** (service worker) |
+| second visit, network off | page fails | Start in 3.4 s from the worker cache; "You're offline" + Retry; resumes when back online |
+| boot pack, a tree, the grass texture and the light probe all 404 | n/a | Start in 2.7 s, files fetched one by one, failed ones keep retrying |
+| manifest 404 (degraded: original files) | n/a | Start in 13.9 s with 8.6 MB of source files |
+| everything the game can show (hub full res + all 4 missions) | 19.5 MB, all before Start | 8.2 MB, streamed after Start |
+
+Time to Start in headless is CPU-bound (decode, hub build, shader compiles on a CPU rasterizer); on a laptop
+with a GPU it is lower. "All streamed" takes ~30 s headless for the same reason; the network part of 6 MB at
+10 Mbit/s is about 6 s.
+
+### Which files the boot used to fetch, and whether the game showed them
+
+Measured with `tools/perf/usage.js` (texture and geometry identity of everything in the scene, hub and every
+mission). Fetched at boot but **never shown anywhere**: all 6 `assets/chars` models (7.0 MB; characters are
+box dudes in index.html), the 3 `props/gun_*` models, the 4 `props/car_*` models (cars come from js/vehicles.js),
+`street_lamp`, `trash_can`, `utility_box`, `cardboard_box`, `chest_wood`, `pull_chain_light_socket`,
+`wooden_picnic_table`, `shrub_02`, and the `fence` texture set. The hub itself shows 9 texture sets, the tex2
+house set, 5 models (three trees, bush, mailbox), one decal and the sky.
+
+Repo inventory after cleanup:
+- **deleted** (no references outside the old loader list and one dev page): `assets/chars/` (6 files, 7.0 MB),
+  `assets/family/` (4, 4.1 MB), `assets/guns2/` (7, 0.3 MB), `assets/props/gun_pistol|rifle|shotgun.glb`.
+  `assets/people/mpfb` does not exist on this branch. dev/fx.html now uses `people/rocketbox/dad_player.glb` and
+  `guns/ph_pistol.glb`.
+- **kept, loaded only on demand**: the unused props/world models above (`ASSETS.gltf(name)` fetches them the first
+  time code asks), `assets/people/rocketbox/` (for the character work), `assets/guns/` (js/guns.js),
+  `assets/home/` (js/save.js). All of them have optimised variants in `assets/opt/`.
+
+### Payload per asset class (source → full tier `l` → reduced tier `m`, uncompressed bytes)
+
+| | source | l | m |
+|---|---|---|---|
+| tiled textures (tex + tex2, 74 files) | 9.4 MB jpg | 5.0 MB (WebP, normal/roughness at 512) | 1.2 MB (512 / 256) |
+| props + world models (31) | 10.4 MB | 4.0 MB (meshopt, quantized, WebP) | same |
+| rocketbox characters (13) + anims | 15.2 MB | 8.2 MB (anims 1.8 → 1.1 MB) | 4.8 MB |
+| guns (3) | 4.3 MB | 2.5 MB | 1.4 MB |
+| home furniture (32) | 4.3 MB | 2.3 MB | 2.2 MB |
+| light probe | 1.4 MB (1024×512) | 0.37 MB (512×256) | 0.1 MB (256×128) |
+| sky panorama | 121 kB | 50 kB | 20 kB |
+
+The 512×256 probe renders the same as the 1024×512 one (PMREM's sharpest level is 256 px per cube face); see
+`docs/screenshots/perf/asset-ab-sheet.jpg` for source vs optimised renders of every asset class.
+
+### Frame cost (Medium, after streaming finished)
+
+| level | draw calls | triangles | shader programs | texture memory (estimate) | JS update ms (median / p90) | draw submit CPU ms |
+|---|---|---|---|---|---|---|
+| hub | 1300 → **821** | 1.67 M → 1.73 M | 52 → 44 | 206 → 174 MB | 2.0 / 2.6 → 2.1 / 2.3 | 13.6–13.9 → 4.9–11.1 |
+| driving | 1218 → **771** | 1.67 M → 1.72 M | 52 → 44 | 206 → 174 MB | 0.6 / 0.8 → 0.4 / 0.6 | 5.0 → 7.5 |
+| mission 1 (chop shop) | 542 → 515 | 542 k → 536 k | 70 → 62 | 161 → 153 MB | 1.6 / 3.4 → 1.6 / 7.1 | 5.2 → 3.7 |
+| mission 2 (duplex) | 689 → 660 | 737 k → 730 k | 73 → 65 | 182 → 178 MB | 1.4 / 1.8 → 1.4 / 1.8 | 3.5 → 5.7 |
+| mission 3 (park) | 312 → 312 | 695 k → 695 k | 75 → 67 | 66 → 66 MB | 0.1 / 0.2 → 0.1 / 0.2 | 1.1 → 2.0 |
+| mission 4 (kingpin) | 816 → 797 | 873 k → 862 k | 75 → 67 | 182 → 174 MB | 1.6 / 2.0 → 1.5 / 1.7 | 4.0 → 3.8 |
+
+Draw calls include the shadow pass (hub after: ~285 shadow + ~536 main). Triangles rise slightly because a merged
+32 m cell is drawn whole when any part of it is in view. Submit CPU is the time `renderer.render` takes on the main
+thread (no GPU wait); it is noisy under SwiftShader, so read it as a trend. Texture memory is estimated from image
+sizes (RGBA + mips); Low uses the 512 tier, about a quarter of that. JS update is `__ht.step(1)`.
+
+Screenshots: `docs/screenshots/perf/before-*.jpg` and `after-*.jpg` (same views after streaming), `ab-hub.jpg`
+(before above, after below).
+
 
 ## How loading works now
 
@@ -128,4 +202,25 @@ thread a real GPU would leave free. Requests a service worker answers are invisi
 first-visit byte counts are taken with `--nosw`. The local server speaks HTTP/1.1 (6 connections per host), so it is
 slower than GitHub Pages' HTTP/2.
 
-@@WEAK@@
+## Remaining weaknesses
+
+- **Triangles.** The hub still pushes ~1.7 M triangles a frame across the shadow and main passes. The largest
+  contributors are parked-car wheels (~20 k triangles per car from js/vehicles.js lathe geometry), instanced trees
+  inside the LOD radius and trims. A wheel LOD (or fewer lathe segments) is the next step; Auto lowers resolution and
+  then shadow cost, but triangle count is the same at every preset.
+- **Shadows every frame.** The shadow map re-renders every frame; splitting static and moving casters (or updating
+  it every other frame when Auto is under pressure) would halve that pass.
+- **Static batching scope.** Only houses and parked cars are merged, once per level. If future code hides, moves
+  or swaps parts of a house or a parked car after the level is built, it must set `userData.noBatch` on those
+  meshes (or the change will not show, because the visible copy is the merged one).
+- **HUD DOM writes.** `hud()` runs every frame and writes text/styles; that region belongs to the HUD work, and
+  should only touch the DOM when a value changes.
+- **Quantized props.** Raycasting props/world/home meshes directly is wrong in r128 (raw quantized values). Nothing
+  does it today.
+- **Loader hints are hand-kept.** `GROUPS` in index.html and `boot` in tools/assets.config.js list what the hub and
+  each mission need. A new hub asset that is not listed still works (requested lazily) but may pop in.
+- **Fallback without a manifest** loads full-size source files (8.6 MB before Start).
+- **WebP-less browsers** (very old Safari) get the 512 tier everywhere.
+- **Headless numbers.** Frame times from SwiftShader say nothing about GPU cost; GPU cost was reasoned from draw
+  calls, triangles, passes and resolution. A check on a real integrated-GPU laptop is still worth doing.
+

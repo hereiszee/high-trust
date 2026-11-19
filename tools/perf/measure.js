@@ -96,7 +96,7 @@ const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypas
         return { ...i1, stepMsMedian: +t[15].toFixed(2), stepMsP90: +t[27].toFixed(2), submitMsMedian: +c[4].toFixed(2), drawMsMedian: +d[3].toFixed(1), texMB: +(texBytes / 1048576).toFixed(1), q: h.render.q, pr: h.renderer.getPixelRatio() };
       });
       out[name] = r; console.log(name.padEnd(10), JSON.stringify(r));
-      if (shots) await page.screenshot({ path: path.join(shots, name + '.jpg'), type: 'jpeg', quality: 85 });
+      if (shots) await page.screenshot({ path: path.join(shots, name + '.jpg'), type: 'jpeg', quality: 85, timeout: 180000 });
     };
     await sample('hub', () => { });
     if (has('--levels')) {

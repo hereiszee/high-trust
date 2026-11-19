@@ -22,7 +22,10 @@ window.__htBoot=(()=>{const B={onProgress:null};
   B.pack=Promise.all([B.man,B.webp]).then(([m,w])=>{const p=m.boot&&m.boot[w?'webp':'jpg'];if(!p)throw new Error('no boot pack');
     return get(p.url,a=>B.onProgress&&B.onProgress(a,p.kb*1024))});
   B.pack.catch(()=>{});B.man.catch(()=>{});
-  if('serviceWorker'in navigator&&location.protocol!=='file:')addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  /* service worker: once it runs, hand it what this visit already loaded so the next visit (or an offline one) starts from cache */
+  if('serviceWorker'in navigator&&location.protocol!=='file:')addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
+    navigator.serviceWorker.ready.then(r=>setTimeout(()=>{const u=[location.href.split('#')[0],...performance.getEntriesByType('resource').map(e=>e.name)].filter(x=>/^https?:/.test(x));
+      if(r.active)r.active.postMessage({warm:[...new Set(u)]})},3000)).catch(()=>{})});
   return B})();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap">
@@ -457,7 +460,7 @@ function applyMood(){const m=mood;renderer.toneMappingExposure=m.exp;sun.color.c
   if(ASSETS.skyTex){skyMat.map=ASSETS.skyTex;skyMat.color.copy(tint)}else skyMat.color.copy(lin(m.fb));skyMat.needsUpdate=true;
   let fog;if(skyHorizon){fog=unAces([skyHorizon[0]*tint.r,skyHorizon[1]*tint.g,skyHorizon[2]*tint.b],m.exp)}else{const c=lin(m.fb);fog=unAces([c.r,c.g,c.b],m.exp)}
   if(!scene.fog)scene.fog=new THREE.Fog(0,m.near,m.far);scene.fog.color.setRGB(fog[0],fog[1],fog[2]);scene.fog.near=m.near;scene.fog.far=m.far;scene.background=null}
-ASSETS.ready.then(()=>{if(ASSETS.skyImg)sampleHorizon(ASSETS.skyImg);buildEnv();applyMood()});
+ASSETS.ready.then(()=>setTimeout(()=>{if(ASSETS.skyImg)sampleHorizon(ASSETS.skyImg);buildEnv();applyMood()},0));/* after the Start button unlocks */
 /* late or sharper sky and light (Stage B): rebuild from the new data */
 ASSETS.onAsset(s=>{if(!ASSETS.done)return;if(/\.hdr$/.test(s)&&ASSETS.hdr&&!ASSETS.hdr.__used){buildEnv();applyMood()}else if(/sky_2k/.test(s)&&!skyHorizon&&ASSETS.skyImg){sampleHorizon(ASSETS.skyImg);applyMood()}});
 
