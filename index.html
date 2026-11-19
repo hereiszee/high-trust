@@ -1061,7 +1061,7 @@ const WORLD=(()=>{const G=HTM('WorldGen');if(!G||!OW())return null;try{return G.
 if(WORLD)HUB=WORLD;
 if(prog.trustR==null)prog.trustR=5;
 if(!prog.world)prog.world={visited:{maple:true,route9:false,river:false},pins:['home','hank','auto','gas']};
-const OWS={region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
+const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
 const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
@@ -1077,10 +1077,12 @@ function owLevel(def){const O=OW();
   lvl.houses=O.state.houses;   /* the meta layer finds the player's house (door, porch light, name board) here */
   lvl.assetsDone=ASSETS.done;def._lvl=lvl;L=lvl;setMood(def);owMinimap();return lvl}
 function owMinimap(){const def=WORLD;
-  HUD.minimap.setLevel(def.map,{tile:TILE,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights · Route 9 · Riverside Flats',
+  HUD.minimap.setLevel(def.map,{tile:TILE,px:COARSE?6:12,pad:'g',floor:'g',inside:'.',interior:false,name:'Maple Heights · Route 9 · Riverside Flats',
     under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
     legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
   owPins()}
+function owRegions(){const def=WORLD,v=prog.world;if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,trust:null},
+  {name:'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
 function owPins(){const def=WORLD,v=prog.world,pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
   MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
@@ -1112,7 +1114,10 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   const off=OWS.gps&&OWS.gps.points.length>1&&owDistToRoute(P.pos.x,P.pos.z)>8;
   if(key!==OWS.gpsKey||off||(OWS.gpsT<=0&&(VAN.on?Math.abs(VAN.spd)>1:P.moving))){OWS.gpsKey=key;OWS.gpsT=1.5;
     OWS.gps=tgt?O.gps({x:P.pos.x,z:P.pos.z},tgt):null;HUD.minimap.route(OWS.gps?[{x:P.pos.x,z:P.pos.z},...OWS.gps.points.slice(1)]:null)}
-  owChevrons()}
+  owChevrons();
+  /* ambient traffic around the player (HT.CarAI on the road graph) */
+  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+}
 function owLerpMood(a,b,k){const o={};const c=new THREE.Color();for(const key in a){const va=a[key],vb=b[key];
   if(typeof va==='number')o[key]=va+(vb-va)*k;else if(typeof va==='string'&&va[0]==='#'){c.set(va).lerp(new THREE.Color(vb),k);o[key]='#'+c.getHexString()}else o[key]=va}return o}
 function owDistToRoute(x,z){const p=OWS.gps.points;let best=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/l,0,1);best=Math.min(best,Math.hypot(a.x+dx*t-x,a.z+dz*t-z))}return best}

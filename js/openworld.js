@@ -759,6 +759,7 @@ OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;
   for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch'))lvl.group.remove(o);   /* index.html's static batcher merges parked cars once per level: keep its meshes */
   if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
+  if(ws.traffic){for(const t of ws.traffic.cars)ws.traffic.g.remove(t.v);ws.traffic.cars.length=0}
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};
 OW.openBridge=()=>{const ws=WS;if(!ws)return false;const def=ws.def,G=HT.WorldGen;const was=def.bridgeOpen;if(G&&G.openBridge)G.openBridge(def);
   for(const b of def.barricade){ws.lvl.g[b.tz][b.tx]=',';ws.G[b.tz][b.tx]=','}
@@ -770,6 +771,35 @@ OW.regionAt=(x,z)=>{const G=HT.WorldGen;return G&&G.regionAt?G.regionAt(x,z):'ma
 OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:ws.built,visible:ws.units.filter(u=>u.visible).length,chunks:ws.chunks.map(u=>({cx:u.ch.cx,cz:u.ch.cz,visible:u.visible,built:u.built,ms:u.ms&&Math.round(u.ms)})),
   buildMs:Math.round(ws.tBuild||0),maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
 OW.units=()=>WS?WS.units:[];
+/* ================= ambient traffic (HT.Roads graph + HT.CarAI wander, HT.Vehicles LOD1) ================= */
+/* a handful of cars near the player, spawned and removed out of view; they pause at intersections, yield to the player and to each other */
+const TRAFFIC_TYPES=['sedan','hatch','suv','pickup','workvan','sedan'],TRAFFIC_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#6d7378','#7a5a3a','#c9b48a'];
+OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehicle)return;const G=OW.roads();if(!G)return;
+  const T=ws.traffic||(ws.traffic={cars:[],g:null,G:null,t:0,seed:11});if(!T.g){T.g=new THREE.Group();T.g.name='traffic';ws.lvl.group.add(T.g);ws.own.add(T.g)}
+  if(T.G!==G){for(const c of T.cars)T.g.remove(c.v);T.cars.length=0;T.G=G}
+  const want=o.off?0:ws.q==='low'?3:ws.q==='high'?7:5,p=o.player,cam=o.camera,lvl=ws.lvl;T.t-=dt;
+  const seen=(x,z)=>{if(!cam)return false;_b.min.set(x-3,0,z-3);_b.max.set(x+3,2.5,z+3);return ws.frustum.intersectsBox(_b)&&Math.hypot(x-cam.position.x,z-cam.position.z)<150};
+  /* spawn */
+  if(T.cars.length<want&&T.t<=0){T.t=.7;const cand=G.nodes.filter(n=>{const d=Math.hypot(n.x-p.x,n.z-p.z);return d>45&&d<130&&n.e.length&&!seen(n.x,n.z)&&!T.cars.some(c=>Math.hypot(c.c.x-n.x,c.c.z-n.z)<20)});
+    if(cand.length){T.seed=(T.seed*1103515245+12345)&0x7fffffff;const n=cand[T.seed%cand.length],e=n.e[T.seed%n.e.length],k=T.seed>>3;
+      const v=C.makeVehicle(TRAFFIC_TYPES[k%TRAFFIC_TYPES.length],TRAFFIC_COLS[(k>>3)%TRAFFIC_COLS.length],{lod:1});
+      if(v){v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});const yaw=Math.atan2(-e.dir[0],-e.dir[1]);const c=CA.make(v.userData.type||'sedan',{x:n.x-e.dir[1]*1.5,z:n.z+e.dir[0]*1.5,yaw});
+        CA.wander(c,G,{max:10+(k%4),seed:k});T.g.add(v);T.cars.push({c,v,pause:0,paused:-1})}}}
+  const statics=(q,r)=>{for(const k of lvl.cnear(q.x,q.z,r+3))if(k.ph!==undefined&&q.x+r>k.x0&&q.x-r<k.x1&&q.z+r>k.z0&&q.z-r<k.z1){const ox1=q.x+r-k.x0,ox2=k.x1-(q.x-r),oz1=q.z+r-k.z0,oz2=k.z1-(q.z-r);if(Math.min(ox1,ox2)<Math.min(oz1,oz2))q.x+=ox1<ox2?-ox1:ox2;else q.z+=oz1<oz2?-oz1:oz2}};
+  for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw);
+    /* yield: something within 10 m ahead in the lane (the player, his car, another car) */
+    const ahead=(x,z,r)=>{const dx=x-c.x,dz=z-c.z,f=dx*fx+dz*fz,s=Math.abs(dx*-fz+dz*fx);return f>0&&f<r&&s<2.2};
+    let block=ahead(p.x,p.z,10)||(o.car&&ahead(o.car.x,o.car.z,11))||T.cars.some(u=>u!==t&&ahead(u.c.x,u.c.z,8));
+    /* pause at intersections (3+ roads) before crossing */
+    const nn=ai&&ai.next>=0&&G.nodes[ai.next];if(nn&&nn.e.length>=3&&t.paused!==ai.next&&Math.hypot(nn.x-c.x,nn.z-c.z)<8.5){t.pause=1.1;t.paused=ai.next}
+    if(t.pause>0){t.pause-=dt;block=true}
+    CA.step(c,dt,{G,collide:statics,blocked:()=>block,canSnap:()=>!seen(c.x,c.z)});
+    t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
+    const VM=HT.Vehicles;if(VM&&VM.update)try{VM.update(t.v,{speed:c.spd,steer:c.steer||0,braking:block,headlights:false,dt})}catch(e){}
+    /* dynamic collider so the player's car and the dad bump into it */
+    if(!t.col){t.col={x0:0,z0:0,x1:0,z1:0,ph:1.5,k:'traffic'};lvl.colliders.push(t.col)}const a=Math.abs(fx),b=Math.abs(fz),hx=a*2.2+b*.95,hz=b*2.2+a*.95;Object.assign(t.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz});
+    if(Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off){T.g.remove(t.v);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);T.cars.splice(i,1)}}};
+OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type})):[];
 Object.defineProperty(OW,'state',{get:()=>WS});
 HT.OpenWorld=OW;
 })();

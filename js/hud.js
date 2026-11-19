@@ -489,7 +489,8 @@ function setLevel(grid,o={}){
   const g=grid.map(r=>typeof r==='string'?r.split(''):r.slice());const Hh=g.length,W=Math.max(...g.map(r=>r.length));
   for(const r of g)while(r.length<W)r.push(o.pad||'g');
   Object.assign(MM,{grid:g,W,H:Hh,tile:o.tile||2,opts:o,route:null,routeTo:null,lastTile:-1,name:o.name||'',interior:!!o.interior});MM.enemy.clear();
-  const cv=document.createElement('canvas');cv.width=W*MMPX;cv.height=Hh*MMPX;const c=cv.getContext('2d');const P=MMPX;
+  MM.px=o.px||MMPX;/* big maps on phones pass a smaller px per tile */
+  const cv=document.createElement('canvas');cv.width=W*MM.px;cv.height=Hh*MM.px;const c=cv.getContext('2d');const P=MM.px;
   /* ground */
   for(let z=0;z<Hh;z++)for(let x=0;x<W;x++){c.fillStyle=GROUND[groundOf(g[z][x],o)];c.fillRect(x*P,z*P,P,P)}
   /* subtle texture: lawn stripes */
@@ -531,7 +532,7 @@ function setLevel(grid,o={}){
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
 function isSolidCh(ch){const k=cellClass(ch,MM.opts||{});return k==='wall'||k==='building'}
 function reveal(px,pz){if(!MM.fog)return;const T=MM.tile,tx=Math.floor(px/T),tz=Math.floor(pz/T);const id=tz*MM.W+tx;if(id===MM.lastTile)return;MM.lastTile=id;
-  const rc=MM.rev.getContext('2d'),P=MMPX,R0=9;
+  const rc=MM.rev.getContext('2d'),P=MM.px,R0=9;
   for(let a=0;a<96;a++){const ang=a/96*TAU,dx=Math.cos(ang),dz=Math.sin(ang);let x=tx+.5,z=tz+.5;
     for(let s=0;s<R0*3;s++){const cx=Math.floor(x),cz=Math.floor(z);if(cx<0||cz<0||cx>=MM.W||cz>=MM.H)break;const k=cz*MM.W+cx;
       if(!MM.seen[k]){MM.seen[k]=1;rc.drawImage(MM.base,cx*P,cz*P,P,P,cx*P,cz*P,P,P);MAP.dirty=true}
@@ -568,7 +569,7 @@ function drawMinimap(st){
   const w2s=(x,z)=>{const dx=x-p.x,dz=z-p.z;return[cx+(dx*cos+dz*sin)*s,cy+(-dx*sin+dz*cos)*s]};
   c.save();c.beginPath();c.arc(cx,cy,Rr-1,0,TAU);c.clip();
   c.fillStyle=MM.outside;c.fillRect(0,0,S,S);
-  c.save();c.translate(cx,cy);c.rotate(-rot);const k=s*MM.tile/MMPX;c.scale(k,k);c.translate(-p.x/MM.tile*MMPX,-p.z/MM.tile*MMPX);
+  c.save();c.translate(cx,cy);c.rotate(-rot);const k=s*MM.tile/MM.px;c.scale(k,k);c.translate(-p.x/MM.tile*MM.px,-p.z/MM.tile*MM.px);
   c.imageSmoothingEnabled=true;
   if(MM.fog){c.globalAlpha=.16;c.drawImage(MM.base,0,0);c.globalAlpha=1;c.drawImage(MM.rev,0,0)}else c.drawImage(MM.base,0,0);
   c.restore();
@@ -661,10 +662,16 @@ function drawMap(st){
   c.setTransform(H.dpr,0,0,H.dpr,0,0);c.fillStyle='#0d1116';c.fillRect(0,0,W,Hh);
   /* faint grid */
   c.strokeStyle='rgba(255,255,255,.04)';c.lineWidth=1;const gs=20*MAP.z;if(gs>8){const[ox,oy]=MAP.w2s(0,0);for(let x=ox%gs;x<W;x+=gs){c.beginPath();c.moveTo(x,0);c.lineTo(x,Hh);c.stroke()}for(let y=oy%gs;y<Hh;y+=gs){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}}
-  const[x0,y0]=MAP.w2s(0,0);const sc=MAP.z*MM.tile/MMPX;
+  const[x0,y0]=MAP.w2s(0,0);const sc=MAP.z*MM.tile/MM.px;
   c.save();c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=30;c.fillStyle='#161b21';c.fillRect(x0,y0,MM.base.width*sc,MM.base.height*sc);c.restore();
   c.imageSmoothingEnabled=MAP.z<4;
   if(MM.fog){c.globalAlpha=.1;c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);c.globalAlpha=1;c.drawImage(MM.rev,x0,y0,MM.base.width*sc,MM.base.height*sc)}else c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);
+  /* regions (open world): name + trust bar above each, unvisited ones dimmed */
+  for(const r of MM.regions||[]){const[ax,ay]=MAP.w2s(r.x0,0),[bx,by]=MAP.w2s(r.x1,MM.H*MM.tile);
+    if(r.dim){c.fillStyle='rgba(13,17,22,.55)';c.fillRect(ax,ay,bx-ax,by-ay)}
+    const cxr=(ax+bx)/2,w=Math.min(150,bx-ax-16);c.textAlign='center';c.textBaseline='bottom';c.font='800 13px "Barlow Condensed",sans-serif';c.fillStyle='rgba(0,0,0,.6)';c.fillText(r.name.toUpperCase(),cxr+1,ay-15);c.fillStyle='#fff';c.fillText(r.name.toUpperCase(),cxr,ay-16);
+    if(r.trust!=null){c.fillStyle='rgba(255,255,255,.14)';c.fillRect(cxr-w/2,ay-12,w,5);c.fillStyle=r.trust>=70?'#7fdc6e':r.trust>=35?'#ffc94a':'#ff8a6b';c.fillRect(cxr-w/2,ay-12,w*Math.max(0,Math.min(1,r.trust/100)),5);
+      c.font='700 11px "Barlow Condensed",sans-serif';c.textAlign='left';c.fillStyle='rgba(255,255,255,.75)';c.fillText('TRUST '+Math.round(r.trust)+'%',cxr+w/2+6,ay-6)}}
   if(MM.route&&MM.route.length>1){c.lineJoin='round';c.lineCap='round';c.beginPath();MM.route.forEach((q,i)=>{const[x,y]=MAP.w2s(q.x,q.z);i?c.lineTo(x,y):c.moveTo(x,y)});c.strokeStyle='rgba(20,16,4,.6)';c.lineWidth=8;c.stroke();c.strokeStyle='#ffc94a';c.lineWidth=4.5;c.stroke()}
   for(const m of mapItems()){const[x,y]=MAP.w2s(m.x,m.z);const sel=MAP.sel===m;if(sel){c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(x,y,16,0,TAU);c.stroke()}drawIcon(c,m.kind,x,y,sel?26:22);
     if((MAP.z>4.5||sel)&&m.label){c.font='700 12px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='top';c.fillStyle='rgba(0,0,0,.6)';c.fillText(m.label.toUpperCase(),x+1,y+15);c.fillStyle='#fff';c.fillText(m.label.toUpperCase(),x,y+14)}}
@@ -799,7 +806,7 @@ const HUD={
   hit,damage,feed,toast,ammoToast,banner,payout,
   show:showScreen,hide:hideScreen,set:setScreen,
   get screen(){return SCR.cur},
-  minimap:{setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},
+  minimap:{setRegions(r){MM.regions=r||null;MAP.dirty=true},setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},
     openMap:()=>MAP.openMap(),closeMap:()=>MAP.close(),toggleMap:()=>MAP.toggle(),get mapOpen(){return MAP.open},onFastTravel(fn){MAP.onTravel=fn},zoom(z){MM.zoom=z},reveal(x,z){reveal(x,z)}},
   touch:{
     /* stick visuals: x,y in -1..1, active flag, optional screen origin {ox,oy} for a floating stick */
