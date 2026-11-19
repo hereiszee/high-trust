@@ -945,8 +945,8 @@ const SEATS={
  hatch:  [[-.12,.47,-.37],[-.12,.47,.37],[-1.02,.5,-.38],[-1.02,.5,.38]],
  sedan:  [[-.15,.45,-.38],[-.15,.45,.38],[-1.08,.48,-.4],[-1.08,.48,.4]],
  suv:    [[.05,.66,-.42],[.05,.66,.42],[-.85,.68,-.44],[-.85,.68,.44],[-1.7,.7,-.42],[-1.7,.7,0],[-1.7,.7,.42]],
- pickup: [[.45,.78,-.42],[.45,.78,.42],[-1.35,1.12,-.62,Math.PI/2],[-1.35,1.12,.62,-Math.PI/2],[-2.15,1.12,-.62,Math.PI/2],[-2.15,1.12,.62,-Math.PI/2]],
- workvan:[[1.15,.72,-.45],[1.15,.72,.45],[-.6,.7,-.6,Math.PI/2],[-.6,.7,.6,-Math.PI/2],[-1.6,.7,-.6,Math.PI/2],[-1.6,.7,.6,-Math.PI/2]]};
+ pickup: [[.45,.78,-.42],[.45,.78,.42],[-1.35,1.12,-.62,-Math.PI/2],[-1.35,1.12,.62,Math.PI/2],[-2.15,1.12,-.62,-Math.PI/2],[-2.15,1.12,.62,Math.PI/2]],
+ workvan:[[1.15,.72,-.45],[1.15,.72,.45],[-.6,.7,-.6,-Math.PI/2],[-.6,.7,.6,Math.PI/2],[-1.6,.7,-.6,-Math.PI/2],[-1.6,.7,.6,Math.PI/2]]};
 const NEIGHBOURS=['Linda','Barb','Phil','Marcy','Ted','Denise','Walt','Joyce','Ken','Sharon','Ray','Pam','Gil','Rhonda','Stu','Carol','Hal','Bev'];
 const BORROW_NOTES=["Borrowing {n}'s {t}. Bring it back with gas in it.","{n}'s {t}. Keys were under the visor. Of course they were.","{n} said 'anytime' about the {t} once, in 2019. That counts.",
   "Borrowing {n}'s {t}. Don't touch the seat settings. {n} WILL know.","{n}'s {t}. There's a note on the dash: 'Brakes pull left. Love, {n}.'"];
@@ -1047,7 +1047,7 @@ function dentCar(e,push,sp){const ud=e.obj.userData,add=Math.min(.22,(sp-5)*.013
   if(!m.userData.dentOwn){m.geometry=m.geometry.clone();(ud._own||(ud._own=[])).push(m.geometry);m.userData.dentOwn=1}
   const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw),S=carSize(e);
   const t=Math.min(S.l/2/Math.max(1e-3,Math.abs(lx)),S.w/2/Math.max(1e-3,Math.abs(lz))),px=lx*t,pz=lz*t,py=S.h*.42+(Math.random()-.5)*.2;
-  const g=m.geometry,pa=g.attributes.position,na=g.attributes.normal,R=.45+sp*.02,dep=Math.min(.16,.04+sp*.006);
+  const g=m.geometry,pa=g.attributes.position,na=g.attributes.normal,R=.45+sp*.02,dep=Math.min(.16,.04+sp*.006)*(1.15-e.dmg*.8);/* later dents go shallower: the shell crumples, never inverts */
   for(let i=0;i<pa.count;i++){const x=pa.getX(i),y=pa.getY(i),z=pa.getZ(i),d=Math.hypot(x-px,(y-py)*1.3,z-pz);if(d>=R)continue;const w=(1-d/R)*(1-d/R),nx=na.getX(i),ny=na.getY(i),nz=na.getZ(i);
     const h=Math.sin(x*41.3+z*17.1+y*29.7)*43758.5,j=h-Math.floor(h)-.5;pa.setXYZ(i,x-nx*dep*w*(1+j*.6),y-ny*dep*w*.6,z-nz*dep*w*(1+j*.6));
     const k=w*.9;let ox=nx+j*k,oy=ny+Math.sin(h)*k*.5,oz=nz-j*k;const ol=Math.hypot(ox,oy,oz)||1;na.setXYZ(i,ox/ol,oy/ol,oz/ol)}
@@ -1083,23 +1083,30 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   if(ENG&&ENG.set)ENG.set({rpm,throttle:I.thr?1:0,speed:e.spd,skid:Math.min(1,sk)});
   else if(ENG){ENG.o.frequency.value=(38+av*4.2+(I.thr?8:0))*F.eng;ENG.o2.frequency.value=(19+av*2.1)*F.eng;ENG.g.gain.setTargetAtTime(running?.03+av*.0012:0,AC.currentTime,.05)}
 }
+/* inside height over a seat: first body surface straight down from above the car (local frame, metres above the ground) */
+function roofAt(e,fx,sz){const v=e.obj;v.updateMatrixWorld(true);const o=v.localToWorld(V3(fx,4,sz)),rc=new THREE.Raycaster(o,V3(0,-1,0),0,4);const ms=[];v.traverse(m=>{if(m.isMesh&&m!==v.userData.contactShadow&&!(m.material&&m.material.transparent))ms.push(m)});
+  const h=rc.intersectObjects(ms,false)[0];return h?h.point.y-v.position.y:9}
 /* the dad and the crew in their seats (needs the rigged characters' sit pose; otherwise they ride out of sight) */
 function seatCrew(e,dt){const rig=!!(P.dude&&P.dude.rb),seats=SEATS[e.type]||SEATS.minivan,f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),y0=L.world&&L.world.hub?0:groundAt(e.pos.x,e.pos.z);
-  const put=(d,s)=>{d.root.position.set(e.pos.x+f.x*s[0]+r.x*s[2],y0+s[1]-.59,e.pos.z+f.z*s[0]+r.z*s[2]);d.root.rotation.set(0,e.yaw+Math.PI+(s[3]||0),0);pose(d,dt,{mode:'sit',aim:false,moving:false})};
+  if(e._seatObj!==e.obj){e._seatObj=e.obj;e._roof=seats.map((s,i)=>i<feel(e).seats?roofAt(e,s[0],s[2]):9)}
+  const put=(d,s)=>{const sc=d.root.scale.y||1,i=seats.indexOf(s),hip=Math.min(s[1],(e._roof[i]||9)-.84*sc-.05);d.root.position.set(e.pos.x+f.x*s[0]+r.x*s[2],y0+hip-.59*sc,e.pos.z+f.z*s[0]+r.z*s[2]);d.root.rotation.set(0,e.yaw+Math.PI+(s[3]||0),0);pose(d,dt,{mode:'sit',aim:false,moving:false})};
   const show=rig&&e.obj.userData.mod&&e.type!=='workvan';
   P.dude.root.visible=show&&!P.fp;if(P.dude.root.visible)put(P.dude,seats[0]);
   let k=1;for(const a of allies){if(!a.ride){if(!a.down)pose(a.dude,dt,{aim:false});continue}a.pos.set(e.pos.x,0,e.pos.z);const s=seats[k++];a.dude.root.visible=!!(show&&s&&a.dude.rb&&!(e.type==='workvan'));if(a.dude.root.visible)put(a.dude,s)}}
 /* chase camera tuned per body; V hood view; C held looks back; thin poles and trunks don't yank the boom in */
 function camBlock(m){const u=m.userData;if(u._thin==null){if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,s=m.getWorldScale(V3());u._thin=(b.max.x-b.min.x)*s.x<.8&&(b.max.z-b.min.z)*s.z<.8}return !u._thin}
+/* tree crowns aren't colliders: keep the boom out of them (tree tiles from the map) */
+function inCanopy(x,y,z){if(y<2.3||y>8.5||!L)return false;const gx=tx(x),gz=tx(z);for(let j=gz-2;j<=gz+2;j++)for(let i=gx-2;i<=gx+2;i++){if(!L.g[j]||L.g[j][i]!=='t')continue;if(Math.hypot(tileC(i)-x,tileC(j)-z)<2.7)return true}return false}
 function updDriveCam(dt){const e=CV;if(!e)return;const F=feel(e),S=carSize(e),back=!!keys.c,gy=groundAt(e.pos.x,e.pos.z);
   camLookT-=dt;if(camLookT<=0&&Math.abs(e.spd)>2){let d=e.yaw-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;P.yaw+=d*Math.min(1,dt*2.6);P.pitch+=(-.22-P.pitch)*Math.min(1,dt*1.5)}
   P.pitch=clamp(P.pitch,-.9,.25);const yaw=P.yaw+(back?Math.PI:0),fw=V3(-Math.sin(yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(yaw)*Math.cos(P.pitch));
   if(P.fp){/* hood view: just above the hood, ahead of the windscreen (or over the tailgate looking back) */
-    const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),x=back?-S.l*.47:S.l*.17,h=back?S.h*.9:S.h*.8+.06;
+    const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),x=back?-S.l*.47:S.l*.21,h=back?S.h*.9:S.h*.88+.14;
     camera.position.set(e.pos.x+f.x*x,gy+h,e.pos.z+f.z*x);camera.rotation.set(0,0,0);camera.lookAt(camera.position.x+fw.x,camera.position.y+fw.y*.6-.04,camera.position.z+fw.z);camDist=F.cam[0]}
   else{const tgt=V3(e.pos.x,gy+S.h*.85+.25,e.pos.z),want=tgt.clone().addScaledVector(fw,-F.cam[0]).add(V3(0,F.cam[1],0));want.y=Math.max(gy+.7,want.y);
     const dir=want.clone().sub(tgt),len=dir.length();dir.normalize();const sd=V3(dir.z,0,-dir.x).normalize();let dist=len;
     for(const o of[0,-.45,.45]){ray.set(tgt.clone().addScaledVector(sd,o),dir);ray.near=0;ray.far=len;for(const h of ray.intersectObjects(L.solids,false)){if(camBlock(h.object)){dist=Math.min(dist,Math.max(1.6,h.distance-.35));break}}}
+    for(let k=2;k<dist;k+=.5){const q=tgt.clone().addScaledVector(dir,k);if(inCanopy(q.x,q.y,q.z)){dist=Math.max(2.2,k-.6);break}}
     camDist=dist<camDist?camDist+(dist-camDist)*Math.min(1,dt*16):camDist+(dist-camDist)*Math.min(1,dt*3);
     camera.position.copy(tgt).addScaledVector(dir,Math.min(camDist,len));camera.lookAt(tgt.x+fw.x*2,tgt.y+.4,tgt.z+fw.z*2)}
   const fov=CFG.fov+Math.max(0,Math.abs(e.spd))*.45+(P.fp?6:0);camera.fov+=(fov-camera.fov)*Math.min(1,dt*4);camera.updateProjectionMatrix();
@@ -1742,7 +1749,7 @@ ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock 
   $('ldT').textContent=miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready';
   initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}
   if(!$('cTitle').hidden)b.focus()});
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
