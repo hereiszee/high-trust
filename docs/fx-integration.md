@@ -29,7 +29,8 @@ HT.FX.clear()            // level change: kills particles, decals, bits, emitter
 
 HT.FX.muzzleFlash(pos, dir, {type, firstPerson, scale})
 //   type: pistol revolver smg rifle hunter shotgun double beanbag flare nailer enemy
-HT.FX.tracer(from, to, {enemy, ally, trail, speed, length, width, suppress})
+HT.FX.tracer(from, to, {enemy, ally, color, intensity, trail, speed, length, width, suppress})
+//   color: '#ff8a2a' / 0xff8a2a (scaled to tracer brightness, intensity default 5.5) or [r,g,b] linear HDR; e.g. beanbag {color:'#ff7a1a'}
 //   enemy tracers that pass within ~2 m of the camera add suppression and a little shake (onNearMiss hook)
 HT.FX.impact(pos, normal, surface, {big, color, decal, attach:object3D})
 //   surface: concrete plaster brick wood metal glass dirt grass cloth vehicle nail

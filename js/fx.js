@@ -500,10 +500,12 @@ function muzzleFlash(pos,dir,o){if(!ready)return;o=o||{};const f=FL[o.type]||FL.
     if(i>=0){ALP.rv[i]=rnd(-.3,.3);ALP.asp[i]=1.6}}}
 
 /* ================================================================= tracers */
-const _ta=new T.Vector3(),_tb=new T.Vector3();
+const _ta=new T.Vector3(),_tb=new T.Vector3(),_trc=[0,0,0];
 function tracer(from,to,o){if(!ready)return;o=o||{};_ta.copy(from);_tb.copy(to).sub(from);const L=_tb.length();if(L<.05)return;_tb.multiplyScalar(1/L);
   const enemy=!!o.enemy,ally=!!o.ally,speed=o.speed||(enemy?170:ally?230:330),len=Math.min(L,o.length||(enemy?3.2:4.2)),w=o.width||(enemy?.06:.048);
-  const c=enemy?[6,1.9,.85]:ally?[4.2,3.6,2]:[5.2,3.6,1.8];
+  let c=enemy?[6,1.9,.85]:ally?[4.2,3.6,2]:[5.2,3.6,1.8];
+  /* optional colour: [r,g,b] in linear HDR (used as is) or any THREE.Color input ('#ff8a2a', 0xff8a2a), scaled to tracer brightness */
+  if(o.color!=null){if(Array.isArray(o.color))c=o.color;else{_c.set(o.color).convertSRGBToLinear();const k=(o.intensity||5.5)/Math.max(_c.r,_c.g,_c.b,1e-3);c=_trc;c[0]=_c.r*k;c[1]=_c.g*k;c[2]=_c.b*k}}
   /* starts slightly ahead: the first frame already shows a streak leaving the muzzle */
   const i=ADD.add(_ta.x,_ta.y,_ta.z,_tb.x,_tb.y,_tb.z,(L+len)/speed+.02,w,w,A.TRACER,c[0],c[1],c[2],1);
   if(i>=0){ADD.fl[i]|=F_TRACER;ADD.ox[i]=_ta.x;ADD.oy[i]=_ta.y;ADD.oz[i]=_ta.z;ADD.sf[i]=speed;ADD.len[i]=len;ADD.s1[i]=L;ADD.age[i]=rnd(.25,.6)*len/speed;ADD.fl[i]&=~F_NEW}
@@ -877,7 +879,7 @@ HT.FX=FX;
    init({scene,camera,renderer,assets,quality,groundAt?,solidAt?,dom?,domParent?})   setGround(fn) setSolid(fn)   bindDepth(depthTex,near,far,[w,h]?) / bindDepth(null)   renderSoft(renderer)
      setQuality('low'|'med'|'high')   update(dt)   clear()
    muzzleFlash(pos,dir,{type:'pistol'|'revolver'|'smg'|'rifle'|'hunter'|'shotgun'|'double'|'beanbag'|'flare'|'nailer'|'enemy',firstPerson,scale})
-   tracer(from,to,{enemy,ally,trail,speed,length,width,suppress})       impact(pos,normal,surface,{big,color,decal,attach})   hit(raycastHit,{big,surface,color,attach,clip})
+   tracer(from,to,{enemy,ally,color,intensity,trail,speed,length,width,suppress})       impact(pos,normal,surface,{big,color,decal,attach})   hit(raycastHit,{big,surface,color,attach,clip})
    shell(pos,ejectDir,gunIdOrType)   shake(amount,{kick,kickYaw})   applyCamera(camera)   explosion(pos,size)
    damageIndicator(yawRel,strength)  damageFrom(worldPos)  hitPulse(amount)  setHealth(0..1)  suppress(amount)  gradeUniforms()  bindGrade(shaderUniforms)  GRADE.{uniforms,glsl}
    skid(pos,dir,intensity,{width})  tyreSmoke(pos,intensity)  ambient({leaves,pollen,density,wind}|null)
