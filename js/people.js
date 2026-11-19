@@ -17,16 +17,22 @@ const BASE='assets/people/rocketbox/';
 const REF_HIP=.8952;
 /* street crews: one neutral streetwear look across a broad, even mix of people (no costume coding) */
 const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red','thug_fro','thug_jacket','thug_brown','thug_cap','thug_f_hood','thug_f_leather'];
+/* Riverside Flats (on demand, only there): four job-givers, and a civilian neighbour pool drawn from the same broad mix as the street crews */
+const GIVERS=['earl','dee','rosa','benny'];
+const NEIGHBOURS=['nb_gran','nb_pops','nb_office','nb_sweater','nb_teen','nb_kid','nb_kenji','nb_marcus','nb_mei','nb_lucia'];
+const NB={};for(const k of NEIGHBOURS)NB[k]=1;
 const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4));
 const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other street-crew variants stream in right after, family on demand */
 const STREAM_KEYS=THUGS.slice(4);
-const ROLE={you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
+const ROLE={earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',neighbour:NEIGHBOURS,you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
   thug:THUGS};
-const SCALE={dad_dave:1.15,boss:1.06};
+const SCALE={dad_dave:1.15,boss:1.06,nb_teen:.95};
 /* per-character fix-ups (none needed now): hide parts of the source outfit by material name, add a fabric cap (sRGB) */
 const HIDE={};const CAP_ADD={};
 const IDLE={dad_player:'idle',dad_gary:'idle_look',dad_rick:'idle',dad_dave:'idle',dad_doug:'idle',thug_hoodie:'idle_nervous',thug_track:'idle_angry',thug_beanie:'idle_nervous',thug_red:'idle_angry',boss:'idle_arms_folded',wife:'f_idle',son:'idle',daughter:'f_idle'};
 const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1};
+Object.assign(IDLE,{earl:'idle_look',dee:'f_idle',rosa:'f_idle',benny:'idle',nb_gran:'f_idle',nb_pops:'idle_look',nb_office:'f_idle',nb_sweater:'idle',nb_teen:'f_idle',nb_kid:'idle_look',nb_kenji:'idle_look',nb_marcus:'idle',nb_mei:'f_idle',nb_lucia:'f_idle'});
+Object.assign(FEMALE,{dee:1,rosa:1,nb_gran:1,nb_office:1,nb_teen:1,nb_mei:1,nb_lucia:1});
 Object.assign(IDLE,{thug_fro:'idle_angry',thug_jacket:'idle_nervous',thug_brown:'idle_angry',thug_cap:'idle_nervous',thug_f_hood:'f_idle',thug_f_leather:'f_idle'});
 /* ground speed each clip was recorded at (m/s), and where the left foot starts relative to 'walk' (fraction of a cycle) */
 const SPEED={walk:1.012,walk_fast:1.495,jog:2.411,run:3.075,sprint:5.839,f_walk:1.214,crouch_walk:.626,strafe_left:3,strafe_right:3,run_back:2.47};
@@ -40,7 +46,7 @@ const GUN_FIT={rifle:{p:[.0989,-.0154,.0539],q:[-.4003,.41,.7039,-.4198]},pistol
 /* the game's procedural guns point down +Z; per-type nudge so their grip sits in the palm */
 const BOX_NUDGE={pistol:[0,0,0],rifle:[0,.01,-.2],shotgun:[0,.03,.12]};
 
-const P={ok:false,failed:false,keys:KEYS,roles:ROLE,live:[],GUN_FIT,stats:{updates:0,skipped:0}};
+const P={ok:false,failed:false,keys:KEYS.concat(GIVERS,NEIGHBOURS),giverKeys:GIVERS,neighbourKeys:NEIGHBOURS,roles:ROLE,live:[],GUN_FIT,stats:{updates:0,skipped:0}};
 let A=null,qualityFn=()=>'med',resolveReady,rejectReady;
 P.ready=new Promise((r,j)=>{resolveReady=r;rejectReady=j});P.ready.catch(()=>{});
 const tpl={};/* key -> prepared template {scene, hip} */
@@ -105,7 +111,7 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
   const cap=B('acc_cap');if(cap){const col=(cap.material&&cap.material.color)?cap.material.color.clone():new T.Color(.05,.05,.1);cap.visible=false;cap.castShadow=false;
     const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,col,key))}
   if(key==='boss'){const head=B('Bip01_Head'),neck=B('Bip01_Spine2');if(head)head.add(makeCrown(s,head));if(neck)neck.add(makeChain())}
-  for(const h of HITBOX){const b=B(h[0]);if(!b)continue;const m=new T.Mesh(hbGeo(h[2],h[3],h[4],h[5],h[6],h[7]),hitMat);m.name='hit_'+h[0];m.userData.hitbox=true;m.userData.head=h[1];m.castShadow=false;m.receiveShadow=false;m.frustumCulled=false;b.add(m)}
+  if(!NB[key])for(const h of HITBOX){const b=B(h[0]);if(!b)continue;const m=new T.Mesh(hbGeo(h[2],h[3],h[4],h[5],h[6],h[7]),hitMat);m.name='hit_'+h[0];m.userData.hitbox=true;m.userData.head=h[1];m.castShadow=false;m.receiveShadow=false;m.frustumCulled=false;b.add(m)}
   const hand=B('Bip01_R_Hand');if(hand){const gh=new T.Group();gh.name='gunHold';hand.add(gh)}
   return tpl[key]={scene:s,hip,key}}
 
@@ -192,7 +198,7 @@ P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null)
     in:{mode:'stand',aim:false,moving:false,pitch:0},v:0,vx:0,vz:0,lx:null,lz:null,base:null,dead:false,deadT:0,gunType:null,acc:0,skip:0,orphan:0,phase:0};
   /* legs/arms: inert stand-ins so old code that pokes box-dude limbs does nothing harmful */
   const stub=()=>new T.Object3D();
-  const d={root,body,meshes,head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true};
+  const d={root,body,meshes,head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true};if(NB[key])d.neighbour=true;
   /* start in idle so a freshly spawned character is never seen in the bind pose */
   setBase(d,rb.idle,true);step(d,0);mixer.update(Math.random()*3);
   P.live.push(d);return d};

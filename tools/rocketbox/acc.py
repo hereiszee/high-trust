@@ -167,3 +167,41 @@ def belly(arm, mesh, amp=0.07, zc=None, sigma=0.14):
         k = amp * gz * (front * 1.0 + side * 0.45 + 0.08)
         # push mostly forward / sideways
         c += Vector((n.x * 0.8, n.y, n.z * 0.2)) * k
+
+def add_apron(arm, mesh, color=(0.92, 0.9, 0.86), name='acc_apron', top=0.12, bottom=-0.36, half=0.19):
+    """Waist apron (vendor / cook): a grid that follows the front of the body from just above the hips to the knees,
+    skinned to the pelvis at the waist and blended onto both thighs below, so it moves with walking."""
+    hip = arm.data.bones['Bip01 Pelvis'].head_local
+    co = [v.co for v in mesh.data.vertices]
+    nx, nz = 8, 10
+    bm = bmesh.new(); grid = []
+    yfront = None
+    for j in range(nz + 1):
+        z = hip.z + top + (bottom - top) * j / nz
+        band = [c.y for c in co if abs(c.z - z) < 0.03 and abs(c.x - hip.x) < half]
+        y = (min(band) if band else hip.y - 0.12) - 0.014
+        yfront = y if yfront is None else min(yfront, y + 0.0)  # never tuck back in between the legs
+        row = []
+        for i in range(nx + 1):
+            u = i / nx * 2 - 1
+            x = hip.x + u * half * (1.0 + 0.08 * j / nz)
+            row.append(bm.verts.new((x, min(y, yfront + 0.03) + 0.025 * u * u, z)))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    bm.normal_update()
+    o = new_obj(name, bm)
+    for f in o.data.polygons: f.use_smooth = True
+    sol = o.modifiers.new('sol', 'SOLIDIFY'); sol.thickness = 0.004; sol.offset = 1.0
+    bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier='sol')
+    o.data.materials.append(mat(name + '_mat', color, 0.85))
+    o.parent = arm
+    gP = o.vertex_groups.new(name='Bip01 Pelvis'); gL = o.vertex_groups.new(name='Bip01 L Thigh'); gR = o.vertex_groups.new(name='Bip01 R Thigh')
+    for v in o.data.vertices:
+        d = max(0.0, min(1.0, (hip.z - v.co.z) / 0.3))          # 0 at the hips, 1 at mid-thigh
+        s = max(0.0, min(1.0, (v.co.x - hip.x) / (2 * half) + 0.5))  # character's left side is +X in Blender here
+        gP.add([v.index], 1 - d, 'REPLACE')
+        if d > 0: gL.add([v.index], d * s, 'REPLACE'); gR.add([v.index], d * (1 - s), 'REPLACE')
+    md = o.modifiers.new('Armature', 'ARMATURE'); md.object = arm
+    return o
