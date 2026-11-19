@@ -7,6 +7,7 @@
 <link rel="preload" href="assets/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bowlby-one-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/hud.css">
+<link rel="stylesheet" href="css/menus.css">
 <style>
 /* Layout: full-bleed 3D view. The HUD, minimap and all menus come from js/hud.js + css/hud.css (window.HT.HUD). */
 :root{
@@ -46,6 +47,9 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
 <script src="js/people.js"></script>
+<script src="js/carai.js"></script>
+<script src="js/save.js"></script>
+<script src="js/home.js"></script>
 <script src="js/ai.js"></script>
 <script>
 (()=>{
@@ -718,7 +722,7 @@ function worldGroundAt(x,z){return L?supportAt(x,z,1e9,0).y:0}
 function solidAt(x,z,r,feet,skip){for(const c of L.colliders){if(c===skip||(c.h!=null&&feet>=c.h-MOVE.step))continue;if(x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1)return c}return null}
 
 /* ================= STATE ================= */
-const prog={done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0};
+const prog=metaBindProg({done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});
 let mode='title',M=null,running=false,simT=0;
 const P={pos:V3(),yaw:0,pitch:0,hp:100,regenT:0,crouch:false,aim:false,fp:false,weapons:['pistol'],cur:'pistol',ammo:{},fireT:0,reloadT:0,dude:null,moving:false,recoilKick:0};
 let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
@@ -815,7 +819,7 @@ function syncVan(){const v=VAN.obj;v.position.set(VAN.pos.x,0,VAN.pos.z);v.rotat
   c.x0=VAN.pos.x-hx;c.x1=VAN.pos.x+hx;c.z0=VAN.pos.z-hz;c.z1=VAN.pos.z+hz}
 function engine(on){const A=AU();if(A){try{if(on&&!ENG){ENG=A.vehicle();ENG.door&&ENG.door('slide')}else if(!on&&ENG&&ENG.stop){ENG.door&&ENG.door('slide');ENG.stop();ENG=null}}catch(e){}return}if(!AC)return;if(on&&!ENG){const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=380;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AC.destination);o.start();o2.start();ENG={o,o2,g}}
   else if(!on&&ENG){try{ENG.o.stop();ENG.o2.stop()}catch(e){}ENG=null}}
-function honk(){if(ENG&&ENG.horn){ENG.horn('double');return}if(!AC)return;const t=AC.currentTime;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
+function honk(){if(metaHorn())return;if(ENG&&ENG.horn){ENG.horn('double');return}if(!AC)return;const t=AC.currentTime;for(const f of[392,494]){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.setValueAtTime(.06,t);g.gain.setValueAtTime(.06,t+.32);g.gain.linearRampToValueAtTime(0,t+.38);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)}}
 function enterVan(){VAN.on=true;syncVan();P.yaw=VAN.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;P.dude.root.visible=false;vm.visible=false;engine(true);snd('reload',.6);
   for(const a of allies){a.dude.root.visible=false;a.target=null}const sp=speaker();if(sp)radio(sp,pick(DRIVE_LINES))}
 function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));
@@ -827,11 +831,11 @@ function exitVan(){const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw)),r=V3(Math
 function updVan(dt){
   let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}
-  const boost=keys.shift,MAX=boost?33:25;let v=VAN.spd;
-  if(thr>0)v+=(v<0?24:boost?12:9)*dt*thr;else if(thr<0)v-=(v>0?24:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
+  const boost=keys.shift,MAX=boost?33*VANK.btop:25*VANK.top;let v=VAN.spd;
+  if(thr>0)v+=(v<0?24*VANK.brake:boost?12*VANK.baccel:9*VANK.accel)*dt*thr;else if(thr<0)v-=(v>0?24*VANK.brake:7)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),3.5*dt);
   const hb=keys[' '];if(hb)v-=Math.sign(v)*Math.min(Math.abs(v),20*dt);
-  VAN.spd=v=clamp(v,-8,MAX);VAN.steer+=(st-VAN.steer)*Math.min(1,dt*7);
-  VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55-Math.min(.75,Math.abs(v)/35))*Math.sign(v)*(hb?1.5:1)*dt;
+  VAN.spd=v=clamp(v,-8,MAX);VAN.steer+=(st-VAN.steer)*Math.min(1,dt*7*VANK.steer);
+  VAN.yaw+=VAN.steer*clamp(Math.abs(v)/5,0,1)*(1.55*VANK.turn-Math.min(.75,Math.abs(v)/(35*VANK.grip)))*Math.sign(v)*(hb?1.5:1)*dt;
   const f=V3(-Math.sin(VAN.yaw),0,-Math.cos(VAN.yaw));VAN.pos.addScaledVector(f,v*dt);
   let hit=false;for(const o of[1.45,-1.45]){const pt=VAN.pos.clone().addScaledVector(f,o),q=pt.clone();collide(q,1.05);const dx=q.x-pt.x,dz=q.z-pt.z;if(dx*dx+dz*dz>1e-6){VAN.pos.x+=dx;VAN.pos.z+=dz;hit=true}}
   if(hit){if(Math.abs(v)>5&&VAN.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,Math.abs(v)/15));else snd('hit',Math.min(1,Math.abs(v)/15));hurtFlash=Math.min(.5,Math.abs(v)/40);VAN.bump=.4;const sp=speaker();if(sp&&Math.abs(v)>11&&Math.random()<.5)radio(sp,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}VAN.spd*=Math.abs(v)>5?-.25:.6}
@@ -855,17 +859,18 @@ function updDriveCam(dt){
 }
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[['Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
-function enterHub(){
+function enterHub(o){
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
   P.pos.copy(L.start);resetMove();P.yaw=-Math.PI/2;P.pitch=-.08;P.hp=100;P.crouch=false;P.aim=false;
-  const next=prog.done.findIndex(d=>!d);
+  metaHubEnter(o);
+  const next=prog.done.slice(0,MISSIONS.length).findIndex(d=>!d);
   FX.clear();audioState('hub');setLoadout({side:'pistol',p1:prog.done[0]?'shotgun':null,p2:prog.done[1]?'rifle':null},P.cur);
   if(next===-1){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
   for(const mk of L.markers){if(mk.i!==next)continue;const m=MISSIONS[mk.i];const n=spawnNpc(m.giver,mk.x,mk.z,mk);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(mk.x,1.5,mk.z);L.group.add(ring);n.ring=ring}
-  prog.done.forEach((d,i)=>{if(d)spawnAlly(MISSIONS[i].giver,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5))});
+  prog.done.forEach((d,i)=>{if(d&&MISSIONS[i])spawnAlly(MISSIONS[i].giver,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5))});
   rebuildTargets();
   setObj('Maple Heights',[HOMIES[MISSIONS[next].giver].name+' has a job for you. Follow the yellow marker.']);
   if(prog.missionsRun===0)radio('you',"Okay. Let's see who needs help.");
@@ -889,6 +894,7 @@ function startMission(i){
   FX.clear();const lend=m.lend||MISSION_LEND[i],lo=missionLoadout(i);if(lend&&prog.rifleLent&&!prog.done[i]){lo.p2=lo.p2||lend;M.lent=[lend]}
   setLoadout(lo,i===0?'pistol':null);
   if(lend&&!prog.done[i]&&!M.lent)M.intro={t:0,done:false,prog:0};
+  metaAmmo();metaMissionStart(i);
   {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));/* crew beside and ahead of the dad, out of the camera's line */
    m.crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);spawnAlly(c,L.start.x+r.x*2.2*side+f.x*(1.8+row*1.3),L.start.z+r.z*2.2*side+f.z*(1.8+row*1.3))})}
   aiStart(m);
@@ -909,6 +915,7 @@ function endMission(ok,why,title){
     stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(prog.trust)+'%']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
   UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMission(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
+  metaResult(ok,res,mi);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust);
@@ -959,12 +966,12 @@ function showTitle(){HUD.show('title',UI.title)}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',a=>{
-  if(a==='newgame'||a==='continue')start();
+  if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
   else if(UI.acts[a])UI.acts[a]();
   else if(a==='resume'){if(pauseOpen)closePause()}
   else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
   else if(a==='quit')quitToTitle();
-  else if(a==='resetSave')Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0})});
+  else if(a==='resetSave'){Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});metaResetSave()}});
 /* full map (M): the world waits while it is open, and the cursor is free */
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
 /* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
@@ -973,6 +980,7 @@ HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
   else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);resetMove();for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
   HUD.feed('Fast travel · '+pin.label,'info')});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+  if(metaKey(e,k))return;
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
   if(card&&k==='tab'){const f=[...card.querySelectorAll('button,input')].filter(el=>!el.hidden&&el.offsetParent);if(f.length){const i=f.indexOf(document.activeElement);const n=e.shiftKey?(i<=0?f.length-1:i-1):(i+1)%f.length;f[n].focus();e.preventDefault()}return}
   if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(k)&&running)e.preventDefault();
@@ -1052,7 +1060,7 @@ function resetWeaponState(){P.rl=null;P.reloadT=0;P.autoRlT=0;P.fireT=0;P.equipT
 function setLoadout(lo,cur){P.loadout=Object.assign({side:null,p1:null,p2:null},lo);syncWeapons();fillAmmo();
   P.cur=cur&&P.weapons.includes(cur)?cur:P.weapons[P.weapons.length-1]||'pistol';if(P.dude)equip(P.dude,P.cur);setViewGun(P.cur)}
 /* which guns you own: the pump from the start, the carbine after Rick's job (or from mission 3 on when started directly) */
-function missionLoadout(i){const lo={side:'pistol',p1:'shotgun',p2:(prog.done[1]||i>=2)?'rifle':null};return Object.assign(lo,window.__htLoadout||{})}
+function missionLoadout(i){const lo={side:'pistol',p1:'shotgun',p2:(prog.done[1]||i>=2)?'rifle':null},saved=metaLoadout(i);if(saved){lo.p1=lo.p2=null;Object.assign(lo,saved);if(!lo.p1&&!lo.p2)lo.p1='shotgun'}return Object.assign(lo,window.__htLoadout||{})}
 function slotFor(id){const w=WEAPONS[id];if(w.slot==='side')return'side';const curSlot=SLOT_KEYS.find(k=>P.loadout[k]===P.cur);
   if(curSlot&&curSlot!=='side')return curSlot;return!P.loadout.p1?'p1':!P.loadout.p2?'p2':'p1'}
 /* put a gun in its slot; returns the gun (and its loaded mag) that left, or null */
@@ -1176,7 +1184,7 @@ function killEnemy(e){cue('die',e.dude);if(e.state!=='surrender')dropGun(e,'drop
   if(e.boss&&M)M.bossDone='down';
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
 function hurtPlayer(d,src){if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;if(src&&src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1));FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
-function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
+function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
 function shootAt(src,target,acc,dmg,isEnemy){cue('fire',src.dude);
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
@@ -1527,7 +1535,7 @@ function updCamera(dt){
   const gw=WEAPONS[P.cur],base=CFG.fov*(mode==='mission'&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vmPose(dt)}
-  else{const back=P.aim?1.5:2.7,side=P.aim?.62:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
+  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
     ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.solids,false)[0]:null;
     const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
@@ -1542,6 +1550,7 @@ function updCamera(dt){
     scopeEl().style.display=P.scoped?'block':'none';if(P.scoped){camera.position.copy(eye);if(P.dude)P.dude.root.visible=false}}
   if(P.fp)for(const a of allies)a.dude.root.visible=true;
   sunFollow(P.pos.x,P.pos.z,-Math.sin(P.yaw),-Math.cos(P.yaw));
+  if(mode==='home')homeCam(dt);
 }
 
 /* ================= MISSION LOGIC ================= */
@@ -1604,7 +1613,7 @@ function updMission(dt){
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
 function updHub(dt){
-  let prompt=null,target=null;
+  let prompt=null,target=null;const mp=metaHubUpd(dt);
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
     if(JOB===null)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
@@ -1616,7 +1625,7 @@ function updHub(dt){
       if(Math.hypot(VAN.pos.x-d.x,VAN.pos.z-d.z)<4.5){const j=JOB;setPrompt(null);showMarker(null);startMission(j);return}}
   }else if(VAN.obj&&Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<3.6){prompt=prompt||KE+' · Drive the minivan';if(useTap&&!prompt.includes('Talk')){useTap=false;enterVan()}}
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
-  hubObj();setPrompt(prompt);showMarker(target);
+  hubObj();setPrompt(mp||prompt);showMarker(target);
 }
 
 /* ================= HUD ================= */
@@ -1661,6 +1670,7 @@ function hud(dt){
     obj={kicker:mis?'Objective':JOB!==null?'New job · '+MISSIONS[JOB].place:'Saturday',title:obj.title,
       lines:st?obj.lines.map(l=>/^\d+:\d\d until /.test(l.text)?{...l,text:'Until reinforcements'}:l):obj.lines}}
   const markers=[];const mk=markerOf(UI.marker);if(mk)markers.push(mk);
+  markers.push(...metaMarkers());
   if(mode==='hub'&&VAN.obj&&!VAN.on&&(!mk||mk.kind!=='van'))markers.push({id:'van',kind:'van',label:'Minivan',x:VAN.pos.x,z:VAN.pos.z,world:false});
   /* route on the minimap to the current target (recomputed by the HUD when the target moves) */
   const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
@@ -1670,8 +1680,8 @@ function hud(dt){
     const dd=x.pos.distanceTo(P.pos);if(dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45))continue;
     const ally=x.kind==='ally',c=x.tag.className;
     tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
-  HUD.update({mode:drv?'drive':mis?'mission':'hub',
-    player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:prog.trust,
+  HUD.update({mode:drv?'drive':mis?'mission':mode==='home'?'home':'hub',
+    player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:prog.trust,cash:metaCash(),
     weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!mis},
     weapons:P.weapons.map(k=>({key:WEAPONS[k].key,name:WEAPONS[k].name,type:k,active:k===P.cur})),
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
@@ -1679,10 +1689,307 @@ function hud(dt){
     objective:obj,timer,prompt:UI.prompt,
     speedMph:Math.abs(VAN.spd)*2.237,gear:VAN.spd<-.3?'R':'D',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
-    markers,tags,subtitles:UI.sub,routeTo:UI.route,zone:mis&&M?M.def.place:'Maple Heights'},dt);
+    markers,tags,subtitles:UI.sub,routeTo:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':'Maple Heights'},dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
 }
+
+/* ================= META: save, payout, home, shops, minivan upgrades ================= */
+/* glue for js/save.js (HT.Save/Economy/Shop/Locker), js/home.js (HT.Home), the two hub shops and the van's upgrades.
+   Every module is optional: with one missing, the game plays exactly as before. */
+/* metaBindProg() runs from the STATE section, before the rest of this code has executed: keep it self-contained */
+/* first visit: the save's default placement uses the old 1 m grid, so the house's own starter layout (same furniture) takes over */
+function metaFixSave(s){if(!s||!s.furniture)return;const f=s.furniture,Hm=HTM('Home');
+  if(!f.homeV&&Hm){let ok=0;try{ok=Hm.validate({items:f.placed},f.owned).layout.items.length}catch(e){}if(!ok)f.placed=Hm.starterLayout().items;f.homeV=1;f.seen=Object.assign({},f.owned)}
+  if(!f.seen||typeof f.seen!=='object')f.seen=Object.assign({},f.owned)}
+function metaBindProg(p){const S=HTM('Save');if(!S)return p;
+  try{S.on('load',metaFixSave);S.bindProg(p);metaFixSave(S.data)}catch(e){console.warn('save bind failed',e)}return p}
+
+const SAVEM=HTM('Save'),ECON=HTM('Economy'),HOMEM=HTM('Home');
+const SV=()=>SAVEM?SAVEM.data:null;
+function metaSave(now){if(!SAVEM)return;try{now?SAVEM.saveNow():SAVEM.save()}catch(e){console.warn('save failed',e)}}
+const money=n=>'$'+Math.round(n).toLocaleString('en-US');
+function aud(f){try{const A=AU();if(A&&A.ready!==false)f(A)}catch(e){}}
+function metaCash(){const s=SV();return s?s.cash:null}
+let HOME3=null,homeReady=false,homeLoading=null;
+
+/* ---------- decorate panel (the only DOM this section adds; the HUD module draws everything else) ---------- */
+(function metaDom(){const st=document.createElement('style');st.textContent=`
+#deco{position:fixed;z-index:3;left:50%;top:calc(env(safe-area-inset-top,0px) + 86px);transform:translateX(-50%);width:min(600px,calc(100vw - 32px));color:#fff;
+  background:rgba(14,17,22,.86);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:10px 14px 11px;font:600 13px "Barlow",system-ui,sans-serif;pointer-events:none;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+#deco .h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:700 12px "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+#deco .h b{font:400 18px "Bowlby One","Arial Black",sans-serif;letter-spacing:.02em;color:#ffc94a;text-transform:none}
+#deco .it{font-weight:700;font-size:16px;margin:5px 0 2px}#deco .it small{font-weight:600;opacity:.6;font-size:12px;margin-left:8px}
+#deco .why{min-height:17px;color:#7fdc6e}#deco .why.bad{color:#ff8a7a}
+#deco .strip{display:flex;gap:6px;overflow:hidden;margin:8px 0 9px;mask-image:linear-gradient(90deg,#000 85%,transparent);-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent)}
+#deco .strip span{flex:none;padding:3px 8px;border:1px solid rgba(255,255,255,.25);border-radius:4px;font-size:12px;white-space:nowrap;opacity:.75}
+#deco .strip span.on{background:#ffc94a;color:#0f1216;border-color:#ffc94a;opacity:1}
+#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;opacity:.92}#deco .k i{font:700 11px ui-monospace,Menlo,Consolas,monospace;background:#f6f1e3;color:#0f1216;padding:0 5px;border-radius:3px;margin-right:4px}
+@media (max-width:520px){#deco .k{display:none}#deco{top:calc(env(safe-area-inset-top,0px) + 70px)}}`;document.head.appendChild(st);
+  const d=document.createElement('div');d.id='deco';d.hidden=true;document.body.appendChild(d)})();
+
+/* ---------- title: continue / new game (HUD buttons) ---------- */
+function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
+function metaTitle(){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
+  if(has){const s=SV(),done=s.prog.done.slice(0,MISSIONS.length).filter(Boolean).length;UI.title.continueLabel=done+'/'+MISSIONS.length+' jobs · '+money(s.cash)}
+  if(HUD.screen==='title')HUD.show('title',UI.title)}
+metaTitle();
+/* 'newgame' wipes the save first; 'continue' just starts */
+function metaTitleAction(a){if(a==='newgame'&&SAVEM&&hasSave()){if(DECO.on)decoStop(true);if(HOME3)homeTeardown();SAVEM.reset();metaFixSave(SV());metaSave(true)}}
+function metaResetSave(){if(!SAVEM)return;if(DECO.on)decoStop(true);SAVEM.reset();metaFixSave(SV());metaSave(true);vanApply();
+  if(HOME3){homeTeardown();if(mode==='home'){pauseOpen=false;HUD.hide('pause');enterHub();canvasFocus();requestLock()}}metaTitle()}
+
+/* ---------- menus (shops, locker) over the paused game ---------- */
+function openMenu(fn){if(!SAVEM||!HTM('Shop')||(HT.Menus&&HT.Menus.isOpen()))return false;if(!running&&!(mode==='hub'||mode==='home'))return false;
+  running=false;releaseLock();setPrompt(null);
+  fn({onClose:()=>{running=true;last=performance.now();canvasFocus();requestLock();furnSync();vanApply();metaSave()}});return true}
+/* newly owned furniture (bought at Hank's or delivered by Dadazon) goes straight into the house, once; things you put away stay in storage */
+function furnSync(){const s=SV();if(!s||!HOMEM)return 0;const f=s.furniture;let n=0;f.seen=f.seen||{};
+  for(const id in f.owned){const own=f.owned[id]|0,seen=f.seen[id]|0;for(let k=seen;k<own;k++){const L2=HOMEM.autoPlace({items:f.placed},id);if(L2){f.placed=L2.items;n++}}f.seen[id]=own}
+  for(const id in f.seen)if(!(id in f.owned))delete f.seen[id];
+  if(n){SAVEM.touch('furniture');if(HOME3)HOME3.setLayout({items:f.placed})}return n}
+function openShop(kind){return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r),onPreview:p=>vanPreview(p)})))}
+function openLocker(tab){return openMenu(o=>HT.Locker.open(Object.assign(o,{tab,onChange:()=>{metaSave()}})))}
+function metaOnBuy(r){
+  if(r.kind==='gun'&&r.delivered!=='pending'){const g=HT.CATALOG.guns[r.id];HUD.feed((g?g.name:r.id)+' is in your gun locker','info')}
+  if(/^(car|gar|cos|stick)$/.test(r.kind))vanApply();metaSave()}
+/* 3D shop thumbnails from the real models, once the gun and vehicle modules are in */
+if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){try{HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})}catch(e){console.warn('shop thumbnails unavailable',e)}}
+
+/* ---------- payout ---------- */
+function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;metaSave()}
+/* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
+function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
+  try{pay=ECON.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
+    bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:prog.trust,rerun:!!M.rerun});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
+  /* Coach Rick lets you keep the carbine after his job */
+  const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
+  metaSave(true);M.pay=pay;
+  if(res){res.stats=(res.stats||[]).concat([['Payout',money(pay.total),money(s.cash)+' saved']]);res.goLabel='Head home';res.canRetry=true;if(ok)res.retryLabel='Back to the cul-de-sac'}
+  const home=()=>{HUD.hide('result');UI.acts={};enterHub({at:'curb'});canvasFocus();requestLock()},street=()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()};
+  UI.acts['result:go']=home;if(ok)UI.acts['result:retry']=street;
+  setTimeout(()=>{if(HUD.screen==='result'&&HUD.payoutEl&&M&&M.pay===pay){try{HUD.payoutEl.innerHTML='';ECON.renderPayout(HUD.payoutEl,pay,{delay:250})}catch(e){console.warn(e)}aud(A=>A.ui('cash'))}},(ok?900:1200)+60);
+  return pay}
+
+/* ---------- loadout: the gun locker's saved slots ride along on every job ---------- */
+function metaLoadout(i){const s=SV();if(!s||!s.loadout)return null;
+  /* Rick's carbine is yours once his job is behind you (or the story starts past it) */
+  if((prog.done[1]||i>=2)&&WEAPONS.rifle&&!s.owned.guns.includes('rifle')){s.owned.guns.push('rifle');if(!s.loadout.p2&&s.loadout.p1!=='rifle')s.loadout.p2='rifle';SAVEM.touch('owned','loadout')}
+  const lo={};for(const k of SLOT_KEYS){const g=s.loadout[k];if(g&&WEAPONS[g]&&s.owned.guns.includes(g))lo[k]=g}
+  if(!lo.side)lo.side='pistol';const f=s.flags;
+  if(M&&(f.rangeDay||f.zipPack||f.icePack)){M.supplies={rangeDay:f.rangeDay,zipPack:f.zipPack,icePack:f.icePack};f.rangeDay=f.zipPack=f.icePack=false;SAVEM.touch('flags')}
+  return lo}
+/* roof box / Range Day extras on top of the base reserve */
+function metaAmmo(){if(!ECON||!M)return;try{for(const a of ECON.ammoFor())if(a.extra&&a.type in P.pool)P.pool[a.type]=Math.min(AMMO[a.type]?AMMO[a.type].cap:1e9,P.pool[a.type]+a.extra)}catch(e){}}
+
+/* ---------- minivan: saved garage → visible parts + handling (HT.Garage via HT.Economy.vehicleStats) ---------- */
+const VANK={top:1,btop:1,accel:1,baccel:1,brake:1,turn:1,grip:1,steer:1};
+function vanStats(){try{return SV()&&ECON?ECON.vehicleStats():null}catch(e){return null}}
+function vanLook(){const vs=vanStats();if(!vs||!vs.makeOpts)return{type:'minivan',color:'#35577d',upgrades:{roofRack:true}};return{type:vs.type||'minivan',color:vs.makeOpts.color,upgrades:vs.makeOpts.upgrades,vs}}
+function vanApply(){const lk=vanLook(),vs=lk.vs;
+  if(vs){Object.assign(VANK,{top:vs.maxSpeed/17,btop:vs.boostMax/25,accel:vs.accel/8,baccel:vs.boostAccel/11,brake:vs.brake/24,turn:(vs.turn||1.55)/1.55,grip:(vs.grip||9)/9,steer:(vs.steerResp||7)/7})}
+  const v=VAN.obj;if(!v||mode!=='hub')return;
+  /* another vehicle bought or chosen at Dad's Auto: swap the model in place */
+  if(v.userData.type&&lk.type!==v.userData.type){const nv=makeVan(lk.color,lk.type,lk.upgrades);if(nv){const par=v.parent;if(par){par.add(nv);par.remove(v)}VAN.obj=nv;syncVan();return}}
+  if(v.userData.setUpgrades){try{if(v.userData.setColor)v.userData.setColor(lk.color);v.userData.setUpgrades(lk.upgrades)}catch(e){console.warn('van upgrades failed',e)}}}
+function vanPreview(p){const v=VAN.obj;if(!v||!v.userData.setUpgrades)return;try{if(p&&p.opts){if(p.opts.color&&v.userData.setColor)v.userData.setColor(p.opts.color);v.userData.setUpgrades(p.opts.upgrades||{})}else vanApply()}catch(e){}}
+function metaHorn(){const vs=vanStats();if(!vs||!vs.horn||!vs.horn.id||vs.horn.id==='stock'||!HT.Menus||!HT.Menus.playHorn)return false;try{HT.Menus.playHorn({notes:vs.horn.notes});return true}catch(e){return false}}
+
+/* ---------- hub: the player's house, Hank's Hardware, Dad's Auto ---------- */
+/* until the bigger world places them, the two shops take two pairs of lots across the street from the house */
+const SHOP_LOTS=[{kind:'hardware',x0:17,z0:1,x1:27,z1:4,facing:'+z',label:"Hank's Hardware"},{kind:'auto',x0:35,z0:1,x1:45,z1:4,facing:'+z',label:"Dad's Auto"}];
+(function clearShopLots(){if(!HTM('Buildings'))return;const g=HUB.map.map(r=>r.split(''));
+  for(const s of SHOP_LOTS){let ok=true;for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)if(!g[z]||!'hgt'.includes(g[z][x]))ok=false;
+    if(!ok){s.skip=true;continue}for(let z=s.z0;z<=s.z1;z++)for(let x=s.x0;x<=s.x1;x++)g[z][x]='g'}
+  g.forEach((r,i)=>HUB.map[i]=r.join(''))})();
+const HUBX={home:null,shops:[],sprites:[]};
+function labelSprite(text,sub,col='#ffc94a'){const c=document.createElement('canvas');c.width=512;c.height=sub?208:150;const x=c.getContext('2d');
+  x.font='64px "Bowlby One","Arial Black",Impact,sans-serif';x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.lineWidth=14;x.strokeStyle='rgba(22,24,28,.85)';
+  x.strokeText(text,256,62);x.fillStyle=col;x.fillText(text,256,62);
+  if(sub){x.font='800 32px Rubik,system-ui,sans-serif';x.lineWidth=9;x.strokeText(sub,256,140);x.fillStyle='#f6f1e3';x.fillText(sub,256,140)}
+  x.beginPath();x.moveTo(236,sub?178:116);x.lineTo(276,sub?178:116);x.lineTo(256,sub?202:142);x.closePath();x.fillStyle=col;x.fill();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,fog:false,toneMapped:false,transparent:true}));
+  s.scale.set(2.6,2.6*c.height/512,1);s.renderOrder=5;return s}
+function signTex(lines){const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');x.fillStyle='#f6f1e3';x.fillRect(0,0,512,256);
+  x.strokeStyle='#2f5d9e';x.lineWidth=14;x.strokeRect(14,14,484,228);x.fillStyle='#2f5d9e';x.textAlign='center';x.textBaseline='middle';
+  x.font='bold 74px Georgia,"Times New Roman",serif';x.fillText(lines[0],256,104);x.font='800 40px Rubik,Arial,sans-serif';x.fillStyle='#16181c';x.fillText(lines[1],256,186);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
+function metaMarkers(){const out=[];if(mode!=='hub')return out;const p=VAN.on?VAN.pos:P.pos;
+  if(HUBX.home){const h=HUBX.home,d=Math.hypot(h.x-p.x,h.z-p.z);if(d>22)out.push({id:'home',kind:'home',label:'Home',x:h.x,z:h.z,dist:d,screen:project(h.x,2.6,h.z)})}
+  for(const s of HUBX.shops){const d=Math.hypot(s.x-p.x,s.z-p.z);if(d<32&&d>3.5)out.push({id:s.kind,kind:s.kind==='auto'?'garage':'shop',label:s.label,x:s.x,z:s.z,dist:d,screen:project(s.x,2.6,s.z)})}
+  return out}
+function metaHubEnter(o){HUBX.shops=[];HUBX.sprites=[];HUBX.home=null;if(!L||!L.houses)return;
+  /* the player's house: the one the hub marks as home (nearest the spawn) */
+  const h=L.houses.find(x=>x.home)||L.houses.slice().sort((a,b)=>Math.hypot((a.x0+a.x1)/2-L.start.x,(a.z0+a.z1)/2-L.start.z)-Math.hypot((b.x0+b.x1)/2-L.start.x,(b.z0+b.z1)/2-L.start.z))[0];
+  if(h&&h.door){const d=h.door,nx=d.nx,nz=d.nz,tx_=-nz,tz_=nx;HUBX.home={x:d.x+nx*.9,z:d.z+nz*.9,nx,nz,door:d,house:h};
+    const sp=labelSprite('HOME','The Millers');sp.scale.multiplyScalar(1.25);sp.position.set(d.x+nx*1.8,3.7,d.z+nz*1.8);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.7});
+    /* porch light: a warm lamp by the door, always on for this house */
+    const pl=new THREE.PointLight(0xffcf96,1.6,9,2);pl.position.set(d.x+nx*.7+tx_*.75,2.55,d.z+nz*.7+tz_*.75);L.group.add(pl);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),glowMat('#ffd9a0',3));bulb.position.copy(pl.position);L.group.add(bulb);
+    /* name board on a post at the end of the front walk */
+    let reach=2;for(let s=.5;s<9;s+=.5){const gx=tx(d.x+nx*s),gz=tx(d.z+nz*s),c=L.g[gz]&&L.g[gz][gx];if(c==='s'||c===','||c==='l'){reach=s-.4;break}}
+    const bx=d.x+nx*reach-tx_*1.15,bz=d.z+nz*reach-tz_*1.15,post=box(.08,1.3,.08,'#f2f1ec',bx,.65,bz,L.group);L.solids.push(post);
+    const brd=new THREE.Mesh(new THREE.PlaneGeometry(.96,.48),new THREE.MeshStandardMaterial({map:signTex(['The Millers','1412 Maple']),roughness:.6}));
+    const brd2=brd.clone();for(const[b,k]of[[brd,1],[brd2,-1]]){b.position.set(bx+nx*.05*k,1.03,bz+nz*.05*k);b.rotation.y=Math.atan2(nx*k,nz*k);b.castShadow=true;L.group.add(b)}
+    box(.96,.05,.12,'#2f5d9e',bx,1.3,bz,L.group).rotation.y=Math.atan2(nx,nz)}
+  /* shops */
+  const B_=HTM('Buildings');
+  for(const s of SHOP_LOTS){if(s.skip||!B_)continue;const x0=s.x0*TILE,z0=s.z0*TILE,x1=(s.x1+1)*TILE,z1=(s.z1+1)*TILE,cx=(x0+x1)/2,cz=(z0+z1)/2;let grp=null;
+    try{grp=B_.shop({kind:s.kind,w:x1-x0-.6,d:z1-z0-.6,facing:s.facing,seed:s.kind==='auto'?3:1})}catch(e){console.warn('shop build failed',e)}if(!grp)continue;
+    grp.position.set(cx,0,cz);L.group.add(grp);grp.traverse(m=>{if(m.isMesh){L.solids.push(m);m.castShadow=true;m.receiveShadow=true}});
+    L.colliders.push({x0:x0+.3,z0:z0+.3,x1:x1-.3,z1:z1-.3});
+    const dr=grp.userData.door||{x:0,z:(z1-z0)/2,nx:0,nz:1};const door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz};
+    const sp=labelSprite(s.label.toUpperCase(),s.kind==='auto'?'Upgrades · paint · horns':'Guns · tools · yard stuff','#f6f1e3');sp.position.set(door.x+door.nx*.5,3.6,door.z+door.nz*.5);sp.scale.multiplyScalar(.85);L.group.add(sp);HUBX.sprites.push({s:sp,y:3.6});
+    HUBX.shops.push({kind:s.kind,label:s.label,x:door.x+door.nx*.9,z:door.z+door.nz*.9,door,bay:{x:cx+(s.kind==='auto'?3:0),z:z1+3}})}
+  vanApply();
+  try{const pins=[];if(HUBX.home)pins.push({id:'home',kind:'home',label:'Home',x:HUBX.home.x,z:HUBX.home.z,fast:true});for(const s of HUBX.shops)pins.push({id:s.kind,kind:s.kind==='auto'?'garage':'shop',label:s.label,x:s.x,z:s.z,fast:true});
+    if(L.vanStart)pins.push({id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true});if(pins.length)HUD.minimap.setPins(pins)}catch(e){}
+  if(o&&o.at&&HUBX.home){const H_=HUBX.home;
+    if(o.at==='home'||o.at==='curb'){P.pos.set(H_.x+H_.nx*.8,0,H_.z+H_.nz*.8);P.yaw=Math.atan2(-H_.nx,-H_.nz);collide(P.pos,.35)}
+    if(o.at==='curb'){P.yaw=Math.atan2(H_.nx,H_.nz);/* face the house */
+      const p=V3(H_.x+H_.nx*5.5,0,H_.z+H_.nz*5.5);P.pos.copy(p);collide(P.pos,.35)}}
+  if(o&&o.at==='van'&&VAN.obj){P.pos.copy(VAN.pos);setTimeout(()=>{if(mode==='hub'&&!VAN.on)enterVan()},0)}}
+function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprites)s.s.position.y=s.y+Math.sin(t*2.2)*.08;
+  let best=null,bd=1e9;const cand=[];if(HUBX.home)cand.push({id:'home',x:HUBX.home.x,z:HUBX.home.z,r:2.1,label:homeReady?'Go inside':'Go inside (unlocking…)'});
+  for(const s of HUBX.shops){cand.push({id:s.kind,x:s.x,z:s.z,r:2.3,label:s.label});if(s.kind==='auto')cand.push({id:'autobay',x:s.bay.x,z:s.bay.z,r:7,label:'Pull into '+s.label,van:1})}
+  for(const c of cand){if(!!c.van!==VAN.on)continue;const p=VAN.on?VAN.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&d<bd){bd=d;best=c}}
+  if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
+  if(VAN.on&&Math.abs(VAN.spd)>3)return null;
+  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else HUD.feed('Jen is looking for the spare key…','info')}
+    else if(best.id==='hardware')openShop('hardware');else openShop('auto');return null}
+  return KE+' · '+best.label}
+
+/* ---------- people at home: the realistic family (assets/people/rocketbox) when present, else the module's stand-ins ---------- */
+const RB={g:{},clips:null,loading:null};
+function rbLoad(){if(RB.loading)return RB.loading;const gl=THREE.GLTFLoader?new THREE.GLTFLoader():null;if(!gl||!THREE.SkeletonUtils)return RB.loading=Promise.resolve();
+  const ld=n=>new Promise(r=>gl.load('assets/people/rocketbox/'+n+'.glb',g=>{RB.g[n]=g;r()},undefined,()=>{console.warn('family model failed, using stand-in:',n);r()}));
+  const shared=ASSETS.gltf&&ASSETS.gltf('rb_anims');if(shared)RB.g.anims=shared;/* the people module already loaded the clips */
+  return RB.loading=Promise.all(['wife','son','daughter'].concat(shared?[]:['anims']).map(ld)).then(()=>{RB.clips=RB.g.anims?RB.g.anims.animations:null})}
+function rbPerson(role){const key={spouse:'wife',son:'son',daughter:'daughter'}[role],g=key&&RB.g[key];if(!g||!RB.clips)return null;
+  const model=THREE.SkeletonUtils.clone(g.scene),root=new THREE.Group();root.name='person:'+role;root.add(model);
+  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
+  let hip=.8952;g.scene.traverse(o=>{if(o.userData&&o.userData.hipHeight)hip=o.userData.hipHeight});const k=hip/.8952,fem=role!=='son';
+  const mixer=new THREE.AnimationMixer(model),acts={};
+  const act=n=>{if(acts[n])return acts[n];const c=RB.clips.find(c=>c.name===n);if(!c)return null;const cc=c.clone();
+    if(Math.abs(k-1)>.01)for(const tr of cc.tracks)if(/Pelvis\.position$/.test(tr.name)){tr.values=tr.values.slice();for(let i=0;i<tr.values.length;i++)tr.values[i]*=k}
+    return acts[n]=mixer.clipAction(cc)};
+  const MAP={idle:fem?'f_idle':'idle',walk:fem?'f_walk':'walk',run:'jog',sit:fem?'f_sit':'sit',wave:'interact',talk:'idle_look',cook:'interact',phone:'idle_look',play:'jog',lie:fem?'f_sit':'sit',eat:fem?'f_sit':'sit',happy:'interact'};
+  let cur=null,curN='';
+  const P_={root,role,height:role==='spouse'?1.68:role==='son'?1.4:1.3,pose:'',lookYaw:0,
+    setAnim(name){const want=MAP[name]||MAP.idle;P_.pose=name;if(want===curN)return;const a=act(want)||act(MAP.idle);if(!a)return;
+      const once=name==='wave'||name==='happy';a.reset();a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);a.clampWhenFinished=false;a.fadeIn(.3).play();
+      if(cur&&cur!==a)cur.fadeOut(.3);cur=a;curN=want;if(once){P_.onceT=a.getClip().duration-.35}},
+    update(dt){mixer.update(dt);if(P_.onceT!=null){P_.onceT-=dt;if(P_.onceT<=0){P_.onceT=null;const p=P_.pose;curN='';P_.setAnim('idle');P_.pose=p}}
+      const sit=/^(sit|lie|eat)$/.test(P_.pose);model.position.y=sit?(P_.seatH||.45)-.45*k:0}};
+  P_.setAnim('idle');return P_}
+function familyPerson(role){return rbPerson(role)}
+function homeInit(){if(homeLoading||!HOMEM)return homeLoading;
+  homeLoading=Promise.all([HOMEM.init({assets:ASSETS,renderer,makePerson:familyPerson}),rbLoad()]).then(()=>{homeReady=true}).catch(e=>{console.warn('home init failed',e);homeReady=true});return homeLoading}
+ASSETS.ready.then(()=>homeInit());
+
+/* ---------- home mode ---------- */
+let homeVan=null,homeHint=0;
+function pickEvent(ev){const pr=['win_doug','win_dave','win_rick','win_gary','fail','flamingo','boughtFurniture','boughtGun','boughtAttachment'];let best=null;
+  for(const e of ev){const k=pr.indexOf(e);if(k>=0&&(best===null||k<pr.indexOf(best)))best=e}return best}
+function enterHome(){if(!HOMEM||!homeReady)return false;const s=SV();
+  if(VAN.on){VAN.on=false;engine(false)}DECO.on=false;
+  mode='home';M=null;JOB=null;objKey='';clearChars();destRings=[];showMarker(null);setPrompt(null);
+  if(L&&L.group){scene.remove(L.group);L.group.traverse(o=>{if(o.userData&&o.userData.wkey&&o.geometry)o.geometry.dispose()})}
+  /* deliveries first, so new furniture is already in the room */
+  let got=[];try{got=ECON?ECON.deliverPending():[]}catch(e){}
+  /* the van gets patched up in the driveway: at least 60% after a night at home */
+  try{const g=s&&s.garage,vs=vanStats();if(g&&vs&&g.hp){const t=g.active;g.hp[t]=Math.max(g.hp[t]==null?vs.hp:g.hp[t],Math.round(vs.hp*.6));SAVEM.touch('garage')}}catch(e){}
+  furnSync();
+  if(s)HOMEM.setLineState(s.family);
+  const H=HOME3=HOMEM.build({layout:s?{items:s.furniture.placed}:HOMEM.starterLayout(),owned:s?s.furniture.owned:null,trust:prog.trust,timeOfDay:15});
+  scene.add(H.group);try{H.bakeReflections(renderer,scene)}catch(e){}
+  /* the van, parked in the garage with all its parts */
+  const lk=vanLook();homeVan=makeVan(lk.color,lk.type,lk.upgrades);const vs=H.vanSpot||{x:-3.7,z:4.5,yaw:0};homeVan.position.set(vs.x,0,vs.z);homeVan.rotation.y=(vs.yaw||0)+Math.PI/2;H.group.add(homeVan);
+  H.colliders.push({x0:vs.x-1.05,z0:vs.z-2.35,x1:vs.x+1.05,z1:vs.z+2.35});homeVan.traverse(m=>{if(m.isMesh)H.solids.push(m)});
+  L={def:{id:'home',type:'home'},group:H.group,colliders:H.colliders,solids:H.solids,W:1,H:1,g:[['#']],start:V3(H.spawn.x,0,H.spawn.z),items:[],stashes:[],spawns:[],markers:[],ammo:[],houses:[],waveSpawns:[]};
+  subQ.length=0;subT=0;UI.sub=null;UI.marker=null;
+  setMood({id:'hub'});makePlayer();P.pos.copy(L.start);if(typeof resetMove==='function')resetMove();P.yaw=H.spawn.yaw;P.pitch=-.12;P.hp=100;P.crouch=false;P.aim=false;P.weapons=[P.cur];equip(P.dude,null);vm.visible=false;
+  /* the street-scale SSAO smears halos across flat interior walls: smaller radius, and most of the contact shadow comes from the house's baked floor AO */
+  const am=RENDER.mats.aoMat.uniforms;am.radius.value=(H.aoHint&&H.aoHint.radius)||.45;am.power.value=1.6;RENDER.mats.compMat.uniforms.strength.value=.4;
+  rebuildTargets();camDist=1.2;
+  let line=null;try{const ev=s?s.events:[];const e=pickEvent(ev);line=H.onEnter({event:e,trust:prog.trust,shotSurrUp:s&&prog.shotSurr>(s.family.lastShotSurr||0)});if(s){s.events.length=0;s.family.lastShotSurr=prog.shotSurr}}catch(e){console.warn(e)}
+  if(line&&line.text)radio(line.name||line.who,line.text);
+  const furn=got.filter(e=>e.kind==='furn'),other=got.filter(e=>e.kind!=='furn');
+  if(got.length){const C=HT.CATALOG;const names=got.map(e=>(e.kind==='furn'?C.furniture[e.id]:e.kind==='gun'?C.guns[e.id]:C.attachments[e.id])||{name:e.id}).map(x=>x.name);
+    HUD.banner({kind:'done',kicker:'Delivered',title:names.length>1?names.length+' packages':names[0],sub:names.slice(0,3).join(' · ')+(names.length>3?' +'+(names.length-3)+' more':''),dur:2.6});radio('Biscuit','*Your Dadazon order has arrived. Biscuit has opened it.*')}
+  if(furn.length)radio('Jen',"New furniture's in. I put it where it fit. Press B if you want to move it around.");else if(other.length)radio('Jen',"Package for you. It's in the gun safe. I didn't look. I looked.");
+  setObj('Home',[]);homeHint=6;
+  aud(A=>{A.ambience('home');A.setIndoor&&A.setIndoor(true);A.voice&&A.voice('dog',null,{vol:.5})});
+  metaSave(true);running=true;return true}
+function homeTeardown(){if(DECO.on)decoStop(true);const s=SV();if(s&&HOMEM)Object.assign(s.family,HOMEM.lineState());
+  if(homeVan&&homeVan.userData.dispose){try{homeVan.userData.dispose()}catch(e){}}homeVan=null;
+  if(HOME3){HOME3.dispose();HOME3=null}const am=RENDER.mats.aoMat.uniforms;am.radius.value=1;am.power.value=4;RENDER.mats.compMat.uniforms.strength.value=.85;
+  aud(A=>{A.ambience(null);A.setIndoor&&A.setIndoor(false)})}
+function exitHome(via){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null;metaSave(true);enterHub({at:via==='garage'?'van':'home'});canvasFocus()}
+function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){}
+  if(DECO.on){decoUpd(dt);return}
+  let best=null,bd=1e9;const fam=H.familyInteractables?H.familyInteractables():[];
+  for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
+  const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Grab a root beer',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
+  setPrompt(best?KE+' · '+(LBL[best.id]||best.label):null);
+  homeHint-=dt;setObj('Home',homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
+  if(!best||!useTap)return;useTap=false;const id=best.id;
+  if(id==='locker')openLocker('loadout');else if(id==='workbench')openLocker('attach');else if(id==='laptop')openShop('dadazon');
+  else if(id==='front'||id==='door')exitHome('front');else if(id==='garage')exitHome('garage');
+  else if(id==='family'){const l=best.who==='biscuit'||/^Pet/.test(best.label)?H.pet():H.talk(best.who,{trust:prog.trust});if(l&&l.text)radio(l.name||best.who,l.text);
+    aud(A=>A.voice&&A.voice(best.who==='biscuit'?'dog':best.who==='jen'?'dad_ok':'kid',null,{vol:.6}));metaSave()}
+  else if(id==='fridge'){P.hp=100;radio('you',pick(["Root beer. The good kind, in the glass bottle.","Somebody ate my leftover brisket. I know who.","There's a note on the milk that says DAD NO. Fair."]))}
+  else if(id==='tv'){radio('you',pick(["Fourth and two and they punt. Unbelievable.","Highlights. It's all the same three highlights.","Jen, do we have the sports package? Since when?"]))}
+  else if(id==='bed'){P.hp=100;radio('you',pick(["Just resting my eyes.","Five minutes. Ten, tops.","This mattress knows my name."]))}
+  else if(id==='grill'){radio('you',pick(["Charcoal. Gas is for people who give up.","Burgers at six. Tell the kids.","Big Dave would say the coals aren't ready. Big Dave isn't here."]))}
+  else if(best.label)radio('you',best.label)}
+
+/* ---------- decorating ---------- */
+const DECO={on:false,msg:'',msgT:0,html:''};
+function decoStart(){if(!HOME3||!HOMEM)return;const D=HOMEM.decorate;const s=SV();
+  D.start({owned:s.furniture.owned,cutaway:true,people:[P.pos],onChange:Lo=>{s.furniture.placed=Lo.items;SAVEM.touch('furniture')},onExit:Lo=>{s.furniture.placed=Lo.items;SAVEM.touch('furniture');metaSave(true)}});
+  DECO.on=true;DECO.msg='';document.body.classList.add('decoOn');P.pitch=Math.min(P.pitch,-.75);setPrompt(null);$('deco').hidden=false;aud(A=>A.ui('click'))}
+function decoStop(quiet){if(!DECO.on)return;DECO.on=false;document.body.classList.remove('decoOn');try{HOMEM.decorate.exit()}catch(e){}$('deco').hidden=true;P.pitch=-.12;if(!quiet)aud(A=>A.ui('back'))}
+function decoFlash(t,bad){DECO.msg=t;DECO.bad=!!bad;DECO.msgT=2.2;if(bad)aud(A=>A.ui('denied'))}
+function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
+  if(a==='place'){r=D.place();if(r.ok){decoFlash('Placed. Looks good.');aud(A=>A.ui('click'))}else decoFlash(r.reason||"Doesn't fit there",true)}
+  else if(a==='rotate'){D.rotate()}
+  else if(a==='remove'){r=D.remove();if(r.ok)decoFlash('Put away in storage');else decoFlash(r.reason,true)}
+  else if(a==='move'){if(D.move())decoFlash('Picked it up. Click to put it down.');else decoFlash('Aim at something you placed',true)}
+  else if(a==='next')D.cycle(1);else if(a==='prev')D.cycle(-1)}
+function decoPeople(){const out=[P.pos];if(HOME3&&HOME3.family)for(const m of HOME3.family)out.push(m.pos);return out}
+function decoUpd(dt){const D=HOMEM.decorate;
+  UI.obj=null;/* the panel says it all */
+  if(mouseDown){mouseDown=false;decoAct('place')}if(P.aim){P.aim=false;decoAct('remove')}
+  const info=D.aim(camera.position,camFwd(),decoPeople());
+  DECO.msgT-=dt;const inv=D.inventory(),sel=D.selected?HOMEM.catalogById[D.selected]:null;const cnt=sel?(inv.find(i=>i.id===sel.id)||{count:0}).count:0;
+  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aim + M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
+  const bad=DECO.msgT>0?DECO.bad:!!(sel&&(!info||info.why));
+  const strip=inv.slice(0,14).map(i=>'<span class="'+(i.id===D.selected?'on':'')+'">'+i.name.replace(/\s*\(.*\)/,'')+(i.count>1?' ×'+i.count:'')+'</span>').join('');
+  const h='<div class="h"><b>Decorating</b><span>'+(inv.length?inv.reduce((a,i)=>a+i.count,0)+' in storage':'Storage empty')+'</span></div>'+
+    '<div class="it">'+(sel?sel.name+'<small>'+(D.moving?'moving':cnt+' left')+'</small>':'Nothing selected')+'</div><div class="why'+(bad?' bad':'')+'">'+why+'</div>'+
+    (strip?'<div class="strip">'+strip+'</div>':'')+
+    '<div class="k"><span><i>Click</i>/<i>'+KE+'</i>place</span><span><i>R</i>rotate</span><span><i>Tab</i>/<i>wheel</i>next item</span><span><i>M</i>move</span><span><i>X</i>/<i>right click</i>put away</span><span><i>B</i>done</span></div>';
+  if(h!==DECO.html){DECO.html=h;$('deco').innerHTML=h}
+  if(useTap){useTap=false;decoAct('place')}}
+function homeCam(dt){if(!HOME3)return;
+  if(DECO.on){/* look down into the cut-away rooms from above and behind the dad */
+    P.pitch=clamp(P.pitch,-1.35,-.32);const fh=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
+    camera.position.set(P.pos.x,5.3,P.pos.z).addScaledVector(fh,-3.3);camera.rotation.set(P.pitch,P.yaw,0);if(P.dude)P.dude.root.visible=true;return}
+  /* tight rooms: if the boom has collapsed, go first person instead of staring at the back of a head */
+  if(!P.fp&&camDist<.55){camera.position.copy(P.pos).add(V3(0,1.62,0));if(P.dude)P.dude.root.visible=false}
+  camera.position.y=Math.min(camera.position.y,2.3)}
+function metaKey(e,k){if(window.HT&&HT.Menus&&HT.Menus.isOpen())return true;
+  if(mode!=='home'||!running||pauseOpen||e.repeat)return false;
+  if('123'.includes(k)&&k.length===1)return true;/* guns stay in the safe at home */
+  if(k==='b'){DECO.on?decoStop():decoStart();return true}
+  if(!DECO.on)return false;
+  const A={r:'rotate',x:'remove',m:'move',tab:'next',q:'prev',enter:'place',e:'place'}[k];if(!A)return false;
+  if(k==='tab')e.preventDefault();if(A==='place')useTap=false;decoAct(A);return true}
+addEventListener('wheel',e=>{if(DECO.on&&running)decoAct(e.deltaY>0?'next':'prev')},{passive:true});
+function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({get save(){return SV()},get cash(){const s=SV();return s?s.cash:0},grant(n){if(!SAVEM)return 0;SAVEM.addCash?SAVEM.addCash(n):(SV().cash+=n);metaSave(true);return SV().cash},
+  saveGame:()=>metaSave(true),resetSave:()=>{SAVEM.reset();metaFixSave(SV());metaSave(true)},enterHome,exitHome,openShop,openLocker,decoStart,decoStop,decoAct,
+  get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},place(x,z,yaw,pitch){P.pos.set(x,0,z);collide(P.pos,.35);if(yaw!=null)P.yaw=yaw;if(pitch!=null)P.pitch=pitch;return{x:P.pos.x,z:P.pos.z}},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
@@ -1695,7 +2002,7 @@ function frame(now){
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);
     aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);
-    if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);
+    if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
   if(L)updCamera(dt);
@@ -1719,7 +2026,7 @@ ASSETS.ready.then(A=>{const miss=A.failed.length;
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},
@@ -1728,6 +2035,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   /* movement hooks: jump() presses jump once; move gives the live state; ground(x,z) is the height feet would stand at */
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
+metaExpose(window.__ht);
 /* character test hooks (dev/people scripts) */
 window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]}};
 requestAnimationFrame(frame);
