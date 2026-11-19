@@ -1465,13 +1465,8 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
-<<<<<<< HEAD
-      const lost=carCrash(e,sp,push.x||push.z?push:{x:Math.sin(e.yaw)*(hit.front?1:-1),z:Math.cos(e.yaw)*(hit.front?1:-1)},hit.front),s2=speaker();
+      const lost=carCrash(e,sp,push.x||push.z?push:{x:Math.sin(e.yaw)*(hit.front?1:-1),z:Math.cos(e.yaw)*(hit.front?1:-1)},hit.front),s2=speaker();if(mode==='mission'&&M&&M.world&&carHp(e)<=0)wmVanDown();
       if(lost>0&&sp>11&&Math.random()<.5&&DRV.quipT<=0){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
-=======
-      if(mod)dentCar(e,push,sp);if(mode==='mission'&&M&&M.world)wmVanImpact(e,sp,hit.front);const s2=speaker();
-      if(sp>11&&Math.random()<.5){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
->>>>>>> origin/main
         else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
   e.bump-=dt;syncCar(e);
   const braking=I.hb||(I.thr<0&&e.spd>.5)||(I.thr>0&&e.spd<-.5),heads=DRV.lights==null?autoLights():DRV.lights;
@@ -2377,11 +2372,7 @@ function hud(dt){
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
     enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):[],
     objective:obj,timer,prompt:UI.prompt,
-<<<<<<< HEAD
     speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
-=======
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?wmVanHealth():1,
->>>>>>> origin/main
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'},dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
@@ -2478,12 +2469,8 @@ function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=nu
     bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:m.hood==='river'?prog.trustR:prog.trust,rerun:!!M.rerun,...(M.payX||{})});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
   /* Coach Rick lets you keep the carbine after his job */
   const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
-<<<<<<< HEAD
-  metaSave(true);M.pay=pay;if(pay.tabPaid)setTimeout(()=>HUD.feed("Paid off Sal's tab",'cash','-'+money(pay.tabPaid)),2500);
-=======
   if(s.pending&&s.pending.length){s.porch=s.pending.length;SAVEM.touch('pending')}/* everything ordered so far is on the porch when you get home */
-  metaSave(true);M.pay=pay;
->>>>>>> origin/main
+  metaSave(true);M.pay=pay;if(pay.tabPaid)setTimeout(()=>HUD.feed("Paid off Sal's tab",'cash','-'+money(pay.tabPaid)),2500);
   if(res){res.stats=(res.stats||[]).concat([['Payout',money(pay.total),money(s.cash)+' saved']]);res.goLabel='Head home';res.canRetry=true;if(ok)res.retryLabel='Back to the cul-de-sac'}
   const home=()=>{HUD.hide('result');UI.acts={};enterHub({at:'curb'});canvasFocus();requestLock()},street=()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()};
   UI.acts['result:go']=home;if(ok)UI.acts['result:retry']=street;
