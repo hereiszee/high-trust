@@ -14,12 +14,26 @@ const hasDOM=typeof document!=='undefined';
 /* =====================================================================
    CATALOGUE
    ===================================================================== */
+/* bonus: mission-specific payout lines (SPEC D.1 + SPEC2 B.1-B.5). r = the result object passed to computePayout. */
 const MISSIONS=[
-  {id:'gary',giver:'gary',who:'Gary',title:'Return to Sender',base:400,par:300},
-  {id:'rick',giver:'rick',who:'Coach Rick',title:'Fourth Quarter',base:550,par:0},
-  {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240},
-  {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300}];
-
+  {id:'gary',giver:'gary',who:'Gary',title:'Return to Sender',base:400,par:300,hood:'maple',
+    bonus:[r=>r.got&&['packages','Returned packages ×'+r.got,30*r.got]]},
+  {id:'rick',giver:'rick',who:'Coach Rick',title:'Fourth Quarter',base:550,par:0,hood:'maple',
+    bonus:[r=>r.ok&&r.timeLeft>0&&['clock','Clock bonus · '+Math.round(r.timeLeft)+'s left',3*Math.round(r.timeLeft)]]},
+  {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240,hood:'maple',bonus:[]},
+  {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300,hood:'maple',
+    bonus:[r=>r.bossDone==='cuffed'&&['bail',"King's bail refund",500]]},
+  {id:'earl',giver:'earl',who:'Earl',title:'End of the Line',base:650,par:300,hood:'river',
+    bonus:[r=>r.bikes&&['bikes','Bikes back with their kids ×'+r.bikes,40*r.bikes],r=>r.converters&&['converters','Converters to the bike library fund ×'+r.converters,60*r.converters]]},
+  {id:'dee',giver:'dee',who:'Pastor Dee',title:'Fellowship Hall',base:800,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.cleanStakeout&&['stakeout','Clean stakeout',200],r=>r.ids&&['ids','Faces matched to names ×'+r.ids,50*r.ids],r=>r.bossDone==='cuffed'&&['courier','The Courier gets a second chance',250]]},
+  {id:'rosa',giver:'rosa',who:'Rosa',title:'Garden Variety',base:900,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.beds!=null&&(r.beds>=10?['tomatoes','Tomatoes saved',200]:r.beds>0&&['tomatoes','Garden beds standing ×'+r.beds,15*r.beds])]},
+  {id:'benny',giver:'benny',who:'Benny',title:'Brain Freeze',base:1000,par:0,hood:'river',
+    bonus:[r=>r.ok&&r.truckHp>.66&&['truck','Truck in one piece',200],r=>r.ok&&r.chaseT!=null&&r.chaseT<45&&['chase','Chased it down under 45 s',150]]},
+  {id:'duke',giver:'earl',who:'Earl',title:'The Duke',base:1400,par:0,hood:'river',
+    bonus:[r=>r.bossDone==='cuffed'&&['bail',"The Duke's bail refund",600],r=>r.ok&&r.chaseT!=null&&r.chaseT<60&&['chase','Caught him under 60 s',150],r=>r.ok&&r.vanHp>=.9&&['dents',"Sal's no-dents bonus",100]]}];
+const MISSION_COUNT=MISSIONS.length;
 const AMMO={'9mm':{name:'9mm',cap:192,col:'#e9b949'},'357':{name:'.357',cap:36,col:'#a9adb3'},nails:{name:'Nails',cap:200,col:'#cfd6dd'},
   '12ga':{name:'12 ga',cap:40,col:'#d8553f'},bean:{name:'Beanbags',cap:30,col:'#f08a2c'},'556':{name:'5.56',cap:180,col:'#6fb35a'},'308':{name:'.308',cap:25,col:'#4f7fc4'}};
 
@@ -62,6 +76,26 @@ const GUNS={
     reload:{tac:2.6,empty:3.1},equip:.55,fsa:true,price:1200,unlock:{buyAfter:2,collect:1},
     blurb:"Deer season never really ended. It just moved to Ridgeview."}};
 const GUN_ORDER=['pistol','revolver','nailer','shotgun','double','beanbag','rifle','smg','hunter'];
+/* SPEC A.2 feel data: recoil pattern rc.pat, view-model kick vm, sound recipe snd (gunSnd layers), extra mech clicks on reload */
+const V=(back,rise,roll,side,k,damp,reloadStyle)=>({back,rise,roll,side,k,damp,reloadStyle});
+const FEEL={
+  pistol:{pat:[[1,0]],vm:V(.04,.10,.02,.005,140,16,'mag'),snd:{crack:[3200,1.2,.03,.5],body:[2200,.16,.45],thump:['sine',150,45,.12,.32],tail:[900,.35,.12],mech:[]}},
+  revolver:{pat:[[1,0]],vm:V(.07,.28,.05,.01,90,11,'cylinder'),snd:{crack:[2600,.9,.04,.7],body:[1500,.25,.7],thump:['sine',110,38,.2,.5],tail:[700,.7,.22,.12,.25],mech:[[.38,3000,.03,.12]]}},
+  nailer:{pat:[[1,0]],vm:V(.015,.02,.03,.02,220,22,'tilt'),snd:{crack:[6000,3,.015,.25],body:[4000,.05,.15],thump:['square',220,180,.04,.06],tail:null,mech:[[.03,7000,.08,.08]]}},
+  shotgun:{pat:[[1,0]],vm:V(.09,.16,.03,.01,80,10,'shell'),snd:{crack:[1800,.7,.05,.8],body:[900,.4,.9],thump:['sine',90,35,.16,.45],tail:[500,.8,.25],mech:[[.32,2500,.06,.25],[.42,1800,.06,.25]]}},
+  double:{pat:[[1,0],[1.25,.4]],vm:V(.12,.22,.06,.015,70,9,'break'),snd:{crack:[1500,.6,.06,1],body:[700,.55,1],thump:['sine',70,28,.25,.6],tail:[400,1.1,.35,.15,.3],mech:[],reloadMech:[[0,3500,.04,.3]],secondPitch:.94}},
+  beanbag:{pat:[[1,0]],vm:V(.07,.12,.02,.01,90,12,'shell'),snd:{crack:[1200,1,.04,.45],body:[600,.25,.5],thump:['sine',120,60,.1,.4],tail:[400,.3,.1],mech:[[.32,2750,.06,.25],[.42,1980,.06,.25]],impact:[300,.1]}},
+  rifle:{pat:[[1.4,0],[1.3,0],[1.2,0],[1.1,0],[1,0],[1,0],[.7,.6],[.6,.8]],vm:V(.025,.035,.01,.006,160,18,'mag'),snd:{crack:[3500,1.4,.025,.55],body:[3000,.12,.5],thump:['sine',140,40,.1,.3],tail:[1200,.45,.14],mech:[]}},
+  smg:{pat:[[1,0],[1,-.3],[1,.3]],vm:V(.018,.02,.015,.012,200,20,'mag'),snd:{crack:[4200,1.6,.02,.4],body:[3500,.07,.35],thump:['triangle',180,60,.06,.2],tail:[1500,.25,.08],mech:[]}},
+  hunter:{pat:[[1,0]],vm:V(.10,.20,.02,0,60,8,'bolt'),bolt:.45,snd:{crack:[5000,2,.02,.9],body:[2000,.2,.8],thump:['sine',100,30,.2,.55],tail:[600,1.6,.3,.22,.3],mech:[[.45,2200,.05,.2],[.6,1500,.05,.2]]}}};
+for(const g in FEEL){Object.assign(GUNS[g].rc,{pat:FEEL[g].pat});GUNS[g].vm=FEEL[g].vm;GUNS[g].snd=FEEL[g].snd;if(FEEL[g].bolt)GUNS[g].bolt=FEEL[g].bolt}
+GUNS.nailer.special={rootChance:.2,rootT:.6,quietR:6};GUNS.smg.special={adsBreak:.08};GUNS.hunter.special={scope:true,sway:[.0015,1.3,.0012,.9],laser:.8};
+GUNS.double.special={bothBarrelsWindow:.3};GUNS.beanbag.special={surrenderBelow:.6,tracer:'#f08a2c'};
+/* SPEC A.3 NPC profiles: enemy [acc,dmg,burst,cooldown,wantMin,wantMax], ally [acc,dmg,cooldown]; dmg may be [near,far,within] */
+const NPC_GUNS={
+  pistol:{enemy:[.40,9,1,.9,7,15],ally:[.50,24,.75]},revolver:{enemy:[.45,16,1,1.3,8,16],ally:[.55,40,1.1]},nailer:{enemy:[.35,4,6,1,3,8]},
+  shotgun:{enemy:[.60,[22,7,8],1,1.4,3,7],ally:[.65,[55,16,9],1.1]},double:{enemy:[.60,[26,8,7],2,1.8,3,6]},rifle:{enemy:[.34,8,3,1.3,7,15],ally:[.42,18,.35]},
+  smg:{enemy:[.30,6,5,1.2,4,10]},hunter:{enemy:[.55,24,1,2.6,16,30],laser:.8}};
 
 const ATTACHMENTS={
   reddot:{name:'Red Dot',slot:'optic',price:300,compat:['pistol','revolver','shotgun','beanbag','rifle','smg'],
@@ -120,95 +154,49 @@ const SUPPLIES={
   zipPack:{name:'Zip-Tie Contractor Pack',price:30,flag:'zipPack',fx:'Zip-tie 25% faster during the next mission',blurb:"Five hundred zip-ties. Also good for cable management, which you will never do."},
   icePack:{name:'Ice Packs & Ibuprofen',price:35,flag:'icePack',fx:'Your crew gets back up 30% faster during the next mission',blurb:"For hamstrings, lower backs and the knee you hurt getting out of the van."}};
 
-/* Minivan upgrades. Tiered: level 0 = stock. fx multipliers are what HT.Economy.vehicleStats() returns. */
-const VEHICLE={
-  engine:{name:'Engine Tune',tab:'perf',tiers:[
-    {name:'New Spark Plugs',price:400,fx:{top:1.08,accel:1.12},blurb:"Jen asked why the van sounds \"angry.\" It sounds motivated."},
-    {name:'Cold Air Intake',price:900,unlock:{done:1},fx:{top:1.16,accel:1.25},blurb:"It inhales. It exhales. It's doing better than you on the stairs."},
-    {name:'The Midlife Crisis',price:1800,unlock:{done:2},fx:{top:1.28,accel:1.45},blurb:"Zero to sixty before the kids finish asking \"are we there yet.\""}]},
-  tyres:{name:'Tyres',tab:'perf',tiers:[
-    {name:'All-Terrain Tread',price:250,fx:{grip:1.15},blurb:"Grips gravel, wet leaves and the moral high ground."},
-    {name:'Performance Rubber',price:600,unlock:{done:1},fx:{grip:1.3},blurb:"Corners like the cart at the warehouse store. The good cart."}]},
-  brakes:{name:'Brakes',tab:'perf',tiers:[
-    {name:'Ceramic Pads',price:200,fx:{brake:1.2},blurb:"Stops on a dime. Also stops the squeal you've been ignoring since March."},
-    {name:'Big Red Calipers',price:500,unlock:{done:2},fx:{brake:1.45},blurb:"You'll tell everyone. Everyone will nod politely."}]},
-  bullBar:{name:'Push Bar',tab:'prot',tiers:[
-    {name:'Church Parking Lot Edition',price:650,unlock:{done:0},fx:{ram:2,frontDmg:.5},blurb:"Gently encourages parked thugs to move along."}]},
-  panels:{name:'Door Panels',tab:'prot',tiers:[
-    {name:'Kevlar-Lined Doors',price:700,fx:{armor:1.5,crewDmg:.6},blurb:"The sliding door finally closes with authority."},
-    {name:'Full Soccer-Mom Armor',price:1500,unlock:{done:2},fx:{armor:2.2,crewDmg:.35},blurb:"Rated for gunfire and three seasons of travel soccer."}]},
-  tint:{name:'Window Tint',tab:'prot',tiers:[
-    {name:'Legal Tint',price:150,fx:{notice:.8},blurb:"Enemies notice the van a beat later. Neighbors assume you're famous."},
-    {name:'Limo Tint',price:350,unlock:{trust:40},fx:{notice:.65},blurb:"Tyler keeps waving at people. They can't see him. He keeps waving."}]},
-  roofBox:{name:'Rooftop Cargo Box',tab:'util',tiers:[
-    {name:'Rooftop Cargo Box',price:300,fx:{spareMags:1},blurb:"Holds a spare mag of everything, plus the tent from the camping trip."}]},
-  gunRack:{name:'Overhead Gun Rack',tab:'util',tiers:[
-    {name:'Overhead Gun Rack',price:550,unlock:{done:1},fx:{vanSwap:true},blurb:"Change your loadout at the van mid-job. Where the fishing rods used to go."}]},
-  medkit:{name:'Glovebox First Aid',tab:'util',tiers:[
-    {name:'The Good First-Aid Kit',price:350,fx:{vanHeal:1,revive:1.5},blurb:"One full patch-up at the van per job. Not the kit with three band-aids and a coupon."}]},
-  lightBar:{name:'Amber Light Bar',tab:'util',tiers:[
-    {name:'Amber Light Bar',price:400,unlock:{trust:30},fx:{surrender:1.1},blurb:"Looks official. Isn't. Thugs give up 10% more easily for the first 20 seconds after you roll up."}]}};
-const VEH_ORDER=['engine','tyres','brakes','bullBar','panels','tint','roofBox','gunRack','medkit','lightBar'];
-
-/* Cosmetic picks: one active choice per group, owned options can be re-selected free. */
-const COSMETICS={
-  paint:{name:'Paint',opts:[
-    {id:'stock',name:'Factory Silver',price:0,col:'#b9c0c7',blurb:"The color of every minivan in every school pickup line."},
-    {id:'beige',name:'HOA Beige',price:120,col:'#d8c7a3',blurb:"Pre-approved by the board. Blends in with every house on the street."},
-    {id:'blue',name:'Little League Blue',price:180,col:'#2f5d9e',blurb:"Matches the polos. Coach Rick wept a single tear."},
-    {id:'red',name:'Fire Station Red',price:250,col:'#c23b2e',blurb:"Fast-looking. Legally, it is not faster."},
-    {id:'green',name:'Lawn Envy Green',price:250,col:'#4f8a4a',blurb:"The same green as your lawn will be, one day."},
-    {id:'yellow',name:'Hazard Yellow',price:300,col:'#ffc94a',blurb:"Visible from space. Visible from the HOA president's porch."},
-    {id:'black',name:'Midnight Carpool',price:500,col:'#24272c',unlock:{done:3},blurb:"Blacked out. Very serious. Still has a stick-figure family decal."}]},
-  rims:{name:'Wheels',opts:[
-    {id:'stock',name:'Hubcaps (3 of 4)',price:0,style:'hub',blurb:"The fourth one is somewhere on Route 9."},
-    {id:'steel',name:'Black Steelies',price:200,style:'steel',blurb:"Tough. Simple. Like your stance on daylight saving time."},
-    {id:'chrome',name:'Chrome Five-Spokes',price:350,style:'chrome',blurb:"Shiny enough to check your hair in."},
-    {id:'gold',name:'Gold Mesh',price:450,style:'gold',unlock:{trust:50},blurb:"Maddie refuses to be dropped off within a block of school."},
-    {id:'offroad',name:'Off-Road Beadlocks',price:400,style:'offroad',unlock:{done:2},blurb:"For the dirt road to the lake house you don't own."}]},
-  horn:{name:'Horn',opts:[
-    {id:'stock',name:'Polite Beep',price:0,notes:[[392,.3],[494,.3]],wave:'square',blurb:"Two notes. Both apologetic."},
-    {id:'duck',name:'Duck Call',price:60,notes:[[620,.09],[540,.09],[620,.09],[520,.2]],wave:'sawtooth',blurb:"Quack. Quack. Moves people out of the way through sheer confusion."},
-    {id:'train',name:'Freight Train',price:180,notes:[[220,.7],[277,.7],[330,.7]],wave:'sawtooth',chord:true,blurb:"Somebody on Maple will call the city about this."},
-    {id:'jingle',name:'Ice Cream Jingle',price:120,notes:[[784,.15],[659,.15],[784,.15],[880,.15],[784,.3]],wave:'triangle',blurb:"Every kid in a two-block radius is now outside. Use responsibly."},
-    {id:'whistle',name:'Dad Whistle',price:90,notes:[[1400,.12],[1900,.35]],wave:'sine',blurb:"The two-note whistle that means \"car. Now.\""},
-    {id:'air',name:'Stadium Air Horn',price:250,notes:[[466,.5]],wave:'sawtooth',chord:true,unlock:{done:1},blurb:"Coach Rick's halftime horn. He'd want you to have it. He has three."}]}};
-
 const STORES={
   dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Delivered after your next outing.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
-  hardware:{name:'Maple Hardware',sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now'},
-  auto:{name:'Lug Nuts & Sons',sub:'Auto',who:'Industrial Way · Bay 2',tag:'We work on minivans. We do not judge minivans.',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['cos','Cosmetics']],deliver:'now'}};
-
-const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
-  supplies:SUPPLIES,vehicle:VEHICLE,vehOrder:VEH_ORDER,cosmetics:COSMETICS,stores:STORES,family:FAMILY};
+  hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now',discount:{hood:'trust',at:60}},
+  mart:{name:'Ramos Corner Mart',who:'Riverside Flats · Open late',tag:'"Your friend with the mustache bought all my beef jerky." Mrs. Ramos',tabs:[['sup','Supplies'],['stick','Stickers']],deliver:'now',discount:{hood:'trustR',at:60}},
+  auto:{name:"Dad's Auto",who:'Route 9 · Sal Benedetto, proprietor',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['looks','Looks'],['cars','Vehicles'],['repair','Repair']],deliver:'now',
+    lines:["Every van's a sports car if you believe in it.","I put a V6 in a minivan once. The man cried. Good tears.","Bull bar's off a snowplow. It's fine. It's mostly fine.",
+      "You want the spinners? I'm not going to stop you. I'm going to judge you.","Everybody calls me Dad, including my actual dad."],
+    lineRosa:"Your nurse friend told me to stop eating gas station sushi. I'm considering it."}};
+/* Vehicle data (VEH, upgrade CATALOG, COSMETICS, HORNS) lives in js/carai.js as HT.Garage: read it there, not here. */
+const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,npcGuns:NPC_GUNS,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
+  supplies:SUPPLIES,stores:STORES,family:FAMILY,get garage(){return HT.Garage||null}};
 HT.CATALOG=CATALOG;
 
 /* =====================================================================
    SAVE  (localStorage 'ht-save', schema v1 per SPEC E, plus optional extension fields)
    ===================================================================== */
-const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=1;
+const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=2;
 const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
 const clampN=(v,a,b)=>v<a?a:v>b?b:v;
 function starterPlaced(){return[{uid:'st1',id:'sofa',x:22,z:8,r:0},{uid:'st2',id:'coffeetable',x:22,z:10,r:0},{uid:'st3',id:'armchair',x:28,z:9,r:3},
   {uid:'st4',id:'dining',x:34,z:20,r:0},{uid:'st5',id:'chair',x:33,z:20,r:1},{uid:'st6',id:'chair',x:36,z:20,r:3},{uid:'st7',id:'dogbed',x:36,z:12,r:0},{uid:'st8',id:'picnic',x:20,z:32,r:0}]}
+/* garage shape (SPEC2 D); HT.Garage.defaultGarage is used when js/carai.js is loaded, this copy otherwise */
+const defVehicle=()=>HT.Garage?HT.Garage.defaultVehicle():{paint:'slate',rims:'steel',tint:'none',lightBar:false,spoiler:false,perf:{engine:0,tyres:0,brakes:0,sport:false},prot:{bullBar:false,armor:0}};
+const defGarage=()=>HT.Garage?HT.Garage.defaultGarage():{active:'minivan',owned:['minivan'],purchases:0,dirt:0,vehicles:{minivan:defVehicle()},hp:{minivan:100},
+  util:{cargo:false,rack:false,aid:false},stickers:[null,null,null],ownedStickers:[],horn:'stock',ownedHorns:['stock'],ownedCos:{paint:['slate'],rims:['steel'],tint:['none']}};
+const WORLD_PINS=['home','hank','auto','gas','mart','community','church','garden','depot','earl'];
 const SAVE_DEFAULT=()=>({v:SAVE_V,t:0,
-  prog:{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0},
+  prog:{done:Array(MISSION_COUNT).fill(false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0},
   cash:0,stats:{earned:0,spent:0},
   owned:{guns:['pistol','shotgun'],att:[]},
   attOn:{},
-  loadout:{side:'pistol',p1:'shotgun',p2:null},
+  loadout:{side:'pistol',p1:'shotgun',p2:null,p3:null},
   armory:{seen:{}},
   pending:[],
   furniture:{owned:{sofa:1,coffeetable:1,armchair:1,dining:1,chair:2,dogbed:1,picnic:1},placed:starterPlaced()},
   family:{firstVisit:true,seen:[],pets:0,lastShotSurr:0},
+  crew:{rosa:false},
   events:[],
-  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false},
-  /* extensions (optional; filled from defaults when missing) */
-  vehicle:{engine:0,tyres:0,brakes:0,bullBar:0,panels:0,roofBox:0,gunRack:0,medkit:0,paint:'stock',rims:'stock',tint:0,lightBar:0,horn:'stock',
-    cos:{paint:['stock'],rims:['stock'],horn:['stock']}},
-  world:{hood:'maple',trust2:12,done2:[],places:['maple','home','hardware']}});
+  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false},
+  world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0},
+  garage:defGarage()});
 
 /* Fill missing keys from defaults, keep unknown keys (other modules may add their own), reject wrong types. */
 function deepMerge(def,s){
@@ -223,7 +211,8 @@ function deepMerge(def,s){
   for(const k in s)if(!(k in def))out[k]=clone(s[k]);
   return out}
 
-/* Old shapes we may meet: v0 = the pre-save prototype ({done,trust,cash,guns}) or anything without a version. */
+/* Old shapes we may meet: v0 = the pre-save prototype ({done,trust,cash,guns}); v1 = SPEC.md E (+ this module's early 'vehicle' extension). */
+const V1_PAINT={stock:'slate',beige:'sand',blue:'slate',red:'cranberry',green:'forest',yellow:'orange',black:'black'},V1_RIMS={stock:'steel',steel:'steel',chrome:'chrome',gold:'gold',offroad:'alloy'};
 const MIGRATIONS={
   0:s=>{const o={v:1};
     o.prog=isObj(s.prog)?s.prog:{done:s.done,trust:s.trust,cuffed:s.cuffed,downed:s.downed,shotSurr:s.shotSurr,missionsRun:s.missionsRun};
@@ -232,17 +221,58 @@ const MIGRATIONS={
     if(Array.isArray(s.guns))o.owned={guns:s.guns.slice(),att:Array.isArray(s.att)?s.att.slice():[]};
     else if(isObj(s.owned))o.owned=s.owned;
     for(const k in s)if(!(k in o)&&!['done','trust','cuffed','downed','shotSurr','missionsRun','guns','att'].includes(k))o[k]=s[k];
-    o.v=1;return o}};
+    o.v=1;return o},
+  1:s=>{ /* SPEC2 D */
+    const d=s.prog&&Array.isArray(s.prog.done)?s.prog.done:[];s.prog=isObj(s.prog)?s.prog:{};s.prog.done=[...d,...Array(MISSION_COUNT).fill(false)].slice(0,MISSION_COUNT);
+    const w=isObj(s.world)?s.world:{};
+    if(s.prog.trustR==null)s.prog.trustR=typeof w.trust2==='number'?w.trust2:5;
+    s.prog.act=s.prog.done.slice(0,4).every(Boolean)?2:1;
+    s.world={bridgeOpen:s.prog.act===2};for(const k in w)if(!['trust2','done2','places','hood'].includes(k))s.world[k]=w[k];
+    if(isObj(s.loadout)&&!('p3' in s.loadout))s.loadout.p3=null;
+    if(isObj(s.vehicle)&&!s.garage){const v=s.vehicle,g=defGarage(),mv=g.vehicles.minivan;
+      mv.perf.engine=Math.min(3,v.engine|0);mv.perf.tyres=Math.min(2,v.tyres|0);mv.perf.brakes=Math.min(2,v.brakes|0);
+      mv.prot.bullBar=!!v.bullBar;mv.prot.armor=Math.min(2,v.panels|0);mv.lightBar=!!v.lightBar;
+      g.util.cargo=!!v.roofBox;g.util.rack=!!v.gunRack;g.util.aid=!!v.medkit;
+      mv.paint=V1_PAINT[v.paint]||'slate';mv.rims=V1_RIMS[v.rims]||'steel';mv.tint=['none','light','limo'][v.tint|0]||'none';
+      g.ownedCos.paint=[...new Set(['slate',...((v.cos&&v.cos.paint)||[]).map(x=>V1_PAINT[x]).filter(Boolean)])];
+      g.ownedCos.rims=[...new Set(['steel',...((v.cos&&v.cos.rims)||[]).map(x=>V1_RIMS[x]).filter(Boolean)])];
+      g.ownedCos.tint=['none',...(mv.tint!=='none'?[mv.tint]:[])];s.garage=g}
+    delete s.vehicle;s.v=2;return s}};
 function migrate(s){
   let v=typeof s.v==='number'?s.v:0,guard=0;
   while(v<SAVE_V&&MIGRATIONS[v]&&guard++<20){s=MIGRATIONS[v](s);v=s.v}
   return s}
 
+function sanitizeGarage(s){const g=s.garage,G=HT.Garage,def=defGarage();
+  const VT=G?Object.keys(G.VEH).filter(k=>G.VEH[k].price!=null):['minivan','workvan','pickup','suv'];
+  g.owned=[...new Set(['minivan',...(Array.isArray(g.owned)?g.owned:[]).filter(t=>VT.includes(t))])];
+  if(!g.owned.includes(g.active))g.active='minivan';
+  if(!isObj(g.vehicles))g.vehicles={};
+  for(const k in g.vehicles)if(!g.owned.includes(k))delete g.vehicles[k];
+  const P=G?G.COSMETICS.paint:null,RIMS=G?Object.keys(G.COSMETICS.rims):['steel','alloy','chrome','spinner','gold'],TINT=G?Object.keys(G.COSMETICS.tint):['none','light','limo'];
+  for(const t of g.owned){const v=g.vehicles[t]=deepMerge(defVehicle(),g.vehicles[t]);
+    v.perf.engine=clampN(Math.floor(num(v.perf.engine,0)),0,3);v.perf.tyres=clampN(Math.floor(num(v.perf.tyres,0)),0,2);v.perf.brakes=clampN(Math.floor(num(v.perf.brakes,0)),0,2);
+    v.perf.sport=!!v.perf.sport;v.prot.armor=clampN(Math.floor(num(v.prot.armor,0)),0,2);v.prot.bullBar=!!v.prot.bullBar;v.lightBar=!!v.lightBar;v.spoiler=!!v.spoiler;
+    if(P&&!P[v.paint])v.paint='slate';if(!RIMS.includes(v.rims))v.rims='steel';if(!TINT.includes(v.tint))v.tint='none'}
+  if(!isObj(g.hp))g.hp={};
+  for(const k in g.hp)if(!g.owned.includes(k))delete g.hp[k];
+  for(const t of g.owned){const mx=vehMaxHp(t,g);g.hp[t]=clampN(num(g.hp[t],mx),0,mx)}
+  g.util=deepMerge(def.util,g.util);for(const k in g.util)g.util[k]=!!g.util[k];
+  g.purchases=Math.max(0,Math.floor(num(g.purchases,0)));g.dirt=clampN(num(g.dirt,0),0,100);
+  const SN=G?G.COSMETICS.stickers.length:12,okSt=i=>Number.isInteger(i)&&i>=0&&i<SN;
+  g.ownedStickers=[...new Set(g.ownedStickers.filter(okSt))];g.stickers=[0,1,2].map(i=>okSt(g.stickers[i])&&g.ownedStickers.includes(g.stickers[i])?g.stickers[i]:null);
+  const HN=G?Object.keys(G.HORNS):['stock'];g.ownedHorns=[...new Set(['stock',...g.ownedHorns.filter(h=>HN.includes(h))])];if(!g.ownedHorns.includes(g.horn))g.horn='stock';
+  g.ownedCos=deepMerge(def.ownedCos,g.ownedCos);
+  g.ownedCos.paint=[...new Set(['slate',...g.ownedCos.paint.filter(x=>!P||P[x])])];g.ownedCos.rims=[...new Set(['steel',...g.ownedCos.rims.filter(x=>RIMS.includes(x))])];
+  g.ownedCos.tint=[...new Set(['none',...g.ownedCos.tint.filter(x=>TINT.includes(x))])];
+  for(const t of g.owned){const v=g.vehicles[t];if(!g.ownedCos.paint.includes(v.paint))v.paint='slate';if(!g.ownedCos.rims.includes(v.rims))v.rims='steel';if(!g.ownedCos.tint.includes(v.tint))v.tint='none'}
+  if(!g.util.rack)s.loadout.p3=null}
+function vehMaxHp(type,g){const v=g.vehicles[type]||defVehicle();if(HT.Garage)return HT.Garage.apply(type,v,g.util).hp;return({minivan:100,workvan:130,pickup:120,suv:140}[type]||100)+[0,40,90][v.prot.armor|0]}
 function sanitize(s){
   s=deepMerge(SAVE_DEFAULT(),s);s.v=SAVE_V;
   const p=s.prog;
-  p.done=[0,1,2,3].map(i=>!!(Array.isArray(p.done)&&p.done[i]));
-  p.trust=clampN(num(p.trust,12),0,100);
+  p.done=MISSIONS.map((m,i)=>!!(Array.isArray(p.done)&&p.done[i]));
+  p.trust=clampN(num(p.trust,12),0,100);p.trustR=clampN(num(p.trustR,5),0,100);p.act=p.act===2?2:1;
   for(const k of['cuffed','downed','shotSurr','missionsRun'])p[k]=Math.max(0,Math.floor(num(p[k],0)));
   s.cash=Math.max(0,Math.round(num(s.cash,0)));
   s.stats.earned=Math.max(0,num(s.stats.earned,0));s.stats.spent=Math.max(0,num(s.stats.spent,0));
@@ -258,7 +288,8 @@ function sanitize(s){
   if(!(own(L.side)&&GUNS[L.side].slot==='side'))L.side='pistol';
   if(!(own(L.p1)&&GUNS[L.p1].slot==='prim'))L.p1=own(L.p2)&&GUNS[L.p2].slot==='prim'?L.p2:'shotgun';
   if(!(own(L.p2)&&GUNS[L.p2].slot==='prim'&&L.p2!==L.p1))L.p2=null;
-  for(const k in L)if(!['side','p1','p2'].includes(k))delete L[k];
+  if(!(own(L.p3)&&GUNS[L.p3].slot==='prim'&&L.p3!==L.p1&&L.p3!==L.p2))L.p3=null;
+  for(const k in L)if(!['side','p1','p2','p3'].includes(k))delete L[k];
   const seen={};for(const g in s.armory.seen)if(GUNS[g])seen[g]=Math.max(0,Math.floor(num(s.armory.seen[g],0)));s.armory.seen=seen;
   s.pending=s.pending.filter(e=>isObj(e)&&((e.kind==='gun'&&GUNS[e.id])||(e.kind==='att'&&ATTACHMENTS[e.id])||(e.kind==='furn'&&FURNITURE[e.id])));
   const fo={};for(const f in s.furniture.owned)if(FURNITURE[f])fo[f]=Math.max(0,Math.floor(num(s.furniture.owned[f],0)));
@@ -270,15 +301,11 @@ function sanitize(s){
   s.furniture.placed=placed;
   for(const e of placed)fo[e.id]=Math.max(fo[e.id]||0,placed.filter(q=>q.id===e.id).length);
   s.furniture.owned=fo;
-  const vh=s.vehicle;
-  for(const k of VEH_ORDER)vh[k]=clampN(Math.floor(num(vh[k],0)),0,VEHICLE[k].tiers.length);
-  if(!isObj(vh.cos))vh.cos={};
-  for(const g in COSMETICS){const ids=COSMETICS[g].opts.map(o=>o.id);
-    vh.cos[g]=uniq(['stock',...(Array.isArray(vh.cos[g])?vh.cos[g]:[]).filter(i=>ids.includes(i))]);
-    if(!vh.cos[g].includes(vh[g]))vh[g]='stock'}
-  s.world.trust2=clampN(num(s.world.trust2,12),0,100);
-  s.world.places=uniq(['maple','home','hardware',...s.world.places.filter(x=>typeof x==='string')]);
-  if(typeof s.world.hood!=='string')s.world.hood='maple';
+  sanitizeGarage(s);
+  const w=s.world;w.pins=w.pins.filter(x=>WORLD_PINS.includes(x));w.scrubbed=w.scrubbed.filter(x=>typeof x==='string'||typeof x==='number');
+  w.scrubTrust=Math.max(0,num(w.scrubTrust,0));w.tier=Math.max(0,Math.floor(num(w.tier,0)));w.bridgeOpen=!!w.bridgeOpen;
+  if(!(isObj(w.lastPos)&&isFinite(w.lastPos.x)&&isFinite(w.lastPos.z)))w.lastPos=null;
+  s.crew.rosa=!!s.crew.rosa;
   s.family.seen=s.family.seen.filter(x=>typeof x==='string');
   s.events=s.events.filter(x=>typeof x==='string').slice(-50);
   for(const k in s.flags)s.flags[k]=!!s.flags[k];
@@ -392,10 +419,11 @@ function gunAvail(id,s){s=S(s);const g=GUNS[id],u=g.unlock;
 function basePrice(kind,id,s){s=S(s);
   if(kind==='gun')return GUNS[id].price;if(kind==='att')return ATTACHMENTS[id].price;if(kind==='furn')return FURNITURE[id].price;
   if(kind==='sup')return SUPPLIES[id].price;
-  if(kind==='veh'){const u=VEHICLE[id],lv=s.vehicle[id]||0;return lv<u.tiers.length?u.tiers[lv].price:0}
-  if(kind==='cos'){const[g,o]=id.split(':');const opt=COSMETICS[g].opts.find(x=>x.id===o);return opt?opt.price:0}
+  if(GARAGE_KINDS.includes(kind))return garPrice(kind,id,s);
   return 0}
-function discountFor(store,s){s=S(s);return store==='hardware'&&s.prog.trust>=60?.1:0}
+function discountFor(store,s){s=S(s);const st=STORES[store];
+  if(store==='auto')return(s.garage.purchases||0)>=5?.05:0;
+  if(st&&st.discount)return(s.prog[st.discount.hood]||0)>=st.discount.at?.1:0;return 0}
 function priceOf(kind,id,store,s){const b=basePrice(kind,id,s),d=discountFor(store,s);return{price:Math.round(b*(1-d)),base:b,discount:d}}
 
 /* Full status of a catalogue entry in a store: what the buy button should say. */
@@ -414,13 +442,66 @@ function status(kind,id,store,s){s=S(s);const pr=priceOf(kind,id,store,s),cash=s
     if(f.max&&have>=f.max){if(pend){out.state='pending';return out}out.state='maxed';out.reason=f.max===1?"You've got one. One is plenty.":'That is enough of those.';return out}
     return afford()}
   if(kind==='sup'){if(s.flags[SUPPLIES[id].flag]){out.state='owned';out.reason='Packed for the next job';return out}return afford()}
-  if(kind==='veh'){const u=VEHICLE[id],lv=s.vehicle[id]||0;out.level=lv;out.max=u.tiers.length;
-    if(lv>=u.tiers.length){out.state='maxed';out.reason='Fully upgraded';return out}
-    const r=condReason(u.tiers[lv].unlock,s);if(r){out.state='locked';out.reason=r;return out}return afford()}
-  if(kind==='cos'){const[g,o]=id.split(':');const opt=COSMETICS[g].opts.find(x=>x.id===o);
-    if(s.vehicle.cos[g].includes(o)){out.state=s.vehicle[g]===o?'equipped':'owned';return out}
-    const r=condReason(opt.unlock,s);if(r){out.state='locked';out.reason=r;return out}return afford()}
+  if(GARAGE_KINDS.includes(kind)){if(!HT.Garage){out.state='locked';out.reason="Dad's Auto is closed (js/carai.js not loaded)";return out}
+    garStatus(kind,id,store,s,out);return afford()}
   out.state='locked';out.reason='Unknown item';return out}
+
+/* ---------- Dad's Auto: thin layer over HT.Garage (js/carai.js), the single source of vehicle truth ----------
+   kinds: gar  = an HT.Garage.CATALOG id (eng1, tyre2, bull, cargo, v_pickup, ...)
+          car  = a vehicle type you own or can buy (minivan, workvan, pickup, suv): owned -> "drive this one"
+          cos  = 'paint:silver' | 'rims:alloy' | 'tint:light' | 'lightBar:amber' | 'spoiler:on' | 'horn:ode'
+          stick= sticker index into HT.Garage.COSMETICS.stickers          rep = 'active' (repair at $2/HP) */
+const GARAGE_KINDS=['gar','car','cos','stick','rep'];
+const doneIds=s=>MISSIONS.filter((m,i)=>s.prog.done[i]).map(m=>m.id);
+function garCtx(s){const G=HT.Garage,g=s.garage;return{owned:G.ownedIds(g),trust:s.prog.trust,trustR:s.prog.trustR,done:doneIds(s),cash:s.cash}}
+const actV=s=>s.garage.vehicles[s.garage.active];
+function cosReq(r,s){if(!r)return null;if(r.trustR!=null&&s.prog.trustR<r.trustR)return'Needs Riverside trust '+r.trustR+'%';if(r.done){for(const d of r.done)if(!doneIds(s).includes(d))return'Unlocks after '+MISSIONS.find(m=>m.id===d).title}return null}
+const STICKER_REQ={10:{done:['earl']},11:{trustR:70,mart:true}};
+function garPrice(kind,id,s){const G=HT.Garage;if(!G)return 0;const C=G.COSMETICS;
+  if(kind==='gar'){const it=G.CATALOG.find(c=>c.id===id);return it?it.price:0}
+  if(kind==='car')return G.VEH[id]&&G.VEH[id].price||0;
+  if(kind==='stick')return C.sticker;
+  if(kind==='rep'){const g=s.garage;return Math.ceil(Math.max(0,vehMaxHp(g.active,g)-g.hp[g.active])*2)}
+  const[gp,o]=id.split(':');
+  if(gp==='paint')return(C.paint[o]||{}).price||0;if(gp==='rims')return C.rims[o]||0;if(gp==='tint')return(C.tint[o]||[0,0])[1];
+  if(gp==='lightBar')return C.lightBar.amber.price;if(gp==='spoiler')return C.spoiler;if(gp==='horn')return(G.HORNS[o]||{}).price||0;return 0}
+function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);const set=(st,r)=>{out.state=st;if(r)out.reason=r};
+  if(kind==='gar'){const it=G.CATALOG.find(c=>c.id===id);out.item=it;
+    if(G.ownedIds(g).includes(id))return set(it.group==='vehicle'?'owned':'equipped');
+    const r=G.req(id,garCtx(s));if(r)set('locked',r);return}
+  if(kind==='car'){out.item=G.VEH[id];if(g.owned.includes(id))return set(g.active===id?'equipped':'owned');const r=G.req('v_'+id,garCtx(s));if(r)set('locked',r);return}
+  if(kind==='rep'){const mx=vehMaxHp(g.active,g);out.hp=g.hp[g.active];out.maxHp=mx;if(g.hp[g.active]>=mx)set('maxed','Not a scratch on her');return}
+  if(kind==='stick'){const i=+id;if(g.stickers.includes(i))return set('equipped');if(g.ownedStickers.includes(i))return set('owned');
+    const q=STICKER_REQ[i];if(q){if(q.mart&&store!=='mart')return set('locked','Only at Ramos Corner Mart');const r=cosReq(q,s);if(r)set('locked',r)}return}
+  const[gp,o]=id.split(':'),C=G.COSMETICS;
+  if(gp==='paint'||gp==='rims'||gp==='tint'){if(v[gp]===o)return set('equipped');if(g.ownedCos[gp].includes(o))return set('owned');
+    if(gp==='paint'){const r=cosReq((C.paint[o]||{}).req,s);if(r)set('locked',r)}return}
+  if(gp==='lightBar'){if(v.lightBar)return set('equipped');const r=cosReq(C.lightBar.amber.req,s);if(r)set('locked',r);return}
+  if(gp==='spoiler'){if(v.spoiler||v.perf.sport)return set('equipped',v.perf.sport&&!v.spoiler?'Comes with Sport Mode':null);return}
+  if(gp==='horn'){if(g.horn===o)return set('equipped');if(g.ownedHorns.includes(o))return set('owned');if(o==='entertainer'){const r=cosReq({done:['benny']},s);if(r)set('locked',r)}return}}
+/* applies a paid purchase (status already checked) */
+function garApply(kind,id,s){const G=HT.Garage,g=s.garage,v=actV(s);
+  if(kind==='gar'||kind==='car'){const before=vehMaxHp(g.active,g);const r=G.buy(g,kind==='car'?'v_'+id:id,Object.assign(garCtx(s),{cash:1e12}));
+    if(r.ok&&kind==='gar'){const after=vehMaxHp(g.active,g);g.hp[g.active]=Math.min(after,(g.hp[g.active]||before)+(after-before))}
+    return}
+  g.purchases=(g.purchases||0)+(kind==='rep'?0:1);
+  if(kind==='rep'){g.hp[g.active]=vehMaxHp(g.active,g);return}
+  if(kind==='stick'){const i=+id;g.ownedStickers.push(i);putSticker(g,i);return}
+  const[gp,o]=id.split(':');
+  if(gp==='paint'||gp==='rims'||gp==='tint'){g.ownedCos[gp].push(o);v[gp]=o}
+  else if(gp==='lightBar')v.lightBar=true;else if(gp==='spoiler')v.spoiler=true;
+  else if(gp==='horn'){g.ownedHorns.push(o);g.horn=o}}
+function putSticker(g,i){if(g.stickers.includes(i))return;const e=g.stickers.indexOf(null);if(e>=0)g.stickers[e]=i;else{g.stickers.shift();g.stickers.push(i)}}
+/* free actions on things you already own: drive another car, re-apply a cosmetic, (un)stick a sticker */
+function garUse(kind,id,s){s=S(s);const g=s.garage,v=actV(s);
+  if(kind==='car'){if(!g.owned.includes(id))return{ok:false,reason:"You don't own that one."};g.active=id}
+  else if(kind==='stick'){const i=+id;if(!g.ownedStickers.includes(i))return{ok:false,reason:'Buy it first.'};const k=g.stickers.indexOf(i);if(k>=0)g.stickers[k]=null;else putSticker(g,i)}
+  else if(kind==='cos'){const[gp,o]=id.split(':');
+    if(gp==='horn'){if(!g.ownedHorns.includes(o))return{ok:false,reason:'Buy it first.'};g.horn=o}
+    else if(['paint','rims','tint'].includes(gp)){if(!g.ownedCos[gp].includes(o))return{ok:false,reason:'Buy it first.'};v[gp]=o}
+    else return{ok:false,reason:'Nothing to change.'}}
+  else return{ok:false,reason:'Nothing to change.'};
+  if(mine(s))Save.touch('garage');return{ok:true}}
 
 const canAfford=(price,s)=>S(s).cash>=price;
 
@@ -437,14 +518,13 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
   else if(kind==='sup'){s.flags[SUPPLIES[id].flag]=true}
-  else if(kind==='veh'){s.vehicle[id]=(s.vehicle[id]||0)+1;ev='boughtUpgrade'}
-  else if(kind==='cos'){const[g,o]=id.split(':');s.vehicle.cos[g].push(o);s.vehicle[g]=o;ev='boughtUpgrade'}
+  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s);if(kind!=='rep')ev='boughtCar'}
   if(ev)s.events.push(ev);
-  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','vehicle','flags','loadout','attOn','events','stats')}
+  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats')}
   return{ok:true,price:st.price,delivered:deliverLater?'pending':'now',status:st}}
 
 /* a new gun fills an empty primary slot; a new attachment goes on the first owned compatible gun with that slot free */
-function autoSlot(id,s){const L=s.loadout;if(GUNS[id].slot==='prim'&&!L.p2&&L.p1!==id)L.p2=id}
+function autoSlot(id,s){const L=s.loadout;if(GUNS[id].slot!=='prim'||[L.p1,L.p2,L.p3].includes(id))return;if(!L.p2)L.p2=id;else if(!L.p3&&s.garage.util.rack)L.p3=id}
 function autoAttach(id,s){const a=ATTACHMENTS[id];const order=[s.loadout.p1,s.loadout.p2,s.loadout.side,...s.owned.guns].filter(Boolean);
   for(const g of order){if(!a.compat.includes(g)||!s.owned.guns.includes(g))continue;const row=s.attOn[g]=s.attOn[g]||{optic:null,mag:null,under:null,muzzle:null};if(!row[a.slot]){row[a.slot]=id;return g}}return null}
 
@@ -484,17 +564,19 @@ function collectGun(id,s){s=S(s);if(!GUNS[id])return{unlocked:false};const need=
 
 /* Loadout rules (SPEC C.4) */
 function setLoadout(slot,gun,s){s=S(s);const L=s.loadout;
-  if(!['side','p1','p2'].includes(slot))return{ok:false,reason:'No such slot.'};
-  if(gun==null){if(slot!=='p2')return{ok:false,reason:slot==='p1'?'Primary 1 can\'t be empty.':'You need a sidearm.'};L.p2=null}
+  if(!['side','p1','p2','p3'].includes(slot))return{ok:false,reason:'No such slot.'};
+  if(slot==='p3'&&!s.garage.util.rack)return{ok:false,code:'rack',reason:"Needs the gun rack from Dad's Auto."};
+  if(gun==null){if(slot==='p1'||slot==='side')return{ok:false,reason:slot==='p1'?'Primary 1 can\'t be empty.':'You need a sidearm.'};L[slot]=null}
   else{if(!GUNS[gun])return{ok:false,reason:'Unknown gun.'};
     if(!s.owned.guns.includes(gun))return{ok:false,reason:"You don't own the "+GUNS[gun].name+' yet.'};
     if(slot==='side'&&GUNS[gun].slot!=='side')return{ok:false,reason:'That one is too big for a holster.'};
     if(slot!=='side'&&GUNS[gun].slot!=='prim')return{ok:false,reason:'Sidearms go in the sidearm slot.'};
-    const other=slot==='p1'?'p2':slot==='p2'?'p1':null;
-    if(other&&L[other]===gun)return{ok:false,code:'dup',reason:"It's already in "+(other==='p1'?'Primary 1':'Primary 2')+'.'};
+    const dup=slot==='side'?null:['p1','p2','p3'].find(k=>k!==slot&&L[k]===gun);
+    if(dup)return{ok:false,code:'dup',reason:"It's already in "+SLOT_NAME[dup]+'.'};
     L[slot]=gun}
   if(mine(s))Save.touch('loadout');
   return{ok:true,loadout:Object.assign({},L)}}
+const SLOT_NAME={side:'Sidearm',p1:'Primary 1',p2:'Primary 2',p3:'Gun rack'};
 function swapPrimaries(s){s=S(s);const L=s.loadout;if(!L.p2)return{ok:false,reason:'Primary 2 is empty.'};[L.p1,L.p2]=[L.p2,L.p1];if(mine(s))Save.touch('loadout');return{ok:true}}
 function setAttachment(gun,slot,att,s){s=S(s);
   if(!s.owned.guns.includes(gun))return{ok:false,reason:"You don't own that gun."};
@@ -525,28 +607,34 @@ const BAR_DEFS=[
 const BAR_MAX={};for(const[k,,f]of BAR_DEFS)BAR_MAX[k]=Math.max(...GUN_ORDER.map(g=>f(GUNS[g])));
 function gunBars(w){if(typeof w==='string')w=weaponStats(w);return BAR_DEFS.map(([k,label,f])=>({k,label,v:Math.max(.3,Math.min(10,10*f(w)/BAR_MAX[k]))}))}
 
-/* Minivan: multipliers for js/vehicles.js */
-function vehicleStats(s){s=S(s);const v=s.vehicle,out={top:1,accel:1,grip:1,brake:1,armor:1,crewDmg:1,ram:1,frontDmg:1,notice:1,spareMags:0,vanSwap:false,vanHeal:0,revive:1,surrender:1};
-  for(const k of VEH_ORDER){const lv=v[k]||0;if(lv>0)Object.assign(out,VEHICLE[k].tiers[lv-1].fx)}
-  const pick=g=>COSMETICS[g].opts.find(o=>o.id===v[g])||COSMETICS[g].opts[0];
-  out.levels={};for(const k of VEH_ORDER)out.levels[k]=v[k]||0;
-  out.paint=pick('paint');out.rims=pick('rims');out.horn=pick('horn');out.tint=v.tint;out.bullBar=v.bullBar>0;out.roofBox=v.roofBox>0;out.lightBar=v.lightBar>0;out.gunRack=v.gunRack>0;out.medkit=v.medkit>0;
-  return out}
-const VBAR=[['top','Top speed',1.28],['accel','Accel.',1.45],['grip','Grip',1.3],['brake','Braking',1.45],['armor','Armor',2.2],['ram','Ramming',2]];
-function vanBars(vs){return VBAR.map(([k,label,mx])=>({k,label,v:4+6*((vs[k]||1)-1)/(mx-1)}))}
-function vanStatsWith(id,s){s=S(s);const c=clone(s);c.vehicle[id]=Math.min((c.vehicle[id]||0)+1,VEHICLE[id].tiers.length);return vehicleStats(c)}
+/* Active vehicle, straight from HT.Garage.apply (fields: maxSpeed, boostMax, accel, boostAccel, brake, hbrake, grip, steerResp, turn, hp,
+   bulletMul, ramDealtFront, impactTakenFront, sport*, ammoBonus, slots, firstAid, ...) plus the cosmetics and HT.Vehicles.make options. */
+function vehicleStats(s,type){s=S(s);const G=HT.Garage,g=s.garage;type=type||g.active;const v=g.vehicles[type]||defVehicle();
+  const st=G?G.apply(type,v,g.util):{type,maxSpeed:17,boostMax:25,accel:8,boostAccel:11,brake:24,grip:9,hp:100,bulletMul:1,ammoBonus:g.util.cargo?2:0,slots:g.util.rack?4:3,firstAid:!!g.util.aid,stock:true};
+  st.curHp=g.hp[type]!=null?g.hp[type]:st.hp;st.active=type===g.active;
+  st.paint=Object.assign({id:v.paint},G?G.COSMETICS.paint[v.paint]:{hex:'#35577d',finish:'solid'});st.rims=v.rims;st.tint=v.tint;st.lightBar=v.lightBar;st.spoiler=!!(v.spoiler||v.perf.sport);
+  st.horn={id:g.horn,notes:G?G.hornNotes(g.horn):null};st.stickers=g.stickers.map(i=>i==null?null:G?G.COSMETICS.stickers[i]:String(i));
+  st.makeOpts=G?G.vehicleOpts(g,type):{color:st.paint.hex,upgrades:{}};return st}
+const VBAR=[['top','Top speed',st=>st.boostMax/40],['accel','Acceleration',st=>st.boostAccel/20],['hand','Handling',st=>st.grip/16],['brake','Braking',st=>st.brake/40],['tough','Toughness',st=>st.hp/240]];
+function vanBars(st){return VBAR.map(([k,label,f])=>({k,label,v:Math.max(.3,Math.min(10,10*f(st)))}))}
+/* stats as they would be after buying/using an item (for the comparison bars and the live preview) */
+function vanStatsWith(kind,id,s){s=S(s);const c=clone(s);c.cash=1e12;
+  if(kind==='car'){if(!c.garage.owned.includes(id)){c.garage.owned.push(id);c.garage.vehicles[id]=defVehicle()}c.garage.active=id}
+  else if(kind==='stick'){}else if(HT.Garage){const st=status(kind,id,'auto',c);if(st.state==='buy')garApply(kind,id,c);else garUse(kind,id,c)}
+  return vehicleStats(c)}
 
 /* ammo carried by a loadout (SPEC B.6: per type, the largest reserve among guns using it) */
 function ammoFor(s,loadout){s=S(s);const L=loadout||s.loadout,vs=vehicleStats(s);const by={};
-  for(const g of[L.side,L.p1,L.p2]){if(!g)continue;const w=weaponStats(g,s.attOn[g]||{});const a=w.ammo;
+  for(const g of[L.side,L.p1,L.p2,s.garage.util.rack?L.p3:null]){if(!g)continue;const w=weaponStats(g,s.attOn[g]||{});const a=w.ammo;
     const e=by[a]=by[a]||{type:a,name:AMMO[a].name,cap:AMMO[a].cap,col:AMMO[a].col,reserve:0,mag:0,guns:[]};e.reserve=Math.max(e.reserve,w.reserve);e.mag=Math.max(e.mag,w.mag);e.guns.push(g)}
-  return Object.values(by).map(e=>{e.extra=(vs.spareMags+(s.flags.rangeDay?1:0))*e.mag;e.total=Math.min(e.cap,e.reserve+e.extra);return e})}
+  return Object.values(by).map(e=>{e.extra=((vs.ammoBonus||0)+(s.flags.rangeDay?1:0))*e.mag;e.total=Math.min(e.cap,e.reserve+e.extra);return e})}
 
 /* Payout (SPEC D.1). r: {mission, ok, cuffs, confiscated, allyDowns, got, timeLeft, elapsed, bossDone, exec, trust, rerun} */
 function computePayout(r,s){r=r||{};
   const m=missionOf(r.mission!=null?r.mission:r.i!=null?r.i:r.id)||MISSIONS[0];
   const ok=!!r.ok,k=r.rerun?.5:1,n=v=>Math.max(0,Math.floor(num(v,0)));
-  const trust=num(r.trust,s||data?S(s).prog.trust:12);
+  const river=m.hood==='river',sv=s||data?S(s):null;
+  const trust=num(r.trust,sv?(river?sv.prog.trustR:sv.prog.trust):12);
   const lines=[];let pos=0,pen=0;
   const add=(id,label,amt,kind)=>{amt=Math.round(amt);if(!amt)return;lines.push({id,label,amount:amt,kind:kind||'bonus'});if(amt>0)pos+=amt;else pen-=amt};
   if(ok)add('base','Bake sale fund',m.base*k,'base');
@@ -554,12 +642,12 @@ function computePayout(r,s){r=r||{};
   if(n(r.cuffs))add('cuffs','Second chances ×'+n(r.cuffs),60*n(r.cuffs)*k);
   if(n(r.confiscated))add('guns','Guns turned in to Officer Dana ×'+n(r.confiscated),25*n(r.confiscated)*k);
   if(ok&&n(r.allyDowns)===0)add('hamstring','Nobody pulled a hamstring',150*k);
-  if(n(r.got)&&m.id==='gary')add('packages','Returned packages ×'+n(r.got),30*n(r.got)*k);
-  if(ok&&m.id==='rick'&&num(r.timeLeft,0)>0){const t=Math.round(r.timeLeft);add('clock','Clock bonus · '+t+'s left',3*t*k)}
+  const rr=Object.assign({},r,{ok,got:n(r.got),bikes:n(r.bikes),converters:n(r.converters),ids:n(r.ids),timeLeft:num(r.timeLeft,0)});
+  for(const f of m.bonus){const l=f(rr);if(l)add(l[0],l[1],l[2]*k)}
   if(ok&&m.par&&r.elapsed!=null){const e=num(r.elapsed,1e9);if(e<m.par)add('quick','Quick work',100*k);else if(e<m.par*1.5)add('quick','Pretty quick work',50*k)}
-  if(r.bossDone==='cuffed')add('bail',"King's bail refund",500*k);
+  for(const l of Array.isArray(r.extra)?r.extra:[])if(l&&l.label&&isFinite(l.amount))add(l.id||'extra',l.label,l.amount*(l.amount>0?k:1),l.amount<0?'penalty':'bonus');
   const mult=.8+trust/250,adj=Math.round(pos*mult)-pos;
-  if(adj)lines.push({id:'trust',label:adj>0?'Neighbors chipped in':'Neighbors are nervous',amount:adj,kind:'mult',note:'×'+mult.toFixed(2)+' at '+Math.round(trust)+'% trust'});
+  if(adj)lines.push({id:'trust',label:adj>0?'Neighbors chipped in':'Neighbors are nervous',amount:adj,kind:'mult',note:'×'+mult.toFixed(2)+' at '+Math.round(trust)+'% '+(river?'Riverside ':'')+'trust'});
   if(n(r.exec))add('legal','Legal fees ×'+n(r.exec),-200*n(r.exec),'penalty');
   const total=Math.max(0,pos+adj-pen);
   return{lines,subtotal:pos,multiplier:mult,penalties:pen,total,ok,rerun:!!r.rerun,mission:m.id}}
@@ -571,7 +659,7 @@ function applyPayout(p,s){s=S(s);const old=s.cash;s.cash+=p.total;s.stats.earned
 const resultLines=p=>p.lines.map(l=>({label:l.label,text:(l.amount<0?'−$':'+$')+Math.abs(l.amount).toLocaleString('en-US'),neg:l.amount<0,kind:l.kind,note:l.note||''}));
 
 const Economy={money,missionOf,condReason,gunAvail,priceOf,basePrice,discountFor,status,canAfford,buy,sell,sellValue,deliverPending,collectGun,
-  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS};
+  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS};
 HT.Economy=Economy;
 
 /* =====================================================================
@@ -664,48 +752,57 @@ const FURN_ICONS={
   flamingo:()=>ground(26)+P('M80 52v36M80 70l10 4',null)+P('M66 38c0-10 12-16 26-12 10 4 12 16 4 22-8 6-24 6-30-2z','#f27aa4')+P('M88 30c4-10 2-20 6-24 4-2 8 0 8 4',null)+
     P('M100 8c4-2 8 0 8 4l-6 4z',DK)+Ci(98,10,2,'#f27aa4'),
 };
-/* minivan side view; paint colour and wheel style vary */
-function vanSVG(col,rims,extra){col=col||'#b9c0c7';
-  return ground(66,90)+(extra&&extra.under||'')+P('M14 70V44c0-6 4-10 10-12l20-16c3-2 6-4 12-4h64c14 0 22 10 26 26l2 30c0 4-2 6-6 6H18c-2 0-4-2-4-4z',col)+
-    `<path d="M14 62h134v8c0 4-2 6-6 6H18c-2 0-4-2-4-4z" fill="#000" opacity=".18" stroke="none"/>`+
-    P('M48 20l-16 14h28V20z','#2b3440')+R(66,20,30,14,'#2b3440',2)+P('M102 20h18c6 0 12 6 14 14h-32z','#2b3440')+P('M98 18v54M62 38v32',null)+R(70,46,12,3,DK,1)+
-    R(140,46,8,6,SUN,2)+R(12,48,6,8,RED,2)+wheel(42,74,rims)+wheel(118,74,rims)+(extra&&extra.over||'')}
-function wheel(x,y,st,k){k=k||1;const rimC={hub:'#cfd5db',steel:'#2c3036',chrome:'#e9eef2',gold:'#e8b93a',offroad:'#8a9099'}[st]||'#cfd5db';
-  let s=Ci(x,y,14*k,'#1b1d21')+Ci(x,y,8*k,rimC);
-  if(st==='chrome'||st==='gold')for(let i=0;i<5;i++){const a=i*1.2566-1.57;s+=`<path d="M${x} ${y}L${(x+Math.cos(a)*8*k).toFixed(1)} ${(y+Math.sin(a)*8*k).toFixed(1)}" stroke="${K}" stroke-width="${2*Math.min(k,1.6)}"/>`}
-  if(st==='offroad')s+=`<circle cx="${x}" cy="${y}" r="${11*k}" fill="none" stroke="${K}" stroke-width="2" stroke-dasharray="${3*k} ${3*k}"/>`;
-  if(st==='hub')s+=Ci(x,y,3*k,MT);if(st==='steel')for(const[dx,dy]of[[-4,0],[4,0],[0,-4],[0,4]])s+=Ci(x+dx*k,y+dy*k,1.5*k,'#888');
-  if(k>1)s+=`<circle cx="${x}" cy="${y}" r="${11.5*k}" fill="none" stroke="#3a3e45" stroke-width="${2.5*k}" stroke-dasharray="${2*k} ${3*k}"/>`;
+/* side-view vehicles (vector fallback when HT.Vehicles is not loaded). type: minivan | workvan | pickup | suv */
+const BODY={
+  minivan:{d:'M14 70V44c0-6 4-10 10-12l20-16c3-2 6-4 12-4h64c14 0 22 10 26 26l2 30c0 4-2 6-6 6H18c-2 0-4-2-4-4z',win:'M48 20l-16 14h28V20zM66 20h30v14H66zM102 20h18c6 0 12 6 14 14h-32z',w:[42,118],roof:[50,130],door:'M98 18v54M62 38v32'},
+  workvan:{d:'M12 72V20c0-6 4-10 10-10h92c10 0 16 4 22 14l10 18c2 4 2 8 2 12v16c0 4-2 6-6 6H16c-2 0-4-2-4-4z',win:'M116 16h6c6 0 10 4 14 10l6 12h-26z',w:[38,124],roof:[24,110],door:'M112 14v60'},
+  pickup:{d:'M10 72V48c0-4 2-6 6-6h58V22c0-6 4-10 10-10h30c8 0 14 6 18 14l8 16c8 0 12 4 12 10v16c0 4-2 6-6 6H14c-2 0-4-2-4-4z',win:'M84 18h12v20H84zM102 18h10c4 0 8 4 10 8l6 12h-26z',w:[36,124],roof:[84,122],door:'M100 16v58M74 42v32',bed:true},
+  suv:{d:'M12 72V40c0-6 4-10 10-10l18-18c3-2 6-4 12-4h66c10 0 18 8 22 18l6 14c4 0 6 4 6 8v20c0 4-2 6-6 6H16c-2 0-4-2-4-4z',win:'M44 14l-16 16h30V14zM64 14h32v16H64zM102 14h16c6 0 10 6 14 16h-30z',w:[40,122],roof:[44,124],door:'M98 12v62M60 34v38'}};
+function carSVG(type,col,rims,o){o=o||{};const b=BODY[type]||BODY.minivan;col=col||'#35577d';let x='';
+  if(o.cargo)x+=P(`M${b.roof[0]} 8c4-8 14-10 26-10h${b.roof[1]-b.roof[0]-40}c8 0 14 4 16 10z`,'#2c3036');
+  else if(type!=='pickup')x+=P(`M${b.roof[0]} 10h${b.roof[1]-b.roof[0]}`,null);
+  if(o.lightBar)x+=R(b.roof[0]+8,o.cargo?-4:2,54,8,DK,3)+R(b.roof[0]+11,o.cargo?-2:4,14,4,SUN,1)+R(b.roof[0]+28,o.cargo?-2:4,14,4,'#fff',1)+R(b.roof[0]+45,o.cargo?-2:4,14,4,SUN,1);
+  x+=P(b.d,col)+`<path d="M12 62h138v8c0 4-2 6-6 6H16c-2 0-4-2-4-4z" fill="#000" opacity=".2" stroke="none"/>`;
+  if(o.finish==='twotone')x+=`<path d="${b.d}" fill="#e8dcc0" stroke="none" style="clip-path:inset(0 0 62% 0)"/><path d="M14 40h134" stroke="#7a4b2a" stroke-width="4"/>`;
+  if(o.finish==='wood')x+=`<path d="M16 46h130v16H16z" fill="#9a6a3c" stroke="${K}" stroke-width="2"/><path d="M16 52h130M16 57h130" stroke="#6e4826" stroke-width="1.5"/>`;
+  if(o.finish==='mural')x+=`<path d="M18 62c20-14 40 6 60-8s40 4 66-6v14H18z" fill="#e5533d" stroke="none" opacity=".9"/><path d="M22 54c16-12 36 0 54-10s32 6 46-4" stroke="#7fdc6e" stroke-width="5" fill="none"/><circle cx="118" cy="50" r="6" fill="#ffc94a" stroke="none"/>`;
+  if(b.bed)x+=R(14,44,58,8,'rgba(0,0,0,.25)',1);
+  x+=P(b.win,'#2b3440');if(o.tint)x+=`<path d="${b.win}" fill="#000" opacity="${o.tint>.5?.55:.3}" stroke="none"/>`;
+  x+=P(b.door,null)+R(146,46,7,6,SUN,2)+R(10,48,6,8,RED,2);
+  if(o.spoiler)x+=P(`M${type==='pickup'?10:12} ${type==='workvan'?10:type==='pickup'?42:30}h18l-4 -6h-14z`,DK);
+  if(o.bullBar)x+=P('M150 42h10v32h-10',DK)+P('M154 46h8M154 58h8M154 70h8',null);
+  if(o.stickers)x+=R(14,52,22,7,'#fff',1)+`<path d="M17 55.5h16" stroke="#e5533d" stroke-width="2"/>`;
+  return ground(70,90)+x+wheel(b.w[0],74,rims)+wheel(b.w[1],74,rims)}
+function wheel(x,y,st,k){k=k||1;const rimC={steel:'#3a3f46',alloy:'#c9cfd6',chrome:'#eef2f6',spinner:'#e6eaee',gold:'#e8b93a'}[st]||'#c9cfd6';
+  let s=Ci(x,y,14*k,'#1b1d21')+Ci(x,y,8.5*k,rimC);const sp=(n,r,w)=>{for(let i=0;i<n;i++){const a=i*2*Math.PI/n-1.57;s+=`<path d="M${x} ${y}L${(x+Math.cos(a)*r*k).toFixed(1)} ${(y+Math.sin(a)*r*k).toFixed(1)}" stroke="${K}" stroke-width="${w*Math.min(k,1.8)}"/>`}};
+  if(st==='steel')for(const[dx,dy]of[[-4,0],[4,0],[0,-4],[0,4]])s+=Ci(x+dx*k,y+dy*k,1.4*k,'#8a9099');
+  if(st==='alloy')sp(6,8.5,1.6);if(st==='chrome'||st==='gold')sp(5,8.5,2.2);
+  if(st==='spinner'){s+=`<path d="M${x-8*k} ${y}Q${x} ${y-9*k} ${x+8*k} ${y}Q${x} ${y+9*k} ${x-8*k} ${y}" fill="#ffc94a" stroke="${K}" stroke-width="${1.5*Math.min(k,1.8)}"/>`}
+  s+=Ci(x,y,2.6*k,'#2c3036');
+  if(k>1)s+=`<circle cx="${x}" cy="${y}" r="${11.5*k}" fill="none" stroke="#33373d" stroke-width="${2.5*k}" stroke-dasharray="${2*k} ${3*k}"/>`;
   return s}
-function vanFull(vs){const lv=vs.levels;let under='',over='';
-  if(lv.roofBox)under+=P('M50 14c4-10 16-12 30-12h30c10 0 18 4 20 12z','#2c3036')+R(60,10,6,6,MT)+R(104,10,6,6,MT);
-  else if(lv.lightBar)under+=R(48,6,72,10,DK,3)+R(52,8,14,6,SUN,2)+R(70,8,14,6,ORG,2)+R(88,8,14,6,SUN,2)+R(104,8,12,6,ORG,2);
-  if(lv.roofBox&&lv.lightBar)over+=R(122,8,24,8,DK,3)+R(125,10,8,4,SUN,1)+R(135,10,8,4,ORG,1);
-  if(lv.bullBar)over+=P('M146 42h10v34h-10',DK)+P('M150 46h8M150 58h8M150 70h8',null);
-  if(lv.tint)over+=`<path d="M48 20l-16 14h28V20zM66 20h30v14H66zM102 20h18c6 0 12 6 14 14h-32z" fill="#000" opacity="${.2*lv.tint}" stroke="none"/>`;
-  if(lv.panels)over+=`<path d="M64 40h32v28H64z" fill="none" stroke="${POLO}" stroke-width="2" stroke-dasharray="4 3"/>`;
-  return svg(vanSVG(vs.paint.col,vs.rims.style,{under,over}),'0 -8 160 108')}
+/* the active vehicle as it is now (or previewed), from Economy.vehicleStats() */
+function carFull(st){return svg(carSVG(st.type,st.paint.hex,st.rims,{finish:st.paint.finish,tint:{none:0,light:.35,limo:.7}[st.tint]||0,lightBar:st.lightBar,spoiler:st.spoiler,
+  bullBar:st.bullBar,cargo:(st.ammoBonus||0)>((HT.Garage&&HT.Garage.VEH[st.type]||{}).cargo||0),stickers:st.stickers&&st.stickers.some(Boolean)}),'0 -12 164 112')}
 function ammoIcon(type){const a=AMMO[type];let b=ground(50);
   b+=R(34,46,92,40,'#4f6a3a',3)+R(34,40,92,12,'#5c7a44',3)+T(80,74,13,a.name.toUpperCase(),PAP);
   for(let i=0;i<5;i++)b+=P(`M${46+i*15} 40v-16c0-5 3-9 5-11 2 2 5 6 5 11v16z`,a.col);
   return svg(b)}
-const VEH_ICONS={
-  engine:()=>ground(54)+R(36,34,88,46,'#5b636e',6)+R(46,22,68,16,RED,4)+P('M52 22v-6h10v6M72 22v-6h10v6M92 22v-6h10v6',null)+R(28,46,10,22,DK,2)+R(122,46,10,22,DK,2)+
-    P('M50 50h60M50 60h60M50 70h60',null)+T(80,34,10,'V6',PAP)+hi('M50 26h56'),
-  tyres:()=>ground(46)+Ci(80,50,40,'#1b1d21')+Ci(80,50,22,'#cfd5db')+Ci(80,50,7,MT)+
-    `<circle cx="80" cy="50" r="33" fill="none" stroke="#4a4f57" stroke-width="5" stroke-dasharray="6 5"/>`+hi('M56 26c8-6 20-8 30-6'),
-  brakes:()=>ground(46)+Ci(76,50,38,'#9aa1a9')+Ci(76,50,26,'#b8bec5')+Ci(76,50,12,DK)+P('M76 22v8M76 70v8M48 50h8M96 50h8',null)+P('M98 18c18 6 26 20 26 32s-8 26-26 32l-6-10c10-4 16-12 16-22s-6-18-16-22z',RED)+T(112,54,8,'HT',PAP),
-  bullBar:()=>vanSVG(null,'hub',{over:P('M146 42h10v34h-10',DK)+P('M150 46h8M150 58h8M150 70h8',null)}),
-  panels:()=>ground(40)+P('M80 10l40 14v26c0 22-18 36-40 42-22-6-40-20-40-42V24z',POLO)+P('M80 20l30 10v20c0 16-12 26-30 32z','#4a78bd')+P('M66 50l10 10 20-20',null)+hi('M54 30c8-4 16-6 24-8'),
-  tint:()=>ground(54)+P('M30 82V36c0-10 8-18 18-18h64c10 0 18 8 18 18v46z',MT)+P('M38 74V38c0-6 4-12 12-12h60c6 0 12 6 12 12v36z','#1e2530')+
-    `<path d="M44 30l30 40M70 30l20 26" stroke="#fff" stroke-width="3" opacity=".25"/>`+P('M88 54c4-4 10-4 14 0',null)+Ci(92,50,1.5,'#fff')+Ci(100,50,1.5,'#fff'),
-  roofBox:()=>vanSVG(null,'hub',{under:P('M50 14c4-10 16-12 30-12h30c10 0 18 4 20 12z','#2c3036')+R(60,10,6,6,MT)+R(104,10,6,6,MT)}),
-  gunRack:()=>ground(54)+R(24,24,112,10,WD,3)+R(24,60,112,10,WD,3)+P('M40 34v26M80 34v26M120 34v26',null)+
-    P('M30 46h92l8-4v8l-8-2H30z',DK)+P('M36 46l-8 6 8 6',WL)+R(56,40,40,8,MT,2)+T(80,86,10,'NO FISHING RODS',K),
+const GAR_ICONS={
+  engine:(n)=>ground(54)+R(36,34,88,46,'#5b636e',6)+R(46,22,68,16,RED,4)+P('M52 22v-6h10v6M72 22v-6h10v6M92 22v-6h10v6',null)+R(28,46,10,22,DK,2)+R(122,46,10,22,DK,2)+
+    P('M50 50h60M50 60h60M50 70h60',null)+T(80,34,10,n===3?'S/C':n===2?'V6':'TUNE',PAP)+(n===3?Ci(124,28,12,'#9aa1a9')+Ci(124,28,5,DK):'')+hi('M50 26h56'),
+  tyres:()=>ground(46)+Ci(80,50,40,'#1b1d21')+Ci(80,50,22,'#cfd5db')+Ci(80,50,7,MT)+`<circle cx="80" cy="50" r="33" fill="none" stroke="#4a4f57" stroke-width="5" stroke-dasharray="6 5"/>`+hi('M56 26c8-6 20-8 30-6'),
+  brakes:()=>ground(46)+Ci(76,50,38,'#9aa1a9')+Ci(76,50,26,'#b8bec5')+Ci(76,50,12,DK)+P('M76 22v8M76 70v8M48 50h8M96 50h8',null)+P('M98 18c18 6 26 20 26 32s-8 26-26 32l-6-10c10-4 16-12 16-22s-6-18-16-22z',RED),
+  sport:()=>ground(48)+P('M30 70a50 50 0 0 1 100 0z','#2c3036')+P('M40 70a40 40 0 0 1 80 0',null)+`<path d="M104 40a40 40 0 0 1 16 30" stroke="${RED}" stroke-width="6" fill="none"/>`+P('M80 70l30-26',null)+Ci(80,70,6,SUN)+T(80,90,11,'SPORT',SUN),
+  panels:()=>ground(40)+P('M80 10l40 14v26c0 22-18 36-40 42-22-6-40-20-40-42V24z',POLO)+P('M80 20l30 10v20c0 16-12 26-30 32z','#4a78bd')+P('M66 50l10 10 20-20',null),
+  gunRack:()=>ground(54)+R(24,24,112,10,WD,3)+R(24,60,112,10,WD,3)+P('M40 34v26M80 34v26M120 34v26',null)+P('M30 46h92l8-4v8l-8-2H30z',DK)+P('M36 46l-8 6 8 6',WL)+R(56,40,40,8,MT,2)+T(80,86,10,'SLOT 4',K),
   medkit:()=>ground(50)+R(34,24,92,62,RED,8)+R(64,14,32,12,DK,4)+R(70,36,20,40,PAP)+R(60,46,40,20,PAP)+hi('M42 32h76'),
-  lightBar:()=>vanSVG(null,'hub',{under:R(48,6,72,10,DK,3)+R(52,8,14,6,SUN,2)+R(70,8,14,6,ORG,2)+R(88,8,14,6,SUN,2)+R(104,8,12,6,ORG,2)+
-    `<path d="M60 2l-6-8M84 0v-8M108 2l6-8" stroke="${SUN}" stroke-width="3"/>`}),
-};
+  repair:()=>ground(46)+P('M46 78l42-42c-4-12 2-24 14-26l-8 12 6 8 10-4c2 12-8 22-22 18L46 86z','#9aa1a9')+Ci(52,82,4,DK)};
+const GAR_MAP={eng1:()=>GAR_ICONS.engine(1),eng2:()=>GAR_ICONS.engine(2),eng3:()=>GAR_ICONS.engine(3),tyre1:GAR_ICONS.tyres,tyre2:GAR_ICONS.tyres,brk1:GAR_ICONS.brakes,brk2:GAR_ICONS.brakes,
+  sport:GAR_ICONS.sport,bull:()=>carSVG('minivan','#35577d','steel',{bullBar:true}),armor1:GAR_ICONS.panels,armor2:GAR_ICONS.panels,cargo:()=>carSVG('minivan','#35577d','steel',{cargo:true}),
+  rack:GAR_ICONS.gunRack,aid:GAR_ICONS.medkit};
+function stickerSVG(txt){const words=String(txt).split(' ');const lines=[];let cur='';for(const w of words){if((cur+' '+w).trim().length>16){lines.push(cur.trim());cur=w}else cur+=' '+w}lines.push(cur.trim());
+  return ground(60,84)+`<g transform="rotate(-4 80 50)">`+R(14,26,132,48,'#fffdf7',4)+R(14,26,10,48,'#2f5d9e',2)+lines.slice(0,3).map((l,i)=>T(86,46+i*13-(lines.length-1)*6,12,l.replace(/&/g,'&amp;').replace(/</g,'&lt;').toUpperCase(),K)).join('')+`</g>`}
 const SUP_ICONS={
   rangeDay:()=>ground(54)+R(30,36,100,48,'#4f6a3a',3)+R(30,28,100,14,'#5c7a44',3)+R(68,30,24,8,SUN,2)+T(80,66,14,'AMMO',PAP)+R(44,16,8,14,SUN,2)+R(56,14,8,16,SUN,2)+R(96,16,8,14,'#c79b2a',2)+R(108,18,8,12,'#c79b2a',2),
   zipPack:()=>ground(46)+R(36,30,88,56,'#2b2f35',4)+R(42,24,76,10,SUN,2)+T(80,66,11,'500 PACK',PAP)+
@@ -715,10 +812,18 @@ const SUP_ICONS={
 function horn(ids){return ground(46)+P('M40 40h18l40-22v64L58 60H40z',SUN)+R(30,40,12,20,DK,2)+
   `<path d="M108 34c8 6 8 26 0 32M118 26c14 10 14 38 0 48M128 18c20 14 20 50 0 64" fill="none" stroke="${K}" stroke-width="3" opacity="${ids==='stock'?.4:.9}"/>`}
 function iconSVG(kind,id){
-  let f;
-  if(kind==='gun')f=GUN_ICONS[id];else if(kind==='att')f=ATT_ICONS[id];else if(kind==='furn')f=FURN_ICONS[id];else if(kind==='veh')f=VEH_ICONS[id];else if(kind==='sup')f=SUP_ICONS[id];
-  else if(kind==='cos'){const[g,o]=id.split(':');const opt=COSMETICS[g].opts.find(x=>x.id===o)||{};
-    if(g==='paint')return svg(vanSVG(opt.col,'hub'));if(g==='rims')return svg(ground(46)+wheel(80,50,opt.style,2.8));
+  let f;const G=HT.Garage;
+  if(kind==='gun')f=GUN_ICONS[id];else if(kind==='att')f=ATT_ICONS[id];else if(kind==='furn')f=FURN_ICONS[id];else if(kind==='sup')f=SUP_ICONS[id];
+  else if(kind==='gar'){if(id.startsWith('v_'))return svg(carSVG(id.slice(2),'#6b7d8f','steel'),'0 -12 164 112');f=GAR_MAP[id]}
+  else if(kind==='car')return svg(carSVG(id,id==='minivan'?'#35577d':{workvan:'#f2f2ee',pickup:'#8a2f2a',suv:'#1f2226'}[id],'steel'),'0 -12 164 112');
+  else if(kind==='rep')f=GAR_ICONS.repair;
+  else if(kind==='stick')return svg(stickerSVG(G?G.COSMETICS.stickers[+id]:'Sticker'));
+  else if(kind==='cos'){const[g,o]=id.split(':');
+    if(g==='paint'){const c=G&&G.COSMETICS.paint[o]||{hex:'#35577d'};return svg(carSVG('minivan',c.hex,'steel',{finish:c.finish}),'0 -12 164 112')}
+    if(g==='rims')return svg(ground(46)+wheel(80,50,o,2.8));
+    if(g==='tint')return svg(carSVG('minivan','#35577d','steel',{tint:{none:0,light:.35,limo:.7}[o]}),'0 -12 164 112');
+    if(g==='lightBar')return svg(carSVG('minivan','#35577d','steel',{lightBar:true}),'0 -12 164 112');
+    if(g==='spoiler')return svg(carSVG('minivan','#35577d','steel',{spoiler:true}),'0 -12 164 112');
     if(g==='horn')return svg(horn(o))}
   return svg(f?f():ground(30)+R(56,26,48,48,PAP,6)+T(80,58,24,'?',K))}
 
@@ -754,8 +859,13 @@ const SFX={
   toggle:()=>{noise(0,.03,.1,2500);tone(1400,0,.04,.04,'square')},
   tick:()=>tone(2600,0,.018,.03,'square'),
   stamp:()=>{noise(0,.09,.16,200);tone(90,0,.14,.12,'sine',50)}};
-function sfx(n){if(!Menus.volume)return;try{const o=HT.Shop&&HT.Shop.sfx;if(typeof o==='function'&&o(n)===true)return;SFX[n]&&SFX[n]()}catch(e){}}
-function playHorn(opt){if(!opt||!opt.notes)return;let t=0;for(const[f,d]of opt.notes){tone(f,opt.chord?0:t,d,.07,opt.wave||'square');if(opt.chord)tone(f*1.26,0,d,.05,opt.wave||'square');t+=d*.9}}
+/* game sounds first: HT.Audio.ui (js/audio.js) when it is running, the built-in blips otherwise */
+const AUDIO_UI={move:'hover',tab:'click',open:'click',close:'back',arm:'click',buy:'cash',order:'objective',error:'denied',equip:'pickup',toggle:'click',tick:'hover',stamp:'click'};
+function sfx(n){if(!Menus.volume)return;try{const o=HT.Shop&&HT.Shop.sfx;if(typeof o==='function'&&o(n)===true)return;
+  const A=HT.Audio;if(A&&A.ready&&typeof A.ui==='function'&&AUDIO_UI[n]){A.ui(AUDIO_UI[n],{vol:Menus.volume/.6});return}SFX[n]&&SFX[n]()}catch(e){}}
+const hornOf=id=>({notes:HT.Garage?HT.Garage.hornNotes(id):[{f:392,t:0,d:.38},{f:494,t:0,d:.38}],wave:'square'});
+function playHorn(opt){if(!opt||!opt.notes)return;
+  if(opt.notes[0]&&opt.notes[0].f){for(const n of opt.notes){tone(n.f,n.t,n.d,.06,opt.wave||'square');tone(n.f*1.005,n.t,n.d,.03,'triangle')}return}let t=0;for(const[f,d]of opt.notes){tone(f,opt.chord?0:t,d,.07,opt.wave||'square');if(opt.chord)tone(f*1.26,0,d,.05,opt.wave||'square');t+=d*.9}}
 Menus.sfx=sfx;Menus.playHorn=playHorn;
 
 function countTo(el,from,to,ms,fmt){fmt=fmt||money;if(!el)return;if(reduced()||ms<=0||from===to){el.textContent=fmt(to);return}
@@ -767,18 +877,20 @@ Menus.countTo=countTo;
 const thumbCache=new Map(),thumbWait=new Set();
 function asThumbHTML(out){if(!out)return null;if(out.toDataURL)return'<img alt="" src="'+out.toDataURL()+'">';if(out.tagName==='IMG')return'<img alt="" src="'+esc(out.src)+'">';
   if(typeof out==='string')return out.trim().startsWith('<')?out:'<img alt="" src="'+esc(out)+'">';return null}
-/* thumbRenderer(item) may return a canvas, an <img>, a URL / HTML string, or a Promise of one; null keeps the vector icon. */
-function thumbHTML(kind,id){const key=kind+':'+id;
-  const r=HT.Shop&&HT.Shop.thumbRenderer;
-  if(r){if(thumbCache.has(key))return thumbCache.get(key)||iconSVG(kind,id);
-    if(!thumbWait.has(key)){try{const out=r(Object.assign({kind,id,key},itemData(kind,id)));
+/* thumbRenderer(item) may return a canvas, an <img>, a URL / HTML string, or a Promise of one; null keeps the vector icon.
+   item = catalogue data + {kind, id, key, vehicle?:{type, opts}} (vehicle = what HT.Vehicles.make should build, incl. a previewed upgrade). */
+function hashStr(x){return fnv(JSON.stringify(x))}
+function vecFallback(kind,id,veh){if(veh&&HT.Garage){if(veh.stats)return carFull(veh.stats);const u=veh.opts.upgrades||{};
+    return svg(carSVG(veh.type,veh.opts.color,u.rims||'steel',{finish:u.paint,tint:u.tint,lightBar:!!u.lightBar,spoiler:u.spoiler,bullBar:u.bullBar,cargo:u.roofRack==='cargo'}),'0 -12 164 112')}
+  return iconSVG(kind,id)}
+function thumbHTML(kind,id,veh){const key=kind+':'+id+(veh?':'+hashStr([veh.type,veh.opts]):'');
+  let inner=null;const r=HT.Shop&&HT.Shop.thumbRenderer;
+  if(r){if(thumbCache.has(key))inner=thumbCache.get(key);
+    else if(!thumbWait.has(key)){try{const out=r(Object.assign({kind,id,key},itemData(kind,id),veh?{vehicle:{type:veh.type,opts:veh.opts}}:{}));
       if(out&&typeof out.then==='function'){thumbWait.add(key);out.then(v=>{const h=asThumbHTML(v);thumbCache.set(key,h);thumbWait.delete(key);
           if(h)for(const el of document.querySelectorAll(`[data-tk="${key}"]`)){el.innerHTML=h;el.classList.add('htm-rendered')}},()=>{thumbCache.set(key,null);thumbWait.delete(key)})}
-      else{const h=asThumbHTML(out);thumbCache.set(key,h);if(h)return h}}catch(e){thumbCache.set(key,null)}}}
-  return iconSVG(kind,id)}
-const tk=(kind,id)=>`data-tk="${kind}:${id}"${thumbCache.get(kind+':'+id)?' class="htm-rendered"':''}`;
-function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')return ATTACHMENTS[id];if(kind==='furn')return FURNITURE[id];if(kind==='sup')return SUPPLIES[id];
-  if(kind==='veh')return VEHICLE[id];if(kind==='cos'){const[g,o]=id.split(':');return COSMETICS[g].opts.find(x=>x.id===o)}return{}}
+      else{inner=asThumbHTML(out);thumbCache.set(key,inner)}}catch(e){thumbCache.set(key,null)}}}
+  return`<span class="htm-ti${inner?' htm-rendered':''}" data-tk="${key}">${inner||vecFallback(kind,id,veh)}</span>`}
 
 /* --- gamepad polling --- */
 const pad={on:false,prev:[],rep:{},raf:0,handler:null};
@@ -812,6 +924,7 @@ const LOGOS={
   dadazon:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 22l24-12 24 12v26L32 60 8 48z" fill="#d7a86e"/><path d="M8 22l24 12 24-12M32 34v26" fill="none"/><path d="M20 16l24 12v8" fill="none" stroke="#f6f1e3" stroke-width="5"/><path d="M20 16l24 12v8" fill="none" stroke="#16181c" stroke-width="1.5"/><path d="M18 42c4 3 8 3 10 0 2 3 6 3 10 0" fill="none" stroke-width="3"/></g></svg>`,
   hardware:`<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#f6f1e3" stroke="#16181c" stroke-width="3.5"/><path d="M32 8l5 11 7-3-2 11 8-2-4 8 6 3-12 7 2 6-10-2v12h-2V47l-10 2 2-6-12-7 6-3-4-8 8 2-2-11 7 3z" fill="#c23b2e" stroke="#16181c" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
   auto:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ffc94a"/><circle cx="32" cy="32" r="11" fill="#16181c"/><circle cx="32" cy="32" r="5" fill="#ffc94a"/></g></svg>`,
+  mart:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 26l6-16h36l6 16z" fill="#f08a2c"/><path d="M8 26c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8" fill="#fff"/><rect x="12" y="34" width="40" height="24" fill="#f6f1e3"/><rect x="18" y="40" width="12" height="18" fill="#2fa39a"/><rect x="35" y="40" width="12" height="9" fill="#9fd1ef"/></g></svg>`,
   locker:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><rect x="10" y="4" width="44" height="56" rx="3" fill="#5d7356"/><path d="M32 4v56" fill="none"/><path d="M16 12h10M16 17h10M16 22h10M38 12h10M38 17h10M38 22h10" stroke-width="2.5"/><rect x="24" y="32" width="5" height="10" rx="1" fill="#ffc94a"/><rect x="35" y="32" width="5" height="10" rx="1" fill="#ffc94a"/></g></svg>`};
 
 function shell(cfg){
@@ -827,7 +940,7 @@ function shell(cfg){
     <div class="htm-body"><div class="htm-gridwrap"><div class="htm-grid" role="list"></div></div><aside class="htm-detail" aria-live="polite"></aside></div>
     <footer class="htm-foot"><span class="htm-tagline">${esc(cfg.tagline||'')}</span><span class="htm-keys"></span></footer>
   </div><div class="htm-scrim" data-act="sheetclose"></div><div class="htm-toast" role="status"></div>`;
-  document.body.appendChild(el);
+  (document.querySelector('.ht-root')||document.body).appendChild(el); // inside the HUD root: shares its design tokens
   return{el,panel:el.querySelector('.htm-panel'),grid:el.querySelector('.htm-grid'),gridwrap:el.querySelector('.htm-gridwrap'),detail:el.querySelector('.htm-detail'),
     tabrow:el.querySelector('.htm-tabrow'),chips:el.querySelector('.htm-chips'),cash:el.querySelector('.htm-cash b'),keys:el.querySelector('.htm-keys'),toast:el.querySelector('.htm-toast')}}
 
@@ -885,70 +998,127 @@ function reloadTime(w){return w.reload.tac?w.reload.tac:w.reload.shell.start+w.r
 function gunFacts(w,base){const d=(a,b,fmt,lowGood)=>{if(!base||Math.abs(a-b)<1e-6)return null;const up=lowGood?a<b:a>b;return(up?'▲ ':'▼ ')+fmt(Math.abs(a-b))};
   return factsHTML([['Ammo',AMMO[w.ammo].name],['Magazine',w.mag,base&&d(w.mag,base.mag,x=>x)],['Carried',w.reserve],['Reload',fmtS(reloadTime(w)),base&&d(reloadTime(w),reloadTime(base),fmtS,true)],
     ['Fire',w.auto?'Full auto':w.pellets>1?w.pellets+' pellets':'Semi'],w.muffled?['Sound','Muffled']:null])}
-const slotName={side:'Sidearm',prim:'Primary',p1:'Primary 1',p2:'Primary 2'};
+const slotName={side:'Sidearm',prim:'Primary',p1:'Primary 1',p2:'Primary 2',p3:'Gun rack'};
 
 /* =====================================================================
    SHOP
    ===================================================================== */
 const TAG_TXT={seat:'Seating','tv-facing':'TV time',tv:'TV time',dining:'Dinner',play:'Playtime',dogbed:'Dog naps',gather:'Hangouts',garage:'Garage hangs'};
 const SECTION_OF_ROOM={'Living room':'Living room',Dining:'Dining & kitchen',Kitchen:'Dining & kitchen',Garage:'Garage',Backyard:'Backyard',Porch:'Backyard'};
+/* display copy for HT.Garage cosmetics (numbers and prices stay in HT.Garage) */
+const COS_TXT={
+  paint:{slate:['Slate Blue','The color it came in. The color of quiet competence.'],silver:['Minivan Silver','Blends into every school pickup line in America.'],cranberry:['Cranberry','Thanksgiving, but make it a vehicle.'],
+    forest:['Forest','For the dad who owns more than one flannel.'],sand:['Sandstone','HOA pre-approved. The board wept with relief.'],white:['Soccer-Ball White','Shows every speck of mud. Which is the point, apparently.'],
+    orange:['Hi-Vis Orange','Visible from space. Visible from the principal\'s office.'],black:['Grill-Master Black','Very serious. Still has a stick-figure family on the back.'],
+    twotone:['Two-Tone Sunday','Cream over brown, like your grandfather\'s station wagon and your grandfather\'s couch.'],wood:['Wood-Grain Side Panels','The faux wood is real faux wood.'],mural:['Riverside Mural Wrap','Painted by the Second Gear kids. Every tag on it is a thank-you.']},
+  rims:{steel:['Steelies','Stock. Honest. A little rusty around the lug nuts.'],alloy:['Alloys','Lighter, shinier, and somehow more expensive to clean.'],chrome:['Chrome','You can check your hair in them. You will.'],
+    spinner:['Hubcap Spinners','They keep spinning at red lights. Tyler is in heaven.'],gold:['Gold','For the dad who has everything.']},
+  tint:{none:['No Tint','Everyone can see you singing along.'],light:['Light Tint · 35%','Just enough to hide the snack wrappers.'],limo:['Limo Tint · 70%',"Tyler keeps waving at people. They can't see him. He keeps waving."]},
+  lightBar:{amber:['Neighborhood Watch Light Bar','Amber and white. Never red and blue: you are a dad, not a police car. Hold H to flash it.']},
+  spoiler:{on:['Spoiler','Adds 0 mph. Adds 40 cool.']},
+  horn:{stock:['Two-Tone (stock)','Two notes. Both apologetic.'],shave:['Shave and a Haircut','The answer is always "two bits."'],ode:['Ode to Joy','Beethoven, 1824. Your neighbors, 7:15 a.m.'],
+    ballgame:['Take Me Out to the Ball Game','Plays the first line. The whole street finishes it.'],elise:['Für Elise','Every piano lesson in Maple Heights, in one honk.'],
+    tell:['William Tell Finale','Good for chases. Great for drive-thrus.'],entertainer:['The Entertainer',"Benny's truck song. Kids appear from nowhere."]}};
+const COS_GROUP={paint:'Paint',rims:'Wheels',tint:'Tint',lightBar:'Extras',spoiler:'Extras',horn:'Horn'};
+const VEH_BLURB={minivan:'The one that started it all. Seven seats, a cup holder for every mood.',workvan:'For the dad who owns a ladder. Three seats, room for two extra mags of everything.',
+  pickup:'Bed holds two coolers or one Big Dave. Five seats, hits like a tailgate.',suv:'Seats seven. Fits one ego. The toughest and fastest thing on the lot.'};
+function garItem(id){return HT.Garage&&HT.Garage.CATALOG.find(c=>c.id===id)}
+function garFx(it){const G=HT.Garage;if(!it)return'';const n=v=>(v>=1?'×':'×')+(+v.toFixed(2));
+  if(it.slot==='engine'){const e=G.ENGINE[it.lvl];return'Top speed +'+e.m+' m/s, boost +'+e.b+' m/s, acceleration '+n(e.a)}
+  if(it.slot==='tyres'){const t=G.TYRES[it.lvl];return'Grip '+n(t.g)+', steering '+n(t.s)+', turning '+n(t.t)}
+  if(it.slot==='brakes'){const b=G.BRAKES[it.lvl];return'Brakes '+n(b.b)+', handbrake '+n(b.h)+(it.lvl>=2?', no sliding under braking':'')}
+  if(it.slot==='armor'){const a=G.ARMOR[it.lvl];return'Van HP +'+a.hp+', bullet damage '+n(a.bul)}
+  return{sport:'Press N (or SPORT): '+G.SPORT.dur+' s burst, acceleration ×'+G.SPORT.accMul+', top speed boost +'+G.SPORT.maxAdd+' m/s, '+G.SPORT.cool+' s recharge. Spoiler included.',
+    bullBar:'Front ram damage ×2, front impact damage ×0.5',cargo:'+2 reserve mags of every carried ammo type at each mission start',
+    rack:'A 4th loadout slot (key 4) for another primary',aid:'Once per job: get back up at 50 HP instead of going down. Or instantly revive a downed buddy.'}[it.slot]||''}
+function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')return ATTACHMENTS[id];if(kind==='furn')return FURNITURE[id];if(kind==='sup')return SUPPLIES[id];
+  const G=HT.Garage;
+  if(kind==='gar'){const it=garItem(id)||{};return it.group==='vehicle'?{name:it.name,blurb:VEH_BLURB[it.type]||it.blurb}:{name:it.name,blurb:it.blurb}}
+  if(kind==='car')return{name:G?G.VEH[id].name:id,blurb:VEH_BLURB[id]};
+  if(kind==='cos'){const[g,o]=id.split(':');const t=(COS_TXT[g]||{})[o]||[o,''];return{name:t[0],blurb:t[1]}}
+  if(kind==='stick')return{name:'"'+(G?G.COSMETICS.stickers[+id]:id)+'"',blurb:'Bumper sticker. Three slots on the back. Peel one off anytime, Sal has a razor blade.'};
+  if(kind==='rep')return{name:'Body Work',blurb:'Sal hammers out the dents, tapes the mirror, and does not ask what happened. $2 a hit point.'};
+  return{}}
+/* which vehicle (and look) a tile or the hero should show; null = not a vehicle picture */
+function vehicleFor(kind,id,hero){const G=HT.Garage;if(!G)return null;const g=Save.data.garage;
+  if(kind==='car'||(kind==='gar'&&id.startsWith('v_'))){const t=kind==='car'?id:id.slice(2);return{type:t,opts:g.owned.includes(t)?G.vehicleOpts(g,t):{color:{workvan:'#f2f2ee',pickup:'#8a2f2a',suv:'#1f2226'}[t]||'#35577d',upgrades:{}}}}
+  if((kind==='cos'&&!id.startsWith('horn'))||(kind==='gar'&&['bull','cargo','sport'].includes(id))||(hero&&kind==='stick')){const st=vanStatsWith(kind,id);return{type:st.type,opts:st.makeOpts,stats:st}}
+  return null}
 function shopEntries(store,tab){
-  const E=[];
+  const E=[],G=HT.Garage;
   if(tab==='guns'){for(const id of GUN_ORDER)E.push({kind:'gun',id,sec:GUNS[id].slot==='side'?'Sidearms':'Primaries'})}
   else if(tab==='att'){for(const id in ATTACHMENTS)E.push({kind:'att',id})}
   else if(tab==='furn'){const secs=['Living room','Dining & kitchen','Garage','Backyard','Odds & ends'];
     const list=FURN_ORDER.filter(id=>store!=='hardware'||FURNITURE[id].hw).map(id=>({kind:'furn',id,sec:SECTION_OF_ROOM[FURNITURE[id].room]||'Odds & ends'}));
     list.sort((a,b)=>secs.indexOf(a.sec)-secs.indexOf(b.sec));E.push(...list)}
   else if(tab==='sup'){for(const id in SUPPLIES)E.push({kind:'sup',id})}
-  else if(tab==='cos'){for(const g in COSMETICS)for(const o of COSMETICS[g].opts)E.push({kind:'cos',id:g+':'+o.id,sec:COSMETICS[g].name})}
-  else for(const id of VEH_ORDER)if(VEHICLE[id].tab===tab)E.push({kind:'veh',id});
+  else if(!G){}
+  else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tyres',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility'};
+    for(const c of G.CATALOG)if(c.group===tab)E.push({kind:'gar',id:c.id,sec:secN[c.slot]})}
+  else if(tab==='looks'){const C=G.COSMETICS;
+    for(const o in C.paint)E.push({kind:'cos',id:'paint:'+o,sec:'Paint'});for(const o in C.rims)E.push({kind:'cos',id:'rims:'+o,sec:'Wheels'});
+    for(const o in C.tint)E.push({kind:'cos',id:'tint:'+o,sec:'Tint'});E.push({kind:'cos',id:'lightBar:amber',sec:'Extras'},{kind:'cos',id:'spoiler:on',sec:'Extras'});
+    for(const o in G.HORNS)E.push({kind:'cos',id:'horn:'+o,sec:'Horn'});C.stickers.forEach((t,i)=>{if(!(STICKER_REQ[i]&&STICKER_REQ[i].mart))E.push({kind:'stick',id:String(i),sec:'Bumper stickers'})})}
+  else if(tab==='stick'){G.COSMETICS.stickers.forEach((t,i)=>E.push({kind:'stick',id:String(i)}))}
+  else if(tab==='cars'){for(const t of['minivan','workvan','pickup','suv'])E.push({kind:'car',id:t})}
+  else if(tab==='repair'){E.push({kind:'rep',id:'active'})}
   for(const e of E){e.key=e.kind+':'+e.id}
   return E}
-function entryName(kind,id){if(kind==='veh'){const u=VEHICLE[id],lv=Save.data.vehicle[id]||0;return u.tiers.length>1?u.name:u.tiers[0].name}const d=itemData(kind,id);return d?d.name:id}
-function entrySub(kind,id){
+function entryName(kind,id){const d=itemData(kind,id);return d&&d.name||id}
+function entrySub(kind,id){const G=HT.Garage;
   if(kind==='gun'){const g=GUNS[id];return slotName[g.slot]+' · '+AMMO[g.ammo].name}
   if(kind==='att'){const a=ATTACHMENTS[id];return ATT_SLOTS.find(s=>s[0]===a.slot)[1]+' · fits '+a.compat.length+' guns'}
   if(kind==='furn'){const f=FURNITURE[id];return f.room+' · '+f.cells[0]+'×'+f.cells[1]+' m'}
   if(kind==='sup')return'Next mission only';
-  if(kind==='veh'){const u=VEHICLE[id],lv=Save.data.vehicle[id]||0;return u.tiers.length>1?`<span class="htm-pips">${u.tiers.map((t,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</span>${lv>=u.tiers.length?'Maxed':'Stage '+(lv+1)+': '+esc(u.tiers[lv].name)}`:'One-time install'}
-  if(kind==='cos'){const[g]=id.split(':');return COSMETICS[g].name}
+  if(kind==='gar'){const it=garItem(id);if(it.group==='vehicle'){const v=G.VEH[it.type];return v.seats+' seats · '+v.hp+' HP'}
+    if(it.lvl&&G.CATALOG.filter(c=>c.slot===it.slot).length>1){const n=G.CATALOG.filter(c=>c.slot===it.slot).length;return`<span class="htm-pips">${Array.from({length:n},(x,i)=>`<i class="${i<it.lvl?'on':''}"></i>`).join('')}</span>Stage ${it.lvl}`}
+    return({perf:'Performance',prot:'Protection',util:'Utility · moves with you'})[it.group]}
+  if(kind==='car'){const v=G.VEH[id];return v.seats+' seats · '+v.hp+' HP'+(v.cargo?' · +'+v.cargo+' mags':'')}
+  if(kind==='cos'){const[g]=id.split(':');return COS_GROUP[g]}
+  if(kind==='stick')return'Bumper sticker';
+  if(kind==='rep'){const g=Save.data.garage;return G.VEH[g.active].name+' · '+Math.round(g.hp[g.active])+' / '+vehMaxHp(g.active,g)+' HP'}
   return''}
 
 function tagHTML(st){
   if(st.state==='buy'||st.state==='poor')return`<span class="htm-price${st.state==='poor'?' poor':''}">${st.discount?`<s>${money(st.base)}</s>`:''}${st.price?money(st.price):'Free'}</span>`;
-  const lab={owned:'Owned',equipped:'Equipped',pending:'On its way',maxed:st.kind==='furn'?'Have one':'Maxed',locked:'Locked'}[st.state];
+  const lab={owned:st.kind==='car'?'In the driveway':'Owned',equipped:st.kind==='car'?'Driving':st.kind==='gar'||st.kind==='stick'?'Installed':st.kind==='cos'?'On the van':'Equipped',
+    pending:'On its way',maxed:st.kind==='furn'?'Have one':st.kind==='rep'?'Like new':'Maxed',locked:'Locked'}[st.state];
   return`<span class="htm-chip s-${st.state}">${st.state==='locked'?'<i class="htm-lock"></i>':''}${lab}</span>`}
 
 function shopTile(e,st,sel){
   const lockR=st.state==='locked'?`<span class="htm-ireason">${esc(st.reason||'')}</span>`:'';
   return`<button class="htm-item${sel?' sel':''}" data-nav data-key="${e.key}" data-state="${st.state}" role="listitem" aria-label="${esc(entryName(e.kind,e.id))}">
-    <span class="htm-thumb t-${e.kind}"><span class="htm-ti" ${tk(e.kind,e.id)}>${thumbHTML(e.kind,e.id)}</span></span>
+    <span class="htm-thumb t-${e.kind}">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id))}</span>
     <span class="htm-itx"><span class="htm-iname">${esc(entryName(e.kind,e.id))}</span><span class="htm-isub">${entrySub(e.kind,e.id)}</span>${lockR}</span>
     <span class="htm-tag">${tagHTML(st)}</span></button>`}
 
 function buyButtonHTML(st,armed,store){
   const t=coarse()?'Tap':'Press Enter';
-  if(st.state==='buy'){const verb=store==='dadazon'?'Order':st.kind==='veh'?'Install':'Buy';
-    return armed?`<button class="htm-btn armed" data-nav data-act="primary"><span>Confirm ${verb.toLowerCase()} · ${money(st.price)}</span><small>${t} again</small></button>`
+  if(st.state==='buy'){const verb=store==='dadazon'?'Order':st.kind==='rep'?'Repair':st.kind==='gar'&&!(st.item&&st.item.group==='vehicle')?'Install':'Buy';
+    return armed?`<button class="htm-btn armed" data-nav data-act="primary"><span>Confirm · ${money(st.price)}</span><small>${t} again</small></button>`
       :`<button class="htm-btn" data-nav data-act="primary"><span>${verb} · ${st.price?money(st.price):'Free'}</span></button>`}
   if(st.state==='poor')return`<button class="htm-btn poor" data-nav data-act="primary" aria-disabled="true"><span>Need ${money(st.short)} more</span></button>`;
   if(st.state==='locked')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span><i class="htm-lock"></i>${esc(st.reason||'Locked')}</span></button>`;
   if(st.state==='pending')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>On its way · arrives at home</span></button>`;
   if(st.state==='maxed')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>${esc(st.reason||'Maxed out')}</span></button>`;
-  if(st.kind==='cos'&&st.state==='owned')return`<button class="htm-btn" data-nav data-act="primary"><span>Use this one</span></button>`;
+  const use={car:'Drive this one',cos:'Use this one',stick:'Stick it on'}[st.kind];
+  if(st.state==='owned'&&use)return`<button class="htm-btn" data-nav data-act="primary"><span>${use}</span></button>`;
+  if(st.state==='equipped'&&st.kind==='stick')return`<button class="htm-btn alt" data-nav data-act="primary"><span>Peel it off</span></button>`;
   if(st.kind==='sup')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>Packed for the next job</span></button>`;
-  return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>${st.state==='equipped'?'Equipped':'In your locker'}</span></button>`}
+  const off={car:"You're driving it",cos:'On the van now',gar:'Installed'}[st.kind];
+  return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>${off||(st.state==='equipped'?'Equipped':'In your locker')}</span></button>`}
 
 function stampHTML(st,store){
-  if(st.state==='equipped')return`<span class="htm-stamp s-eq">${st.kind==='cos'?'On the van':'Equipped'}</span>`;
-  if(st.state==='owned')return`<span class="htm-stamp s-own">${st.how==='collected'?'Collected':'Owned'}</span>`;
+  if(st.state==='equipped')return`<span class="htm-stamp s-eq">${st.kind==='car'?'Driving':st.kind==='cos'||st.kind==='stick'?'On the van':st.kind==='gar'?'Installed':'Equipped'}</span>`;
+  if(st.state==='owned')return`<span class="htm-stamp s-own">${st.how==='collected'?'Collected':st.kind==='car'?'Yours':'Owned'}</span>`;
   if(st.state==='pending'||st.pend)return`<span class="htm-stamp s-pend">Ordered</span>`;
   if(st.kind==='furn'&&st.have)return`<span class="htm-stamp s-own">Own ${st.have}</span>`;
-  if(st.state==='maxed'&&st.kind==='veh')return`<span class="htm-stamp s-own">Installed</span>`;
+  if(st.state==='maxed'&&st.kind==='rep')return`<span class="htm-stamp s-own">Like new</span>`;
   return''}
 
+function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':''}"></i></div></div>`}
 function shopDetail(m,e){
-  const s=Save.data,st=status(e.kind,e.id,m.store),d=itemData(e.kind,e.id)||{},armed=m.armed===e.key;
+  const s=Save.data,st=status(e.kind,e.id,m.store),d=itemData(e.kind,e.id)||{},armed=m.armed===e.key,G=HT.Garage;
   let kicker='',body='',name=entryName(e.kind,e.id),blurb=d.blurb||'',fx='';
   if(e.kind==='gun'){const g=GUNS[e.id];kicker=slotName[g.slot]+' · '+g.cls+' · '+AMMO[g.ammo].name;
     const L=s.loadout;let cmp=g.slot==='side'?L.side:(L.p1===e.id?L.p2:L.p1);if(cmp===e.id)cmp=null;
@@ -957,14 +1127,14 @@ function shopDetail(m,e){
       barsHTML(other?gunBars(other):null,gunBars(me))+gunFacts(me,other);
     if(g.unlock.collect&&st.state!=='equipped'&&st.state!=='owned'){const c=st.collect||{n:0,need:g.unlock.collect};
       body+=`<div class="htm-collect"><span>Armory: pick up ${c.need} from thugs to get it free</span><span class="htm-meter"><i style="width:${100*c.n/c.need}%"></i></span><b>${c.n}/${c.need}</b></div>`}}
-  else if(e.kind==='att'){const a=ATTACHMENTS[e.id];kicker=ATT_SLOTS.find(x=>x[0]===a.slot)[1]+' attachment';fx=a.fx;
+  else if(e.kind==='att'){const a=ATTACHMENTS[e.id];kicker=ATT_SLOTS.find(x=>x[0]===a.slot)[1]+' attachment';
     const owned=a.compat.filter(g=>s.owned.guns.includes(g)),eq=[s.loadout.p1,s.loadout.p2,s.loadout.side].filter(g=>g&&a.compat.includes(g));
     const pool=eq.length?[...new Set([...eq,...owned])]:owned.length?owned:a.compat;
     if(!m.attTarget||!pool.includes(m.attTarget))m.attTarget=pool[0];const g=m.attTarget;
     const cur=Object.assign({optic:null,mag:null,under:null,muzzle:null},s.attOn[g]||{});const before=weaponStats(g,Object.assign({},cur,{[a.slot]:null})),after=weaponStats(g,Object.assign({},cur,{[a.slot]:e.id}));
-    fx='';body=`<div class="htm-cmp">Try it on <button class="htm-cycle" data-nav data-act="target" ${pool.length<2?'disabled':''}><span>‹</span><b>${esc(GUNS[g].name)}</b><span>›</span></button></div>`+
+    body=`<div class="htm-cmp">Try it on <button class="htm-cycle" data-nav data-act="target" ${pool.length<2?'disabled':''}><span>‹</span><b>${esc(GUNS[g].name)}</b><span>›</span></button></div>`+
       barsHTML(gunBars(before),gunBars(after))+gunFacts(after,before)+
-      `<div class="htm-fits"><span>Fits</span>${a.compat.map(id=>`<i class="${s.owned.guns.includes(id)?'own':''}">${esc(GUNS[id].short)}</i>`).join('')}</div><div class="htm-fx" style="margin-top:12px"><b>What it does</b>${esc(a.fx)}</div>`}
+      `<div class="htm-fx" style="margin-top:12px"><b>What it does</b>${esc(a.fx)}</div><div class="htm-fits"><span>Fits</span>${a.compat.map(id=>`<i class="${s.owned.guns.includes(id)?'own':''}">${esc(GUNS[id].short)}</i>`).join('')}</div>`}
   else if(e.kind==='furn'){const f=FURNITURE[e.id];const zn={in:'Indoors',out:'Outdoors',any:'Inside or out'}[f.zone];kicker=f.room===zn||f.room==='Backyard'?f.room:f.room+' · '+zn;
     const own=s.furniture.owned[e.id]||0,placed=s.furniture.placed.filter(p=>p.id===e.id).length;
     const cells=[];for(let z=0;z<3;z++)for(let x=0;x<3;x++)cells.push(`<i class="${x<f.cells[0]&&z<f.cells[1]?'on':''}"></i>`);
@@ -973,59 +1143,74 @@ function shopDetail(m,e){
       factsHTML([['You own',own?own+(placed?` · ${placed} placed`:''):'None yet'],['Family uses it',[...new Set(f.tags.map(t=>TAG_TXT[t]).filter(Boolean))].join(', ')||'Just looks nice']]);
     if(st.state==='owned'||own-placed>0)m.canSell=true}
   else if(e.kind==='sup'){const u=SUPPLIES[e.id];kicker='Supplies · next mission';fx=u.fx}
-  else if(e.kind==='veh'){const u=VEHICLE[e.id],lv=s.vehicle[e.id]||0,nt=u.tiers[Math.min(lv,u.tiers.length-1)];kicker='Minivan · '+({perf:'Performance',prot:'Protection',util:'Utility'}[u.tab]);
-    name=u.tiers.length>1?(lv<u.tiers.length?nt.name:u.tiers[u.tiers.length-1].name):u.tiers[0].name;blurb=nt.blurb;fx=fxText(nt.fx);
-    const now=vehicleStats(),then=lv<u.tiers.length?vanStatsWith(e.id):now,bn=vanBars(now),bt=vanBars(then);
-    const rel=bt.map((b,i)=>Math.abs(b.v-bn[i].v)>.01||['top','armor'].includes(b.k));
-    const moves=bt.some((b,i)=>Math.abs(b.v-bn[i].v)>.01);
-    body=(moves?`<div class="htm-cmp">Your minivan <span class="htm-legend"><i class="up"></i>after install</span></div>`+barsHTML(bn.filter((b,i)=>rel[i]),bt.filter((b,i)=>rel[i])):'')+
-      (u.tiers.length>1?`<ol class="htm-tiers">${u.tiers.map((t,i)=>`<li class="${i<lv?'done':i===lv?'next':''}"><i></i><span>${esc(t.name)}</span><b>${i<lv?'Installed':money(t.price)}</b></li>`).join('')}</ol>`:'')}
-  else if(e.kind==='cos'){const[g,o]=e.id.split(':');kicker='Minivan · '+COSMETICS[g].name;
-    if(g==='horn')body=`<button class="htm-ghost" data-nav data-act="honk">▶ Honk it</button>`;
-    if(g==='paint')body=`<div class="htm-swatch" style="--c:${d.col}"><i></i><span>${esc(d.name)}</span></div>`;
-    const ownN=s.vehicle.cos[g].length;body+=factsHTML([['On the van now',esc(COSMETICS[g].opts.find(x=>x.id===s.vehicle[g]).name)],['Collected',ownN+' of '+COSMETICS[g].opts.length]])}
+  else if(G&&(e.kind==='gar'||e.kind==='car')){const it=e.kind==='gar'?garItem(e.id):null,veh=it&&it.group==='vehicle'?it.type:e.kind==='car'?e.id:null,g=s.garage,active=G.VEH[g.active].name;
+    const now=vehicleStats();
+    if(veh){const v=G.VEH[veh];kicker='Vehicle · '+v.seats+' seats';const then=vehicleStats(Object.assign(clone(s),{garage:Object.assign(clone(g),{owned:[...new Set([...g.owned,veh])],active:veh,vehicles:Object.assign(clone(g.vehicles),{[veh]:g.vehicles[veh]||defVehicle()})})}));
+      body=(veh===g.active?'':`<div class="htm-cmp">Compared with your <b>${esc(active)}</b> <span class="htm-legend"><i class="up"></i>better <i class="down"></i>worse</span></div>`+barsHTML(vanBars(now),vanBars(then)))+
+        (veh===g.active?barsHTML(null,vanBars(now)):'')+factsHTML([['Seats',v.seats+(v.seats<7?' · crew of '+(v.seats-1):'')],['Built-in cargo',v.cargo?'+'+v.cargo+' mags each':'None'],['Length',v.len+' m'],['Ramming','×'+v.ram]])+
+        (g.owned.includes(veh)?'':'<div class="htm-note left">Your upgrades stay on the old ride. Utility items, stickers and horns move over free.</div>')}
+    else{kicker=active+' · '+({perf:'Performance',prot:'Protection',util:'Utility'}[it.group]);fx=garFx(it);
+      const then=st.state==='buy'||st.state==='poor'||st.state==='locked'?vanStatsWith('gar',e.id):now,bn=vanBars(now),bt=vanBars(then),moves=bt.some((b,i)=>Math.abs(b.v-bn[i].v)>.01);
+      const ladder=G.CATALOG.filter(c=>c.slot===it.slot&&c.group!=='vehicle');
+      body=(moves?`<div class="htm-cmp">Your ${esc(active)} <span class="htm-legend"><i class="up"></i>after install</span></div>`+barsHTML(bn,bt):'')+
+        (ladder.length>1?`<ol class="htm-tiers">${ladder.map(c=>{const has=G.ownedIds(g).includes(c.id);return`<li class="${has?'done':c.id===e.id?'next':''}"><i></i><span>${esc(c.name)}</span><b>${has?'Installed':money(c.price)}</b></li>`}).join('')}</ol>`:'')+
+        (it.group==='util'?'<div class="htm-note left">Utility items move with you to any vehicle you drive.</div>':'')}}
+  else if(G&&e.kind==='cos'){const[gp,o]=e.id.split(':'),g=s.garage,v=g.vehicles[g.active];kicker=G.VEH[g.active].name+' · '+COS_GROUP[gp];
+    if(gp==='horn')body=`<button class="htm-ghost" data-nav data-act="honk">▶ Honk it</button>`;
+    if(gp==='paint'){const c=G.COSMETICS.paint[o];body=`<div class="htm-swatch" style="--c:${c.hex}"><i class="f-${c.finish}"></i><span>${esc(name)}</span></div>`}
+    const cur={paint:v.paint,rims:v.rims,tint:v.tint,horn:g.horn}[gp];
+    if(cur!=null)body+=factsHTML([['On it now',esc(((COS_TXT[gp]||{})[cur]||[cur])[0])],gp==='horn'?['Collected',s.garage.ownedHorns.length+' of '+Object.keys(G.HORNS).length]:['Preview','Live on the van above']])}
+  else if(G&&e.kind==='stick'){const g=s.garage;kicker='Bumper sticker · '+g.stickers.filter(x=>x!=null).length+' of 3 slots used';
+    body=`<div class="htm-stickers">${g.stickers.map(i=>`<span class="${i==null?'empty':''}">${i==null?'Empty slot':esc(G.COSMETICS.stickers[i])}</span>`).join('')}</div>`}
+  else if(G&&e.kind==='rep'){const g=s.garage;kicker=G.VEH[g.active].name+' · Repair';body=hpBar(g.hp[g.active],vehMaxHp(g.active,g),'Body')+`<div class="htm-note left">Free partial repair at home: Tyler hammers it back to 60%. Mostly.</div>`}
   const sellV=(e.kind==='gun'||e.kind==='att')&&(st.state==='owned')?sellValue(e.kind,e.id):e.kind==='furn'&&m.canSell?sellValue('furn',e.id):0;m.canSell=false;
-  let heroImg=`<span class="htm-ti" ${tk(e.kind,e.id)}>${thumbHTML(e.kind,e.id)}</span>`;
-  if(e.kind==='cos'){const[g,o]=e.id.split(':');if(g==='paint'||g==='rims'){const vs=vehicleStats();vs[g]=COSMETICS[g].opts.find(x=>x.id===o);heroImg=vanFull(vs)}}
-  return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${heroImg}</div>${stampHTML(st,m.store)}</div>
+  return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true))}</div>${stampHTML(st,m.store)}</div>
     <div class="htm-dscroll"><div class="htm-kicker">${esc(kicker)}</div><h3 class="htm-name">${esc(name)}</h3>
     ${blurb?`<p class="htm-blurb">${esc(blurb)}</p>`:''}${fx?`<div class="htm-fx"><b>What it does</b>${esc(fx)}</div>`:''}${body}</div>
     <div class="htm-buy"><div class="htm-buyrow">${buyButtonHTML(st,armed,m.store)}${sellV?`<button class="htm-ghost" data-nav data-act="sell">Sell · ${money(sellV)}</button>`:''}</div>
-    ${m.store==='dadazon'&&st.state==='buy'?'<div class="htm-note">Free shipping · arrives the next time you get home</div>':st.discount&&st.state==='buy'?'<div class="htm-note">Neighbor discount: you save '+money(st.base-st.price)+'</div>':''}</div>
+    ${m.store==='dadazon'&&st.state==='buy'?'<div class="htm-note">Free shipping · arrives the next time you get home</div>':st.discount&&st.state==='buy'?'<div class="htm-note">'+(m.store==='auto'?'Family discount':'Neighbor discount')+': you save '+money(st.base-st.price)+'</div>':''}</div>
     <button class="htm-sheetx" data-act="sheetclose" aria-label="Back to list">✕</button>`}
-function fxText(fx){const p=[];const pct=v=>(v>1?'+':'−')+Math.round(Math.abs(v-1)*100)+'%';
-  if(fx.top)p.push('Top speed '+pct(fx.top));if(fx.accel)p.push('Acceleration '+pct(fx.accel));if(fx.grip)p.push('Grip '+pct(fx.grip));if(fx.brake)p.push('Braking '+pct(fx.brake));
-  if(fx.armor)p.push('Van armor '+pct(fx.armor));if(fx.crewDmg)p.push('Crew damage in the van '+pct(fx.crewDmg));if(fx.ram)p.push('Ramming damage ×'+fx.ram);if(fx.frontDmg)p.push('Front hits '+pct(fx.frontDmg));
-  if(fx.notice)p.push('Enemies spot the van '+Math.round((1-fx.notice)*100)+'% later');if(fx.spareMags)p.push('+'+fx.spareMags+' spare mag of every ammo type each job');if(fx.vanSwap)p.push('Swap your loadout at the van mid-job');
-  if(fx.vanHeal)p.push('One full heal at the van per job');if(fx.revive)p.push('Crew revives '+pct(fx.revive));if(fx.surrender)p.push('Surrender chance '+pct(fx.surrender)+' for 20 s after arrival');return p.join(' · ')}
 
-/* Ready-made renderer for glTF furniture (and anything else with a .model path): one shared offscreen WebGL renderer,
-   3/4 view framed on the bounding box, warm studio light, transparent background. Usage (game has THREE + GLTFLoader):
-     HT.Shop.thumbRenderer = HT.Shop.gltfThumbs(THREE, new THREE.GLTFLoader(), {base:''}) */
+/* Thumbnail renderer for real 3D: glTF files (item.model), guns via HT.Guns.model(type), vehicles via HT.Vehicles.make(type,{color,upgrades}).
+   One shared offscreen WebGL renderer, studio light, transparent background (the card supplies the pegboard / garage / room backdrop).
+     HT.Shop.thumbRenderer = HT.Shop.gltfThumbs(THREE, new THREE.GLTFLoader(), {kinds:['furn','gun','car','gar','cos']})   */
 function gltfThumbs(THREE,loader,o){o=o||{};const W=o.width||320,Hh=o.height||200;let R=null,queue=Promise.resolve();
-  const renderOne=url=>new Promise((res,rej)=>loader.load((o.base||'')+url,g=>{try{
+  const toObj=x=>x&&(x.isObject3D?x:x.group&&x.group.isObject3D?x.group:x.scene&&x.scene.isObject3D?x.scene:null);
+  const source=item=>{
+    if(item.vehicle&&HT.Vehicles&&HT.Vehicles.make){return Promise.resolve(HT.Vehicles.make(item.vehicle.type,item.vehicle.opts)).then(h=>({obj:toObj(h),view:'car',done:()=>{try{h&&h.dispose&&h.dispose()}catch(e){}}}))}
+    if(item.kind==='gun'&&HT.Guns&&HT.Guns.model){return Promise.resolve(HT.Guns.model(item.id)).then(x=>{const ob=toObj(x);return{obj:ob&&ob.clone(true),view:'gun',done:()=>{}}})}
+    if(item.model&&loader)return new Promise((res,rej)=>loader.load((o.base||'')+item.model,g=>res({obj:g.scene,view:'furn',done:()=>g.scene.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material)[].concat(n.material).forEach(m=>{for(const k in m)if(m[k]&&m[k].isTexture)m[k].dispose();m.dispose()})})}),undefined,rej));
+    return null};
+  const VIEW={furn:[[.75,.55,1],.86,.14],gun:[[1,.16,.08],.62,0],car:[[.95,.42,.85],.72,.06]};
+  const render=src=>{const obj=src.obj;if(!obj)throw new Error('no object');
     if(!R){R=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});R.setPixelRatio(o.pixelRatio||2);R.setSize(W,Hh);R.outputEncoding=THREE.sRGBEncoding;
       if(THREE.ACESFilmicToneMapping){R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.15}}
-    const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xfff4e0,0x6b5a48,1.05));const d=new THREE.DirectionalLight(0xffffff,1.6);d.position.set(3,5,4);sc.add(d);
-    const d2=new THREE.DirectionalLight(0xbcd2ff,.5);d2.position.set(-4,2,-2);sc.add(d2);
-    const obj=g.scene;sc.add(obj);const box=new THREE.Box3().setFromObject(obj),size=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
-    const rad=Math.max(size.x,size.y*1.25,size.z)*.5||1;const cam=new THREE.PerspectiveCamera(28,W/Hh,.01,100);
-    const dir=new THREE.Vector3(.75,.55,1).normalize();cam.position.copy(c).addScaledVector(dir,rad/Math.sin(THREE.MathUtils.degToRad(13))*(o.zoom||.86));cam.lookAt(c.x,c.y+size.y*.14,c.z);
-    R.setClearColor(0x000000,0);R.clear();R.render(sc,cam);const url2=R.domElement.toDataURL('image/png');
-    obj.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material)[].concat(n.material).forEach(m=>{for(const k in m)if(m[k]&&m[k].isTexture)m[k].dispose();m.dispose()})});res(url2)}catch(e){rej(e)}},undefined,rej));
-  return item=>{if(!item.model||(o.kinds&&!o.kinds.includes(item.kind)))return null;const p=queue.then(()=>renderOne(item.model));queue=p.catch(()=>{});return p}}
+    const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xfff4e0,0x6b5a48,1.05));const k1=new THREE.DirectionalLight(0xffffff,1.7);k1.position.set(3,5,4);sc.add(k1);
+    const k2=new THREE.DirectionalLight(0xbcd2ff,.6);k2.position.set(-4,2,-2);sc.add(k2);const k3=new THREE.DirectionalLight(0xffe2b0,.5);k3.position.set(0,1,-5);sc.add(k3);
+    const parent=obj.parent;sc.add(obj);obj.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(obj),size=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
+    const[dv,zoom,lift]=VIEW[src.view];const rad=Math.max(size.x,size.y*1.25,size.z)*.5||1;const cam=new THREE.PerspectiveCamera(28,W/Hh,.01,500);
+    cam.position.copy(c).addScaledVector(new THREE.Vector3(...dv).normalize(),rad/Math.sin(THREE.MathUtils.degToRad(13))*(o.zoom||zoom));cam.lookAt(c.x,c.y+size.y*lift,c.z);
+    R.setClearColor(0x000000,0);R.clear();R.render(sc,cam);const url=R.domElement.toDataURL('image/png');
+    sc.remove(obj);if(parent)parent.add(obj);src.done();return url};
+  return item=>{if(o.kinds&&!o.kinds.includes(item.kind))return null;const s0=source(item);if(!s0)return null;
+    const p=queue.then(()=>s0).then(render);queue=p.catch(()=>{});return p}}
+
 const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
   isOpen:()=>!!(current&&current.type==='shop'),
   close:()=>{if(current&&current.type==='shop')current.close()},
   clearThumbCache:()=>thumbCache.clear(),
   open(opts){opts=opts||{};const store=STORES[opts.kind]?opts.kind:'dadazon',S0=STORES[store];
-    const ui=shell({kind:store,logo:store,title:S0.name,sub:S0.sub,who:S0.who,tagline:S0.tag,cash:true});
-    const m={type:'shop',store,ui,onClose:opts.onClose,onBuy:opts.onBuy,tab:null,sel:null,armed:null,armT:0,offs:[],sheet:false};
+    const sal=store==='auto'?'Sal: "'+(Save.data.crew.rosa&&Math.random()<.3?S0.lineRosa:pick(S0.lines))+'"':S0.tag;
+    const ui=shell({kind:store,logo:store,title:S0.name,sub:S0.sub,who:S0.who,tagline:sal,cash:true});
+    const m={type:'shop',store,ui,onClose:opts.onClose,onBuy:opts.onBuy,onPreview:opts.onPreview,tab:null,sel:null,armed:null,armT:0,offs:[],sheet:false};
     const tabs=S0.tabs;
     ui.tabrow.innerHTML=tabs.map(([id,lab])=>`<button class="htm-tab" role="tab" data-act="tab" data-tab="${id}" aria-selected="false">${esc(lab)}<i></i></button>`).join('');
     const chips=()=>{const s=Save.data,c=[];
       if(store==='hardware'&&discountFor('hardware')>0)c.push('<span class="htm-hchip good">Neighbor discount −10%</span>');
       if(store==='hardware'&&discountFor('hardware')===0)c.push('<span class="htm-hchip">Neighbor discount at 60% trust</span>');
+      if(store==='mart')c.push(discountFor('mart')>0?'<span class="htm-hchip good">Neighbor discount −10%</span>':'<span class="htm-hchip">Neighbor discount at 60% Riverside trust</span>');
+      if(store==='auto'){const g=s.garage;c.push(g.purchases>=5?'<span class="htm-hchip good">Family discount −5%</span>':`<span class="htm-hchip">Family discount after ${5-g.purchases} more</span>`)}
       if(store==='dadazon')c.push('<span class="htm-hchip good">Free shipping</span>');
       const pend=s.pending.length;if(pend&&store==='dadazon')c.push(`<span class="htm-hchip warn">${pend} order${pend>1?'s':''} on the way</span>`);
       ui.chips.innerHTML=c.join('')};
@@ -1035,10 +1220,20 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
     const entries=()=>shopEntries(store,m.tab);
     const bay=store==='auto'?document.createElement('div'):null;
     if(bay){bay.className='htm-bay';ui.gridwrap.prepend(bay)}
-    const renderBay=()=>{if(!bay)return;const vs=vehicleStats(),bars=vanBars(vs);const inst=VEH_ORDER.filter(k=>vs.levels[k]).map(k=>{const u=VEHICLE[k];return u.tiers.length>1?u.name+' '+vs.levels[k]:u.tiers[0].name});
-      bay.innerHTML=`<div class="htm-bayvan">${vanFull(vs)}</div><div class="htm-baytx"><div class="htm-kicker">Your minivan · ${esc(vs.paint.name)}</div>
-        <div class="htm-baybars">${bars.map(b=>`<div><span>${b.label}</span><i><b style="width:${b.v*10}%"></b></i></div>`).join('')}</div>
-        <div class="htm-bayinst">${inst.length?inst.map(x=>`<em>${esc(x)}</em>`).join(''):'<em class="none">Bone stock. Like the day you drove it off the lot.</em>'}</div></div>`};
+    /* the bay: your current vehicle, previewing the selected look/part (and telling the game, so it can call h.setUpgrades on the real van) */
+    let lastPrev=null;
+    const renderBay=()=>{if(!bay)return;const G=HT.Garage;if(!G){bay.innerHTML='<div class="htm-baytx"><div class="htm-kicker">Dad\'s Auto</div><p class="htm-blurb">Sal is out. (js/carai.js is not loaded.)</p></div>';return}
+      const e=m.sel&&entries().find(x=>x.key===m.sel);let pv=null;
+      if(e&&(e.kind==='cos'||e.kind==='gar'||e.kind==='stick')&&!(e.kind==='gar'&&e.id.startsWith('v_'))&&!(e.kind==='cos'&&e.id.startsWith('horn'))){const st=status(e.kind,e.id,store);if(st.state!=='equipped')pv=vanStatsWith(e.kind,e.id)}
+      const now=vehicleStats(),vs=pv||now,g=Save.data.garage,bars=vanBars(vs),b0=vanBars(now);
+      const inst=G.ownedIds(g).map(id=>garItem(id)).filter(c=>c.group!=='vehicle').map(c=>c.name);
+      const veh={type:vs.type,opts:vs.makeOpts,stats:vs};
+      bay.innerHTML=`<div class="htm-bayvan">${thumbHTML('car',vs.type,veh)}${pv?'<span class="htm-prev">Preview</span>':''}</div><div class="htm-baytx">
+        <div class="htm-kicker">${esc(G.VEH[g.active].name)} · ${esc(((COS_TXT.paint[vs.paint.id]||[vs.paint.id])[0]))}</div>
+        <div class="htm-baybars">${bars.map((b,i)=>`<div class="${b.v>b0[i].v+.01?'up':''}"><span>${b.label}</span><i><b style="width:${b.v*10}%"></b></i></div>`).join('')}</div>
+        ${hpBar(g.hp[g.active],vehMaxHp(g.active,g),'Body')}
+        <div class="htm-bayinst">${inst.length?inst.map(x=>`<em>${esc(x)}</em>`).join(''):'<em class="none">Bone stock. Like the day you drove it off the lot.</em>'}</div></div>`;
+      const key=pv?JSON.stringify(pv.makeOpts):null;if(key!==lastPrev){lastPrev=key;if(m.onPreview)try{m.onPreview(pv?{type:pv.type,opts:pv.makeOpts}:null)}catch(err){console.error(err)}}};
     m.renderGrid=(keepFocus)=>{renderBay();const list=entries();let html='',sec=null;
       for(const e of list){if(e.sec&&e.sec!==sec){sec=e.sec;html+=`<div class="htm-sec" role="presentation">${esc(sec)}</div>`}html+=shopTile(e,status(e.kind,e.id,store),e.key===m.sel)}
       const had=keepFocus&&document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.key;
@@ -1047,7 +1242,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
       const keepAct=document.activeElement&&ui.detail.contains(document.activeElement)?document.activeElement.dataset.act:null;
       ui.detail.innerHTML=shopDetail(m,e);if(keepAct){const b=ui.detail.querySelector(`[data-act="${keepAct}"]`);if(b)b.focus({preventScroll:true})}};
     m.select=(key,how)=>{if(m.sel===key&&how!=='force')return;m.sel=key;if(m.armed&&m.armed!==key)m.armed=null;
-      for(const b of ui.grid.querySelectorAll('.htm-item'))b.classList.toggle('sel',b.dataset.key===key);m.renderDetail()};
+      for(const b of ui.grid.querySelectorAll('.htm-item'))b.classList.toggle('sel',b.dataset.key===key);m.renderDetail();renderBay()};
     m.setTab=(id,dir)=>{if(m.tab===id)return;m.tab=id;m.armed=null;ui.el.dataset.tab=id;ui.gridwrap.scrollTop=0;m.renderGrid();
       const first=ui.grid.querySelector('.htm-item:not([data-state=locked])')||ui.grid.querySelector('.htm-item');
       if(first){m.select(first.dataset.key,'force');if(!narrow())focusEl(m,first,true)}m.sheetOpen(false);
@@ -1067,10 +1262,12 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
         toast(m,res.delivered==='pending'?entryName(e.kind,e.id)+' ordered. Biscuit will open it for you.':thanks(e),'good');
         if(m.onBuy)try{m.onBuy({kind:e.kind,id:e.id,price:res.price,store,delivered:res.delivered})}catch(err){console.error(err)}
         return}
-      if(st.kind==='cos'&&st.state==='owned'){const[g,o]=e.id.split(':');Save.data.vehicle[g]=o;Save.touch('vehicle');sfx('equip');if(g==='horn')playHorn(itemData('cos',e.id));m.renderGrid(true);m.renderDetail();return}
+      if((st.state==='owned'&&['car','cos','stick'].includes(st.kind))||(st.state==='equipped'&&st.kind==='stick')){const r=garUse(e.kind,e.id);
+        if(r.ok){sfx('equip');if(e.id.startsWith('horn:'))playHorn(hornOf(e.id.slice(5)));toast(m,st.kind==='car'?'Keys to the '+entryName('car',e.id)+'. Sal moved your utility gear over.':st.kind==='stick'?(st.state==='equipped'?'Peeled off. It left a rectangle.':'Stuck on. Slightly crooked. Perfect.'):'Done. Looks good on her.','good');
+          m.renderGrid(true);m.renderDetail();if(m.onBuy)try{m.onBuy({kind:e.kind,id:e.id,price:0,store,delivered:'now',use:true})}catch(err){console.error(err)}}else{sfx('error');toast(m,r.reason,'bad')}return}
       sfx('error');shake(btn||ui.detail.querySelector('[data-act=primary]')||ui.detail);
       if(st.state==='poor')toast(m,'Not enough cash. Run a job, or rerun one for half pay.','bad');else if(st.state==='locked')toast(m,st.reason,'bad')};
-    const thanks=e=>store==='auto'?pick(['Installed. Drives like a dream. A minivan dream.','The boys in Bay 2 say she purrs now.','Done. We also topped up your wiper fluid. On the house.']):
+    const thanks=e=>store==='auto'?(e.kind==='rep'?'Sal: "Good as new. Better, actually. Don\'t tell her I said that."':pick(['Sal: "Installed. Drives like a dream. A minivan dream."','Sal: "She purrs now. Don\'t make her growl."','Sal: "Done. Topped up your wiper fluid. On the house."'])):
       pick(['Thanks for shopping local!','Bag? No? Good man.','Receipt is in the bag. Jen will find it.','Pleasure doing business, neighbor.']);
     m.input=(a,d)=>{const f=document.activeElement;
       if(a==='nav'){if(m.sheet&&!ui.detail.contains(f)){m.sheetOpen(false)}const scope=m.sheet?ui.detail:ui.el;const n=navMove(scope,d,scope.contains(f)?f:null);if(n)focusEl(m,n);return}
@@ -1085,7 +1282,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
       if(act==='tab'){sfx('tab');return m.setTab(t.dataset.tab,1)}
       if(act==='primary')return m.primary(t);
       if(act==='sheetclose')return m.sheetOpen(false);
-      if(act==='honk'){const e=curEntry();playHorn(itemData('cos',e.id));return}
+      if(act==='honk'){const e=curEntry();playHorn(hornOf(e.id.split(':')[1]));return}
       if(act==='target'){const e=curEntry(),a=ATTACHMENTS[e.id],s=Save.data;const owned=a.compat.filter(g=>s.owned.guns.includes(g));const pool=owned.length?owned:a.compat;
         m.attTarget=pool[(pool.indexOf(m.attTarget)+1)%pool.length];sfx('toggle');m.renderDetail();return}
       if(act==='sell'){const e=curEntry();if(m.armed!=='sell:'+e.key){m.armed='sell:'+e.key;t.classList.add('armed');t.textContent='Sure? Sell for '+money(sellValue(e.kind,e.id));sfx('arm');return}
@@ -1120,7 +1317,10 @@ const Locker={
     m.refreshKeys=()=>{ui.keys.innerHTML=keysHTML(m.tab==='attach'?[['↑↓←→','✥','Browse'],['Enter','Ⓐ','Toggle'],['Q E','LB RB','Tabs'],['Esc','Ⓑ','Done']]:
       [['↑↓←→','✥','Browse'],['Enter','Ⓐ','Equip'],['1 2 3','','Slot'],['Q E','LB RB','Tabs'],['Esc','Ⓑ','Done']].filter(k=>k[1]!==''||!pad.on))};
     const renderSlots=()=>{const L=Save.data.loadout;
-      slots.innerHTML=['side','p1','p2'].map((k,i)=>{const id=L[k];return`<button class="htm-slot${m.target===k?' tgt':''}" data-nav data-act="slot" data-slot="${k}" ${id?`data-key="gun:${id}"`:''}>
+      const rack=Save.data.garage.util.rack;
+      slots.innerHTML=['side','p1','p2','p3'].map((k,i)=>{const id=L[k];
+        if(k==='p3'&&!rack)return`<button class="htm-slot locked" data-nav data-act="slot" data-slot="p3"><span class="htm-slotk"><kbd>4</kbd>Gun rack</span><span class="htm-slotimg empty"></span><b class="empty"><i class="htm-lock"></i>Dad's Auto, $700</b></button>`;
+        return`<button class="htm-slot${m.target===k?' tgt':''}" data-nav data-act="slot" data-slot="${k}" ${id?`data-key="gun:${id}"`:''}>
         <span class="htm-slotk"><kbd>${i+1}</kbd>${slotName[k]}</span>${id?`<span class="htm-slotimg">${thumbHTML('gun',id)}</span><b>${esc(GUNS[id].name)}</b>`:'<span class="htm-slotimg empty"></span><b class="empty">Empty</b>'}</button>`}).join('')+
         `<div class="htm-ammostrip">${ammoFor().map(a=>`<span style="--c:${a.col}"><i></i>${esc(a.name)} <b>${a.reserve}${a.extra?'+'+a.extra:''}</b></span>`).join('')}</div>`};
     const gunState=id=>{const s=Save.data,L=s.loadout;if(!s.owned.guns.includes(id))return'locked';return Object.values(L).includes(id)?'equipped':'owned'};
@@ -1155,8 +1355,8 @@ const Locker={
       const me=weaponStats(id,s.attOn[id]||{}),other=cmp?weaponStats(cmp,s.attOn[cmp]||{}):null;
       let btns='';
       if(own){if(g.slot==='side')btns=inSlot?'<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>Your sidearm</span></button>':`<button class="htm-btn" data-nav data-act="equip" data-slot="side"><span>Holster it · Sidearm</span></button>`;
-        else{btns=['p1','p2'].map(k=>L[k]===id?`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>In ${slotName[k]}</span></button>`:`<button class="htm-btn${k===tgt?'':' alt'}" data-nav data-act="equip" data-slot="${k}"><span>${L[k]?'Swap into':'Put in'} ${slotName[k]}</span></button>`).join('');
-          if(inSlot&&L.p2)btns+=`<button class="htm-ghost" data-nav data-act="swapp">⇅ Swap primaries</button>`;if(inSlot==='p2')btns+=`<button class="htm-ghost" data-nav data-act="unequip">Leave it home</button>`}}
+        else{btns=['p1','p2',...(s.garage.util.rack?['p3']:[])].map(k=>L[k]===id?`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>In ${slotName[k]}</span></button>`:`<button class="htm-btn${k===tgt?'':' alt'}" data-nav data-act="equip" data-slot="${k}"><span>${L[k]?'Swap into':'Put in'} ${slotName[k]}</span></button>`).join('');
+          if((inSlot==='p1'||inSlot==='p2')&&L.p2)btns+=`<button class="htm-ghost" data-nav data-act="swapp">⇅ Swap primaries</button>`;if(inSlot==='p2'||inSlot==='p3')btns+=`<button class="htm-ghost" data-nav data-act="unequip" data-slot="${inSlot}">Leave it home</button>`}}
       else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
         btns=`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span><i class="htm-lock"></i>Not in your locker</span></button>`+(a.collect?`<div class="htm-collect"><span>${esc(how)}</span><span class="htm-meter"><i style="width:${100*a.collect.n/a.collect.need}%"></i></span><b>${a.collect.n}/${a.collect.need}</b></div>`:`<div class="htm-note">${esc(how)}</div>`)}
       const mods=g.att.map(sl=>{const a=(s.attOn[id]||{})[sl];return a?`<i class="on">${esc(ATTACHMENTS[a].name)}</i>`:''}).join('');
@@ -1193,8 +1393,9 @@ const Locker={
     m.sheetOpen=on=>{m.sheet=!!on&&narrow();ui.el.classList.toggle('sheet',m.sheet);ui.detail.toggleAttribute('inert',narrow()&&!m.sheet&&m.tab!=='ammo');if(m.sheet){const b=ui.detail.querySelector('[data-nav]:not([aria-disabled])');if(b)setTimeout(()=>b.focus({preventScroll:true}),30)}};
     m.focusItem=t=>{if(t.dataset.key)m.select(t.dataset.key)};
     const changed=()=>{m.renderGrid(true);m.renderDetail();if(m.onChange)try{m.onChange(Save.data.loadout,Save.data.attOn)}catch(e){console.error(e)}};
-    const equip=(slot,id)=>{const L0=Save.data.loadout,oth=slot==='p1'?'p2':slot==='p2'?'p1':null;
-      const r=oth&&L0[oth]===id&&L0[slot]?swapPrimaries():setLoadout(slot,id);if(!r.ok){sfx('error');toast(m,r.reason,'bad');return false}m.target=slot;sfx('equip');toast(m,GUNS[id].name+' → '+slotName[slot],'good');changed();
+    const equip=(slot,id)=>{const L0=Save.data.loadout;let r;
+      if((slot==='p1'||slot==='p2')&&L0[slot==='p1'?'p2':'p1']===id&&L0[slot])r=swapPrimaries();
+      else{const from=slot!=='side'&&['p1','p2','p3'].find(k=>k!==slot&&L0[k]===id);if(from){const prev=L0[slot];L0[from]=null;r=setLoadout(slot,id);if(r.ok&&prev&&from!=='p1')L0[from]=prev;else if(!r.ok)L0[from]=id;if(r.ok)Save.touch('loadout')}else r=setLoadout(slot,id)}if(!r.ok){sfx('error');toast(m,r.reason,'bad');return false}m.target=slot;sfx('equip');toast(m,GUNS[id].name+' → '+slotName[slot],'good');changed();
       const sl=slots.querySelector(`[data-slot="${slot}"]`);if(sl){sl.classList.add('htm-pop');setTimeout(()=>sl.classList.remove('htm-pop'),600)}return true};
     m.input=(a,d)=>{const f=document.activeElement;
       if(a==='nav'){if(m.sheet&&!ui.detail.contains(f))m.sheetOpen(false);const scope=m.sheet?ui.detail:ui.el;const n=navMove(scope,d,scope.contains(f)?f:null);if(n)focusEl(m,n);return}
@@ -1204,17 +1405,17 @@ const Locker={
         if(f&&ui.el.contains(f)&&f.click)f.click();return}
       if(a==='back'){if(m.sheet){m.sheetOpen(false);return}m.close();return}
       if(a==='tabprev'||a==='tabnext'){const i=tabs.findIndex(t=>t[0]===m.tab),n=(i+(a==='tabnext'?1:-1)+tabs.length)%tabs.length;sfx('tab');m.setTab(tabs[n][0],a==='tabnext'?1:-1);return}
-      if(a==='num'&&d<=3){const k=['side','p1','p2'][d-1];m.target=k;const id=Save.data.loadout[k];renderSlots();const sl=slots.querySelector(`[data-slot="${k}"]`);if(sl)focusEl(m,sl);if(id&&m.tab!=='ammo')m.select('gun:'+id,'force');return}
+      if(a==='num'&&d<=4){const k=['side','p1','p2','p3'][d-1];if(k==='p3'&&!Save.data.garage.util.rack){sfx('error');toast(m,"The 4th slot needs the gun rack from Dad's Auto.",'bad');return}m.target=k;const id=Save.data.loadout[k];renderSlots();const sl=slots.querySelector(`[data-slot="${k}"]`);if(sl)focusEl(m,sl);if(id&&m.tab!=='ammo')m.select('gun:'+id,'force');return}
       if(a==='alt'){const b=ui.detail.querySelector('[data-act=swapp]');if(b)b.click()}};
     m.click=(t,ev)=>{const act=t.dataset.act;
       if(act==='close')return m.close();if(act==='tab'){sfx('tab');return m.setTab(t.dataset.tab,1)}
       if(act==='sheetclose')return m.sheetOpen(false);
-      if(act==='slot'){m.target=t.dataset.slot;renderSlots();const nf=slots.querySelector(`[data-slot="${m.target}"]`);if(nf)nf.focus({preventScroll:true});
+      if(act==='slot'){if(t.dataset.slot==='p3'&&!Save.data.garage.util.rack){sfx('error');shake(t);toast(m,"The 4th slot needs the gun rack from Dad's Auto ($700).",'bad');return}m.target=t.dataset.slot;renderSlots();const nf=slots.querySelector(`[data-slot="${m.target}"]`);if(nf)nf.focus({preventScroll:true});
         if(t.dataset.key&&m.tab!=='ammo'){m.select(t.dataset.key,'force');if(narrow())m.sheetOpen(true)}else if(m.tab==='loadout'){const first=ui.grid.querySelector('.htm-item[data-state=owned]');if(first){m.select(first.dataset.key,'force');focusEl(m,first)}}sfx('toggle');return}
       if(t.dataset.key&&!act){m.select(t.dataset.key);if(narrow())m.sheetOpen(true);else if(ev.detail>=2){const b=ui.detail.querySelector(`[data-act=equip][data-slot="${m.target}"]`)||ui.detail.querySelector('[data-act=equip]');if(b)m.click(b,{})}return}
       if(act==='equip'){const id=m.sel.split(':')[1];equip(t.dataset.slot,id);return}
       if(act==='swapp'){swapPrimaries();sfx('equip');toast(m,'Primaries swapped','good');changed();return}
-      if(act==='unequip'){setLoadout('p2',null);sfx('toggle');toast(m,'Leaving it in the locker','good');changed();return}
+      if(act==='unequip'){setLoadout(t.dataset.slot||'p2',null);sfx('toggle');toast(m,'Leaving it in the locker','good');changed();return}
       if(act==='noop'){sfx('error');shake(t);return}
       if(act==='att'){const id=m.sel.split(':')[1],sl=t.dataset.slot,a=t.dataset.att||null;
         if(a&&!Save.data.owned.att.includes(a)){sfx('error');shake(t);toast(m,ATTACHMENTS[a].name+': '+money(ATTACHMENTS[a].price)+' at Maple Hardware or on Dadazon','bad');return}
@@ -1232,7 +1433,7 @@ Economy.renderPayout=function(el,p,opts){opts=opts||{};
   const lines=resultLines(p),speed=opts.speed||1,instant=reduced()||opts.instant;
   const box=document.createElement('div');box.className='htp'+(p.ok?'':' fail');
   box.innerHTML=`<div class="htp-head"><span>${p.rerun?'Payout · rerun, half pay':'Payout'}</span><span>${p.ok?'Neighborhood Watch fund':'Better luck next Saturday'}</span></div>`+
-    lines.map((l,i)=>`<div class="htp-line ${l.neg?'neg':''} k-${l.kind}" style="--i:${i}"><span class="htp-l">${esc(l.label)}${l.note?`<small>${esc(l.note)}</small>`:''}</span><i class="htp-dots"></i><b data-v="${p.lines[i].amount}">${instant?esc(l.text):(l.neg?'−$0':'+$0')}</b></div>`).join('')+
+    '<div class="htp-lines">'+lines.map((l,i)=>`<div class="htp-line ${l.neg?'neg':''} k-${l.kind}" style="--i:${i}"><span class="htp-l">${esc(l.label)}${l.note?`<small>${esc(l.note)}</small>`:''}</span><i class="htp-dots"></i><b data-v="${p.lines[i].amount}">${instant?esc(l.text):(l.neg?'−$0':'+$0')}</b></div>`).join('')+'</div>'+
     `<div class="htp-total"><span>Total</span><b>${instant?money(p.total):'$0'}</b><em class="htp-stamp">${p.ok?'Paid':'Gas money'}</em></div>`;
   el.appendChild(box);
   let skip=false,doneRes;const done=new Promise(r=>doneRes=r);
