@@ -861,10 +861,12 @@ function owPins(){const def=WORLD,v=prog.world,pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
   MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
   HUD.minimap.setPins(pins)}
+/* teleports: a car's speed also lives in its physics state (e.car) */
+function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
 /* enterHub hook: bridge state, coming back from a job puts the van and the crew back at the site's ring */
 function owEnterHub(){const def=WORLD,O=OW();
   if(prog.done[def.bridgeUnlockJob]&&O.openBridge()){owMinimap();banner('ROUTE 9 BRIDGE OPEN','The city finished the inspection. Riverside Flats is across the river.',3.4)}
-  if(OWS.ret){const r=OWS.ret;OWS.ret=null;VAN.pos.set(r.x,0,r.z);VAN.yaw=r.yaw;VAN.spd=0;syncVan();
+  if(OWS.ret){const r=OWS.ret;OWS.ret=null;VAN.pos.set(r.x,0,r.z);VAN.yaw=r.yaw;owStopCar(VAN);syncVan();
     const rt=V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw));P.pos.copy(VAN.pos).addScaledVector(rt,-2.4);collide(P.pos,.35);P.yaw=VAN.yaw}
   OWS.region=null;OWS.gps=null;OWS.gpsKey='';OWS.moodK=null;owPins();O.dress(prog.trustR)}
 /* updHub hook: region banners, trust dressing, GPS route + ground chevrons */
@@ -905,7 +907,7 @@ function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.
 function owFastTravel(pin){if(!L||!L.ow||mode!=='hub'||!pin||!pin.place||!pin.fast)return false;
   if(!(VAN.on||Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30)){HUD.feed('Get back to the minivan to fast travel','info');return false}
   let p;if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p={x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place];if(!p)return false;
-  const go=()=>{if(!VAN.on&&typeof enterVan==='function')enterVan();const e=(typeof CV!=='undefined'&&CV)||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;e.spd=0;e.steer=0;if(typeof syncCar==='function')syncCar(e);else syncVan();P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;
+  const go=()=>{if(!VAN.on&&typeof enterVan==='function')enterVan();const e=(typeof CV!=='undefined'&&CV)||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;owStopCar(e);if(typeof syncCar==='function')syncCar(e);else syncVan();P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;
     for(const a of allies)a.pos.set(e.pos.x,0,e.pos.z);sunFollow(e.pos.x,e.pos.z);OWS.gpsKey='';const O=OW();if(O)O.update(camera)};
   let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}
   f.style.opacity='1';setTimeout(()=>{go();f.style.opacity='0';HUD.feed('Saved you '+Math.max(8,Math.round(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)/14))+' seconds and one argument about directions.','info')},360);return true}
