@@ -650,7 +650,9 @@ function laptopDesk(G,ctx){/* "Dadazon" desk on the kitchen side of the entry wa
   /* chair */
   put(G,'painted_wooden_chair_02',{h:.95},1.95,0,5.0,PI);
   col(1.23,4.12,2.47,4.7,{k:.8});
-  ctx.interactables.push({id:'laptop',x:1.95,z:5.25,r:1.1,label:'Dadazon'})}
+  ctx.interactables.push({id:'laptop',x:1.95,z:5.25,r:1.1,label:'Dadazon'});
+  /* the calendar above the desk: replay finished jobs (SPEC3 4.8; index.html openCalendar). The fridge opens the same card. */
+  ctx.interactables.push({id:'calendar',x:1.45,z:4.8,r:.6,label:'Calendar · replay a job'})}
 function hall(G,ctx){/* runner, gallery of family photos, flush lights, doors' signs */
   const run=plane(G,.8,7.6,'flat:#888',10.07,.006,5.9,-PI/2);run.material=rugMat(2);
   for(let i=0;i<6;i++){const z=6.0+i*.62,y=1.45+(i%2?.18:-.12);const s=.3+(i%3)*.06;frame(G,9.425,y,z,PI/2,s,s*1.25,photoTex(i+2))}

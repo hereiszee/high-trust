@@ -72,6 +72,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/save.js"></script>
 <script src="js/home.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/jobs/_registry.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -989,7 +990,7 @@ function radio(who,text,front){const n=who==='you'?'You':(HOMIES[who]?.name||who
 function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
   const intro=mode==='mission'&&M&&M.elapsed<.5&&t===M.def.title.toUpperCase();
   HUD.banner(intro?{kind:'title',kicker:'New job',title:M.def.title,sub:s,dur:d}:{kind:'alert',title:t,sub:s,dur:d})}
-function addTrust(v,hood){hood=hood||(mode==='mission'&&M?(M.def.hood||'maple'):(L&&L.ow&&OWS.region==='river'?'river':'maple'));if(hood==='river')prog.trustR=clamp((prog.trustR||0)+v,0,100);else prog.trust=clamp(prog.trust+v,0,100)}
+function addTrust(v,hood){if(v>0&&mode==='mission'&&M&&M.replay)v*=.25;/* replays: trust gains ×0.25 (SPEC3 4.8) */if(mode==='mission'&&M)M.trustGain=(M.trustGain||0)+v;hood=hood||(mode==='mission'&&M?(M.def.hood||'maple'):(L&&L.ow&&OWS.region==='river'?'river':'maple'));if(hood==='river')prog.trustR=clamp((prog.trustR||0)+v,0,100);else prog.trust=clamp(prog.trust+v,0,100)}
 /* 'E · Zip-tie', 'Hold E · Grab the packages', 'USE · Talk to Gary' */
 function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<small>(.*?)<\/small>/gi,' ($1)').replace(/<[^>]+>/g,'');const m=/^(Hold\s+)?(\S+)\s+·\s+(.*)$/.exec(t);
   UI.prompt=m?{key:m[2]==='USE'?'E':m[2],text:m[3],hold:!!m[1],progress:p||0}:{text:t,progress:p||0}}
@@ -1322,7 +1323,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   S.grip=B.grip*(F.rear<1&&I.thr>0&&Math.abs(I.st)>.2&&Math.abs(v0)>3&&Math.abs(v0)<17?F.rear:1);
   if(!I.hb)I.st*=1-.38*clamp(Math.abs(v0)/34,0,1);/* less steering authority at speed: quick but controllable */
   c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
-  const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});
+  const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});JH.vehicle(e,dt);/* JOBS: tow, g-force, tail */
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
@@ -1399,11 +1400,15 @@ function enterHub(o){
   else{const crew=prog.done.map((d,i)=>d?MISSIONS[i].giver:null).filter(Boolean);radio(pick(crew),pick(LINES.hub))}
   running=true;
 }
-function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
+function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
   const obj=m.obj||{loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
   HUD.show('brief',{kicker:'New job',title:m.title,giver:HOMIES[m.giver].name,role:m.role,place:m.place,color:HOMIES[m.giver].shirt,lines:m.lines,
     meta:[['Job',obj],['Crew','You, '+m.crew.map(c=>HOMIES[c].name).join(', ')],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
   const close=()=>{HUD.hide('brief');UI.acts={}};
+  if(bo.home){/* a job offered from home (JOBS): go = it's on the list, head out to the van; no = not today */
+    UI.acts={'brief:go':()=>{close();JRS.pending=i;running=true;last=performance.now();canvasFocus();requestLock();radio('you',pick(["Okay. Keys, wallet, phone. Van's in the driveway.","On it. Back before dinner."]))},
+      'brief:skip':()=>{close();startMissionWhenReady(i);requestLock()},
+      'brief:no':()=>{close();const s=SV();JRS.declined[m.id]=s?s.day:1;running=true;last=performance.now();canvasFocus();requestLock();if(bo.home==='laptop'&&typeof openShop==='function')openShop('dadazon')}};return}
   UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
     'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMissionWhenReady(i);requestLock()},
@@ -1439,7 +1444,7 @@ function startMission(i,legacy){
 function endMission(ok,why,title){
   if(!M||M.state!=='go')return;M.state=ok?'won':'lost';audioState('end',ok);running=false;releaseLock();subQ.length=0;subT=0;UI.sub=null;setPrompt(null);showMarker(null);
   const m=M.def,secs=Math.round(M.elapsed);
-  if(ok){prog.done[M.i]=true;addTrust(m.type==='boss'?(M.bossDone==='cuffed'?20:8):m.hood==='river'?14:16);if(M.world)wmWin(m)}
+  if(ok){prog.done[M.i]=true;addTrust(m.winTrust!=null?m.winTrust:m.type==='boss'?(M.bossDone==='cuffed'?20:8):m.hood==='river'?14:16);if(M.world&&!M.replay)wmWin(m)}
   const head=ok?pick(['Nobody is proud of this.','That was necessary. Unfortunately.','Home in time for dinner.']):(title||'The guys carried you to the van.');
   const end=ok&&m.endLine?m.endLine:ok?{gary:"Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry.",rick:"Coach Rick: That's fundamentals. Bring it in. Hands in. 'Trust' on three.",dave:"Big Dave: Brisket survived. Kids never saw a thing. Come eat.",doug:M.bossDone==='cuffed'?"Doug: He's agreed to coach T-ball. It's over.":"Doug: It's over. I wish he'd put his hands up."}[m.giver]:why;
   const lent=ok&&M.lent&&M.lent.length;
@@ -1447,7 +1452,7 @@ function endMission(ok,why,title){
     stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(m.hood==='river'?prog.trustR:prog.trust)+'%',m.hood==='river'?'Riverside Flats':'']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
   UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMissionWhenReady(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
-  metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);
+  jrFinish(ok,res);metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust),tr=Math.round(prog.trustR||0),both=MISSIONS.length>4,good=both?t>=70&&tr>=70:t>=70;
@@ -1503,9 +1508,9 @@ function showTitle(){HUD.show('title',UI.title)}
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
-HUD.on('action',a=>{
+HUD.on('action',(a,arg)=>{
   if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
-  else if(UI.acts[a])UI.acts[a]();
+  else if(UI.acts[a])UI.acts[a](arg);
   else if(a==='resume'){if(pauseOpen)closePause()}
   else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
   else if(a==='quit')quitToTitle();
@@ -1651,6 +1656,7 @@ function muzzle(){const w=WEAPONS[P.cur];
   const o=P.pos.clone().add(V3(0,P.crouch?1.05:1.38,0)),d=m.clone().sub(o),l=d.length();ray.set(o,d.normalize());ray.near=0;ray.far=l;const h=L?ray.intersectObjects(L.solids,false)[0]:null;return h?o.addScaledVector(d,Math.max(0,h.distance-.08)):m}
 function ejectShell(id){const w=WEAPONS[id];if(!w||!w.shell)return;const mz=muzzle(),fwd=camFwd();const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));FX.shell(mz.addScaledVector(fwd,-.3),right.add(V3(0,.5,0)).normalize(),w.shell)}
 function fire(){
+  if(JH.fire())return;/* JOBS: special held items, M.noGuns */
   const id=P.cur,w=WEAPONS[id],a=P.ammo[id];if(!w||!a)return;
   if(P.rl){if(P.rl.shell&&a.mag>0)P.rl.cancel=true;return}
   if(P.equipT>0||P.fireT>0)return;
@@ -1856,7 +1862,7 @@ function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.
 function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
   let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
 /* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
-function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;noiseQ.push({x:from.x,z:from.z,r,t:simT,kind:'gun',id});AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
+function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;{const n={x:from.x,z:from.z,r,t:simT,kind:'gun',id};noiseQ.push(n);JH.noise(n)}AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
 function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
 /* per frame, before the enemy loop: what the AI can know about the dad and the crew */
 function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
@@ -1874,7 +1880,7 @@ function aiAfter(){if(!aiWorld||!M||!M.squads)return;let n=0;
     for(const p of r.points){const e=spawnEnemy(p.x,p.z,false,s);const ai=AI.mem(e,aiWorld);ai.mode='combat';ai.sub='react';ai.react=simT+.6;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT};n++}
     M.reinforced=(M.reinforced||0)+r.points.length}
   if(n)rebuildTargets()}
-function aiEnemy(e,dt){const d=e.dude,t0=performance.now();const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
+function aiEnemy(e,dt){const d=e.dude,t0=performance.now();JH.perceive(e,aiWorld);const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
   AI.move(e,I,dt);collide(e.pos,.35);
   if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
   /* what the game's own systems read: target (hunter laser, music) and fireT (the laser shows while he lines up a shot) */
@@ -1996,7 +2002,7 @@ Object.assign(P,{vy:0,onGround:true,coyoteT:0,jumpBuf:0,standT:0,landT:0,landT0:
 function resetMove(){P.vy=0;P.onGround=true;P.coyoteT=0;P.jumpBuf=0;P.standT=0;P.landT=0;P.vault=null;P.hv.x=P.hv.z=0;P.gnd=null;P.airT=0;
   if(L){const s=supportAt(P.pos.x,P.pos.z,P.pos.y);if(s.y>P.pos.y-MOVE.step||s.y<P.pos.y)P.pos.y=s.y}P.visY=P.pos.y;P.peakY=P.pos.y}
 function groundSurf(){return P.gnd&&P.gnd.s||(mode==='mission'&&M&&M.def.type!=='waves'?'concrete':'asphalt')}
-function stepSnd(o){const A=AU();if(A)try{A.footstep(groundSurf(),Object.assign({side:P.stepS=-(P.stepS||1)},o))}catch(_){}}
+function stepSnd(o){JH.noise({x:P.pos.x,z:P.pos.z,r:o.crouch?1:o.run?(keys.shift?9:7):2.5,t:simT,kind:'step',player:true});const A=AU();if(A)try{A.footstep(groundSurf(),Object.assign({side:P.stepS=-(P.stepS||1)},o))}catch(_){}}
 function doJump(){P.vy=MOVE.v0;P.onGround=false;P.coyoteT=0;P.jumpBuf=0;P.peakY=P.pos.y;P.airT=0;P.gnd=null;
   P.vmJ.v-=.55;P.vmJ.rv+=1.2;P.dip.v+=.35;stepSnd({run:true,vol:.7})}
 /* 2D ray (o + d*t) against a box grown by r: [tEnter,tExit] or null */
@@ -2068,6 +2074,7 @@ function updPlayer(dt){
 }
 let camDist=2.7;
 function updCamera(dt){
+  if(JH.camera(dt))return;/* JOBS: viewfinders, planning cameras, the roof */
   if(VAN.on&&mode!=='home'){if(mode==='mission'&&M&&M.world&&wmCamera(dt))return;updDriveCam(dt);return}
   const eye=V3(P.pos.x,P.visY+(P.crouch?1.15:1.65)+P.dip.y*.35+(P.vault?-.12*Math.sin(Math.PI*P.vault.t):0),P.pos.z);
   camera.rotation.set(P.pitch,P.yaw,0);
@@ -2150,6 +2157,7 @@ function updMission(dt){
     for(const a of allies)if(a.pos.distanceTo(P.pos)>20){a.pos.set(L.exit.x+rand(-1.5,1.5),0,L.exit.z+rand(1,2));collide(a.pos,.35)}/* nobody gets left in the building */
     return endMission(true)}}
   if(L.exitRing)L.exitRing.visible=!!M.exitOpen;
+  {const r=jhPrompt(prompt,promptP,dt);prompt=r[0];promptP=r[1]}if(!M||M.state!=='go')return;/* JOBS: interact hook */
   {const pk=updPickups(dt,!!prompt);if(pk){prompt=pk[0];promptP=pk[1]}}
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
@@ -2224,7 +2232,7 @@ function hud(dt){
     const dd=x.pos.distanceTo(P.pos);if(dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45))continue;
     const ally=x.kind==='ally',c=x.tag.className;
     tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
-  HUD.update({mode:drv?'drive':mis?'mission':mode==='home'?'home':'hub',
+  const hs={mode:drv?'drive':mis?'mission':mode==='home'?'home':'hub',
     player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:wmTrust(),trustLabel:wmTrustLabel(),cash:metaCash(),
     weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!mis},
     weapons:P.weapons.map(k=>({key:WEAPONS[k].key,name:WEAPONS[k].name,type:k,active:k===P.cur})),
@@ -2233,7 +2241,8 @@ function hud(dt){
     objective:obj,timer,prompt:UI.prompt,
     speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?wmVanHealth():1,
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
-    markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'},dt);
+    markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
+  JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
 }
@@ -2318,7 +2327,7 @@ if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){tr
 function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;metaSave()}
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
 function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
-  try{pay=ECON.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
+  try{pay=ECON.computePayout({mission:m.reg?m.id:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
     bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:m.hood==='river'?prog.trustR:prog.trust,rerun:!!M.rerun,...(M.payX||{})});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
   /* Coach Rick lets you keep the carbine after his job */
   const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
@@ -2513,15 +2522,17 @@ function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){
   if(DECO.on){decoUpd(dt);return}
   let best=null,bd=1e9;const fam=H.familyInteractables?H.familyInteractables():[];
   for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
-  const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Grab a root beer',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
+  const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Root beer · the fridge calendar',calendar:'Calendar · replay a job',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
   setPrompt(best?KE+' · '+(LBL[best.id]||best.label):null);
   homeHint-=dt;setObj('Home',homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
   if(!best||!useTap)return;useTap=false;const id=best.id;
+  if(JH.home(id))return;/* JOBS: jobs offered from home, Doug's corkboard, Jen's note */
+  if(id==='calendar'){openCalendar();return}
   if(id==='locker')openLocker('loadout');else if(id==='workbench')openLocker('attach');else if(id==='laptop')openShop('dadazon');
   else if(id==='front'||id==='door')exitHome('front');else if(id==='garage')exitHome('garage');
   else if(id==='family'){const l=best.who==='biscuit'||/^Pet/.test(best.label)?H.pet():H.talk(best.who,{trust:prog.trust});if(l&&l.text)radio(l.name||best.who,l.text);
     aud(A=>A.voice&&A.voice(best.who==='biscuit'?'dog':best.who==='jen'?'dad_ok':'kid',null,{vol:.6}));metaSave()}
-  else if(id==='fridge'){P.hp=100;radio('you',pick(["Root beer. The good kind, in the glass bottle.","Somebody ate my leftover brisket. I know who.","There's a note on the milk that says DAD NO. Fair."]))}
+  else if(id==='fridge'){P.hp=100;setTimeout(()=>{if(mode==='home')openCalendar()},250);radio('you',pick(["Root beer. The good kind, in the glass bottle.","Somebody ate my leftover brisket. I know who.","There's a note on the milk that says DAD NO. Fair."]))}
   else if(id==='tv'){radio('you',pick(["Fourth and two and they punt. Unbelievable.","Highlights. It's all the same three highlights.","Jen, do we have the sports package? Since when?"]))}
   else if(id==='bed'){P.hp=100;radio('you',pick(["Just resting my eyes.","Five minutes. Ten, tops.","This mattress knows my name."]))}
   else if(id==='grill'){radio('you',pick(["Charcoal. Gas is for people who give up.","Burgers at six. Tell the kids.","Big Dave would say the coals aren't ready. Big Dave isn't here."]))}
@@ -2677,7 +2688,7 @@ if(WORLD)MISSIONS.push(...RIVER_JOBS);
 Object.assign(MK_LOW,{Bike:1,Converter:1,Shed:1,'Stash table':1});
 /* SPEC2 B.0 unlock table (owner decision F.1: the bridge opens after Rick's job, so Riverside interleaves with Maple; the Duke waits for Maple to be done) */
 const RIVER_TRUST_GATE={dee:15,rosa:25,benny:35,duke:50};
-function jobLock(i){const m=MISSIONS[i];if(!m)return 'no such job';if(prog.done[i])return null;
+function jobLock(i){const m=MISSIONS[i];if(!m)return 'no such job';if(m.reg)return jrLock(m);if(prog.done[i])return null;
   if(i<4)return i>0&&!prog.done[i-1]?'locked':null;
   if(!WORLD||!prog.done[1])return 'bridge';if(i>4&&!prog.done[i-1])return 'locked';
   const g=RIVER_TRUST_GATE[m.id];if(g&&(prog.trustR||0)<g)return 'trust';
@@ -2690,7 +2701,7 @@ const jobAvailable=i=>!jobLock(i);
    to it) and the exit ring sits beside the dad's own vehicle. "Keep driving" on the result card goes back to the hub where he stands.
    CFG.inWorld=false (or MISSIONS[i].inWorld=false) keeps the old separate-level path for the Maple jobs. */
 const WM={objs:[],navCache:new Map(),finaleSeen:false,last:null,beat:false};
-function missionInWorld(i){const m=MISSIONS[i];if(!m||!WORLD||!OW())return false;if(m.hood==='river')return true;return CFG.inWorld!==false&&m.inWorld!==false&&!!WORLD.sites[m.id]}
+function missionInWorld(i){const m=MISSIONS[i];if(!m||!WORLD||!OW())return false;if(m.hood==='river'||m.reg)return true;return CFG.inWorld!==false&&m.inWorld!==false&&!!WORLD.sites[m.id]}
 function wmDests(lvl){/* rings for jobs whose start is not the site's own park spot: Dee's stakeout spot, Benny's depot */
   const P_=WORLD.places,tc_=t=>t*TILE+TILE/2;const ON_STREET={earl:[166,63],rosa:[200,35],duke:[192,63],benny:[217,21]};/* the Riverside lots are fenced: their rings sit on the street at the gate */
   MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id}})}
@@ -2755,11 +2766,11 @@ function wmCarFor(i){const d=L.dests&&L.dests[i];let e=CV||(WM.last&&L.cars&&L.c
   return e}
 function wmSnapRoad(x,z){const G=OW()&&OW().roads();if(!G)return{x,z,yaw:-Math.PI/2};const r=G.nearestRoad(x,z);if(!r||r.dist>14)return{x,z,yaw:-Math.PI/2};const A=G.nodes[r.a],B=G.nodes[r.b],dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1;
   return{x:r.x-dz/l*1.5,z:r.z+dx/l*1.5,yaw:Math.atan2(-dx/l,-dz/l)}}
-function startMissionWorld(i,o={}){const m=MISSIONS[i];ensureWorld();
+function startMissionWorld(i,o={}){o=jrOpts(o);const m=MISSIONS[i];if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}ensureWorld();
   settleBorrow(true);if(L.pickups){for(const p of L.pickups)if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh);L.pickups=[]}
   wmClear();JOB=null;destRings.forEach(r=>r.visible=false);
-  const st=WORLD.sites[m.id]||null,car=wmCarFor(i);WM.last=car;
-  const stay=(m.type==='escort'||m.type==='stakeout')&&!o.raid;/* the dad stays at the wheel */
+  const st=WORLD.sites[m.site||m.id]||null,car=wmCarFor(i);WM.last=car;
+  const stay=(m.type==='escort'||m.type==='stakeout'||m.stay)&&!o.raid;/* the dad stays at the wheel */
   if(CV&&(!stay||CV!==car))exitCar();
   mode='mission';clearChars();makePlayer();
   M={i,def:m,t:m.time||0,wave:0,waveT:3,waveAge:0,got:0,smashed:0,state:'go',kills:0,cuffs:0,elapsed:0,bossDone:null,exitOpen:false,world:true,site:st,car,phase:'go',leaveT:8,payX:{}};
@@ -2779,7 +2790,7 @@ function startMissionWorld(i,o={}){const m=MISSIONS[i];ensureWorld();
   if(stay&&CV!==car)enterCar(car);
   if(stay){for(const a of allies){a.ride=true;a.dude.root.visible=false}}
   rebuildTargets();
-  const J=WJ[m.id];if(J&&J.start)J.start(o);
+  const J=jobWJ(m.id);if(J&&J.start)J.start(o);jrStarted(o);/* JOBS: replay, night, [CP] restore */
   if(!o.quiet)m.radio.forEach(([w,t])=>radio(w,t));
   banner(m.title.toUpperCase(),m.place,3.4);prog.missionsRun++;running=true;canvasFocus();audioState('mission');
   return M}
@@ -2790,7 +2801,8 @@ function wmBossLook(e,b){if(!b)return;scene.remove(e.dude.root);const d=makeDude
 /* result card: "Keep driving" puts you back in the world beside your vehicle; a failed job retries at its site */
 function wmResult(ok,res,mi){const keep=()=>wmKeepDriving();
   if(ok){res.retryLabel='Keep driving';res.canRetry=true;UI.acts['result:retry']=keep}
-  else{res.canRetry=true;res.retryLabel=M&&M.checkpoint?'Retry the chase':'Retry';const cp=M&&M.checkpoint;UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,cp?{checkpoint:cp}:{});requestLock()}}}
+  else{res.canRetry=true;res.retryLabel=M&&M.checkpoint?'Retry the chase':'Retry';const cp=M&&M.checkpoint;UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,cp?{checkpoint:cp}:{});requestLock()}}
+  jrResult(ok,res,mi)/* JOBS: stage checkpoints */}
 function wmKeepDriving(){HUD.hide('result');UI.acts={};const m=M,car=(m&&m.car)||VAN,cuffs=m?m.cuffs:0,tow=m&&m.towed;wmClear();
   OWS.ret=null;if(tow){const a=WORLD.places.autoBay||WORLD.places.auto;OWS.ret={x:a.x,z:a.z-4,yaw:-Math.PI/2}}else if(car===VAN)OWS.ret={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};
   enterHub();
@@ -2803,13 +2815,13 @@ function wmMission(dt){const m=M.def;
   if(aiWorld)for(const e of enemies)if(e.loud&&e.state==='idle'){/* alerted by the job (loud raid, ambush): straight into combat through the AI's own memory */const ai=AI.mem(e,aiWorld);ai.mode='combat';ai.sub='react';ai.react=simT+.3+Math.random()*.6;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT};e.alert=true;e.loud=0}
   wmLeash();wmMedicTick(dt);if(M.chase)chaseUpdate(dt);if(!M||M.state!=='go')return true;
   if(wmLeaving(dt))return true;
-  const J=WJ[m.id];if(!J||!J.upd)return false;/* the Maple jobs: the classic updMission branches run on the activated site */
+  const J=jobWJ(m.id);if(!J||!J.upd)return false;/* the Maple jobs: the classic updMission branches run on the activated site */
   wmFrame(dt,J);return true}
 /* enemies leave the site window only to come back to their spawn (SPEC2 A.8 leash) */
 function wmLeash(){const w=L.win;if(!w)return;for(const e of enemies){if(e.state!=='idle'||e.script||!e.home||e.noLeash)continue;const gx=tx(e.pos.x),gz=tx(e.pos.z);
   if(gx<w.x0||gz<w.z0||gx>w.x1||gz>w.z1)e.script={kind:'home'}}}
 /* more than 30 m outside the site: 8 s to come back (not during chases, escorts or the stakeout) */
-function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
+function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.def.roam||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
   const b=st.box,q=VAN.on?CV.pos:P.pos,dx=Math.max(b.x0-q.x,0,q.x-b.x1),dz=Math.max(b.z0-q.z,0,q.z-b.z1);
   if(Math.hypot(dx,dz)>30){M.leaveT-=dt;M.leaveLine=['Get back to the job ('+Math.max(0,Math.ceil(M.leaveT))+')',false,'warn'];
     if(M.leaveT<=0){endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
@@ -2844,7 +2856,7 @@ function wmMedic(a,dt){const t=a.medic;if(!t||!t.down){a.medic=null;return false
   t.downT-=dt*2;faceTo(a,t.pos.x,t.pos.z,dt);a.dude.root.rotation.y=a.yaw;pose(a.dude,dt,{mode:'kneel'});return true}
 function wmCuff(e){cue('interact',P.dude);e.state='cuffed';confiscate(e);if(e.tag){e.tag.remove();e.tag=null}M.cuffs++;prog.cuffed++;addTrust(4);snd('cuff');radio('you',pick(LINES.cuff),true);if(e.boss||e.driver)M.bossDone='cuffed';if(e.onCuff)e.onCuff(e)}
 /* the frame for the Riverside jobs: the job fills objectives, holds (hold E), taps (press E) and the marker; this does the rest */
-function wmFrame(dt,J){const m=M.def,F={objs:[],target:null,holds:[],taps:[],prompt:null,promptP:null};
+function wmFrame(dt,J){const m=M.def,F={objs:[],target:null,holds:[],taps:[],prompt:null,promptP:null,meters:[],widgets:[],M};JRS.hudF=F;
   let near=null,nd=2.4;if(!VAN.on)for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
   J.upd(dt,F);if(!M||M.state!=='go')return;
   const atRide=M.exitOpen&&!VAN.on&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2;/* heading out beats picking things up */
@@ -2856,6 +2868,7 @@ function wmFrame(dt,J){const m=M.def,F={objs:[],target:null,holds:[],taps:[],pro
   else{let tap=null,td=1e9;for(const t of F.taps){const dd=t.d!=null?t.d:Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td){td=dd;tap=t}}
     if(tap&&!prompt){prompt=KE+' · '+tap.txt;if(useTap){useTap=false;tap.fn()}}}
   if(!M||M.state!=='go')return;
+  {const r=jhPrompt(prompt,pp,dt);prompt=r[0];pp=r[1]}if(!M||M.state!=='go')return;/* JOBS: interact hook */
   /* in and out of cars during a job (the vehicle you came in is the way home) */
   if(!prompt&&!M.noCars){if(VAN.on){if(Math.abs(CV.spd)<4&&M.phase!=='stake'){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}}
     else{let c=nearCar();if(!c&&M.exitOpen&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2)c=M.car;if(c&&!(c.car&&c.car.hp<=0&&M.world)){prompt=KE+' · '+(M.exitOpen&&c===M.car?'Get in and head out':c===VAN?'Get in the minivan':c===M.car?'Get in':'Borrow '+c.name+"'s "+feel(c).label);if(useTap){useTap=false;enterCar(c);M.car=c;WM.last=c}}}}
@@ -3155,6 +3168,7 @@ function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];retu
 function wmHubGivers(){const out=[],lines=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
+  out.push(...jrGivers());/* JOBS: registered jobs' givers */
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
     const sb=GIVER_STAND_IN[m.giver];if(sb&&pm&&pm.preload&&!pm.has(sb.base)&&!n.dude.rb)pm.preload([sb.base]).then(()=>{if(!npcs.includes(n)||!pm.has(sb.base))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
@@ -3165,8 +3179,8 @@ function wmHubGivers(){const out=[],lines=[];
   setObj(L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights',lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'])}
 function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
   ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
-function wmAllDone(){return MISSIONS.length>0&&prog.done.slice(0,MISSIONS.length).every(Boolean)&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
-function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;
+function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>m.reg||prog.done[i])&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
+function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;jrHubEnter();
   const s=SV();if(prog.done[1]&&!WM.beat&&!(s&&s.flags.act2Intro)){WM.beat=true;prog.act=2;if(s){s.flags.act2Intro=true;s.world.bridgeOpen=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags','world')}
     setTimeout(()=>{if(mode!=='hub'||HUD.screen==='result')return;running=false;releaseLock();
       HUD.show('result',{stamp:'Act 2 · One week later',title:'The bridge is open.',goLabel:'Drive across the bridge',canRetry:false,
@@ -3183,7 +3197,7 @@ const WM_AFTER={gary:['INDUSTRIAL WAY CLIMBING GYM','Formerly a chop shop · Rop
   rosa:['RIVERSIDE COMMUNITY GARDEN','Plant Day every Saturday · Forty families'],duke:['SECOND GEAR AUTO SCHOOL','Pastor Dee\'s youth program · Ask for Sal']};
 function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORLD.sites[m.id];if(!s||!WM_AFTER[m.id])return;
   const G=OW()&&OW().roads();let yaw=0,x=s.ring.x,z=s.ring.z;if(G){const r=G.nearestRoad(x,z);if(r){const dx=r.x-x,dz=r.z-z,l=Math.hypot(dx,dz)||1;x-=dx/l*1.2;z-=dz/l*1.2;yaw=Math.atan2(dx,dz)}}
-  const q=wmSnap(x,z);wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
+  const q=wmSnap(x,z);(WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
   if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
 function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;
   if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}
@@ -3196,6 +3210,134 @@ function wmVanHealth(){const e=CV;if(!e)return 1;if(M&&M.world&&e.car&&e.car.sta
 function wmExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptors({MISSIONS,wmRng,CFG,WM,WJ,jobLock,jobAvailable,missionInWorld,startMissionWorld,giverModel,wmKeepDriving,activateSite,finale,wmScript,chaseStart,
   get chase(){return M&&M.chase},get truck(){return M&&M.truck},get npcs(){return npcs},get suspects(){return M&&M.suspects},addTrust,hurtAlly,surrender,
   get UIacts(){return UI.acts},get UIobj(){return UI.obj},get prompt(){return UI.prompt},get carry(){return P.carry},get exitAt(){return L&&L.exit}}))}
+
+/* ================= JOBS: registry glue, hook points, stage checkpoints, replay (SPEC3 4.0 / 4.7 / 4.8 · docs/JOBS.md) ================= */
+/* Every job, the nine built-ins included, goes through HT.Jobs (js/jobs/_registry.js). New jobs live in js/jobs/<id>.js and never edit
+   this file: they register a MISSIONS entry and callbacks, and reach the game through the eight hook points (JH.*) and HT.Jobs.api. */
+const JR=window.HT&&HT.Jobs||null;
+const JRS={pending:null,next:null,cp:null,dt:1/60,declined:{},loaded:null,hudF:null};
+const JH={
+  perceive:(e,w)=>{if(JR)JR.hooks.perceive(e,w)},
+  noise:n=>{if(JR)JR.hooks.noise(n)},
+  vehicle:(car,dt)=>{if(JR)JR.hooks.vehicle(car,dt)},
+  camera:dt=>!!(JR&&mode==='mission'&&JR.hooks.camera(dt)),
+  interact:prompt=>JR?JR.hooks.interact(prompt):null,
+  /* M.noGuns: drawing is disabled with a line (Grand Opening, kids in the car); special items fire through their own use() */
+  fire:()=>{if(mode==='mission'&&M&&M.state==='go'){const it=M.item&&JR&&JR.items.get(M.item);if(it&&it.use){try{it.use(M)}catch(e){console.warn(e)}mouseDown=false;return true}
+      if(M.noGuns){mouseDown=false;P.fireT=Math.max(P.fireT,.5);if(simT-(JRS.ngT||-9)>4){JRS.ngT=simT;radio('you',typeof M.noGuns==='string'?M.noGuns:pick(["Not here. Not with people watching.","Hands where everyone can see them. Mine too."]),true)}return true}}
+    return!!(JR&&JR.hooks.fire())},
+  hud:st=>{if(mode==='mission'&&M&&JRS.hudF&&JRS.hudF.M===M){if(JRS.hudF.meters.length)st.meters=JRS.hudF.meters.slice(0,3);if(JRS.hudF.widgets.length)st.widgets=JRS.hudF.widgets}if(JR)JR.hooks.hud(st)},
+  home:id=>!!(JR&&JR.hooks.home(id))};
+/* the job object a mission runs through: built-ins use their WJ entry (or the classic updMission branches), registered files their callbacks */
+function jobWJ(id){const j=JR&&JR.get(id);if(j&&!j.builtin){if(!j.wj)j.wj={start:o=>{if(j.start)j.start(M,o)},upd:(dt,F)=>{if(j.upd)j.upd(dt,M,F)}};return j.wj}return WJ[id]}
+/* E prompts from the interact hook: a string, or {txt, fn} (press E) / {txt, hold:secs, fn, o} (hold E; o keeps the progress) */
+function jhPrompt(prompt,pp,dt){const r=JH.interact(prompt);if(!r)return[prompt,pp];if(typeof r==='string')return[r,pp];
+  if(r.hold){const o=r.o||(JRS.holdO&&JRS.holdO.k===r.txt?JRS.holdO:(JRS.holdO={k:r.txt,prog:0}));if(keys.e){o.prog=(o.prog||0)+dt/r.hold;if(o.prog>=1){o.prog=0;try{r.fn&&r.fn()}catch(e){console.warn(e)}}}else o.prog=Math.max(0,(o.prog||0)-dt);return['Hold '+KE+' · '+r.txt,o.prog]}
+  if(useTap&&r.fn){useTap=false;try{r.fn()}catch(e){console.warn(e)}}return[KE+' · '+r.txt,pp]}
+/* ---- gating: the job's unlock table against the save (jobs by id) and the live progress ---- */
+function jrDone(id){const s=SV();if(s&&s.jobs&&s.jobs[id]&&s.jobs[id].done)return true;const i=MISSIONS.findIndex(m=>m.id===id);return i>=0&&!!prog.done[i]}
+function jrLock(m){if(!WORLD||!OW())return 'world';const i=MISSIONS.indexOf(m);if(!m.repeatable&&prog.done[i])return null;
+  const s=SV(),r=JR.lockReason(m,{done:jrDone,trust:prog.trust,trustR:prog.trustR||0,cuffed:prog.cuffed,flags:s?s.flags:{},day:s?s.day:1,save:s});
+  if(!r)return null;return r.why==='trustR'||r.why==='trust'?'trust':r.why==='flag'||r.why==='when'?'later':'locked'}
+/* where a registered job starts: def.start {x,z} (world m) or {tile:[x,z]}, else its site's ring, else its giver's spot */
+function jrDest(m){const P_=WORLD.places,s=m.start;if(s){if(s.tile)return{x:tileC(s.tile[0]),z:tileC(s.tile[1]),site:m.site||null};if(s.place&&P_[s.place])return{x:P_[s.place].x,z:P_[s.place].z,site:m.site||null};if(s.x!=null)return{x:s.x,z:s.z,site:m.site||null}}
+  const st=WORLD.sites[m.site||m.id];if(st&&st.ring)return{x:st.ring.x,z:st.ring.z,site:st.id};const g=jrGiverAt(m);return g?{x:g.x,z:g.z,site:null}:null}
+function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;if(f.place&&P_[f.place])return{x:P_[f.place].x,z:P_[f.place].z};if(f.tile)return{x:tileC(f.tile[0]),z:tileC(f.tile[1])};if(f.x!=null)return{x:f.x,z:f.z};
+  const g=P_['g_'+m.giver];return g?{x:g.x,z:g.z}:null}
+/* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
+function jrGivers(){if(!JR||!WORLD)return[];const out=[];
+  for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
+    const g=jrGiverAt(m);if(g&&out.length<3)out.push({i,x:g.x,z:g.z})}return out}
+function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
+  if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
+  const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
+  /* registered while the hub is up: its destination ring and giver appear without a rebuild */
+  if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
+      const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
+    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<6){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
+      const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
+/* ---- start options: replay and checkpoint ride along through startMissionWhenReady ---- */
+function jrOpts(o){o=o||{};if(JRS.next){o=Object.assign({},JRS.next,o);JRS.next=null}return o}
+function jrStarted(o){if(!M)return;const m=M.def,j=JR&&JR.get(m.id);M.replay=!!o.replay;M.retried=!!o.checkpoint;M.job=j;M.stage=null;M.clean=M.clean!==false;
+  if(!o.checkpoint)JRS.cp={id:m.id,i:M.i,snaps:[]};
+  if(m.noGuns)M.noGuns=m.noGuns;
+  if(m.night&&typeof setNight==='function'){setNight(1);JRS.night=true}
+  if(M.replay){const sg=WM.afterSigns&&WM.afterSigns[m.id];if(sg)sg.visible=false;/* the site as it was before the job (4.8) */}
+  if(!j||j.builtin)return;
+  if(o.checkpoint){const s=o.checkpoint;cpRestore(s);if(j.load)try{j.load(M,s.job)}catch(e){console.warn('job load failed',e)}M.stage=s.stage;HUD.feed('Back to '+cpLabel(s.stage),'info')}
+  else if(m.stages&&m.stages.length)CP.mark(m.stages[0],{quiet:true})}
+/* ---- [CP] stage checkpoints (4.7): one snapshot per stage, in memory; "Retry from <stage>" and "Restart job" on the fail card ---- */
+function cpLabel(st){const m=M&&M.def,L_=m&&m.stageLabels;return(L_&&L_[st])||String(st||'the start').replace(/^\w/,c=>c.toUpperCase())}
+const CP={
+  mark(stage,opt={}){if(!M||M.state!=='go')return null;const j=JR&&JR.get(M.def.id);if(!JRS.cp||JRS.cp.id!==M.def.id)JRS.cp={id:M.def.id,i:M.i,snaps:[]};
+    const car=M.car||null,ci=car&&L.cars?L.cars.indexOf(car):-1,ammo={};for(const g in P.ammo)ammo[g]=P.ammo[g].mag;
+    const snap={stage,player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,hp:P.hp,weapons:Object.assign({},P.loadout),cur:P.cur,ammo,pool:Object.assign({},P.pool),inCar:!!VAN.on,
+      car:car?{i:ci,van:car===VAN,x:car.pos.x,z:car.pos.z,yaw:car.yaw,hp:car.car?car.car.hp:null}:null},
+      crew:allies.map(a=>({id:a.id,x:a.pos.x,z:a.pos.z,ride:!!a.ride})),cars:(M.borrowed||[]).map(c=>({i:L.cars.indexOf(c),x:c.pos.x,z:c.pos.z,yaw:c.yaw})),
+      job:j&&j.save&&!j.builtin?j.save(M):null,t:M.elapsed};
+    const txt=JSON.stringify(snap);if(txt.length>16384)console.warn('[CP] snapshot over 16 KB: '+txt.length);
+    const sn=JRS.cp.snaps,k=sn.findIndex(s=>s.stage===stage);if(k>=0)sn[k]=JSON.parse(txt);else sn.push(JSON.parse(txt));M.stage=stage;
+    if(!opt.quiet&&HUD.checkpoint)try{HUD.checkpoint(cpLabel(stage))}catch(_){}return snap},
+  last(){return JRS.cp&&JRS.cp.snaps.length?JRS.cp.snaps[JRS.cp.snaps.length-1]:null},
+  get stage(){return M&&M.stage},
+  clear(){JRS.cp=null}};
+function cpRestore(s){const p=s.player;if(!p)return;
+  if(p.car){const e=p.car.van?VAN:(p.car.i>=0&&L.cars?L.cars[p.car.i]:null)||M.car;if(e){if(CV&&CV!==e)exitCar();e.pos.set(p.car.x,0,p.car.z);e.yaw=p.car.yaw;owStopCar(e);syncCar(e);if(p.car.hp!=null&&e.car)e.car.hp=p.car.hp;M.car=e;WM.last=e}}
+  if(p.inCar&&M.car){if(!CV)enterCar(M.car)}else{if(CV)exitCar();P.pos.set(p.x,0,p.z);P.yaw=p.yaw;collide(P.pos,.35);resetMove()}
+  P.hp=p.hp||100;for(const g in p.ammo||{})if(P.ammo[g])P.ammo[g].mag=p.ammo[g];if(p.pool)Object.assign(P.pool,p.pool);/* a stage retry refills ammo to the snapshot, not to full */
+  for(const c of s.crew||[]){const a=allies.find(a=>a.id===c.id);if(a){a.pos.set(c.x,0,c.z);a.ride=!!c.ride&&!!CV;a.dude.root.visible=!a.ride}}
+  if(s.t!=null)M.elapsed=s.t}
+/* stealth broken (owner decision 2): escalate into a fight and lose the clean bonus, unless the job fails softly to its checkpoint */
+function jobSpotted(why){if(!M||M.state!=='go')return;M.clean=false;M.spotted=(M.spotted||0)+1;
+  if(M.def.failPolicy==='soft')return endMission(false,why||"Somebody spotted you. Back to the van, try it again.","Spotted.");
+  M.escalated=true;for(const e of enemies)if(e.state==='idle'&&!e.alert){e.loud=1}if(M.stealth&&M.stealth.release)try{M.stealth.release()}catch(_){}
+  HUD.feed(why||'Spotted · no clean bonus','bad')}
+/* ---- finish: medal, run record, payout lines, the job's own end ---- */
+function jrFinish(ok,res){if(!M)return;const m=M.def,j=JR&&JR.get(m.id),s=SV();let medal=JR?JR.medalOf(j,M,ok):ok?1:0;M.medal=medal;
+  if(j&&!j.builtin){if(j.payout)try{const ex=(j.payout(M,ok)||[]).filter(l=>l&&l[0]&&isFinite(l[1])).map((l,k)=>({id:'job'+k,label:l[0],amount:l[1]}));M.payX=M.payX||{};M.payX.extra=(M.payX.extra||[]).concat(ex)}catch(e){console.warn('job payout failed',e)}
+    if(j.end&&!M.replay)try{j.end(M,ok)}catch(e){console.warn('job end failed',e)}}
+  const SVM=window.HT&&HT.Save;let rec=null;
+  if(s&&SVM&&SVM.recordRun)try{rec=SVM.recordRun(s,m.id,{ok,t:Math.round(M.elapsed),score:M.score!=null?M.score:null,medal,replay:!!M.replay,trustGain:M.trustGain||0,clean:M.clean!==false})}catch(e){console.warn('recordRun failed',e)}
+  if(rec&&rec.bonus){M.payX=M.payX||{};M.payX.extra=(M.payX.extra||[]).concat([{id:'medal',label:(medal>=3?'Gold':'Silver')+' medal · first time',amount:rec.bonus}])}
+  if(ok&&res)res.stats=(res.stats||[]).concat([['Medal',['—','Bronze','Silver','Gold'][medal],M.replay?'replay · half pay':(j&&j.def.medals?j.def.medals[Math.min(medal,3)-1]||'':'')]]);
+  if(SAVEM&&SAVEM.touch)try{SAVEM.touch('jobs','calendar')}catch(_){}}
+/* fail card: retry from the last stage, or restart the job (registered jobs with stages) */
+function jrResult(ok,res,mi){const m=MISSIONS[mi];if(ok||!m||!m.reg)return;const s=CP.last();
+  if(s&&JRS.cp&&JRS.cp.i===mi&&(s.stage!==(m.stages||[])[0]||s.job)){const snap=JSON.parse(JSON.stringify(s)),rp=M&&M.replay;
+    res.retryLabel='Retry from '+cpLabel(s.stage);res.restartLabel='Restart job';res.canRetry=true;
+    UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,{checkpoint:snap,replay:rp,quiet:true});requestLock()};
+    UI.acts['result:restart']=()=>{HUD.hide('result');UI.acts={};JRS.cp=null;startMissionWorld(mi,{replay:rp});requestLock()}}
+  else if(M&&M.replay){UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,{replay:true});requestLock()}}}
+/* ---- home: a job offered from home (the laptop, Jen's fridge note) and the fridge calendar ---- */
+function jrHomeGiver(id){if(!JR||!WORLD)return false;const s=SV(),day=s?s.day:1;
+  for(const j of JR.list(j=>!j.builtin&&j.def.from&&j.def.from.home===id)){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m)||(!m.repeatable&&prog.done[i]))continue;if(JRS.declined[m.id]===day||JRS.pending===i)continue;
+    openBrief(i,{home:id});return true}return false}
+function jrHubEnter(){if(JRS.night){JRS.night=false;if(typeof setNight==='function')try{setNight(0)}catch(_){}}
+  if(JRS.pending!=null&&mode==='hub'){const i=JRS.pending;JRS.pending=null;if(!L.dests[i]){const d=jrDest(MISSIONS[i]);if(d)L.dests[i]=d}if(L.dests[i]){JOB=i;objKey='';jrOnRegister(JR.get(MISSIONS[i].id));destRings.forEach((r,k)=>{if(r)r.visible=k===i});hubObj()}}}
+function calEntries(){const s=SV(),out=[];if(!s)return out;const jobs=s.jobs||{};
+  MISSIONS.forEach((m,i)=>{const r=jobs[m.id],done=(r&&r.done)||prog.done[i];if(!done)return;const e=(s.calendar&&s.calendar.entries||[]).find(e=>e.id===m.id)||{};
+    const b=(r&&r.best)||e.best||null,t=b&&b.t!=null?Math.floor(b.t/60)+':'+String(Math.round(b.t)%60).padStart(2,'0'):'—';
+    out.push({id:m.id,i,title:m.title,giver:(HOMIES[m.giver]||{}).name||m.giver,place:m.place,hood:m.hood||'maple',medal:(r&&r.medal)||e.medal||1,best:t,runs:(r&&r.runs)||e.runs||1,day:e.day||1,
+      replayable:!!WORLD&&missionInWorld(i),note:(m.medals?m.medals.map((x,k)=>['Bronze','Silver','Gold'][k]+': '+x).join(' · '):'')})});return out}
+function openCalendar(sel){const s=SV();running=false;releaseLock();const close=()=>{HUD.hide('calendar');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock()};
+  const ent=calEntries();
+  try{HUD.show('calendar',{title:'The Fridge Calendar',day:s?s.day:1,entries:ent,selected:sel||null})}catch(e){console.warn(e);running=true;return}
+  UI.acts={'calendar:close':close,'calendar:replay':id=>{id=id||sel;const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return;HUD.hide('calendar');UI.acts={};jrReplay(i)}}}
+function jrReplay(i){JRS.next={replay:true};if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}running=true;startMissionWhenReady(i);requestLock()}
+/* ---- loading the job files: after Stage A, in idle time, one by one (docs/PERF.md progressive loader); a missing file is skipped ---- */
+function jrLoadFiles(){if(JRS.loaded||!JR)return JRS.loaded;const files=(window.__htJobFiles||JR.FILES).slice();
+  JRS.loaded=new Promise(res=>{const next=()=>{const f=files.shift();if(!f)return res(JR.list().length);const sc=document.createElement('script');sc.src='js/jobs/'+f+'.js';sc.async=false;
+      sc.onload=sc.onerror=()=>{(window.requestIdleCallback||(cb=>setTimeout(cb,16)))(next,{timeout:400})};document.head.appendChild(sc)};next()});return JRS.loaded}
+if(JR){MISSIONS.forEach(m=>{const w=WJ[m.id];JR.wrap(m.id,m,w?{start:(M_,o)=>w.start&&w.start(o||{}),upd:(dt,M_,F)=>w.upd&&w.upd(dt,F)}:{})});
+  JR.bind({MISSIONS,catalog:window.HT&&HT.CATALOG&&HT.CATALOG.missions,onRegister:jrOnRegister,active:()=>mode==='mission'&&M&&M.state==='go'?M:null});
+  JR.on('home',id=>jrHomeGiver(id)||undefined);
+  /* the curated surface for job files (documented in docs/JOBS.md); anything else in this file is reachable but not a contract */
+  JR.api={get P(){return P},get M(){return M},get L(){return L},get VAN(){return VAN},get CV(){return CV},get WORLD(){return WORLD},get mode(){return mode},get enemies(){return enemies},get allies(){return allies},get npcs(){return npcs},
+    get keys(){return keys},get simT(){return simT},get useTap(){return useTap},set useTap(v){useTap=v},THREE,scene,camera,MISSIONS,HOMIES,WEAPONS,CP,JH,
+    radio,banner,feed:(t,k,s)=>HUD.feed(t,k,s),addTrust,spawnEnemy,spawnAlly,surrender,equip,makeDude,makeVehicle,makeVanBox,wmAdd,wmCol,wmCarry,wmDrop,wmSign,wmSnap,wmSnapRoad,wmWindow,wmSetWindow,wmNearest,wmCuff,
+    box,mat,lin,rand,pick,clamp,V3,tileC,tx,walkable,groundAt,collide,carSize,syncCar,owStopCar,enterCar,exitCar,nearCar,puff,snd,rebuildTargets,project,
+    endMission,spotted:jobSpotted,CarAI:()=>HTM('CarAI'),roads:()=>OW()&&OW().roads(),setNight:k=>{if(typeof setNight==='function')setNight(k)},SV,save:()=>metaSave(),
+    HUD,overlay:(id,el)=>HUD.overlay&&HUD.overlay(id,el),get stage(){return M&&M.stage}}}
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
@@ -3270,6 +3412,12 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);
+/* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
+window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
+  index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
+  lock:id=>{const i=MISSIONS.findIndex(m=>m.id===id);return i<0?'no such job':jobLock(i)},calendar:openCalendar,calEntries,replay:id=>jrReplay(MISSIONS.findIndex(m=>m.id===id)),spotted:jobSpotted,
+  homeUse:id=>JH.home(id),openBrief:(id,o)=>openBrief(MISSIONS.findIndex(m=>m.id===id),o),finish:(ok,why)=>endMission(ok,why)};
+ASSETS.ready.then(()=>setTimeout(jrLoadFiles,1200));
 /* the house loads on demand (docs/PERF.md); tests that need it start it explicitly */
 window.__ht.homeInit=()=>homeInit();
 /* character test hooks (dev/people scripts) */
