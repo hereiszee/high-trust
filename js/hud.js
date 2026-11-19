@@ -83,6 +83,7 @@ const UI_ICON={
   aim:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>',
   use:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10h.5V3.5a1.5 1.5 0 0 1 3 0V10h.5V5a1.5 1.5 0 0 1 3 0v9c0 4-3 7-7 7-3 0-4.6-1.3-6-3.4L3.4 14a1.5 1.5 0 0 1 2.4-1.8L9 15z"/></svg>',
   reload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4v4h-4" /></svg>',
+  jump:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg>',
   crouch:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="13" cy="5" r="2.4"/><path d="M9 9h6l1 5h3v2.4h-5l-1-3-2 3 2 4.6h-2.7L7.6 17 9 13z"/></svg>',
   swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>',
   view:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
@@ -176,7 +177,7 @@ function build(root){
   /* touch */
   R.touch=el('div','ht-touch',root,'<div class="ht-stick"><div class="kn"></div></div>');
   R.stick=R.touch.firstChild;R.knob=R.stick.firstChild;R.tbtn={};
-  for(const[a,lab,ic]of[['fire','Fire','fire'],['aim','Aim','aim'],['use','Use','use'],['reload','Reload','reload'],['crouch','Crouch','crouch'],['swap','Gun','swap'],['view','View','view'],['pause','','pause'],['map','','map']]){
+  for(const[a,lab,ic]of[['fire','Fire','fire'],['aim','Aim','aim'],['use','Use','use'],['reload','Reload','reload'],['crouch','Crouch','crouch'],['jump','Jump','jump'],['swap','Gun','swap'],['view','View','view'],['pause','','pause'],['map','','map']]){
     const b=el('div','ht-tb',R.touch,UI_ICON[ic]+(lab?'<span>'+lab+'</span>':''));b.dataset.a=a;R.tbtn[a]=b;
     b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');try{b.setPointerCapture(e.pointerId)}catch(_){};emit('touch',a,true);if(a==='map')MAP.toggle();if(a==='pause')emit('action','pause')});
     const up=e=>{if(!b.classList.contains('dn'))return;b.classList.remove('dn');emit('touch',a,false)};b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up)}
