@@ -353,8 +353,8 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   if(rb.kick>0){rb.kick=Math.max(0,rb.kick-dt*9);armT-=rb.kick*.06}
   const kk=Math.min(1,dt*14);rb.armP+=(armT-rb.armP)*kk;rb.spineP+=(spT-rb.spineP)*kk;
   /* hip yaw for sideways/diagonal travel (pelvis turns, spine turns back) */
-  rb.hip=(rb.hip||0)+(((full||!rb.hipT)?0:rb.hipT)-(rb.hip||0))*Math.min(1,dt*9);
-  if(Math.abs(rb.hip)>.004&&rb.bones.Bip01_Pelvis){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Pelvis,_cp,rb.hip);rotWorld(rb.bones.Bip01_Spine,_cp,-rb.hip)}
+  rb.hipYaw=(rb.hipYaw||0)+(((full||!rb.hipT)?0:rb.hipT)-(rb.hipYaw||0))*Math.min(1,dt*9);
+  if(Math.abs(rb.hipYaw)>.004&&rb.bones.Bip01_Pelvis){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Pelvis,_cp,rb.hipYaw);rotWorld(rb.bones.Bip01_Spine,_cp,-rb.hipYaw)}
   /* offering a gun: shoulders turn so the weapon lies across in front, muzzle away from the receiver */
   rb.offer=(rb.offer||0)+((offer?1:0)-(rb.offer||0))*Math.min(1,dt*6);
   /* the pistol_aim clip points ~0.2 rad left and high of the body's facing; square it up (rigid: upper torso yaw + shoulder-line pitch) */
