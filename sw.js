@@ -3,7 +3,7 @@
    - pinned CDN files (three r128, fonts): cache-first
    - everything else from this site (index.html, js, css, manifest.json, source assets): network first, cache when offline
    tools/build-assets.js rewrites ASSET_VERSION; bump SHELL_VERSION by hand only to throw away the cached app shell. */
-const ASSET_VERSION='b4009993';
+const ASSET_VERSION='8119e903';
 const SHELL_VERSION='1';
 const C_ASSETS='ht-assets', C_CDN='ht-cdn', C_SHELL='ht-shell-'+SHELL_VERSION;
 const CDN=/^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.gstatic\.com|fonts\.googleapis\.com)\//;
