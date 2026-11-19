@@ -24,6 +24,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await page.click('.ht-title [data-act=newgame]');await sleep(400);
   ok(await ev(()=>window.__ht.mode==='hub'),'hub after start');
   ok(await ev(()=>window.__ht.cash===0),'cash starts at 0');
+  await ev(()=>window.__ht.homeInit&&window.__ht.homeInit());/* the house loads on demand (docs/PERF.md) */
   await page.waitForFunction(()=>window.__ht.homeReady,null,{timeout:120000});
   /* job 1: run Gary's job quickly with a scripted finish */
   await ev(()=>{const h=window.__ht;h.startMission(0);const M=h.M;M.got=4;M.cuffs=2;M.elapsed=200;for(const it of h.L.items)it.got=true;M.exitOpen=true;h.P.pos.set(h.L.exit.x,0,h.L.exit.z)});

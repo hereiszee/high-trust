@@ -17,18 +17,17 @@ const BASE='assets/people/rocketbox/';
 const REF_HIP=.8952;
 /* street crews: one neutral streetwear look across a broad, even mix of people (no costume coding) */
 const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red','thug_fro','thug_jacket','thug_brown','thug_cap','thug_f_hood','thug_f_leather'];
-const NEIGHBOURS=['earl','dee','rosa','benny'];
-const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4),NEIGHBOURS);
-const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other crew variants stream in right after, neighbours and family on demand */
+const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4));
+const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other street-crew variants stream in right after, family on demand */
 const STREAM_KEYS=THUGS.slice(4);
 const ROLE={you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
-  earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',thug:THUGS};
-const SCALE={dad_dave:1.15,boss:1.06,benny:1.04};
-/* per-character fix-ups: hide parts of the source outfit, add a fabric cap (sRGB) */
-const HIDE={earl:/helmet|tools/};const CAP_ADD={earl:'#2f4a6e'};
+  thug:THUGS};
+const SCALE={dad_dave:1.15,boss:1.06};
+/* per-character fix-ups (none needed now): hide parts of the source outfit by material name, add a fabric cap (sRGB) */
+const HIDE={};const CAP_ADD={};
 const IDLE={dad_player:'idle',dad_gary:'idle_look',dad_rick:'idle',dad_dave:'idle',dad_doug:'idle',thug_hoodie:'idle_nervous',thug_track:'idle_angry',thug_beanie:'idle_nervous',thug_red:'idle_angry',boss:'idle_arms_folded',wife:'f_idle',son:'idle',daughter:'f_idle'};
-const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1,dee:1,rosa:1};
-Object.assign(IDLE,{thug_fro:'idle_angry',thug_jacket:'idle_nervous',thug_brown:'idle_angry',thug_cap:'idle_nervous',thug_f_hood:'f_idle',thug_f_leather:'f_idle',earl:'idle_look',dee:'f_idle',rosa:'f_idle',benny:'idle'});
+const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1};
+Object.assign(IDLE,{thug_fro:'idle_angry',thug_jacket:'idle_nervous',thug_brown:'idle_angry',thug_cap:'idle_nervous',thug_f_hood:'f_idle',thug_f_leather:'f_idle'});
 /* ground speed each clip was recorded at (m/s), and where the left foot starts relative to 'walk' (fraction of a cycle) */
 const SPEED={walk:1.012,walk_fast:1.495,jog:2.411,run:3.075,sprint:5.839,f_walk:1.214,crouch_walk:.626,strafe_left:3,strafe_right:3,run_back:2.47};
 const PHASE={run:.5};

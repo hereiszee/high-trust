@@ -13,7 +13,7 @@ if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process
     console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
   console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
-const PP_KEYS=23;
+const PP_KEYS=19;
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
@@ -243,7 +243,7 @@ function helpers(){
     await shot('pump_cycle',()=>{const H=__ht,P=H.P;H.give('shotgun');H.dude.equip(P.dude,'shotgun');P.cur='shotgun';P.aim=true;P.pitch=0;H.step(20);H.mouse=true;H.step(1);H.mouse=false;H.step(7);T_.rel(.7,1.55,1.4,1.6,.6)});
   }
 
-  if(want('roster')){/* the whole street-crew pool, the crew and the Riverside job-givers */
+  if(want('roster')){/* the whole street-crew pool, and the crew (unchanged) */
     const r=await p.evaluate(async()=>{const PP=HT.People;await PP.preload(PP.keys);return{all:PP.keys.filter(k=>PP.has(k)),thugs:PP.roles.thug.filter(k=>PP.has(k))}});
     ok('roster: all character files load and prepare',r.all.length===PP_KEYS,r.all.length+' of '+PP_KEYS);
     ok('at least 10 street-crew variants',r.thugs.length>=10,r.thugs.join(','));
@@ -252,7 +252,7 @@ function helpers(){
     if(SHOTS){await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
       await shot('roster_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map((v,i)=>({role:'thug',variant:v,gun:i%3?'rifle':'pistol'})),{dist:6.2,spacing:.78,steps:40});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.45,P.pos.z,P.pos.x-Math.sin(P.yaw)*6.2,1.05,P.pos.z-Math.cos(P.yaw)*6.2)});
-      await shot('roster_crew_and_neighbours',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug','earl','dee','rosa','benny'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
+      await shot('roster_crew_unchanged',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.5,P.pos.z,P.pos.x-Math.sin(P.yaw)*5.6,1.1,P.pos.z-Math.cos(P.yaw)*5.6)});
       await shot('roster_faces_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map(v=>({role:'thug',variant:v})),{dist:3.2,spacing:.5,steps:30});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.62,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.55,P.pos.z-Math.cos(P.yaw)*3.2)});
@@ -267,7 +267,7 @@ function helpers(){
   ok('zero console errors',errs.length===0,errs.slice(0,5));
   if(want('fallback')){/* people GLBs unreachable: the box dudes must take over and a mission still runs */
     const ctx2=await b.newContext({viewport:{width:960,height:540}});
-    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(u.pathname.includes('/assets/people/'))return r.fulfill({status:404,body:'nf'});
+    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(/\/people\/|\/assets\/opt\/boot\./.test(u.pathname))return r.fulfill({status:404,body:'nf'});/* source, optimised copies and the boot pack that carries the first people */
       const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx2.newPage();const e2=[];q.on('pageerror',e=>e2.push(e.message));
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0});await q.goto('http://repo.local/index.html');
