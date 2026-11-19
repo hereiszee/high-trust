@@ -21,12 +21,15 @@ It's a single `index.html` built on Three.js r128 (loaded from cdnjs). There's n
 | 1 / 2 / 3, Q, mouse wheel | Switch guns |
 | E | Talk, zip-tie, smash stashes (hold) |
 | V | Over-the-shoulder or first-person view |
+| E (near the minivan) | Get in or out |
+| W / S, A / D | Drive: gas and brake or reverse, steer |
+| Shift / Space / H | Drive: boost, handbrake, horn |
 
 On a phone, drag on the left half of the screen to move and on the right half to look. Use the on-screen buttons for everything else.
 
 ## Missions
 
-Talk to each dad at his yellow marker in the cul-de-sac. Finish his job and he joins the crew for every raid after it.
+Talk to each dad at his yellow marker in Maple Heights. Take the job, get in the minivan, and drive the crew to the job site at the edge of the neighborhood (or pick "Skip the drive" in the brief). Finish his job and he joins the crew for every raid after it.
 
 1. **Return to Sender** (Gary): recover stolen packages from a chop shop on Industrial Way.
 2. **Fourth Quarter** (Coach Rick): smash three stash tables in the duplex on Birch before reinforcements arrive.
