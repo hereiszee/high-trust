@@ -1,0 +1,657 @@
+<title>High Trust</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Rubik:wght@400;600;800&display=swap">
+<style>
+/* Layout: full-bleed canvas world, HUD pinned to corners, title/end cards centered over it. Single deliberate look: suburban dusk. */
+:root{
+  --asphalt:#2b2d33; --grass:#5d8a4a; --khaki:#c9b27c; --polo:#2f5d9e;
+  --sun:#ffc94a; --alarm:#e5533d; --paper:#f6f1e3; --ink:#1d1f24;
+  --display:"Bowlby One", "Arial Black", Impact, sans-serif;
+  --body:"Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-family:var(--body);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+[hidden]{display:none!important}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;pointer-events:none;font-weight:600;text-shadow:0 2px 0 rgba(0,0,0,.45)}
+#top{top:calc(env(safe-area-inset-top,0px) + 12px);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.trust{background:rgba(29,31,36,.82);border:2px solid var(--paper);border-radius:6px;padding:8px 12px;min-width:min(260px,52vw)}
+.trust .lbl{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.bar{height:12px;background:#000;border-radius:3px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:10%;background:linear-gradient(90deg,var(--alarm),var(--sun) 50%,#7ed36b);transition:width .3s}
+.obj{font-size:12px;margin-top:6px;opacity:.9;font-weight:400}
+#mini{border:2px solid var(--paper);border-radius:6px;background:rgba(29,31,36,.82);width:132px;height:132px}
+#quote{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);background:var(--paper);color:var(--ink);font-weight:800;padding:8px 14px;border-radius:4px;max-width:min(560px,86vw);text-align:center;font-size:15px;opacity:0;transition:opacity .25s;box-shadow:4px 4px 0 var(--ink)}
+#quote.on{opacity:1}
+#stats{bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:max(16px,env(safe-area-inset-left,0px));font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;font-weight:400}
+.card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,22,26,.72);padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));z-index:5}
+.card .in{background:var(--paper);color:var(--ink);max-width:520px;width:100%;padding:28px 26px;border-radius:6px;box-shadow:8px 8px 0 var(--polo);max-height:90%;overflow:auto}
+.card h1{font-family:var(--display);font-weight:400;font-size:clamp(40px,10vw,64px);line-height:.95;margin:0;color:var(--polo);letter-spacing:.01em}
+.card .sub{font-size:15px;margin:10px 0 18px;line-height:1.45}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin-bottom:20px}
+.keys b{font-family:ui-monospace,Menlo,monospace;background:var(--ink);color:var(--paper);padding:1px 7px;border-radius:3px;font-size:12px;justify-self:start}
+.btn{font-family:var(--display);font-size:20px;background:var(--sun);color:var(--ink);border:3px solid var(--ink);border-radius:6px;padding:10px 22px;cursor:pointer;box-shadow:4px 4px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--polo);outline-offset:3px}
+.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+#banner{position:fixed;left:0;right:0;top:36%;text-align:center;font-family:var(--display);font-size:clamp(30px,8vw,60px);line-height:1;color:var(--sun);text-shadow:4px 4px 0 var(--ink);opacity:0;transition:opacity .35s;pointer-events:none;z-index:4;padding-inline:16px}
+#banner small{display:block;font-family:var(--body);font-weight:800;font-size:clamp(13px,3.4vw,18px);color:var(--paper);margin-top:10px;text-shadow:2px 2px 0 var(--ink)}
+#banner.on{opacity:1}
+.mis{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(246,241,227,.45);font-size:13px;font-weight:400;font-variant-numeric:tabular-nums}
+.mis b{color:var(--sun);text-transform:uppercase;letter-spacing:.07em;font-size:11px;display:flex;justify-content:space-between;gap:8px;font-weight:800}
+.mood{height:8px;background:#000;border-radius:3px;margin-top:5px;overflow:hidden}.mood i{display:block;height:100%;background:var(--sun)}
+.brief .who{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--polo);font-weight:800}
+.brief h2{font-family:var(--display);font-weight:400;font-size:clamp(28px,7vw,40px);margin:4px 0 14px;line-height:1;text-wrap:balance}
+.brief p{margin:0 0 8px;font-size:15px;line-height:1.45}
+.brief .perk{background:var(--ink);color:var(--paper);padding:9px 11px;border-radius:4px;font-size:13px;margin:14px 0 18px;line-height:1.4}
+.brief .perk b{color:var(--sun)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.btn.ghost{background:transparent;box-shadow:none}
+#touch{display:none}
+@media (pointer:coarse){
+  #touch{display:block}
+  .tb{position:fixed;width:68px;height:68px;border-radius:50%;background:rgba(246,241,227,.18);border:2px solid rgba(246,241,227,.6);color:var(--paper);font:800 11px var(--body);display:flex;align-items:center;justify-content:center;text-align:center;letter-spacing:.04em}
+  #bSwing{right:calc(max(16px,env(safe-area-inset-right,0px)) + 0px);bottom:calc(env(safe-area-inset-bottom,0px) + 90px)}
+  #bLook{right:calc(max(16px,env(safe-area-inset-right,0px)) + 80px);bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
+  #bVan{right:calc(max(16px,env(safe-area-inset-right,0px)) + 0px);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);width:56px;height:56px}
+  #quote{bottom:calc(env(safe-area-inset-bottom,0px) + 170px)}
+  .keys .kb{display:none}
+}
+@media (max-width:480px){#mini{width:96px;height:96px}}
+</style>
+
+<canvas id="c"></canvas>
+<div class="hud" id="top">
+  <div class="trust">
+    <div class="lbl"><span>Neighborhood Trust</span><span id="tp">12%</span></div>
+    <div class="bar"><i id="tb"></i></div>
+    <div class="obj" id="obj">Reform offenders. Return carts. Recruit dads at grills.</div>
+    <div class="mis" id="mis" hidden></div>
+  </div>
+  <canvas id="mini" width="264" height="264"></canvas>
+</div>
+<div class="hud" id="stats"></div>
+<div id="quote"></div>
+<div id="banner"></div>
+<div id="touch">
+  <div class="tb" id="bSwing">SWING</div>
+  <div class="tb" id="bLook">THE<br>LOOK</div>
+  <div class="tb" id="bVan">VAN</div>
+</div>
+
+<div class="card" id="title">
+  <div class="in">
+    <h1>High<br>Trust</h1>
+    <p class="sub">Maple Heights used to leave its doors unlocked. Now there are carts in the street, packages vanishing off porches, and a man on speakerphone at the pharmacy. You and the dads would rather be grilling. Unfortunately, someone has to do this.</p>
+    <div class="keys">
+      <b class="kb">WASD</b><span class="kb">Walk / drive the minivan</span>
+      <b class="kb">SPACE</b><span class="kb">Rolled-up newspaper (reluctantly)</span>
+      <b class="kb">Q</b><span class="kb">The Look. Shames litterers and loud talkers on the spot, freezes everyone else.</span>
+      <b class="kb">E</b><span class="kb">Get in / out of the van · recruit a dad at a grill</span>
+      <b>THE CREW</b><span>Gary, Coach Rick, Big Dave and Doug each have a job for you. Find the yellow marker. Finish the job and they ride with you for good.</span>
+      <b>CARTS</b><span>Walk into a cart to push it. Get it back in the corral.</span>
+      <b>CAREFUL</b><span>Bonking a regular neighbor costs trust. Apologize with your heart.</span>
+    </div>
+    <button class="btn" id="start">Clock in</button>
+  </div>
+</div>
+<div class="card brief" id="brief" hidden>
+  <div class="in">
+    <div class="who" id="bWho"></div>
+    <h2 id="bTitle"></h2>
+    <div id="bLines"></div>
+    <div class="perk" id="bPerk"></div>
+    <div class="row"><button class="btn" id="bGo">Let's go</button><button class="btn ghost" id="bNo">Not yet</button></div>
+  </div>
+</div>
+<div class="card" id="end" hidden>
+  <div class="in">
+    <h1>Doors<br>Unlocked</h1>
+    <p class="sub" id="endtxt"></p>
+    <button class="btn" id="again">Another Saturday</button>
+  </div>
+</div>
+
+<script>
+(()=>{
+const C=document.getElementById('c'),X=C.getContext('2d');
+const M=document.getElementById('mini'),MX=M.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;C.width=W*DPR;C.height=H*DPR;}
+addEventListener('resize',resize);resize();
+
+/* ---------- RNG ---------- */
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let R=mulberry(1);const rr=(a,b)=>a+R()*(b-a);const pick=a=>a[Math.floor(R()*a.length)];
+const hyp=Math.hypot, clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- MAP ---------- */
+const T=40,NT=62,BS=10,MW=NT*T,MH=NT*T,NB=6;
+let solids,corrals,grills,houses,lots,trees,blocks,porches;
+const STORE_NAMES=['BIG GROCER','HARDWARE BARN','PHARMACY','DISCOUNT DEPOT'];
+const HOUSE_COLORS=['#d9c7a3','#a9c1cf','#c9a9a0','#b9c9a0','#e0d6c2','#9fb3c8','#d4b483'];
+function genMap(){
+  const mr=mulberry(42);const p=a=>a[Math.floor(mr()*a.length)];
+  solids=[];corrals=[];grills=[];houses=[];lots=[];trees=[];blocks=[];porches=[];
+  let si=0;
+  for(let by=0;by<NB;by++)for(let bx=0;bx<NB;bx++){
+    const ox=(bx*BS+2)*T,oy=(by*BS+2)*T,sz=8*T,idx=bx+by*NB;
+    let kind='houses';
+    if([2,9,16,27,33].includes(idx))kind='store';
+    else if([7,14,22,29].includes(idx))kind='park';
+    blocks.push({x:ox,y:oy,w:sz,h:sz,kind});
+    if(kind==='houses'){
+      for(let q=0;q<4;q++){
+        const qx=ox+(q%2)*4*T,qy=oy+Math.floor(q/2)*4*T;
+        const top=q<2; // porch faces outward road
+        const h={x:qx+0.6*T,y:qy+(top?1.3:0.4)*T,w:2.8*T,h:2.3*T,c:p(HOUSE_COLORS),roof:0};
+        houses.push(h);solids.push(h);
+        porches.push({x:h.x+h.w/2,y:top?h.y-14:h.y+h.h+14,has:true});
+        if(mr()<.6){const t={x:qx+(q%2?3.4:0.3)*T,y:qy+(top?0.4:3.3)*T,r:13};trees.push(t);}
+      }
+    }else if(kind==='store'){
+      const s={x:ox+0.4*T,y:oy+0.4*T,w:7.2*T,h:3*T,c:'#cfc6b4',store:STORE_NAMES[si++%STORE_NAMES.length]};
+      houses.push(s);solids.push(s);
+      lots.push({x:ox+0.2*T,y:oy+3.6*T,w:7.6*T,h:4.2*T});
+      corrals.push({x:ox+5.6*T,y:oy+6.2*T,w:1.8*T,h:1.2*T,flash:0});
+    }else{
+      for(let i=0;i<9;i++){const t={x:ox+rr2(mr,.6,7.4)*T,y:oy+rr2(mr,.6,7.4)*T,r:15};if(hyp(t.x-(ox+4*T),t.y-(oy+4*T))>90)trees.push(t);}
+      grills.push({x:ox+4*T,y:oy+4*T,dad:true,name:p(['Greg','Mike','Steve','Dave','Rob','Tom','Jeff','Kev'])});
+    }
+  }
+  for(const t of trees)solids.push({x:t.x-8,y:t.y-8,w:16,h:16,tree:1});
+}
+function rr2(r,a,b){return a+r()*(b-a)}
+function blocked(x,y,r){
+  if(x<r||y<r||x>MW-r||y>MH-r)return true;
+  for(const s of solids)if(x+r>s.x&&x-r<s.x+s.w&&y+r>s.y&&y-r<s.y+s.h)return true;
+  return false;
+}
+function moveE(e,dx,dy,r){let hit=false;
+  if(!blocked(e.x+dx,e.y,r))e.x+=dx;else hit=true;
+  if(!blocked(e.x,e.y+dy,r))e.y+=dy;else hit=true;return hit}
+function freeSpot(minD){for(let i=0;i<200;i++){const x=rr(30,MW-30),y=rr(30,MH-30);if(!blocked(x,y,14)&&(!minD||hyp(x-P.x,y-P.y)>minD))return{x,y}}return{x:MW/2,y:MH/2}}
+function isRoad(x,y){const tx=Math.floor(x/T)%BS,ty=Math.floor(y/T)%BS;return tx<2||ty<2}
+
+/* ---------- STATE ---------- */
+let P,van,npcs,carts,pickups,squad,parts,stats,trust,cam,shake,time,running=false,won=false,quoteT=0;
+let homies=[],mission=null,banterT=20,bannerT=0;
+const HOMIES=[
+ {id:'gary',name:'Gary',role:'The Accountant',polo:'#7d6b8f',pants:'#5b5b5b',hair:'#b9b9b9',glasses:1,
+  lines:["Somebody's running a package ring out of the cul-de-sac.","I logged the tracking numbers. Four parcels. One of them is my grandson's birthday present.","Let's get them back. Gently, if at all possible."],
+  perk:"Gary keeps the books. Every package you return is worth 2 extra trust.",
+  title:'Return to Sender',time:150,need:4,unit:'Packages recovered',
+  done:"Gary: Four for four. I'll update the spreadsheet.",
+  banter:["Did you know a third of carts never get returned? I made that up. Feels right.","I brought granola bars if anyone's low.","I'm logging this as community outreach."]},
+ {id:'rick',name:'Coach Rick',role:'JV Soccer, 11 Seasons',polo:'#b33a3a',pants:'#1d1f24',hair:'#3a2c20',whistle:1,
+  lines:["Carts. Everywhere. In the bike lane. One's in the creek.","After-church crowd hits the lot in two minutes.","Five carts in the corral. Hustle, but nobody runs in a parking lot."],
+  perk:"Rick blows his whistle when you give The Look. Every offender near him freezes.",
+  title:'Two-Minute Drill',time:120,need:5,unit:'Carts corralled',
+  done:"Coach Rick: THAT is fundamentals. Bring it in.",
+  banter:["Hydrate, gentlemen.","Good hustle out there.","Heads on a swivel.","That's a teachable moment, right there."]},
+ {id:'dave',name:'Big Dave',role:'Grill Sergeant',polo:'#c77d2a',pants:'#c9b27c',hair:'#5a4632',apron:1,big:1,
+  lines:["Block party at the park. First one in six years.","Word is some people want to crash it. Speakerphone guys. Litterers.","Keep 'em off the lawn for 75 seconds while the burgers rest."],
+  perk:"Big Dave hits twice as hard. He feels twice as bad about it.",
+  title:'Block Party',time:75,survive:1,
+  done:"Big Dave: Burgers are rested. So am I. Come eat.",
+  banter:["I left the grill on low. It's fine. It's probably fine.","Hate this part. Love you guys though.","My cardiologist would not like this."]},
+ {id:'doug',name:'Doug',role:'Neighborhood Watch',polo:'#d7c63b',pants:'#47607a',hair:'#6b5a46',vest:1,
+  lines:["I've been watching. For years. With binoculars.","There's one guy behind all of it. They call him the Porch Pirate King.","He's fast and he's got a crew. Time we had a conversation with him."],
+  perk:"Doug sees everything. Offenders show on your minimap from anywhere in town.",
+  title:'The Porch Pirate King',time:200,boss:1,
+  done:"Doug: He's agreed to coach T-ball. It's over.",
+  banter:["Blue sedan. Third time today. Noting it.","I don't sleep much anymore.","Copy that. Over. Sorry, habit."]},
+];
+const has=id=>squad.some(d=>d.hid===id);
+function nearestPorch(x,y,used){let b=null,bd=1e9;for(const p of porches){if(used.includes(p))continue;const d=hyp(p.x-x,p.y-y);if(d<bd&&!blocked(p.x,p.y,12)){bd=d;b=p}}return b}
+const LINES={
+  swing:["I didn't want to do this.","This hurts me more than it hurts you.","We're better than this, champ.","Nobody wanted it to come to this.","I'm doing this because I care."],
+  look:["I'm not mad. I'm disappointed.","Is that how we do things here?","Look at me. Is that who you are?"],
+  civhit:["Oh no. Gary, I am so sorry.","That one's on me. Sorry, Linda.","Not you! You're fine! Sorry!","I'll bring over a casserole."],
+  cart:["The corral is right there. Nine seconds.","See? That wasn't so hard.","Cart's home."],
+  pkg:["Back on the porch where it belongs.","Signed, sealed, delivered."],
+  van:["Everybody buckled? Okay.","Ten and two, gentlemen.","Nobody touch the radio."],
+  recruit:["Let me turn off the grill.","Honey, I'll be back by dinner.","Say no more. I've got my tongs."],
+  king:["Fine. FINE. I'll coach T-ball.","I just wanted to be part of something."],
+  pirate:["You're right. I'll put it back.","Sorry, sir. I'm calling my mom.","I don't know what came over me."],
+  litter:["I'll pick it up. All of it.","Leave it better than you found it. Got it."],
+  loud:["I'll take this outside. Sorry.","Switching to headphones. Sorry.","Hanging up. You're right."],
+  cartguy:["I'll walk it back. Sorry.","I was raised better than this."],
+  win:["Look at that. Kids biking unsupervised again."],
+};
+function reset(){
+  R=mulberry(Math.floor(performance.now()))||mulberry(9);
+  genMap();
+  P={x:(1)*T,y:(1)*T+(2*BS)*T,ang:0,r:12,swing:0,swCD:0,lookCD:0,look:0,inVan:false,walk:0};
+  P.x=2*BS*T+T;P.y=2*BS*T+T*0.9;
+  van={x:P.x+70,y:P.y,ang:0,spd:0,r:22};
+  npcs=[];carts=[];pickups=[];squad=[];parts=[];
+  stats={reformed:0,carts:0,pkgs:0,sorry:0,trash:0,start:performance.now()};
+  trust=12;shake=0;time=0;won=false;cam={x:P.x,y:P.y};
+  for(let i=0;i<14;i++)spawnNPC('civ');
+  for(let i=0;i<12;i++)spawnOffender();
+  for(let i=0;i<9;i++)spawnCart();
+  mission=null;banterT=20;bannerT=0;document.getElementById('brief').hidden=true;
+  const used=[],targets=[[P.x+260,P.y+180],[corrals[1].x,corrals[1].y],[grills[0].x,grills[0].y],[MW*.85,MH*.85]];
+  homies=HOMIES.map((h,i)=>{const pp=nearestPorch(targets[i][0],targets[i][1],used);used.push(pp);
+    return {...h,x:pp.x,y:pp.y,hx:pp.x,hy:pp.y,ang:Math.PI/2,state:i===0?'avail':'locked'}});
+}
+function spawnNPC(type,at){
+  const s=at||freeSpot(450);
+  const n={type,x:s.x,y:s.y,r:11,dir:rr(0,6.28),t:rr(1,3),stun:0,kb:null,say:null,reformT:0,
+    shirt:type==='civ'?pick(['#e8a87c','#85dcb0','#e27d60','#c38d9e','#41b3a3','#f2d0a4']):pick(['#3b3b45','#4a3f5a','#52524f','#2f4858']),
+    hp:type==='pirate'?2:1,dropT:rr(2,5),pkg:type==='pirate'};
+  npcs.push(n);return n;
+}
+function spawnOffender(){
+  const r=R();spawnNPC(r<.34?'pirate':r<.6?'litter':r<.8?'loud':'cartguy');
+}
+function spawnCart(at){const s=at||(()=>{for(let i=0;i<100;i++){const b=pick(blocks.filter(b=>b.kind!=='park'));const x=rr(30,MW-30),y=rr(30,MH-30);if(isRoad(x,y)&&!blocked(x,y,14)&&hyp(x-P.x,y-P.y)>300)return{x,y}}return freeSpot(300)})();
+  carts.push({x:s.x,y:s.y,ang:rr(0,6.28),vx:0,vy:0,r:11});}
+
+/* ---------- INPUT ---------- */
+const K={};let pressed={};
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(!K[k])pressed[k]=1;K[k]=1;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault()});
+addEventListener('keyup',e=>{K[e.key.toLowerCase()]=0});
+const joy={on:false,id:null,sx:0,sy:0,dx:0,dy:0};
+C.addEventListener('touchstart',e=>{for(const t of e.changedTouches){if(t.clientX<W*0.6&&!joy.on){joy.on=true;joy.id=t.identifier;joy.sx=t.clientX;joy.sy=t.clientY;joy.dx=joy.dy=0}}e.preventDefault()},{passive:false});
+C.addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.identifier===joy.id){joy.dx=clamp((t.clientX-joy.sx)/50,-1,1);joy.dy=clamp((t.clientY-joy.sy)/50,-1,1)}e.preventDefault()},{passive:false});
+const jEnd=e=>{for(const t of e.changedTouches)if(t.identifier===joy.id){joy.on=false;joy.dx=joy.dy=0}};
+C.addEventListener('touchend',jEnd);C.addEventListener('touchcancel',jEnd);
+for(const[id,k]of[['bSwing',' '],['bLook','q'],['bVan','e']]){const b=document.getElementById(id);
+  b.addEventListener('touchstart',e=>{pressed[k]=1;K[k]=1;e.preventDefault()},{passive:false});
+  b.addEventListener('touchend',e=>{K[k]=0;e.preventDefault()},{passive:false});}
+function axis(){let x=(K.d||K.arrowright?1:0)-(K.a||K.arrowleft?1:0),y=(K.s||K.arrowdown?1:0)-(K.w||K.arrowup?1:0);
+  if(joy.on){x=joy.dx;y=joy.dy;if(hyp(x,y)<.2)x=y=0}return{x,y}}
+
+/* ---------- FX / TEXT ---------- */
+const qEl=document.getElementById('quote');
+function quote(s,force){if(!force&&quoteT>0.6)return;qEl.textContent='“'+s+'”';qEl.classList.add('on');quoteT=2.6}
+function say(e,s,d=2.2){e.say={s,t:d}}
+function burst(x,y,c,n=10){for(let i=0;i<n;i++)parts.push({x,y,vx:rr(-2,2),vy:rr(-2,2),t:rr(.3,.7),c})}
+function popText(x,y,s,c){parts.push({x,y,vx:0,vy:-.6,t:1.3,txt:s,c})}
+function addTrust(v,x,y){const cap=homies.some(h=>h.id==='doug'&&h.state==='crew')?100:90;trust=v>0?Math.max(trust,Math.min(cap,trust+v)):clamp(trust+v,0,100);if(x!=null)popText(x,y-20,(v>0?'+':'')+v+' trust',v>0?'#9be37e':'#ff7a66')}
+
+/* ---------- ACTIONS ---------- */
+function reform(n,via){
+  if(n.type==='civ'||n.reformT)return;
+  const kind=n.type;
+  say(n,pick(LINES[kind]||LINES.pirate),2.6);
+  if(n.pkg){pickups.push({x:n.x,y:n.y,kind:'pkg',mission:n.mission});n.pkg=false}
+  if(kind==='king'&&mission&&mission.h.id==='doug')mission.kingDown=true;
+  if(kind==='cartguy'&&R()<.8)spawnCart({x:n.x+14,y:n.y+6});
+  n.reformT=3;stats.reformed++;
+  addTrust(kind==='king'?10:kind==='pirate'?5:4,n.x,n.y);
+  burst(n.x,n.y,'#ffc94a',12);
+}
+function hitCiv(n){
+  if(n.hurtCD>0)return;n.hurtCD=2;
+  say(n,pick(["Ow! Dave?!","Hey, I'm on your side!","I return my cart!","What did I do?"]));
+  quote(pick(LINES.civhit),true);stats.sorry++;addTrust(-4,n.x,n.y);
+}
+function doSwing(src){
+  src.swing=.22;
+  const fx=Math.cos(src.ang),fy=Math.sin(src.ang);let any=false;
+  for(const n of npcs){const dx=n.x-src.x,dy=n.y-src.y,d=hyp(dx,dy);
+    if(d<44&&(dx*fx+dy*fy)/(d||1)>.1){any=true;
+      const big=src.hid==='dave';n.kb={vx:fx*(big?7:4),vy:fy*(big?7:4),t:.25};burst(n.x,n.y,'#fff',6);shake=Math.max(shake,4);
+      if(n.type==='civ'){if(src===P)hitCiv(n)}
+      else if(!n.reformT){n.hp-=big?2:1;n.stun=Math.max(n.stun,n.type==='king'?.25:.6);if(n.hp<=0)reform(n,'swing');else say(n,n.type==='king'?pick(['You can\'t stop me, Gerald!','Is that a NEWSPAPER?','Not the Sunday edition!']):'Ow! Okay okay!',1)}
+    }}
+  for(const c of carts){const dx=c.x-src.x,dy=c.y-src.y,d=hyp(dx,dy);if(d<40){c.vx+=fx*5;c.vy+=fy*5}}
+  if(any&&src===P&&R()<.6)quote(pick(LINES.swing));
+}
+function doLook(){
+  P.look=.6;P.lookCD=3.5;quote(pick(LINES.look),true);
+  const fx=Math.cos(P.ang),fy=Math.sin(P.ang);let n0=0;
+  for(const n of npcs){const dx=n.x-P.x,dy=n.y-P.y,d=hyp(dx,dy);
+    if(d<210&&(dx*fx+dy*fy)/(d||1)>.55){
+      if(n.type==='civ'){say(n,'Yikes. Not me, right?',1.5);continue}
+      if(n.reformT)continue;n0++;
+      if(n.type==='litter'||n.type==='loud')reform(n,'look');
+      else{n.stun=n.type==='king'?1.1:2.6;say(n,'...',2.4)}
+    }}
+  if(has('rick')&&!P.inVan){const r=squad.find(d=>d.hid==='rick');popText(r.x,r.y-24,'TWEEEET','#ffc94a');
+    for(const n of npcs)if(n.type!=='civ'&&!n.reformT&&hyp(n.x-r.x,n.y-r.y)<170){n.stun=Math.max(n.stun,n.type==='king'?1.1:2.2);if(n.type==='litter'||n.type==='loud')reform(n,'whistle')}}
+}
+function toggleVan(){
+  if(P.inVan){
+    const ox=Math.cos(van.ang+1.57)*34,oy=Math.sin(van.ang+1.57)*34;
+    let x=van.x+ox,y=van.y+oy;if(blocked(x,y,P.r)){x=van.x-ox;y=van.y-oy}
+    if(blocked(x,y,P.r))return;
+    P.inVan=false;P.x=x;P.y=y;van.spd*=.2;
+    squad.forEach((d,i)=>{d.x=P.x+rr(-30,30);d.y=P.y+rr(-30,30);if(blocked(d.x,d.y,11)){d.x=P.x;d.y=P.y}});
+  }else if(!mission&&homies.some(h=>h.state==='avail'&&hyp(h.x-P.x,h.y-P.y)<64)){openBrief(homies.find(h=>h.state==='avail'&&hyp(h.x-P.x,h.y-P.y)<64))}
+  else if(hyp(van.x-P.x,van.y-P.y)<64){P.inVan=true;quote(pick(LINES.van))}
+  else{
+    for(const g of grills)if(g.dad&&hyp(g.x-P.x,g.y-P.y)<70){g.dad=false;
+      squad.push({x:g.x+20,y:g.y,ang:0,swing:0,swCD:0,name:g.name,polo:pick(['#b33a3a','#3a7d44','#6b4c9a','#c77d2a','#1f6f8b']),walk:0});
+      quote(g.name+': '+pick(LINES.recruit),true);addTrust(2,g.x,g.y);burst(g.x,g.y,'#ff9f43',14);return}
+  }
+}
+
+/* ---------- UPDATE ---------- */
+function update(dt){
+  time+=dt;quoteT-=dt;if(quoteT<=0)qEl.classList.remove('on');
+  const a=axis();
+  if(pressed.e)toggleVan();
+  if(P.inVan){
+    const thr=-a.y, st=a.x;
+    van.spd+=thr*(thr>0?.16:.22)*dt*60;van.spd*=Math.pow(.985,dt*60);
+    van.spd=clamp(van.spd,-3,7.5);
+    van.ang+=st*.055*clamp(van.spd/3,-1,1)*dt*60;
+    const dx=Math.cos(van.ang)*van.spd*dt*60,dy=Math.sin(van.ang)*van.spd*dt*60;
+    if(moveE(van,dx,dy,van.r)){if(Math.abs(van.spd)>3){shake=6;burst(van.x+Math.cos(van.ang)*26,van.y+Math.sin(van.ang)*26,'#ddd',6)}van.spd*=-.3}
+    P.x=van.x;P.y=van.y;P.ang=van.ang;
+    for(const n of npcs){if(hyp(n.x-van.x,n.y-van.y)<32&&Math.abs(van.spd)>2.2){
+      const ux=(n.x-van.x),uy=(n.y-van.y),l=hyp(ux,uy)||1;
+      if(!n.kb||n.kb.t<=0){n.kb={vx:ux/l*8,vy:uy/l*8,t:.4};n.stun=1;shake=7;burst(n.x,n.y,'#fff',8);
+        if(n.type==='civ')hitCiv(n);else if(n.type==='king'){n.hp-=3;if(n.hp<=0)reform(n,'van');else say(n,pick(['Watch the paint!','A MINIVAN?!']),1.2)}else{n.hp=0;reform(n,'van');quote("Sorry! Minivan's got a big blind spot.",false)}}}}
+    for(const c of carts){const d=hyp(c.x-van.x,c.y-van.y);if(d<34){const ux=(c.x-van.x)/(d||1),uy=(c.y-van.y)/(d||1);c.vx+=ux*Math.abs(van.spd)*.7+ux;c.vy+=uy*Math.abs(van.spd)*.7+uy}}
+  }else{
+    let mx=a.x,my=a.y;const l=hyp(mx,my);
+    if(l>0){mx/=Math.max(1,l);my/=Math.max(1,l);P.ang=Math.atan2(my,mx);P.walk+=dt*10}
+    moveE(P,mx*2.7*dt*60,my*2.7*dt*60,P.r);
+    if(pressed[' ']&&P.swCD<=0){doSwing(P);P.swCD=.35}
+    if(pressed.q&&P.lookCD<=0)doLook();
+    // push carts
+    for(const c of carts){const dx=c.x-P.x,dy=c.y-P.y,d=hyp(dx,dy);if(d<P.r+c.r+2){const ux=dx/(d||1),uy=dy/(d||1);c.vx+=ux*1.4+mx*.6;c.vy+=uy*1.4+my*.6}}
+    // pickups
+    for(let i=pickups.length-1;i>=0;i--){const k=pickups[i];if(hyp(k.x-P.x,k.y-P.y)<24){pickups.splice(i,1);
+      if(k.kind==='pkg'){stats.pkgs++;addTrust(has('gary')?5:3,k.x,k.y);quote(pick(LINES.pkg));if(k.mission&&mission&&mission.h.id==='gary')mission.count++}else{stats.trash++;addTrust(1,k.x,k.y)}}}
+  }
+  P.swCD-=dt;P.lookCD-=dt;P.swing-=dt;P.look-=dt;
+  // squad
+  squad.forEach((d,i)=>{
+    d.swing-=dt;d.swCD-=dt;
+    if(P.inVan){d.x=van.x;d.y=van.y;return}
+    let tgt=null,bd=220;
+    for(const n of npcs)if(n.type!=='civ'&&!n.reformT){const dd=hyp(n.x-d.x,n.y-d.y);if(dd<bd&&hyp(n.x-P.x,n.y-P.y)<320){bd=dd;tgt=n}}
+    let gx,gy;
+    if(tgt){gx=tgt.x;gy=tgt.y}else{const ang=P.ang+Math.PI+(i-(squad.length-1)/2)*.7;gx=P.x+Math.cos(ang)*(40+i*6);gy=P.y+Math.sin(ang)*(40+i*6)}
+    const dx=gx-d.x,dy=gy-d.y,dd=hyp(dx,dy);
+    if(dd>(tgt?30:14)){const sp=Math.min(2.5,dd*.08);d.ang=Math.atan2(dy,dx);moveE(d,dx/dd*sp*dt*60,dy/dd*sp*dt*60,11);d.walk+=dt*10}
+    if(dd>500){d.x=P.x;d.y=P.y}
+    if(tgt&&dd<40&&d.swCD<=0){d.ang=Math.atan2(dy,dx);doSwing(d);d.swCD=.8;if(R()<.3)say(d,pick(["Sorry, bud.","Hate this part.","For the kids.","Easy now."]),1.4)}
+  });
+  // npcs
+  for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];
+    if(n.say){n.say.t-=dt;if(n.say.t<=0)n.say=null}
+    n.hurtCD=(n.hurtCD||0)-dt;
+    if(n.kb&&n.kb.t>0){n.kb.t-=dt;moveE(n,n.kb.vx*dt*60,n.kb.vy*dt*60,n.r);n.kb.vx*=.9;n.kb.vy*=.9;continue}
+    if(n.reformT){n.reformT-=dt;if(n.reformT<=0){n.type='civ';n.reformT=0;n.shirt=pick(['#e8a87c','#85dcb0','#41b3a3','#f2d0a4']);n.reformed=true}continue}
+    if(n.stun>0){n.stun-=dt;continue}
+    let sp=.9;n.t-=dt;
+    const dP=hyp(n.x-P.x,n.y-P.y);
+    if(n.type==='king'){if(dP<300){n.dir=Math.atan2(n.y-P.y,n.x-P.x)+rr(-.5,.5);sp=2.45}else sp=1.1;
+      n.minT-=dt;if(n.minT<=0){n.minT=7;const m=spawnNPC('pirate',{x:n.x,y:n.y});m.mission=true;say(n,pick(['Get him, boys!','Minions! Package formation!']),1.6)}}
+    else if(n.type==='pirate'&&dP<170){n.dir=Math.atan2(n.y-P.y,n.x-P.x)+rr(-.3,.3);sp=2.15}
+    else if(n.type==='loud'){sp=.25;if(R()<dt*1.2)parts.push({x:n.x+rr(-6,6),y:n.y-16,vx:rr(-.3,.3),vy:-.7,t:1.2,txt:'♪',c:'#ffc94a'});
+      if(n.t<=0&&R()<.5)say(n,pick(['NO I SAID THE BLUE ONE','CAN YOU HEAR ME NOW','HAHAHA NO WAY']),1.6)}
+    else if(n.type==='litter'){n.dropT-=dt;if(n.dropT<=0){n.dropT=rr(3,6);pickups.push({x:n.x,y:n.y,kind:'trash'});addTrust(-1)}}
+    if(n.seek){const sx=n.seek.x-n.x,sy=n.seek.y-n.y,sd=hyp(sx,sy);n.dir=Math.atan2(sy,sx)+Math.sin(time*2+n.x)*.35;sp=1.45;
+      if(sd<n.seek.r){if(mission)mission.mood-=25;burst(n.x,n.y,'#e5533d',16);popText(n.x,n.y-20,'PARTY CRASHED','#ff7a66');quote("They're on the lawn!",true);npcs.splice(i,1);continue}}
+    else if(n.t<=0){n.t=rr(1.5,4);n.dir=rr(0,6.28)}
+    if(moveE(n,Math.cos(n.dir)*sp*dt*60,Math.sin(n.dir)*sp*dt*60,n.r))n.dir+=rr(1.5,3);
+    n.walk=(n.walk||0)+dt*8*sp;
+    if(n.type==='civ'&&dP>1400&&npcs.length>30){npcs.splice(i,1)}
+  }
+  // carts
+  for(let i=carts.length-1;i>=0;i--){const c=carts[i];
+    moveE(c,c.vx*dt*60,c.vy*dt*60,c.r);if(hyp(c.vx,c.vy)>.3)c.ang=Math.atan2(c.vy,c.vx);
+    c.vx*=Math.pow(.86,dt*60);c.vy*=Math.pow(.86,dt*60);
+    for(const k of corrals)if(c.x>k.x&&c.x<k.x+k.w&&c.y>k.y&&c.y<k.y+k.h){
+      carts.splice(i,1);stats.carts++;if(c.mission&&mission&&mission.h.id==='rick')mission.count++;addTrust(3,c.x,c.y);quote(pick(LINES.cart));k.flash=1;burst(c.x,c.y,'#9be37e',14);break}
+  }
+  corrals.forEach(k=>k.flash=Math.max(0,k.flash-dt));
+  // population: offenders shrink as trust rises
+  const offs=npcs.filter(n=>n.type!=='civ').length;
+  const target=trust>=100?0:Math.round(13*(1-trust/100))+2;
+  if(offs<target&&R()<dt*.8)spawnOffender();
+  const civs=npcs.length-offs;if(civs<12+trust/5&&R()<dt)spawnNPC('civ');
+  if(carts.length<Math.round(7*(1-trust/100))+1&&R()<dt*.25&&trust<100)spawnCart();
+  updateMission(dt);
+  for(const h of homies)if(h.state!=='crew'&&!(mission&&mission.h===h)){h.ang=Math.atan2(P.y-h.y,P.x-h.x)}
+  banterT-=dt;if(banterT<=0){banterT=rr(22,38);const hs=squad.filter(d=>d.hid);if(hs.length&&!P.inVan){const d=pick(hs);say(d,pick(HOMIES.find(h=>h.id===d.hid).banter),3)}}
+  bannerT-=dt;if(bannerT<=0)document.getElementById('banner').classList.remove('on');
+  // particles
+  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.t-=dt;if(p.t<=0)parts.splice(i,1)}
+  // camera
+  const lead=P.inVan?van.spd*18:0;
+  const tx=P.x+Math.cos(P.ang)*lead,ty=P.y+Math.sin(P.ang)*lead;
+  cam.x+=(tx-cam.x)*Math.min(1,dt*5);cam.y+=(ty-cam.y)*Math.min(1,dt*5);
+  shake=Math.max(0,shake-dt*20);
+  if(trust>=100&&!won){won=true;setTimeout(win,900);quote(LINES.win[0],true)}
+  pressed={};
+}
+
+/* ---------- DRAW ---------- */
+function rrect(x,y,w,h,r){X.beginPath();X.roundRect?X.roundRect(x,y,w,h,r):X.rect(x,y,w,h)}
+function drawPerson(x,y,ang,shirt,pants,o={}){
+  const bob=Math.sin(o.walk||0)*2.5;
+  X.save();X.translate(x,y);X.rotate(ang);if(o.scale)X.scale(o.scale,o.scale);
+  X.fillStyle='rgba(0,0,0,.25)';X.beginPath();X.ellipse(2,3,13,11,0,0,7);X.fill();
+  // legs/shoes
+  X.fillStyle=o.shoes||'#f4f4f4';X.fillRect(-2+bob,-8,7,5);X.fillRect(-2-bob,3,7,5);
+  X.fillStyle=pants;rrect(-7,-9,9,18,3);X.fill();
+  // torso
+  X.fillStyle=shirt;rrect(-6,-11,12,22,6);X.fill();
+  if(o.vest){X.fillStyle='#ff8a1e';rrect(-6,-11,12,22,6);X.fill();X.fillStyle='#f4f4f4';X.fillRect(-1,-11,2,22);X.fillRect(-6,-1,12,2)}
+  if(o.apron){X.fillStyle='#f0ebe0';rrect(1,-8,6,16,2);X.fill()}
+  if(o.whistle){X.fillStyle='#d8d8d8';X.beginPath();X.arc(7,5,2.2,0,7);X.fill()}
+  // arms
+  X.fillStyle=o.skin||'#e0b48f';
+  if(o.swing>0){X.save();X.rotate(-1.2+(1-o.swing/.22)*2.4);X.fillStyle='#e9e2cf';X.fillRect(4,-3,24,6);X.fillStyle='#8a8577';X.fillRect(10,-3,2,6);X.fillRect(18,-3,2,6);X.restore()}
+  // head
+  X.fillStyle=o.skin||'#e0b48f';X.beginPath();X.arc(1,0,7,0,7);X.fill();
+  if(o.cap){X.fillStyle=o.cap;X.beginPath();X.arc(0,0,7.3,1.57,4.71);X.fill();X.fillRect(4,-5,6,10)}
+  else if(o.hair){X.fillStyle=o.hair;X.beginPath();X.arc(-1,0,6.5,1.9,4.4);X.fill()}
+  if(o.shades){X.fillStyle='#111';X.fillRect(5,-5,3,4);X.fillRect(5,1,3,4)}
+  if(o.glasses){X.strokeStyle='#222';X.lineWidth=1.2;X.strokeRect(5,-5,3,4);X.strokeRect(5,1,3,4)}
+  if(o.crown){X.fillStyle='#ffc94a';X.beginPath();X.moveTo(-5,-6);X.lineTo(-1,-8);X.lineTo(-3,-3);X.lineTo(2,-4);X.lineTo(-3,0);X.lineTo(2,4);X.lineTo(-3,3);X.lineTo(-1,8);X.lineTo(-5,6);X.closePath();X.fill()}
+  if(o.hood){X.fillStyle=shirt;X.beginPath();X.arc(0,0,8,1.3,5);X.fill()}
+  X.restore();
+}
+function draw(){
+  X.setTransform(DPR,0,0,DPR,0,0);
+  const sx=(R()-.5)*shake,sy=(R()-.5)*shake;
+  const zoom=W<600?0.85:1;
+  const ox=Math.round(W/2-cam.x*zoom+sx),oy=Math.round(H/2-cam.y*zoom+sy);
+  X.fillStyle='#2b2d33';X.fillRect(0,0,W,H);
+  X.save();X.translate(ox,oy);X.scale(zoom,zoom);
+  const vx0=(-ox)/zoom-60,vy0=(-oy)/zoom-60,vx1=vx0+W/zoom+120,vy1=vy0+H/zoom+120;
+  const vis=(x,y,w,h)=>x+w>vx0&&x<vx1&&y+h>vy0&&y<vy1;
+  // roads
+  X.fillStyle='#34363d';X.fillRect(0,0,MW,MH);
+  X.strokeStyle='#e8cc5a';X.lineWidth=2;X.setLineDash([16,18]);X.beginPath();
+  for(let i=0;i<=NB;i++){const c=(i*BS+1)*T;X.moveTo(c,0);X.lineTo(c,MH);X.moveTo(0,c);X.lineTo(MW,c)}X.stroke();X.setLineDash([]);
+  // blocks
+  for(const b of blocks){if(!vis(b.x-12,b.y-12,b.w+24,b.h+24))continue;
+    X.fillStyle='#a9a69c';rrect(b.x-12,b.y-12,b.w+24,b.h+24,10);X.fill();
+    X.fillStyle=b.kind==='store'?'#5c5f66':b.kind==='park'?'#6e9e55':'#5d8a4a';X.fillRect(b.x,b.y,b.w,b.h);
+    if(b.kind==='houses'){X.strokeStyle='rgba(255,255,255,.5)';X.lineWidth=2;X.setLineDash([3,4]);X.strokeRect(b.x+4,b.y+4,b.w-8,b.h-8);X.setLineDash([]);
+      X.strokeStyle='rgba(0,0,0,.12)';X.lineWidth=1;for(let yy=b.y+8;yy<b.y+b.h;yy+=10){X.beginPath();X.moveTo(b.x,yy);X.lineTo(b.x+b.w,yy);X.stroke()}}
+  }
+  for(const l of lots){if(!vis(l.x,l.y,l.w,l.h))continue;X.strokeStyle='rgba(255,255,255,.55)';X.lineWidth=2;
+    for(let x=l.x+10;x<l.x+l.w-50;x+=30){X.beginPath();X.moveTo(x,l.y+10);X.lineTo(x,l.y+50);X.stroke();X.beginPath();X.moveTo(x,l.y+l.h-60);X.lineTo(x,l.y+l.h-20);X.stroke()}}
+  for(const k of corrals){X.fillStyle=k.flash>0?'rgba(155,227,126,.55)':'rgba(255,201,74,.18)';X.fillRect(k.x,k.y,k.w,k.h);
+    X.strokeStyle='#d8d2c0';X.lineWidth=4;X.beginPath();X.moveTo(k.x,k.y);X.lineTo(k.x+k.w,k.y);X.moveTo(k.x,k.y+k.h);X.lineTo(k.x+k.w,k.y+k.h);X.moveTo(k.x+k.w,k.y);X.lineTo(k.x+k.w,k.y+k.h);X.stroke();
+    X.fillStyle='#fff';X.font='700 10px Rubik,sans-serif';X.textAlign='center';X.fillText('CART RETURN',k.x+k.w/2,k.y-6)}
+  // porches & pickups
+  for(const k of pickups){if(k.kind==='pkg'){X.fillStyle='#b8874f';X.fillRect(k.x-7,k.y-6,14,12);X.fillStyle='#e8d3a8';X.fillRect(k.x-1.5,k.y-6,3,12)}else{X.fillStyle='#ddd';X.beginPath();X.arc(k.x,k.y,4,0,7);X.fill();X.fillStyle='#c33';X.fillRect(k.x-2,k.y-2,4,4)}}
+  // grills
+  for(const g of grills){X.fillStyle='#222';X.beginPath();X.arc(g.x,g.y,12,0,7);X.fill();X.fillStyle='#555';X.beginPath();X.arc(g.x,g.y,9,0,7);X.fill();
+    if(g.dad){X.fillStyle='rgba(255,140,40,.8)';X.beginPath();X.arc(g.x+rr(-2,2),g.y+rr(-2,2),4,0,7);X.fill();
+      if(R()<.1)parts.push({x:g.x,y:g.y,vx:rr(-.2,.2),vy:-.5,t:1.5,c:'rgba(200,200,200,.5)'});
+      drawPerson(g.x+22,g.y,Math.PI,'#c77d2a','#c9b27c',{hair:'#5a4632'});
+      const pulse=.5+.5*Math.sin(time*4);X.strokeStyle=`rgba(255,201,74,${.4+pulse*.5})`;X.lineWidth=2;X.beginPath();X.arc(g.x+22,g.y,20+pulse*4,0,7);X.stroke();
+      X.fillStyle='#ffc94a';X.font='800 11px Rubik,sans-serif';X.textAlign='center';X.fillText(g.name+' · press E',g.x+22,g.y-28)}}
+  // carts
+  for(const c of carts){X.save();X.translate(c.x,c.y);X.rotate(c.ang);X.fillStyle='rgba(0,0,0,.25)';X.fillRect(-9,-6,22,14);
+    X.strokeStyle='#cfd6dd';X.lineWidth=2;X.strokeRect(-10,-8,20,16);X.beginPath();for(let i=-6;i<10;i+=4){X.moveTo(i,-8);X.lineTo(i,8)}X.stroke();
+    X.strokeStyle='#e5533d';X.lineWidth=3;X.beginPath();X.moveTo(-12,-8);X.lineTo(-12,8);X.stroke();X.restore()}
+  // buildings
+  for(const h of houses){if(!vis(h.x-10,h.y-10,h.w+20,h.h+20))continue;
+    X.fillStyle='rgba(0,0,0,.28)';X.fillRect(h.x+6,h.y+8,h.w,h.h);
+    if(h.store){X.fillStyle=h.c;X.fillRect(h.x,h.y,h.w,h.h);X.fillStyle='#9c9584';for(let x=h.x+20;x<h.x+h.w-20;x+=60)X.fillRect(x,h.y+20,30,30);
+      X.fillStyle='#2f5d9e';X.fillRect(h.x+h.w/2-80,h.y+h.h-24,160,20);X.fillStyle='#fff';X.font='800 13px Rubik,sans-serif';X.textAlign='center';X.fillText(h.store,h.x+h.w/2,h.y+h.h-9)}
+    else{X.fillStyle=h.c;X.fillRect(h.x,h.y,h.w,h.h);
+      X.fillStyle='rgba(0,0,0,.18)';X.beginPath();X.moveTo(h.x,h.y);X.lineTo(h.x+h.w/2,h.y+h.h/2);X.lineTo(h.x+h.w,h.y);X.closePath();X.fill();
+      X.fillStyle='rgba(255,255,255,.12)';X.beginPath();X.moveTo(h.x,h.y+h.h);X.lineTo(h.x+h.w/2,h.y+h.h/2);X.lineTo(h.x+h.w,h.y+h.h);X.closePath();X.fill();
+      X.strokeStyle='rgba(0,0,0,.25)';X.lineWidth=2;X.strokeRect(h.x,h.y,h.w,h.h);
+      X.fillStyle='#7a5a3a';X.fillRect(h.x+h.w*0.7,h.y+h.h*0.25,8,10)}}
+  for(const t of trees){if(!vis(t.x-25,t.y-25,50,50))continue;X.fillStyle='rgba(0,0,0,.25)';X.beginPath();X.arc(t.x+5,t.y+6,t.r+3,0,7);X.fill();
+    X.fillStyle='#3f6e35';X.beginPath();X.arc(t.x,t.y,t.r+3,0,7);X.fill();X.fillStyle='#5a9148';X.beginPath();X.arc(t.x-3,t.y-3,t.r-3,0,7);X.fill()}
+  if(mission&&mission.zone){const z=mission.zone;X.save();X.globalAlpha=.85;X.fillStyle='#f6f1e3';X.beginPath();X.arc(z.x,z.y,z.r,0,7);X.fill();
+    X.clip();X.fillStyle='#c94c4c';for(let yy=z.y-z.r;yy<z.y+z.r;yy+=20)for(let xx=z.x-z.r+((yy-z.y+z.r)/20%2)*20;xx<z.x+z.r;xx+=40)X.fillRect(xx,yy,20,20);X.restore();
+    for(let i=0;i<6;i++){const a=i/6*6.28+time*.3,bx=z.x+Math.cos(a)*(z.r+8),by=z.y+Math.sin(a)*(z.r+8);X.strokeStyle='#ddd';X.lineWidth=1;X.beginPath();X.moveTo(bx,by);X.lineTo(bx+3,by-16);X.stroke();X.fillStyle=['#e5533d','#ffc94a','#2f5d9e','#41b3a3'][i%4];X.beginPath();X.ellipse(bx+3,by-22,6,8,0,0,7);X.fill()}
+    X.fillStyle='#1d1f24';X.font='800 12px Rubik,sans-serif';X.textAlign='center';X.fillText('BLOCK PARTY',z.x,z.y+4)}
+  if(mission&&mission.k){const k=mission.k,pl=.5+.5*Math.sin(time*5);X.strokeStyle=`rgba(255,201,74,${.5+pl*.5})`;X.lineWidth=3;X.strokeRect(k.x-6-pl*4,k.y-6-pl*4,k.w+12+pl*8,k.h+12+pl*8)}
+  for(const h of homies){if(h.state==='crew'||(mission&&mission.h===h))continue;if(!vis(h.x-40,h.y-60,80,100))continue;
+    drawPerson(h.x,h.y,h.ang,h.polo,h.pants,{hair:h.hair,glasses:h.glasses,whistle:h.whistle,apron:h.apron,vest:h.vest,scale:h.big?1.25:1});
+    X.textAlign='center';
+    if(h.state==='avail'){const b=Math.sin(time*4)*4;X.fillStyle='#ffc94a';X.strokeStyle='#1d1f24';X.lineWidth=3;X.beginPath();X.arc(h.x,h.y-44+b,13,0,7);X.fill();X.stroke();
+      X.fillStyle='#1d1f24';X.font='16px "Bowlby One",Impact,sans-serif';X.fillText(h.name[0]==='C'?'R':h.name[0],h.x,h.y-38+b);
+      X.fillStyle='#ffc94a';X.font='800 11px Rubik,sans-serif';X.fillText(h.name+' · '+h.title+(hyp(h.x-P.x,h.y-P.y)<64?' · press E':''),h.x,h.y-20)}
+    else{X.fillStyle='rgba(255,255,255,.7)';X.font='700 9px Rubik,sans-serif';X.fillText(h.name,h.x,h.y-20)}}
+  // npcs
+  for(const n of npcs){if(!vis(n.x-30,n.y-30,60,60))continue;
+    const off=n.type!=='civ'&&!n.reformT;
+    drawPerson(n.x,n.y,n.dir,n.shirt,n.type==='civ'?'#47607a':'#2a2a2a',{walk:n.walk,hood:off&&n.type!=='loud'&&n.type!=='king',hair:n.type==='civ'?'#4a3a2a':null,skin:n.skin,crown:n.type==='king'&&!n.reformT,scale:n.type==='king'?1.3:1});
+    if(n.pkg){X.fillStyle='#b8874f';X.fillRect(n.x-6,n.y-6,12,10);X.fillStyle='#e8d3a8';X.fillRect(n.x-1,n.y-6,2,10)}
+    if(off){const tag={king:'PORCH PIRATE KING · '+'■'.repeat(Math.max(0,n.hp)),pirate:'PORCH PIRATE',litter:'LITTERER',loud:'SPEAKERPHONE',cartguy:'CART ABANDONER'}[n.type];
+      X.font='800 9px Rubik,sans-serif';X.textAlign='center';const w=X.measureText(tag).width+8;
+      X.fillStyle='rgba(229,83,61,.9)';X.fillRect(n.x-w/2,n.y-30,w,12);X.fillStyle='#fff';X.fillText(tag,n.x,n.y-21);
+      if(n.stun>0){X.strokeStyle='#ffc94a';X.lineWidth=2;X.beginPath();X.arc(n.x,n.y,16,time*6,time*6+4);X.stroke()}}
+    if(n.reformT){X.fillStyle='#9be37e';X.font='800 9px Rubik,sans-serif';X.textAlign='center';X.fillText('REFORMED',n.x,n.y-21)}
+  }
+  // squad
+  if(!P.inVan)for(const d of squad){drawPerson(d.x,d.y,d.ang,d.polo,d.pants||'#c9b27c',{walk:d.walk,swing:d.swing,hair:d.hair||'#6b5a46',glasses:d.glasses,whistle:d.whistle,apron:d.apron,vest:d.vest,scale:d.big?1.25:1});X.fillStyle='#fff';X.font='700 9px Rubik,sans-serif';X.textAlign='center';X.fillText(d.name,d.x,d.y-18)}
+  // van
+  X.save();X.translate(van.x,van.y);X.rotate(van.ang);
+  X.fillStyle='rgba(0,0,0,.3)';rrect(-34,-16,74,38,10);X.fill();
+  X.fillStyle='#b9c0c7';rrect(-36,-19,72,38,10);X.fill();
+  X.fillStyle='#2b3440';rrect(10,-15,16,30,4);X.fill();rrect(-28,-15,8,30,3);X.fill();
+  X.fillStyle='#d5dbe0';rrect(-18,-14,26,28,4);X.fill();
+  X.fillStyle='#1d1f24';X.fillRect(-8,-14,2,28);X.fillRect(2,-14,2,28);
+  X.fillStyle='#ffe9a8';X.fillRect(33,-15,3,6);X.fillRect(33,9,3,6);
+  X.fillStyle='#e5533d';X.fillRect(-36,-15,2,6);X.fillRect(-36,9,2,6);
+  X.restore();
+  if(!P.inVan&&hyp(van.x-P.x,van.y-P.y)<64){X.fillStyle='#ffc94a';X.font='800 11px Rubik,sans-serif';X.textAlign='center';X.fillText('E · drive',van.x,van.y-28)}
+  // player
+  if(!P.inVan){
+    if(P.look>0){X.save();X.translate(P.x,P.y);X.rotate(P.ang);const g=X.createRadialGradient(0,0,10,0,0,210);g.addColorStop(0,`rgba(255,201,74,${P.look*.6})`);g.addColorStop(1,'rgba(255,201,74,0)');X.fillStyle=g;X.beginPath();X.moveTo(0,0);X.arc(0,0,210,-.99,.99);X.closePath();X.fill();X.restore()}
+    drawPerson(P.x,P.y,P.ang,'#2f5d9e','#c9b27c',{walk:P.walk,swing:P.swing,cap:'#1d1f24',shades:1});
+  }
+  // speech
+  X.textAlign='center';X.font='700 11px Rubik,sans-serif';
+  const bubble=(x,y,s)=>{const w=X.measureText(s).width+12;X.fillStyle='rgba(246,241,227,.95)';rrect(x-w/2,y-36,w,18,4);X.fill();X.fillStyle='#1d1f24';X.fillText(s,x,y-23)};
+  for(const n of npcs)if(n.say&&vis(n.x-80,n.y-50,160,80))bubble(n.x,n.y-6,n.say.s);
+  for(const d of squad)if(d.say&&!P.inVan){bubble(d.x,d.y-6,d.say.s);d.say.t-=1/60;if(d.say.t<=0)d.say=null}
+  // particles
+  for(const p of parts){X.globalAlpha=clamp(p.t*2,0,1);if(p.txt){X.fillStyle=p.c;X.font='800 12px Rubik,sans-serif';X.fillText(p.txt,p.x,p.y)}else{X.fillStyle=p.c;X.fillRect(p.x-2,p.y-2,4,4)}}
+  X.globalAlpha=1;
+  X.restore();
+  // dusk vignette that brightens with trust
+  const vg=X.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);
+  vg.addColorStop(0,'rgba(20,10,40,0)');vg.addColorStop(1,`rgba(20,10,40,${.55*(1-trust/100)+.1})`);X.fillStyle=vg;X.fillRect(0,0,W,H);
+  // pointer to nearest offender
+  let best=null,bd=1e9;for(const n of npcs)if(n.type!=='civ'&&!n.reformT){const d=hyp(n.x-P.x,n.y-P.y);if(d<bd){bd=d;best=n}}
+  if(best&&bd>Math.min(W,H)*.45/zoom){const a=Math.atan2(best.y-P.y,best.x-P.x);const r=Math.min(W,H)*.38;const px=W/2+Math.cos(a)*r,py=H/2+Math.sin(a)*r;
+    X.save();X.translate(px,py);X.rotate(a);X.fillStyle='#e5533d';X.beginPath();X.moveTo(12,0);X.lineTo(-8,-8);X.lineTo(-8,8);X.closePath();X.fill();X.restore();
+    X.fillStyle='#fff';X.font='700 10px Rubik,sans-serif';X.textAlign='center';X.fillText(Math.round(bd/10)+'m',px,py+20)}
+  const tg=missionTarget();
+  if(tg){const d=hyp(tg.x-P.x,tg.y-P.y);if(d>Math.min(W,H)*.4/zoom){const a=Math.atan2(tg.y-P.y,tg.x-P.x),r=Math.min(W,H)*.33;const px=W/2+Math.cos(a)*r,py=H/2+Math.sin(a)*r;
+    X.save();X.translate(px,py);X.rotate(a);X.fillStyle='#ffc94a';X.strokeStyle='#1d1f24';X.lineWidth=2;X.beginPath();X.moveTo(16,0);X.lineTo(-10,-11);X.lineTo(-10,11);X.closePath();X.fill();X.stroke();X.restore();
+    X.fillStyle='#ffc94a';X.font='800 11px Rubik,sans-serif';X.textAlign='center';X.fillText(tg.label+' · '+Math.round(d/10)+'m',px,py+24)}}
+  drawMini();hud();
+}
+function missionTarget(){
+  if(!mission){const h=homies.find(h=>h.state==='avail');return h?{x:h.x,y:h.y,label:h.name}:null}
+  const id=mission.h.id;
+  const near=arr=>{let b=null,bd=1e9;for(const e of arr){const d=hyp(e.x-P.x,e.y-P.y);if(d<bd){bd=d;b=e}}return b};
+  if(id==='gary'){const t=near([...npcs.filter(n=>n.mission&&n.pkg),...pickups.filter(k=>k.mission)]);return t&&{x:t.x,y:t.y,label:'Package'}}
+  if(id==='rick'){const t=near(carts.filter(c=>c.mission));if(!t)return null;return hyp(t.x-P.x,t.y-P.y)<60?{x:mission.k.x+mission.k.w/2,y:mission.k.y+mission.k.h/2,label:'Corral'}:{x:t.x,y:t.y,label:'Cart'}}
+  if(id==='dave')return{x:mission.zone.x,y:mission.zone.y,label:'Party'};
+  if(id==='doug'){const k=npcs.find(n=>n.type==='king');return k&&{x:k.x,y:k.y,label:'The King'}}
+}
+/* ---------- MISSIONS ---------- */
+const bEl=document.getElementById('brief');let briefH=null;
+function openBrief(h){briefH=h;running=false;
+  document.getElementById('bWho').textContent=h.name+' · '+h.role;document.getElementById('bTitle').textContent=h.title;
+  document.getElementById('bLines').innerHTML=h.lines.map(l=>'<p>'+l+'</p>').join('');
+  document.getElementById('bPerk').innerHTML='<b>Joins your crew:</b> '+h.perk;
+  bEl.hidden=false;document.getElementById('bGo').focus()}
+function closeBrief(go){bEl.hidden=true;for(const k in K)K[k]=0;pressed={};last=performance.now();running=true;if(go&&briefH)startMission(briefH);briefH=null}
+document.getElementById('bGo').onclick=()=>closeBrief(true);document.getElementById('bNo').onclick=()=>closeBrief(false);
+function banner(t,sub){const b=document.getElementById('banner');b.innerHTML=t+'<small>'+sub+'</small>';b.classList.add('on');bannerT=3.2}
+function freeNear(x,y,r0,r1){for(let i=0;i<120;i++){const a=rr(0,6.28),r=rr(r0,r1),px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;if(!blocked(px,py,14))return{x:px,y:py}}return freeSpot(r0)}
+function startMission(h){
+  mission={h,t:h.time,count:0,mood:100,spawnT:1};
+  squad.push({x:h.x,y:h.y,ang:0,swing:0,swCD:0,name:h.name,polo:h.polo,pants:h.pants,hair:h.hair,glasses:h.glasses,whistle:h.whistle,apron:h.apron,vest:h.vest,big:h.big,hid:h.id,walk:0});
+  if(h.id==='gary')for(let i=0;i<4;i++){const s=freeNear(P.x,P.y,450,900);const n=spawnNPC('pirate',s);n.mission=true;n.pkg=true}
+  if(h.id==='rick'){let k=corrals[0],bd=1e9;for(const c of corrals){const d=hyp(c.x-P.x,c.y-P.y);if(d<bd){bd=d;k=c}}mission.k=k;
+    for(let i=0;i<5;i++){spawnCart(freeNear(k.x+k.w/2,k.y+k.h/2,220,480));carts[carts.length-1].mission=true}}
+  if(h.id==='dave'){let g=grills[0],bd=1e9;for(const c of grills){const d=hyp(c.x-P.x,c.y-P.y);if(d<bd){bd=d;g=c}}mission.zone={x:g.x,y:g.y+50,r:110}}
+  if(h.id==='doug'){const s=freeNear(P.x,P.y,500,800);const k=spawnNPC('king',s);k.hp=8;k.mission=true;k.minT=4;k.shirt='#6b2d5c'}
+  quote(h.name+': Alright. Let\'s do this the hard way.',true);banner(h.title.toUpperCase(),h.survive?'Hold the lawn for '+h.time+' seconds':h.boss?'Find him. Have a conversation.':h.need+' to go. '+Math.floor(h.time/60)+':'+String(h.time%60).padStart(2,'0')+' on the clock.');
+}
+function updateMission(dt){
+  if(!mission)return;const m=mission,id=m.h.id;m.t-=dt;
+  if(id==='dave'){m.spawnT-=dt;if(m.spawnT<=0&&m.t>4){m.spawnT=rr(1.8,3);const s=freeNear(m.zone.x,m.zone.y,380,520);const n=spawnNPC(pick(['litter','loud','cartguy','loud']),s);n.mission=true;n.seek=m.zone}
+    if(m.mood<=0)return endMission(false,'The party got crashed.');if(m.t<=0)return endMission(true)}
+  else if(id==='doug'){if(m.kingDown)return endMission(true);if(m.t<=0)return endMission(false,'The King got away. He\'ll be back on his porch-circuit tomorrow.')}
+  else{if(m.count>=m.h.need)return endMission(true);if(m.t<=0)return endMission(false,'Out of time.')}
+}
+function endMission(ok,why){
+  const h=mission.h;
+  for(let i=npcs.length-1;i>=0;i--){const n=npcs[i];if(n.mission&&!n.reformT&&(n.type!=='king'||!ok)){if(ok){reform(n,'end')}else npcs.splice(i,1)}}
+  if(!ok){carts=carts.filter(c=>!c.mission);pickups=pickups.filter(k=>!k.mission)}
+  for(const n of npcs)n.seek=null;
+  if(ok){h.state='crew';stats.jobs=(stats.jobs||0)+1;const nx=homies[homies.indexOf(h)+1];if(nx)nx.state='avail';
+    mission=null;addTrust(10,P.x,P.y);banner('JOB DONE','Nobody is proud of this. +10 trust');setTimeout(()=>quote(h.done,true),900)}
+  else{squad=squad.filter(d=>d.hid!==h.id);h.x=h.hx;h.y=h.hy;mission=null;banner('JOB FAILED',why+' '+h.name+' is back on his porch.')}
+}
+function drawMini(){
+  const s=M.width/MW;MX.setTransform(1,0,0,1,0,0);MX.fillStyle='#34363d';MX.fillRect(0,0,M.width,M.height);
+  for(const b of blocks){MX.fillStyle=b.kind==='store'?'#6a6d75':b.kind==='park'?'#6e9e55':'#4f7a3e';MX.fillRect(b.x*s,b.y*s,b.w*s,b.h*s)}
+  MX.fillStyle='#ffc94a';for(const k of corrals)MX.fillRect(k.x*s,k.y*s,k.w*s,k.h*s);
+  for(const g of grills)if(g.dad){MX.fillStyle='#ff9f43';MX.beginPath();MX.arc(g.x*s,g.y*s,5,0,7);MX.fill()}
+  MX.fillStyle='#fff';for(const c of carts)MX.fillRect(c.x*s-2,c.y*s-2,4,4);
+  MX.fillStyle='#e5533d';const seeAll=has('doug');for(const n of npcs)if(n.type!=='civ'&&!n.reformT&&(seeAll||n.mission||hyp(n.x-P.x,n.y-P.y)<900)){MX.beginPath();MX.arc(n.x*s,n.y*s,n.type==='king'?6:3.5,0,7);MX.fill()}
+  for(const h of homies)if(h.state==='avail'&&!mission){MX.fillStyle='#ffc94a';MX.strokeStyle='#1d1f24';MX.lineWidth=2;MX.beginPath();MX.arc(h.x*s,h.y*s,7,0,7);MX.fill();MX.stroke()}
+  if(mission){const t=missionTarget();if(t){MX.strokeStyle='#ffc94a';MX.lineWidth=2;MX.beginPath();MX.arc(t.x*s,t.y*s,8+Math.sin(time*6)*2,0,7);MX.stroke()}}
+  MX.fillStyle='#8fb8ff';MX.fillRect(van.x*s-4,van.y*s-3,8,6);
+  MX.fillStyle='#fff';MX.strokeStyle='#2f5d9e';MX.lineWidth=2;MX.beginPath();MX.arc(P.x*s,P.y*s,5,0,7);MX.fill();MX.stroke();
+}
+const tpEl=document.getElementById('tp'),tbEl=document.getElementById('tb'),stEl=document.getElementById('stats'),obEl=document.getElementById('obj');
+let lastHud='';
+function hud(){
+  const t=Math.floor(trust);tpEl.textContent=t+'%';tbEl.style.width=t+'%';
+  const offs=npcs.filter(n=>n.type!=='civ'&&!n.reformT).length;
+  const misEl=document.getElementById('mis');
+  if(mission){const m=mission,h=m.h,tt=Math.max(0,Math.ceil(m.t)),clock=Math.floor(tt/60)+':'+String(tt%60).padStart(2,'0');
+    let body=h.survive?'Party mood<div class="mood"><i style="width:'+Math.max(0,m.mood)+'%"></i></div>':h.boss?'Chase down the King. Van hits count triple.':h.unit+': '+m.count+' / '+h.need;
+    const html='<b><span>'+h.title+'</span><span>'+clock+'</span></b>'+body;if(misEl.innerHTML!==html)misEl.innerHTML=html;misEl.hidden=false}
+  else misEl.hidden=true;
+  const av=homies.find(h=>h.state==='avail');
+  const o=mission?'With '+mission.h.name+'.':(trust>=90&&!has('doug'))?'Trust is stuck at 90% while the Porch Pirate King is out there. See Doug.':av&&R()<2?av.name+' has a job for you. Follow the yellow arrow.':trust<25?'Reform offenders (red tags). Return carts to the yellow corrals.':trust<50?(squad.length?'The dads are with you. Keep going.':'Orange dots on the map are dads at grills. Recruit them with E.'):trust<80?'People are waving at each other again. Push on.':'Almost there. Somebody just lent a stranger a ladder.';
+  const crew=squad.filter(d=>d.hid).map(d=>d.name),grill=squad.length-crew.length;
+  const s=`Crew: You${crew.length?', '+crew.join(', '):''}${grill?' + '+grill+' grill dad'+(grill>1?'s':''):''}<br>Reformed: ${stats.reformed} · Carts: ${stats.carts} · Packages: ${stats.pkgs}<br>Offenders out there: ${offs} · Apologies owed: ${stats.sorry}`;
+  if(s!==lastHud){stEl.innerHTML=s;lastHud=s}
+  if(obEl.textContent!==o)obEl.textContent=o;
+}
+
+/* ---------- LOOP ---------- */
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(running)update(dt);if(P)draw();requestAnimationFrame(frame)}
+function win(){running=false;const mins=((performance.now()-stats.start)/60000).toFixed(1);
+  document.getElementById('endtxt').innerHTML=`Maple Heights is high-trust again. Kids are biking unsupervised. A man left his garage open overnight and nothing happened.<br><br><b>${stats.reformed}</b> neighbors reformed · <b>${stats.carts}</b> carts returned · <b>${stats.pkgs}</b> packages restored · <b>${stats.jobs||0}</b> jobs with the crew · <b>${squad.length+1}</b> dads deployed · <b>${stats.sorry}</b> apologies owed · ${mins} min.<br><br>Nobody enjoyed it.`;
+  document.getElementById('end').hidden=false;document.getElementById('again').focus()}
+function start(){reset();running=true;document.getElementById('title').hidden=true;document.getElementById('end').hidden=true;C.focus?.();quote("Alright. Let's go have a word with some people.",true)}
+document.getElementById('start').onclick=start;document.getElementById('again').onclick=start;
+addEventListener('keydown',e=>{if(e.key==='Enter'&&!running&&bEl.hidden&&e.target.tagName!=='BUTTON')start()});
+reset();requestAnimationFrame(frame);
+})();
+</script>
