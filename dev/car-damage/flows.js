@@ -19,7 +19,7 @@ for(let i=0;i<12;i++){const r=await p.evaluate(()=>{const h=__ht,e=__e;const los
   if(r.hp<=0)break}
 ok(seen.size>=5&&last.hp===0,'health fell through the bands to 0 (no 20% floor)',[...seen]);
 const bd=await p.evaluate(()=>{const e=__e;return{haz:!!e.obj.userData._s.haz,hood:!!(e.fx&&e.fx.hood),carHp:e.car.hp}});ok(bd.haz&&bd.hood&&bd.carHp===0,'broken down: hazards + hood steam, CarAI hp 0',bd);
-await p.evaluate(()=>{const h=__ht,e=__e;h.step(9);h.P.yaw=e.yaw+1.9;h.P.pitch=-.3;h.step(30);h.P.yaw=e.yaw+1.9;h.P.pitch=-.3;e.obj.userData._s.t=.1;e.obj.userData.setHazard(true)});await shot('breakdown-hazards');
+await p.evaluate(()=>{const h=__ht,e=__e;h.step(9);h.P.yaw=e.yaw+1.9;h.P.pitch=-.3;h.step(30);h.P.yaw=e.yaw+1.9;h.P.pitch=-.3;e.obj.userData._s.t=.1;e.obj.userData.setHazard(true)});/* breakdown + tow shots: dev/car-damage/shots.js */
 /* drive it (well, push it) into Dad's Auto: the Repair tab shows the real damage */
 const shop=await p.evaluate(()=>{const h=__ht,e=__e,s=h.hubx.shops.find(x=>x.kind==='auto');h.carRepair(e,8);/* limps in at 8% */e.pos.set(s.bay.x,0,s.bay.z);e.car.spd=0;h.step(2);
   const q=HT.Economy.repairQuote;const ok=h.openShop('auto');return{ok,sh:!!s}});
@@ -79,7 +79,7 @@ ok(vr.hp===100&&vr.save===100&&vr.dents===0,'van repaired: save 100 HP, fresh bo
 const tw=await p.evaluate(()=>{const h=__ht,V=h.VAN;V.pos.x+=40;h.step(2);h.carDamage(V,1e3,'test');h.step(5);h.exitVehicle();h.save.cash=0;h.P.pos.set(V.pos.x+1.8,0,V.pos.z);h.step(1);__ht.draw();const pr=h.prompt&&h.prompt.text||h.prompt;
   const r=h.towCar(V);const s=h.hubx.shops.find(x=>x.kind==='auto');return{prompt:pr,r,hp:h.carHp(V),max:h.carHpMax(V),atShop:Math.hypot(V.pos.x-s.bay.x,V.pos.z-s.bay.z),tab:h.save.garage.tab}});
 ok(/Dad's Auto/.test(tw.prompt||'')&&Math.abs(tw.hp-tw.max*.6)<.01&&tw.atShop<.01&&tw.tab===75,'tow with no cash: on Sal\'s tab ($75), van at the shop at 60%',tw);
-await p.evaluate(()=>{const h=__ht;h.P.yaw=h.VAN.yaw+2.6;h.P.pitch=-.3;h.step(4)});await p.waitForTimeout(2300);await shot('tow-at-dads-auto');
+
 /* chase API on a bare HT.CarAI car */
 const ch=await p.evaluate(()=>{const h=__ht,c=HT.CarAI.make('sedan',{x:0,z:0});let n=0;const off=h.onBreakdown(x=>{if(x===c)n++});const a=h.carHp(c);h.carDamage(c,60,'ram');const b=h.carHp(c);h.carDamage(c,60,'ram');const d=h.carHp(c);h.carRepair(c,'full');off();return{a,b,d,n,after:h.carHp(c)}});
 ok(ch.a===100&&ch.b===40&&ch.d===0&&ch.n===1&&ch.after===100,'chase API: carHp/carDamage/carRepair/onBreakdown on an HT.CarAI car',ch);

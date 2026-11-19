@@ -301,16 +301,16 @@ const ROOMS=[/* for labels, family POIs, ceilings, paint */
 const EXT_H=2.95;
 const WALLS=[
   /* exterior */
-  {id:'front',r:[-7.2,-.2,15.2,0],h:EXT_H,a:'siding',b:'paint:#e9e2d4',open:[[-6.25,-1.15,0,2.3,'garage'],[1.0,1.95,0,2.1,'door:front'],[2.07,2.45,.35,2.1,'win'],[4.3,8.3,.5,2.15,'win3'],[9.75,10.4,1.45,2.0,'win'],[12.0,13.8,.7,2.15,'win2']]},
-  {id:'back',r:[-7.2,10,15.2,10.2],h:EXT_H,a:'paint:#e9e2d4',b:'siding',open:[[-2.05,-1.15,0,2.05,'door:gback'],[1.35,3.05,1.07,2.15,'win2'],[6.0,8.6,0,2.15,'slider'],[9.7,10.45,.9,2.0,'win'],[12.1,13.9,.8,2.1,'blinds']]},
+  {id:'front',r:[-7.2,-.2,15.2,0],h:EXT_H,a:'siding',b:'paint:#e9e2d4',open:[[-6.25,-1.15,0,2.3,'garage'],[.95,2.01,0,2.2,'door:front'],[2.17,2.5,.35,2.1,'win'],[4.3,8.3,.5,2.15,'win3'],[9.75,10.4,1.45,2.0,'win'],[12.0,13.8,.7,2.15,'win2']]},
+  {id:'back',r:[-7.2,10,15.2,10.2],h:EXT_H,a:'paint:#e9e2d4',b:'siding',open:[[-2.13,-1.07,0,2.2,'door:gback'],[1.35,3.05,1.07,2.15,'win2'],[6.0,8.6,0,2.2,'slider'],[9.7,10.45,.9,2.0,'win'],[12.1,13.9,.8,2.1,'blinds']]},
   {id:'west',r:[-7.2,0,-7,10],h:EXT_H,a:'siding',b:'paint:#dcd8cf',open:[[3.3,4.5,1.35,2.1,'win']]},
   {id:'east',r:[15,0,15.2,10],h:EXT_H,a:'paint:#c9d3d6',b:'siding',open:[[3.75,4.95,.85,2.1,'win'],[7.1,8.7,.8,2.1,'blinds']]},
   /* interior */
-  {id:'garagewall',r:[-.15,0,0,10],h:CEIL,a:'paint:#dcd8cf',b:'paint:#e9e2d4',open:[[2.3,3.2,0,2.03,'door:garage']]},
+  {id:'garagewall',r:[-.15,0,0,10],h:CEIL,a:'paint:#dcd8cf',b:'paint:#e9e2d4',open:[[2.22,3.28,0,2.2,'door:garage']]},
   {id:'entrywall',r:[0,4,3,4.12],h:CEIL,a:'paint:#e9e2d4',b:'paint:#efe9dd'},
-  {id:'hallW',r:[9.3,0,9.42,10],h:CEIL,a:'paint:#e9e2d4',b:'paint:#e9e2d4',open:[[4.45,5.75,0,2.15,'case']]},
-  {id:'hallE',r:[10.72,0,10.84,10],h:CEIL,a:'paint:#e9e2d4',b:'paint:#c9d3d6',open:[[3.7,4.55,0,2.03,'door:bed'],[7.1,7.95,0,2.03,'door:kids']]},
-  {id:'bath',r:[9.42,1.28,10.72,1.4],h:CEIL,a:'paint:#e9e2d4',b:'paint:#e9e2d4',open:[[9.7,10.45,0,2.03,'door:bath']]},
+  {id:'hallW',r:[9.3,0,9.42,10],h:CEIL,a:'paint:#e9e2d4',b:'paint:#e9e2d4',open:[[4.45,5.75,0,2.22,'case']]},
+  {id:'hallE',r:[10.72,0,10.84,10],h:CEIL,a:'paint:#e9e2d4',b:'paint:#c9d3d6',open:[[3.59,4.65,0,2.2,'door:bed'],[6.99,8.05,0,2.2,'door:kids']]},
+  {id:'bath',r:[9.42,1.28,10.72,1.4],h:CEIL,a:'paint:#e9e2d4',b:'paint:#e9e2d4',open:[[9.54,10.6,0,2.2,'door:bath']]},
   {id:'bedkids',r:[10.84,5.5,15,5.62],h:CEIL,a:'paint:#c9d3d6',b:'paint:#e9e2d4'}];
 /* living room / dining accent: the dining side of the hall wall is a deep sage */
 const ACCENT={hallW:{a:[[5.75,10,'paint:#8f9e86']]}};
@@ -323,6 +323,7 @@ function col(x0,z0,x1,z1,o={}){const c={x0:Math.min(x0,x1),z0:Math.min(z0,z1),x1
 /* ======================================================================= architecture */
 const AO_RECT=[-7.4,-.4,15.4,10.4],AO_PPM=24;   /* floor AO covers the whole footprint at ~4 cm per texel */
 function floorUV2(p){return[(p[0]-AO_RECT[0])/(AO_RECT[2]-AO_RECT[0]),1-(p[2]-AO_RECT[1])/(AO_RECT[3]-AO_RECT[1])]}
+/* walkable openings: 1.06 x 2.2 m rough, which leaves at least 1.0 x 2.13 m clear inside the casings (the 1.83 m dad with his cap fits with room to spare) */
 const DOORS=[];      /* animated doors {pivot, open, target, axis, collider, x,z, auto} */
 function isPaint(k){return k&&k.startsWith('paint')}
 function buildWalls(G,B){

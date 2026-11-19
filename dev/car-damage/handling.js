@@ -19,5 +19,8 @@ const r=await p.evaluate(()=>{const h=__ht,K=h.keys,out={bands:[]};const clear=(
   h.carRepair(e,'full');const b0=h.carHp(e);h.crash(e,5.5);h.crash(e,6.4);out.gentle={before:b0,after:h.carHp(e)};
   out.impact={at10:(h.carRepair(e,'full'),h.crash(e,10)),at15:(h.carRepair(e,'full'),h.crash(e,15)),at20:(h.carRepair(e,'full'),h.crash(e,20)),at25:(h.carRepair(e,'full'),h.crash(e,25)),at30:(h.carRepair(e,'full'),h.crash(e,30)),
     at20side:(h.carRepair(e,'full'),h.crash(e,20,{angle:Math.PI/2}))};
+  /* chase code writes e.car.hp and calls HT.CarAI.impact/ram on the driven car: it all lands in the one health value */
+  h.carRepair(e,'full');const c=e.car,h0=h.carHp(e);c.hp-=20;const h1=h.carHp(e);HT.CarAI.impact(c,20,true,true);const h2=h.carHp(e);c.hp=c.stats.hp;
+  out.carBridge={start:h0,afterMinus20:h1,afterCarAIImpact:+h2.toFixed(1),afterSetFull:h.carHp(e),save:'n/a'};
   h.L.colliders.push(...saved);h.L.cgrid=cg;return out});
-console.log(JSON.stringify(r,null,1));console.log('errors',o.errs);await o.close()})();
+console.log(JSON.stringify(r,null,1));const B=r.carBridge;console.log(B.afterMinus20===B.start-20&&B.afterCarAIImpact<B.afterMinus20&&B.afterSetFull===B.start?'ok   e.car.hp bridge':'FAIL e.car.hp bridge');console.log('errors',o.errs);await o.close()})();
