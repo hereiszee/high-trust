@@ -72,3 +72,13 @@ HT.CarAI.simulateChase({seed, carType, max, vehicle, crew, gap, trace})
 ```
 node dev/openworld-ingame.js [--write]   # in-game checks + budgets -> docs/screenshots/open-world/evidence.txt
 ```
+
+## Jobs in the world and Act 2 (SPEC2 W3/W6, see `docs/design/ACT2.md`)
+
+Every job runs at its real site in the open world (`startMissionWorld`; `CFG.inWorld=false` keeps the four Maple jobs on their old separate levels). The block in index.html just before `LOOP` holds world missions, the Riverside jobs, chase, escort and stakeout. `__ht` adds `MISSIONS, CFG, WM, WJ, jobLock(i), jobAvailable(i), missionInWorld(i), startMissionWorld(i,{raid,checkpoint}), giverModel(id), wmKeepDriving(), chase, truck, suspects, npcs, UIacts, UIobj, prompt, carry, exitAt, wmRng(seed)`.
+
+```
+node dev/riverside-ingame.js [--only=0,4,91] [--seeds=10]   # giver -> drive -> complete -> paid for all 9 jobs, bridge, gates, leash, fallback, chase seeds
+node dev/riverside-shots.js                                  # docs/screenshots/riverside-jobs/*.jpg
+```
+`--only` takes job numbers 0-8, plus 90 (W3 checks: leash, leaving the job, fallback, trust gate) and 91 (chase win/fail over `--seeds`).
