@@ -28,15 +28,17 @@ const drive=(p,wps,steps,boost)=>p.evaluate(([wps,steps,boost])=>{const H=window
   let d=await drive(p,[[200,41.5],[270,42],[330,43]],460,true);ok(d.x<141*2,'closed barricade stops the van (x='+d.x.toFixed(1)+' m, barricade at 282)');
   await p.evaluate(()=>window.__ht.openBridge());
   d=await drive(p,[[330,43],[379,43],[379,71],[315,71],[315,43],[420,43]],1100,false);ok(d.wp===5&&d.maxZ>65&&d.region==='river','bridge open: across into Riverside and around the 3rd St / Ash St / River Rd block ('+JSON.stringify(d)+')');
-  for(let i=0;i<4;i++){const r=await p.evaluate(i=>{const H=window.__ht;if(H.mode!=='hub')H.enterHub();const d=H.L.dests[i],V=H.VAN;H.JOB=i;if(!V.on)H.enterVan();V.pos.set(d.x,0,d.z);V.yaw=-Math.PI/2;V.spd=0;if(V.car){V.car.spd=0;V.car.x=d.x;V.car.z=d.z}H.syncVan();H.step(3);
-      const m={mode:H.mode,lvl:H.L.def.id,enemies:H.enemies.length};H.enterHub();H.step(2);return{...m,back:H.L.def.id,dv:Math.hypot(H.VAN.pos.x-d.x,H.VAN.pos.z-d.z)}},i);
+  for(let i=0;i<4;i++){await p.evaluate(i=>{const H=window.__ht;if(H.mode!=='hub')H.enterHub();const d=H.L.dests[i],V=H.VAN;H.JOB=i;if(!V.on)H.enterVan();V.pos.set(d.x,0,d.z);V.yaw=-Math.PI/2;V.spd=0;if(V.car){V.car.spd=0;V.car.x=d.x;V.car.z=d.z}H.syncVan();H.step(3)},i);
+    /* missions start once the crew's models are in (startMissionWhenReady preloads them), so wait for the launch */
+    await p.waitForFunction(()=>window.__ht.mode==='mission',null,{timeout:15000}).catch(()=>{});
+    const r=await p.evaluate(i=>{const H=window.__ht;const m={mode:H.mode,lvl:H.L.def.id,enemies:H.enemies.length};H.enterHub();H.step(2);const D=H.L.dests[i];return{...m,back:H.L.def.id,dv:Math.hypot(H.VAN.pos.x-D.x,H.VAN.pos.z-D.z)}},i);
     ok(r.mode==='mission'&&r.back==='world'&&r.dv<.5,'ring '+i+' launches '+r.lvl+' ('+r.enemies+' enemies), back in the world with the van at the ring')}
   const g=await p.evaluate(()=>{const H=window.__ht;H.JOB=2;H.step(40);const n=H.gps&&H.gps.points.length;const t0=performance.now();for(let i=0;i<10;i++)H.ow.gps({x:39,z:15},H.L.dests[3]);
     const ms=(performance.now()-t0)/10;const ft=H.fastTravel('auto');return{n,ms,ft}});await p.waitForTimeout(700);
   const ftp=await p.evaluate(()=>{const H=window.__ht,a=H.WORLD.places.auto;return Math.hypot(H.VAN.pos.x-a.x,H.VAN.pos.z-a.z)});
   ok(g.n>1,'GPS route to the job site ('+g.n+' points, '+g.ms.toFixed(1)+' ms per solve)');ok(g.ft&&ftp<1,"fast travel to Dad's Auto puts the van on the pin ("+ftp.toFixed(2)+' m)');
-  const rg=await p.evaluate(()=>{const H=window.__ht;if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(330,0,43);H.step(3);const w=H.prog.world;return{region:H.region,river:w.visited.river,pins:w.pins.slice()}});
-  ok(rg.region==='river'&&rg.river&&rg.pins.includes('center')&&rg.pins.includes('mart'),'crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked');
+  const rg=await p.evaluate(()=>{const H=window.__ht;if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(330,0,43);H.step(3);const w=H.owW?H.owW():H.prog.world;return{region:H.region,river:w.visited.river,pins:w.pins.slice(),mode:H.mode,lvl:H.L.def.id,p:[H.P.pos.x,H.P.pos.z],save:!!(H.SAVE&&H.SAVE.world)}});
+  ok(rg.region==='river'&&rg.river&&rg.pins.includes('center')&&rg.pins.includes('mart'),'crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked'+(rg.region==='river'&&rg.river?'':' '+JSON.stringify(rg)));
   const f=await p.evaluate(()=>{const H=window.__ht,L=H.L,k=H.keys,V=H.VAN,P=H.P;H.JOB=null;let inside=0,ends=0,oob=0;const keys=['w','a','s','d','shift'];
     const ins=(x,z)=>{for(const c of L.cgrid({x,z},0))if(c.ph!==undefined&&x>c.x0+.05&&x<c.x1-.05&&z>c.z0+.05&&z<c.z1-.05)return c;return null};
     for(let seg=0;seg<60;seg++){if(seg%4===1&&!V.on&&Math.hypot(V.pos.x-P.pos.x,V.pos.z-P.pos.z)<4)H.enterVan();if(seg%4===3&&V.on){V.spd=0;H.exitVan()}

@@ -2680,7 +2680,7 @@ window.__ht.homeInit=()=>homeInit();
 Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
   mode:{get:()=>mode},JOB:{get:()=>JOB,set:v=>{JOB=v}},running:{get:()=>running,set:v=>{running=v}}});
 Object.assign(window.__ht,{hoodAt:x=>OW()?OW().regionAt(x,0):'maple',openBridge:()=>{const r=OW()&&OW().openBridge();if(r&&WORLD)owMinimap();return r},fastTravel:id=>owFastTravel({place:id,fast:true}),
-  dress:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();return r},previewTrust:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();OWS.moodK=null;owRegions();return r},blockTrust:(x,z)=>OW()?OW().blockTrust(x,z):0,blocks:()=>OW()?OW().blocks():[],drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
+  dress:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();return r},previewTrust:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();OWS.moodK=null;owRegions();return r},blockTrust:(x,z)=>OW()?OW().blockTrust(x,z):0,blocks:()=>OW()?OW().blocks():[],owW,drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
 window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]},groundPass,supportAt,baseGroundY};
 requestAnimationFrame(frame);
 })();
