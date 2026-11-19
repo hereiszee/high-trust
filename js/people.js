@@ -170,7 +170,9 @@ P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null)
   const rb={key,hip:t.hip,mixer,body,bones,skinned,acts:{},lw:{},aimW:0,holdW:0,armP:0,spineP:0,one:null,
     idle:o.idle||IDLE[key]||'idle',walk:female?'f_walk':'walk',female,
     in:{mode:'stand',aim:false,moving:false,pitch:0},v:0,vx:0,vz:0,lx:null,lz:null,base:null,dead:false,deadT:0,gunType:null,acc:0,skip:0,orphan:0,phase:0};
-  const d={root,body,meshes,head,gunHold,gun:null,walk:0,legs:[],arms:[],rb,people:true};
+  /* legs/arms: inert stand-ins so old code that pokes box-dude limbs does nothing harmful */
+  const stub=()=>new T.Object3D();
+  const d={root,body,meshes,head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true};
   /* start in idle so a freshly spawned character is never seen in the bind pose */
   setBase(d,rb.idle,true);step(d,0);mixer.update(Math.random()*3);
   P.live.push(d);return d};
@@ -193,13 +195,18 @@ P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
         const lvx=(dx*c-dz*s)/dt/sc,lvz=(dx*s+dz*c)/dt/sc;rb.vx+=(lvx-rb.vx)*k;rb.vz+=(lvz-rb.vz)*k}}
     rb.lx=x;rb.lz=z;if(!inp.moving){const k=1-Math.exp(-dt*14);rb.vx-=rb.vx*k;rb.vz-=rb.vz*k}}
   if(inp.mode==='down'&&!rb.dead)rb.downed=true;else if(inp.mode!=='down'&&rb.downed){rb.downed=false;rb.getUp=.6}};
-P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;rb.gunType=type||null;const f=GUN_FIT[type==='pistol'?'pistol':'rifle'];const gh=d.gunHold;
+const PISTOL_STYLE={pistol:1,revolver:1,nailer:1,sawedoff:1};const _ry=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI);
+P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;rb.gunType=type||null;const gh=d.gunHold;const G=HT.Guns;
+  rb.style=type?(PISTOL_STYLE[type]?'pistol':'rifle'):null;
+  /* realistic guns (js/guns.js): calibrated hand fit; makeGun wraps those models turned to +Z, so turn back */
+  if(type&&d.gun&&d.gun.userData&&d.gun.userData.gun&&G&&G.handAttach){try{const a=G.handAttach(type);gh.position.copy(a.position);gh.quaternion.copy(a.quaternion);if(d.gun.userData.muzzle!=='-z')gh.quaternion.multiply(_ry);rb.style=a.clipStyle||rb.style;return}catch(e){}}
+  const f=GUN_FIT[rb.style==='pistol'?'pistol':'rifle'];
   gh.position.fromArray(f.p);gh.quaternion.fromArray(f.q);
-  if(d.gun){const muzzleNegZ=d.gun.userData&&d.gun.userData.muzzle==='-z';if(!muzzleNegZ&&type!=='pistol'){gh.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI));const n=BOX_NUDGE[type]||[0,0,0];d.gun.position.set(n[0],n[1],n[2])}}};
+  if(d.gun){const muzzleNegZ=d.gun.userData&&d.gun.userData.muzzle==='-z';if(!muzzleNegZ&&rb.style!=='pistol'){gh.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI));const n=BOX_NUDGE[type]||[0,0,0];d.gun.position.set(n[0],n[1],n[2])}}};
 function oneShot(d,name,dur,peak){const rb=d.rb;if(!rb||rb.dead)return;const a=act(rb,name,'ar'),b=act(rb,name,'sp');if(!a)return;const cd=rb.acts[name].c.dur;
   for(const x of[a,b]){x.reset();x.timeScale=dur?cd/dur:1;x.play()}rb.one={name,t:0,dur:dur||cd,peak:peak||1}}
-P.fire=d=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;oneShot(d,rb.gunType==='pistol'?'pistol_fire':'rifle_fire',rb.gunType==='pistol'?.4:.22,1);rb.kick=1};
-P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.gunType==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
+P.fire=d=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style==='pistol';oneShot(d,ps?'pistol_fire':'rifle_fire',ps?.4:.22,1);rb.kick=1};
+P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
 P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead)return;oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
 P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;rb.dead=true;rb.deadT=0;rb.one=null;setBase(d,'death');};
 /* tests: pin inputs regardless of what the game asks for (P.force(d,null) clears) */
@@ -239,7 +246,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   if(rb.getUp>0)rb.getUp-=dt;
   for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k);a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
   /* upper-body layers: one-shot > aim > hold > locomotion arms */
-  const gun=rb.gunType,longGun=gun&&gun!=='pistol';
+  const gun=rb.gunType,pist=rb.style==='pistol',longGun=gun&&!pist;
   const v=Math.hypot(rb.vx,rb.vz);
   const aimT=!full&&gun&&inp.aim?1:0;
   const holdT=!full&&longGun&&!inp.aim&&rb.base!=='idle_arms_folded'?1:0;
@@ -249,7 +256,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   const crouch=inp.mode==='crouch';
   const WS={},WA={};let remS=1,remA=1;const add=(n,w,armsOnly)=>{if(!n||w<=0)return;WA[n]=(WA[n]||0)+w*remA;remA*=1-w;if(!armsOnly){WS[n]=(WS[n]||0)+w*remS;remS*=1-w}};
   if(rb.one)add(rb.one.name,oneW,false);
-  const aimClip=gun==='pistol'?'pistol_aim':'rifle_aim',holdClip=gun==='pistol'?'pistol_idle':'rifle_aim';
+  const aimClip=pist?'pistol_aim':'rifle_aim',holdClip=pist?'pistol_idle':'rifle_aim';
   add(aimClip,rb.aimW,false);add(holdClip,rb.holdW,false);
   for(const n in WA){act(rb,n,'ar');act(rb,n,'sp')}
   /* apply weights */

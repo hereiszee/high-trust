@@ -1338,7 +1338,7 @@ function hunterLaser(e){const on=e.state==='idle'&&e.target&&e.fireT<.8&&e.fireT
 /* mission 2: Coach Rick hands you his carbine (SPEC A.4) */
 function updIntro(dt){const I=M.intro,r=allies.find(a=>a.id==='rick');I.t+=dt;M.t+=dt;/* clock frozen */
   if(r){const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));r.pos.set(P.pos.x+f.x*1.6,0,P.pos.z+f.z*1.6);collide(r.pos,.35);r.yaw=Math.atan2(P.pos.x-r.pos.x,P.pos.z-r.pos.z);
-    r.dude.root.position.set(r.pos.x,0,r.pos.z);r.dude.root.rotation.y=r.yaw;if(!r.dude.rb){r.dude.arms[1].rotation.x=-1.2;r.dude.arms[0].rotation.x=-.9;r.dude.arms[0].rotation.z=-.3}}
+    r.dude.root.position.set(r.pos.x,0,r.pos.z);r.dude.root.rotation.y=r.yaw;r.dude.arms[1].rotation.x=-1.2;r.dude.arms[0].rotation.x=-.9;r.dude.arms[0].rotation.z=-.3}
   if(keys.e)I.prog=(I.prog||0)+dt/.6;else I.prog=Math.max(0,(I.prog||0)-dt);
   if(I.prog>=1||I.t>8){finishIntro();return null}
   return['Hold '+KE+" · Take Rick's Carbine",I.prog]}
