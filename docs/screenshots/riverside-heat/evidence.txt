@@ -4,35 +4,32 @@ ok   Riverside: 1 draws the pistol (in hand, armed), Fire fires (3 rounds)
 ok   firing raises heat to 1.65 (1 full pips, meter shown)
 ok   reload works in free roam (mag 12)
 ok   H holsters (gun out of the hand)
-ok   long walk: 137 ambient/incident spawns, none in sight or within 25 m (closest 29.3 m)
+ok   long walk: 117 ambient/incident spawns, none in sight or within 25 m (closest 29.3 m)
 ok   no spawns on a mission lot
-ok   all three crews seen on their turf (coupon, returns, dock), peak 16 people
-     free-roam cost while walking: 0.093 ms/frame (FR update + crew think)
+ok   all three crews seen on their turf (coupon, returns, dock), peak 12 people
+     free-roam cost while walking: 0.107 ms/frame (FR update + crew think)
 ok   a loitering group: no guns out, not hostile, every member wears the crew armband ({"n":3,"hostile":false,"guns":0,"band":true,"idle":true,"ray":true})
-     screenshot loitering-crew.jpg
 ok   drawing on them up close: they notice in 0.8 s and pull their guns (3 hostile, heat 0.00)
-ok   heat 1.31: the nearby group (20 m off) comes out
+ok   heat 1.32: the nearby group (20 m off) comes out
 ok   heat 1-2: coupon sends reinforcements (4 hostile, 4 in combat, only coupon, no war)
 ok   heat 3: turf war returns vs coupon (both hostile to the dad)
-ok   three-way fight: the crews shoot EACH OTHER (6 crew-on-crew hits), 3 using cover
-     screenshot heat3-turf-war.jpg
-FAIL the war resolves: holstered, heat 3.7666666666668127, no war, nobody hostile after 400 s (6 down, peak 10 hostile)
-     frame cost of the free-roam system during the war: 0.123 ms/frame
-ok   heat 5: a crew sedan drives in on the road graph and three guys bail out 17.9 m away (6.9 s)
+ok   three-way fight: the crews shoot EACH OTHER (6 crew-on-crew hits), 6 using cover
+ok   the war resolves: holstered, heat 0, no war, nobody hostile after 9 s (0 down, peak 8 hostile)
+     frame cost of the free-roam system during the war: 0.156 ms/frame
+ok   heat 5: a crew sedan drives in on the road graph and three guys bail out 17.9 m away (8.8 s)
 ok   decay: no shots, gun out, standing still: heat 2 to 0 in 19.5 s
-ok   decay: holstered is faster (13.3 s)
-ok   decay: off the block (and holstered) faster still (10.1 s)
-ok   decay: out of Riverside (9 s)
-ok   decay: driving away (10.1 s)
+ok   decay: holstered is faster (13.2 s)
+ok   decay: off the block (and holstered) faster still (10 s)
+ok   decay: out of Riverside (8.9 s)
+ok   decay: driving away (9 s)
 ok   decay: breaking line of sight helps (rate 0.100/s seen vs 0.320/s hidden)
 ok   decay: two zip-ties drop heat by 1
 ok   cooling off: blue pips, "Cooling off", tension music (0 walking off the block) 
-     screenshot cooling-off.jpg
 ok   zip-ties in free roam: 2 cuffed, Riverside trust +3
 ok   the crew thins out: Dock St Discount keeps 2 loitering group(s) instead of 3
 ok   stolen goods on zip-tied thieves: dropped at the lost & found for $40
 ok   killing one lowers Riverside trust (-2), his gun drops (2 pickup(s))
-ok   crews dwindle with Riverside trust: peak 16 people at 5%, 11 at 35%, 6 at 72% (only dock,coupon,returns)
+ok   crews dwindle with Riverside trust: on average 10.2 people out at 5%, 9.2 at 35%, 1.8 at 72% (only dock); peaks 12/11/2
 ok   top tier (95%): no crews, no incidents, the gun stays holstered, heat stays 0 (system off)
      heat cap by tier: 5% 5, 35% 4, 72% 2, 95% 0
 ok   starting a job clears free roam (no crews, no heat meter, 3 removed)
@@ -44,13 +41,10 @@ ok   heat 1: every neighbour ducks indoors
 ok   incident: a scuffle between two crews ("Break it up · optional"), E breaks it up (+1 trust)
 ok   incident: porch pirate gives up when caught, zip-tied, package back on the porch
 ok   incident: walking into a car break-in with a gun out turns them hostile (2)
-     screenshot incident-scuffle.jpg
 ok   crew dads fight in free roam (Gary, Coach Rick: 2 hits on the crew)
-ok   a downed crew dad gets back up (5.0 s)
-ok   pause setting "Riverside street trouble: Calm": crews gone (10 -> 0), holstered, no heat
+ok   a downed crew dad gets back up (9.0 s)
+ok   pause setting "Riverside street trouble: Calm": crews gone (9 -> 0), holstered, no heat
 ok   full map open with the crew turf tints
-     screenshot map-turf-tints.jpg
 ok   high-trust Riverside (92%): 4 neighbours out, no crews, heat 0
-     screenshot calm-high-trust.jpg
 ok   no console errors
-1 FAILED
+all passed

@@ -2661,10 +2661,10 @@ function frBand(d,col){try{const m=new THREE.MeshStandardMaterial({color:lin(col
     const band=new THREE.Mesh(new THREE.CylinderGeometry(.054/s,.056/s,.07/s,16,1,true),m);band.material.side=THREE.DoubleSide;band.quaternion.setFromUnitVectors(V3(0,1,0),dir);band.position.copy(fa.position).multiplyScalar(.5);band.castShadow=false;ua.add(band);d.band=band;return}
   const arm=d.arms&&d.arms[1];if(arm){const b=box(.18,.08,.18,col,0,-.12,0,arm);b.castShadow=false;d.band=b}}catch(e){}}
 function frMake(crew,x,z,gun,kind){gun=gun||pickW(crew.guns);
-  {const L_=FR.stats.spawnLog||(FR.stats.spawnLog=[]);L_.push({kind:kind||'ambient',x:+x.toFixed(1),z:+z.toFixed(1),d:+Math.hypot(x-P.pos.x,z-P.pos.z).toFixed(1),seen:frSeen(x,z),t:+simT.toFixed(1)});if(L_.length>400)L_.shift()}const d=makeDude({shirt:pick(FR_SHIRTS),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#111','#7a6a5a'])});equip(d,null);frBand(d,crew.col);
+  {const L_=FR.stats.spawnLog||(FR.stats.spawnLog=[]);var seen0=frSeen(x,z);L_.push({kind:kind||'ambient',x:+x.toFixed(1),z:+z.toFixed(1),d:+Math.hypot(x-P.pos.x,z-P.pos.z).toFixed(1),seen:seen0,t:+simT.toFixed(1)});if(L_.length>400)L_.shift()}const d=makeDude({shirt:pick(FR_SHIRTS),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#111','#7a6a5a'])});equip(d,null);frBand(d,crew.col);
   const hp=gun==='shotgun'||gun==='double'?85:70;
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss:false,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false,
-    fr:crew,hostile:false,drawn:false,born:simT};
+    fr:crew,hostile:false,drawn:false,born:simT,spawnSeen:seen0};
   e.id='e'+(eidSeq++);e.maxHp=hp;e.role=AI.roleFor(gun,false);e.dmgMul=.75;collide(e.pos,.35);d.root.position.copy(e.pos);enemies.push(e);addChar(e);FR.members.push(e);return e}
 function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
   if(e.group){const g=e.group;g.members=g.members.filter(m=>m!==e);if(!g.members.length)frDropGroup(g)}if(e.squad){const s=e.squad;s.members=s.members.filter(m=>m!==e);s.releaseFire(e)}FR.dirtyTargets=true}
@@ -2673,8 +2673,11 @@ const frOut=e=>e.state==='dead'||e.state==='cuffed'||e.state==='surrender';
 const frAlive=()=>FR.members.filter(e=>e.state==='idle');
 const frHostiles=()=>FR.members.filter(e=>e.state==='idle'&&e.hostile&&!e.leave);
 /* a group of 2-4 standing round a spot, facing in */
-function frGroup(crew,spot,n,o={}){o.kind=o.kind||'loiter';const g={crew,spot,members:[],x:spot.x,z:spot.z,kind:o.kind||'loiter',notice:0,t:simT};
-  for(let i=0;i<n;i++){const a=i/n*6.283+rand(-.3,.3),r=n>2?1.15:.8;const e=frMake(crew,spot.x+Math.sin(a)*r,spot.z+Math.cos(a)*r,o.gun,o.tag||'ambient');e.group=g;e.yaw=Math.atan2(spot.x-e.pos.x,spot.z-e.pos.z);g.members.push(e)}
+function frGroup(crew,spot,n,o={}){o.kind=o.kind||'loiter';const r=n>2?1.15:.8,ang=[];for(let i=0;i<n;i++)ang.push(i/n*6.283+rand(-.3,.3));
+  /* every member's own spot must be out of sight too (a corner can hide the centre and show a shoulder) */
+  if(o.unseen&&ang.some(a=>frSeen(spot.x+Math.sin(a)*r,spot.z+Math.cos(a)*r)))return null;
+  const g={crew,spot,members:[],x:spot.x,z:spot.z,kind:o.kind||'loiter',notice:0,t:simT};
+  for(let i=0;i<n;i++){const a=ang[i];const e=frMake(crew,spot.x+Math.sin(a)*r,spot.z+Math.cos(a)*r,o.gun,o.tag||'ambient');e.group=g;e.yaw=Math.atan2(spot.x-e.pos.x,spot.z-e.pos.z);g.members.push(e)}
   if(spot.group!==undefined)spot.group=g;FR.groups.push(g);FR.dirtyTargets=true;return g}
 
 /* ---------- nav window ---------- */
@@ -2802,7 +2805,7 @@ function frAmbient(){const tier=frTier(),T=FR_TIER[tier];if(!T.groups)return;con
   const near=spots.filter(s=>!s.group&&simT>=s.freeAt&&(have[s.crew]||0)<want[s.crew]).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>FR_TUNE.spawnMin&&o.d<85).sort((a,b)=>a.d-b.d);
   for(const o of near){if((have[o.s.crew]||0)>=want[o.s.crew])continue;if(frSeen(o.s.x,o.s.z))continue;const crew=frCrew(o.s.crew),st=FR.crewState[crew.id];
     let n=Math.round(rand(T.size[0],T.size[1]))-(st.thin%2);n=clamp(n,1,4);if(o.s.kind==='stoop')n=Math.min(n,2);
-    frGroup(crew,o.s,n);have[o.s.crew]=(have[o.s.crew]||0)+1;return}}
+    if(!frGroup(crew,o.s,n,{unseen:true})){o.s.freeAt=simT+5;continue}have[o.s.crew]=(have[o.s.crew]||0)+1;return}}
 /* loitering groups a crew keeps out at this trust tier: two zip-ties thin it by one group */
 function frWant(c){const T=FR_TIER[frTier()],st=FR.crewState[c.id];let n=T.groups-Math.floor(st.thin/2);if(T.only&&c.id!==T.only)n=0;return Math.max(0,n)}
 /* out-of-sight cells 30-55 m from the dad, preferring the crew's own turf side */
@@ -2870,9 +2873,9 @@ function frCarGone(){const R=FR.car;if(!R)return;if(R.v&&R.v.parent)R.v.parent.r
 function frIncidentTick(dt){const tier=frTier(),T=FR_TIER[tier];if(FR.inc){frIncUpdate(dt);return}
   if(!T.inc||FR.heat>0||FR.hostile.length||VAN.on&&Math.abs((CV||VAN).spd)>9)return;FR.incT-=dt;if(FR.incT>0)return;FR.incT=rand(55,95)*T.inc;
   const kinds=['porch','carjack','scuffle'];const k=FR.forceInc||pick(kinds);FR.forceInc=null;frIncStart(k)}
-function frIncStart(kind){const spots=frSpots();const cand=(list,fn)=>list.filter(fn).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
+function frIncStart(kind){const spots=frSpots(),only=FR_TIER[frTier()].only;if(only&&kind==='scuffle')kind='porch';const cand=(list,fn)=>list.filter(fn).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
   let I=null;
-  if(kind==='porch'){const c=cand(spots,s=>s.kind==='stoop'&&!s.group)[0];if(!c)return false;const crew=frCrew(c.s.crew),s=c.s;
+  if(kind==='porch'){const c=cand(spots,s=>s.kind==='stoop'&&!s.group&&(!only||s.crew===only))[0];if(!c)return false;const crew=frCrew(c.s.crew),s=c.s;
     const e=frMake(crew,s.x,s.z,Math.random()<.35?'pistol':'nailer','incident');e.goods={what:pick(['a humidifier','forty pounds of dog food','an air fryer','a box of printer ink','a garden gnome',"somebody's insulin"]),porch:{x:s.x,z:s.z},val:Math.round(rand(14,26))};
     const box_=box(.42,.3,.34,'#b8874f',0,1.05,.32,e.dude.root);box_.castShadow=true;e.parcel=box_;
     I={kind,text:'Stop the porch pirate',crew,members:[e],x:s.x,z:s.z,t:0,porch:{x:s.x,z:s.z}};
@@ -2880,7 +2883,7 @@ function frIncStart(kind){const spots=frSpots();const cand=(list,fn)=>list.filte
     e.script=(e,dt)=>{I.t+=0;if(e.state!=='idle')return;const d=e.pos.distanceTo(P.pos);
       if(!e.flee&&I.t>3)e.flee=true;if(e.flee){e.mv=moveToward(e,run.x,run.z,d<14?4.2:2.6,dt);e.mvS=d<14?1.5:1;faceTo(e,run.x,run.z,dt,6)}else{e.mv=false;faceTo(e,s.x+(s.face?s.face[0]:0)*3,s.z+(s.face?s.face[1]:1)*3,dt,4)}
       if(d<3.6&&!e.triedSurr){e.triedSurr=true;surrender(e);radio(crew.short,pick(FR_LINES.surrender),true)}}}
-  else if(kind==='carjack'){const cars=(L.cars||[]).filter(c=>c!==VAN&&c!==CV&&c.owner==='neighbour'&&frInRiver(c.pos.x,c.pos.z)&&!frInSite(c.pos.x,c.pos.z,2)).map(c=>({s:{x:c.pos.x,z:c.pos.z,car:c},d:Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
+  else if(kind==='carjack'){const cars=(L.cars||[]).filter(c=>c!==VAN&&c!==CV&&c.owner==='neighbour'&&frInRiver(c.pos.x,c.pos.z)&&(!only||(frTurfAt(c.pos.x,c.pos.z)||{}).id===only)&&!frInSite(c.pos.x,c.pos.z,2)).map(c=>({s:{x:c.pos.x,z:c.pos.z,car:c},d:Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
     const c=cars[0];if(!c)return false;const car=c.s.car,crew=frTurfAt(car.pos.x,car.pos.z)||frNearestCrew(car.pos.x,car.pos.z),S=carSize(car),r=V3(Math.cos(car.yaw),0,-Math.sin(car.yaw)),f=V3(-Math.sin(car.yaw),0,-Math.cos(car.yaw));
     let side=1;{const q=car.pos.clone().addScaledVector(r,S.w/2+.6);if(!walkable(tx(q.x),tx(q.z)))side=-1}
     const a=frMake(crew,car.pos.x+r.x*(S.w/2+.55)*side+f.x*.2,car.pos.z+r.z*(S.w/2+.55)*side+f.z*.2,null,'incident'),b=frMake(crew,car.pos.x+r.x*(S.w/2+1.6)*side-f.x*2.2,car.pos.z+r.z*(S.w/2+1.6)*side-f.z*2.2,null,'incident');
@@ -2893,7 +2896,10 @@ function frIncStart(kind){const spots=frSpots();const cand=(list,fn)=>list.filte
     I={kind,text:'Break it up',crew:A,crew2:B,members:ms,x:s.x,z:s.z,t:0};
     for(const e of ms)e.script=(e,dt)=>{const o=ms.filter(m=>m.fr!==e.fr&&m.state==='idle').sort((p,q)=>p.pos.distanceTo(e.pos)-q.pos.distanceTo(e.pos))[0];e.mv=false;if(o)faceTo(e,o.pos.x,o.pos.z,dt,6);
       if((e.jT=(e.jT||rand(.5,2))-dt)<0){e.jT=rand(1.4,3);cue(Math.random()<.5?'interact':'hit',e.dude,false)}}}
-  if(!I)return false;const g={crew:I.crew,spot:{x:I.x,z:I.z},members:I.members,x:I.x,z:I.z,kind:'incident',notice:0,t:simT};for(const e of I.members)e.group=g;FR.groups.push(g);I.group=g;
+  if(!I)return false;
+  /* a member who would pop up in sight (around a corner from the spot) cancels the incident */
+  if(I.members.some(e=>e.spawnSeen)){for(const e of[...I.members])frRemove(e);const L_=FR.stats.spawnLog;for(const e of I.members){const j=L_.findIndex(q=>q.t===+simT.toFixed(1)&&q.kind==='incident');if(j>=0)L_.splice(j,1)}return false}
+  const g={crew:I.crew,spot:{x:I.x,z:I.z},members:I.members,x:I.x,z:I.z,kind:'incident',notice:0,t:simT};for(const e of I.members)e.group=g;FR.groups.push(g);I.group=g;
   FR.inc=I;FR.stats.incidents=(FR.stats.incidents||0)+1;HUD.banner({kind:'alert',kicker:'Optional',title:I.text.toUpperCase(),sub:kind==='scuffle'?I.crew.name+' and '+I.crew2.name+' on the corner':kind==='porch'?'Somebody is lifting a package off a porch':'Somebody is in '+I.car.name+"'s car",dur:2.4});
   if(kind==='porch')frSay(FR_LINES.porch,speaker()||'you');FR.dirtyTargets=true;return true}
 function frIncUpdate(dt){const I=FR.inc;I.t+=dt;const live=I.members.filter(e=>e.state==='idle'&&!e.leave),d=Math.hypot(I.x-P.pos.x,I.z-P.pos.z);

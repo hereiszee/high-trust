@@ -2,7 +2,7 @@
 
 Outside a job, Riverside Flats is the one place where the dad can take his gun out. Three made-up crews of petty thieves hang around their own blocks. Firing raises **heat**, and heat brings the crews out: first the local one, then a second crew, and the two crews end up fighting each other as well as the dads. Heat cools off once nobody is firing. Zip-tying crew members raises Riverside trust and thins that crew out. As trust climbs, the crews fade away, and at the top tier the whole system switches off.
 
-All of the code lives in one section of `index.html`, **FREE ROAM / HEAT**, just above `LOOP`. The section header lists every hook it uses. The checks are in `node dev/riverside-heat.js [--shots] [--write]`. Screenshots and the evidence file go in `docs/screenshots/riverside-heat/`.
+All of the code lives in one section of `index.html`, **FREE ROAM / HEAT**, just above `LOOP`. The section header lists every hook it uses. The checks are in `node dev/riverside-heat.js [--write]` and the staged screenshots in `node dev/riverside-heat-shots.js`. Both write to `docs/screenshots/riverside-heat/` (`evidence.txt` plus six jpgs).
 
 ## Player rules
 
@@ -74,14 +74,14 @@ At 90+ the gun won't come out ("Nobody's out here but kids with chalk, man. Put 
 
 ## Incidents (optional, one at a time, only at heat 0)
 
-These start 32-75 m away and out of sight. Each shows a banner, an objective line ("… · optional") and a marker.
+These start 32-75 m away and out of sight. At 70%+ only the Dock St crew is left, so the only incidents are its porch pirates and car break-ins. Each shows a banner, an objective line ("… · optional") and a marker.
 - **Porch pirate:** a thief grabs a package off a stoop, walks off, and runs if you get close. Catch him (3.2 m) and he gives up. Zip-tie him, then take the package back to the porch.
 - **Car break-in:** two crew members at a parked neighbour's car. Walk up with your gun drawn (14 m), or holstered (10 m) and lose a coin flip, and they fight. Otherwise they run.
 - **Scuffle:** two members each from two crews shoving at a corner. Holstered, `E` within 6.5 m breaks it up (+1 trust). With your gun drawn they scatter. Shooting near them starts a war between the two crews.
 
 ## Safety valves
 
-- **Spawning:** never within 25 m of the dad or in his sight. "In sight" means a clear line on the grid from the dad (rowhouses, walls and trees block it; chain-link and hedges don't), or in the camera frustum with a clear line from the camera. Ambient groups spawn 30-85 m away, and reinforcements spawn 32-58 m away on sidewalks and roads. Nothing ever spawns on a mission lot or within its margin. The only exception is the heat-5 car: its riders get out of a car you watched drive in.
+- **Spawning:** never within 25 m of the dad or in his sight. "In sight" means a clear line on the grid from the dad (rowhouses, walls and trees block it; chain-link and hedges don't), or in the camera frustum with a clear line from the camera. The check runs for every member's own position, not just the spot, because a corner can hide the spot and still show a shoulder. Ambient groups spawn 30-85 m away. At the cap, the farthest quiet group that nobody can see goes home, so the street life follows the dad. and reinforcements spawn 32-58 m away on sidewalks and roads. Nothing ever spawns on a mission lot or within its margin. The only exception is the heat-5 car: its riders get out of a car you watched drive in.
 - **Caps:** at most 10 hostiles. Past that, a provoked loiterer runs off instead. At most 12 loiterers.
 - **Story missions:** a job start clears free roam. `clearChars()` calls `frReset()`, and `frUpdate` only runs from `updHub`.
 - **Neighbours:** up to 4, depending on tier, on their porches. Kids appear from 50%. Their meshes never go into `rayTargets`, so they can't be hit. At heat ≥ 1, or with anyone hostile, they walk indoors and disappear. They come back after 6 s of calm.

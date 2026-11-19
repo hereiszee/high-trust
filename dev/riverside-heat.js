@@ -131,11 +131,11 @@ const want=k=>!ONLY.length||ONLY.includes(k);
     ok(k.dead&&k.dTrust<=-2,'killing one lowers Riverside trust ('+k.dTrust+'), his gun drops ('+k.pickups+' pickup(s))')}
 
   if(want('tiers')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,K=H.keys,F=H.fr;const res={};
-      for(const t of[5,35,72,95]){__clean(t);F.incT=5;F.ambT=0;__go(318,43,-Math.PI/2);const wps=[[315,43],[315,15],[443,15],[443,127],[315,127],[315,99],[379,99],[379,43]];let wi=0,maxM=0,crews=new Set();
-        for(let s=0;s<3500;s++){const w=wps[wi];const dx=w[0]-P.pos.x,dz=w[1]-P.pos.z;if(Math.hypot(dx,dz)<3)wi=(wi+1)%wps.length;P.yaw=Math.atan2(-dx,-dz);K.w=true;K.shift=true;H.step(1);maxM=Math.max(maxM,F.members.length);for(const e of F.members)crews.add(e.fr.id)}
-        K.w=K.shift=false;H.frKey('1');const armed=H.frArmed;H.mouse=true;H.step(3);H.mouse=false;res[t]={maxM,crews:[...crews],inc:F.stats.incidents||0,armed,heat:H.heat,cap:F.cap}}
+      for(const t of[5,35,72,95]){__clean(t);F.incT=5;F.ambT=0;__go(318,43,-Math.PI/2);const wps=[[315,43],[315,15],[443,15],[443,127],[315,127],[315,99],[379,99],[379,43]];let wi=0,maxM=0,sum=0,crews=new Set();
+        for(let s=0;s<3500;s++){const w=wps[wi];const dx=w[0]-P.pos.x,dz=w[1]-P.pos.z;if(Math.hypot(dx,dz)<3)wi=(wi+1)%wps.length;P.yaw=Math.atan2(-dx,-dz);K.w=true;K.shift=true;H.step(1);sum+=F.members.length;maxM=Math.max(maxM,F.members.length);for(const e of F.members)crews.add(e.fr.id)}
+        K.w=K.shift=false;H.frKey('1');const armed=H.frArmed;H.mouse=true;H.step(3);H.mouse=false;res[t]={maxM,avg:+(sum/3500).toFixed(1),crews:[...crews],inc:F.stats.incidents||0,armed,heat:H.heat,cap:F.cap}}
       return res});
-    ok(r[5].maxM>r[35].maxM&&r[35].maxM>=r[72].maxM,'crews dwindle with Riverside trust: peak '+r[5].maxM+' people at 5%, '+r[35].maxM+' at 35%, '+r[72].maxM+' at 72% (only '+r[72].crews.join(',')+')');
+    ok(r[5].avg>r[35].avg&&r[35].avg>r[72].avg,'crews dwindle with Riverside trust: on average '+r[5].avg+' people out at 5%, '+r[35].avg+' at 35%, '+r[72].avg+' at 72% (only '+r[72].crews.join(',')+'); peaks '+r[5].maxM+'/'+r[35].maxM+'/'+r[72].maxM);
     ok(r[95].maxM===0&&!r[95].armed&&r[95].heat===0&&r[95].cap===0,'top tier (95%): no crews, no incidents, the gun stays holstered, heat stays 0 (system off)');
     log('     heat cap by tier: 5% '+r[5].cap+', 35% '+r[35].cap+', 72% '+r[72].cap+', 95% '+r[95].cap)}
 
