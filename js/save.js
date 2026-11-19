@@ -160,7 +160,7 @@ const SUPPLIES={
   icePack:{name:'Ice Packs & Ibuprofen',price:35,flag:'icePack',fx:'Your crew gets back up 30% faster during the next mission',blurb:"For hamstrings, lower backs and the knee you hurt getting out of the van."}};
 
 const STORES={
-  dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Delivered after your next outing.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
+  dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Boxes land on your porch after your next job.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
   hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now',discount:{hood:'trust',at:60}},
   mart:{name:'Ramos Corner Mart',who:'Riverside Flats · Open late',tag:'"Your friend with the mustache bought all my beef jerky." Mrs. Ramos',tabs:[['sup','Supplies'],['stick','Stickers']],deliver:'now',discount:{hood:'trustR',at:60}},
   auto:{name:"Dad's Auto",who:'Route 9 · Sal Benedetto, proprietor',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['looks','Looks'],['cars','Vehicles'],['repair','Repair']],deliver:'now',
@@ -1115,7 +1115,7 @@ function buyButtonHTML(st,armed,store){
       :`<button class="htm-btn" data-nav data-act="primary"><span>${verb} · ${st.price?money(st.price):'Free'}</span></button>`}
   if(st.state==='poor')return`<button class="htm-btn poor" data-nav data-act="primary" aria-disabled="true"><span>Need ${money(st.short)} more</span></button>`;
   if(st.state==='locked')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span><i class="htm-lock"></i>${esc(st.reason||'Locked')}</span></button>`;
-  if(st.state==='pending')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>On its way · arrives at home</span></button>`;
+  if(st.state==='pending')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>On its way · on the porch after your next job</span></button>`;
   if(st.state==='maxed')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>${esc(st.reason||'Maxed out')}</span></button>`;
   const use={car:'Drive this one',cos:'Use this one',stick:'Stick it on'}[st.kind];
   if(st.state==='owned'&&use)return`<button class="htm-btn" data-nav data-act="primary"><span>${use}</span></button>`;
@@ -1184,7 +1184,7 @@ function shopDetail(m,e){
     <div class="htm-dscroll"><div class="htm-kicker">${esc(kicker)}</div><h3 class="htm-name">${esc(name)}</h3>
     ${blurb?`<p class="htm-blurb">${esc(blurb)}</p>`:''}${fx?`<div class="htm-fx"><b>What it does</b>${esc(fx)}</div>`:''}${body}</div>
     <div class="htm-buy"><div class="htm-buyrow">${buyButtonHTML(st,armed,m.store)}${sellV?`<button class="htm-ghost" data-nav data-act="sell">Sell · ${money(sellV)}</button>`:''}</div>
-    ${m.store==='dadazon'&&st.state==='buy'?'<div class="htm-note">Free shipping · arrives the next time you get home</div>':st.discount&&st.state==='buy'?'<div class="htm-note">'+(m.store==='auto'?'Family discount':'Neighbor discount')+': you save '+money(st.base-st.price)+'</div>':''}</div>
+    ${m.store==='dadazon'&&st.state==='buy'?'<div class="htm-note">Free shipping · arrives on your porch after your next job</div>':st.discount&&st.state==='buy'?'<div class="htm-note">'+(m.store==='auto'?'Family discount':'Neighbor discount')+': you save '+money(st.base-st.price)+'</div>':''}</div>
     <button class="htm-sheetx" data-act="sheetclose" aria-label="Back to list">✕</button>`}
 
 /* Thumbnail renderer for real 3D: glTF files (item.model), guns via HT.Guns.model(type), vehicles via HT.Vehicles.make(type,{color,upgrades}).
