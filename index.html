@@ -153,8 +153,9 @@ const ASSETS=(()=>{
   A.url=(u,t)=>url(norm(u),t);
   /* other modules' THREE loaders (default manager) get the optimised variant transparently; GLTFLoaders get the meshopt decoder */
   if(THREE.DefaultLoadingManager.setURLModifier)THREE.DefaultLoadingManager.setURLModifier(u=>A.man&&!/^(blob|data):/.test(u)&&ent(u)?url(norm(u)):u);
-  if(THREE.GLTFLoader&&typeof MeshoptDecoder!=='undefined'&&!THREE.GLTFLoader.__mo){const GL=THREE.GLTFLoader;
-    const W=function(m){const l=new GL(m);if(l.setMeshoptDecoder)l.setMeshoptDecoder(MeshoptDecoder);return l};W.prototype=GL.prototype;W.__mo=true;THREE.GLTFLoader=W}
+  /* every GLTFLoader, including ones other modules created before this ran (js/people.js), gets the meshopt decoder at parse time */
+  if(THREE.GLTFLoader&&typeof MeshoptDecoder!=='undefined'&&!THREE.GLTFLoader.prototype.__mo){const GP=THREE.GLTFLoader.prototype,parse=GP.parse;GP.__mo=true;
+    GP.parse=function(...a){if(!this.meshoptDecoder&&this.setMeshoptDecoder)this.setMeshoptDecoder(MeshoptDecoder);return parse.apply(this,a)}}
   let anisoCap=8;const aniso=()=>Math.min(anisoCap,renderer.capabilities.getMaxAnisotropy());
   const gltfLoader=THREE.GLTFLoader?new THREE.GLTFLoader():null;
 
@@ -462,14 +463,14 @@ const RENDER=(()=>{
   let t0=performance.now();
   let batchedL=null;
   R.draw=()=>{skyDome.position.copy(camera.position);autoTick(performance.now());
-    if(L!==batchedL){batchedL=L;try{R.batch=BATCH.run(L,VAN.obj)}catch(e){console.warn('static batching failed',e)}}
+    if(L!==batchedL){batchedL=L;try{R.batch=BATCH.run(L)}catch(e){console.warn('static batching failed',e)}}
     if(R.post&&R.composer){grade.uniforms.time.value=(performance.now()-t0)/1000;renderer.autoClear=true;
       try{R.composer.render()}catch(e){console.warn('post-processing failed, falling back',e);R.post=false}renderer.autoClear=false;if(R.post)return}
     renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);if(vm.visible){renderer.clearDepth();renderer.render(vmScene,vmCam)}};
   R.mats={aoMat,compMat,get grade(){return grade}};
   return R})();
 /* ================= STATIC BATCHING ================= */
-/* once per level, on its first frame: house and parked-car meshes that share a material are merged per 40 m cell
+/* once per level, on its first frame: house meshes that share a material are merged per 32 m cell
    (hundreds of draw calls become a few dozen; frustum culling still works per cell). The originals stay in place,
    invisible, so raycasts against lvl.solids are unchanged. Parts smaller than 0.45 m stop casting shadows, and the
    batched objects get frozen matrices. A mesh with userData.noBatch, a skinned/instanced mesh, multi-material or
@@ -490,9 +491,9 @@ const BATCH=(()=>{const CELL=32,_m=new THREE.Matrix4(),_n=new THREE.Matrix3(),_v
       vo+=c}
     const g=new THREE.BufferGeometry();for(const k of names)g.setAttribute(k,new THREE.BufferAttribute(out[k],g0.attributes[k].itemSize));g.setIndex(new THREE.BufferAttribute(idx,1));
     g.computeBoundingSphere();g.computeBoundingBox();return g}
-  function run(lvl,exclude){const t0=performance.now();if(!lvl||!lvl.group)return null;
+  function run(lvl){const t0=performance.now();if(!lvl||!lvl.group)return null;
     const roots=[];for(const h of lvl.houses||[])if(h.group)roots.push(h.group);
-    for(const o of lvl.group.children)if(o.userData&&o.userData.mod&&o!==exclude)roots.push(o);
+    /* vehicles are never batched: any car can be borrowed and swaps its level of detail (regCar/swapLod) */
     const buckets=new Map();let before=0;lvl.group.updateMatrixWorld(true);
     for(const r of roots){const cx=Math.floor(r.position.x/CELL),cz=Math.floor(r.position.z/CELL);
       r.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||!o.visible||o.userData.noBatch||Array.isArray(o.material)||o.geometry.morphAttributes.position||!o.geometry.attributes.position)return;
@@ -1373,8 +1374,17 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.
   const close=()=>{HUD.hide('brief');UI.acts={}};
   UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
-    'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMission(i);requestLock()},
+    'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMissionWhenReady(i);requestLock()},
     'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
+/* UI paths start a job through here: if its crew, boss or the core enemy looks have not streamed in yet, hold for at most
+   10 s on "Loading the crew…" so nobody shows up as a box stand-in (tests call startMission directly) */
+let castWait=null;
+function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
+  const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
+  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).map(c=>DAD[c]||c),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
+  if(!keys.length){startMission(i);return}
+  if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
+  castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
 function startMission(i){
   settleBorrow(true);engine(false);VAN.on=false;JOB=null;
   const m=MISSIONS[i];mode='mission';clearChars();buildLevel(m);makePlayer();
@@ -1403,7 +1413,7 @@ function endMission(ok,why,title){
   const res={fail:!ok,stamp:(ok?'Job done':'Job failed')+' · '+m.place,title:head,text:(lent?'Coach Rick: "Keep the carbine. Clean it Sundays." ':'')+end,canRetry:!ok,
     stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(prog.trust)+'%']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
-  UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMission(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
+  UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMissionWhenReady(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
   metaResult(ok,res,mi);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
@@ -2115,7 +2125,7 @@ function updHub(dt){
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
-        else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMission(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
+        else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMissionWhenReady(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
   }else{const e=nearCar();if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
   DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
@@ -2350,7 +2360,7 @@ function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprit
   for(const c of cand){if(!!c.van!==VAN.on)continue;const p=VAN.on?VAN.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&d<bd){bd=d;best=c}}
   if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
   if(VAN.on&&Math.abs(VAN.spd)>3)return null;
-  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else HUD.feed('Jen is looking for the spare key…','info')}
+  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else{homeInit();homeWant=true;HUD.feed('Unlocking the front door…','info')}}
     else if(best.id==='hardware')openShop('hardware');else openShop('auto');return null}
   return KE+' · '+best.label}
 
@@ -2380,10 +2390,11 @@ function rbPerson(role){const key={spouse:'wife',son:'son',daughter:'daughter'}[
 function familyPerson(role){return rbPerson(role)}
 function homeInit(){if(homeLoading||!HOMEM)return homeLoading;
   homeLoading=Promise.all([HOMEM.init({assets:ASSETS,renderer,makePerson:familyPerson}),rbLoad()]).then(()=>{homeReady=true}).catch(e=>{console.warn('home init failed',e);homeReady=true});return homeLoading}
-/* the house (about 13 MB of furniture, family and textures) loads when the player heads for it, or once everything
-   else has finished streaming; until then its door says "unlocking…" (docs/PERF.md) */
-ASSETS.ready.then(()=>{const iv=setInterval(()=>{const h=HUBX&&HUBX.home,near=h&&mode==='hub'&&Math.hypot(P.pos.x-h.x,P.pos.z-h.z)<40;
-  if(near||ASSETS.stream.idle()||homeLoading){clearInterval(iv);homeInit()}},1000)});
+/* the house (about 13 MB of furniture, family and textures) loads on demand: when the player walks up to the front door
+   (within 15 m) or uses it; the door says "unlocking…" meanwhile and lets the player in as soon as it is ready (docs/PERF.md) */
+let homeWant=false;
+ASSETS.ready.then(()=>{setInterval(()=>{const h=HUBX&&HUBX.home;if(!h||mode!=='hub')return;const d=Math.hypot(P.pos.x-h.x,P.pos.z-h.z);
+  if(d<15&&!homeLoading)homeInit();if(homeWant&&homeReady){homeWant=false;if(d<4)enterHome()}},500)});
 
 /* ---------- home mode ---------- */
 let homeVan=null,homeHint=0;
@@ -2559,6 +2570,8 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);
+/* the house loads on demand (docs/PERF.md); tests that need it start it explicitly */
+window.__ht.homeInit=()=>homeInit();
 /* character test hooks (dev/people scripts) */
 /* open world test hooks (SPEC2 D __ht additions) */
 Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
