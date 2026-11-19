@@ -733,7 +733,7 @@ function banner(t,s,d=3){if(!t){if(s)HUD.feed(s,'info');return}
   HUD.banner(intro?{kind:'title',kicker:'New job',title:M.def.title,sub:s,dur:d}:{kind:'alert',title:t,sub:s,dur:d})}
 function addTrust(v){prog.trust=clamp(prog.trust+v,0,100)}
 /* 'E · Zip-tie', 'Hold E · Grab the packages', 'USE · Talk to Gary' */
-function setPrompt(t,p){if(!t){UI.prompt=null;return}const m=/^(Hold\s+)?(\S+)\s+·\s+(.*)$/.exec(t);
+function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<small>(.*?)<\/small>/gi,' ($1)').replace(/<[^>]+>/g,'');const m=/^(Hold\s+)?(\S+)\s+·\s+(.*)$/.exec(t);
   UI.prompt=m?{key:m[2]==='USE'?'E':m[2],text:m[3],hold:!!m[1],progress:p||0}:{text:t,progress:p||0}}
 
 /* ================= SPAWNING ================= */
