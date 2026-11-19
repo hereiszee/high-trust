@@ -26,7 +26,7 @@ const SHOTS=[
   ['drive-2',{hub:true,drive:5,steer:'d',drive2:1.2}],
   ['m1-start',{m:0}],['m1-mid',{m:0,pos:[30,0,20],yaw:Math.PI,pitch:-.1}],['m1-room',{m:0,pos:[48,0,16],yaw:-2.2,pitch:-.05}],['m1-fp',{m:0,pos:[20,0,34],yaw:-1.4,fp:true}],
   ['m2-start',{m:1}],['m2-mid',{m:1,pos:[30,0,20],yaw:Math.PI,pitch:-.05}],['m2-room',{m:1,pos:[22,0,28],yaw:-.6,pitch:-.05}],['m2-fp',{m:1,pos:[34,0,26],yaw:1.7,fp:true}],
-  ['m3-start',{m:2}],['m3-mid',{m:2,pos:[28,0,22],yaw:-.4,pitch:-.2}],['m3-side',{m:2,pos:[12,0,8],yaw:-2.3,pitch:-.12}],['m3-fp',{m:2,pos:[30,0,10],yaw:Math.PI,fp:true}],
+  ['m3-start',{m:2}],['m3-mid',{m:2,pos:[40,0,20],yaw:.5,pitch:-.15}],['m3-side',{m:2,pos:[12,0,8],yaw:-2.3,pitch:-.12}],['m3-fp',{m:2,pos:[30,0,10],yaw:Math.PI,fp:true}],
   ['m4-start',{m:3}],['m4-yard',{m:3,pos:[28,0,14],yaw:Math.PI,pitch:-.1}],['m4-room',{m:3,pos:[30,0,42],yaw:-.3,pitch:-.05}],['m4-fp',{m:3,pos:[18,0,34],yaw:-1.6,fp:true}],
 ];
 (async()=>{
@@ -51,8 +51,11 @@ const SHOTS=[
       h.step(2);},{o,same:cur===lvl&&!o.drive});
     if(!o.drive)cur=lvl;else cur=null;
     await wait(4500);
-    const info=await page.evaluate(()=>{const h=window.__ht,r=h.renderer;r.info.autoReset=false;r.info.reset();r.setRenderTarget(null);r.render(h.scene,h.camera);const i={calls:r.info.render.calls,tris:r.info.render.triangles,geos:r.info.memory.geometries,tex:r.info.memory.textures};r.info.autoReset=true;return i});
-    if(!stats[lvl]||info.calls>stats[lvl].calls)stats[lvl]=info;
+    const info=await page.evaluate(()=>{const h=window.__ht,r=h.renderer;r.info.autoReset=false;r.info.reset();r.setRenderTarget(null);r.render(h.scene,h.camera);const i={calls:r.info.render.calls,tris:r.info.render.triangles,geos:r.info.memory.geometries,tex:r.info.memory.textures};
+      /* world only: the same frame with every character hidden */
+      const ch=[h.P,...h.enemies,...h.allies].map(e=>e.dude&&e.dude.root).filter(Boolean);const was=ch.map(c=>c.visible);ch.forEach(c=>c.visible=false);const v=h.VAN&&h.VAN.obj;const vw=v&&v.visible;if(v)v.visible=false;
+      r.info.reset();r.render(h.scene,h.camera);i.world=r.info.render.calls;ch.forEach((c,k)=>c.visible=was[k]);if(v)v.visible=vw;r.info.autoReset=true;return i});
+    if(!stats[lvl]||info.world>stats[lvl].world)stats[lvl]=info;
     await page.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on')});await wait(300);
     await page.screenshot({path:path.join(OUT,name+'.jpg'),type:'jpeg',quality:86});
     console.log(name,JSON.stringify(info))}
