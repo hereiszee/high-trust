@@ -91,6 +91,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
     for(const m of(Array.isArray(o.material)?o.material:[o.material])){if(m.userData.rbPrep)continue;m.userData.rbPrep=1;m.envMapIntensity=.85;
       for(const t of[m.map,m.normalMap,m.roughnessMap,m.metalnessMap])if(t){t.anisotropy=low?1:4;if(low)capTexture(t,t===m.map?512:256)}
       if(low&&m.normalMap&&!/head/.test(m.name)){m.normalMap=null;m.needsUpdate=true}}});
+  /* Coach Rick reads too young: salt-and-pepper hair */
+  if(key==='dad_rick')s.traverse(o=>{if(o.isMesh&&o.material&&/opacity|hair/i.test(o.material.name)&&o.material.map)greyHair(o.material.map,.72)});
   /* caps: replace the stiff helmet-like shell with a proper fabric baseball cap */
   const cap=B('acc_cap');if(cap){const col=(cap.material&&cap.material.color)?cap.material.color.clone():new T.Color(.05,.05,.1);cap.visible=false;cap.castShadow=false;
     const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,col,key))}
@@ -99,6 +101,10 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
   const hand=B('Bip01_R_Hand');if(hand){const gh=new T.Group();gh.name='gunHold';hand.add(gh)}
   return tpl[key]={scene:s,hip,key}}
 
+function greyHair(t,k){const im=t.image;if(!im||!im.width)return;try{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);
+    const d=x.getImageData(0,0,c.width,c.height),a=d.data;for(let i=0;i<a.length;i+=4){const l=(a[i]*.3+a[i+1]*.59+a[i+2]*.11);
+      /* grey strands: lift and desaturate, keep some dark for pepper */const n=((i>>2)*2654435761>>>0)%100<55;const g=n?Math.min(255,l*1.9+70):l*1.15+18;
+      a[i]+=(g-a[i])*k;a[i+1]+=(g-a[i+1])*k;a[i+2]+=(g*1.02-a[i+2])*k}x.putImageData(d,0,0);t.image=c;t.needsUpdate=true}catch(e){}}
 const capped=new WeakSet();
 function capTexture(t,max){const im=t.image;if(!im||!im.width||im.width<=max||capped.has(t))return;capped.add(t);
   try{const c=document.createElement('canvas');const k=max/Math.max(im.width,im.height);c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);t.image=c;t.needsUpdate=true}catch(e){}}
@@ -205,7 +211,9 @@ P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;rb.gunType=type
   if(d.gun){const muzzleNegZ=d.gun.userData&&d.gun.userData.muzzle==='-z';if(!muzzleNegZ&&rb.style!=='pistol'){gh.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI));const n=BOX_NUDGE[type]||[0,0,0];d.gun.position.set(n[0],n[1],n[2])}}};
 function oneShot(d,name,dur,peak){const rb=d.rb;if(!rb||rb.dead)return;const a=act(rb,name,'ar'),b=act(rb,name,'sp');if(!a)return;const cd=rb.acts[name].c.dur;
   for(const x of[a,b]){x.reset();x.timeScale=dur?cd/dur:1;x.play()}rb.one={name,t:0,dur:dur||cd,peak:peak||1}}
-P.fire=d=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style==='pistol';oneShot(d,ps?'pistol_fire':'rifle_fire',ps?.4:.22,1);rb.kick=1};
+P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style==='pistol';oneShot(d,ps?'pistol_fire':'rifle_fire',ps?.4:.22,1);rb.kick=1;
+  const G=HT.Guns,vc=G&&G.VMC&&G.VMC[rb.gunType];const k=cycle||(vc&&vc.cycle);if(k==='pump'||k==='boltAction')rb.cyc={t:0,k}};
+P.interact=d=>{const rb=d&&d.rb;if(!rb)return;oneShot(d,'interact',1.1,.85)};
 P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
 P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead)return;oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
 P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;rb.dead=true;rb.deadT=0;rb.one=null;setBase(d,'death');};
@@ -225,9 +233,10 @@ function leftHandIK(d,w){const rb=d.rb,B=rb.bones,s=SUPPORT[rb.gunType];if(!s||!
   hd.getWorldPosition(_c);f2.getWorldPosition(_w);const palm=_u.copy(_c).lerp(_w,.55);
   m.updateWorldMatrix(true,false);
   /* a moving pump: aim for the middle of its grip, measured once per model */
-  if(m.userData.rbSupport===undefined){m.userData.rbSupport=null;const pu=m.getObjectByName('pump');if(pu){const inv=new T.Matrix4().copy(m.matrixWorld).invert(),bx=new T.Box3().setFromObject(pu).applyMatrix4(inv);
-      if(!bx.isEmpty())m.userData.rbSupport=[(bx.min.z+bx.max.z)/2,bx.min.y-.02]}}
-  const sp=m.userData.rbSupport;if(sp)_t.set(0,sp[1],sp[0]);else _t.set(0,s[1]-s[2]-.022,-s[0]);_t.applyMatrix4(m.matrixWorld);
+  if(m.userData.rbSupport===undefined){m.userData.rbSupport=null;const pu=m.getObjectByName('pump');if(pu){pu.updateWorldMatrix(true,false);const bx=new T.Box3().setFromObject(pu);
+      if(!bx.isEmpty()){const inv=new T.Matrix4().copy(m.matrixWorld).invert(),lb=bx.clone().applyMatrix4(inv);/* point under the pump grip, kept in the pump's own space so it follows the pump stroke */
+        const pm=new T.Vector3(0,lb.min.y-.02,(lb.min.z+lb.max.z)/2).applyMatrix4(m.matrixWorld).applyMatrix4(new T.Matrix4().copy(pu.matrixWorld).invert());m.userData.rbSupport={node:pu,p:pm,z0:pu.position.z}}}}
+  const sp=m.userData.rbSupport;if(sp){sp.node.updateWorldMatrix(true,false);_t.copy(sp.p).applyMatrix4(sp.node.matrixWorld)}else _t.set(0,s[1]-s[2]-.022,-s[0]).applyMatrix4(m.matrixWorld);
   _t.sub(palm);const err=_t.length();if(err<.004||err>.35)return;
   const goal=_t.multiplyScalar(w).add(_c);/* desired wrist */
   hd.getWorldQuaternion(_hq);
@@ -254,22 +263,27 @@ function chooseBase(d){const rb=d.rb,inp=rb.in,m=inp.mode;
   if(m==='kneel')return'kneel_cuffed';
   if(m==='hands')return'hands_up';
   if(m==='sit')return rb.female?'f_sit':'sit';
+  if(m==='offer'){rb.hipT=0;rb.back=false;return'idle'}
   const v=Math.hypot(rb.vx,rb.vz);
-  if(m==='crouch')return v>.25?'crouch_walk':'ual_crouch_idle';
+  /* sideways and diagonal moves: the legs play a forward (or backward) gait turned toward the travel direction, the torso counter-turns to keep facing */
+  const ang=Math.atan2(rb.vx,rb.vz);const back=Math.abs(ang)>(rb.back?1.6:1.85);rb.back=back&&v>.15;
+  rb.hipT=v<.2?0:back?ang-Math.sign(ang)*Math.PI:Math.max(-1.45,Math.min(1.45,ang));
+  if(m==='crouch')return v>.25?'crouch_walk':'crouch_idle';
   const cur=rb.base,still=v<(LOCO.includes(cur)||SPEED[cur]?.18:.32);
-  if(still)return rb.idle==='idle_arms_folded'&&(inp.aim||rb.one)?'idle':rb.idle;
-  const fwd=rb.vz,side=rb.vx;
-  if(Math.abs(side)>Math.abs(fwd)*1.2&&v>.6)return side>0?'strafe_left':'strafe_right';
-  if(fwd<-Math.abs(side)*.8)return v>1.7?'run_back':rb.walk;
+  if(still){rb.hipT=0;return rb.idle==='idle_arms_folded'&&(inp.aim||rb.one)?'idle':rb.idle}
+  if(rb.back)return v>1.9?'run_back':rb.walk;
   if(rb.female)return rb.walk;
   /* pick the clip whose recorded speed is closest in ratio, with a little stickiness to the current one */
   let best=rb.walk,bs=1e9;for(const n of LOCO){let s=Math.abs(Math.log(v/SPEED[n]));if(n===cur)s-=.12;if(s<bs){bs=s;best=n}}return best}
-function rateFor(rb,name){const v=Math.hypot(rb.vx,rb.vz);if(name==='crouch_walk')return Math.min(3.8,Math.max(.6,v/SPEED[name]));
-  if(name===rb.walk&&rb.vz<-.1&&Math.abs(rb.vz)>=Math.abs(rb.vx)*.8)return -Math.min(1.8,Math.max(.5,v/SPEED[name]));
+function rateFor(rb,name){const v=Math.hypot(rb.vx,rb.vz);
+  /* crouch-run: cap the cadence (a little glide beats a frantic shuffle) */
+  if(name==='crouch_walk')return (rb.back?-1:1)*Math.min(2.4,Math.max(.6,v/SPEED[name]));
+  if(name===rb.walk&&rb.back)return -Math.min(1.8,Math.max(.5,v/SPEED[name]));
   if(SPEED[name])return Math.min(2.2,Math.max(.55,v/SPEED[name]));return 1}
 function setW(x,w,n){if(!x)return;if(w>1e-4){if(!ONCE[n]&&!x.isRunning())x.play();x.setEffectiveWeight(w)}else{x.setEffectiveWeight(0);if(!ONCE[n]&&x.isRunning())x.stop()}}
 function rotWorld(b,axisW,ang){if(!b||Math.abs(ang)<1e-4)return;b.parent.getWorldQuaternion(_q);_ax.copy(axisW).applyQuaternion(_q.invert());_q2.setFromAxisAngle(_ax,ang);b.quaternion.premultiply(_q2)}
-const PROC_BONES=['Bip01_Spine','Bip01_Neck','Bip01_Spine1','Bip01_Spine2','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_L_Forearm','Bip01_L_Hand'];
+const PISTOL_FIX=[-.216,.2];
+const PROC_BONES=['Bip01_Pelvis','Bip01_Head','Bip01_Spine','Bip01_Neck','Bip01_Spine1','Bip01_Spine2','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_L_Forearm','Bip01_L_Hand'];
 function step(d,dt){const rb=d.rb,inp=rb.in;
   const base=chooseBase(d);setBase(d,base);
   const full=!!FULL[base]||rb.dead;
@@ -282,8 +296,8 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* upper-body layers: one-shot > aim > hold > locomotion arms */
   const gun=rb.gunType,pist=rb.style==='pistol',longGun=gun&&!pist;
   const v=Math.hypot(rb.vx,rb.vz);
-  const aimT=!full&&gun&&inp.aim?1:0;
-  const holdT=!full&&longGun&&!inp.aim&&rb.base!=='idle_arms_folded'?1:0;
+  const offer=inp.mode==='offer';const aimT=!full&&gun&&inp.aim&&!offer?1:0;
+  const holdT=!full&&longGun&&(!inp.aim||offer)&&rb.base!=='idle_arms_folded'?1:0;
   rb.aimW+=(aimT-rb.aimW)*Math.min(1,dt*12);rb.holdW+=(holdT-rb.holdW)*Math.min(1,dt*8);
   let oneW=0;if(rb.one){const o=rb.one;o.t+=dt;const a=Math.min(1,o.t/.05),z=Math.min(1,(o.dur-o.t)/.12);oneW=full?0:Math.max(0,Math.min(a,z))*o.peak;if(o.t>=o.dur){rb.one=null;oneW=0}}
   /* crouched with a gun up: the aim stance's torso is kept, then hinged forward at the lower spine (head stays below cover) */
@@ -310,15 +324,33 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* hinge: lower spine leans forward, arms and neck turn back by the same world angle so gun and gaze stay level */
   const hw=crouch&&!full?Math.min(1,rb.aimW+(longGun?rb.holdW:0)):0;rb.hinge=(rb.hinge||0)+(hw*.5-(rb.hinge||0))*Math.min(1,dt*10);
   const hinge=rb.hinge>.005?rb.hinge:0;armT-=hinge;
-  if(longGun&&rb.holdW>.01&&!full)armT+=rb.holdW*(v>3.6?.3:.38);
+  if(pist)armT+=PISTOL_FIX[1]*rb.aimW;
+  if(longGun&&rb.holdW>.01&&!full)armT+=rb.holdW*(offer?.05:v>3.6?.3:.38);
+  if(offer)spT+=.18;
+  /* pump / bolt cycle after a shot: the support hand rides the pump back and forth */
+  let pumpOff=0;if(rb.cyc){const c=rb.cyc;c.t+=dt;const t=c.t;const k=t<.1?0:t<.28?(t-.1)/.18:t<.46?1-(t-.28)/.18:0;
+    if(c.k==='pump')pumpOff=k*.075;else armT-=k*.05;if(t>.5)rb.cyc=null}
   if(rb.reloadT>0&&!full){rb.reloadT-=dt;armT+=.6;spT+=.12}
   if(rb.kick>0){rb.kick=Math.max(0,rb.kick-dt*9);armT-=rb.kick*.06}
   const kk=Math.min(1,dt*14);rb.armP+=(armT-rb.armP)*kk;rb.spineP+=(spT-rb.spineP)*kk;
+  /* hip yaw for sideways/diagonal travel (pelvis turns, spine turns back) */
+  rb.hip=(rb.hip||0)+(((full||!rb.hipT)?0:rb.hipT)-(rb.hip||0))*Math.min(1,dt*9);
+  if(Math.abs(rb.hip)>.004&&rb.bones.Bip01_Pelvis){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Pelvis,_cp,rb.hip);rotWorld(rb.bones.Bip01_Spine,_cp,-rb.hip)}
+  /* offering a gun: shoulders turn so the weapon lies across in front, muzzle away from the receiver */
+  rb.offer=(rb.offer||0)+((offer?1:0)-(rb.offer||0))*Math.min(1,dt*6);
+  /* the pistol_aim clip points ~0.2 rad left and high of the body's facing; square it up (rigid: upper torso yaw + shoulder-line pitch) */
+  const tw=.75*rb.offer+(pist?PISTOL_FIX[0]*rb.aimW:0);
+  if(Math.abs(tw)>.004&&rb.bones.Bip01_Spine2){_cp.set(0,1,0);rotWorld(rb.bones.Bip01_Spine2,_cp,tw)}
   if(Math.abs(rb.armP)>.002||Math.abs(rb.spineP)>.002||hinge){const B=rb.bones;_cp.set(1,0,0).applyQuaternion(d.root.getWorldQuaternion(_q2));const left=_v.copy(_cp);
     if(hinge){rotWorld(B.Bip01_Spine,left,hinge);rotWorld(B.Bip01_Neck,left,-hinge*.85)}
     const sp=rb.spineP*.5;rotWorld(B.Bip01_Spine1,left,sp);rotWorld(B.Bip01_Spine2,left,sp);
     rotWorld(B.Bip01_L_UpperArm,left,rb.armP);rotWorld(B.Bip01_R_UpperArm,left,rb.armP)}
-  if(longGun&&!full&&d.gun&&d.gunHold&&d.gunHold.visible){const w=Math.min(1,rb.aimW+rb.holdW)*(rb.one?.6:1);if(w>.05)leftHandIK(d,w)}
+  /* head follows the look pitch when the body isn't already aiming along it */
+  if(inp.pitch&&!full){const hl=-Math.max(-.9,Math.min(.9,inp.pitch))*(1-rb.aimW)*.6;rb.look=(rb.look||0)+(hl-(rb.look||0))*Math.min(1,dt*10)}else rb.look=(rb.look||0)*Math.max(0,1-dt*10);
+  if(Math.abs(rb.look)>.004){_cp.set(1,0,0).applyQuaternion(d.root.getWorldQuaternion(_q2));rotWorld(rb.bones.Bip01_Neck,_cp,rb.look*.45);rotWorld(rb.bones.Bip01_Head,_cp,rb.look*.55)}
+  /* pump stroke on the gun model itself, then the support hand follows it */
+  if(d.gun&&d.gun.children[0]){const sp=d.gun.children[0].userData.rbSupport;if(sp)sp.node.position.z=sp.z0+pumpOff}
+  if(longGun&&!full&&d.gun&&d.gunHold&&d.gunHold.visible){const w=Math.min(1,rb.aimW+rb.holdW)*(rb.one&&rb.one.name!=='rifle_fire'?.6:1);if(w>.05)leftHandIK(d,w)}
   /* the King only folds his arms while he is unarmed or calm */
   if(d.gunHold)d.gunHold.visible=!(rb.base==='idle_arms_folded'&&rb.lw.idle_arms_folded>.5);
   /* bodies stay a while, then sink away */

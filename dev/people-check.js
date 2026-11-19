@@ -21,7 +21,7 @@ function helpers(){
     hbBox(e,part){const m=e.dude.meshes.find(x=>x.name==='hit_Bip01_'+part);m.updateWorldMatrix(true,false);return new T.Box3().setFromObject(m)},
     /* first person, eye at P.pos+1.65: point the view straight at p */
     aim(p){const P=H.P;const eye=P.pos.clone().add(new T.Vector3(0,P.crouch?1.15:1.65,0));const d=p.clone().sub(eye);P.yaw=Math.atan2(-d.x,-d.z);P.pitch=Math.asin(d.y/d.length())},
-    god(){const P=H.P;P.hp=100;for(const w of P.weapons){const a=P.ammo[w];if(a){a.res=999;if(a.mag<=0&&P.reloadT<=0){a.mag=3}}}},
+    god(){const P=H.P;P.hp=100;for(const w of P.weapons){const a=P.ammo[w];if(a){a.res=999;if(a.mag<=1&&!P.rl&&!(P.reloadT>0)){a.mag=8}}}},
     /* a spot r metres from (x,z) with a clear chest-high line of sight to it */
     spot(x,z,r,a0=0){const rc=new T.Raycaster();for(const rr of[r,r*.7,r*.5,r*1.4])for(let k=0;k<24;k++){const a=a0+k/24*Math.PI*2;const px=x+Math.sin(a)*rr,pz=z+Math.cos(a)*rr;
         const eye=new T.Vector3(px,1.65,pz),tg=new T.Vector3(x,1.2,z),d=tg.clone().sub(eye);const L=d.length();rc.set(eye,d.normalize());rc.far=L+.5;
@@ -111,6 +111,30 @@ function helpers(){
       for(const g of['pistol','shotgun']){H.dude.equip(P.dude,g);P.aim=true;P.pitch=.45;H.step(40);const b=P.dude.body.getObjectByName('Bip01_R_Hand'),q0=b.getWorldQuaternion(new THREE.Quaternion());
         H.step(60);const q1=b.getWorldQuaternion(new THREE.Quaternion());out[g]=+(q0.angleTo(q1)).toFixed(4)}P.pitch=0;P.aim=false;return out});
     ok('aim pitch holds steady (no build-up over 2 s; idle breathing allowed)',Object.values(r).every(v=>v<.06),r)}
+
+  if(want('combat')){/* spin regression: hold pitch +-0.9 for 300 steps in each state; bones stay bounded and come back to rest */
+    const r=await p.evaluate(()=>{const H=__ht,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;P.fp=false;
+      const rel=n=>{const b=P.dude.body.getObjectByName(n);const q=b.getWorldQuaternion(new THREE.Quaternion());return P.dude.root.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(q)};
+      const BONES=['Bip01_Spine1','Bip01_Spine2','Bip01_R_UpperArm','Bip01_L_UpperArm','Bip01_L_Forearm','Bip01_Head','Bip01_Pelvis'];
+      const snap=()=>BONES.map(rel),diff=(A,B)=>Math.max(...A.map((q,i)=>q.angleTo(B[i])));
+      const rest=()=>{P.aim=false;P.crouch=false;P.pitch=0;H.mouse=false;H.step(60)};const out={};
+      const states={idle:()=>{},aiming:()=>{P.aim=true},crouched:()=>{P.crouch=true;P.aim=true},firing:()=>{P.aim=true;H.mouse=true},reloading:()=>{P.aim=true;P.ammo[P.cur].mag=0;H.reload()}};
+      for(const g of['rifle','shotgun','pistol']){H.give(g);H.dude.equip(P.dude,g);P.cur=g;rest();const R0=snap();
+        for(const k in states)for(const pv of[.9,-.9]){const run=n=>{for(let i=0;i<n;i++){T_.god();P.pitch=pv;if(k==='firing')H.mouse=true;H.step(1)}};states[k]();run(150);const A=snap();run(150);const B=snap();
+          const grow=diff(A,B);rest();const back=diff(R0,snap());out[g+'/'+k+'/'+pv]=[+grow.toFixed(3),+back.toFixed(3)]}}
+      /* the aim pitch has to show: gun hand height with pitch +-0.6 while aiming */
+      H.dude.equip(P.dude,'rifle');P.cur='rifle';P.aim=true;const hy=pv=>{P.pitch=pv;H.step(30);return P.dude.body.getObjectByName('Bip01_R_Hand').getWorldPosition(new THREE.Vector3()).y};
+      out.handRise=+(hy(.6)-hy(-.6)).toFixed(3);
+      /* barrel vs view direction (third person, rifle and pistol) */
+      out.barrelErr={};const yp=out;for(const g of['rifle','pistol']){H.dude.equip(P.dude,g);P.cur=g;for(const pv of[-.6,0,.6]){P.pitch=pv;H.step(30);H.scene.updateMatrixWorld();
+        const q=P.dude.gun.getWorldQuaternion(new THREE.Quaternion());const bd=new THREE.Vector3(0,0,1).applyQuaternion(q);const cf=new THREE.Vector3(-Math.sin(P.yaw)*Math.cos(pv),Math.sin(pv),-Math.cos(P.yaw)*Math.cos(pv));
+        out.barrelErr[g+pv]=+(bd.angleTo(cf)).toFixed(2);if(pv===0)yp['yawpitch_'+g]=[+(Math.atan2(bd.x,bd.z)-Math.atan2(cf.x,cf.z)).toFixed(3),+(Math.asin(bd.y)-Math.asin(cf.y)).toFixed(3)]}}
+      P.aim=false;P.pitch=0;
+      return out});
+    const bad=Object.entries(r).filter(([k,v])=>Array.isArray(v)&&(v[0]>.35||v[1]>.2));
+    ok('pitch +-0.9 x 300 steps (idle/aim/crouch/fire/reload, 3 guns): bounded, returns to rest',bad.length===0,bad.length?bad.slice(0,6):{worstGrow:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[0])),worstBack:Math.max(...Object.values(r).filter(Array.isArray).map(v=>v[1]))});
+    ok('aim pitch is visible in third person (hand rises with pitch)',r.handRise>.2,r.handRise);
+    ok('third-person barrel follows the view (within 0.2 rad)',Object.values(r.barrelErr).every(v=>v<.2),Object.assign(r.barrelErr,{yp:[r.yawpitch_rifle,r.yawpitch_pistol]}))}
 
   if(want('missions'))for(let i=0;i<4;i++){
     const t0=Date.now();
