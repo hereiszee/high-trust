@@ -185,6 +185,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/buildings.js"></script>
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
+<script src="js/people.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -229,7 +230,8 @@ function box(w,h,d,c,x=0,y=0,z=0,parent){const m=new THREE.Mesh(boxG,mat(c));m.s
 const ASSETS=(()=>{
   const TEX=['asphalt','sidewalk','grass','brick','siding','roof','plaster','concfloor','woodfloor','metal','rustmetal','fence','plywood','mulch','paintwall','pavers'];
   const WORLD={hanging_industrial_lamp:550,pull_chain_light_socket:335,wooden_picnic_table:527,shrub_02:1160},DECALS=['leak_a','leak_b','asphalt_patch'];
-  const CHARS=['dad_casual','dad_beard','dad_worker','thug_hoodie','thug_punk','boss_suit'];
+  /* realistic rigged people (js/people.js): 10 game characters + the shared animation set; family members load on demand */
+  const PEOPLE={dad_player:968,dad_gary:1258,dad_rick:1272,dad_dave:937,dad_doug:923,thug_hoodie:792,thug_track:1015,thug_beanie:1106,thug_red:1113,boss:860,anims:1827};
   const PROPS={car_van:190,car_suv:220,car_sedan:185,car_hatchback:210,gun_pistol:57,gun_shotgun:40,gun_rifle:121,street_lamp:883,mailbox:17,trash_can:305,crate:84,crate_long:84,crate_slat:90,pallet:70,barrel_red:250,barrel_blue:189,couch:191,table_low:194,table_dining:203,trashbag:260,tyre:240,utility_box:279,cardboard_box:520,chest_wood:310,tree_oak:619,tree_tall:425,tree_pine:339,bush:164};
   const A={textures:{},gltfs:{},skyImg:null,skyTex:null,env:null,done:false,failed:[],progress:0};
   const items=[];let doneW=0,totalW=0,settled=0,resolveReady;
@@ -251,7 +253,7 @@ const ASSETS=(()=>{
   const gltfLoader=THREE.GLTFLoader?new THREE.GLTFLoader():null;
   const loadGltf=(name,url,w)=>add(name,w,(ok,bad,prog)=>{if(!gltfLoader)return bad();gltfLoader.load(url,g=>{
       g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});A.gltfs[name]=g;ok()},prog,bad)});
-  for(const n of CHARS)loadGltf(n,'assets/chars/'+n+'.glb',n==='dad_casual'?1280:1200);
+  for(const n in PEOPLE)loadGltf('rb_'+n,'assets/people/rocketbox/'+n+'.glb',PEOPLE[n]);
   for(const n in PROPS)loadGltf(n,'assets/props/'+n+'.glb',PROPS[n]);
   for(const n in WORLD)loadGltf(n,'assets/world/'+n+'.glb',WORLD[n]);
   A.decals={};for(const n of DECALS)add('world/'+n,40,(ok,bad)=>{texLoader.load('assets/world/'+n+'.png',t=>{t.encoding=THREE.sRGBEncoding;t.anisotropy=aniso();A.decals[n]=t;ok()},undefined,bad)});
@@ -437,7 +439,11 @@ function snd(kind,vol=1){if(!AC||vol<.02)return;const t=AC.currentTime;const s=A
 
 /* ================= CHARACTERS ================= */
 const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
+/* realistic skinned people when js/people.js and its GLBs are in; the box dudes below stay as the fallback */
+function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
+function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
+  const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
   const skin=o.skin||pick(SKIN);
@@ -473,8 +479,9 @@ function makeGun(type){
   else{box(.07,.1,.85,'#1f2125',0,.02,.28,g);box(.06,.18,.08,'#1f2125',0,-.11,.2,g);box(.08,.13,.3,'#2a2c31',0,-.04,-.2,g);box(.04,.05,.12,'#111',0,.1,.2,g)}
   return g;
 }
-function equip(d,type){if(d.gun){d.gunHold.remove(d.gun);d.gun=null}if(type){d.gun=makeGun(type);d.gunHold.add(d.gun)}}
-function pose(d,dt,{moving=false,speed=1,aim=true,mode='stand'}={}){
+function equip(d,type){if(d.gun){d.gunHold.remove(d.gun);d.gun=null}if(type){d.gun=makeGun(type);d.gunHold.add(d.gun)}if(d.rb)HTM('People').equip(d,type)}
+function pose(d,dt,o={}){if(d.rb){HTM('People').pose(d,dt,o);return}
+  const{moving=false,speed=1,aim=true,mode='stand'}=o;
   const r=d.root;
   if(mode==='down'){r.rotation.x+=(-Math.PI/2-r.rotation.x)*Math.min(1,dt*10);r.position.y+=(.18-r.position.y)*Math.min(1,dt*10);return}
   r.rotation.x=0;
@@ -488,6 +495,15 @@ function pose(d,dt,{moving=false,speed=1,aim=true,mode='stand'}={}){
   if(aim){d.arms[1].rotation.x=-Math.PI/2;d.arms[0].rotation.x=-Math.PI/2+.25;d.arms[0].rotation.z=-.55;d.arms[1].rotation.z=0}
   else{d.arms[0].rotation.x=-s;d.arms[1].rotation.x=s;d.arms.forEach(a=>a.rotation.z=0)}
 }
+/* animation cues for the skinned people: thin pass-through wrappers so the combat code stays untouched */
+{const cue=(f,d,...a)=>{const m=d&&d.rb&&HTM('People');if(m)try{m[f](d,...a)}catch(e){}};
+  const _fire=fire,_reload=reload,_shootAt=shootAt,_hurtEnemy=hurtEnemy,_killEnemy=killEnemy,_hurtAlly=hurtAlly;
+  fire=function(){const a=P.ammo[P.cur],m=a?a.mag:0;const r=_fire.apply(this,arguments);if(a&&a.mag<m)cue('fire',P.dude);return r};
+  reload=function(){const was=P.reloadT;const r=_reload.apply(this,arguments);if(P.reloadT>0&&!(was>0))cue('reload',P.dude,P.reloadT);return r};
+  shootAt=function(src){if(src&&src.dude)cue('fire',src.dude);return _shootAt.apply(this,arguments)};
+  killEnemy=function(e){const r=_killEnemy.apply(this,arguments);cue('die',e.dude);return r};
+  hurtEnemy=function(e,dmg){const st=e.state;const r=_hurtEnemy.apply(this,arguments);if(st==='idle'&&e.state==='idle')cue('hit',e.dude,false);return r};
+  hurtAlly=function(a){const dn=a.down;const r=_hurtAlly.apply(this,arguments);if(!dn&&!a.down)cue('hit',a.dude,false);return r}}
 
 /* ================= DATA ================= */
 const HOMIES={
@@ -1131,7 +1147,7 @@ function updPlayer(dt){
   if(P.reloadT>0){P.reloadT-=dt;if(P.reloadT<=0){const a=P.ammo[P.cur],w=WEAPONS[P.cur];const n=Math.min(w.mag-a.mag,a.res);a.mag+=n;a.res-=n}}
   if(mode==='mission'&&mouseDown&&!(sprint&&P.moving)){fire();if(!WEAPONS[P.cur].auto&&!touchFire)mouseDown=false}
   if(P.regenT>0)P.regenT-=dt;else if(P.hp<100)P.hp=Math.min(100,P.hp+12*dt);
-  const d=P.dude;d.root.position.set(P.pos.x,0,P.pos.z);d.root.rotation.y=P.yaw+Math.PI;pose(d,dt,{moving:P.moving,speed:sprint?1.5:1,aim:mode==='mission'&&!(sprint&&P.moving),mode:P.crouch?'crouch':'stand'});
+  const d=P.dude;d.root.position.set(P.pos.x,0,P.pos.z);d.root.rotation.y=P.yaw+Math.PI;pose(d,dt,{moving:P.moving,speed:sprint?1.5:1,aim:mode==='mission'&&!(sprint&&P.moving),mode:P.crouch?'crouch':'stand',pitch:P.pitch});
   d.root.visible=!P.fp;vm.visible=P.fp&&mode==='mission';
 }
 let camDist=2.7;
@@ -1279,7 +1295,7 @@ function frame(now){
   for(let i=puffs.length-1;i>=0;i--){const p=puffs[i];p.t-=dt;p.v.y-=9*dt;p.m.position.addScaledVector(p.v,dt);if(p.t<=0){scene.remove(p.m);puffs.splice(i,1)}}
   flash.intensity*=Math.pow(.0005,dt);
   if(L)hud(dt);
-  updFlashes(dt);groundPass(1);RENDER.draw();groundPass(-1);
+  updFlashes(dt);{const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
 function start(){if(!ASSETS.done)return;initAudio();$('cTitle').hidden=true;enterHub();canvasFocus();requestLock()}
@@ -1296,8 +1312,10 @@ ASSETS.ready.then(A=>{const b=$('bStart');b.disabled=false;b.textContent='Clock 
   if(!$('cTitle').hidden)b.focus()});
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
+/* character test hooks (dev/people scripts) */
+window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]}};
 requestAnimationFrame(frame);
 })();
 </script>
