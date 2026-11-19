@@ -46,6 +46,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/vehicles.js"></script>
 <script src="js/world.js"></script>
 <script src="js/people.js"></script>
+<script src="js/ai.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -678,6 +679,7 @@ function buildLevel(def){
       const sz=v.userData.size||{l:4.6,w:1.9};const ax=Math.abs(Math.cos(pc.yaw))>.5;const hx=(ax?sz.l:sz.w)/2,hz=(ax?sz.w:sz.l)/2;lvl.colliders.push({x0:pc.x-hx,z0:pc.z-hz,x1:pc.x+hx,z1:pc.z+hz})}}
   if(lvl.bounce){for(let zz=tx(lvl.bounce.z-1.4);zz<=tx(lvl.bounce.z+1.4);zz++)for(let xx=tx(lvl.bounce.x-1.4);xx<=tx(lvl.bounce.x+1.4);xx++)if(g[zz]&&g[zz][xx]&&!SOLID.includes(g[zz][xx]))g[zz][xx]='V'}
   lvl.colliders.push({x0:-10,z0:-10,x1:0,z1:H*TILE+10},{x0:W*TILE,z0:-10,x1:W*TILE+10,z1:H*TILE+10},{x0:-10,z0:-10,x1:W*TILE+10,z1:0},{x0:-10,z0:H*TILE,x1:W*TILE+10,z1:H*TILE+10});
+  if(def.id!=='hub'&&window.HT&&window.HT.AI)lvl.nav=window.HT.AI.buildNav(g,{colliders:lvl.colliders,losBlock:'#htVcf',lowCover:'cf',hiBox:{t:[.3,.3]}});
   setMood(def);
   HUD.minimap.setLevel(def.map,{tile:TILE,pad:def.pad,lines:def.lines,under:def.under,floor:def.floor,inside:def.inside,interior:def.id!=='hub',name:def.place||'Maple Heights'});if(def.id!=='hub')HUD.minimap.setPins([]);
   L=lvl;return lvl;
@@ -690,7 +692,7 @@ function makeVanBox(col='#b9c0c7'){const v=new THREE.Group();box(4.4,1.7,2,col,0
 const tx=v=>Math.floor(v/TILE);
 function walkable(x,z){if(!L||x<0||z<0||x>=L.W||z>=L.H)return false;return !SOLID.includes(L.g[z][x])}
 function losClear(ax,az,bx,bz,blk=LOSBLOCK){const d=Math.hypot(bx-ax,bz-az),n=Math.ceil(d/.5);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n;const gx=tx(x),gz=tx(z);if(gx<0||gz<0||gx>=L.W||gz>=L.H)return false;if(blk.includes(L.g[gz][gx]))return false}return true}
-const LOS_NOCRATE=LOSBLOCK.replace('c','');
+const LOS_NOCRATE='#htV';
 /* crates (1.15m) hide a crouching dad, not a standing one: enemies see over them like the player shoots over them */
 function losClearFor(t,ax,az,bx,bz){return losClear(ax,az,bx,bz,t===P&&P.crouch?LOSBLOCK:LOS_NOCRATE)}
 function nextStep(fx,fz,gxw,gzw){
@@ -738,13 +740,14 @@ function setPrompt(t,p){if(!t){UI.prompt=null;return}const m=/^(Hold\s+)?(\S+)\s
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
 function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
 function clearChars(){for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
-function spawnEnemy(x,z,boss){
+function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};
   const d=makeDude(look);equip(d,gun,{gold:boss});
   const hp=boss?420:shotgunner?90:75;
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false};
   d.root.position.copy(e.pos);enemies.push(e);addChar(e);
+  e.id='e'+(eidSeq++);e.maxHp=e.maxhp;e.role=AI.roleFor(gun,boss);e.dmgMul=(M&&M.i===0?.8:1)*(boss?1.4:1);if(M&&M.squads&&L.nav)(sq||squadFor(x,z)).add(e);
   if(boss){const tag=document.createElement('div');tag.className='tag down';tag.textContent='THE PORCH PIRATE KING';$('tags').appendChild(tag);e.tag=tag}
   return e;
 }
@@ -874,6 +877,7 @@ function startMission(i){
   if(lend&&!prog.done[i]&&!M.lent)M.intro={t:0,done:false,prog:0};
   {const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));/* crew beside and ahead of the dad, out of the camera's line */
    m.crew.forEach((c,k)=>{const side=k%2?1:-1,row=Math.floor(k/2);spawnAlly(c,L.start.x+r.x*2.2*side+f.x*(1.8+row*1.3),L.start.z+r.z*2.2*side+f.z*(1.8+row*1.3))})}
+  aiStart(m);
   for(const s of L.spawns){const e=spawnEnemy(s.x,s.z,s.boss);if(s.boss)L.boss=e}
   rebuildTargets();
   if(M.intro){radio('rick',"Hold up. You're not walking into Birch with a garage pistol.",true);radio('rick',"Rick's Carbine. Thirty rounds, climbs a little, pull down and to the left. Bring her back clean.")}
@@ -1109,7 +1113,7 @@ function fire(){
       if(e&&e.state==='surrender'&&simT-(e.surrAt||0)<SURR_GRACE)continue;hit=h;break}
     let end=hit?hit.point:camera.position.clone().addScaledVector(dir,w.range);
     if(!P.fp){const d2=end.clone().sub(shoulder),L2=d2.length();ray.set(shoulder,d2.normalize());ray.near=0;ray.far=Math.max(0,L2-.05);const blk=ray.intersectObjects(L.solids,false)[0];if(blk){hit=blk;end=blk.point}}
-    FX.tracer(mz,end,{trail:w.pellets>1?0:undefined});
+    FX.tracer(mz,end,{trail:w.pellets>1?0:undefined});if(k===w.pellets-1)aiShot(shoulder,end,'player',26);
     if(hit){const e=hit.object.userData.ent;
       if(e){FX.impact(hit.point,dir.clone().negate(),'cloth',{big:w.dmg>50,color:[.35,.45,.6]})}
       else if(id==='nailer')FX.impact(hit.point,(FX.ready&&hit.face)?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):dir.clone().negate(),'nail');
@@ -1147,7 +1151,7 @@ function hurtEnemy(e,dmg,by,opt={}){
   if(e.boss&&!e.triedSurr&&e.hp>=e.maxhp*thr&&e.hp-dmg<=0)dmg=e.hp-e.maxhp*thr+1;
   e.hp-=dmg;e.alert=true;if(!e.last)e.last=P.pos.clone();
   if(e.hp<=0){killEnemy(e);return 'dead'}
-  if(!e.triedSurr&&e.hp<e.maxhp*thr){e.triedSurr=true;if(e.boss||Math.random()<.5)surrender(e)}
+  if(!e.triedSurr&&e.hp<e.maxhp*thr){e.triedSurr=true;if(e.boss||Math.random()<(M&&M.squads?AI.surrenderChance(e,.5):.5))surrender(e)}
 }
 const SURR_GRACE=.7;/* seconds after hands go up during which player hits don't count as an execution */
 function surrender(e){e.state='surrender';e.surrAt=simT;e.target=null;e.last=null;dropGun(e,'surrender');if(e.boss){mouseDown=false;P.fireT=Math.max(P.fireT,.6)}equip(e.dude,null);if(e.tag)e.tag.remove();const tag=document.createElement('div');tag.className='tag surr';tag.textContent=e.boss?'THE KING SURRENDERS · zip-tie him':'HANDS UP · zip-tie';$('tags').appendChild(tag);e.tag=tag;
@@ -1161,7 +1165,7 @@ function shootAt(src,target,acc,dmg,isEnemy){
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
   const dir=end.clone().sub(from).normalize(),mz=from.clone().addScaledVector(dir,.7),gun=src.gun||'pistol';
-  FX.tracer(mz,end,{enemy:isEnemy,ally:!isEnemy});FX.muzzleFlash(mz,dir,{type:isEnemy?'enemy':gun});
+  FX.tracer(mz,end,{enemy:isEnemy,ally:!isEnemy});if(!isEnemy)aiShot(from,end,src.id,22);FX.muzzleFlash(mz,dir,{type:isEnemy?'enemy':gun});
   gunSnd(gun,isEnemy?.75:.55,{dist:src.pos.distanceTo(P.pos),pos:src.pos.clone().setY(1.4),noMech:true});
   if(!hit){ray.set(from,dir);ray.near=.5;ray.far=from.distanceTo(end)+4;const h=L?ray.intersectObjects(L.solids,false)[0]:null;if(h)FX.hit(h);return}
   if(target!==P)FX.impact(tp,dir.clone().negate(),'cloth',{color:[.35,.45,.6]});
@@ -1240,6 +1244,86 @@ function finishIntro(){M.intro.done=true;M.lent=['rifle'];prog.rifleLent=true;ta
   banner("RICK'S CARBINE",'On loan from Coach Rick',2.4);radio('rick',"I've got a spare. Don't tell Denise.",true);sfx('rack')}
 
 /* ================= AI ================= */
+/* ---------- game AI (js/ai.js, docs/AI.md): the module decides, the game moves, collides, shoots and talks ---------- */
+const AI=window.HT.AI;
+let aiWorld=null,eidSeq=1;const noiseQ=[];
+const aiStats={thinkMs:0,thinks:0,allyMs:0,allyCalls:0,barks:[]};
+/* one source for NPC gun stats: the combat table NPC_GUNS (acc, dmg, burst, cooldown, range band; the close-range damage
+   step is found by probing npcGun). The AI keeps only what it adds on top: magazine, reload, aim telegraph, range */
+function aiSyncGuns(){if(aiSyncGuns.done)return;aiSyncGuns.done=1;
+  const step=(k,ally)=>{const n=npcGun(k,0,ally),f=npcGun(k,99,ally);if(n[1]===f[1])return null;let d=0;while(d<40&&npcGun(k,d,ally)[1]===n[1])d+=.5;return[d,n[1]]};
+  for(const k in NPC_GUNS){const f=npcGun(k,99),c=step(k,false);const g=AI.GUNS[k]||(AI.GUNS[k]={mag:6,reload:2,aim:.55,range:30});
+    Object.assign(g,{acc:f[0],dmg:f[1],burst:f[2],cd:f[3],want:[f[4],f[5]]});if(c)g.close=c;else delete g.close;
+    if(NPC_GUNS[k].a){const fa=npcGun(k,99,true),ca=step(k,true);const a=AI.ALLY_GUNS[k]||(AI.ALLY_GUNS[k]={range:35});Object.assign(a,{acc:fa[0],dmg:fa[1],cd:fa[2]});if(ca)a.close=ca;else delete a.close}}}
+/* positional grunts from js/audio.js under the subtitle lines */
+const AI_VOICE={spotted:'thug_alert',taunt:'thug_alert',flanked:'thug_alert',rush:'thug_alert',investigate:'thug',searching:'thug',hit:'thug_hurt',retreat:'thug_hurt',surrender:'thug_surrender',
+  contactFront:'dad_alert',contactLeft:'dad_alert',contactRight:'dad_alert',contactBehind:'dad_alert',contactRoom:'dad_alert',enemyFlanking:'dad_alert',breach:'dad_alert'};
+function aiVoice(kind,ent){const A=AU();if(!A||!A.voice||!kind)return;try{A.voice(kind,ent.pos.clone().setY(1.6))}catch(e){}}
+function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.nav)return;aiSyncGuns();const df=AI.missionDiff(M.i);/* per-mission tuning lives in js/ai.js (AI.MISSION_DIFF) so the node sims test the same numbers */
+  M.aiDiff=df;M.pool=AI.pool({maxShooters:df.pool});M.squads=new Map();M.barker=AI.barker();M.crewBarker=AI.barker({gap:1.2});
+  if(m.type==='waves'&&L.grill&&L.waveSpawns.length)M.dir=AI.director(L.nav,{spawns:L.waveSpawns,defend:L.grill,waves:m.waves})}
+/* one squad per indoor room, one for everything outside */
+function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
+  let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
+/* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
+function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;noiseQ.push({x:from.x,z:from.z,r,t:simT,kind:'gun',id});AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
+function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
+/* per frame, before the enemy loop: what the AI can know about the dad and the crew */
+function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
+  while(noiseQ.length&&simT-noiseQ[0].t>.5)noiseQ.shift();
+  const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
+  aiWorld={nav:L.nav,t:simT,diff:M.aiDiff,noises:noiseQ,agents:enemies.filter(e=>e.state==='idle'),
+    threats:[{id:'player',x:P.pos.x,z:P.pos.z,fx,fz,fov:.96,isPlayer:true,crouch:P.crouch,moving:P.moving,sprint:!!keys.shift&&P.moving&&!P.aim&&!P.crouch,reloading:P.reloadT>0,busy:!!keys.e,down:false},
+      ...allies.map(a=>({id:a.id,x:a.pos.x,z:a.pos.z,crouch:!!(a.ai&&a.ai.stance==='crouch'),moving:!!(a.ai&&a.ai.intent&&a.ai.intent.speed>.2),down:a.down}))]};
+  for(const e of enemies){if(e.state==='surrender'&&!e._vSurr){e._vSurr=1;aiVoice('thug_surrender',e)}
+    if(e.state==='idle'&&e._vHp!=null&&e.hp<e._vHp&&simT-(e._vHurtT||-9)>1.2){e._vHurtT=simT;aiVoice('thug_hurt',e)}e._vHp=e.hp}
+  for(const s of M.squads.values())s.update(dt,aiWorld)}
+/* after the enemy loop: the King's call for backup */
+function aiAfter(){if(!aiWorld||!M||!M.squads)return;let n=0;
+  for(const s of M.squads.values())while(s.requests.length){const r=s.requests.shift();if(r.kind!=='reinforce')continue;
+    for(const p of r.points){const e=spawnEnemy(p.x,p.z,false,s);const ai=AI.mem(e,aiWorld);ai.mode='combat';ai.sub='react';ai.react=simT+.6;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT};n++}
+    M.reinforced=(M.reinforced||0)+r.points.length}
+  if(n)rebuildTargets()}
+function aiEnemy(e,dt){const d=e.dude,t0=performance.now();const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
+  AI.move(e,I,dt);collide(e.pos,.35);
+  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
+  /* what the game's own systems read: target (hunter laser, music) and fireT (the laser shows while he lines up a shot) */
+  const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid==='player'?P:tid?allies.find(a=>a.id===tid)||null:null;
+  e.fireT=I.aiming&&e.ai.gun.laser?Math.max(.01,e.ai.gun.aim*(aiWorld.diff.aim||1)-e.ai.aimT):0;
+  if(I.fire){const t=I.targetId==='player'?P:allies.find(a=>a.id===I.targetId);if(t&&!t.down)shootAt(e,t,I.hitChance,I.dmg,true)}
+  if(I.wantsSurrender&&!e.triedSurr&&e.state==='idle'){e.triedSurr=true;surrender(e);return}
+  e.alert=e.ai.mode!=='idle';
+  d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;
+  pose(d,dt,{moving:I.speed>.2,speed:Math.max(.5,I.speed/3.4),aim:e.alert||I.stance==='crouch',mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(e,d,I.stance==='crouch',dt)}
+function aiAlly(a,dt){const d=a.dude,t0=performance.now();
+  const I=AI.ally(a,{nav:L.nav,t:simT,barker:M.crewBarker,player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,crouch:P.crouch,moving:P.moving,reloading:P.reloadT>0,busy:!!keys.e,hp:P.hp},
+    camera:{x:camera.position.x,z:camera.position.z,yaw:P.yaw},enemies,allies},dt);aiStats.allyMs+=performance.now()-t0;aiStats.allyCalls++;
+  if(I.teleport)a.pos.set(I.teleport.x,0,I.teleport.z);AI.move(a,I,dt);
+  for(const o of enemies)if(o.state==='surrender'||o.state==='cuffed'){const dx=a.pos.x-o.pos.x,dz=a.pos.z-o.pos.z,dd=Math.hypot(dx,dz);if(dd<.9&&dd>0){a.pos.x+=dx/dd*.05;a.pos.z+=dz/dd*.05}}
+  collide(a.pos,.35);
+  if(I.bark){radio(a.id,I.bark.text,I.bark.priority>=2);aiLog(a.id,I.bark);aiVoice(AI_VOICE[I.bark.event],a)}
+  if(I.fire){const e=enemies.find(x=>x.id===I.targetId);if(e&&e.state==='idle')shootAt(a,e,I.hitChance,I.dmg,false)}
+  if(I.reviving){const o=allies.find(x=>x.id===I.revive);if(o)o.downT-=dt*2}
+  d.root.position.set(a.pos.x,0,a.pos.z);d.root.rotation.y=a.yaw;pose(d,dt,{moving:I.speed>.2,aim:true,mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(a,d,I.stance==='crouch',dt)}
+/* behind a 1.15 m crate the whole body has to sit under the top or the dad's rays hit him through it: sink the hips,
+   fold the legs forward and lean the torso from the hip (arms stay level). Works from the model's own measured height. */
+const _m4a=new THREE.Matrix4(),_m4b=new THREE.Matrix4(),_bx=new THREE.Box3();
+function bodyTop(d){d.root.updateMatrixWorld(true);_m4a.copy(d.root.matrixWorld).invert();let top=0;
+  for(const m of d.meshes){if(!m.geometry)continue;if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();_bx.copy(m.geometry.boundingBox).applyMatrix4(_m4b.multiplyMatrices(_m4a,m.matrixWorld));top=Math.max(top,_bx.max.y)}
+  return top*d.root.scale.y}
+/* box-figure fallback only (the skinned people crouch on their own). The third-person camera sits ~2 m up and looks over the crate, so the body also has to stay tucked against it:
+   head to about 0.95 m, kneeling with the shins behind, leaning in so the head ends up just behind the crate face */
+const CROUCH_TOP=.95,CROUCH_LEAN=.75,CROUCH_REACH=.5;
+function deepCrouch(ent,d,on,dt){ent.ck=(ent.ck||0)+((on?1:0)-(ent.ck||0))*Math.min(1,dt*12);const k=ent.ck;if(k<.01||d.rb)return;/* skinned people (js/people.js) crouch-aim below 1.15 m themselves */
+  const r=d.root;if(ent.topH==null){ent.topH=bodyTop(d);ent.hipH=d.legs&&d.legs[0]?d.legs[0].position.y*r.scale.y:ent.topH*.45;r.rotation.order='YXZ';
+    const h=ent.hipH,top=ent.topH;let lean=CROUCH_LEAN,sink=h+(top-h)*Math.cos(lean)-CROUCH_TOP;
+    if(h-sink<.15){sink=h-.15;lean=Math.acos(clamp((CROUCH_TOP-.15)/(top-h),-1,1))}/* tall men (the King) lean further instead of sinking through the floor */
+    ent.crouchFit={lean,sink:Math.max(0,sink),back:Math.max(0,(top-h)*Math.sin(lean)-CROUCH_REACH)}}
+  const h=ent.hipH,f=ent.crouchFit,th=f.lean*k,sink=f.sink*k,fx=Math.sin(ent.yaw),fz=Math.cos(ent.yaw);
+  /* pivot at the hip: root offset so the hip stays over the feet's spot (minus a little room for long torsos) */
+  const back=h*Math.sin(th)+f.back*k;
+  r.rotation.x=th;r.position.set(ent.pos.x-fx*back,h-h*Math.cos(th)-sink,ent.pos.z-fz*back);
+  const a=Math.acos(clamp((h-sink)/h,-1,1));for(const l of d.legs||[])l.rotation.x=a-th;for(const m of d.arms||[])m.rotation.x-=th}
 function moveToward(ent,gx,gz,speed,dt){
   const dx=gx-ent.pos.x,dz=gz-ent.pos.z,d=Math.hypot(dx,dz);if(d<.3||(d<1.3&&!walkable(tx(gx),tx(gz))))return false;
   let tx_=gx,tz_=gz;
@@ -1253,6 +1337,7 @@ function updEnemy(e,dt){
   if(e.state==='dead'){pose(d,dt,{mode:'down'});return}
   if(e.state==='cuffed'){pose(d,dt,{mode:'kneel'});return}
   if(e.state==='surrender'){faceTo(e,P.pos.x,P.pos.z,dt,3);pose(d,dt,{mode:'hands'});d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;return}
+  if(L.nav&&aiWorld){aiEnemy(e,dt);return}
   e.thinkT-=dt;
   if(e.thinkT<=0){e.thinkT=.25;let best=null,bd=1e9;
     const cands=[P,...allies.filter(a=>!a.down)];
@@ -1286,6 +1371,7 @@ function updAlly(a,dt){
   if(VAN.on&&mode==='hub')return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
+  if(mode==='mission'&&L.nav&&aiWorld){aiAlly(a,dt);return}
   a.thinkT-=dt;
   if(a.thinkT<=0&&mode==='mission'){a.thinkT=.3;let best=null,bd=30;
     for(const e of enemies){if(e.state!=='idle'||(!e.alert&&e.pos.distanceTo(P.pos)>15))continue;const dd=e.pos.distanceTo(a.pos);if(dd<bd&&losClear(a.pos.x,a.pos.z,e.pos.x,e.pos.z)){bd=dd;best=e}}
@@ -1373,7 +1459,7 @@ function updMission(dt){
     if(M.smashed<3){M.t-=dt;
       if(!M.warn60&&M.t<60){M.warn60=1;radio('rick','One minute! Move it!',true);
         /* their lookouts are early: two come looking for the dad */
-        const far=L.spawns.filter(s=>!s.boss&&Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>16);for(let i=0;i<2&&far.length;i++){const s=far.splice(Math.floor(Math.random()*far.length),1)[0];const e=spawnEnemy(s.x+rand(-.5,.5),s.z+rand(-.5,.5),false);e.alert=true;e.wave=true;e.last=P.pos.clone();e.hearT=rand(.5,1.5)}rebuildTargets()}
+        const far=L.spawns.filter(s=>!s.boss&&Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>16);for(let i=0;i<2&&far.length;i++){const s=far.splice(Math.floor(Math.random()*far.length),1)[0];const e=spawnEnemy(s.x+rand(-.5,.5),s.z+rand(-.5,.5),false);e.alert=true;e.wave=true;e.hunt=true;e.last=P.pos.clone();e.hearT=rand(.5,1.5)}rebuildTargets()}
       if(!M.warn20&&M.t<20){M.warn20=1;radio('gary','Twenty seconds!',true)}
       if(M.t<=0)return endMission(false,"Coach Rick: Their reinforcements showed up. We fall back and run it again.","Too slow, Coach.")}
     const t=Math.max(0,Math.ceil(M.t));objs=[['Smash the stash tables · '+M.smashed+'/3',M.smashed>=3],M.smashed>=3?['Tables down. Clock stopped.',true]:[Math.floor(t/60)+':'+String(t%60).padStart(2,'0')+' until reinforcements',false,M.t<30?'warn':'']];
@@ -1381,12 +1467,19 @@ function updMission(dt){
   if(m.type==='waves'){
     const live=enemies.filter(e=>e.state==='idle'),alive=live.length,surr=enemies.filter(e=>e.state==='surrender');
     M.waveAge+=dt;
-    if(alive===0){if(M.wave>=m.waves.length&&surr.length){/* last wave beaten: the ones who gave up still need zip-ties */}
+    if(M.dir){/* the wave director paces spawns in groups, out of the dad's sight, along lanes to the grill */
+      const orders=M.dir.update(dt,{t:simT,threats:aiWorld?aiWorld.threats:[],alive,agents:live});
+      for(const od of orders){const e=spawnEnemy(od.x,od.z,false);e.lane=od.lane;e.wave=true;collide(e.pos,.35)}if(orders.length)rebuildTargets();
+      if(M.dir.wave!==M.wave){M.wave=M.dir.wave;M.waveAge=0;for(const s of M.squads.values()){s.morale=1;s.lossT=-1e9}/* a fresh wave hasn't watched the last one lose */
+        banner('WAVE '+M.wave,M.wave===m.waves.length?'Last one. Dave says the brisket is resting.':'Here they come.',2.2);
+        if(M.wave===2)radio('dave',"They're flanking the bounce house! Nobody touches the bounce house!");if(M.wave===3)radio('rick',"Last push. Leave it all on the field.")}
+      if(M.dir.finished&&!surr.length)return endMission(true)}
+    else if(alive===0){if(M.wave>=m.waves.length&&surr.length){/* last wave beaten: the ones who gave up still need zip-ties */}
       else{M.waveT-=dt;if(M.waveT<=0){if(M.wave>=m.waves.length)return endMission(true);const n=m.waves[M.wave];M.wave++;M.waveAge=0;banner('WAVE '+M.wave,M.wave===m.waves.length?'Last one. Dave says the brisket is resting.':'Here they come.',2.2);
       const far=L.waveSpawns.filter(s=>Math.hypot(s.x-P.pos.x,s.z-P.pos.z)>18),pool=far.length?far:L.waveSpawns,o=Math.floor(Math.random()*pool.length);
       for(let i=0;i<n;i++){const s=pool[(i+o)%pool.length];const e=spawnEnemy(s.x+rand(-1.5,1.5),s.z+rand(-1.5,1.5),false);collide(e.pos,.35);e.alert=true;e.wave=true;e.hearT=i*.25;const a=rand(0,6.28);e.last=V3(L.grill.x+Math.cos(a)*2.4,0,L.grill.z+Math.sin(a)*2.4)}rebuildTargets();M.waveT=4;
       if(M.wave===2)radio('dave',"They're flanking the bounce house! Nobody touches the bounce house!");if(M.wave===3)radio('rick',"Last push. Leave it all on the field.")}}}
-    if(alive&&M.waveAge>60&&!M.hunt){M.hunt=1;for(const e of live)e.last=P.pos.clone()}
+    if(!M.dir&&alive&&M.waveAge>60&&!M.hunt){M.hunt=1;for(const e of live)e.last=P.pos.clone()}
     if(!alive)M.hunt=0;
     objs=[['Hold the park · wave '+Math.max(1,M.wave)+' of '+m.waves.length,false],[alive?alive+' left this wave':(surr.length&&M.wave>=m.waves.length?'Zip-tie the '+surr.length+' who gave up':M.wave>=m.waves.length?'That should be all of them':'Next wave incoming'),false]];
     const nearest=list=>{let b=null,bd=1e9;for(const e of list){const dd=e.pos.distanceTo(P.pos);if(dd<bd){bd=dd;b=e}}return b};
@@ -1496,7 +1589,7 @@ function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);
-    for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);
+    aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);
     if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
@@ -1519,9 +1612,9 @@ ASSETS.ready.then(A=>{const miss=A.failed.length;
   HUD.set('title',{progress:1,ready:true,warn:!!miss,status:miss?(A.timedOut?'Slow connection · ':'')+miss+' file'+(miss>1?'s':'')+" didn't load · using the backyard look":'Ready'});
   initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start)}
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}});
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);for(const e of enemies)updEnemy(e,dt);for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},
