@@ -10,9 +10,9 @@ const {Save,Economy:E,CATALOG:C}=HT;
 function fresh(raw,extra){const st=Save.useStorage(Save.memoryStorage());if(raw!==undefined)st.setItem('ht-save',typeof raw==='string'?raw:JSON.stringify(raw));
   if(extra)for(const k in extra)st.setItem(k,extra[k]);Save.load();return st}
 
-test('fresh boot gives the SPEC E + SPEC2 D (v2) defaults',()=>{
+test('fresh boot gives the SPEC E + SPEC2 D defaults (now saved as v3)',()=>{
   fresh();const d=Save.data;
-  assert.equal(d.v,2);assert.deepEqual(d.owned.guns,['pistol','shotgun']);assert.equal(d.cash,0);
+  assert.equal(d.v,3);assert.deepEqual(d.owned.guns,['pistol','shotgun']);assert.equal(d.cash,0);
   assert.deepEqual(d.loadout,{side:'pistol',p1:'shotgun',p2:null,p3:null});
   assert.equal(Save.lastLoad.status,'fresh');assert.equal(d.prog.done.length,9);assert.equal(d.prog.trustR,5);assert.equal(d.prog.act,1);
   assert.deepEqual(d.garage,require('../js/carai.js').Garage.defaultGarage());assert.equal(d.world.bridgeOpen,false);assert.deepEqual(d.crew,{rosa:false});
@@ -45,9 +45,9 @@ test('a save from a newer version is set aside, not overwritten blindly',()=>{
   assert.equal(JSON.parse(st.getItem('ht-save-future')).cash,5000);
 });
 
-test('v0 prototype save migrates to v2',()=>{
+test('v0 prototype save migrates through v2 to v3',()=>{
   fresh({done:[true,false,false,false],trust:44,cash:300,guns:['pistol','shotgun','smg'],cuffed:3,someModule:{x:1}});
-  const d=Save.data;assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.v,2);
+  const d=Save.data;assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.v,3);assert.equal(d.jobs.gary.done,true);
   assert.deepEqual(d.prog.done,[true,false,false,false,false,false,false,false,false]);assert.equal(d.prog.trust,44);assert.equal(d.prog.cuffed,3);
   assert.equal(d.cash,300);assert.ok(d.owned.guns.includes('smg'));assert.deepEqual(d.someModule,{x:1});
 });
@@ -269,4 +269,135 @@ test('catalogue is complete and consistent',()=>{
   assert.equal(C.garage,require('../js/carai.js').Garage,'vehicle catalogue is HT.Garage, not a copy');
   const best=sum([0,1,2,3].map(i=>E.computePayout({mission:i,ok:true,cuffs:4,confiscated:3,allyDowns:0,got:4,elapsed:100,timeLeft:60,bossDone:'cuffed',trust:80}).total));
   assert.ok(best>4500&&best<8000,'clean campaign pays '+best);
+});
+
+/* ---------------- save v3 (SPEC3 4.0, 4.5, 4.8) ---------------- */
+const V2=()=>({v:2,t:1,cash:1234,prog:{done:[true,true,false,false,false,false,false,false,false],trust:30,trustR:5,act:1,cuffed:2,downed:0,shotSurr:0,missionsRun:3},
+  stats:{earned:1500,spent:266},owned:{guns:['pistol','shotgun','revolver'],att:[]},attOn:{},loadout:{side:'pistol',p1:'shotgun',p2:null,p3:null},armory:{seen:{}},pending:[],
+  family:{firstVisit:false,seen:[],pets:2,lastShotSurr:0},crew:{rosa:false},events:['win_gary'],flags:{rangeDay:true,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false},
+  world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0}});
+
+test('fresh save has every v3 field',()=>{
+  fresh();const d=Save.data;
+  assert.equal(Save.VERSION,3);assert.equal(d.day,1);assert.deepEqual(d.calendar,{entries:[]});assert.deepEqual(d.album,[]);assert.deepEqual(d.gear,[]);
+  assert.deepEqual(d.perks,{});assert.deepEqual(d.jobs,{});assert.equal(d.flags.hankDiscount,false);
+  assert.deepEqual(d.world.households,[]);assert.deepEqual(d.world.storefronts,{});
+  assert.deepEqual(d.gadgets,{nvg:{owned:false,equipped:true,charge:1},flashlight:{owned:true,equipped:true}});
+  assert.deepEqual(d.crew,{rosa:false},'crew stays booleans');
+});
+
+test('v2 save migrates to v3: prog.done -> jobs by id, bronze calendar pins, day, gadgets',()=>{
+  fresh(V2());const d=Save.data;
+  assert.equal(Save.lastLoad.status,'migrated');assert.equal(d.v,3);
+  assert.deepEqual(d.prog.done,[true,true,false,false,false,false,false,false,false],'prog.done is kept as is');
+  assert.deepEqual(d.jobs.gary,{done:true,best:null,medal:1,runs:1,replays:0,plan:null,medalPaid:1});
+  assert.equal(d.jobs.rick.done,true);assert.equal(d.jobs.dave,undefined);
+  assert.deepEqual(d.calendar.entries.map(e=>[e.id,e.day,e.medal,e.runs]),[['gary',1,1,1],['rick',1,1,1]]);
+  assert.equal(d.day,3,'one day per finished story job');
+  assert.equal(d.gadgets.nvg.owned,false);assert.equal(d.gadgets.flashlight.owned,true);assert.equal(d.flags.hankDiscount,false);assert.equal(d.flags.rangeDay,true);
+  assert.equal(d.cash,1234);assert.ok(d.owned.guns.includes('revolver'));assert.deepEqual(d.world.households,[]);
+});
+
+test('v1 save still migrates all the way to v3',()=>{
+  fresh({v:1,cash:900,prog:{done:[true,true,true,true],trust:70}});const d=Save.data;
+  assert.equal(d.v,3);assert.equal(d.prog.act,2);assert.equal(d.world.bridgeOpen,true);
+  assert.deepEqual(Object.keys(d.jobs).sort(),['dave','doug','gary','rick']);assert.equal(d.calendar.entries.length,4);assert.equal(d.day,5);
+});
+
+test('recordRun: best, medal, done, calendar pin and day rules',()=>{
+  fresh();const d=Save.data;
+  let r=Save.recordRun(null,'taxi',{ok:false,t:50});
+  assert.deepEqual([r.medalUp,r.bonus],[false,0]);assert.equal(d.jobs.taxi.runs,1);assert.equal(d.jobs.taxi.done,false);assert.equal(d.day,1);assert.equal(d.calendar.entries.length,0);
+  r=Save.recordRun(null,'taxi',{ok:true,t:200,score:500,medal:1,trustGain:3,clean:false});
+  assert.equal(r.first,true);assert.equal(r.medalUp,true);assert.equal(r.bonus,0,'first finish pays no upgrade bonus');
+  assert.equal(d.jobs.taxi.done,true);assert.deepEqual(d.jobs.taxi.best,{t:200,score:500,trustGain:3,clean:false});
+  assert.deepEqual(d.calendar.entries,[{id:'taxi',day:1,medal:1,best:{t:200,trustGain:3,clean:false},runs:2}],'pinned on the day it was finished');
+  assert.equal(d.day,2,'a finished story job passes a day');
+  Save.recordRun(null,'taxi',{ok:true,t:180,score:400,medal:1,replay:true,trustGain:1,clean:true});
+  assert.deepEqual(d.jobs.taxi.best,{t:180,score:500,trustGain:3,clean:true},'lower t, higher score: each kept separately');
+  assert.equal(d.jobs.taxi.replays,1);assert.equal(d.jobs.taxi.runs,3);assert.equal(d.day,2,'replays do not pass a day');
+  assert.equal(d.calendar.entries[0].day,1,'pin stays on its first day');assert.equal(d.calendar.entries[0].runs,3);
+  Save.recordRun(null,'taxi',{ok:true,t:300,score:100,medal:0,replay:true});assert.equal(d.jobs.taxi.medal,1,'medal never goes down');
+  Save.recordRun(null,'porch',{ok:true,t:60,medal:1,story:false});assert.equal(d.day,2,'repeatable side jobs (story:false) do not pass a day');
+  Save.recordRun(null,'overwatch',{ok:true,t:90,medal:2});assert.equal(d.calendar.entries.find(e=>e.id==='overwatch').day,2);assert.equal(d.day,3);
+});
+
+test('medal upgrade pays +100 silver / +250 gold once each',()=>{
+  fresh();const d=Save.data;
+  Save.recordRun(null,'mower',{ok:true,t:100,medal:1});
+  let r=Save.recordRun(null,'mower',{ok:true,t:90,medal:2,replay:true});assert.deepEqual([r.medalUp,r.bonus],[true,100]);
+  r=Save.recordRun(null,'mower',{ok:true,t:90,medal:2,replay:true});assert.deepEqual([r.medalUp,r.bonus],[false,0]);
+  r=Save.recordRun(null,'mower',{ok:true,t:80,medal:3,replay:true});assert.deepEqual([r.medalUp,r.bonus],[true,250]);
+  r=Save.recordRun(null,'mower',{ok:true,t:70,medal:3,replay:true});assert.equal(r.bonus,0);assert.equal(d.jobs.mower.medalPaid,3);
+  Save.recordRun(null,'blitz',{ok:true,medal:1});assert.equal(Save.recordRun(null,'blitz',{ok:true,medal:3,replay:true}).bonus,350,'bronze straight to gold pays both');
+  Save.recordRun(null,'talk',{ok:true,medal:3});assert.equal(Save.recordRun(null,'talk',{ok:true,medal:3,replay:true}).bonus,0,'gold on the first try is not an upgrade');
+  fresh(V2());assert.equal(Save.recordRun(null,'gary',{ok:true,medal:2,replay:true}).bonus,100,'migrated bronze can be upgraded');
+});
+
+test('replay never sets done or changes households',()=>{
+  fresh();const d=Save.data;Save.household(null,'adeyemi');const before=JSON.stringify(d.world);
+  Save.recordRun(null,'heavy',{ok:true,medal:3,replay:true});
+  assert.equal(d.jobs.heavy.done,false);assert.equal(JSON.stringify(d.world),before);assert.equal(d.day,1);
+  assert.equal(Save.household(null,'adeyemi'),false,'idempotent');assert.deepEqual(d.world.households,['adeyemi']);
+  assert.equal(Save.storefront(null,'pawn','bakery'),'bakery');Save.storefront(null,'pawn','bakery');assert.deepEqual(d.world.storefronts,{pawn:'bakery'});assert.equal(Save.storefront(null,'pawn'),'bakery');
+});
+
+test('album keeps 24 photos, dropping the oldest non-3-star first',()=>{
+  fresh();const d=Save.data;
+  Save.album(null,{id:'gold0',job:'hoa',item:'mailbox',stars:3,jpg:'x'});
+  for(let i=1;i<30;i++)Save.album(null,{id:'p'+i,job:'hoa',item:'x',stars:i%5===0?3:1});
+  assert.equal(d.album.length,24);assert.equal(d.album[0].id,'gold0','3-star photos outlive the rest');
+  assert.ok(d.album.some(p=>p.id==='p5'));assert.ok(!d.album.some(p=>p.id==='p1'));assert.equal(d.album[23].id,'p29');assert.equal(d.album[1].day,1);
+  for(let i=0;i<30;i++)Save.album(null,{id:'g'+i,stars:3});assert.equal(d.album.length,24);assert.equal(d.album[0].id,'g6','all gold: plain FIFO');
+});
+
+test('gadgets, perks, jobRec helpers',()=>{
+  fresh();const d=Save.data;
+  assert.equal(Save.gadget(null,'nvg'),d.gadgets.nvg);assert.equal(Save.gadget(null,'flashlight').owned,true);
+  assert.equal(Save.perk(null,'gary'),false);assert.equal(Save.perk(null,'gary',true),true);assert.equal(d.perks.gary,true);assert.equal(d.crew.gary,undefined);
+  const j=Save.jobRec(null,'tail');assert.deepEqual(j,Save.jobDefault());assert.equal(d.jobs.tail,j,'created on demand');
+  const s2=Save.defaults();Save.recordRun(s2,'tail',{ok:true,medal:2});assert.equal(s2.jobs.tail.done,true);assert.equal(d.jobs.tail.done,false,'pure on a passed save');
+});
+
+test("night-vision goggles: Hank's Gadgets tab, buy sets owned, equip toggle",()=>{
+  fresh();const d=Save.data;const g=C.gadgets.nvg;
+  assert.equal(g.name,'NightOwl Gen-1 Goggles');assert.ok(g.price>=400&&g.price<=900);assert.match(g.fx,/Toggle with N/);assert.ok(g.blurb);
+  assert.ok(C.stores.hardware.tabs.some(t=>t[0]==='gad'&&t[1]==='Gadgets'));assert.equal(C.gadgets.flashlight.name,"Dad's Maglite");
+  assert.equal(E.status('gad','flashlight','hardware').state,'equipped','the Maglite is free and owned');
+  assert.equal(E.status('gad','nvg','hardware').state,'poor');d.cash=1000;
+  assert.equal(E.status('gad','nvg','dadazon').state,'locked');
+  const r=E.buy('gad','nvg','hardware');assert.equal(r.ok,true);assert.equal(r.price,650);assert.equal(d.cash,350);
+  assert.equal(d.gadgets.nvg.owned,true);assert.equal(d.gadgets.nvg.equipped,true);assert.equal(E.status('gad','nvg','hardware').state,'equipped');
+  assert.equal(E.buy('gad','nvg','hardware').ok,false,'only one pair');
+  assert.deepEqual(E.gadgetUse('nvg'),{ok:true,equipped:false});assert.equal(E.status('gad','nvg','hardware').state,'owned');
+  d.flags.hankDiscount=true;assert.equal(E.priceOf('gad','nvg','hardware').price,585,"Hank's lifetime discount");
+  Save.saveNow();Save.load();assert.equal(Save.data.gadgets.nvg.owned,true);assert.equal(Save.data.gadgets.nvg.equipped,false);
+});
+
+test('unknown job ids and v3 data survive normalise and a save/load round trip',()=>{
+  const st=fresh();const d=Save.data;
+  Save.recordRun(null,'overwatch',{ok:true,t:61.5,score:9,medal:2,trustGain:4,clean:true});Save.jobRec(null,'heist').plan={entry:'roof'};
+  Save.household(null,'ferreira');Save.storefront(null,'millst','sal');Save.album(null,{id:'a1',job:'hoa',stars:2,jpg:'data:x'});
+  d.gear.push({id:'ladder',label:"Linda's ladder",owner:'linda',hood:'maple',due:4});Save.perk(null,'doug',true);
+  Save.saveNow();const raw=JSON.parse(st.getItem('ht-save'));assert.equal(raw.v,3);
+  Save.load();const e=Save.data;
+  assert.deepEqual(e.jobs.overwatch,{done:true,best:{t:61.5,score:9,trustGain:4,clean:true},medal:2,runs:1,replays:0,plan:null,medalPaid:2});
+  assert.deepEqual(e.jobs.heist.plan,{entry:'roof'});assert.deepEqual(e.world.households,['ferreira']);assert.deepEqual(e.world.storefronts,{millst:'sal'});
+  assert.equal(e.album[0].jpg,'data:x');assert.equal(e.gear[0].due,4);assert.equal(e.perks.doug,true);assert.equal(e.day,2);
+  assert.deepEqual(e.calendar.entries,[{id:'overwatch',day:1,medal:2,best:{t:61.5,trustGain:4,clean:true},runs:1}]);
+  const code=Save.export();fresh();assert.deepEqual(Save.import(code),{ok:true});assert.equal(Save.data.jobs.overwatch.medal,2);
+  fresh({v:3,jobs:{taxi:{done:1,medal:9,runs:-2,weird:true},blitz:'nope',porch:{}},calendar:{entries:[{id:'taxi',day:0},{id:'taxi'},{nope:1}]},album:[1,{id:'x'}],perks:{gary:1},
+    gadgets:{nvg:{owned:1,charge:7},flashlight:{owned:false}},world:{households:['a','a',3],storefronts:[]},gear:[{id:'l'},'x'],day:-4});
+  const f=Save.data;
+  assert.equal(f.jobs.taxi.done,true);assert.equal(f.jobs.taxi.medal,3);assert.equal(f.jobs.taxi.runs,0);assert.equal(f.jobs.taxi.weird,true,'extra fields kept');
+  assert.equal(f.jobs.blitz,undefined);assert.deepEqual(f.jobs.porch,Save.jobDefault());
+  assert.deepEqual(f.calendar.entries.map(x=>[x.id,x.day]),[['taxi',1]]);assert.equal(f.album.length,1);assert.equal(f.perks.gary,true);
+  assert.deepEqual(f.gadgets.nvg,{owned:true,equipped:true,charge:1});assert.equal(f.gadgets.flashlight.owned,true);
+  assert.deepEqual(f.world.households,['a']);assert.deepEqual(f.world.storefronts,{});assert.equal(f.gear.length,1);assert.equal(f.day,1);
+});
+
+test('v3 helpers announce changes through Save.on',()=>{
+  fresh();const got=[];const off=Save.on('*',(v,o,k)=>got.push(k));
+  Save.recordRun(null,'taxi',{ok:true,medal:1});Save.album(null,{id:'q'});Save.household(null,'h');Save.perk(null,'rick',true);off();
+  for(const k of['jobs','calendar','day','album','world','perks'])assert.ok(got.includes(k),k);
 });
