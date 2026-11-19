@@ -4,8 +4,8 @@ const { chromium } = require('playwright');
   const b = await chromium.launch({ args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   await p.goto(process.argv[2] || 'http://127.0.0.1:8001/');
-  await p.waitForFunction(() => !document.getElementById('bStart').disabled);
-  await p.evaluate(() => { document.getElementById('bStart').click(); window.__ht.render.apply('med') });
+  await p.waitForFunction(() => (()=>{const b=document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart');return !!b&&!b.disabled})());
+  await p.evaluate(() => { (document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart')).click(); window.__ht.render.apply('med') });
   await p.waitForTimeout(3000);
   const r = await p.evaluate(() => new Promise(res => {
     const R = window.__ht.render, d = R.draw, gl = window.__ht.renderer.getContext(); let inDraw = 0, fin = 0, n = 0; const t0 = performance.now();

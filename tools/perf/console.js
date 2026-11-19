@@ -8,6 +8,6 @@ const { chromium } = require('playwright');
   p.on('requestfailed', r => console.log('REQFAIL', r.url().slice(0, 120), r.failure() && r.failure().errorText));
   await p.goto(process.argv[2] || 'http://127.0.0.1:8001/');
   await p.waitForTimeout((+process.argv[3] || 12) * 1000);
-  console.log(await p.evaluate(() => JSON.stringify({ t: document.getElementById('ldT').textContent, dis: document.getElementById('bStart').disabled, done: window.__ht && window.__ht.assets.done, prog: window.__ht && window.__ht.assets.progress, pend: window.__ht && window.__ht.assets.stream.pending() })));
+  console.log(await p.evaluate(() => JSON.stringify({ t: ((document.querySelector('.ht-title .st')||document.getElementById('ldT')||{}).textContent), dis: !(()=>{const b=document.querySelector('.ht-title [data-act=newgame]');return !!b&&!b.disabled})(), done: window.__ht && window.__ht.assets.done, prog: window.__ht && window.__ht.assets.progress, pend: window.__ht && window.__ht.assets.stream.pending() })));
   await b.close();
 })();

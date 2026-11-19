@@ -1,0 +1,96 @@
+loaded index.html in 19116 ms (assets done)
+  screenshot docs/screenshots/ai-ingame/m0-crew-follow.jpg
+
+== mission 0 · Return to Sender (loot) → WON in 73s sim (14.5s wall)
+  dad: min hp 100, damage taken 0; 5 down, 5 zip-tied, trust 76 (started 50)
+  first contact: enemy entered combat at 0.5s, first shot at the dad 6.4s ; per-enemy spot→first shot median 9.17s, min 3.3s (6 enemies)
+  enemy shots 21 (18 at the dad); mean hit chance vs dad moving 0.05 (9 shots), standing 0.18 (9 shots)
+  fire tokens: peak 2 holders (pool max 3), most enemies aiming/firing at once 2, shots without a token 0
+  cover: 97 hide checks behind cover the AI thinks blocks the dad → 96 could not be hit by the dad's shot (camera ray + shoulder check, 99.0%), 86 not even visible to the camera ray (88.7%); probe rays reaching a body 257/4656, of those shootable 1; crouched samples 0, highest crouched hitbox top 0.00 m (crate top 1.15)
+  cover leaks: [{"id":"e3","hide":"stand","crouched":false,"dist":20.9,"hit":39,"shot":0,"top":1.82,"pcrouch":false,"camY":1.84},{"id":"e3","hide":"stand","crouched":false,"dist":21.8,"hit":39,"shot":0,"top":1.82,"pcrouch":false,"camY":1.94},{"id":"e3","hide":"stand","crouched":false,"dist":22.6,"hit":40,"shot":0,"top":1.82,"pcrouch":false,"camY":1.97},{"id":"e3","hide":"stand","crouched":false,"dist":23.4,"hit":37,"shot":0,"top":1.81,"pcrouch":false,"camY":1.98},{"id":"e3","hide":"stand","crouched":false,"dist":17.9,"hit":21,"shot":0,"top":1.82,"pcrouch":false,"camY":1.98}]
+  flanks: 0 (0 counted across adjacent-room squads) []
+  trust: [{"t":16.6,"d":4,"why":"zip-tie"},{"t":22.6,"d":4,"why":"zip-tie"},{"t":22.7,"d":4,"why":"zip-tie"},{"t":27.5,"d":-10,"why":"shot a surrendered man"},{"t":31.9,"d":4,"why":"zip-tie"},{"t":43.1,"d":4,"why":"zip-tie"},{"t":73,"d":16,"why":"mission end"}]
+  crew vs camera: 438 samples, a crewman between camera and dad's chest 1 (0.2%), on the crosshair line within 20 m 3 (0.7%), any crewman inside the camera cone 48, hidden for being on top of the camera 32
+  crew callouts 5: gary: Twelve o'clock, hoodie! | gary: Contact front! | gary: Hoodie in the back room! | gary: Contact front! | gary: One in the front-right room!
+  barks 23 (investigate, contactFront, advance, hit, spotted, contactRoom, friendDown, yield, clear)
+  think(): 12.03 µs per call over 5642 calls = 0.93 ms per simulated second; crew ally(): 18.68 µs per call
+  screenshot docs/screenshots/ai-ingame/m1-crew-follow.jpg
+
+== mission 1 · Fourth Quarter (stash) → WON in 55.6s sim (7.3s wall)
+  dad: min hp 80, damage taken 20; 4 down, 4 zip-tied, trust 82 (started 50)
+  first contact: enemy entered combat at 0.47s, first shot at the dad 2.07s ; per-enemy spot→first shot median 1.67s, min 1.5s (6 enemies)
+  enemy shots 36 (24 at the dad); mean hit chance vs dad moving 0.11 (18 shots), standing 0.19 (6 shots)
+  fire tokens: peak 2 holders (pool max 3), most enemies aiming/firing at once 2, shots without a token 0
+  cover: 35 hide checks behind cover the AI thinks blocks the dad → 35 could not be hit by the dad's shot (camera ray + shoulder check, 100.0%), 35 not even visible to the camera ray (100.0%); probe rays reaching a body 0/1680, of those shootable 0; crouched samples 0, highest crouched hitbox top 0.00 m (crate top 1.15)
+  flanks: 0 (0 counted across adjacent-room squads) []
+  trust: [{"t":11.5,"d":4,"why":"zip-tie"},{"t":13.1,"d":4,"why":"zip-tie"},{"t":18.3,"d":4,"why":"zip-tie"},{"t":41.8,"d":4,"why":"zip-tie"},{"t":55.6,"d":16,"why":"mission end"}]
+  crew vs camera: 333 samples, a crewman between camera and dad's chest 2 (0.6%), on the crosshair line within 20 m 8 (2.4%), any crewman inside the camera cone 101, hidden for being on top of the camera 18
+  crew callouts 5: rick: Contact front! | gary: Twelve o'clock, hoodie! | rick: One in the front room! | gary: Left side! Left side! | rick: Contact front!
+  barks 25 (investigate, contactFront, spotted, advance, contactRoom, hit, covering, yield, contactLeft, clear, searching)
+  think(): 13.5 µs per call over 4096 calls = 0.995 ms per simulated second; crew ally(): 13.41 µs per call
+  screenshot docs/screenshots/ai-ingame/m2-crew-follow.jpg
+  screenshot docs/screenshots/ai-ingame/m2-wave-1.jpg
+  screenshot docs/screenshots/ai-ingame/m2-wave-2.jpg
+  screenshot docs/screenshots/ai-ingame/m2-wave-3.jpg
+  screenshot docs/screenshots/ai-ingame/m2-crouched-behind-cover.jpg
+
+== mission 2 · Block Party (waves) → WON in 67.5s sim (24.4s wall)
+  dad: min hp 92, damage taken 8; 8 down, 14 zip-tied, trust 100 (started 50)
+  first contact: enemy entered combat at 0.07s, first shot at the dad 1.17s ; per-enemy spot→first shot median 1.37s, min 1s (6 enemies)
+  enemy shots 41 (36 at the dad); mean hit chance vs dad moving 0.03 (18 shots), standing 0.07 (18 shots)
+  fire tokens: peak 2 holders (pool max 3), most enemies aiming/firing at once 2, shots without a token 0
+  cover: 14 hide checks behind cover the AI thinks blocks the dad → 14 could not be hit by the dad's shot (camera ray + shoulder check, 100.0%), 14 not even visible to the camera ray (100.0%); probe rays reaching a body 0/672, of those shootable 0; crouched samples 14, highest crouched hitbox top 1.00 m (crate top 1.15)
+  flanks: 0 (0 counted across adjacent-room squads) []
+  waves: [{"wave":1,"t":0,"moraleBefore":[],"moraleAfter":[1]},{"wave":2,"t":12.5,"moraleBefore":[0.16],"moraleAfter":[1]},{"wave":3,"t":30.2,"moraleBefore":[0],"moraleAfter":[1]}]
+  spawns: 22, min distance 15.9 m, in the dad's view 1; by wave {"1":[0,0,0,2.6,2.6],"2":[12.5,12.5,12.5,17,17,17,21.2],"3":[30.2,30.2,30.2,34.7,34.7,34.7,38.3,38.3,38.3,42.8]}
+  trust: [{"t":12.8,"d":4,"why":"zip-tie"},{"t":13.7,"d":4,"why":"zip-tie"},{"t":23.5,"d":-10,"why":"shot a surrendered man"},{"t":27.9,"d":4,"why":"zip-tie"},{"t":33.3,"d":4,"why":"zip-tie"},{"t":34.6,"d":4,"why":"zip-tie"},{"t":36.6,"d":4,"why":"zip-tie"},{"t":38.2,"d":4,"why":"zip-tie"},{"t":40.1,"d":-10,"why":"shot a surrendered man"},{"t":52.7,"d":4,"why":"zip-tie"},{"t":58.2,"d":4,"why":"zip-tie"},{"t":59.9,"d":4,"why":"zip-tie"},{"t":60.3,"d":4,"why":"zip-tie"},{"t":61.1,"d":4,"why":"zip-tie"},{"t":62,"d":4,"why":"zip-tie"},{"t":67.5,"d":18,"why":"zip-tie"}]
+  crew vs camera: 405 samples, a crewman between camera and dad's chest 2 (0.5%), on the crosshair line within 20 m 3 (0.7%), any crewman inside the camera cone 94, hidden for being on top of the camera 61
+  crew callouts 9: gary: Contact right! | dave: One over in the yard! | rick: Check six! Like the minivan mirrors! | gary: Contact front! | dave: On your right, buddy! | rick: Twelve o'clock, hoodie!
+  barks 24 (spotted, contactRight, friendDown, contactRoom, contactBehind, advance, hit, covering, clear, contactFront)
+  think(): 19.65 µs per call over 3145 calls = 0.915 ms per simulated second; crew ally(): 10.25 µs per call
+  screenshot docs/screenshots/ai-ingame/m3-crew-follow.jpg
+  screenshot docs/screenshots/ai-ingame/m3-boss-reinforcements.jpg
+
+== mission 3 · The Kingpin (boss) → WON in 56.6s sim (15.5s wall)
+  dad: min hp 39, damage taken 69; 10 down, 5 zip-tied, trust 80 (started 50)
+  first contact: enemy entered combat at 0.03s, first shot at the dad 2.43s ; per-enemy spot→first shot median 3.63s, min 1.9s (14 enemies)
+  enemy shots 79 (49 at the dad); mean hit chance vs dad moving 0.07 (37 shots), standing 0.12 (12 shots)
+  fire tokens: peak 3 holders (pool max 3), most enemies aiming/firing at once 3, shots without a token 0
+  cover: 77 hide checks behind cover the AI thinks blocks the dad → 77 could not be hit by the dad's shot (camera ray + shoulder check, 100.0%), 75 not even visible to the camera ray (97.4%); probe rays reaching a body 42/3696, of those shootable 0; crouched samples 20, highest crouched hitbox top 1.09 m (crate top 1.15)
+  cover leaks: [{"id":"e52","hide":"stand","crouched":false,"dist":10.4,"hit":37,"shot":0,"top":1.81,"pcrouch":false,"camY":1.97},{"id":"e52","hide":"stand","crouched":false,"dist":10.8,"hit":5,"shot":0,"top":1.81,"pcrouch":false,"camY":1.98}]
+  flanks: 2 (1 counted across adjacent-room squads) [{"t":3.1,"id":"e44","ownFighting":3,"neighbours":1,"cross":false},{"t":30.2,"id":"e51","ownFighting":1,"neighbours":1,"cross":true}]
+  boss: [{"t":35.5,"bossSub":"cover","phase":1,"hpFrac":0.65,"room":"the King's office"},{"t":35.5,"reinforced":3,"hpFrac":0.65},{"t":37.1,"bossSub":"retreat","phase":2,"hpFrac":0.31,"room":"the King's office"},{"t":37.1,"sub":"retreat","room":"the King's office","distDad":8.3},{"t":37.1,"sub":"cover","room":"the King's office","distDad":8.3}]
+  spawns: 3, min distance 12.3 m, in the dad's view 0; by wave {"null":[35.5,35.5,35.5]}
+  trust: [{"t":15.9,"d":4,"why":"zip-tie"},{"t":17.9,"d":4,"why":"zip-tie"},{"t":23.8,"d":4,"why":"zip-tie"},{"t":36.8,"d":-10,"why":"shot a surrendered man"},{"t":43.7,"d":4,"why":"zip-tie"},{"t":44.4,"d":4,"why":"zip-tie"},{"t":56.6,"d":20,"why":"mission end"}]
+  crew vs camera: 339 samples, a crewman between camera and dad's chest 2 (0.6%), on the crosshair line within 20 m 16 (4.7%), any crewman inside the camera cone 107, hidden for being on top of the camera 24
+  crew callouts 11: dave: Twelve o'clock, hoodie! | gary: Contact front! | doug: Contact front! | rick: One in the middle room! | rick: Twelve o'clock, hoodie! | dave: On your right, buddy!
+  barks 36 (spotted, contactFront, enemyFlanking, investigate, covering, contactRoom, hit, contactRight, yield, reloading, contactLeft, friendDown, enemyReloading, flanked, taunt, bossCall, bossRetreat, clear)
+  think(): 12.7 µs per call over 9115 calls = 2.047 ms per simulated second; crew ally(): 16.85 µs per call
+
+== crew stack (mission 3, house door, dad crouched beside it, no fight on): {"door":{"x":27,"z":19,"axis":"z","room":"the front room"},"allies":[{"id":"gary","state":"stack","stance":"crouch","distDoor":2.74,"onDoorway":false,"sameSideAsDad":true},{"id":"rick","state":"stack","stance":"crouch","distDoor":2.88,"onDoorway":false,"sameSideAsDad":true},{"id":"dave","state":"stack","stance":"crouch","distDoor":3.48,"onDoorway":false,"sameSideAsDad":true},{"id":"doug","state":"stack","stance":"crouch","distDoor":3.86,"onDoorway":false,"sameSideAsDad":true}],"barks":["gary: On you. Like a carpool line."]}
+  screenshot docs/screenshots/ai-ingame/m3-crew-stack-at-door.jpg
+  screenshot docs/screenshots/ai-ingame/m3-crew-stack-at-door-overhead.jpg
+  dad stands and walks through → {"breach":["gary: Moving in!"],"crewInside":4}
+
+== crouched behind crates (mission 0, forced hides, dad standing / crouched / standing looking down): 42 samples → 38 fully hidden from the camera, 42 not shootable; highest crouched hitbox top 1.091 m; crate top 1.15 m; leaks [{"boss":false,"dist":8.1,"dadCrouch":false,"camY":2.06,"hit":1,"shot":0,"top":1.09},{"boss":false,"dist":11.3,"dadCrouch":false,"camY":2,"hit":1,"shot":0,"top":1.06},{"boss":false,"dist":11.3,"dadCrouch":true,"camY":1.42,"hit":1,"shot":0,"top":1.06},{"boss":false,"dist":11.3,"dadCrouch":false,"camY":2.02,"hit":1,"shot":0,"top":1.08}]
+
+== crouched behind crates (mission 3, forced hides, dad standing / crouched / standing looking down): 29 samples → 27 fully hidden from the camera, 29 not shootable; highest crouched hitbox top 1.157 m (the King 1.157 m); crate top 1.15 m; leaks [{"boss":true,"dist":8.2,"dadCrouch":false,"camY":2.05,"hit":4,"shot":0,"top":1.13},{"boss":true,"dist":8.2,"dadCrouch":false,"camY":2.07,"hit":4,"shot":0,"top":1.14}]
+  screenshot docs/screenshots/ai-ingame/m0-hoodie-crouched-behind-crate-dad-view.jpg
+  screenshot docs/screenshots/ai-ingame/m0-hoodie-crouched-behind-crate-side-view.jpg
+
+== passive dad in the compound yard for 45 s (god mode, not shooting): {"flanks":[{"t":15,"id":"e103","ownFighting":2,"neighbours":1,"cross":true}],"tokPeak":3,"poolMax":3,"tokOver":0,"perSquadPeak":{"2":1,"4":1,"5":1,"6":1,"7":1,"9":2,"10":0,"out":2},"squadMax":2,"shots":137,"noToken":0,"maxConc":3,"modes":"combat/cover combat/cover idle/post combat/cover","dmgSoaked":128}
+
+== surrender rules (mission 0): {"surrenderAt":370,"squadMorale":0.83,"chanceNow":0.54,"inSquadAlive":false,"squadSurrendered":1,"executed":true,"trustDelta":-10,"shotSurrDelta":1,"cuffed":true,"cuffTrustDelta":4}
+
+console errors: 0
+
+== fairness sweep: 6 seeds per mission and skill (real game, scripted dad)
+  steady mission 0: won 6/6, median damage taken 10, median min hp 93 (worst 70), median time 72s
+  steady mission 1: won 6/6, median damage taken 14, median min hp 91 (worst 78), median time 61s
+  steady mission 2: won 6/6, median damage taken 39, median min hp 84 (worst 68), median time 74s
+  steady mission 3: won 6/6, median damage taken 52, median min hp 78 (worst 5), median time 63s
+  casual mission 0: won 6/6, median damage taken 50, median min hp 66 (worst 42), median time 78s
+  casual mission 1: won 6/6, median damage taken 52, median min hp 60 (worst 54), median time 66s
+  casual mission 2: won 6/6, median damage taken 44, median min hp 75 (worst 11), median time 90s
+  casual mission 3: won 6/6, median damage taken 68, median min hp 68 (worst 52), median time 66s
+  console errors during the sweep: 0

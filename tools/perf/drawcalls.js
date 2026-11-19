@@ -6,9 +6,9 @@ const { chromium } = require('playwright');
   const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
   p.on('pageerror', e => console.log('err', e.message));
   await p.goto(process.argv[3] || 'http://127.0.0.1:8001/');
-  await p.waitForFunction(() => !document.getElementById('bStart').disabled, null, { timeout: 120000 });
+  await p.waitForFunction(() => (()=>{const b=document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart');return !!b&&!b.disabled})(), null, { timeout: 120000 });
   const r = await p.evaluate(lvl => {
-    const h = window.__ht, R = h.renderer; document.getElementById('bStart').click(); if (lvl >= 0) h.startMission(lvl); h.step(5);
+    const h = window.__ht, R = h.renderer; (document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart')).click(); if (lvl >= 0) h.startMission(lvl); h.step(5);
     const passes = []; const orig = R.render.bind(R);
     R.info.autoReset = false;
     R.render = (s, c) => { const a = R.info.render.calls, t = R.info.render.triangles; orig(s, c); passes.push([s === h.scene ? 'scene' : s.type || 'other', c.type, R.getRenderTarget() ? 'rt' : 'screen', R.info.render.calls - a, R.info.render.triangles - t]) };

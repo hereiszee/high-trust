@@ -44,10 +44,10 @@ const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypas
     reqs = new Map();
     const t0 = Date.now();
     await page.goto(URL_, { waitUntil: 'commit' });
-    await page.waitForFunction(() => { const b = document.getElementById('bStart'); return b && !b.disabled }, null, { timeout: 120000, polling: 50 });
+    await page.waitForFunction(() => (()=>{const b=document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart');return !!b&&!b.disabled})(), null, { timeout: 120000, polling: 50 });
     const tStart = Date.now() - t0;
     const atStart = [...reqs.values()].map(r => ({ ...r }));
-    const ldText = await page.evaluate(() => document.getElementById('ldT').textContent);
+    const ldText = await page.evaluate(() => ((document.querySelector('.ht-title .st')||document.getElementById('ldT')||{}).textContent));
     /* wait for background streaming to settle (if the page exposes it) */
     let tFull = null;
     try {
@@ -73,7 +73,7 @@ const proxy = process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypas
     const shots = val('--shots');
     if (shots) fs.mkdirSync(shots, { recursive: true });
     /* frame costs are compared at Medium: Auto would react to this harness's back-to-back draws */
-    await page.evaluate(q => { document.getElementById('bStart').click(); window.__ht.render.apply(q) }, val('--q', 'med'));
+    await page.evaluate(q => { (document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart')).click(); window.__ht.render.apply(q) }, val('--q', 'med'));
     await page.waitForTimeout(1500);
     const sample = async (name, setup, arg) => {
       await page.evaluate(setup, arg);

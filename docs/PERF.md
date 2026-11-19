@@ -80,6 +80,43 @@ Screenshots: `docs/screenshots/perf/before-*.jpg` and `after-*.jpg` (same views 
 (before above, after below).
 
 
+## After merging main (d163545: realistic people, guns, HUD, FX, AI, home)
+
+Main had grown to **29.7 MB / 140 local files before Start**, 30.5 s at 10 Mbit/s (12.1 s unthrottled), with a 2-minute
+give-up timeout. On the merged branch:
+
+| | main d163545 | merged work/perf-load |
+|---|---|---|
+| bytes before Start (throttled run) | 29.7 MB | 3.1 MB (2.5 MB boot pack incl. player, Gary and the animation set; 9 module scripts; fonts) |
+| requests before Start | 150 | ~20 for Stage A (the rest of the 34 counted are Stage B starting the moment Stage A is in) |
+| first visit, 10 Mbit/s + 40 ms | 30.5 s | **3.8–3.9 s** (two runs) |
+| second visit | 11.3 s (HTTP cache) | 4.0 s (service worker; CPU-bound, see below) |
+| offline second visit | fails | Start in 4.3 s, "You're offline · click here to retry" |
+| boot pack + a tree + Gary + light probe 404 | n/a | Start in 4.1 s |
+| everything (hub full res, people, guns, missions) | 29.7 MB up front | 16.8 MB, streamed after Start |
+
+| level (Medium) | draw calls main → merged | triangles | programs | texture memory |
+|---|---|---|---|---|
+| hub | 828 → 532 | 1.34 M → 1.40 M | 73 → 62 | 290 → 209 MB |
+| driving | 767 → 479 | 1.29 M → 1.38 M | 73 → 62 | 290 → 209 MB |
+| mission 1 | 673 → 757 | 913 k → 789 k | 107 → 91 | 350 → 197 MB |
+| mission 2 | 791 → 744 | 1.19 M → 1.06 M | 110 → 94 | 410 → 233 MB |
+| mission 3 | 648 → 647 | 928 k → 834 k | 117 → 100 | 276 → 105 MB |
+| mission 4 | 1714 → 1648 | 1.51 M → 1.28 M | 118 → 101 | 482 → 231 MB |
+
+Mission numbers vary with which people have streamed in by the time of the sample (box stand-ins have more, smaller meshes).
+
+People: `rb_dad_player`, `rb_dad_gary` and `rb_anims` are in the boot pack (js/people.js prepares characters at
+`ASSETS.ready`); the rest of the crew streams right after Stage A, thugs and the boss with the missions (bumped when a
+brief opens). Each arrival is handed to `People.preload`. A mission started before its cast has arrived uses box
+stand-ins for the missing characters until the next level build. `HT.Guns.init` now runs after Stage A. js/home.js is
+not loaded by index.html yet; when it is, init it when the player enters the house (its files are in the pipeline,
+and `assets/family/` plus `assets/chars/dad_casual.glb` were restored because home.js uses them).
+
+The second visit is slower than before the merge (4.0 s vs 1.6 s) with all files coming from the worker: the time goes
+to parsing nine module scripts, preparing the rigged characters and building the hub on the main thread, which headless
+SwiftShader makes worse.
+
 ## How loading works now
 
 **Stage A (blocks Start).** A tiny script in `<head>` starts fetching `assets/opt/manifest.json` and then one

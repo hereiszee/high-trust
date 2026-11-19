@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
     document.addEventListener('DOMContentLoaded', () => mark('DOMContentLoaded'));
     const iv = setInterval(() => { if (window.THREE && !window.__m1) { window.__m1 = 1; mark('three ready') } if (window.__htBoot && !window.__m2) { window.__m2 = 1; window.__htBoot.pack.then(() => mark('boot pack received'), () => mark('boot pack failed')) }
       const a = window.__ht && window.__ht.assets; if (a && !window.__m3) { window.__m3 = 1; mark('game script done'); a.ready.then(() => mark('ASSETS.ready')) }
-      const bs = document.getElementById('bStart'); if (bs && !bs.disabled && !window.__m4) { window.__m4 = 1; mark('Start enabled'); clearInterval(iv) } }, 5) });
+      if ((()=>{const b=document.querySelector('.ht-title [data-act=newgame]')||document.getElementById('bStart');return !!b&&!b.disabled})() && !window.__m4) { window.__m4 = 1; mark('Start enabled'); clearInterval(iv) } }, 5) });
   await p.goto(process.argv[2] || 'http://127.0.0.1:8001/');
   await p.waitForFunction(() => window.__m4, null, { timeout: 60000 });
   console.log((await p.evaluate(() => window.__marks)).map(m => m.join(' @ ')).join('\n'));

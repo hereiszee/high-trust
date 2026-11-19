@@ -4,7 +4,7 @@
    pick a variant per quality tier. Never edit assets/opt/ by hand: re-run the build. */
 module.exports = {
   /* source folders scanned for .jpg .png .glb .hdr */
-  roots: ['assets/tex', 'assets/tex2', 'assets/sky', 'assets/world', 'assets/props', 'assets/people/rocketbox', 'assets/guns', 'assets/home'],
+  roots: ['assets/tex', 'assets/tex2', 'assets/sky', 'assets/world', 'assets/props', 'assets/people/rocketbox', 'assets/guns', 'assets/home', 'assets/family', 'assets/chars'],
   out: 'assets/opt',
   /* longest edge per tier. "map" = normal / roughness / alpha maps (one step below albedo) */
   size: {
@@ -34,6 +34,8 @@ module.exports = {
     'assets/tex/brick_col', 'assets/tex/rustmetal_col',
     'assets/world/asphalt_patch',
     /* hub models */
-    'assets/props/tree_oak', 'assets/props/tree_tall', 'assets/props/tree_pine', 'assets/props/bush', 'assets/props/mailbox'
+    'assets/props/tree_oak', 'assets/props/tree_tall', 'assets/props/tree_pine', 'assets/props/bush', 'assets/props/mailbox',
+    /* the player, the first job giver and the shared animation set (js/people.js needs anims at ready) */
+    'assets/people/rocketbox/dad_player', 'assets/people/rocketbox/dad_gary', 'assets/people/rocketbox/anims'
   ]
 };

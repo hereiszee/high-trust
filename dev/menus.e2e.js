@@ -50,24 +50,35 @@ async function T(name,fn){try{await fn();results.push(['ok',name])}catch(e){resu
     const tap=async i=>{await p.evaluate(i=>{__pad.buttons[i].pressed=true},i);await wait(80);await p.evaluate(i=>{__pad.buttons[i].pressed=false},i);await wait(80)};
     await tap(5);assert.equal(await p.getAttribute('.htm-tab.on','data-tab'),'prot');await tap(4);assert.equal(await p.getAttribute('.htm-tab.on','data-tab'),'perf');
     const k0=await focusedKey(p);await tap(15);assert.notEqual(await focusedKey(p),k0);
-    const before=(await S(p)).vehicle;await tap(0);await tap(0);const after=(await S(p)).vehicle;
-    assert.ok(Object.keys(before).some(k=>before[k]!==after[k]&&typeof before[k]==='number'),'an upgrade was installed');
+    const before=JSON.stringify((await S(p)).garage),cash0=(await S(p)).cash;await tap(0);await tap(0);const after=JSON.stringify((await S(p)).garage);
+    assert.notEqual(before,after,'an upgrade was installed');assert.ok((await S(p)).cash<cash0);
     await tap(1);await wait(300);assert.equal(await p.$('.htm'),null);await p.close()});
 
   await T('locker: number keys, equip, swap, workbench toggle',async()=>{const p=await fresh('preset=rich');
-    await p.evaluate(()=>HT.Locker.open({}));await wait(350);
+    await p.waitForFunction(()=>window.__ready);await p.evaluate(()=>HT.Locker.open({}));await wait(350);
+    await press(p,'4');assert.equal(await p.getAttribute('.htm-slot.tgt','data-slot'),'p3','rich preset owns the gun rack');
     await press(p,'3');assert.equal(await p.getAttribute('.htm-slot.tgt','data-slot'),'p2');
-    await p.focus('[data-key="gun:smg"]');await press(p,'Enter');let L=(await S(p)).loadout;assert.equal(L.p2,'smg');
+    await p.focus('.htm-grid [data-key="gun:smg"]');await press(p,'Enter');let L=(await S(p)).loadout;assert.equal(L.p2,'smg');
     await p.click('.htm-detail [data-act=equip][data-slot=p1]');L=(await S(p)).loadout;assert.deepEqual([L.p1,L.p2],['smg','rifle'],'equipping p2 gun into p1 swaps');
-    await p.focus('[data-key="gun:pistol"]');await press(p,'Enter');assert.equal((await S(p)).loadout.side,'pistol');
+    await p.focus('.htm-grid [data-key="gun:pistol"]');await press(p,'Enter');assert.equal((await S(p)).loadout.side,'pistol');
     await press(p,'e');assert.equal(await p.getAttribute('.htm-tab.on','data-tab'),'attach');
-    await p.focus('[data-key="gun:rifle"]');await wait(60);await p.click('.htm-detail [data-act=att][data-slot=muzzle][data-att=""]');
+    await p.focus('.htm-grid [data-key="gun:rifle"]');await wait(60);await p.click('.htm-detail [data-act=att][data-slot=muzzle][data-att=""]');
     assert.equal((await S(p)).attOn.rifle.muzzle,null);await p.click('.htm-detail [data-act=att][data-slot=muzzle][data-att=muffler]');assert.equal((await S(p)).attOn.rifle.muzzle,'muffler');
-    await press(p,'e');assert.equal(await p.getAttribute('.htm-tab.on','data-tab'),'ammo');assert.equal(await p.locator('.htm-arow').count(),2,'pistol+smg share 9mm, rifle 5.56');
+    await press(p,'e');assert.equal(await p.getAttribute('.htm-tab.on','data-tab'),'ammo');assert.equal(await p.locator('.htm-arow').count(),3,'pistol+smg share 9mm, rifle 5.56, hunter on the rack .308');
     await press(p,'Escape');await wait(300);assert.equal(await p.$('.htm'),null);await p.close()});
 
+  await T('1280x720: detail stat bars fit without scrolling',async()=>{
+    for(const[qs,key]of[['preset=mid&open=hardware&tab=att','att:extmag'],['preset=mid&open=auto&tab=perf','gar:eng2'],['preset=mid&open=auto&tab=prot','gar:armor1'],['preset=mid&open=dadazon&tab=guns','gun:smg'],['preset=rich&open=auto&tab=cars','car:suv']]){
+      const p=await fresh(qs);await p.waitForFunction(()=>window.__ready);await wait(300);await p.click(`[data-key="${key}"]`);await wait(700);
+      const r=await p.evaluate(()=>{const sc=document.querySelector('.htm-dscroll'),bars=sc.querySelector('.htm-bars');const a=sc.getBoundingClientRect(),b=bars.getBoundingClientRect();return{bot:b.bottom,lim:a.bottom}});
+      assert.ok(r.bot<=r.lim+1,key+': bars end at '+Math.round(r.bot)+', pane ends at '+Math.round(r.lim));await p.close()}});
+
+  await T('sounds route through HT.Audio.ui when it is running',async()=>{const p=await fresh('preset=mid');await p.waitForFunction(()=>window.__ready);
+    const got=await p.evaluate(()=>{const calls=[];const A=HT.Audio;Object.defineProperty(A,'ready',{get:()=>true,configurable:true});A.ui=k=>calls.push(k);HT.Menus.sfx('buy');HT.Menus.sfx('error');return calls});
+    assert.deepEqual(got,['cash','denied']);await p.close()});
+
   await T('payout: lines animate, total matches, click skips',async()=>{const p=await fresh('preset=mid');
-    await p.evaluate(()=>{window.__r=__bench.payout(true)});await wait(150);
+    await p.waitForFunction(()=>window.__ready);await p.evaluate(()=>{window.__r=__bench.payout('win')});await wait(150);
     assert.ok(await p.locator('.htp-line:not(.on)').count()>0,'still animating');await p.click('.htp');
     const n=await p.locator('.htp-line.on').count(),total=await p.textContent('.htp-total b');
     const exp=await p.evaluate(()=>HT.Economy.money(HT.Economy.computePayout({mission:0,ok:true,cuffs:3,confiscated:2,allyDowns:0,got:4,elapsed:212,exec:0,trust:64}).total));
