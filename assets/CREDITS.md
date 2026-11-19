@@ -85,32 +85,6 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | home/metal_tool_chest.glb | Metal Tool Chest | Poly Haven (John Hutcheson, Yann Kervran) | CC0 | https://polyhaven.com/a/metal_tool_chest |
 | home/dartboard.glb | Dartboard | Poly Haven (Satyaki Mandal) | CC0 | https://polyhaven.com/a/dartboard |
 
-## Building textures (assets/tex2/)
-
-Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion baked into the colour map (partly desaturated so they take paint tints). The procedural sets were generated for this project with a small numpy script and are released CC0.
-
-| Local file(s) | Source asset | Author | License | Source URL |
-|---|---|---|---|---|
-| tex2/stucco_{col,nrm,rgh}.jpg | White Stucco 02 | Poly Haven (Dimitrios Savva) | CC0 | https://polyhaven.com/a/white_stucco_02 |
-| tex2/shutter_{col,nrm,rgh}.jpg (also louvered shutters, vents and roll-up doors in the runtime atlas) | Painted Metal Shutter | Poly Haven (Charlotte Baglioni, Dario Barresi, Rico Cilliers) | CC0 | https://polyhaven.com/a/painted_metal_shutter |
-| tex2/corrugated_{col,nrm,rgh}.jpg | Corrugated Iron 02 | Poly Haven (Sergej Majboroda, Jenelle van Heerden) | CC0 | https://polyhaven.com/a/corrugated_iron_02 |
-| tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
-| tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
-
-## Effects (js/fx.js)
-
-No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
-
-## Firearms (assets/guns/) and first-person arms (js/guns.js)
-
-| Local file | Used as | Source asset | Author | License | Source URL | Processing |
-|---|---|---|---|---|---|---|
-| guns/ph_pistol.glb | Garage Pistol | Service Pistol | Poly Haven (Mateusz Sadek) | CC0 | https://polyhaven.com/a/service_pistol | 2k glTF; second finish variant + empty magazine removed; textures re-encoded to 1024px JPG; packed to GLB (glTF-Transform) |
-| guns/ph_bolt_rifle.glb | Deer Season | Bolt Action Rifle 7.62 | Poly Haven (Mateusz Sadek) | CC0 | https://polyhaven.com/a/bolt_action_rifle_7_62 | 2k glTF; textures re-encoded to 1024px JPG; packed to GLB |
-| guns/oga_m4a1.glb | Rick's Carbine | M4A1 Assault Rifle | BigWhyaaa (OpenGameArt) | CC0 | https://opengameart.org/content/m4a1-assault-rifle | FBX converted in-browser with three.js (FBXLoader -> GLTFExporter), scaled cm -> m, metal/rough packed into one texture, textures 1024px JPG |
-
-Procedural (built in code in js/guns.js, no external assets): revolver, pump shotgun, beanbag shotgun, side-by-side and sawed-off, SMG, cordless nailer, all attachments (red dot, suppressor, extended magazines, vertical foregrip), cartridges and shells, and the first-person arms, gloved hands and sleeves. All procedural textures (steel, walnut, checkering, polymer, leather, cloth) are generated at runtime on canvas.
-
 ## Home interior additions (assets/home/, assets/home/tex/) — js/home.js
 
 All CC0 1.0 (public domain) from Poly Haven (https://polyhaven.com, models via api.polyhaven.com / dl.polyhaven.org, 1k glTF). Processed with glTF-Transform: textures resized to 512 px (256 px for small props) and re-encoded as JPEG, dedup + prune, mesh simplification on heavy props, KHR_mesh_quantization. `metal_tool_chest.glb` and `potted_plant_04.glb` were re-simplified in place.
@@ -129,3 +103,36 @@ All CC0 1.0 (public domain) from Poly Haven (https://polyhaven.com, models via a
 | home/tex/linen_{col,nrm,rgh}.jpg | Rough Linen (https://polyhaven.com/a/rough_linen) | Poly Haven | CC0 |
 
 Generated in code (no files): lap siding, subway tile, quartz, carpet, pegboard, rugs, family photos, kids' drawings, signs, TV broadcast and laptop screens.
+## Building textures (assets/tex2/)
+
+Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion baked into the colour map (partly desaturated so they take paint tints). The procedural sets were generated for this project with a small numpy script and are released CC0.
+
+| Local file(s) | Source asset | Author | License | Source URL |
+|---|---|---|---|---|
+| tex2/stucco_{col,nrm,rgh}.jpg | White Stucco 02 | Poly Haven (Dimitrios Savva) | CC0 | https://polyhaven.com/a/white_stucco_02 |
+| tex2/shutter_{col,nrm,rgh}.jpg (also louvered shutters, vents and roll-up doors in the runtime atlas) | Painted Metal Shutter | Poly Haven (Charlotte Baglioni, Dario Barresi, Rico Cilliers) | CC0 | https://polyhaven.com/a/painted_metal_shutter |
+| tex2/corrugated_{col,nrm,rgh}.jpg | Corrugated Iron 02 | Poly Haven (Sergej Majboroda, Jenelle van Heerden) | CC0 | https://polyhaven.com/a/corrugated_iron_02 |
+| tex2/lapsiding_{col,nrm,rgh}.jpg | procedural lap siding (grain detail from White Planks Clean by Rob Tuytel, Poly Haven, CC0) | High Trust / Poly Haven | CC0 | https://polyhaven.com/a/white_planks_clean |
+| tex2/shingle_*, concrete_*, garagedoor_*, door6_*, interiors.jpg | procedural (architectural shingles, cast concrete, raised-panel garage door, six-panel door, window interiors) | High Trust | CC0 | generated |
+
+## Fonts (assets/fonts/)
+
+Latin subsets as served by Google Fonts, self-hosted so the HUD paints in its own type from the first frame. All **SIL Open Font License 1.1**; licence texts are next to the files.
+
+| Files | Family | Author | License |
+|---|---|---|---|
+| barlow-{500,600,700}.woff2 | Barlow | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlow.txt) |
+| barlow-condensed-{500,600,700,800}.woff2 | Barlow Condensed | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlowcondensed.txt) |
+| bowlby-one-400.woff2 | Bowlby One | Vernon Adams | OFL 1.1 (OFL-bowlbyone.txt) |
+
+## Effects (js/fx.js)
+
+No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
+
+## Firearms and first-person arms
+
+See assets/credits/guns.md.
+
+## Vehicles (js/vehicles.js)
+
+No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.
