@@ -665,6 +665,8 @@ function drawMap(st){
   c.save();c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=30;c.fillStyle='#161b21';c.fillRect(x0,y0,MM.base.width*sc,MM.base.height*sc);c.restore();
   c.imageSmoothingEnabled=MAP.z<4;
   if(MM.fog){c.globalAlpha=.1;c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);c.globalAlpha=1;c.drawImage(MM.rev,x0,y0,MM.base.width*sc,MM.base.height*sc)}else c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);
+  /* game overlay (e.g. Riverside crew turf tints): fn(ctx, worldToScreen, zoom) */
+  if(MM.overlay){try{c.save();MM.overlay(c,MAP.w2s,MAP.z);c.restore()}catch(e){}}
   if(MM.route&&MM.route.length>1){c.lineJoin='round';c.lineCap='round';c.beginPath();MM.route.forEach((q,i)=>{const[x,y]=MAP.w2s(q.x,q.z);i?c.lineTo(x,y):c.moveTo(x,y)});c.strokeStyle='rgba(20,16,4,.6)';c.lineWidth=8;c.stroke();c.strokeStyle='#ffc94a';c.lineWidth=4.5;c.stroke()}
   for(const m of mapItems()){const[x,y]=MAP.w2s(m.x,m.z);const sel=MAP.sel===m;if(sel){c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(x,y,16,0,TAU);c.stroke()}drawIcon(c,m.kind,x,y,sel?26:22);
     if((MAP.z>4.5||sel)&&m.label){c.font='700 12px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='top';c.fillStyle='rgba(0,0,0,.6)';c.fillText(m.label.toUpperCase(),x+1,y+15);c.fillStyle='#fff';c.fillText(m.label.toUpperCase(),x,y+14)}}
@@ -799,7 +801,7 @@ const HUD={
   hit,damage,feed,toast,ammoToast,banner,payout,
   show:showScreen,hide:hideScreen,set:setScreen,
   get screen(){return SCR.cur},
-  minimap:{setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},
+  minimap:{setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},overlay(fn){MM.overlay=fn||null;MAP.dirty=true},
     openMap:()=>MAP.openMap(),closeMap:()=>MAP.close(),toggleMap:()=>MAP.toggle(),get mapOpen(){return MAP.open},onFastTravel(fn){MAP.onTravel=fn},zoom(z){MM.zoom=z},reveal(x,z){reveal(x,z)}},
   touch:{
     /* stick visuals: x,y in -1..1, active flag, optional screen origin {ox,oy} for a floating stick */
