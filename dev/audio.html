@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>High Trust: sound lab</title>
+<style>
+:root{--bg:#14171c;--card:#1d2229;--ink:#e8ecf1;--dim:#8d97a5;--acc:#ffc94a;--line:#2c333d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:2;background:#101318ee;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+h1{font-size:16px;margin:0;color:var(--acc)}h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 8px}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;padding:12px 16px 40px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+button{background:#2a313b;color:var(--ink);border:1px solid #3a4350;border-radius:6px;padding:6px 10px;margin:0 4px 6px 0;cursor:pointer;font:inherit}
+button:hover{border-color:var(--acc)}button.on{background:var(--acc);color:#14171c}
+label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--dim)}input[type=range]{flex:1}
+.row{display:flex;flex-wrap:wrap;align-items:center}.v{min-width:44px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+canvas{background:#0c0e12;border-radius:6px;display:block;width:100%;height:70px}#st{color:var(--dim);font-size:12px}
+small{color:var(--dim)}
+</style></head><body>
+<header><h1>High Trust sound lab</h1><button id="go">Start audio</button><span id="st">click to start</span></header>
+<main>
+<section style="grid-column:1/-1"><h2>Output</h2><canvas id="scope" width="1200" height="70"></canvas></section>
+<section><h2>Guns</h2>
+  <label><input type="checkbox" id="pl" checked> Player's own gun (pos = null)</label>
+  <label><input type="checkbox" id="ind"> Indoor</label><label><input type="checkbox" id="sup"> Suppressed</label>
+  <label>Distance <input type="range" id="dist" min="1" max="150" value="20"><span class="v" id="distv">20 m</span></label>
+  <label>Angle <input type="range" id="ang" min="-180" max="180" value="30"><span class="v" id="angv">30°</span></label>
+  <div class="row" id="guns"></div>
+  <label><input type="checkbox" id="auto"> Hold for automatic fire (rifle, smg, nailer)</label>
+</section>
+<section><h2>Gun mechanics</h2><div class="row"><select id="mgun"></select></div><div class="row" id="mech"></div>
+  <h2 style="margin-top:8px">Shell casings</h2><div class="row" id="casing"></div></section>
+<section><h2>Impacts (at distance/angle above)</h2><div class="row" id="imp"></div><div class="row"><button id="whz">Bullet whizz</button></div></section>
+<section><h2>Footsteps</h2><div class="row" id="steps"></div>
+  <label><input type="checkbox" id="run"> Run</label><label><input type="checkbox" id="crouch"> Crouch</label><button id="walk">Walk loop</button></section>
+<section><h2>Feedback and UI</h2><div class="row" id="ui"></div><h2 style="margin-top:8px">Stingers</h2><div class="row" id="sting"></div></section>
+<section><h2>Voices</h2><div class="row" id="voices"></div><label><input type="checkbox" id="radio"> Over crew radio</label></section>
+<section><h2>Minivan</h2><div class="row"><button id="vstart">Start engine</button><button id="vstop">Stop</button><button id="vdemo">Drive demo</button></div>
+  <label>RPM <input type="range" id="rpm" min="0" max="100" value="5"><span class="v" id="rpmv"></span></label>
+  <label>Throttle <input type="range" id="thr" min="0" max="100" value="0"><span class="v" id="thrv"></span></label>
+  <label>Speed m/s <input type="range" id="spd" min="0" max="35" value="0"><span class="v" id="spdv"></span></label>
+  <label>Skid <input type="range" id="skid" min="0" max="100" value="0"><span class="v" id="skidv"></span></label>
+  <div class="row" id="vbtn"></div></section>
+<section><h2>Ambience (crossfades)</h2><div class="row" id="amb"></div></section>
+<section><h2>Music (bar-synced)</h2><div class="row" id="mus"></div>
+  <label>Intensity <input type="range" id="int" min="0" max="100" value="50"><span class="v" id="intv"></span></label></section>
+<section><h2>Mix</h2><div id="vols"></div><small>Voices active: <span id="vc">0</span></small></section>
+</main>
+<script src="../js/audio.js"></script>
+<script>
+const A=HT.Audio,$=id=>document.getElementById(id);
+let started=false,van=null,an=null;
+function start(){if(started)return;started=true;A.init();A.listener(0,1.6,0,0);
+  an=A.ctx.createAnalyser();an.fftSize=2048;A.output.connect(an);$('go').classList.add('on');$('go').textContent='Audio on';draw();
+  setInterval(()=>{const s=A.state;$('st').textContent=`${s.ctx} · ${s.voices} voices · music: ${s.music||'-'} · ambience: ${s.ambience||'-'} · ${s.cached} buffers`;$('vc').textContent=s.voices},300)}
+document.addEventListener('pointerdown',start,{once:true});
+function btn(parent,label,fn,cls){const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=e=>{start();fn(e,b)};$(parent).appendChild(b);return b}
+function pos(){if($('pl').checked)return null;const d=+$('dist').value,a=+$('ang').value*Math.PI/180;return{x:Math.sin(a)*d,y:1.6,z:-Math.cos(a)*d}}
+function wpos(){const d=+$('dist').value,a=+$('ang').value*Math.PI/180;return{x:Math.sin(a)*d,y:1,z:-Math.cos(a)*d}}
+for(const id of ['dist','ang','rpm','thr','spd','skid','int'])$(id).oninput=upd;
+function upd(){$('distv').textContent=$('dist').value+' m';$('angv').textContent=$('ang').value+'°';
+  for(const id of ['rpm','thr','skid','int'])$(id+'v').textContent=$(id).value+'%';$('spdv').textContent=$('spd').value;
+  if(van)van.set({rpm:$('rpm').value/100,throttle:$('thr').value/100,speed:+$('spd').value,skid:$('skid').value/100});A.setIntensity($('int').value/100)}
+upd();
+const RATE={rifle:.105,smg:.07,nailer:.075};let autoT=null;
+const GUNS=[['pistol','Garage Pistol'],['revolver','Revolver'],['nailer','Nailer'],['shotgun','Pump'],['double','Side-by-side'],['beanbag','Beanbag'],['rifle','Carbine'],['smg','SMG'],['hunter','Hunting rifle'],['flare','Flare gun']];
+for(const [id,name] of GUNS){const fire=()=>A.gun(id,{pos:pos(),indoor:$('ind').checked,suppressed:$('sup').checked});
+  const b=btn('guns',name,()=>{if(!$('auto').checked||!RATE[id])fire()});
+  b.onpointerdown=()=>{start();if($('auto').checked&&RATE[id]){fire();autoT=setInterval(fire,RATE[id]*1000)}};
+  const stop=()=>{clearInterval(autoT);autoT=null};b.onpointerup=stop;b.onpointerleave=stop;
+  const o=document.createElement('option');o.value=id;o.textContent=name;$('mgun').appendChild(o)}
+for(const a of ['equip','reload_out','reload_in','pump','bolt','shell','dry'])btn('mech',a,()=>A.mech($('mgun').value,a));
+for(const s of ['concrete','wood','metal','tile','grass','dirt'])btn('casing',s,()=>A.shellCasing(s,{type:$('mgun').value}));
+for(const s of ['concrete','wood','metal','glass','dirt','cloth','beanbag'])btn('imp',s,()=>A.impact(s,wpos()));
+$('whz').onclick=()=>{start();A.whizz({x:Math.sin(+$('ang').value*Math.PI/180)*2,y:1.6,z:-1})};
+for(const s of ['asphalt','concrete','grass','gravel','wood','tile','metal','carpet'])btn('steps',s,()=>A.footstep(s,{run:$('run').checked,crouch:$('crouch').checked}));
+let walkT=null;$('walk').onclick=()=>{start();if(walkT){clearInterval(walkT);walkT=null;$('walk').classList.remove('on');return}$('walk').classList.add('on');let side=1;
+  const surf=[...document.querySelectorAll('#steps button')].find(b=>b.classList.contains('on'))?.textContent||'asphalt';
+  walkT=setInterval(()=>{A.footstep(surf,{run:$('run').checked,crouch:$('crouch').checked,side:side=-side})},$('run').checked?300:480)};
+for(const k of ['hitmarker','kill','headshot','ziptie','pickup','cash','objective','hover','click','back','denied'])btn('ui',k,()=>A.ui(k));
+for(const k of ['start','win','fail'])btn('sting',k,()=>A.stinger(k));
+for(const k of ['dad','dad_alert','dad_hurt','dad_cheer','dad_laugh','dad_think','dad_ok','dad_aw','thug','thug_alert','thug_hurt','thug_surrender','thug_laugh','kid','kid_laugh','kid_yay','dog','dog_whine','radio_in','radio_out'])
+  btn('voices',k,()=>A.voice(k,pos()||wpos(),{radio:$('radio').checked}));
+$('vstart').onclick=()=>{start();if(van)van.stop();van=A.vehicle();upd()};
+$('vstop').onclick=()=>{if(van){van.stop();van=null}};
+for(const k of ['tap','short','long','double','triple','shave'])btn('vbtn','horn '+k,()=>van?van.horn(k):A.vehicle({start:false}).horn(k));
+for(const k of ['open','close','slide','trunk'])btn('vbtn','door '+k,()=>(van||A.vehicle({start:false})).door(k));
+for(const k of [.2,.5,1])btn('vbtn','crash '+k,()=>(van||A.vehicle({start:false})).crash(k));
+$('vdemo').onclick=()=>{start();if(van)van.stop();van=A.vehicle();let t=0;const T=setInterval(()=>{t+=.05;if(!van||!van.alive||t>14){clearInterval(T);return}
+  const thr=t<6?1:t<8?0:t<11?.7:0,spd=Math.min(30,t<6?t*4.5:t<8?27-(t-6)*4:t<11?19+(t-8)*3:28-(t-11)*9),gear=spd<9?spd/9:spd<18?(spd-9)/9:(spd-18)/14;
+  const rpm=Math.max(.06,Math.min(1,.15+.75*gear*(.6+.4*thr)));const skid=t>11&&t<13.5?.9:0;
+  van.set({rpm,throttle:thr,speed:Math.max(0,spd),skid});$('rpm').value=rpm*100;$('thr').value=thr*100;$('spd').value=Math.max(0,spd);$('skid').value=skid*100;upd()},50)};
+for(const k of ['suburb','industrial','den','dusk','home','none'])btn('amb',k,(e,b)=>{A.ambience(k);document.querySelectorAll('#amb button').forEach(x=>x.classList.toggle('on',x===b&&k!=='none'))});
+for(const k of ['hub','tension','combat','victory','home','off'])btn('mus',k,(e,b)=>{A.music(k);document.querySelectorAll('#mus button').forEach(x=>x.classList.toggle('on',x===b&&k!=='off'))});
+document.querySelectorAll('#steps button').forEach(b=>b.addEventListener('click',()=>document.querySelectorAll('#steps button').forEach(x=>x.classList.toggle('on',x===b))));
+for(const k of ['master','sfx','music','ambience']){const l=document.createElement('label');l.innerHTML=`${k} <input type="range" min="0" max="100" value="${k==='master'?90:k==='music'?50:k==='ambience'?75:100}"><span class="v"></span>`;
+  const i=l.querySelector('input'),v=l.querySelector('.v');const f=()=>{v.textContent=i.value+'%';if(started)A.setVolume({[k]:i.value/100})};i.oninput=f;f();$('vols').appendChild(l)}
+$('go').onclick=start;
+function draw(){const c=$('scope'),g=c.getContext('2d'),d=new Float32Array(an.fftSize);an.getFloatTimeDomainData(d);g.clearRect(0,0,c.width,c.height);
+  g.strokeStyle='#ffc94a';g.beginPath();for(let i=0;i<d.length;i++){const x=i/d.length*c.width,y=(1-d[i])*c.height/2;i?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();requestAnimationFrame(draw)}
+</script>
+</body></html>

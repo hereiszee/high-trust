@@ -85,6 +85,24 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | home/metal_tool_chest.glb | Metal Tool Chest | Poly Haven (John Hutcheson, Yann Kervran) | CC0 | https://polyhaven.com/a/metal_tool_chest |
 | home/dartboard.glb | Dartboard | Poly Haven (Satyaki Mandal) | CC0 | https://polyhaven.com/a/dartboard |
 
+## Home interior additions (assets/home/, assets/home/tex/) — js/home.js
+
+All CC0 1.0 (public domain) from Poly Haven (https://polyhaven.com, models via api.polyhaven.com / dl.polyhaven.org, 1k glTF). Processed with glTF-Transform: textures resized to 512 px (256 px for small props) and re-encoded as JPEG, dedup + prune, mesh simplification on heavy props, KHR_mesh_quantization. `metal_tool_chest.glb` and `potted_plant_04.glb` were re-simplified in place.
+
+| Local file(s) | Source asset(s) | Author(s) | License |
+|---|---|---|---|
+| home/modern_arm_chair_01, side_table_01, modern_wooden_cabinet, dining_table, dining_chair_02, steel_frame_shelves_01, tool_cart, outdoor_table_chair_set_01, wooden_picnic_table, stone_fire_pit, Rockingchair_01, Ottoman_01, painted_wooden_nightstand, wooden_display_shelves_01, Shelf_01 | same names on Poly Haven (https://polyhaven.com/a/&lt;name&gt;) | Poly Haven contributors (see each asset page) | CC0 |
+| home/ceiling_fan, modern_ceiling_lamp_01, hanging_industrial_lamp, throw_pillows_01, gamepad, standing_picture_frame_01, standing_picture_frame_02, wall_clock | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/garden_gnome, garden_hose_wall_mounted_01, football, american_football, watering_can_metal_01, planter_box_01, propane_tank, shrub_04 | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/handsaw_wood, cross_pein_hammer, adjustable_wrench, pliers, measuring_tape_01, flathead_screwdriver | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/wooden_bowl_01, wooden_cutting_board, ceramic_vase_01, wicker_basket_01, jug_01, food_apple_01 | same names on Poly Haven | Poly Haven contributors | CC0 |
+| home/cardboard_box_lo.glb | props/cardboard_box.glb (Poly Haven Cardboard Box 01), simplified to ~700 triangles | Poly Haven (Rahul Chaudhary) | CC0 |
+| home/tex/oakfloor_{col,nrm,rgh}.jpg | Laminate Floor 02 (https://polyhaven.com/a/laminate_floor_02) | Poly Haven | CC0 |
+| home/tex/stonetile_{col,nrm,rgh}.jpg | Marble 01 (https://polyhaven.com/a/marble_01) | Poly Haven | CC0 |
+| home/tex/wallpaint_{col,nrm,rgh}.jpg | Plastered Wall 04 (https://polyhaven.com/a/plastered_wall_04) | Poly Haven | CC0 |
+| home/tex/linen_{col,nrm,rgh}.jpg | Rough Linen (https://polyhaven.com/a/rough_linen) | Poly Haven | CC0 |
+
+Generated in code (no files): lap siding, subway tile, quartz, carpet, pegboard, rugs, family photos, kids' drawings, signs, TV broadcast and laptop screens.
 ## Building textures (assets/tex2/)
 
 Used by js/buildings.js. Poly Haven sets are CC0 1.0, 1k JPG, ambient occlusion baked into the colour map (partly desaturated so they take paint tints). The procedural sets were generated for this project with a small numpy script and are released CC0.
@@ -106,3 +124,15 @@ Latin subsets as served by Google Fonts, self-hosted so the HUD paints in its ow
 | barlow-{500,600,700}.woff2 | Barlow | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlow.txt) |
 | barlow-condensed-{500,600,700,800}.woff2 | Barlow Condensed | Jeremy Tribby (The Barlow Project Authors) | OFL 1.1 (OFL-barlowcondensed.txt) |
 | bowlby-one-400.woff2 | Bowlby One | Vernon Adams | OFL 1.1 (OFL-bowlbyone.txt) |
+
+## Effects (js/fx.js)
+
+No files. All effect textures are generated procedurally in code at startup. Original work, same license as the game code.
+
+## Firearms and first-person arms
+
+See assets/credits/guns.md.
+
+## Vehicles (js/vehicles.js)
+
+No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.
