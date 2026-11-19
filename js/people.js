@@ -138,19 +138,19 @@ function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vecto
 const CAP2HEAD=new T.Matrix4().makeBasis(new T.Vector3(0,0,1),new T.Vector3(1,0,0),new T.Vector3(0,1,0));
 function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._skull[key]=bb&&[bb.min.toArray(),bb.max.toArray()];bb=bb||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
   const g=new T.Group();g.name='rb_cap';g.applyMatrix4(CAP2HEAD);
-  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.012;
-  const base=top-.088;/* crown depth: the band sits on the forehead, well above the brows */
+  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.004;
+  const base=top-.088;/* low crown: the band sits just above the brow line */
   const fab=new T.MeshStandardMaterial({color:col,roughness:.96,metalness:0,normalMap:fabricNormal(),normalScale:new T.Vector2(.55,.55)});
   fab.color.multiplyScalar(1.15);
   /* crown: squashed half-dome, slightly higher at the front panel */
   const cg=new T.SphereGeometry(1,28,10,0,Math.PI*2,0,Math.PI*.52);const p=cg.attributes.position;
-  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const yy=Math.max(y,-.05);p.setXYZ(i,x*hw,base+yy*(top-base)+z*.016*(1-yy),cz+z*hd)}
+  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const yy=Math.max(y,-.05);/* flatter top, straighter sides */const yf=yy>0?Math.pow(yy,.62):yy;p.setXYZ(i,x*hw,base+yf*(top-base)+z*.014*(1-yy),cz+z*hd)}
   cg.computeVertexNormals();const crown=new T.Mesh(cg,fab);crown.castShadow=true;g.add(crown);
   /* curved brim: arched across, gently pitched down */
-  const bw=hw*.95,bl=.088,seg=14,rows=4,pos=[],idx=[],uv=[];
+  const bw=hw*1.0,bl=.1,seg=16,rows=5,pos=[],idx=[],uv=[];
   for(let r=0;r<=rows;r++){const t=r/rows;for(let c=0;c<=seg;c++){const u=c/seg*2-1;const ang=u*1.05;
     const ex=Math.sin(ang)*bw*(1-t*.18),ez=Math.cos(ang)*hd*.92+t*bl*(1-u*u*.55);
-    const ey=base+.004+Math.cos(ang)*.016-t*bl*.2-(u*u)*.02*(.4+t);pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
+    /* arched across (edges curl down), gently pitched down */const ey=base+.004+Math.cos(ang)*.014-t*bl*.12-(u*u)*.034*(.3+t);pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
   for(let r=0;r<rows;r++)for(let c=0;c<seg;c++){const a=r*(seg+1)+c,b=a+1,d=a+seg+1,e=d+1;idx.push(a,d,b,b,d,e)}
   const brG=new T.BufferGeometry();brG.setAttribute('position',new T.Float32BufferAttribute(pos,3));brG.setAttribute('uv',new T.Float32BufferAttribute(uv,2));brG.setIndex(idx);brG.computeVertexNormals();
   const brMat=fab.clone();brMat.side=T.DoubleSide;const brim=new T.Mesh(brG,brMat);brim.castShadow=true;g.add(brim);
@@ -184,7 +184,7 @@ P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null)
   const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
   const meshes=[];let head=null,gunHold=null,skinned=[];
   body.traverse(n=>{if(n.userData&&n.userData.hitbox){meshes.push(n);if(n.userData.head)head=n}else if(n.isSkinnedMesh)skinned.push(n);if(n.name==='gunHold')gunHold=n});
-  const bones={};for(const n of['Bip01_Pelvis','Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_R_Hand','Bip01_L_Forearm','Bip01_L_Hand','Bip01_L_Finger2','Bip01_R_Forearm'])bones[n]=body.getObjectByName(n);
+  const bones={};for(const n of['Bip01_Pelvis','Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_R_Hand','Bip01_L_Forearm','Bip01_L_Hand','Bip01_L_Finger2','Bip01_R_Forearm','Bip01_L_Toe0','Bip01_R_Toe0','Bip01_L_Foot','Bip01_R_Foot'])bones[n]=body.getObjectByName(n);
   const mixer=new T.AnimationMixer(body);
   const female=!!FEMALE[key];
   const rb={key,hip:t.hip,mixer,body,bones,skinned,acts:{},lw:{},aimW:0,holdW:0,armP:0,spineP:0,one:null,
@@ -208,7 +208,7 @@ function setBase(d,name,instant){const rb=d.rb;if(!clips(name,rb.hip))name=rb.id
 
 /* ---------- public driving API ---------- */
 P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
-  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;if(rb.force)Object.assign(inp,rb.force);
+  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;inp.air=o.air||null;if(rb.force)Object.assign(inp,rb.force);
   if(dt>0){const x=r.position.x,z=r.position.z;if(rb.lx!==null){const dx=x-rb.lx,dz=z-rb.lz,dd=Math.hypot(dx,dz);
       if(dd<3){const s=Math.sin(r.rotation.y),c=Math.cos(r.rotation.y);const k=1-Math.exp(-dt*10);const sc=r.scale.x||1;
         /* local: +x = character's left, +z = forward; scaled characters take longer strides */
@@ -230,7 +230,7 @@ P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style
 P.interact=d=>{const rb=d&&d.rb;if(!rb)return;oneShot(d,'interact',1.1,.85)};
 P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
 P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead)return;oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
-P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;rb.dead=true;rb.deadT=0;rb.one=null;setBase(d,'death');};
+P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
 /* tests: pin inputs regardless of what the game asks for (P.force(d,null) clears) */
 P.force=(d,o)=>{if(d&&d.rb)d.rb.force=o||null};
 P.revive=d=>{const rb=d&&d.rb;if(!rb)return;rb.dead=false;rb.deadT=0;d.body.position.y=0;d.root.visible=true};
@@ -247,13 +247,24 @@ function twoBone(ua,fa,hd,goal){const g=_n.copy(goal);hd.getWorldQuaternion(_hq)
   const cur=_u.angleTo(_w),want=Math.acos(Math.max(-1,Math.min(1,(l1*l1+l2*l2-dd*dd)/(2*l1*l2))));worldRot(fa,_q.setFromAxisAngle(ax,want-cur));
   hd.getWorldPosition(_c);_u.copy(_c).sub(_a).normalize();_w.copy(G).sub(_a).normalize();worldRot(ua,_q.setFromUnitVectors(_u,_w));
   hd.parent.getWorldQuaternion(_pq);hd.quaternion.copy(_pq.invert().multiply(_hq))}
+/* two-bone IK with an elbow direction (pole, world): elbow placed in the plane of shoulder, goal and pole */
+function twoBonePole(ua,fa,hd,goal,pole){hd.getWorldQuaternion(_hq);const S=ua.getWorldPosition(new T.Vector3()),E=fa.getWorldPosition(new T.Vector3()),H=hd.getWorldPosition(new T.Vector3());
+  const l1=S.distanceTo(E),l2=E.distanceTo(H);const D=goal.clone().sub(S);const d=Math.min(l1+l2-.002,Math.max(.05,D.length()));D.normalize();
+  const a=(l1*l1-l2*l2+d*d)/(2*d),h=Math.sqrt(Math.max(0,l1*l1-a*a));const perp=pole.clone().addScaledVector(D,-pole.dot(D));if(perp.lengthSq()<1e-8)return;perp.normalize();
+  const En=S.clone().addScaledVector(D,a).addScaledVector(perp,h);
+  worldRot(ua,_q.setFromUnitVectors(E.clone().sub(S).normalize(),En.clone().sub(S).normalize()));
+  fa.getWorldPosition(E);hd.getWorldPosition(H);const G=S.clone().addScaledVector(D,d);
+  worldRot(fa,_q.setFromUnitVectors(H.clone().sub(E).normalize(),G.sub(E).normalize()));
+  hd.parent.getWorldQuaternion(_pq);hd.quaternion.copy(_pq.invert().multiply(_hq))}
 /* Rick's hand-off: the gun lies across in front at chest height, muzzle to the giver's left, both hands on it */
 const _M=new T.Matrix4(),_M2=new T.Matrix4(),_s3=new T.Vector3();
 function offerPose(d){const rb=d.rb,B=rb.bones,r=d.root,gh=d.gunHold;if(!B.Bip01_R_Forearm||!gh||!d.gun)return;const sc=r.scale.x||1;
   const ry=r.rotation.y,F=new T.Vector3(Math.sin(ry),0,Math.cos(ry)),Lw=new T.Vector3(Math.cos(ry),0,-Math.sin(ry)),U=new T.Vector3(0,1,0);
-  const O=r.position.clone().addScaledVector(U,1.14*sc).addScaledVector(F,.42*sc).addScaledVector(Lw,-.1*sc);
-  twoBone(B.Bip01_R_UpperArm,B.Bip01_R_Forearm,B.Bip01_R_Hand,O.clone().addScaledVector(U,.05*sc));
-  twoBone(B.Bip01_L_UpperArm,B.Bip01_L_Forearm,B.Bip01_L_Hand,O.clone().addScaledVector(Lw,.34*sc).addScaledVector(U,.03*sc));
+  /* both forearms forward, the carbine level across the chest, centred, held out toward the receiver */
+  const O=r.position.clone().addScaledVector(U,1.24*sc).addScaledVector(F,.46*sc).addScaledVector(Lw,-.16*sc);
+  /* elbows down, a little out and back: forearms come forward from the body */
+  twoBonePole(B.Bip01_R_UpperArm,B.Bip01_R_Forearm,B.Bip01_R_Hand,O.clone().addScaledVector(U,.05*sc),U.clone().negate().addScaledVector(Lw,-.5).addScaledVector(F,-.35));
+  twoBonePole(B.Bip01_L_UpperArm,B.Bip01_L_Forearm,B.Bip01_L_Hand,O.clone().addScaledVector(Lw,.36*sc).addScaledVector(U,.02*sc),U.clone().negate().addScaledVector(Lw,.5).addScaledVector(F,-.35));
   const X=new T.Vector3().crossVectors(U,Lw);_M.makeBasis(X,U,Lw).scale(_s3.set(sc,sc,sc)).setPosition(O);
   B.Bip01_R_Hand.updateWorldMatrix(true,false);_M2.copy(B.Bip01_R_Hand.matrixWorld).invert().multiply(_M);_M2.decompose(gh.position,gh.quaternion,gh.scale)}
 function leftHandIK(d,w){const rb=d.rb,B=rb.bones,s=SUPPORT[rb.gunType];if(!s||!d.gun||!B.Bip01_L_UpperArm)return;
@@ -322,7 +333,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   for(const k in rb.lw){const tgt=k===rb.base?1:0;const w=rb.lw[k];rb.lw[k]=tgt>w?Math.min(1,w+dt/fade):Math.max(0,w-dt/fade);sum+=rb.lw[k]}
   if(sum<=0){rb.lw[rb.base]=1;sum=1}
   if(rb.getUp>0)rb.getUp-=dt;
-  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k);a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
+  for(const k in rb.lw){const a=rb.acts[k];if(!a||!a.lo)continue;const r=rateFor(rb,k)*(1-.85*(rb.airHold||0));a.lo.timeScale=r;for(const x of[a.sp,a.ar])if(x){x.timeScale=r;x.time=a.lo.time}}
   /* upper-body layers: one-shot > aim > hold > locomotion arms */
   const gun=rb.gunType,pist=rb.style==='pistol',longGun=gun&&!pist;
   const v=Math.hypot(rb.vx,rb.vz);
@@ -335,7 +346,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   const WS={},WA={};let remS=1,remA=1;const add=(n,w,armsOnly)=>{if(!n||w<=0)return;WA[n]=(WA[n]||0)+w*remA;remA*=1-w;if(!armsOnly){WS[n]=(WS[n]||0)+w*remS;remS*=1-w}};
   if(rb.one)add(rb.one.name,oneW,false);
   const aimClip=pist?'pistol_aim':'rifle_aim',holdClip=pist?'pistol_idle':'rifle_aim';
-  add(aimClip,rb.aimW,false);add(holdClip,rb.holdW,false);
+  add(aimClip,rb.aimW,crouch);add(holdClip,rb.holdW,crouch);
   for(const n in WA){act(rb,n,'ar');act(rb,n,'sp')}
   /* apply weights */
   for(const n in rb.acts){const a=rb.acts[n];const lw=(rb.lw[n]||0)/sum;setW(a.lo,lw,n);setW(a.sp,(WS[n]||0)+remS*lw,n);setW(a.ar,(WA[n]||0)+remA*lw,n);
@@ -343,8 +354,12 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* the mixer skips writing a bone whose animated value did not change, so undo last frame's procedural offsets (aim pitch, hinge, IK) first or they accumulate */
   {const B=rb.bones,N=PROC_BONES;
    if(rb.pre)for(const n of N)if(B[n]&&rb.pre[n])B[n].quaternion.copy(rb.pre[n]);
+   if(rb.airPre)rb.airB.forEach((b,i)=>{if(b)b.quaternion.copy(rb.airPre[i])});/* same for the jump/land leg offsets */
    rb.mixer.update(dt);
-   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion)}
+   rb.pre=rb.pre||{};for(const n of N)if(B[n])(rb.pre[n]||(rb.pre[n]=B[n].quaternion.clone())).copy(B[n].quaternion);
+   const AB=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));rb.airPre=rb.airPre||AB.map(b=>b?b.quaternion.clone():null);AB.forEach((b,i)=>{if(b)rb.airPre[i].copy(b.quaternion)})}
+  if(!rb.dead)d.body.position.y=0;/* the air pose and the ground clamp set it fresh each update */
+  applyAir(d,dt);
   /* phase for the first-person bob and footsteps */
   const ba=rb.acts[rb.base];if(ba&&ba.lo&&SPEED[rb.base]){rb.phase=ba.lo.time/ba.c.dur;d.walk=rb.phase*Math.PI*4}else d.walk*=.9;
   /* aim pitch: split between spine and both upper arms (rotating both arms about the shoulder line keeps the support hand on the gun) */
@@ -352,7 +367,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   const pa=Math.max(-1.1,Math.min(1.1,inp.pitch||0));
   if(rb.aimW>.01){if(crouch)armT+=rb.aimW*-pa;else{armT+=rb.aimW*(-pa*.55);spT+=rb.aimW*(-pa*.45)}}
   /* hinge: lower spine leans forward, arms and neck turn back by the same world angle so gun and gaze stay level */
-  const hw=crouch&&!full?Math.min(1,rb.aimW+(longGun?rb.holdW:0)):0;rb.hinge=(rb.hinge||0)+(hw*(rb.base==='crouch_walk'?.15:.5)-(rb.hinge||0))*Math.min(1,dt*10);
+  const hw=crouch&&!full?Math.min(1,rb.aimW+(longGun?rb.holdW:0)):0;rb.hinge=(rb.hinge||0)+(hw*(rb.base==='crouch_walk'?.1:.45+((d.root.scale.y||1)-1)*5)-(rb.hinge||0))*Math.min(1,dt*10);
   const hinge=rb.hinge>.005?rb.hinge:0;armT-=hinge;
   if(pist)armT+=PISTOL_FIX[1]*rb.aimW;
   if(longGun&&rb.holdW>.01&&!full)armT+=rb.holdW*(offer?.05:v>3.6?.3:.38);
@@ -397,8 +412,45 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* the King only folds his arms while he is unarmed or calm */
   if(d.gunHold)d.gunHold.visible=!(rb.base==='idle_arms_folded'&&rb.lw.idle_arms_folded>.5);
   /* bodies stay a while, then sink away */
-  if(rb.dead){rb.deadT+=dt;if(rb.deadT>12){d.body.position.y=-Math.min(1,(rb.deadT-12)/2.5)*.6;if(rb.deadT>14.5)d.root.visible=false}}}
+  /* ground clamp: blends between gaits/crouch/air poses can push a toe through the floor; lift the body by exactly that much */
+  if(!rb.dead){const B=rb.bones;if(B.Bip01_L_Toe0){const ry=d.root.position.y,sc=d.root.scale.y||1;let lo=9;
+      for(const[n,o]of[['Bip01_L_Toe0',0],['Bip01_R_Toe0',0],['Bip01_L_Foot',.06],['Bip01_R_Foot',.06]]){const b=B[n];if(b)lo=Math.min(lo,(b.getWorldPosition(_v).y-ry)/sc-o)}
+      /* crouch clips hover the feet a little: plant them (only crouch, never in the air) */
+      const plant=inp.mode==='crouch'&&!inp.air&&lo>.02?Math.min(.25,(lo-.012)*.9):0;
+      if(lo<-.005)d.body.position.y-=lo;else if(plant){rb.plant=(rb.plant||0)+(plant-(rb.plant||0))*Math.min(1,dt*10);d.body.position.y-=rb.plant}
+      if(!plant)rb.plant=0;rb.lift=lo<-.005?-lo:0}}
+  if(rb.dead){rb.deadT+=dt;d.body.position.y=0;if(rb.deadT>12)fadeBody(d,1-Math.min(1,(rb.deadT-12)/1.5))}}
+/* bodies fade out where they lie (no sinking through the floor): per-body material copies, made once at the start of the fade */
+function fadeBody(d,a){const rb=d.rb;if(!rb.fade){rb.fade=[];for(const m of rb.skinned){const mats=Array.isArray(m.material)?m.material:[m.material];
+      const cl=mats.map(x=>{const c=x.clone();c.transparent=true;c.depthWrite=true;return c});m.material=Array.isArray(m.material)?cl:cl[0];rb.fade.push(...cl);m.castShadow=false}
+    if(d.gunHold)d.gunHold.visible=false;d.body.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh&&!(o.userData&&o.userData.hitbox))o.visible=false})}
+  for(const c of rb.fade)c.opacity=a;if(a<=0)d.root.visible=false}
 
+/* ---------- procedural jump / fall / land / vault (the clip set has none) ----------
+   inp.air = {k:'jump'|'fall'|'land'|'vault'|'climb'|'mantle', t, vy, amt}: knees tuck, arms balance, landings absorb.
+   Applied on top of the clip pose, before the aim layer, so a raised gun stays on target. */
+const AIR_B=['Bip01_L_Thigh','Bip01_R_Thigh','Bip01_L_Calf','Bip01_R_Calf','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_Spine','Bip01_L_Foot','Bip01_R_Foot'];
+function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const S=rb.air||(rb.air={tuck:0,dip:0,lean:0,arms:0,split:0});
+  let tuck=0,dip=0,lean=0,arms=0,split=0,hold=0;
+  if(a){const t=a.t||0;
+    if(a.k==='jump'){tuck=.25+.55*Math.min(1,t/.22);arms=.7;lean=.06;split=.25;hold=1}
+    else if(a.k==='fall'){tuck=.45+.25*Math.min(1,t/.4);arms=.9;lean=.02;split=.15;hold=1}
+    else if(a.k==='land'){const e=t<.22?t/.22:Math.pow(1-(t-.22)/.78,1.6);/* fast absorb, slow rise */dip=(a.amt||.3)*e;tuck=dip*.9;lean=dip*.35;arms=.4*(1-t)}
+    else if(a.k==='vault'){const e=Math.sin(Math.PI*Math.min(1,t));tuck=.3+.9*e;lean=.45*e;split=.35*e;arms=.2;hold=1}
+    else{/* climb / mantle: knee up onto the ledge, then push up */const e=Math.sin(Math.PI*Math.min(1,t*1.1));tuck=.2+.8*e;lean=.35*e;dip=.25*(1-t);split=.5*e;hold=1}}
+  const k=Math.min(1,dt*(a&&a.k==='land'?24:14));S.tuck+=(tuck-S.tuck)*k;S.dip+=(dip-S.dip)*k;S.lean+=(lean-S.lean)*k;S.arms+=(arms-S.arms)*k;S.split+=(split-S.split)*k;
+  rb.airHold=(rb.airHold||0)+(hold-(rb.airHold||0))*Math.min(1,dt*12);
+  if(S.tuck<.003&&S.dip<.003&&S.lean<.003&&S.arms<.003){if(!a)d.body.position.y=0;return}
+  const B=rb.airB||(rb.airB=AIR_B.map(n=>d.body.getObjectByName(n)));const rq=d.root.getWorldQuaternion(new T.Quaternion()),left=new T.Vector3(1,0,0).applyQuaternion(rq),fwdW=new T.Vector3(0,0,1).applyQuaternion(rq);
+  /* knees: thigh forward (negative about the character's left axis), shin folds back about twice as far; one leg leads */
+  const tl=S.tuck*(1+S.split*.6),tr=S.tuck*(1-S.split*.6);
+  rotWorld(B[0],left,-.95*tl);rotWorld(B[1],left,-.95*tr);rotWorld(B[2],left,1.55*tl);rotWorld(B[3],left,1.55*tr);
+  rotWorld(B[7],left,-.45*tl);rotWorld(B[8],left,-.45*tr);
+  if(S.lean>.003)rotWorld(B[6],left,S.lean*.5);
+  /* arms out for balance (only without a gun up; the aim layer owns the arms then) */
+  if(S.arms>.003&&!(rb.gunType&&rb.in.aim)){rotWorld(B[4],fwdW,-.55*S.arms);rotWorld(B[5],fwdW,.55*S.arms)}
+  /* landing absorb: hips sink while the knees bend (feet stay near the floor) */
+  d.body.position.y=-(S.dip*.22+S.tuck*(a&&(a.k==='land'||a.k==='climb'||a.k==='mantle')?.06:0))}
 P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;
   for(let i=P.live.length-1;i>=0;i--){const d=P.live[i];const rb=d.rb;
     if(!d.root.parent){if(++rb.orphan>90){P.live.splice(i,1);rb.mixer.stopAllAction()}continue}rb.orphan=0;
