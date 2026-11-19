@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle Lab</title>
+<style>
+:root{--ink:#16181c;--paper:#f6f1e3;--sun:#ffc94a}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--paper);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+canvas{display:block}
+#ui{position:fixed;left:16px;top:12px;right:16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;pointer-events:none}
+#ui>*{pointer-events:auto}
+#ui button,#ui select,#ui label{background:rgba(22,24,28,.78);color:var(--paper);border:1px solid rgba(246,241,227,.35);border-radius:4px;padding:5px 9px;font:inherit;font-size:12px}
+#ui button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
+#info{position:fixed;left:16px;bottom:12px;font-size:12px;opacity:.85;text-shadow:0 1px 2px #000}
+body.shot #ui,body.shot #info{display:none}
+</style>
+</head>
+<body>
+<div id="ui"></div>
+<div id="info"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="../js/vehicles.js"></script>
+<script>
+(()=>{
+'use strict';
+const Q=new URLSearchParams(location.search);
+const W=()=>innerWidth,H=()=>innerHeight;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Q.get('dpr')?+Q.get('dpr'):Math.min(2,devicePixelRatio));renderer.setSize(W(),H());
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9fb8cf);
+const camera=new THREE.PerspectiveCamera(35,W()/H(),.1,500);camera.position.set(7,2.2,7);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);controls.target.set(0,.8,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.495;
+const sun=new THREE.DirectionalLight(0xfff0d8,2.1);sun.position.set(-9,14,7);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
+Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:60});sun.shadow.bias=-.0003;sun.shadow.normalBias=.02;scene.add(sun);
+const hemi=new THREE.HemisphereLight(0xcfe3ff,0x4a4438,.2);scene.add(hemi);
+/* ground: asphalt from the game's texture set, falls back to flat grey */
+const tl=new THREE.TextureLoader();const gm=new THREE.MeshStandardMaterial({color:0x6b6b6b,roughness:.95});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),gm);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+let pending=0;const done=()=>{if(--pending===0)ready()};
+const ld=(url,cb)=>{pending++;tl.load(url,t=>{cb(t);done()},undefined,()=>{console.warn('missing',url);done()})};
+const rep=t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(80,80);t.anisotropy=8;return t};
+ld('../assets/tex/asphalt_col.jpg',t=>{t.encoding=THREE.sRGBEncoding;gm.map=rep(t);gm.color.set(0xffffff);gm.needsUpdate=true});
+ld('../assets/tex/asphalt_nrm.jpg',t=>{gm.normalMap=rep(t);gm.needsUpdate=true});
+ld('../assets/tex/asphalt_rgh.jpg',t=>{gm.roughnessMap=rep(t);gm.needsUpdate=true});
+ld('../assets/sky/sky_2k.jpg',t=>{t.encoding=THREE.sRGBEncoding;t.mapping=THREE.EquirectangularReflectionMapping;scene.background=t});
+pending++;new THREE.RGBELoader().setDataType(THREE.UnsignedByteType).load('../assets/sky/sky_1k.hdr',h=>{
+  /* same treatment as the game: clip the sun disk so shadows stay readable */
+  const{width:Wd,height:Hd,data:D}=h.image,CLIP=4;
+  for(let i=0;i<Wd*Hd;i++){const o=i*4,s=Math.pow(2,D[o+3]-128)/255;let c=[D[o]*s,D[o+1]*s,D[o+2]*s];const pk=Math.max(...c);if(pk>CLIP)c=c.map(v=>v*CLIP/pk);
+    const m=Math.max(...c);if(m<1e-6){D[o]=D[o+1]=D[o+2]=D[o+3]=0;continue}const e=Math.ceil(Math.log2(m)),sc=255/Math.pow(2,e);D[o]=Math.min(255,Math.round(c[0]*sc));D[o+1]=Math.min(255,Math.round(c[1]*sc));D[o+2]=Math.min(255,Math.round(c[2]*sc));D[o+3]=e+128}
+  h.needsUpdate=true;const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromEquirectangular(h).texture;pm.dispose();h.dispose();done()},undefined,()=>{console.warn('hdr missing');done()});
+
+const composer=new THREE.EffectComposer(renderer);composer.addPass(new THREE.RenderPass(scene,camera));
+const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(W(),H()),.35,.5,.92);composer.addPass(bloom);
+addEventListener('resize',()=>{camera.aspect=W()/H();camera.updateProjectionMatrix();renderer.setSize(W(),H());composer.setSize(W(),H())});
+
+HT.Vehicles.init({});
+const TYPES=HT.Vehicles.types;let cars=[];const state={type:Q.get('type')||'minivan',layout:Q.get('layout')||'single',up:{},head:false,brake:false,drive:false};
+function clear(){for(const c of cars){scene.remove(c)}cars=[]}
+function show(){clear();const t0=performance.now();
+  if(state.layout==='lineup'){TYPES.forEach((t,i)=>{const v=HT.Vehicles.make(t,{upgrades:state.up,lod:state.lod||0});v.position.set(0,0,(i-(TYPES.length-1)/2)*3.1);scene.add(v);cars.push(v)})}
+  else if(state.layout==='variants'){const vs=[{},{rims:'alloy',paint:'#9a1b1b',tint:.2},{rims:'black',paint:'#1c1d20',roofRack:true,bullBar:true,lightBar:true,tint:1,spoiler:true},{paint:'wood',rims:'chrome',lightBar:'amber',roofRack:'rails'}];
+    vs.forEach((u,i)=>{const v=HT.Vehicles.make(state.type,{upgrades:u,lod:0});v.position.set(0,0,(i-1.5)*3.2);scene.add(v);cars.push(v)})}
+  else{const v=HT.Vehicles.make(state.type,{upgrades:state.up,lod:state.lod||0});scene.add(v);cars.push(v)}
+  window.__cars=cars;const s=HT.Vehicles.stats(cars[0]);document.getElementById('info').textContent=`${state.type}: ${s.triangles} tris, ${s.drawCalls} draw calls, built in ${(performance.now()-t0).toFixed(0)} ms`;
+  apply()}
+function apply(){for(const c of cars)HT.Vehicles.update(c,{speed:0,steer:state.steer||0,braking:state.brake,headlights:state.head,dt:1})}
+/* UI */
+const ui=document.getElementById('ui');const btn=(label,on,fn)=>{const b=document.createElement('button');b.textContent=label;if(on)b.classList.add('on');b.onclick=()=>{fn(b)};ui.appendChild(b);return b};
+const sel=document.createElement('select');for(const t of TYPES){const o=document.createElement('option');o.value=o.textContent=t;sel.appendChild(o)}sel.value=state.type;sel.onchange=()=>{state.type=sel.value;show()};ui.appendChild(sel);
+const lay=document.createElement('select');for(const t of['single','variants','lineup']){const o=document.createElement('option');o.value=o.textContent=t;lay.appendChild(o)}lay.value=state.layout;lay.onchange=()=>{state.layout=lay.value;show()};ui.appendChild(lay);
+for(const k of['roofRack','bullBar','lightBar','spoiler'])btn(k,false,b=>{state.up[k]=!state.up[k];b.classList.toggle('on');show()});
+const rims=document.createElement('select');for(const t of['stock','steel','alloy','black','chrome','gold','spinner']){const o=document.createElement('option');o.value=o.textContent=t;rims.appendChild(o)}rims.onchange=()=>{state.up.rims=rims.value;show()};ui.appendChild(rims);
+const tint=document.createElement('input');tint.type='range';tint.min=0;tint.max=1;tint.step=.05;tint.value=.55;tint.oninput=()=>{state.up.tint=+tint.value;show()};const tl2=document.createElement('label');tl2.textContent='tint ';tl2.appendChild(tint);ui.appendChild(tl2);
+const fin=document.createElement('select');for(const t of['solid','twotone','wood','mural']){const o=document.createElement('option');o.value=o.textContent=t;fin.appendChild(o)}fin.onchange=()=>{state.up.paint=fin.value;show()};ui.appendChild(fin);
+const paint=document.createElement('input');paint.type='color';paint.value='#7d8a96';paint.oninput=()=>{state.up.paint=paint.value;show()};ui.appendChild(paint);
+btn('headlights',false,b=>{state.head=!state.head;b.classList.toggle('on');apply()});btn('brake',false,b=>{state.brake=!state.brake;b.classList.toggle('on');apply()});
+btn('drive',false,b=>{state.drive=!state.drive;b.classList.toggle('on')});
+/* animation */
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;controls.update();
+  if(state.drive)for(const c of cars)HT.Vehicles.update(c,{speed:8,steer:Math.sin(now/1500)*.6,braking:state.brake,headlights:state.head,dt});
+  if(!window.__sheet)composer.render();requestAnimationFrame(frame)}
+/* screenshot hook: HTDEV.setup({type, layout, up, cam:[x,y,z], target:[x,y,z], fov, head, brake, steer}) */
+window.HTDEV={setup(o){window.__sheet=false;Object.assign(state,{type:o.type||state.type,layout:o.layout||'single',up:o.up||{},head:!!o.head,brake:!!o.brake,steer:o.steer||0,lod:o.lod||0});
+    document.body.classList.add('shot');show();if(o.fov){camera.fov=o.fov;camera.updateProjectionMatrix()}
+    if(o.cam)camera.position.set(...o.cam);if(o.target)controls.target.set(...o.target);controls.update();camera.lookAt(controls.target);
+    if(o.exposure)renderer.toneMappingExposure=o.exposure;
+    if(o.sun)sun.position.set(...o.sun);if(o.sunI!=null)sun.intensity=o.sunI;composer.render();return HT.Vehicles.stats(cars[0])},
+  /* 2x2 contact sheet: 3/4 front, 3/4 rear, side, front */
+  sheet(o){this.setup(Object.assign({},o,{cam:[6,1.6,5],target:[0,.8,0]}));const v=cars[0],L=v.userData.size.l,Hh=v.userData.size.h;const w=renderer.domElement.width/renderer.getPixelRatio(),h=renderer.domElement.height/renderer.getPixelRatio();
+    const views=o.views||[[[L*.95,1.35,L*.82],[0,Hh*.42,0],34],[[-L*.95,1.55,L*.82],[0,Hh*.42,0],34],[[0,Hh*.5,40],[0,Hh*.5,0],L*1.85],[[40,Hh*.5,0],[0,Hh*.5,0],3.6]];
+    renderer.setScissorTest(true);renderer.autoClear=true;
+    views.forEach((vw,i)=>{const x=(i%2)*w/2,y=(1-Math.floor(i/2))*h/2;camera.aspect=(w/2)/(h/2);camera.position.set(...vw[0]);camera.lookAt(...vw[1]);
+      camera.fov=vw[2]>10?vw[2]:(vw[2]>3?2*Math.atan(vw[2]/2/40/((w/2)/(h/2)))*180/Math.PI*1.12:vw[2]*1.0);
+      if(i===3)camera.fov=2*Math.atan(1.25/40)*180/Math.PI*1.25;
+      camera.updateProjectionMatrix();renderer.setViewport(x,y,w/2,h/2);renderer.setScissor(x,y,w/2,h/2);renderer.render(scene,camera)});
+    renderer.setScissorTest(false);renderer.setViewport(0,0,w,h);camera.aspect=w/h;camera.updateProjectionMatrix();window.__sheet=true;return HT.Vehicles.stats(cars[0])},
+  render(){if(window.__sheet)return;composer.render()},stats(){return cars.map(c=>({type:c.userData.type,...HT.Vehicles.stats(c)}))}};
+function ready(){show();window.__ready=true;requestAnimationFrame(frame)}
+})();
+</script>
+</body>
+</html>
