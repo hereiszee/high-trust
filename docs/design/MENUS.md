@@ -1,80 +1,94 @@
 # Save, economy, shops and gun locker (`js/save.js`, `css/menus.css`)
 
-Self-contained module. No dependencies, works without the game loaded (see `dev/shop.html`). Everything hangs off `window.HT`.
+Self-contained module; everything hangs off `window.HT`. Vehicle data comes from `js/carai.js` (`HT.Garage`), so load that first. `dev/shop.html` is the test bench (`?thumbs=3d` for real 3D thumbnails).
+
+Load order in `index.html`: `css/hud.css`, `css/menus.css`, then `js/hud.js`, `js/carai.js`, `js/audio.js`, `js/save.js`, then the main script.
+
+## Single sources of truth
+
+| Data | Lives in | Read it as |
+|---|---|---|
+| Guns: stats, feel, sound, NPC profiles | `HT.CATALOG.guns` (this file) | `HT.CATALOG.guns[id]` (raw), `HT.Economy.weaponStats(id)` (with the saved attachments applied) |
+| Vehicles: base stats, upgrades, cosmetics, horns | `HT.Garage` (`js/carai.js`) | `HT.Economy.vehicleStats()` = `HT.Garage.apply(active, vehicle, util)` + cosmetics + `makeOpts` |
+| Furniture ids, prices, zones | `HT.CATALOG.furniture` (this file); ids are 1:1 with `HT.Home.catalog` (js/home.js), which copies names/prices/zones from here | the house grid footprint (`fp`) stays in js/home.js |
+| Starter furniture layout | `HT.Home.starterLayout().items` (0.5 m house grid) | `HT.Save.defaults().furniture.placed` (uses HT.Home when loaded, an identical copy otherwise; old SPEC 1 m layouts migrate) |
+| Attachments, supplies, missions, payouts | `HT.CATALOG` (this file) | |
+
+### Gun fields (`HT.CATALOG.guns[id]`; ids `pistol revolver nailer shotgun double beanbag rifle smg hunter`, order in `HT.CATALOG.gunOrder`)
+
+The ids and every field the game's `WEAPONS` table in `index.html` defines are identical here, including `short` and the game's feel fields `chamber`, `shell`, `shellDelay`, `quiet`, `root`, `scope`, `nonlethal`. `index.html` deep-merges `HT.CATALOG.guns` over `WEAPONS` (docs/combat-integration.md), and `dev/save.test.js` diffs the two tables field by field. Field names follow SPEC.md A.1. Times are in seconds, distances in metres and angles in radians.
+
+| field | meaning |
+|---|---|
+| `name`, `short`, `cls`, `blurb` | display names, class label, shop flavour text |
+| `slot` | `'side'` or `'prim'` |
+| `ammo` | key into `HT.CATALOG.ammo` (`{name, cap, col}`) |
+| `auto` | hold to fire |
+| `dmg`, `head`, `pellets` | damage per pellet, headshot multiplier, pellets per shot |
+| `rate` | seconds between shots (`double`: between the barrels) |
+| `mag`, `reserve` | magazine and carried reserve |
+| `range`, `fall:[near,far,minMul]` | max range, damage fall-off (SPEC `fallMul`) |
+| `spread:{hip,ads,move,bloomAdd,bloomMax,bloomDec}` | accuracy model (SPEC A.2 spread formula) |
+| `rc:{v,h,hBias,adsMul,rec,pat}` | recoil: vertical per shot, horizontal jitter, bias, ADS multiplier, recovery rate, `pat` per-shot `[vScale,hBias]` (the last entry repeats) |
+| `ads:{zoom,t,speed}` | FOV multiplier, time to full ADS, move multiplier while aiming |
+| `speed` | move multiplier while held |
+| `reload` | `{tac,empty}` or `{shell:{start,each,end,emptyExtra}}` |
+| `equip`, `fsa` | equip time, first-shot-accurate |
+| `bolt` | (`hunter`) bolt cycle after each shot |
+| `vm:{back,rise,roll,side,k,damp,reloadStyle}` | view-model spring kick |
+| `snd:{crack,body,thump,tail,mech,reloadMech?,secondPitch?,impact?}` | `gunSnd` recipe layers exactly as in the SPEC A.2 sound table |
+| `att` | compatible attachment slots (`optic mag under muzzle`) |
+| `price`, `unlock:{start\|gift\|buyAfter\|trust\|any, collect}` | shop price and unlock rules (SPEC D.3 and B.5) |
+| `chamber`, `shell`, `shellDelay`, `quiet`, `root`, `scope` | game feel: +1 chambered round on a tactical reload, brass type (null = none) and delay, alert radius, nail pin chance, scope overlay |
+| `nonlethal`, `special` | beanbag flag; per-gun extras (`nailer.special.rootChance/rootT/quietR`, `smg.special.adsBreak`, `hunter.special.scope/sway/laser`, `double.special.bothBarrelsWindow`, `beanbag.special.surrenderBelow/tracer`) |
+
+`HT.CATALOG.npcGuns[id] = {enemy:[acc,dmg,burst,cooldown,wantMin,wantMax], ally:[acc,dmg,cooldown], laser?}` per SPEC A.3. A `dmg` written as `[near,far,within]` means near damage inside `within` metres.
+
+`weaponStats(id, attOn?)` returns a deep copy with the attachments applied (SPEC D.4), plus `attMul:{spread,adsT,rv,rh,equip,dmg}`, `muffled`, `hearR` and `hearLos`. The catalogue itself is never mutated.
 
 ## API
 
 | | |
 |---|---|
-| `HT.CATALOG` | All data: `guns` (SPEC A.2 numbers, `price`, `unlock`, `blurb`), `gunOrder`, `ammo`, `attachments` (+`compat`, `fx`), `attSlots`, `furniture` (`price`, `cells:[w,d]`, `zone`, `tags`, `model` path under `assets/home/` or `null` = procedural, `max`, `hw` = sold at Maple Hardware, `fans`), `supplies`, `vehicle` (tiered upgrades with `fx`), `vehOrder`, `cosmetics` (paint/rims/horn options), `stores`, `missions` (base pay, par). |
-| `HT.Save.data` | The live save object (SPEC E schema v1 plus optional `vehicle`, `world`, `flags.zipPack/icePack`). Auto-loads on first access. |
-| `HT.Save.load()` | Reads `localStorage['ht-save']`, migrates (v0 prototype → v1), repairs every field, drops unknown guns/attachments/furniture, keeps unknown top-level keys (so other modules can store their own). Corrupt JSON → restores `ht-save-bak` (previous good save) and keeps the broken text in `ht-save-corrupt`; a save from a newer version is parked in `ht-save-future`. `HT.Save.lastLoad.status` = `fresh` / `ok` / `migrated` / `recovered` / `reset`. |
-| `HT.Save.save()` / `saveNow()` / `flush()` | Debounced (250 ms) / immediate / write-if-pending. Flushes on `pagehide`. |
-| `HT.Save.reset()` | Wipes `ht-save` + backup and writes defaults. `ht-cfg` is untouched. |
-| `HT.Save.bindProg(prog)` | Makes `SAVE.prog` the game's live `prog` object (values loaded into it; saves read from it). |
-| `HT.Save.on(key, fn)` | Change events: `fn(value, old, key)`. Keys are top-level save keys (`cash`, `loadout`, `owned`, `attOn`, `furniture`, `vehicle`, `pending`, `flags`, …) plus `'*'`, `'load'`, `'saved'`. Returns an unsubscribe function. |
-| `HT.Save.touch(...keys)` | After mutating `HT.Save.data` directly: emit for those keys and schedule a save. |
-| `HT.Save.get(path)` / `set(path, v)` / `addCash(n)` | Small helpers (`set('loadout.p2','rifle')`). |
-| `HT.Save.export()` / `import(code)` | Text save code `HT1-<base64>-<checksum>`. `import` returns `{ok}` or `{ok:false,error}` (bad checksum, wrong format, newer version); whitespace from copy/paste is ignored. |
-| `HT.Economy.computePayout(r)` | SPEC D.1. `r = {mission (index or id), ok, cuffs, confiscated, allyDowns, got, timeLeft, elapsed, bossDone, exec, trust, rerun}` → `{lines:[{id,label,amount,kind,note}], subtotal, multiplier, penalties, total, ok, rerun, mission}`. |
-| `HT.Economy.applyPayout(p)` | Adds cash + `stats.earned`, pushes `win_<giver>` / `fail` to `events`. |
-| `HT.Economy.renderPayout(el, p, {speed, delay, instant, onDone})` | Appends the animated itemised payout (lines count up, total, "PAID" stamp) to `el`. Click skips. Returns `{done: Promise, skip()}`. Honors reduced motion. |
-| `HT.Economy.resultLines(p)` | `[{label, text:'+$180', neg, kind, note}]` if you want to render it yourself. |
-| `HT.Economy.status(kind, id, store)` | What a buy button should say: `state` = `buy` / `poor` (with `short`) / `locked` (with `reason`) / `owned` / `equipped` / `pending` / `maxed`, plus `price`, `base`, `discount`. Kinds: `gun`, `att`, `furn`, `sup`, `veh` (id = upgrade, buys next tier), `cos` (id = `paint:red`). |
-| `HT.Economy.buy(kind, id, store)` / `sell(kind, id)` | Applies the rules (unlocks, cash, Maple Hardware 10% at trust ≥ 60, Dadazon → `pending`, one-per-house items, auto-fill empty `p2`, auto-mount new attachments). `sell` refunds half; start/gift guns and van parts can't be sold. |
-| `HT.Economy.deliverPending()` | Call on `enterHome()`. Returns the delivered entries and pushes `boughtGun/boughtFurniture/boughtAttachment` events. |
-| `HT.Economy.collectGun(id)` | SPEC B.5 armory count for one distinct enemy. Returns `{unlocked, n, need, name}`. |
-| `HT.Economy.setLoadout(slot, gun)` / `swapPrimaries()` / `setAttachment(gun, slot, att)` | SPEC C.4 rules; return `{ok, reason}`. |
-| `HT.Economy.weaponStats(id, attOn?)` | Effective stats with attachments (SPEC D.4), incl. `attMul`, `muffled`, `hearR`, `hearLos`. Defaults to the saved `attOn`. |
-| `HT.Economy.vehicleStats()` | Multipliers for the minivan: `top, accel, grip, brake, armor, crewDmg, ram, frontDmg, notice, spareMags, vanSwap, vanHeal, revive, surrender`, plus `paint{col}`, `rims{style}`, `horn{notes,wave}`, `levels`, booleans `bullBar/roofBox/lightBar/gunRack/medkit`, `tint`. |
-| `HT.Economy.ammoFor()` | Per-type reserve for the current loadout including roof box / Range Day extras. |
-| `HT.Shop.open({kind:'dadazon'\|'hardware'\|'auto', tab, select, onClose, onBuy})` | Full-screen store. `onBuy({kind,id,price,store,delivered})`. Returns `{close, setTab, select}`. |
-| `HT.Locker.open({tab:'loadout'\|'attach'\|'ammo', onClose, onChange})` | Gun locker / workbench. `onChange(loadout, attOn)` after every edit (already saved). |
-| `HT.Shop.thumbRenderer` | Optional `item => canvas \| img \| url \| html \| Promise<…> \| null`. `null` keeps the vector icon. `HT.Shop.gltfThumbs(THREE, loader, {kinds, base, zoom})` is a ready-made glTF renderer (used by `dev/shop.html?thumbs=3d`). |
-| `HT.Menus.isOpen()`, `HT.Menus.close()`, `HT.Menus.volume` (0..1), `HT.Menus.playHorn(opt)`, `HT.icon(kind,id)` | Misc. |
+| `HT.Save.data` | The live save, **schema v2** (SPEC.md E + SPEC2.md D): `prog` (9 jobs, `trust`, `trustR`, `act`), `loadout` (`side p1 p2 p3`), `garage` (exactly `HT.Garage.defaultGarage()` shape), `world`, `crew`, `flags`, plus the v1 keys. |
+| `HT.Save.load()` | Migrates v0 → v1 → v2 (a v1 player who beat the Kingpin lands in Act 2; this module's old `vehicle` extension is carried into `garage`). Repairs every field (SPEC2 D validation: active vehicle owned, tiers clamped, unknown cosmetics back to stock, HP clamped, `p3` dropped without the rack). Corrupt JSON → restores `ht-save-bak` and keeps the text in `ht-save-corrupt`; a newer-version save is parked in `ht-save-future`. `lastLoad.status` = `fresh` / `ok` / `migrated` / `recovered` / `reset`. |
+| `save()` / `saveNow()` / `flush()` / `reset()` | Debounced (250 ms) / immediate / write-if-pending (runs on `pagehide`) / wipe to defaults (`ht-cfg` untouched). |
+| `bindProg(prog)`, `on(key,fn)`, `touch(...keys)`, `get/set(path)`, `addCash(n)`, `export()`, `import(code)` | Same as before. Keys include `garage`. Codes look like `HT1-<base64>-<checksum>`. |
+| `HT.Economy.computePayout(r)` | SPEC D.1 for all 9 jobs. Riverside jobs use `prog.trustR` for the multiplier. Inputs: `mission` (index or id), `ok, cuffs, confiscated, allyDowns, elapsed, exec, trust, rerun`, plus per job `got` (gary), `timeLeft` (rick), `bossDone` (doug, dee, duke), `bikes, converters` (earl), `cleanStakeout, ids` (dee), `beds` (rosa), `truckHp, chaseT` (benny), `chaseT, vanHp` (duke), and optional `extra:[{label,amount}]`. |
+| `applyPayout(p)`, `renderPayout(el,p,{speed,delay,instant,onDone})`, `resultLines(p)` | Pass `HT.HUD.payoutEl` as `el`: the rows match `.ht-pay-row`. |
+| `status / buy / sell / priceOf (kind, id, store)` | Kinds: `gun att furn sup` and, for Dad's Auto, `gar` (an `HT.Garage.CATALOG` id: `eng1 … aid`, `v_pickup` …), `car` (vehicle type), `cos` (`paint:silver`, `rims:alloy`, `tint:light`, `lightBar:amber`, `spoiler:on`, `horn:ode`), `stick` (sticker index), `rep` (`'active'`: $2/HP). Discounts: Hank's 10% at Maple trust ≥ 60, Corner Mart 10% at Riverside trust ≥ 60, Dad's Auto 5% after 5 purchases. |
+| `garUse(kind,id)` | Free actions on owned things: drive another owned vehicle, re-apply an owned paint/rims/tint/horn, stick or peel a sticker. |
+| `vehicleStats(save?, type?)` | `HT.Garage.apply(...)` fields (`maxSpeed boostMax accel boostAccel brake hbrake grip steerResp turn hp bulletMul ramDealtFront impactTakenFront sport* ammoBonus slots firstAid`) plus `curHp`, `paint{id,hex,finish}`, `rims`, `tint`, `lightBar`, `spoiler`, `horn{id,notes}`, `stickers`, `makeOpts` (the `HT.Vehicles.make` options). |
+| `vanStatsWith(kind,id)`, `vanBars(st)`, `ammoFor()` | Preview after a purchase; the 5 bars from SPEC2 C.7; ammo per type (the gun rack slot and `ammoBonus` are included). |
+| `setLoadout(slot,gun)` (`p3` needs the rack), `swapPrimaries()`, `setAttachment()`, `collectGun()`, `deliverPending()` | As before. |
+| `HT.Shop.open({kind:'dadazon'\|'hardware'\|'mart'\|'auto', tab, select, onClose, onBuy, onPreview})` | `onBuy({kind,id,price,store,delivered,use?})` fires after a purchase or a free "use". `onPreview({type,opts}\|null)` fires in Dad's Auto when the selected item changes the look: call `handle.setUpgrades(opts.upgrades)` on the van in the bay, and `null` means revert. |
+| `HT.Locker.open({tab:'loadout'\|'attach'\|'ammo', onClose, onChange})` | 4 slots. The 4th (gun rack) is locked until `garage.util.rack`. |
+| `HT.Shop.thumbRenderer`, `HT.Shop.gltfThumbs(THREE, loader, {kinds, base, zoom})` | 3D thumbnails (kinds `furn gun att car gar cos`): attachments render the target gun wearing the part (`HT.Guns.model(type,{attachments:{redDot,extMag,foregrip,suppressor}})`), and the locker shows each gun with its saved mods. `item.model` glTF paths (furniture), `HT.Guns.model(type)` for guns, and `HT.Vehicles.make(type, opts)` for vehicles and previews (`item.vehicle = {type, opts}`, already carrying the selected upgrade). Studio light, transparent background over the pegboard, room or garage backdrop, cached per look. Vector art is shown while rendering and whenever a hook is missing. |
+| `HT.Menus.isOpen()`, `close()`, `volume`, `playHorn(opt)`, `sfx(name)`; `HT.icon(kind,id)` | UI sounds go to `HT.Audio.ui` (`hover click back cash objective denied pickup`) when `HT.Audio.ready`, otherwise to a small built-in synth. `HT.Shop.sfx = name => true` overrides both. |
 
-Input while a menu is open: arrows/WASD browse (spatial navigation), Enter/Space act, Esc/Backspace back, Q/E (or `[` `]`, PageUp/Down) switch tabs, 1-3 pick a locker slot, X sells. Gamepad: d-pad/left stick, A, B, LB/RB, X. Touch: tap a card for a bottom sheet. Buying always takes two presses (confirm). The menu swallows `keydown` in the capture phase, so the game's handlers never see it; `keyup` passes through so held keys get released.
+Look and feel: the chrome (scrim, panel, tabs, buttons, keycaps, type scale, colours, motion) uses the `css/hud.css` tokens. Menus mount inside `.ht-root` when the HUD exists, so they inherit the tokens directly; standalone, they use identical fallbacks. Store branding (logo plate, colour band, item backdrops) stays inside the panel.
+
+Input: arrows/WASD move by screen position, Enter/Space act, Esc/Backspace back, Q/E (or `[` `]`, PageUp/PageDown) switch tabs, 1-4 pick a locker slot, X sells. Gamepad: d-pad or left stick, A, B, LB/RB, X. Touch: tapping a card opens a bottom sheet. Buying takes two presses. The menu stops `keydown` in the capture phase on `window`. **Note:** `js/hud.js` also listens there (M opens the map, registered first), so it should skip when `HT.Menus.isOpen()`.
 
 ## Integration steps for `index.html`
 
-1. In `<head>`: `<link rel="stylesheet" href="css/menus.css">`. Optionally add the italic to the font URL: `family=Rubik:ital,wght@0,400;0,600;0,800;1,600`.
-2. Before the main `<script>`: `<script src="js/save.js"></script>`.
-3. Replace `const prog={...}` with
-   ```js
-   const SAVE_API=HT.Save, ECON=HT.Economy;
-   const prog=SAVE_API.bindProg({done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});
-   const SAVE=()=>SAVE_API.data;   // or read HT.Save.data directly
-   ```
-   `prog` keeps working everywhere; saves include it.
-4. A helper to open menus without the game reacting:
-   ```js
-   function openMenu(open){if(!running&&!(mode==='hub'||mode==='home'))return;running=false;releaseLock();setPrompt(null);
-     open({onClose:()=>{running=true;last=performance.now();canvasFocus();requestLock()}})}
-   const openShop=kind=>openMenu(o=>HT.Shop.open({...o,kind,onBuy:r=>{if(r.kind==='gun'&&r.delivered==='now')banner('NEW GUN',HT.CATALOG.guns[r.id].name+' is in your locker',2)}}));
-   const openLocker=tab=>openMenu(o=>HT.Locker.open({...o,tab,onChange:()=>{/* rebuild P.weapons from HT.Save.data.loadout */}}));
-   ```
-   Call `openShop('hardware')` at the store door, `openShop('dadazon')` at the laptop, `openShop('auto')` wherever the auto shop lives (e.g. a `Lug Nuts & Sons` door on Industrial Way, or the home garage roll door `Z`), `openLocker('loadout')` at `L`, `openLocker('attach')` at `W`.
-5. Keydown handler: first line `if(HT.Menus.isOpen())return;` (belt and braces; the menu already stops propagation). The `wheel` listener already checks `running`.
-6. `endMission(ok,…)`:
-   ```js
-   const pay=HT.Economy.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,
-     timeLeft:M.t,elapsed:M.elapsed,bossDone:M.bossDone,exec:M.exec||0,trust:prog.trust,rerun:!!M.rerun});
-   // add <b>Payout</b><span>${HT.Economy.money(pay.total)}</span> to the .meta grid, then:
-   HT.Economy.renderPayout($('rsBody'),pay);HT.Economy.applyPayout(pay);HT.Save.saveNow();
-   ```
-   `rsGo` becomes "Head home" (`enterHome()`), plus a ghost "Back to the cul-de-sac".
-7. Cash HUD: add a row to `#trust` and keep it live: `HT.Save.on('cash',v=>$('cashV').textContent=HT.Economy.money(v))`.
-8. `enterHome()`: `const got=HT.Economy.deliverPending(); if(got.length) radio('biscuit','*Your Dadazon order has arrived. Biscuit has opened it.*')`, then place furniture from `HT.Save.data.furniture.placed` (models: `HT.CATALOG.furniture[id].model`).
-9. Pickups/armory: on a counted pickup or confiscation `const r=HT.Economy.collectGun(gun); if(r.unlocked) banner('ARMORY',r.name+' added to your gun locker',2.4)`.
-10. `startMission`: loadout from `HT.Save.data.loadout`; weapon numbers via `HT.Economy.weaponStats(id)`; extra mags `HT.Economy.ammoFor()` (`extra`); consume `flags.rangeDay/zipPack/icePack` (set false, `HT.Save.touch('flags')`).
-11. Minivan: `const vs=HT.Economy.vehicleStats(); makeVan(vs.paint.col)`, multiply speed/accel/grip/brake/armor; `honk()` can become `HT.Menus.playHorn(vs.horn)`.
-12. Pause: "Reset save" → `HT.Save.reset()`; optional "Copy save code" → `navigator.clipboard.writeText(HT.Save.export())` and an import textarea → `HT.Save.import(text)`.
-13. Optional 3D thumbnails: `HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn']})`.
-14. `__ht`: expose `SAVE` (getter for `HT.Save.data`), `saveGame:HT.Save.saveNow`, `loadGame:HT.Save.load`, `resetSave:HT.Save.reset`, `computePayout:HT.Economy.computePayout`, `buy:(id,store)=>HT.Economy.buy(kindOf(id),id,store)`.
+1. Load order as above.
+2. `const prog=HT.Save.bindProg({...defaults incl. trustR, act})`. `HT.Save.data.garage` is `SAVE.garage` from SPEC2 (feed `VAN.stats` from `HT.Economy.vehicleStats()` or `HT.Garage.apply`).
+3. Open menus with `running=false; releaseLock();` and resume in `onClose`:
+   `HT.Shop.open({kind:'hardware'|'dadazon'|'mart'|'auto', onClose, onBuy, onPreview})` and `HT.Locker.open({tab, onClose, onChange})`.
+   Dad's Auto: in `onBuy`, rebuild the player vehicle when `kind` is `car`/`gar`/`cos`/`stick`. In `onPreview`, call `h.setUpgrades(...)` on the bay van.
+4. Keydown handler (and the HUD's): return early when `HT.Menus.isOpen()`.
+5. `endMission`: `const p=HT.Economy.computePayout({...})`, `HUD.show('result',{...})`, `HT.Economy.renderPayout(HUD.payoutEl,p)`, `HT.Economy.applyPayout(p)`, `HT.Save.saveNow()`.
+6. Cash in the HUD: `HT.Save.on('cash',v=>HUD.update({cash:v}))`.
+7. `enterHome()`: `HT.Economy.deliverPending()`. Also restore the van to at least 60% HP (SPEC2 C.3) by setting `HT.Save.data.garage.hp[type]`.
+8. Pickups: `HT.Economy.collectGun(gun)`.
+9. `startMission`: loadout from `HT.Save.data.loadout` (`p3` only with the rack), `HT.Economy.weaponStats(id)`, extra mags from `HT.Economy.ammoFor()`. Consume `flags.rangeDay/zipPack/icePack`.
+10. Horn: `HT.Menus.playHorn({notes:HT.Economy.vehicleStats().horn.notes})`, or route the same notes through `HT.Audio`.
+11. Pause "Reset save": `HT.Save.reset()`. Export/import via `HT.Save.export()` / `HT.Save.import(code)`.
+12. 3D thumbnails once `HT.Guns`/`HT.Vehicles` exist: `HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})`.
 
 ## Tests
 
-- `node --test dev/save.test.js`: schema, migration, corruption recovery, export/import, events, debounce, payout maths (SPEC L3-2), buy/sell/unlock rules (L4-1/2/3), loadout rules (L3-8), armory, van upgrades, catalogue integrity (every model path exists), economy balance.
-- `node dev/menus.e2e.js`: keyboard, gamepad (fake pad), touch at 390×844, payout animation, no key leaks to the game.
-- `node dev/shots.js [filter]`: screenshots of every tab/state at 1280×720 and 390×844 into `docs/screenshots/menus/`.
-- Manual: open `dev/shop.html` (`?thumbs=3d` for glTF thumbnails).
+- `node --test dev/save.test.js`: schema v2, v0→v2 and v1→v2 migration, corruption, export/import, events, debounce, payouts (SPEC L3-2 and SPEC2 B), buy rules, Dad's Auto against `HT.Garage`, loadout incl. `p3`, armory, catalogue integrity.
+- `node dev/menus.e2e.js`: keyboard, gamepad, touch at 390×844, the payout animation, no key leaks, sounds routed to `HT.Audio.ui`, and stat bars fitting at 1280×720.
+- `node dev/shots.js [filter]`: JPEG screenshots of every tab and state at 1280×720 and 390×844 into `docs/screenshots/menus/`.

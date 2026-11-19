@@ -1,0 +1,11 @@
+const L=require('./lib.js');
+(async()=>{const {chromium}=require('playwright');
+  const browser=await chromium.launch({args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--enable-unsafe-swiftshader'],proxy:{server:process.env.HTTPS_PROXY,bypass:'localhost,127.0.0.1'}});
+  const ctx=await browser.newContext({viewport:{width:1280,height:720},deviceScaleFactor:2,ignoreHTTPSErrors:true});const page=await ctx.newPage();const errs=[];
+  page.on('pageerror',e=>errs.push(e.message));page.on('console',m=>{if(m.type()==='error')errs.push(m.text())});
+  await page.route(/assets\/(chars|sky)\//,async r=>{await new Promise(z=>setTimeout(z,6000));r.continue()});
+  await page.goto('http://localhost:8123/index.html',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.HT&&document.querySelector('.ht-title'),null,{timeout:60000});
+  console.log('fonts loaded at first paint:',await page.evaluate(()=>[...document.fonts].filter(f=>f.status==='loaded').map(f=>f.family+' '+f.weight).join(', ')));
+  await page.waitForTimeout(1500);console.log(await page.evaluate(()=>document.querySelector('.ht-load .st').textContent));
+  await L.shot(page,'title_loading_wide');console.log('ERRS',errs);await browser.close()})();

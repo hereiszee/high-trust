@@ -34,9 +34,9 @@ function create(mi,o){o=Object.assign({seed:1,difficulty:'normal',dt:1/30,skill:
   const P={id:'player',pos:{x:L.start.x,z:L.start.z},yaw:Math.PI,hp:100,regenT:0,crouch:false,moving:false,sprint:false,weapons:def.weapons.slice(),cur:mi===0?'pistol':def.weapons[def.weapons.length-1],ammo:{},reloadT:0,fireT:0,aimT:0,aimAt:null,busyT:0,path:null,pi:0,goalKey:'',mode:'go',holdT:0};
   for(const w of P.weapons)P.ammo[w]={mag:PW[w].mag,res:PW[w].res};
   S.P=P;S.enemies=[];S.allies=[];
-  const pool=AI.pool({maxShooters:AI.DIFFICULTY[o.difficulty].pool});S.pool=pool;const squads=new Map();S.squads=[];
+  const DIFF=AI.missionDiff?AI.missionDiff(mi,o.difficulty):AI.DIFFICULTY[o.difficulty];const pool=AI.pool({maxShooters:DIFF.pool});S.pool=pool;const squads=new Map();S.squads=[];
   const barker=AI.barker();
-  function squadFor(x,z){const r=nav.roomAt(x,z),key=nav.rooms[r]&&nav.rooms[r].indoor?r:'out';let s=squads.get(key);if(!s){s=AI.squad(nav,{difficulty:o.difficulty,pool,barker,name:String(key)});squads.set(key,s);S.squads.push(s)}return s}
+  function squadFor(x,z){const r=nav.roomAt(x,z),key=nav.rooms[r]&&nav.rooms[r].indoor?r:'out';let s=squads.get(key);if(!s){s=AI.squad(nav,{diff:DIFF,pool,barker,name:String(key)});squads.set(key,s);S.squads.push(s)}return s}
   let eid=0;
   function spawnEnemy(x,z,boss,gun){if(!gun)gun=boss?'revolver':pick(mi===0?['pistol','pistol','nailer','shotgun']:mi===1?['pistol','smg','smg','shotgun']:mi===2?['smg','rifle','double','pistol']:['rifle','rifle','smg','double','revolver']);
     const hp=boss?420:(gun==='shotgun'||gun==='double')?90:75;
@@ -71,7 +71,7 @@ function create(mi,o){o=Object.assign({seed:1,difficulty:'normal',dt:1/30,skill:
   /* ---------- the scripted dad ---------- */
   const enemyCrouch=e=>e.ai&&e.ai.stance==='crouch';
   function visibleEnemies(){const out=[];for(const e of S.enemies){if(e.state!=='idle')continue;const d=hyp(e.pos.x-P.pos.x,e.pos.z-P.pos.z);if(d>45)continue;
-      if(nav.los(P.pos.x,P.pos.z,e.pos.x,e.pos.z,enemyCrouch(e)||P.crouch))out.push([e,d])}return out}
+      if(nav.los(P.pos.x,P.pos.z,e.pos.x,e.pos.z,enemyCrouch(e)&&P.crouch?true:P.crouch?'a':enemyCrouch(e)?'b':false))out.push([e,d])}return out}
   function goTo(x,z,key,speed,dt){if(P.goalKey!==key||!P.path||S.t-P.pathT>1.5){const p=nav.path(P.pos.x,P.pos.z,x,z);P.path=p?p.pts:null;P.pi=1;P.goalKey=key;P.pathT=S.t}
     if(!P.path)return false;while(P.pi<P.path.length&&hyp(P.path[P.pi].x-P.pos.x,P.path[P.pi].z-P.pos.z)<.3)P.pi++;
     if(P.pi>=P.path.length)return false;const w=P.path[P.pi],dx=w.x-P.pos.x,dz=w.z-P.pos.z,dl=hyp(dx,dz)||1;
@@ -102,7 +102,7 @@ function create(mi,o){o=Object.assign({seed:1,difficulty:'normal',dt:1/30,skill:
     /* hurt: back off to cover from whoever is shooting, wait for regen */
     if(P.mode==='go'&&P.hp<40&&tgt)P.mode='heal';
     if(P.mode==='heal'){if(P.hp>=85||!vis.length&&P.hp>=70){P.mode='go';P.healSpot=null}
-      else{if(!P.healSpot&&tgt){let best=null,bs=1e9;const df=nav.distField(nav.nearestWalkable(P.pos.x,P.pos.z));for(const sp of nav.covers){if(df[sp.i]>14)continue;if(vis.some(([e])=>!!nav.los(e.pos.x,e.pos.z,sp.x,sp.z,true)))continue;if(df[sp.i]<bs){bs=df[sp.i];best=sp}}P.healSpot=best||{x:L.start.x,z:L.start.z}}
+      else{if(!P.healSpot&&tgt){let best=null,bs=1e9;const df=nav.distField(nav.nearestWalkable(P.pos.x,P.pos.z));for(const sp of nav.covers){if(df[sp.i]>14)continue;if(vis.some(([e])=>!!nav.los(e.pos.x,e.pos.z,sp.x,sp.z,'b')))continue;if(df[sp.i]<bs){bs=df[sp.i];best=sp}}P.healSpot=best||{x:L.start.x,z:L.start.z}}
         if(P.healSpot){if(!goTo(P.healSpot.x,P.healSpot.z,'heal',4.3,dt))P.crouch=true}}}
     if(P.mode==='go'){
       if(P.cuffT&&P.cuffT.state!=='surrender')P.cuffT=null;
@@ -136,7 +136,7 @@ function create(mi,o){o=Object.assign({seed:1,difficulty:'normal',dt:1/30,skill:
     const threats=[{id:'player',x:P.pos.x,z:P.pos.z,fx:-Math.sin(P.yaw),fz:-Math.cos(P.yaw),fov:.96,isPlayer:true,crouch:P.crouch,moving:P.moving,sprint:P.sprint,reloading:P.reloadT>0,busy:P.busyT>0,down:false}];
     for(const a of S.allies)threats.push({id:a.id,x:a.pos.x,z:a.pos.z,crouch:a.ai&&a.ai.stance==='crouch',moving:!!(a.ai&&a.ai.intent&&a.ai.intent.speed>0),down:a.down});
     const live=S.enemies.filter(e=>e.state==='idle');
-    const world={nav,t,threats,agents:live,noises:(S.noises=S.noises.filter(n=>t-n.t<.5)),diff:AI.DIFFICULTY[o.difficulty]};
+    const world={nav,t,threats,agents:live,noises:(S.noises=S.noises.filter(n=>t-n.t<.5)),diff:DIFF};
     for(const s of S.squads)s.update(dt,world);
     for(const e of live){const I=AI.think(e,world,dt);
       if(e.ai.mode==='combat'&&e.ai.engT==null)e.ai.engT=t;
@@ -147,7 +147,7 @@ function create(mi,o){o=Object.assign({seed:1,difficulty:'normal',dt:1/30,skill:
         if(th){const hit=rnd()<I.hitChance;S.shots.push({t,x0:e.pos.x,z0:e.pos.z,x1:th.pos.x,z1:th.pos.z,k:'e',hit});if(hit){S.stats.enemyHits++;if(th===P)hurtPlayer(I.dmg);else hurtAlly(th,I.dmg)}}}
       if(I.wantsSurrender&&!e.triedSurr){e.triedSurr=true;surrender(e)}
       /* live cover sample: hiding enemies should actually be hidden from the dad */
-      if(e.ai.mode==='combat'&&e.ai.sub==='cover'&&e.ai.phase==='hide'&&e.ai.cover&&e.ai.role!=='rusher'){S.stats.coverSamples++;if(!nav.los(P.pos.x,P.pos.z,e.pos.x,e.pos.z,e.ai.stance==='crouch'))S.stats.coverGood++}}
+      if(e.ai.mode==='combat'&&e.ai.sub==='cover'&&e.ai.phase==='hide'&&e.ai.cover&&e.ai.role!=='rusher'){S.stats.coverSamples++;if(!nav.los(P.pos.x,P.pos.z,e.pos.x,e.pos.z,e.ai.stance==='crouch'?'b':false))S.stats.coverGood++}}
     for(const s of S.squads){if(s.tokens.size>s.max)S.stats.tokenViolations++}
     if(pool.holders.size>pool.max)S.stats.tokenViolations++;
     S.stats.maxShooters=Math.max(S.stats.maxShooters,pool.holders.size);

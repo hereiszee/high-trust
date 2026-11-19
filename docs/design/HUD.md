@@ -2,6 +2,10 @@
 
 `window.HT.HUD`. Test bench: `dev/hud.html?s=<scenario>` (mission, hub, lowhp, shotgun, scope, drive, interior, home, banner, done, map, title, title-loading, brief, result, pause, pause-display, pause-keys). Screenshots: `docs/screenshots/hud/<scenario>_{wide,tall}.jpg` (1280x720 and 390x844 touch, @2x).
 
+## Status in index.html
+
+Integrated. index.html builds one state object per frame in `hud(dt)`; `setObj/setPrompt/banner/radio/showMarker` keep their signatures and only fill that state. Feed lines (zip-tie, neutralized, shot a surrendered man, packages, stashes, crew down/up) and damage arcs come from diffing game counters in `hudEvents()`, so combat and AI code make no HUD calls (the only exception is `HUD.hit()` in `fire()`). Spawn code still writes name-tag elements into the hidden `#tags` sink; `hud()` reads their text/class into `state.tags`. Fonts are self-hosted (assets/fonts, OFL) and preloaded. In-game screenshots: `docs/screenshots/hud-ingame/`, scripts: `dev/hud-ingame/`.
+
 ## Integrating into index.html
 
 1. In `<head>`, add `<link rel="stylesheet" href="css/hud.css">`. Before the game script, add `<script src="js/hud.js"></script>`.

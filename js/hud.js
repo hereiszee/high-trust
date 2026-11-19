@@ -165,8 +165,8 @@ function build(root){
   R.wp=el('div','ht-wp tx',hud,'<div class="hint"></div><div class="main"><div class="gun"></div><div class="am ht-num"><span class="mag">0</span><span class="res">0</span></div></div><div class="rl"><i></i></div><div class="info"><span class="fm"></span><span class="nm"></span></div><div class="slots"></div>');
   R.wpHint=R.wp.querySelector('.hint');R.wpGun=R.wp.querySelector('.gun');R.wpMag=R.wp.querySelector('.mag');R.wpRes=R.wp.querySelector('.res');R.wpRl=R.wp.querySelector('.rl i');R.wpFm=R.wp.querySelector('.fm');R.wpNm=R.wp.querySelector('.nm');R.wpSlots=R.wp.querySelector('.slots');R.wpAm=R.wp.querySelector('.am');
   /* driving */
-  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span></div>');
-  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');
+  R.drv=el('div','ht-drv tx',hud,dialSVG()+'<div class="spd ht-num">0</div><div class="unit">MPH</div><div class="gear">D</div><div class="vh"><div class="row"><span>Minivan</span><b class="ht-num">100%</b></div><div class="vb"><i></i></div></div><div class="hint"><span><b class="ht-kc">H</b>Horn</span><span><b class="ht-kc">Space</b>Brake</span><span><b class="ht-kc">E</b>Exit</span><span><b class="ht-kc">V</b>Hood</span><span><b class="ht-kc">C</b>Look back</span></div>');
+  R.drvSpd=R.drv.querySelector('.spd');R.drvGear=R.drv.querySelector('.gear');R.drvNdl=R.drv.querySelector('.ndl');R.drvVal=R.drv.querySelector('.ht-dial-val');R.drvVh=R.drv.querySelector('.vh b');R.drvVb=R.drv.querySelector('.vb');R.drvVbI=R.drv.querySelector('.vb i');R.drvHint=R.drv.querySelector('.hint');R.drvName=R.drv.querySelector('.vh .row span');
   /* prompt, subtitles, banner */
   R.pr=el('div','ht-pr off tx',hud,'<div class="gl"><svg viewBox="0 0 34 34"><circle class="bg" cx="17" cy="17" r="15"/><circle class="fg" cx="17" cy="17" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/></svg><b class="ht-kc">E</b></div><div class="tt"></div>');
   R.prK=R.pr.querySelector('.ht-kc');R.prFg=R.pr.querySelector('.fg');R.prT=R.pr.querySelector('.tt');
@@ -346,6 +346,7 @@ function updDrive(st){
   attr(R.drvNdl,'transform',`rotate(${(-225+270*f).toFixed(1)} 110 96)`);
   const g=st.gear!=null?String(st.gear):(st.speedMph<-0.5?'R':'D');txt(R.drvGear,g);cls(R.drvGear,'r',g==='R');
   let vh=st.vanHealth??1;if(vh>1)vh/=100;vh=clamp(vh,0,1);txt(R.drvVh,Math.round(vh*100)+'%');sty(R.drvVbI,'transform',`scaleX(${vh})`);cls(R.drvVb,'low',vh<.3);
+  txt(R.drvName,st.vehicleName||'Minivan');
   show(R.drvHint,!H.touch);
 }
 
@@ -401,7 +402,8 @@ function updMarkers(list){
   const W=H.W,Hh=H.Hh,cx=W/2,cy=Hh/2;const mT=H.compact?150:96,mB=H.compact?320:130,mX=H.compact?28:56;
   const seen=new Set();
   for(const m of list||[]){if(!m.screen||m.world===false)continue;const id=m.id??(m.kind+m.x+m.z);seen.add(id);
-    let r=MK.get(id);if(!r){const e=el('div','ht-mk pop '+(m.kind||'obj'),R.wm,'<div class="ar"><svg viewBox="0 0 14 10" width="14" height="10"><path d="M0 10L7 0l7 10z" fill="currentColor" stroke="rgba(0,0,0,.5)"/></svg></div><div class="ic">'+iconSVG(m.kind||'obj')+'</div><div class="lb"><span class="l"></span><span class="ds ht-num"></span></div>');
+    let r=MK.get(id);if(r&&r.kind!==m.kind){r.e.remove();MK.delete(id);r=null}/* same id, new kind: rebuild the icon */
+    if(!r){const e=el('div','ht-mk pop '+(m.kind||'obj'),R.wm,'<div class="ar"><svg viewBox="0 0 14 10" width="14" height="10"><path d="M0 10L7 0l7 10z" fill="currentColor" stroke="rgba(0,0,0,.5)"/></svg></div><div class="ic">'+iconSVG(m.kind||'obj')+'</div><div class="lb"><span class="l"></span><span class="ds ht-num"></span></div>');
       r={e,ar:e.firstChild,l:e.querySelector('.l'),ds:e.querySelector('.ds'),lb:e.querySelector('.lb'),kind:m.kind};MK.set(id,r);setTimeout(()=>e.classList.remove('pop'),500)}
     const s=m.screen;let x=s.x,y=s.y,behind=!!s.behind;
     const inside=!behind&&x>=mX&&x<=W-mX&&y>=mT&&y<=Hh-mB;
@@ -410,7 +412,9 @@ function updMarkers(list){
     let ang=null;
     if(!inside){let dx=x-cx,dy=y-cy;if(behind){dx=-dx;dy=Math.max(Math.abs(dy),Hh*.25)}if(Math.abs(dx)<1&&Math.abs(dy)<1)dy=1;
       /* clamp onto an ellipse around the crosshair so edge arrows never sit on corner widgets */
-      const ex=H.compact?W*.4:Math.min(W*.36,Hh*.62),ey=H.compact?Hh*.22:Hh*.34;const k=1/Math.sqrt((dx*dx)/(ex*ex)+(dy*dy)/(ey*ey));x=cx+dx*k;y=cy+dy*k;ang=Math.atan2(dy,dx)}
+      const ex=H.compact?W*.4:Math.min(W*.36,Hh*.62),ey=H.compact?Hh*.22:Hh*.34;const k=1/Math.sqrt((dx*dx)/(ex*ex)+(dy*dy)/(ey*ey));x=cx+dx*k;y=cy+dy*k;ang=Math.atan2(dy,dx);
+      /* keep edge arrows out of the corner widgets and, on phones, the touch buttons */
+      y=clamp(y,mT,Hh-(H.touch?390:mB));x=clamp(x,mX,W-mX)}
     cls(r.e,'edge',ang!=null);
     if(ang!=null)sty(r.ar,'transform',`rotate(${(ang*180/Math.PI+90).toFixed(0)}deg) translateY(-12px)`);
     sty(r.e,'transform',`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`);
@@ -444,7 +448,7 @@ function updSubs(s){
   const sp=s.speaker||'';const col=s.color||SPK_COL[String(sp).toLowerCase().split(' ').pop()]||SPK_COL[String(sp).toLowerCase()]||'#ffc94a';
   const key=sp+'|'+s.text;if(R.sub._k!==key){R.sub._k=key;R.subS.innerHTML=(sp?'<b>'+esc(sp)+'</b>':'')+esc(s.text);sty(R.sub,'--sc',col)}
 }
-let BN={key:'',t:0,dur:0};
+let BN={key:'',t:0,dur:0,end:0};
 function banner(b){
   if(!b){R.bn.classList.remove('lbx');cls(R.hud,'cine',false);anim(R.bnBox,[{opacity:1},{opacity:0}],{duration:250,fill:'forwards'});BN.t=0;return}
   const kind=b.kind||'title';R.bn.className='ht-bn '+(kind==='done'?'done':kind==='fail'?'fail':'');
@@ -453,7 +457,7 @@ function banner(b){
   const stp=R.bn.querySelector('.stamp');stp.innerHTML=(b.stats||[]).map(([k,v])=>'<span>'+esc(k)+' <b>'+esc(v)+'</b></span>').join('');show(stp,!!(b.stats&&b.stats.length));
   if(kind==='title'||b.letterbox){requestAnimationFrame(()=>R.bn.classList.add('lbx'));cls(R.hud,'cine',true)}
   anim(R.bn.querySelector('.sc'),[{opacity:0},{opacity:1,offset:.1},{opacity:1,offset:.85},{opacity:0}],{duration:(b.dur||(kind==='title'?4:3.6))*1000,fill:'forwards'});
-  const dur=(b.dur||(kind==='title'?4:3.6))*1000;BN.t=dur/1000;
+  const dur=(b.dur||(kind==='title'?4:3.6))*1000;BN.t=dur/1000;BN.end=now()+BN.t;
   anim(R.bnBox,[{opacity:0,transform:'translateY(14px) scale(1.04)',filter:'blur(6px)',easing:'cubic-bezier(.2,.8,.2,1)'},{opacity:1,transform:'none',filter:'blur(0)',offset:.14},{opacity:1,transform:'none',filter:'blur(0)',offset:.88,easing:'cubic-bezier(.5,0,.75,0)'},{opacity:0,transform:'translateY(-6px)',filter:'blur(2px)'}],{duration:dur,fill:'forwards'});
   if(kind==='done'||kind==='fail')anim(R.bn.querySelector('.tt'),[{transform:'scale(1.35)',letterSpacing:'.08em'},{transform:'scale(1)',letterSpacing:'.005em'}],{duration:600,easing:'cubic-bezier(.3,1.45,.45,1)'});
 }
@@ -585,16 +589,16 @@ function drawMinimap(st){
   /* rim + north */
   c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=2;c.beginPath();c.arc(cx,cy,Rr-1.5,0,TAU);c.stroke();
   c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=1;c.beginPath();c.arc(cx,cy,Rr-3,0,TAU);c.stroke();
-  const na=-Math.PI/2-rot;const nx=cx+Math.cos(na)*(Rr-1),ny=cy+Math.sin(na)*(Rr-1);
-  c.fillStyle='#12151a';c.beginPath();c.arc(nx,ny,9,0,TAU);c.fill();c.strokeStyle='#fff';c.lineWidth=1.5;c.stroke();
-  c.fillStyle='#ffc94a';c.font='800 11px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('N',nx,ny+.5);
+  const nr=S<150?7.5:9,na=-Math.PI/2-rot;const nx=cx+Math.cos(na)*(Rr-nr-1.5),ny=cy+Math.sin(na)*(Rr-nr-1.5);
+  c.fillStyle='#12151a';c.beginPath();c.arc(nx,ny,nr,0,TAU);c.fill();c.strokeStyle='#fff';c.lineWidth=1.5;c.stroke();
+  c.fillStyle='#ffc94a';c.font='800 '+(nr>8?11:10)+'px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('N',nx,ny+.5);
 }
 
 /* ---------------- full-screen map ---------------- */
 const MAP={open:false,z:1,cx:0,cz:0,dirty:true,onTravel:null,sel:null,ptrs:new Map(),
   toggle(){this.open?this.close():this.openMap()},
   openMap(){if(!MM.base)return;this.open=true;const m=R.map;m.hidden=false;if(!m.firstChild)buildMap();
-    this.cx=MM.W*MM.tile/2;this.cz=MM.H*MM.tile/2;this.fit();this.sel=null;R.mapTip.hidden=true;
+    this.cx=MM.W*MM.tile/2;this.cz=MM.H*MM.tile/2;this.fit();this.sel=null;R.mapTip.hidden=true;mapLegend();
     requestAnimationFrame(()=>m.classList.add('on'));this.resize();emit('map',true)},
   close(){if(!this.open)return;this.open=false;R.map.classList.remove('on');setTimeout(()=>{if(!this.open)R.map.hidden=true},230);emit('map',false)},
   fit(){const ww=MM.W*MM.tile,hh=MM.H*MM.tile;this.z=Math.min(H.W/ww,(H.Hh-(H.compact?200:120))/hh)*(H.compact?.96:.86);this.zMin=this.z*.6;this.zMax=this.z*5},
@@ -603,7 +607,7 @@ const MAP={open:false,z:1,cx:0,cz:0,dirty:true,onTravel:null,sel:null,ptrs:new M
   w2s(x,z){return[(x-this.cx)*this.z+H.W/2,(z-this.cz)*this.z+H.Hh/2]}
 };
 function buildMap(){
-  const m=R.map;m.innerHTML='<canvas></canvas><div class="hdr"><div class="k">Map</div><h2></h2></div><div class="leg"></div><div class="zb"><button data-z="1" aria-label="Zoom in">+</button><button data-z="-1" aria-label="Zoom out">−</button><button data-z="0" aria-label="Close" style="font-size:16px">✕</button></div><div class="ft"><span><b class="ht-kc">Drag</b>Pan</span><span><b class="ht-kc">Wheel</b>Zoom</span><span><b class="ht-kc">Click</b>Select</span><span><b class="ht-kc">M</b>Close</span></div><div class="tip" hidden><div class="k"></div><h3></h3><button class="ht-btn pri" style="height:38px;font-size:14px;width:100%">Fast travel</button></div>';
+  const m=R.map;m.innerHTML='<canvas></canvas><div class="hdr"><div class="k">Map</div><h2></h2></div><div class="leg"></div><div class="zb"><button data-z="1" aria-label="Zoom in">+</button><button data-z="-1" aria-label="Zoom out">−</button><button data-z="0" aria-label="Close" style="font-size:16px">✕</button></div><div class="ft"><span><b class="ht-kc">Drag</b>Pan</span><span><b class="ht-kc">Wheel</b>Zoom</span><span><b class="ht-kc">Click</b>Select</span><span><b class="ht-kc">Tab</b>Next place</span><span><b class="ht-kc">Enter</b>Travel</span><span><b class="ht-kc">M</b>Close</span></div><div class="tip" hidden><div class="k"></div><h3></h3><button class="ht-btn pri" style="height:38px;font-size:14px;width:100%">Fast travel</button></div>';
   R.mapCv=m.querySelector('canvas');R.mapTip=m.querySelector('.tip');R.mapTitle=m.querySelector('h2');R.mapLeg=m.querySelector('.leg');
   const cv=R.mapCv;
   cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*.0015))},{passive:false});
@@ -616,12 +620,25 @@ function buildMap(){
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>MAP.ptrs.delete(e.pointerId));
   m.querySelectorAll('.zb button').forEach(b=>b.onclick=()=>{const z=+b.dataset.z;if(!z)return MAP.close();zoomAt(H.W/2,H.Hh/2,z>0?1.4:1/1.4)});
   R.mapTip.querySelector('button').onclick=()=>{const s=MAP.sel;if(!s)return;emit('fastTravel',s);if(MAP.onTravel)MAP.onTravel(s);MAP.close()};
-  const legend=[['obj','Objective'],['job','Job'],['home','Home'],['shop','Hardware store'],['garage','Garage'],['travel','Fast travel']];
-  R.mapLeg.innerHTML=legend.map(([k,l])=>`<div style="color:${KIND_COL[k]}">${iconSVG(k)}<span>${l}</span></div>`).join('')+`<div><i class="sw" style="background:${GROUND.road}"></i><span>Road</span></div><div><i class="sw" style="background:#b9b2a4"></i><span>Building</span></div>`;
 }
+const LEGEND_ITEMS=[['obj','Objective'],['job','Job'],['van','Minivan'],['home','Home'],['shop','Hardware store'],['garage','Garage'],['travel','Fast travel']];
+function mapLegend(){const have=new Set(mapItems().map(m=>m.kind));
+  htm(R.mapLeg,LEGEND_ITEMS.filter(([k])=>have.has(k)).map(([k,l])=>`<div style="color:${KIND_COL[k]}">${iconSVG(k)}<span>${l}</span></div>`).join('')+`<div><i class="sw" style="background:${GROUND.road}"></i><span>Road</span></div><div><i class="sw" style="background:#b9b2a4"></i><span>Building</span></div>`)}
+/* keyboard: arrows/WASD pan, + - zoom, Tab cycles places, Enter fast-travels to the selection, Esc/M close */
+function mapKey(e){const k=e.key,step=90/MAP.z;let used=true;
+  if(k==='ArrowLeft'||e.code==='KeyA'){MAP.cx-=step;MAP.dirty=true;placeTip()}
+  else if(k==='ArrowRight'||e.code==='KeyD'){MAP.cx+=step;MAP.dirty=true;placeTip()}
+  else if(k==='ArrowUp'||e.code==='KeyW'){MAP.cz-=step;MAP.dirty=true;placeTip()}
+  else if(k==='ArrowDown'||e.code==='KeyS'){MAP.cz+=step;MAP.dirty=true;placeTip()}
+  else if(k==='+'||k==='='||e.code==='NumpadAdd')zoomAt(H.W/2,H.Hh/2,1.4);
+  else if(k==='-'||k==='_'||e.code==='NumpadSubtract')zoomAt(H.W/2,H.Hh/2,1/1.4);
+  else if(k==='Tab'){const it=mapItems().filter(m=>m.label);if(it.length){let i=it.indexOf(MAP.sel);i=e.shiftKey?(i<=0?it.length-1:i-1):(i+1)%it.length;const m=it[i];let[sx,sy]=MAP.w2s(m.x,m.z);if(sx<80||sy<120||sx>H.W-80||sy>H.Hh-120){MAP.cx=m.x;MAP.cz=m.z;[sx,sy]=MAP.w2s(m.x,m.z)}pickAt(sx,sy,m)}}
+  else if(k==='Enter'||k===' '){const b=R.mapTip&&R.mapTip.querySelector('button');if(MAP.sel&&b&&!b.hidden&&!R.mapTip.hidden)b.click()}
+  else used=false;
+  if(used){e.preventDefault();e.stopPropagation()}return used}
 function zoomAt(x,y,f){const w=MAP.s2w(x,y);MAP.z=clamp(MAP.z*f,MAP.zMin,MAP.zMax);MAP.cx=w.x-(x-H.W/2)/MAP.z;MAP.cz=w.z-(y-H.Hh/2)/MAP.z;MAP.dirty=true;placeTip()}
 function mapItems(){return[...(MM.pins||[]),...((H.state&&H.state.markers)||[])].filter(m=>ICON[m.kind]&&m.kind!=='enemy'&&m.map!==false)}
-function pickAt(x,y){let best=null,bd=22;for(const m of mapItems()){const[sx,sy]=MAP.w2s(m.x,m.z);const d=Math.hypot(sx-x,sy-y);if(d<bd){bd=d;best=m}}
+function pickAt(x,y,force){let best=force||null,bd=22;if(!best)for(const m of mapItems()){const[sx,sy]=MAP.w2s(m.x,m.z);const d=Math.hypot(sx-x,sy-y);if(d<bd){bd=d;best=m}}
   MAP.sel=best;if(!best){R.mapTip.hidden=true;MAP.dirty=true;return}
   R.mapTip.hidden=false;R.mapTip.querySelector('.k').textContent=({obj:'Objective',job:'Job',home:'Home',shop:'Shop',garage:'Garage',travel:'Fast travel',van:'Vehicle'}[best.kind]||best.kind);
   R.mapTip.querySelector('h3').textContent=best.label||'';const b=R.mapTip.querySelector('button');b.hidden=!(best.fast||best.fastTravel);
@@ -724,7 +741,7 @@ function showScreen(name,d={}){
 function hideScreen(name,instant){
   if(name==='map')return MAP.close();
   const n=name||SCR.cur;if(!n||!SCR.el[n])return;const e=SCR.el[n];delete SCR.el[n];if(SCR.cur===n)SCR.cur=null;
-  if(instant)e.remove();else{e.classList.remove('on');setTimeout(()=>e.remove(),480)}
+  if(instant)e.remove();else{e.classList.remove('on');e.classList.add('out');setTimeout(()=>e.remove(),480)}
   cls(R.hud,'off',false);show(R.touch,true);
 }
 function setScreen(name,d){const e=SCR.el[name];if(!e)return;Object.assign(SCR.data[name],d);if(name==='title')updTitle(e,SCR.data[name]);if(name==='pause'&&d.settings)renderPane(e,SCR.data[name])}
@@ -749,7 +766,7 @@ function update(st,dt=1/60){
   updMarkers(st.markers);updTags(st.tags);
   updPrompt(st.prompt);updSubs(st.subtitles);
   if(st.banner){const k=st.banner.id||JSON.stringify(st.banner);if(k!==BN.key){BN.key=k;banner(st.banner)}}
-  if(BN.t>0){BN.t-=dt;if(BN.t<=0){R.bn.classList.remove('lbx');cls(R.hud,'cine',false)}}
+  if(BN.t>0&&now()>=BN.end){BN.t=0;R.bn.classList.remove('lbx');cls(R.hud,'cine',false)}
   sty(R.vig,'display',mode==='drive'?'none':'');
   if(st.routeTo&&H.player){const T=now();if(T-MM.routeAt>.6||MM.routeTo!==st.routeTo){MM.routeAt=T;MM.routeTo=st.routeTo;MM.route=findRoute(H.player,st.routeTo,{drive:mode==='drive'})}}
   else if(st.routeTo===null)MM.route=null;
@@ -761,7 +778,9 @@ function update(st,dt=1/60){
 
 const HUD={
   init(rootEl,opt={}){H.root=rootEl||document.body.appendChild(document.createElement('div'));if(opt.touch!=null)H.forceTouch=opt.touch;if(opt.compact!=null)H.forceCompact=opt.compact;build(H.root);
-    addEventListener('keydown',e=>{if(e.code==='KeyM'&&!SCR.cur&&!e.repeat&&opt.mapKey!==false){MAP.toggle();}else if(e.code==='Escape'&&MAP.open){MAP.close();e.stopPropagation()}},true);
+    addEventListener('keydown',e=>{if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
+    /* canvases draw text with the web fonts: redraw once they are in */
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{CMP.last='';MAP.dirty=true});
     return HUD},
   update,
   on,emit,
