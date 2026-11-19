@@ -2609,7 +2609,7 @@ function frTarget(id){if(id==='player')return P;return allies.find(a=>a.id===id)
 /* turn a member hostile: guns out, onto the crew's squad */
 function frArm(e,quiet){if(e.state!=='idle')return;if(!e.hostile&&FR.members.filter(m=>m.hostile&&!m.leave&&m.state==='idle').length>=FR_TUNE.maxHostile){e.leave=true;e.run=true;e.leaveAt=simT;e.script=null;return}if(!e.drawn){e.drawn=true;equip(e.dude,e.gun)}e.hostile=true;e.leave=false;e.script=null;if(FR.nav&&!e.squad)frSquad(e.fr).add(e);
   if(!quiet&&(!FR.noticeT||simT-FR.noticeT>6)){FR.noticeT=simT;if(e.pos.distanceTo(P.pos)<30)radio(e.fr.short,pick(FR_LINES.notice))}}
-function frProvoke(crew,src){const st=FR.crewState[crew.id];st.provT=simT;if(!st.hostileP){st.hostileP=true;HUD.feed(crew.name+(src==='draw'?' pulled their guns':' want a piece of you'),'bad')}
+function frProvoke(crew,src){const st=FR.crewState[crew.id];if(src!=='heat')st.provT=simT;if(!st.hostileP){st.hostileP=true;HUD.feed(crew.name+(src==='draw'?' pulled their guns':' want a piece of you'),'bad')}
   FR.fightT=simT;for(const e of FR.members)if(e.fr===crew&&e.state==='idle'&&e.pos.distanceTo(P.pos)<FR_TUNE.engageR+15)frArm(e,true)}
 
 /* ---------- per-member update (from updEnemy after its dead / cuffed / surrender branches) ---------- */
@@ -2618,7 +2618,7 @@ function frEnemy(e,dt){const d=e.dude;const t0=performance.now();
   if(e.hostile&&FR.nav&&!e.leave&&frNavOk(e)){if(!e.squad)frSquad(e.fr).add(e);const W=frWorld(e.fr);const I=AI.think(e,W,dt);AI.move(e,I,dt);collide(e.pos,.35);
     if(I.bark&&e.pos.distanceTo(P.pos)<26&&I.bark.event!=='idle'&&I.bark.event!=='idleReply'){radio(e.fr.short,I.bark.text,I.bark.priority>=2);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
     const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid?frTarget(tid):null;
-    if(I.fire){const t=frTarget(I.targetId);if(t&&!t.down&&t.state!=='dead'){if(t.fr){FR.shooter='crew';shootAt(e,t,I.hitChance*.85,I.dmg,true);FR.shooter=null;FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.stray)}else if(t===P||!t.ride)shootAt(e,t,I.hitChance,I.dmg*e.dmgMul,true)}}
+    if(I.fire){const t=frTarget(I.targetId);if(t&&!t.down&&t.state!=='dead'){if(t.fr){FR.shooter='crew';shootAt(e,t,I.hitChance*.85,I.dmg,true);FR.shooter=null;if(simT-FR.shotT<FR_TUNE.quiet)FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.stray)}else if(t===P||!t.ride)shootAt(e,t,I.hitChance,I.dmg*e.dmgMul,true)}}
     if(I.wantsSurrender&&!e.triedSurr&&e.state==='idle'){e.triedSurr=true;surrender(e);FR.stats.ms+=performance.now()-t0;return}
     e.alert=e.ai.mode!=='idle';d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;
     pose(d,dt,{moving:I.speed>.2,speed:Math.max(.5,I.speed/3.4),aim:e.alert||I.stance==='crouch',mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(e,d,I.stance==='crouch',dt)}
@@ -2680,8 +2680,8 @@ function frDown(){FR.downT=1;running=false;mouseDown=false;const fee=40;let f=$(
 function frReset(){if(!FR)return;for(const e of[...FR.members]){scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}}
   for(const c of FR.civ)if(c.dude)scene.remove(c.dude.root);if(FR.car)frCarGone();
   if(L&&L.pickups)for(const p of[...L.pickups])removePickup(p);
-  Object.assign(FR,{members:[],groups:[],civ:[],inc:null,heat:0,drawn:false,war:null,hotCrew:null,cool:false,squads:new Map(),pool:null,nav:null,navC:null,worlds:{},hostile:[],alive:[],fight:false,noise:[],car:null,goods:[]});
-  for(const id in FR.crewState)FR.crewState[id].hostileP=false;if(FR.spots)for(const s of FR.spots){s.group=null;s.freeAt=0}FR.incT=rand(40,70)}
+  Object.assign(FR,{members:[],groups:[],civ:[],inc:null,heat:0,reinfT:{},drawn:false,war:null,hotCrew:null,cool:false,squads:new Map(),pool:null,nav:null,navC:null,worlds:{},hostile:[],alive:[],fight:false,noise:[],car:null,goods:[]});
+  for(const id in FR.crewState){FR.crewState[id].hostileP=false;FR.crewState[id].provT=-99}if(FR.spots)for(const s of FR.spots){s.group=null;s.freeAt=0}FR.incT=rand(40,70)}
 const frNearestCrew=(x,z)=>{let b=null,bd=1e9;for(const c of FR_CREWS){const r=c.turf,cx=clamp(tx(x),r.x0,r.x1),cz=clamp(tx(z),r.z0,r.z1),d=Math.hypot(cx-tx(x),cz-tz(z));if(d<bd){bd=d;b=c}}return b};
 function tz(z){return Math.floor(z/TILE)}
 
@@ -2699,7 +2699,10 @@ function frKey(k){if(!FR||VAN.on||mode!=='hub')return false;const gunKey=k==='1'
   const id=k==='q'?P.cur:P.loadout[SLOT_KEYS[+k-1]];if(!id)return true;frDraw(id);return true}
 
 /* ---------- spawning: ambient groups (never in sight, never on a job lot) and heat reinforcements ---------- */
-function frAmbient(){const tier=frTier(),T=FR_TIER[tier];if(!T.groups)return;const spots=frSpots(),amb=FR.members.filter(e=>!e.hostile).length;if(amb>=FR_TUNE.maxAmbient)return;
+function frAmbient(){const tier=frTier(),T=FR_TIER[tier];if(!T.groups)return;const spots=frSpots();let amb=FR.members.filter(e=>!e.hostile).length;
+  /* at the cap, the farthest quiet group nobody can see goes home so the street life follows the dad */
+  while(amb>FR_TUNE.maxAmbient-4){const far=FR.groups.filter(g=>g.kind==='loiter'&&g.members.every(e=>e.state==='idle'&&!e.hostile)).map(g=>({g,d:Math.hypot(g.x-P.pos.x,g.z-P.pos.z)})).filter(o=>o.d>60&&!frSeen(o.g.x,o.g.z)).sort((a,b)=>b.d-a.d)[0];
+    if(!far)return;for(const e of[...far.g.members])frRemove(e);amb=FR.members.filter(e=>!e.hostile).length}
   const want={};for(const c of FR_CREWS)want[c.id]=frWant(c);
   const have={};for(const g of FR.groups)if(g.kind==='loiter')have[g.crew.id]=(have[g.crew.id]||0)+1;
   const near=spots.filter(s=>!s.group&&simT>=s.freeAt&&(have[s.crew]||0)<want[s.crew]).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>FR_TUNE.spawnMin&&o.d<85).sort((a,b)=>a.d-b.d);

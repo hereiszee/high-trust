@@ -1,13 +1,12 @@
 /* Riverside free roam + heat (docs/riverside-heat.md) in the real game: headless Chromium + SwiftShader, driven through window.__ht.step().
-   node dev/riverside-heat.js [--shots] [--write] [--only=a,b]
-     --shots  writes docs/screenshots/riverside-heat/*.jpg   --write  saves docs/screenshots/riverside-heat/evidence.txt
+   node dev/riverside-heat.js [--write] [--only=a,b]   (--write saves docs/screenshots/riverside-heat/evidence.txt; screenshots: dev/riverside-heat-shots.js)
    Checks: Maple stays holstered; Riverside draw / fire / heat; ambient crews never spawn in sight or within 25 m (long walk);
    heat 1-2 brings the local crew out; heat 3 starts a three-way turf war that resolves; heat 5 sends a car; heat decays to 0 by
    each route (quiet, holstered, out of sight, off the block, out of Riverside, driving away, zip-ties); zip-ties raise trustR and
    thin the crew; the top tier spawns nothing; a job start clears free roam; going down sends you home with a towing fee;
    neighbours are never targetable and duck indoors; the Calm setting; incidents; crew dads fight; frame cost; console errors. */
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
-const SHOTS=process.argv.includes('--shots'),ONLY=(process.argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
+const ONLY=(process.argv.find(a=>a.startsWith('--only='))||'').slice(7).split(',').filter(Boolean);
 const SD=path.join(__dirname,'../docs/screenshots/riverside-heat');
 const out=[],log=(...a)=>{const s=a.join(' ');out.push(s);console.log(s)};let fails=0;const ok=(c,msg)=>{if(!c)fails++;log((c?'ok   ':'FAIL ')+msg)};
 const want=k=>!ONLY.length||ONLY.includes(k);
@@ -23,8 +22,6 @@ const want=k=>!ONLY.length||ONLY.includes(k);
     window.__until=(fn,max)=>{const H=window.__ht;for(let i=0;i<max;i++){H.step(1);if(fn())return i+1}return -1};
     window.__q=sel=>{window.__ht.draw();return document.querySelector(sel)};
     window.__fire=(n,gap)=>{const H=window.__ht;for(let i=0;i<n;i++){H.mouse=true;H.step(1);H.mouse=false;H.step(gap||8)}}});
-  const shot=async(name,fn)=>{if(!SHOTS)return;await p.evaluate(fn||(()=>{for(let i=0;i<3;i++)window.__ht.draw()}));await p.waitForTimeout(250);
-    fs.mkdirSync(SD,{recursive:true});await p.screenshot({path:path.join(SD,name+'.jpg'),type:'jpeg',quality:82});log('     screenshot '+name+'.jpg')};
 
   if(want('maple')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P;__clean();__go(H.L.start.x,H.L.start.z);const a0=P.ammo[P.cur].mag,F=H.fr;F.quipT=-99;
       const k=H.frKey('1');H.step(2);const armedKey=H.frArmed;F.quipT=-99;H.mouse=true;H.step(4);const armedClick=H.frArmed;
@@ -41,9 +38,9 @@ const want=k=>!ONLY.length||ONLY.includes(k);
     ok(r.heat>=1&&r.pips>=1&&r.meter,'firing raises heat to '+r.heat+' ('+r.pips+' full pips, meter shown)');
     ok(r.rl&&r.after>0,'reload works in free roam (mag '+r.after+')');ok(r.holstered&&!r.gunAfter,'H holsters (gun out of the hand)')}
 
-  if(want('spawns')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,K=H.keys;__clean();const F=H.fr;F.ambT=0;__go(330,43,-Math.PI/2);F.incT=30;
+  if(want('spawns')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,K=H.keys;__clean();const F=H.fr;F.ambT=0;__go(318,43,-Math.PI/2);F.incT=30;
       /* walk a loop through all three turfs for ~4.5 minutes of game time, crews spawning and despawning around the dad */
-      const wps=[[331,13],[411,13],[443,41],[443,99],[411,125],[331,125],[331,71],[379,71],[379,43],[331,43]];let wi=0,maxM=0;const seenGroups=new Set();
+      const wps=[[315,43],[315,15],[443,15],[443,127],[315,127],[315,99],[379,99],[379,43]];let wi=0,maxM=0;const seenGroups=new Set();
       for(let s=0;s<8000;s++){const w=wps[wi];const dx=w[0]-P.pos.x,dz=w[1]-P.pos.z;if(Math.hypot(dx,dz)<3)wi=(wi+1)%wps.length;P.yaw=Math.atan2(-dx,-dz);K.w=true;K.shift=s%400<200;H.step(1);
         maxM=Math.max(maxM,F.members.length);for(const g of F.groups)seenGroups.add(g.crew.id)}
       K.w=K.shift=false;const L_=F.stats.spawnLog.filter(e=>e.kind==='ambient'||e.kind==='incident');
@@ -57,7 +54,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
       const g=H.spawnCrew('returns',388,46.5,3);H.step(60);F.ambT=1e9;const m=g.members;
       return{n:m.length,hostile:m.some(e=>e.hostile),guns:m.filter(e=>e.dude.gun).length,band:m.every(e=>!!e.dude.band),idle:m.every(e=>e.state==='idle'),ray:m.every(e=>H.rayTargets.includes(e.dude.meshes[0]))}});
     ok(r.n===3&&!r.hostile&&r.guns===0&&r.band&&r.idle,'a loitering group: no guns out, not hostile, every member wears the crew armband ('+JSON.stringify(r)+')');
-    await shot('loitering-crew',()=>{const H=window.__ht,P=H.P,e=H.fr.members[0];P.pos.set(396,0,47.5);P.yaw=Math.PI/2+.12;P.pitch=-.1;H.step(30);for(let i=0;i<3;i++)H.draw()});
+    
     const r2=await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;__go(393,47,Math.PI/2);H.frDraw('pistol');P.aim=true;const n=__until(()=>F.members.some(e=>e.hostile),150);P.aim=false;
       return{n,hostile:F.members.filter(e=>e.hostile).length,guns:F.members.filter(e=>e.hostile&&e.dude.gun).length,heat:H.heat}});
     ok(r2.n>0&&r2.hostile>=3&&r2.guns>=3,'drawing on them up close: they notice in '+(r2.n/30).toFixed(1)+' s and pull their guns ('+r2.hostile+' hostile, heat '+r2.heat.toFixed(2)+')')}
@@ -77,8 +74,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
       return{n,crews,war:F.war,crewHits,cover,heat:+H.heat.toFixed(2),pips:__q('.fr-heat').querySelectorAll('i.on').length,ms:F.stats.ms/F.stats.frames}});
     ok(r.n>0&&r.crews.length===2&&r.war,'heat 3: turf war '+(r.war||[]).join(' vs ')+' (both hostile to the dad)');
     ok(r.crewHits>=6,'three-way fight: the crews shoot EACH OTHER ('+r.crewHits+' crew-on-crew hits), '+r.cover+' using cover');
-    await shot('heat3-turf-war',()=>{const H=window.__ht,P=H.P,F=H.fr;P.hp=100;const e=F.hostile.slice().sort((a,b)=>a.pos.distanceTo(P.pos)-b.pos.distanceTo(P.pos))[0];if(e){P.yaw=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.pitch=-.05}
-      for(let i=0;i<20;i++){H.step(1);P.hp=100}for(let i=0;i<2;i++)H.draw()});
+    
     const r2=await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;H.frHolster();const t0=H.simT;let maxH=0;
       const n=__until(()=>{P.hp=100;maxH=Math.max(maxH,F.hostile.length);return H.heat===0&&!F.war&&F.hostile.length===0},12000);
       return{n,secs:+((H.simT-t0)).toFixed(0),heat:H.heat,war:F.war,hostile:F.hostile.length,kills:F.stats.kills||0,maxH,scar:+F.scar.toFixed(2)}});
@@ -115,8 +111,8 @@ const want=k=>!ONLY.length||ONLY.includes(k);
   if(want('cool')){await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;__clean();__go(379,43,Math.PI/2);F.ambT=1e9;H.frDraw('pistol');H.step(2);H.heat=1.6;__until(()=>{P.hp=100;return F.hostile.length>=2},300);
       H.frHolster();H.heat=.7;F.shotT=H.simT-20;__until(()=>{P.hp=100;return F.rate>0&&F.hostile.length===0},300);H.step(4)});
     const r=await p.evaluate(()=>{const H=window.__ht,F=H.fr,el=__q('.fr-heat');return{cooling:el.classList.contains('cooling'),txt:el.textContent,music:F.musicSt,leaving:F.members.filter(e=>e.leave).length}});
-    ok(r.cooling&&/Cooling off/.test(r.txt)&&r.music==='cool','cooling off: blue pips, "Cooling off", tension music ('+r.leaving+' walking off the block)');
-    await shot('cooling-off',()=>{const H=window.__ht,P=H.P,F=H.fr;const e=F.members.find(x=>x.leave)||F.members[0];if(e){P.yaw=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z))+.3;P.pitch=-.06}H.step(20);for(let i=0;i<2;i++)H.draw()})}
+    ok(r.cooling&&/Cooling off/.test(r.txt)&&r.music==='cool','cooling off: blue pips, "Cooling off", tension music ('+r.leaving+' walking off the block) '+(r.cooling&&r.music==='cool'?'':JSON.stringify(r)));
+    }
 
   if(want('ziptie')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;__clean(30);__go(379,43,Math.PI/2);F.ambT=1e9;const w0=H.frWant('dock');
       const t0=H.prog.trustR;const g=H.spawnCrew('dock',385,43,2);for(const e of g.members){e.state='surrender';e.surrAt=H.simT;e.goods={what:'a humidifier',val:20}}H.step(2);
@@ -135,7 +131,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
     ok(k.dead&&k.dTrust<=-2,'killing one lowers Riverside trust ('+k.dTrust+'), his gun drops ('+k.pickups+' pickup(s))')}
 
   if(want('tiers')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,K=H.keys,F=H.fr;const res={};
-      for(const t of[5,35,72,95]){__clean(t);F.incT=5;F.ambT=0;__go(330,43,-Math.PI/2);const wps=[[331,13],[411,13],[443,41],[443,99],[411,125],[331,125],[331,71],[379,71]];let wi=0,maxM=0,crews=new Set();
+      for(const t of[5,35,72,95]){__clean(t);F.incT=5;F.ambT=0;__go(318,43,-Math.PI/2);const wps=[[315,43],[315,15],[443,15],[443,127],[315,127],[315,99],[379,99],[379,43]];let wi=0,maxM=0,crews=new Set();
         for(let s=0;s<3500;s++){const w=wps[wi];const dx=w[0]-P.pos.x,dz=w[1]-P.pos.z;if(Math.hypot(dx,dz)<3)wi=(wi+1)%wps.length;P.yaw=Math.atan2(-dx,-dz);K.w=true;K.shift=true;H.step(1);maxM=Math.max(maxM,F.members.length);for(const e of F.members)crews.add(e.fr.id)}
         K.w=K.shift=false;H.frKey('1');const armed=H.frArmed;H.mouse=true;H.step(3);H.mouse=false;res[t]={maxM,crews:[...crews],inc:F.stats.incidents||0,armed,heat:H.heat,cap:F.cap}}
       return res});
@@ -175,7 +171,7 @@ const want=k=>!ONLY.length||ONLY.includes(k);
     ok(r.porch&&r.surr==='surrender'&&r.cuffed==='cuffed'&&r.goods===1&&r.goodsAfter===0,'incident: porch pirate gives up when caught, zip-tied, package back on the porch');
     ok(r.carjack&&r.cjHostile>=2,'incident: walking into a car break-in with a gun out turns them hostile ('+r.cjHostile+')');
     await p.evaluate(()=>{const H=window.__ht,F=H.fr;__clean();__go(379,43,Math.PI/2);F.ambT=1e9;H.frIncident('scuffle');const I=F.inc;if(I){H.P.pos.set(I.x-9,0,I.z+1.5);H.collide(H.P.pos,.35);H.P.yaw=Math.atan2(-(I.x-H.P.pos.x),-(I.z-H.P.pos.z));H.P.pitch=-.08;H.step(45)}});
-    await shot('incident-scuffle')}
+    }
 
   if(want('allies')){const r=await p.evaluate(()=>{const H=window.__ht,P=H.P,F=H.fr;H.prog.done[0]=true;H.prog.done[1]=true;H.enterHub();H.step(3);__clean();__go(379,43,Math.PI/2);
       for(const a of H.allies){a.pos.set(P.pos.x-2,0,P.pos.z+1);H.collide(a.pos,.35)}F.ambT=1e9;H.step(5);const g=H.spawnCrew('coupon',398,43,3,{hostile:true});H.frDraw('pistol');const a0=F.stats.hits_ally||0;
@@ -191,12 +187,12 @@ const want=k=>!ONLY.length||ONLY.includes(k);
 
   if(want('map')){await p.evaluate(()=>{const H=window.__ht;__clean();__go(379,43,Math.PI/2);H.step(3);H.HUD.minimap.openMap()});await p.waitForTimeout(500);
     const r=await p.evaluate(()=>{const c=document.querySelector('canvas.ht-mapcv')||[...document.querySelectorAll('canvas')].find(x=>x.closest&&x.closest('.ht-map'));return{open:window.__ht.HUD.minimap.mapOpen}});
-    ok(r.open,'full map open with the crew turf tints');await shot('map-turf-tints',()=>{});await p.evaluate(()=>window.__ht.HUD.minimap.closeMap())}
+    ok(r.open,'full map open with the crew turf tints');await p.evaluate(()=>window.__ht.HUD.minimap.closeMap())}
 
   if(want('calmshot')){await famReady();await p.evaluate(()=>{const H=window.__ht;__clean(92);H.dress(92);H.ow.buildAll();__go(379,71,Math.PI/2);window.__rafOn=true});await p.waitForTimeout(5000);
     await p.evaluate(()=>{window.__rafOn=false;const H=window.__ht,P=H.P;H.step(240);const F=H.fr;let best=null;for(const c of F.civ)if(!best||c.pos.distanceTo(P.pos)<best.pos.distanceTo(P.pos))best=c;
       if(best){P.pos.set(best.pos.x-7,0,best.pos.z+.5);H.collide(P.pos,.35);P.yaw=Math.atan2(-(best.pos.x-P.pos.x),-(best.pos.z-P.pos.z));P.pitch=-.12}H.step(30);window.__calm={members:F.members.length,civ:F.civ.length,heat:H.heat}});
-    const r=await p.evaluate(()=>window.__calm);ok(r.members===0,'high-trust Riverside (92%): '+r.civ+' neighbours out, no crews, heat '+r.heat);await shot('calm-high-trust')}
+    const r=await p.evaluate(()=>window.__calm);ok(r.members===0,'high-trust Riverside (92%): '+r.civ+' neighbours out, no crews, heat '+r.heat);}
 
   ok(errs.length===0,'no console errors'+(errs.length?': '+errs.slice(0,3).join(' | '):''));
   log(fails?fails+' FAILED':'all passed');

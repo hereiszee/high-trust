@@ -58,8 +58,9 @@ function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
 function prepareAll(){const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
   srcClips={};for(const c of an.animations)srcClips[c.name]=c;
   let n=0;for(const k of GAME_KEYS)if(prep(k))n++;P.ok=n>0;return P.ok}
-P.preload=function(keys){return Promise.all(keys.map(k=>{if(tpl[k])return true;if(!loader)return false;
-  return new Promise(res=>loader.load(BASE+k+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[k]=g;res(!!prep(k))},undefined,()=>res(false)))}))};
+P.preload=function(keys){/* a fresh loader per call: the game wraps THREE.GLTFLoader with the meshopt decoder after this file has run */
+  const ld=T&&T.GLTFLoader?new T.GLTFLoader():loader;return Promise.all(keys.map(k=>{if(tpl[k])return true;if(!ld)return false;
+  return new Promise(res=>ld.load(BASE+k+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[k]=g;res(!!prep(k))},undefined,()=>res(false)))}))};
 P.has=k=>!!tpl[resolveKey(k)];
 
 /* ---------- clips: pelvis track scaled to the character's hip height, split into lower/upper masks ---------- */
