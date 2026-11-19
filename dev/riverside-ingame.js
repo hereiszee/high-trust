@@ -59,7 +59,8 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
     await new Promise(r=>setTimeout(r,1600));const a=H.UIacts&&H.UIacts['result:go'];if(a&&!H.running)a();H.step(1);return{givers:H.npcs.map(n=>n.marker.i)}},[done,trustR]);
   /* one job, the whole way: giver -> brief -> drive -> scripted completion -> payout -> Keep driving */
   const run=async(i,body,o={})=>{
-    const pre=await p.evaluate(([i,o])=>{const H=window.__ht,T=window.__T;if(H.mode!=='hub'){H.enterHub();H.step(2)}const c0=H.cash;const t=T.take(i);if(t.err)return t;H.step(1);const d=T.toRing(i,o.far||110);
+    const pre=await p.evaluate(async([i,o])=>{const H=window.__ht,T=window.__T;if(H.mode!=='hub'){H.enterHub();H.step(2)}const c0=H.cash;const t=T.take(i);if(t.err)return t;H.step(1);const d=T.toRing(i,o.far||110);
+      for(let k=0;k<120&&H.mode!=='mission';k++)await new Promise(r=>setTimeout(r,100));/* the job may wait for its cast to stream in */
       return{t,d,mode:H.mode,lvl:H.L.def.id,phase:H.M&&H.M.phase,c0,inWorld:H.M&&H.M.world}},[i,o]);
     if(pre.err||!pre.t.brief||pre.mode!=='mission'){ok(false,'job '+i+': giver -> brief -> drive '+JSON.stringify(pre));return null}
     log('     job '+i+': talked to the giver, accepted, drove '+pre.d.steps+' steps to the ring -> '+pre.lvl+' ('+pre.phase+')');

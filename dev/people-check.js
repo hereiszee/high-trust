@@ -267,7 +267,7 @@ function helpers(){
   ok('zero console errors',errs.length===0,errs.slice(0,5));
   if(want('fallback')){/* people GLBs unreachable: the box dudes must take over and a mission still runs */
     const ctx2=await b.newContext({viewport:{width:960,height:540}});
-    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(u.pathname.includes('/assets/people/'))return r.fulfill({status:404,body:'nf'});
+    await ctx2.route('http://repo.local/**',r=>{const u=new URL(r.request().url());if(/\/people\/|\/assets\/opt\/boot\./.test(u.pathname))return r.fulfill({status:404,body:'nf'});/* source, optimised copies and the boot pack that carries the first people */
       const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx2.newPage();const e2=[];q.on('pageerror',e=>e2.push(e.message));
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0});await q.goto('http://repo.local/index.html');

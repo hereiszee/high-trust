@@ -153,8 +153,9 @@ const ASSETS=(()=>{
   A.url=(u,t)=>url(norm(u),t);
   /* other modules' THREE loaders (default manager) get the optimised variant transparently; GLTFLoaders get the meshopt decoder */
   if(THREE.DefaultLoadingManager.setURLModifier)THREE.DefaultLoadingManager.setURLModifier(u=>A.man&&!/^(blob|data):/.test(u)&&ent(u)?url(norm(u)):u);
-  if(THREE.GLTFLoader&&typeof MeshoptDecoder!=='undefined'&&!THREE.GLTFLoader.__mo){const GL=THREE.GLTFLoader;
-    const W=function(m){const l=new GL(m);if(l.setMeshoptDecoder)l.setMeshoptDecoder(MeshoptDecoder);return l};W.prototype=GL.prototype;W.__mo=true;THREE.GLTFLoader=W}
+  /* every GLTFLoader, including ones other modules created before this ran (js/people.js), gets the meshopt decoder at parse time */
+  if(THREE.GLTFLoader&&typeof MeshoptDecoder!=='undefined'&&!THREE.GLTFLoader.prototype.__mo){const GP=THREE.GLTFLoader.prototype,parse=GP.parse;GP.__mo=true;
+    GP.parse=function(...a){if(!this.meshoptDecoder&&this.setMeshoptDecoder)this.setMeshoptDecoder(MeshoptDecoder);return parse.apply(this,a)}}
   let anisoCap=8;const aniso=()=>Math.min(anisoCap,renderer.capabilities.getMaxAnisotropy());
   const gltfLoader=THREE.GLTFLoader?new THREE.GLTFLoader():null;
 
@@ -462,14 +463,14 @@ const RENDER=(()=>{
   let t0=performance.now();
   let batchedL=null;
   R.draw=()=>{skyDome.position.copy(camera.position);autoTick(performance.now());
-    if(L!==batchedL){batchedL=L;try{R.batch=BATCH.run(L,VAN.obj)}catch(e){console.warn('static batching failed',e)}}
+    if(L!==batchedL){batchedL=L;try{R.batch=BATCH.run(L)}catch(e){console.warn('static batching failed',e)}}
     if(R.post&&R.composer){grade.uniforms.time.value=(performance.now()-t0)/1000;renderer.autoClear=true;
       try{R.composer.render()}catch(e){console.warn('post-processing failed, falling back',e);R.post=false}renderer.autoClear=false;if(R.post)return}
     renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);if(vm.visible){renderer.clearDepth();renderer.render(vmScene,vmCam)}};
   R.mats={aoMat,compMat,get grade(){return grade}};
   return R})();
 /* ================= STATIC BATCHING ================= */
-/* once per level, on its first frame: house and parked-car meshes that share a material are merged per 40 m cell
+/* once per level, on its first frame: house meshes that share a material are merged per 32 m cell
    (hundreds of draw calls become a few dozen; frustum culling still works per cell). The originals stay in place,
    invisible, so raycasts against lvl.solids are unchanged. Parts smaller than 0.45 m stop casting shadows, and the
    batched objects get frozen matrices. A mesh with userData.noBatch, a skinned/instanced mesh, multi-material or
@@ -490,9 +491,9 @@ const BATCH=(()=>{const CELL=32,_m=new THREE.Matrix4(),_n=new THREE.Matrix3(),_v
       vo+=c}
     const g=new THREE.BufferGeometry();for(const k of names)g.setAttribute(k,new THREE.BufferAttribute(out[k],g0.attributes[k].itemSize));g.setIndex(new THREE.BufferAttribute(idx,1));
     g.computeBoundingSphere();g.computeBoundingBox();return g}
-  function run(lvl,exclude){const t0=performance.now();if(!lvl||!lvl.group)return null;
+  function run(lvl){const t0=performance.now();if(!lvl||!lvl.group)return null;
     const roots=[];for(const h of lvl.houses||[])if(h.group)roots.push(h.group);
-    for(const o of lvl.group.children)if(o.userData&&o.userData.mod&&o!==exclude)roots.push(o);
+    /* vehicles are never batched: any car can be borrowed and swaps its level of detail (regCar/swapLod) */
     const buckets=new Map();let before=0;lvl.group.updateMatrixWorld(true);
     for(const r of roots){const cx=Math.floor(r.position.x/CELL),cz=Math.floor(r.position.z/CELL);
       r.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o.isInstancedMesh||!o.visible||o.userData.noBatch||Array.isArray(o.material)||o.geometry.morphAttributes.position||!o.geometry.attributes.position)return;
@@ -1317,8 +1318,8 @@ function roofAt(e,fx,sz){const v=e.obj;v.updateMatrixWorld(true);const o=v.local
 function seatCrew(e,dt){const rig=!!(P.dude&&P.dude.rb),seats=SEATS[e.type]||SEATS.minivan,f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),y0=L.world&&L.world.hub?0:groundAt(e.pos.x,e.pos.z);
   if(e._seatObj!==e.obj){e._seatObj=e.obj;e._roof=seats.map((s,i)=>i<feel(e).seats?roofAt(e,s[0],s[2]):9)}
   const put=(d,s)=>{const sc=d.root.scale.y||1,i=seats.indexOf(s),hip=Math.min(s[1],(e._roof[i]||9)-.84*sc-.05);d.root.position.set(e.pos.x+f.x*s[0]+r.x*s[2],y0+hip-.59*sc,e.pos.z+f.z*s[0]+r.z*s[2]);d.root.rotation.set(0,e.yaw+Math.PI+(s[3]||0),0);pose(d,dt,{mode:'sit',aim:false,moving:false})};
-  const show=rig&&e.obj.userData.mod&&e.type!=='workvan';
-  P.dude.root.visible=show&&!P.fp;if(P.dude.root.visible)put(P.dude,seats[0]);
+  const show=!!(rig&&(e.obj.userData.mod||e.obj.userData.size||e.obj.userData.wheels)&&e.type!=='workvan');
+  P.dude.root.visible=!!(show&&!P.fp);if(P.dude.root.visible)put(P.dude,seats[0]);
   let k=1;for(const a of allies){if(!a.ride){if(!a.down)pose(a.dude,dt,{aim:false});continue}a.pos.set(e.pos.x,0,e.pos.z);const s=seats[k++];a.dude.root.visible=!!(show&&s&&a.dude.rb&&!(e.type==='workvan'));if(a.dude.root.visible)put(a.dude,s)}}
 /* chase camera tuned per body; V hood view; C held looks back; thin poles and trunks don't yank the boom in */
 function camBlock(m){const u=m.userData;if(u._thin==null){if(!m.geometry.boundingBox)m.geometry.computeBoundingBox();const b=m.geometry.boundingBox,s=m.getWorldScale(V3());u._thin=(b.max.x-b.min.x)*s.x<.8&&(b.max.z-b.min.z)*s.z<.8}return !u._thin}
@@ -1372,8 +1373,17 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.
   const close=()=>{HUD.hide('brief');UI.acts={}};
   UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
-    'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMission(i);requestLock()},
+    'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMissionWhenReady(i);requestLock()},
     'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
+/* UI paths start a job through here: if its crew, boss or the core enemy looks have not streamed in yet, hold for at most
+   10 s on "Loading the crew…" so nobody shows up as a box stand-in (tests call startMission directly) */
+let castWait=null;
+function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
+  const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
+  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).map(c=>DAD[c]||(typeof GIVER_STAND_IN!=='undefined'&&GIVER_STAND_IN[c]?GIVER_STAND_IN[c].base:c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
+  if(!keys.length){startMission(i);return}
+  if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
+  castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
 function startMission(i,legacy){
   if(!legacy&&typeof missionInWorld==='function'&&missionInWorld(i))return startMissionWorld(i);/* WORLD MISSIONS: run at the real site */
   settleBorrow(true);engine(false);VAN.on=false;JOB=null;
@@ -1403,7 +1413,7 @@ function endMission(ok,why,title){
   const res={fail:!ok,stamp:(ok?'Job done':'Job failed')+' · '+m.place,title:head,text:(lent?'Coach Rick: "Keep the carbine. Clean it Sundays." ':'')+end,canRetry:!ok,
     stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(m.hood==='river'?prog.trustR:prog.trust)+'%',m.hood==='river'?'Riverside Flats':'']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
-  UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMission(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
+  UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMissionWhenReady(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
   metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
@@ -2121,7 +2131,7 @@ function updHub(dt){
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
-        else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMission(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
+        else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMissionWhenReady(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
   }else{const e=nearCar();if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
   DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
@@ -2356,7 +2366,7 @@ function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprit
   for(const c of cand){if(!!c.van!==VAN.on)continue;const p=VAN.on?VAN.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&d<bd){bd=d;best=c}}
   if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
   if(VAN.on&&Math.abs(VAN.spd)>3)return null;
-  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else HUD.feed('Jen is looking for the spare key…','info')}
+  if(useTap){useTap=false;if(best.id==='home'){if(homeReady)enterHome();else{homeInit();homeWant=true;HUD.feed('Unlocking the front door…','info')}}
     else if(best.id==='hardware')openShop('hardware');else openShop('auto');return null}
   return KE+' · '+best.label}
 
@@ -2386,10 +2396,11 @@ function rbPerson(role){const key={spouse:'wife',son:'son',daughter:'daughter'}[
 function familyPerson(role){return rbPerson(role)}
 function homeInit(){if(homeLoading||!HOMEM)return homeLoading;
   homeLoading=Promise.all([HOMEM.init({assets:ASSETS,renderer,makePerson:familyPerson}),rbLoad()]).then(()=>{homeReady=true}).catch(e=>{console.warn('home init failed',e);homeReady=true});return homeLoading}
-/* the house (about 13 MB of furniture, family and textures) loads when the player heads for it, or once everything
-   else has finished streaming; until then its door says "unlocking…" (docs/PERF.md) */
-ASSETS.ready.then(()=>{const iv=setInterval(()=>{const h=HUBX&&HUBX.home,near=h&&mode==='hub'&&Math.hypot(P.pos.x-h.x,P.pos.z-h.z)<40;
-  if(near||ASSETS.stream.idle()||homeLoading){clearInterval(iv);homeInit()}},1000)});
+/* the house (about 13 MB of furniture, family and textures) loads on demand: when the player walks up to the front door
+   (within 15 m) or uses it; the door says "unlocking…" meanwhile and lets the player in as soon as it is ready (docs/PERF.md) */
+let homeWant=false;
+ASSETS.ready.then(()=>{setInterval(()=>{const h=HUBX&&HUBX.home;if(!h||mode!=='hub')return;const d=Math.hypot(P.pos.x-h.x,P.pos.z-h.z);
+  if(d<15&&!homeLoading)homeInit();if(homeWant&&homeReady){homeWant=false;if(d<4)enterHome()}},500)});
 
 /* ---------- home mode ---------- */
 let homeVan=null,homeHint=0;
@@ -3031,7 +3042,8 @@ function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];retu
 function wmHubGivers(){const out=[],lines=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
-  for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
+  const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
+    const sb=GIVER_STAND_IN[m.giver];if(sb&&pm&&pm.preload&&!pm.has(sb.base)&&!n.dude.rb)pm.preload([sb.base]).then(()=>{if(!npcs.includes(n)||!pm.has(sb.base))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
     n.prefer=m.hood==='river'&&!prog.done[4];
     if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
@@ -3092,7 +3104,7 @@ function frame(now){
   {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
-function start(){if(!ASSETS.done||mode!=='title')return;initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
+function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.apply(CFG.gfx);
 initModules();
 /* gun models load after Stage A, so they don't compete with the boot pack (procedural guns until then) */
@@ -3105,6 +3117,8 @@ makePlayer();P.yaw=.4;P.pitch=-.12;
 /* title card: honest Stage A progress; Start unlocks as soon as the hub can be shown and details keep streaming in during play.
    Only a dead network shows a warning; clicking the status line then retries (it also retries by itself when back online). */
 showTitle();
+/* keep the half-built scene hidden behind the title until the hub backdrop exists, then fade it in */
+cv.style.transition='opacity .7s';cv.style.opacity='0';const showScene=()=>{cv.style.opacity='1'};setTimeout(showScene,20000);
 function ldStatus(){const off=ASSETS.offline();
   HUD.set('title',{progress:ASSETS.done?1:ASSETS.progress,ready:ASSETS.done,warn:off,
     status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});
@@ -3116,7 +3130,7 @@ addEventListener('online',()=>ASSETS.retry());
 ASSETS.ready.then(A=>{ldStatus();
   if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}
   /* the title backdrop builds on the next task, so the unlocked button paints first (Start rebuilds the hub anyway) */
-  setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()}},0)});
+  setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()};requestAnimationFrame(()=>requestAnimationFrame(showScene))},0)});
 /* a hub model that arrives after Stage A gave up waiting: rebuild the hub while the title card is still up */
 {let rb=0;ASSETS.onAsset(s=>{if(!ASSETS.done||mode!=='title'||!/\.glb$/.test(s))return;clearTimeout(rb);rb=setTimeout(()=>{if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()}},400)})}
 /* realistic people that stream in after Stage A: hand them to js/people.js (it prepares a character once) */
@@ -3140,6 +3154,8 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);
+/* the house loads on demand (docs/PERF.md); tests that need it start it explicitly */
+window.__ht.homeInit=()=>homeInit();
 /* character test hooks (dev/people scripts) */
 /* open world test hooks (SPEC2 D __ht additions) */
 Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS:{get:()=>OWS},region:{get:()=>OWS.region},gps:{get:()=>OWS.gps},chunks:{get:()=>{const s=OW()&&OW().stats();return s?s.chunks:[]}},
