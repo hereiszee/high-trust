@@ -10,6 +10,9 @@ const want=k=>!only.length||only.includes(k);
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
+/* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
+async function startGame(pg){await pg.evaluate(()=>{const b=document.getElementById('bStart');if(b)b.click()});await pg.keyboard.press('Enter');
+  await pg.evaluate(()=>{if(__ht.M===null&&!(__ht.L&&__ht.L.def&&__ht.L.def.id==='hub'))__ht.enterHub()});await pg.waitForTimeout(200)}
 /* page-side helpers, installed once the game is up */
 function helpers(){
   const H=window.__ht,PP=HT.People,T=THREE;
@@ -64,7 +67,7 @@ function helpers(){
   await p.addInitScript(()=>{window.requestAnimationFrame=()=>0});/* the test drives frames itself */
   await p.goto('http://repo.local/index.html');
   await p.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});
-  await p.evaluate(()=>document.getElementById('bStart').click());
+  await startGame(p);
   await p.evaluate(helpers);
   const st=await p.evaluate(()=>({ok:HT.People.ok,failed:__ht.assets.failed,player:!!__ht.P.dude.rb}));
   ok('people loaded and the player is skinned',st.ok&&st.player,st);
@@ -245,7 +248,7 @@ function helpers(){
       const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx2.newPage();const e2=[];q.on('pageerror',e=>e2.push(e.message));
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0});await q.goto('http://repo.local/index.html');
-    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await q.evaluate(()=>document.getElementById('bStart').click());await q.evaluate(helpers);
+    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await startGame(q);await q.evaluate(helpers);
     const r=await q.evaluate(()=>{const H=__ht;H.startMission(0);const box=H.enemies.every(e=>!e.dude.rb&&e.dude.legs.length===2)&&!H.P.dude.rb;T_.clearAll();for(const it of H.L.items)if(!it.got)T_.hold(it.x,it.z,40);T_.exit();return{box,state:H.M.state,failed:H.assets.failed.length}});
     ok('fallback: box dudes when the people files fail, mission 0 still completes',r.box&&r.state==='won'&&e2.length===0,Object.assign(r,{pageErrors:e2.slice(0,3)}));
     await ctx2.close()}
@@ -254,7 +257,7 @@ function helpers(){
     await ctx3.route('http://repo.local/**',r=>{const u=new URL(r.request().url());const f=path.join(ROOT,decodeURIComponent(u.pathname));if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'nf'});r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':MIME[path.extname(f)]||'application/octet-stream'}})});
     const q=await ctx3.newPage();const e3=[];q.on('console',m=>{if(m.type()==='warning'&&/people/.test(m.text()))e3.push(m.text().slice(0,300))});q.on('pageerror',e=>e3.push(e.message));q.on('console',m=>{if(m.type()==='error')e3.push(m.text())});
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0;try{localStorage.setItem('ht-cfg',JSON.stringify({gfx:'low'}))}catch(e){}});await q.goto('http://repo.local/index.html');
-    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await q.evaluate(()=>document.getElementById('bStart').click());
+    await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await startGame(q);
     const r=await q.evaluate(()=>{const H=__ht;H.startMission(3);H.step(3);H.draw();let maxMap=0,maxOther=0;if(!H.P.dude.body)return{q:H.render.q,people:HT.People.ok,failed:HT.People.failed};H.P.dude.body.traverse(o=>{if(o.isSkinnedMesh){const m=o.material;if(m.map)maxMap=Math.max(maxMap,m.map.image.width);for(const t of[m.normalMap,m.roughnessMap])if(t)maxOther=Math.max(maxOther,t.image.width)}});return{q:H.render.q,maxMap,maxOther}});
     ok('low quality caps character textures',r.q==='low'&&r.maxMap<=512&&r.maxOther<=256&&e3.length===0,Object.assign(r,{errors:e3.slice(0,3)}));await ctx3.close()}
   await b.close();

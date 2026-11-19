@@ -5,7 +5,7 @@ const {chromium,devices}=require('playwright');
 const http=require('http'),fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..'),OUT=path.join(ROOT,'docs/screenshots/menus');
 const filter=process.argv[2]||'';
-const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.glb':'model/gltf-binary','.svg':'image/svg+xml'};
+const MIME={'.jpg':'image/jpeg','.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.glb':'model/gltf-binary','.svg':'image/svg+xml'};
 const srv=http.createServer((q,r)=>{const p=path.join(ROOT,decodeURIComponent(q.url.split('?')[0]));if(!p.startsWith(ROOT)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){r.writeHead(404);return r.end()}
   r.writeHead(200,{'content-type':MIME[path.extname(p)]||'application/octet-stream'});fs.createReadStream(p).pipe(r)});
 
@@ -16,24 +16,35 @@ const SHOTS=[
   ['dadazon-guns-locked','preset=fresh&open=dadazon&tab=guns',async(p,m)=>{await pick(p,m,'gun:smg')}],
   ['dadazon-attachments','preset=mid&open=dadazon&tab=att',async(p,m)=>{await pick(p,m,'att:extmag')}],
   ['dadazon-furniture','preset=mid&open=dadazon&tab=furn',async(p,m)=>{await pick(p,m,'furn:sofa')}],
-  ['dadazon-furniture-3d','preset=mid&thumbs=3d&open=dadazon&tab=furn',async(p,m)=>{await wait(6000);await pick(p,m,'furn:lounge');await wait(1500)}],
+  ['dadazon-furniture-3d','preset=mid&thumbs=3d&open=dadazon&tab=furn',async(p,m)=>{await wait(5000);await pick(p,m,'furn:lounge');await wait(1500)}],
+  ['dadazon-attachments-3d','preset=mid&thumbs=3d&open=dadazon&tab=att',async(p,m)=>{await wait(5000);await pick(p,m,'att:muffler');await wait(2500)}],
   ['dadazon-confirm','preset=mid&open=dadazon&tab=furn',async(p,m)=>{await pick(p,m,'furn:trampoline');await primary(p)}],
   ['dadazon-ordered','preset=mid&open=dadazon&tab=furn',async(p,m)=>{await pick(p,m,'furn:trampoline');await primary(p);await primary(p);await wait(450)}],
   ['hardware-guns','preset=mid&open=hardware&tab=guns',async(p,m)=>{await pick(p,m,'gun:smg')}],
+  ['hardware-guns-3d','preset=mid&thumbs=3d&open=hardware&tab=guns',async(p,m)=>{await wait(5000);await pick(p,m,'gun:smg');await wait(1500)}],
   ['hardware-bought','preset=mid&open=hardware&tab=guns',async(p,m)=>{await pick(p,m,'gun:smg');await primary(p);await primary(p);await wait(450)}],
   ['hardware-poor','preset=broke&open=hardware&tab=guns',async(p,m)=>{await pick(p,m,'gun:revolver')}],
   ['hardware-furniture','preset=mid&open=hardware&tab=furn',async(p,m)=>{await pick(p,m,'furn:firepit')}],
   ['hardware-supplies','preset=mid&open=hardware&tab=sup',async(p,m)=>{await pick(p,m,'sup:rangeDay')}],
-  ['auto-performance','preset=mid&open=auto&tab=perf',async(p,m)=>{await pick(p,m,'veh:engine')}],
-  ['auto-protection','preset=mid&open=auto&tab=prot',async(p,m)=>{await pick(p,m,'veh:panels')}],
-  ['auto-utility','preset=mid&open=auto&tab=util',async(p,m)=>{await pick(p,m,'veh:roofBox')}],
-  ['auto-cosmetics','preset=mid&open=auto&tab=cos',async(p,m)=>{await pick(p,m,'cos:paint:red')}],
+  ['mart-stickers','preset=rich&open=mart&tab=stick',async(p,m)=>{await pick(p,m,'stick:5')}],
+  ['auto-performance','preset=mid&open=auto&tab=perf',async(p,m)=>{await pick(p,m,'gar:eng2')}],
+  ['auto-performance-3d','preset=mid&thumbs=3d&open=auto&tab=perf',async(p,m)=>{await wait(5000);await pick(p,m,'gar:tyre2');await wait(1500)}],
+  ['auto-protection','preset=mid&open=auto&tab=prot',async(p,m)=>{await pick(p,m,'gar:armor1')}],
+  ['auto-utility','preset=mid&open=auto&tab=util',async(p,m)=>{await pick(p,m,'gar:cargo')}],
+  ['auto-looks','preset=mid&open=auto&tab=looks',async(p,m)=>{await pick(p,m,'cos:paint:wood')}],
+  ['auto-looks-3d','preset=rich&thumbs=3d&open=auto&tab=looks',async(p,m)=>{await wait(6000);await pick(p,m,'cos:lightBar:amber');await wait(2000)}],
+  ['auto-vehicles','preset=rich&open=auto&tab=cars',async(p,m)=>{await pick(p,m,'car:suv')}],
+  ['auto-vehicles-3d','preset=rich&thumbs=3d&open=auto&tab=cars',async(p,m)=>{await wait(6000);await pick(p,m,'car:pickup');await wait(2500)}],
+  ['auto-repair','preset=mid&open=auto&tab=repair',async(p,m)=>{await pick(p,m,'rep:active')}],
   ['locker-loadout','preset=mid&locker=loadout',async(p,m)=>{await pick(p,m,'gun:rifle')}],
   ['locker-locked','preset=mid&locker=loadout',async(p,m)=>{await pick(p,m,'gun:smg')}],
+  ['locker-rack','preset=rich&locker=loadout',async(p,m)=>{await pick(p,m,'gun:smg')}],
   ['locker-workbench','preset=rich&locker=attach',async(p,m)=>{await pick(p,m,'gun:rifle')}],
+  ['locker-workbench-3d','preset=rich&thumbs=3d&locker=attach',async(p,m)=>{await wait(6000);await pick(p,m,'gun:rifle');await wait(2500)}],
   ['locker-ammo','preset=rich&locker=ammo'],
   ['payout-win','preset=mid&payout=win',async p=>{await wait(4200)}],
-  ['payout-fail','preset=mid&payout=fail',async p=>{await wait(3000)}],
+  ['payout-fail','preset=mid&payout=fail',async p=>{await wait(3200)}],
+  ['payout-duke','preset=rich&payout=duke',async p=>{await wait(4500)}],
 ];
 async function pick(p,mobile,key){const el=p.locator(`.htm-grid [data-key="${key}"]`);await el.scrollIntoViewIfNeeded();await el.click();await wait(mobile?450:500)}
 async function primary(p){await p.locator('.htm-detail [data-act=primary]').click();await wait(250)}
@@ -47,9 +58,9 @@ async function primary(p){await p.locator('.htm-detail [data-act=primary]').clic
     for(const[name,qs,steps]of SHOTS){if(filter&&!name.includes(filter)&&!mode.includes(filter))continue;
       const page=await ctx.newPage();page.on('pageerror',e=>errors.push(mode+'/'+name+': '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push(mode+'/'+name+' console: '+m.text())});
       await page.addInitScript(()=>{try{localStorage.clear()}catch(e){}});
-      await page.goto(`http://localhost:${port}/dev/shop.html?${qs}`);await page.evaluate(()=>document.fonts.ready);await wait(600);
+      await page.goto(`http://localhost:${port}/dev/shop.html?shot&${qs}`);await page.waitForFunction(()=>window.__ready,null,{timeout:30000});await page.evaluate(()=>document.fonts.ready);await wait(700);
       if(steps)await steps(page,mode==='mobile');
-      await page.screenshot({path:path.join(OUT,`${mode}-${name}.png`)});await page.close();process.stdout.write('.')}
+      await page.screenshot({path:path.join(OUT,`${mode}-${name}.jpg`),type:'jpeg',quality:86});await page.close();process.stdout.write('.')}
     await ctx.close()}
   await browser.close();srv.close();
   console.log('\n'+(errors.length?'ERRORS:\n'+errors.join('\n'):'no page errors'));
