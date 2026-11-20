@@ -471,7 +471,7 @@ body.soc-on .pw-ov{opacity:0}
 .pw-dots span{font:900 20px/1 var(--ht-ui,system-ui);letter-spacing:2px;color:#1b1c20;margin-top:-8px}
 .pw-dots u{position:absolute;left:6px;right:6px;bottom:4px;height:3px;border-radius:2px;background:#e0d6c2;overflow:hidden}.pw-dots u i{display:block;height:100%;background:#e8611a;transform-origin:left}
 .pw-dots.watch{background:#ffe2d6}.pw-dots.watch span{color:#b8231e}
-.pw-hint{position:absolute;left:50%;bottom:21%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;background:rgba(14,16,22,.82);color:#fff;font:700 15px/1.2 var(--ht-ui,system-ui);box-shadow:0 4px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .3s}
+.pw-hint{position:absolute;left:50%;top:22%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;background:rgba(14,16,22,.82);color:#fff;font:700 15px/1.2 var(--ht-ui,system-ui);box-shadow:0 4px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .3s}
 .pw-hint.on{opacity:1}.pw-hint kbd{display:inline-block;min-width:22px;padding:2px 6px;margin:0 3px;border-radius:5px;background:#f2c230;color:#1b1c20;font:900 13px/1.1 var(--ht-ui,system-ui);text-align:center}
 .pw-vf-meter{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);width:min(360px,70vw);height:14px;border-radius:7px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);overflow:hidden}
 .pw-vf-meter .z{position:absolute;top:0;bottom:0;background:rgba(127,209,138,.55)}.pw-vf-meter .n{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;background:#fff;box-shadow:0 0 6px #fff}
@@ -845,7 +845,7 @@ J.register('pawn',{
     try{if(Sv&&Sv.storefront)Sv.storefront(null,'pawn','bakery')}catch(_){}try{a.save()}catch(_){}},
   camera(dt){const a=A(),M=a.M;if(!M||M.def.id!=='pawn'||M.state!=='go')return undefined;return camHook(M,dt)||undefined},
   hud(st){const M=A().M;if(!M||M.def.id!=='pawn')return;const D=M.D;
-    st.weapon={name:D?LOOK[D.id].item:'Phone',type:'camera',mag:M.stage==='office'?Math.max(0,K.pages-M.pages):0,reserve:0,magSize:K.pages,reloading:0,holstered:false,firemode:M.stage==='office'?'Ledger page':'Shutter'};st.weapons=[];
+    st.weapon={name:D?LOOK[D.id].item:'Phone',type:'camera',mag:Math.max(0,K.pages-M.pages),reserve:0,magSize:K.pages,reloading:0,holstered:false,firemode:M.stage==='office'?'Ledger page':'Shutter'};st.weapons=[];
     if(D&&M.ph!=='van')st.gadgets=[{id:'pawnfix',label:M.slip?'Fix it!':'Disguise',key:'G',on:!!M.slip}];
     if(M.photo&&M.photo.st==='aim'&&st.crosshair)st.crosshair=Object.assign({},st.crosshair,{hidden:true})},
   pose(dt){const a=A(),M=a.M;if(!M||M.def.id!=='pawn')return;
