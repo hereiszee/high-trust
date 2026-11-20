@@ -431,7 +431,7 @@ function personTick(M,p,dt){const a=A(),P=a.P,c=p.c;p.t+=dt;p.moving=false;let m
   if(!p.moving&&p.mode!=='photo'){/* turn toward the dad when he's close and in front of them (people look at a man who walks up to them) */
     const talkTo=M.chat&&M.chat.p===p;if(talkTo||dP<2.4&&!(M.ev&&p.mode==='event'))face={x:P.pos.x,z:P.pos.z};
     else if(M.watchAt&&M.watchAt[p.id]>0)face={x:P.pos.x,z:P.pos.z}}
-  if(!p.moving&&face)p.yaw+=wrap(yawTo(face.x-p.pos.x,face.z-p.pos.z)-p.yaw)*Math.min(1,dt*(p.mode==='event'?3:2.2));
+  if(!p.moving&&face)p.yaw+=wrap(yawTo(face.x-p.pos.x,face.z-p.pos.z)-p.yaw)*Math.min(1,dt*(p.mode==='photo'?8:p.mode==='event'?3:2.2));
   /* dancing: the dance floor always bobs; everybody near it bobs for the request */
   const song=M.ev&&M.ev.kind==='song';if(!p.moving&&(c.dancer&&p.mode==='home'||song&&p.mode==='event'&&p.arrived||c.kind==='dj')){const k=c.kind==='dj'?.7:song?1:.55;bounce=Math.abs(Math.sin((M.t+p.bob)*Math.PI*(118/60)))*.06*k;p.sway=Math.sin((M.t+p.bob)*Math.PI*(118/120))*.2*k}else p.sway=0;
   /* Marco on the balloon arch / anybody 'doing something' with their hands */
@@ -629,7 +629,7 @@ function photoStart(M){const p=M.pp.vince;M.photo={st:'walk',t:0,tries:0};go(p,S
 function photoTick(M,dt,F){const a=A(),P=a.P,ph=M.photo,v=M.pp.vince;if(!ph)return;ph.t+=dt;
   const at=hyp(P.pos.x-S.photoP.x,P.pos.z-S.photoP.z),vin=!v.path||!v.path.length;
   if(ph.st==='walk'){F.objs.push(['Stand on the spot for Vince\'s photo',false]);F.target={x:S.photoP.x,z:S.photoP.z,label:'Photo spot'};ringAt(M,S.photoP,true);
-    if(at<.9&&vin){ph.st='aim';ph.t=0;vfOpen(M)}return}
+    if(at<.9&&vin&&Math.abs(wrap(yawTo(S.photoP.x-v.pos.x,S.photoP.z-v.pos.z)-v.yaw))<.25){ph.st='aim';ph.t=0;vfOpen(M)}return}
   ringAt(M,S.photoP,false);
   if(ph.st==='aim'){if(at>1.8){ph.st='walk';vfClose(M);return}
     const k=ph.t/K.photo.period;ph.q=.5+.5*Math.sin(k*Math.PI*2+Math.sin(k*3.7)*.6);const ok=ph.q>=K.photo.green[0]&&ph.q<=K.photo.green[1];
@@ -967,7 +967,7 @@ function bakeryTick(){const a=A();if(!a)return;const s=a.SV&&a.SV(),on=!!(s&&s.w
   const aw=document.createElement('canvas');aw.width=512;aw.height=64;const ax=aw.getContext('2d');for(let i=0;i<16;i++){ax.fillStyle=i%2?'#f6ead2':'#2f7d55';ax.fillRect(i*32,0,33,64)}
   const ag=own_(new T3.PlaneGeometry(10.6,1.3));const am=new T3.Mesh(ag,own_(new T3.MeshStandardMaterial({map:tex(aw),roughness:.85,side:T3.DoubleSide})));am.position.set(358,2.75,38.75);am.rotation.x=-Math.PI/2+.62;am.castShadow=true;g.add(am);
   L_.group.add(g);BAK.g=g;BAK.L=L_;g.visible=!inJob}
-J.on('hud',()=>{try{bakeryTick()}catch(_){}});
+J.on('pose',()=>{try{bakeryTick()}catch(_){}});
 /* warm the party cast while the job is on offer in the hub */
 let PRE=false;J.on('hud',()=>{if(PRE)return;const a=A();if(!a||a.mode!=='hub')return;const s=a.SV&&a.SV();if(!(s&&s.jobs&&s.jobs.dee&&s.jobs.dee.done))return;const pp=PPL();if(!pp||!pp.ok)return;PRE=true;preloadCast()});
 /* ---------------- the scripted player (dev/jobs-check.js): plays it like someone who read the brief ----------------

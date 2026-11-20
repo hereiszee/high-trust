@@ -90,7 +90,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const af=await waitFor(()=>window.__ht.M.archFixed,null,120);ok(af,'holding E fixes the arch ("balloon emergency" learned)');await step(150);
   /* ---- 4. a song request ---- */
   await walk([{x:364.5,z:43},{x:367.6,z:41.9}]);await face(369.5,41.3);await press('e',6);await answer(0);await talkDone();const sg=await ev(()=>window.__ht.M.ev&&window.__ht.M.ev.kind);ok(sg==='song','the DJ plays his one song: '+sg);
-  await step(150);await shot('07-the-one-song',[361.2,2.0,44.6,365.5,1.1,41]);
+  await step(150);await shot('07-the-one-song',[360.4,2.2,46.4,365.5,1.1,41]);
   /* ---- 5. too weird in public: sprint around the dance floor until somebody goes "…", then walk off and make small talk ---- */
   const spr=[{x:362.2,z:42.8},{x:366.5,z:42.9},{x:366.6,z:40.4},{x:362.4,z:40.4}];let dots=null;
   const anyDots=()=>ev(()=>{const M=window.__ht.M;const k=Object.keys(M.D.timers);return k.length?k:null});for(let lap=0;lap<6&&!dots;lap++){await walk(spr,{run:true,until:anyDots});dots=await anyDots()}
@@ -119,7 +119,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await press('e',6);const bk=await ev(()=>window.__ht.M.book);ok(bk,'E takes the whole book');
   /* ---- 10. out the front during the raffle ---- */
   await walk([{x:357,z:29.6},{x:357,z:32.6},{x:358,z:34.4}]);const ex=await ev(()=>({stage:window.__ht.M.stage,raffle:!!(window.__ht.M.ev&&window.__ht.M.ev.kind==='raffle')}));ok(ex.stage==='exit'&&ex.raffle,'leaving the office with the goods starts the raffle: '+JSON.stringify(ex));
-  await step(90);await walk([{x:358,z:37.4},{x:357.2,z:39.4}]);await step(120);await shot('12-the-raffle',[352.2,2.6,43.6,362,1.2,39.2]);
+  await step(90);await walk([{x:358,z:37.4},{x:357.2,z:39.4}]);await step(120);await shot('12-the-raffle',[352.2,2.4,46.6,362,1.2,39.2]);
   await walk([{x:356,z:42.6},{x:346,z:42.6}]);const vr=await ev(()=>{const c=window.__ht.M.car;return{x:c.pos.x+Math.cos(c.yaw)*2.2,z:c.pos.z-Math.sin(c.yaw)*2.2}});await walk([{x:vr.x,z:vr.z,r:.7}]);
   await press('e',10);await step(30);const fin=await ev(()=>({state:window.__ht.M&&window.__ht.M.state,medal:window.__ht.M&&window.__ht.M.medal,t:Math.round(window.__ht.M.elapsed)}));
   ok(fin.state==='won','back in the van: the job is won '+JSON.stringify(fin));await step(40);await shot('13-result');
