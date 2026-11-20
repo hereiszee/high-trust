@@ -16,7 +16,7 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;const pick=a=>a[Math.floor(Math.random()*a.le
 const T3=()=>THREE;const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 const CALL='DAD-1',TOWER='Tower';
 /* tuning: metres, seconds. TH thrust (m/s² at full throttle), AB afterburner, CD drag (top speed = sqrt(thrust/CD)) */
-const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:9,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
+const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:12,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
 const FEEL={label:'jet',seats:1,bed:0,max:6,boostMax:8,acc:2,boostAcc:3,brake:8,hbrake:8,turn:1,steerResp:5,grip:20,roll:0,cam:[16,4],eng:2,gears:1,horn:'short',door:'close',rear:1,torque:0};
 const LINES={
   enter:["DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm.","DAD-1, Tower. Throttle up with W. Pull back at a hundred and forty. Linda says wear a jacket.","Tower to DAD-1. The jet is fueled, the coffee is not. Have a nice flight."],
@@ -388,7 +388,7 @@ Jet.state=()=>({e:!!S.e,on:F.on,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.sp
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
 function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}e.obj.quaternion.setFromEuler(_e.set(0,d.jet.yaw+Math.PI/2,0,'YZX'));e.obj.position.y=0}
 Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};
-Jet.HB=HB;Jet.camera=dt=>camera(dt);
+Jet.HB=HB;Jet.camera=dt=>camera(dt);Jet.family=()=>family(A());/* test hook: the family comes out as if you buzzed the house */
 /* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
 Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
 })();

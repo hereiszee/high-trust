@@ -123,12 +123,13 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     if(SHOTS){await ev(()=>{const H=window.__ht,c=H.camera;H.P.dude&&(H.P.dude.root.visible=false);H.step(1);H.draw();c.position.set(266,3.6,238);c.lookAt(255,1.8,221);H.render.draw()});await p.screenshot({path:path.join(OUT,'jet-apron.jpg'),type:'jpeg',quality:82});say('  shot jet-apron.jpg')}
     await press('e');j=await js();ok(j.on,'E climbs into the jet');
     /* a tiny autopilot that only presses keys: heading by roll (A/D), climb by pitch (arrows), speed by throttle (W/S, Shift) */
-    const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();if(o.until&&o.until(j))break;
+    let famMax=0;const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();famMax=Math.max(famMax,j.fam||0);if(o.until&&o.until(j))break;
         const TT=typeof o.to==='function'?o.to(j):o.to,tx=TT[0],tz=TT[1];/* o.to may be a function (a look-ahead point) */const want=Math.atan2(-(tx-j.x),-(tz-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
         const bankW=Math.max(-1,Math.min(1,-he*1.8));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);
         const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
         await key('ArrowUp',j.pitch<pw-.03);await key('ArrowDown',j.pitch>pw+.05);
-        const sw=o.spd||75;await key('w',j.spd<sw||j.thr<.35);await key('s',j.spd>sw+8&&j.thr>.3);await key('Shift',!!o.ab);await step(2)}
+        const sw=o.spd||75,mt=o.minThr==null?.35:o.minThr;await key('w',j.spd<sw||j.thr<mt);await key('s',j.spd>sw+(o.minThr==null?8:2)&&j.thr>mt-.05);
+        if(process.env.FLYLOG&&n%10===0)console.log('    fly',n,j.x.toFixed(0),j.z.toFixed(0),'alt',j.alt.toFixed(1),'hdg',j.hdg.toFixed(2),'bank',j.bank.toFixed(2),'pitch',j.pitch.toFixed(2),'spd',j.spd.toFixed(0),'thr',j.thr.toFixed(2));await key('Shift',!!o.ab);await step(2)}
       await release();return n};
     /* taxi onto runway 27 and roll: full throttle, A steers south onto the centreline, then pull up past 94 mph */
     await key('w',true);for(let i=0;i<260;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-4*Math.sign(d.runway.z-j.z)*0-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
@@ -143,20 +144,20 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:78,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
     await fly({to:[home.x+260,home.z+40],alt:45,spd:100,ab:true,max:120});
     await shot('jet-maple');await perf('jet over Maple Heights');
-    j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz,'buzzed the house: the family came out ('+j.fam+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
+    j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz&&famMax===3,'buzzed the house: the family came out ('+famMax+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
     /* the High Bridge: north along the river, under the deck */
     const HB=await ev(()=>HT.Jet.HB);
-    await fly({to:[294,330],alt:60,spd:70,max:500,until:q=>Math.hypot(q.x-294,q.z-330)<60});
-    await fly({to:q=>[294,Math.min(q.z,300)-150],alt:45,spd:62,max:400,until:q=>q.z<150&&Math.abs(q.x-294)<4&&Math.abs(q.hdg)<.08});/* line up on the river, look-ahead 150 m */
-    await fly({to:q=>[294,q.z-150],alt:q=>q.z<130?8:45,spd:62,max:600,until:q=>q.z<HB.z-30||!q.on});
+    await fly({to:[294,720],alt:60,spd:70,max:700,until:q=>Math.hypot(q.x-294,q.z-720)<80});/* well south of town first: a long straight run up the river */
+    await fly({to:q=>[294,Math.min(q.z,600)-250],alt:q=>q.z<330?22:45,spd:62,max:400,until:q=>q.z<120||(q.z<200&&Math.abs(q.x-294)<5&&Math.abs(q.hdg)<.1)});/* line up on the river, look-ahead 150 m */
+    await fly({to:q=>[294,q.z-150],alt:q=>q.z<30?7:22,/* past the Route 9 bridge (z 38-46), down on the water */spd:62,max:600,until:q=>q.z<HB.z-30||!q.on});
     await shot('jet-bridge');j=await js();const ach2=await ev(()=>HT.Jobs.api.SV().base.jet);ok(ach2.bridge,'flew under the High Bridge ('+(j.on?'still flying':'crashed')+')');
     /* back to Fort Sensible: around to the east, line up with runway 27, gear down, land heading west */
     if(!j.on){say('  (back to the jet for the landing)');await ev(()=>{const P=window.__ht.P;P.pos.set(256,0,215.6)});await step(4);await press('e')}
     else{await fly({to:[520,d.runway.z],alt:90,spd:70,max:500,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
-      await fly({to:[600,d.runway.z],alt:60,spd:60,max:200,until:q=>q.x>560});
-      await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:60,spd:60,max:400,until:q=>q.x<470&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<6});
+      await fly({to:[720,d.runway.z],alt:40,spd:60,max:300,until:q=>q.x>680});/* out past the threshold, then a long final */
+      await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:400,until:q=>q.x<480&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
       await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
-      await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:44,max:700,until:q=>!q.air});
+      await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
       await key('s',true);for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}await release();
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
     await press('e');s=await st();ok(!s.car,'E gets out on the ground');
