@@ -1,2 +1,278 @@
-/* Stop-schedule helper (Dad Taxi): not built yet (SPEC3 section 5, wave 1). The wave 1 worker replaces this whole file; see docs/JOBS.md and js/jobs/_template.js.
-   It is listed in HT.Jobs.FILES, so the game already loads it after Stage A: an empty file simply registers nothing. */
+/* =====================================================================
+   STOPS (SPEC3 section 4, "stop-schedule helper"): timed stops with windows and passengers.
+   Built for Dad Taxi; meant for Dad Taxi rides, Watch Your Step and Hitch Happens too. No index.html changes:
+   everything goes through HT.Jobs.api. Exposes window.HT.Stops:
+
+     Stops.schedule(stops,{soft,clock})   a fixed-order list of stops with target times, hard deadlines, arrival detection and per-stop ratings
+     Stops.comfort(o)                     passenger comfort from the car's motion (hard braking, fast corners, kerbs, impacts, speeding)
+     Stops.riders(o)                      passengers you can see: walk to the car, sit in its seats, get out at the kerb
+     Stops.radio(o)                       in-car radio presets that passengers have opinions about (R / tap the radio chip)
+     Stops.panel(o)                       the HUD layer: clock, the stop list, the ride meter, the radio, stop-rating toasts, extra slots
+     Stops.talk()                         a paced dialogue queue on top of api.radio (lines never pile up or get dropped)
+     Stops.cruiser(o)                     a scripted road vehicle on a polyline (the thieves' pickup, Jen's car) with a blocking check
+     Stops.legTime(api,a,b,o)             drive-time estimate between two points over the road graph
+   ===================================================================== */
+(function(){'use strict';const HT=window.HT=window.HT||{};const J=HT.Jobs;const A=()=>J&&J.api;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v,hyp=Math.hypot;
+/* seats in the car's frame [forward, hip height, right(+)/left(-), turn]: same table as index.html *MINIVAN* SEATS (seat 0 = driver) */
+const SEATS={minivan:[[.2,.62,-.42],[.2,.62,.42],[-.75,.64,-.44],[-.75,.64,.44],[-1.65,.66,-.42],[-1.65,.66,0],[-1.65,.66,.42]],
+ hatch:[[-.12,.47,-.37],[-.12,.47,.37],[-1.02,.5,-.38],[-1.02,.5,.38]],sedan:[[-.15,.45,-.38],[-.15,.45,.38],[-1.08,.48,-.4],[-1.08,.48,.4]],
+ suv:[[.05,.66,-.42],[.05,.66,.42],[-.85,.68,-.44],[-.85,.68,.44],[-1.7,.7,-.42],[-1.7,.7,0],[-1.7,.7,.42]],
+ pickup:[[.45,.78,-.42],[.45,.78,.42]],workvan:[[1.15,.72,-.45],[1.15,.72,.45]]};
+const SEATN={minivan:7,suv:7,hatch:4,sedan:4,pickup:2,workvan:2};
+const seatsOf=car=>SEATS[car&&car.type]||SEATS.minivan;
+const seatCount=car=>SEATN[car&&car.type]||(car&&car.type?4:7);
+/* clock: game seconds -> "10:42" */
+function clockStr(sec){sec=Math.max(0,sec);let h=Math.floor(sec/3600),m=Math.floor(sec/60)%60;const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap}
+function polyLen(p){let s=0;for(let i=1;i<p.length;i++)s+=hyp(p[i].x-p[i-1].x,p[i].z-p[i-1].z);return s}
+/* the point and heading at distance d along a polyline */
+function polyAt(p,d){for(let i=1;i<p.length;i++){const l=hyp(p[i].x-p[i-1].x,p[i].z-p[i-1].z);if(d<=l||i===p.length-1){const k=l?clamp(d/l,0,1):0;return{x:p[i-1].x+(p[i].x-p[i-1].x)*k,z:p[i-1].z+(p[i].z-p[i-1].z)*k,yaw:Math.atan2(-(p[i].x-p[i-1].x),-(p[i].z-p[i-1].z)),i}}d-=l}
+  const q=p[p.length-1];return{x:q.x,z:q.z,yaw:0,i:p.length-1}}
+function route(a,from,to){const G=a.roads&&a.roads();let r=null;try{r=G&&G.route(from,to)}catch(_){r=null}const pts=r&&r.points&&r.points.length>1?r.points.map(p=>({x:p.x,z:p.z})):[{x:from.x,z:from.z},{x:to.x,z:to.z}];
+  pts[0]={x:from.x,z:from.z};pts.push({x:to.x,z:to.z});return pts}
+/* drive time estimate: corners cost extra (a careful dad slows to ~6 m/s for each), straights at o.v (default 10 m/s) */
+function legTime(a,from,to,o={}){const p=route(a,from,to),len=polyLen(p);let turns=0;for(let i=1;i<p.length-1;i++){const h1=Math.atan2(p[i].x-p[i-1].x,p[i].z-p[i-1].z),h2=Math.atan2(p[i+1].x-p[i].x,p[i+1].z-p[i].z);let d=Math.abs(h2-h1);if(d>Math.PI)d=2*Math.PI-d;if(d>.6)turns++}
+  return{len,turns,t:len/(o.v||10)+turns*(o.turn||2.2)+(o.pad||3),points:p}}
+
+/* ---------- schedule ---------- */
+function schedule(stops,o={}){const S={stops:stops.map((s,k)=>Object.assign({k,r:3.8,dwell:.6,done:false,at:null,late:null,stars:0},s)),i:0,soft:o.soft||30,still:0,clock:o.clock||{start:10*3600,scale:8}};
+  S.cur=()=>S.stops[S.i]||null;
+  S.clockAt=t=>S.clock.start+t*S.clock.scale;
+  S.clockStr=t=>clockStr(S.clockAt(t));
+  S.due=s=>clockStr(S.clockAt(s.target));
+  /* are you parked in the ring? (any speed under 1.4 m/s for s.dwell seconds) */
+  S.inRing=(s,car,dt)=>{if(!s||!car)return false;const d=hyp(car.pos.x-s.x,car.pos.z-s.z);if(d<s.r&&Math.abs(car.spd)<1.4){s._still=(s._still||0)+dt;return s._still>=s.dwell}s._still=0;return false};
+  S.near=(s,car)=>!!(s&&car&&hyp(car.pos.x-s.x,car.pos.z-s.z)<s.r+1);
+  /* arrival: records the time and the timing part of the rating */
+  S.arrive=(s,t)=>{if(s.at!=null)return s;s.at=t;s.late=t-s.target;s.onTime=s.late<=S.soft;return s};
+  S.finish=(s,comfortLeg)=>{s.done=true;s.comfort=comfortLeg;const tm=s.late<=0?3:s.late<=S.soft?2:s.late<=S.soft*2?1:0,cf=comfortLeg>=90?2:comfortLeg>=75?1:0;s.stars=Math.max(1,tm+cf);
+    if(S.stops[S.i]===s)S.i++;return s};
+  S.left=(s,t)=>s.target+(s.hard||0)-t;/* seconds to the hard deadline */
+  S.onTime=()=>S.stops.filter(s=>s.done&&s.onTime).length;
+  S.timing=s=>s.late==null?'':s.late<=-20?'Early':s.late<=0?'Right on time':s.late<=S.soft?'Just made it':'Late';
+  S.save=()=>S.stops.map(s=>({target:s.target,done:s.done,at:s.at,late:s.late,onTime:!!s.onTime,stars:s.stars,comfort:s.comfort==null?null:Math.round(s.comfort)}));
+  S.load=arr=>{(arr||[]).forEach((x,k)=>{const s=S.stops[k];if(!s||!x)return;Object.assign(s,x)});S.i=S.stops.findIndex(s=>!s.done);if(S.i<0)S.i=S.stops.length};
+  return S}
+
+/* ---------- comfort ---------- */
+/* tuned numbers (m/s, m/s²): see docs at the top of js/jobs/taxi.js */
+const CF={brake:10,accel:9.5,lat:7.5,impact:26,kerbD:4.4,speed:19.5,kBrake:.9,kAccel:.6,kLat:1.15,kSpeed:1.4,regen:1.3,calm:2,floor:5};
+function comfort(o={}){const C={v:100,sum:0,time:0,legSum:0,legTime:0,a:0,lat:0,lastBad:-9,pv:null,pyaw:null,off:false,t:0,cool:{},n:{brake:0,corner:0,kerb:0,bump:0,speed:0},cfg:Object.assign({},CF,o.cfg||{}),on:o.on||null};
+  const ev=(k,sev)=>{C.n[k]++;if(C.on&&(C.cool[k]||-99)<C.t-(k==='bump'?.8:4)){C.cool[k]=C.t;try{C.on(k,sev)}catch(e){console.warn(e)}}};
+  const hit=(d,k)=>{C.v=Math.max(C.cfg.floor,C.v-d);C.lastBad=C.t};
+  /* car: the driven entry (pos, yaw, spd). ctx: {riders:n (0 = nobody to upset), mood:-1..1 (radio), offRoad:bool} */
+  C.update=(dt,car,ctx={})=>{C.t+=dt;if(!car||dt<=0)return;const F=C.cfg,sp=car.spd;
+    if(C.pv==null){C.pv=sp;C.pyaw=car.yaw;return}
+    let dy=car.yaw-C.pyaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;
+    const aRaw=(sp-C.pv)/dt,latRaw=Math.abs(sp*dy/dt);C.pv=sp;C.pyaw=car.yaw;
+    if(ctx.riders===0){C.a=0;C.lat=0;return}
+    /* impacts: a speed drop no brake can make */
+    if(aRaw<-F.impact&&Math.abs(sp-(sp-aRaw*dt))>2.2){const dv=Math.abs(aRaw*dt);hit(Math.min(30,4+dv*2.2));ev('bump',dv);C.a=0}
+    C.a+=(aRaw-C.a)*Math.min(1,dt/.18);C.lat+=(latRaw-C.lat)*Math.min(1,dt/.2);
+    const av=Math.abs(sp),fwd=sp>=0?1:-1,acc=C.a*fwd;let bad=0;
+    if(acc<-F.brake&&av>.8){const d=(-acc-F.brake)*F.kBrake*dt;bad+=d;if(-acc>F.brake+5)ev('brake',-acc)}
+    if(acc>F.accel){bad+=(acc-F.accel)*F.kAccel*dt}
+    if(C.lat>F.lat&&av>2){bad+=(C.lat-F.lat)*F.kLat*dt;if(C.lat>F.lat+3)ev('corner',C.lat)}
+    if(av>F.speed){bad+=F.kSpeed*dt*(1+(av-F.speed)/6);ev('speed',av)}
+    if(ctx.offRoad&&av>3){if(!C.off){hit(6);ev('kerb',av)}bad+=1.5*dt}
+    C.off=!!ctx.offRoad;
+    if(bad>0)hit(bad);
+    else if(C.t-C.lastBad>F.calm)C.v=Math.min(100,C.v+(F.regen+.8*(ctx.mood||0))*dt);
+    if(ctx.mood<0&&C.t-C.lastBad>F.calm)C.v=Math.max(60,C.v+.25*ctx.mood*dt);
+    C.sum+=C.v*dt;C.time+=dt;C.legSum+=C.v*dt;C.legTime+=dt};
+  C.avg=()=>C.time>0?C.sum/C.time:C.v;
+  C.legAvg=()=>C.legTime>0?C.legSum/C.legTime:C.v;
+  C.legReset=()=>{C.legSum=0;C.legTime=0};
+  C.word=v=>{v=v==null?C.v:v;return v>=90?'Smooth':v>=75?'Fine':v>=55?'Bumpy':v>=35?'Queasy':'Carsick'};
+  C.save=()=>({v:Math.round(C.v),sum:Math.round(C.sum),time:Math.round(C.time*10)/10,n:Object.assign({},C.n)});
+  C.load=s=>{if(!s)return;C.v=s.v;C.sum=s.sum;C.time=s.time;if(s.n)Object.assign(C.n,s.n);C.pv=null};
+  return C}
+
+/* ---------- riders: passengers you can see ---------- */
+function riders(o={}){const R={list:[],car:null};const a=A();
+  const pp=()=>window.HT&&HT.People&&HT.People.ok?HT.People:null;
+  const pose=(r,dt,p)=>{const P=pp();if(r.d.rb&&P)try{P.pose(r.d,dt,p)}catch(_){}else boxPose(r,dt,p)};
+  /* the box-dude fallback: a little leg swing so nobody glides */
+  const boxPose=(r,dt,p)=>{const d=r.d;if(!d.legs)return;r.ph=(r.ph||0)+(p.moving?dt*9:0);const s=p.moving?Math.sin(r.ph)*.6:0;
+    if(p.mode==='sit'){d.legs.forEach(l=>l.rotation.x=-1.45);d.arms&&d.arms.forEach(x=>{x.rotation.x=-.5})}else{d.legs[0].rotation.x=s;d.legs[1].rotation.x=-s;d.arms&&d.arms.forEach((x,i)=>{x.rotation.x=i?s*.7:-s*.7})}};
+  R.add=(id,spec)=>{const a=A();let d=null;const P=pp();
+    if(spec.make)d=spec.make();
+    if(!d&&P&&spec.role&&(!P.has||P.has(spec.role)||P.roles&&P.roles.includes&&P.roles.includes(spec.role)))try{d=P.make(spec.role,{variant:spec.variant})}catch(_){d=null}
+    if(!d)d=a.makeDude(spec.look||{role:spec.role,shirt:spec.shirt||'#4a7bd0',pants:'#2d3550',skin:spec.skin,hair:'#3a2a1a',scale:spec.scale});
+    if(spec.scale&&d.root.scale.y!==spec.scale)d.root.scale.setScalar(spec.scale);
+    if(spec.dress)try{spec.dress(d)}catch(e){console.warn(e)}
+    a.wmAdd(d.root);d.root.visible=false;
+    const r=Object.assign({id,d,state:'off',seat:-1,x:0,z:0,yaw:0,speed:spec.speed||1.7,scale:spec.scale||1},spec);R.list.push(r);return r};
+  R.get=id=>R.list.find(r=>r.id===id)||null;
+  R.inCar=()=>R.list.filter(r=>r.state==='seat');
+  R.count=()=>R.list.filter(r=>r.state==='seat'||r.state==='boarding').length;
+  const used=()=>new Set(R.list.filter(r=>r.seat>=0&&(r.state==='seat'||r.state==='boarding')).map(r=>r.seat));
+  R.free=car=>{const n=seatCount(car),u=used();let f=0;for(let i=1;i<n;i++)if(!u.has(i))f++;return f};
+  const takeSeat=(r,car)=>{const n=seatCount(car),u=used();const pref=r.prefer||[2,3,1,4,6,5];for(const i of pref.concat([1,2,3,4,5,6]))if(i<n&&!u.has(i)){r.seat=i;return i}r.seat=-1;return -1};
+  const frame=car=>({f:{x:-Math.sin(car.yaw),z:-Math.cos(car.yaw)},r:{x:Math.cos(car.yaw),z:-Math.sin(car.yaw)}});
+  /* the door beside seat i: the kerb side when the seat is in the middle */
+  R.door=(car,i,side)=>{const s=seatsOf(car)[i]||[0,0,.4],F=frame(car),w=(a.carSize?a.carSize(car).w:2)/2+.55,sd=side||(s[2]<0?-1:1);
+    return{x:car.pos.x+F.f.x*s[0]+F.r.x*sd*w,z:car.pos.z+F.f.z*s[0]+F.r.z*sd*w}};
+  R.seatNow=(r,car)=>{if(takeSeat(r,car)<0)return false;r.state='seat';r.walk=null;r.d.root.visible=true;return true};
+  /* walk from (x,z) to the car's door, then sit. then() when seated */
+  R.board=(r,from,car,then)=>{if(takeSeat(r,car)<0)return false;r.state='boarding';r.x=from.x;r.z=from.z;r.d.root.visible=true;const s=seatsOf(car)[r.seat];
+    r.walk={car,side:null,then};return true};
+  /* get out on the kerb side and walk to (x,z); then() on arrival. hide:true removes them from the scene when they get there */
+  R.alight=(r,to,car,then,o2={})=>{const s=seatsOf(car)[r.seat]||[0,0,.4];const F=frame(car),side=((to.x-car.pos.x)*F.r.x+(to.z-car.pos.z)*F.r.z)>=0?1:-1;const dr=R.door(car,r.seat,side);
+    r.state='leaving';r.seat=-1;r.x=dr.x;r.z=dr.z;r.walk={to,then,hide:!!o2.hide};r.d.root.visible=true};
+  R.place=(r,x,z,yaw)=>{r.state='stand';r.x=x;r.z=z;r.yaw=yaw==null?r.yaw:yaw;r.d.root.visible=true};
+  R.hide=r=>{r.state='off';r.seat=-1;r.d.root.visible=false};
+  R.goto=(r,to,then,sp)=>{r.state='walking';r.walk={to,then,sp};r.d.root.visible=true};
+  R.update=(dt,car)=>{const a=A();for(const r of R.list){const d=r.d;
+      if(r.state==='seat'){if(!car||!car.obj){d.root.visible=false;continue}const s=seatsOf(car)[r.seat]||seatsOf(car)[1],F=frame(car),sc=d.root.scale.y||1,y0=car.obj.position.y;
+        d.root.visible=car.type!=='workvan';d.root.position.set(car.pos.x+F.f.x*s[0]+F.r.x*s[2],y0+s[1]-.59*sc-(1-sc)*.32,car.pos.z+F.f.z*s[0]+F.r.z*s[2]);d.root.rotation.set(0,car.yaw+Math.PI+(s[3]||0),0);
+        pose(r,dt,{mode:'sit',aim:false,moving:false});continue}
+      if(r.state==='off')continue;
+      let to=null,sp=r.speed;
+      if(r.state==='boarding'){const w=r.walk;if(!w||!w.car){r.state='seat';continue}to=R.door(w.car,r.seat,w.side||(((r.x-w.car.pos.x)*Math.cos(w.car.yaw)+(r.z-w.car.pos.z)*-Math.sin(w.car.yaw))>=0?1:-1))}
+      else if((r.state==='leaving'||r.state==='walking')&&r.walk)to=r.walk.to,sp=r.walk.sp||sp;
+      if(to){const dx=to.x-r.x,dz=to.z-r.z,dd=hyp(dx,dz);
+        if(dd<.25){const w=r.walk;r.walk=null;
+          if(r.state==='boarding'){r.state='seat';try{a.snd&&a.snd('reload',.25)}catch(_){}}
+          else{r.state='stand';if(w&&w.hide)R.hide(r)}
+          if(w&&w.then)try{w.then(r)}catch(e){console.warn(e)}}
+        else{const st=Math.min(dd,sp*dt);r.x+=dx/dd*st;r.z+=dz/dd*st;const want=Math.atan2(dx,dz);let dy=want-r.yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;r.yaw+=dy*Math.min(1,dt*10)}
+        d.root.position.set(r.x,a.groundAt(r.x,r.z),r.z);d.root.rotation.set(0,r.yaw,0);pose(r,dt,{moving:!!r.walk,speed:sp,aim:false});continue}
+      if(r.state==='stand'){d.root.position.set(r.x,a.groundAt(r.x,r.z),r.z);d.root.rotation.set(0,r.yaw,0);pose(r,dt,{moving:false,aim:false,mode:r.mode||'stand'})}}};
+  R.save=()=>R.list.map(r=>({id:r.id,state:r.state==='boarding'?'seat':r.state==='leaving'||r.state==='walking'?'stand':r.state,seat:r.seat,x:Math.round(r.x*10)/10,z:Math.round(r.z*10)/10,yaw:Math.round(r.yaw*100)/100}));
+  return R}
+
+/* ---------- radio presets ---------- */
+const STATIONS=[{id:'rock',name:'WDAD 101.5',sub:'Soft rock for hard workers',music:'hub',int:.6},
+  {id:'kidz',name:'KIDZ 98',sub:'All bop, all day',music:'combat',int:.25},
+  {id:'talk',name:'AM 860 THE HUDDLE',sub:'Sports talk',music:null,talk:true},
+  {id:'jazz',name:'SMOOTH 88.3',sub:'Music to merge by',music:'home',int:.5},
+  {id:'off',name:'RADIO OFF',sub:'Silence. Glorious silence.',music:null}];
+const TALK=["...and that's why you never punt on fourth and two. Gary in Maple Heights, you're on The Huddle.","Gary: Long-time listener. I have a spreadsheet on this.","...the Cougars' JV squad, folks, that's a team that believes in itself.",
+  "...it's the halftime orange slice debate. Rinds on or rinds off. Lines are open.","...caller says the ref was his brother-in-law. We'll allow it.","...forecast for the big game: sunny, light breeze, one dad yelling 'HUSTLE'."];
+function radio(o={}){const R={i:o.start||0,st:STATIONS,t:0,talkT:2,on:o.on||null,applied:false};
+  const AU=()=>window.HT&&HT.Audio;
+  R.cur=()=>STATIONS[R.i];
+  R.apply=()=>{const au=AU(),s=R.cur();R.applied=true;if(!au)return;try{au.music(s.music||null);if(s.music&&au.setIntensity)au.setIntensity(s.int)}catch(_){}};
+  R.set=i=>{R.i=(i+STATIONS.length)%STATIONS.length;R.apply();try{const au=AU();au&&au.ui&&au.ui('click')}catch(_){}if(R.on)try{R.on(R.cur())}catch(e){console.warn(e)}};
+  R.next=()=>R.set(R.i+1);
+  R.update=(dt,talk)=>{if(!R.applied)R.apply();const s=R.cur();if(s.talk){R.talkT-=dt;if(R.talkT<=0){R.talkT=2.6+Math.random()*1.4;const au=AU();try{au&&au.voice&&au.voice('dad',null,{radio:true,vol:.35,pitch:.9+Math.random()*.2})}catch(_){}
+      R.t++;if(talk&&R.t%5===1)talk('AM 860',TALK[(R.t/5|0)%TALK.length],{low:true})}}};
+  /* how the car feels about it: average of each rider's like (+1) / hate (-1) */
+  R.mood=list=>{if(!list.length)return 0;const s=R.cur().id;let m=0;for(const r of list)m+=r.likes===s?1:r.hates===s?-1:0;return m/list.length};
+  R.save=()=>R.i;
+  return R}
+HT.Stops_STATIONS=STATIONS;
+
+/* ---------- dialogue queue: paced lines through api.radio ---------- */
+function talk(){const Q={q:[],wait:0,said:{}};
+  Q.say=(who,text,o={})=>{if(o.once){if(Q.said[o.once])return;Q.said[o.once]=1}if(o.low&&Q.q.length>1)return;if(o.now){Q.q.unshift([who,text,o])}else Q.q.push([who,text,o]);if(Q.q.length>9)Q.q.splice(1,1)};
+  Q.busy=()=>Q.q.length>0||Q.wait>.4;
+  Q.update=dt=>{Q.wait-=dt;if(Q.wait>0||!Q.q.length)return;const[w,t,o]=Q.q.shift();const a=A();a.radio(w,t,true);Q.wait=Math.min(5.2,1.5+t.length*.045)+(o.pause||0);
+    const au=window.HT&&HT.Audio;if(au&&au.voice&&o.voice!==false)try{au.voice(o.voice||(/^(Maddie|Tyler|Ava|Mason)/.test(w)?'kid':w==='you'?'dad':/thief|Kid in/i.test(w)?'thug':'dad'),null,{radio:/text|AM 860|phone/i.test(w),vol:.5,pitch:o.pitch})}catch(_){}};
+  Q.clear=()=>{Q.q.length=0;Q.wait=0};
+  return Q}
+
+/* ---------- a scripted road vehicle on a polyline ---------- */
+/* o: {obj, points, speed, accel, len, wid, onEnd}. blockers(): [{x,z,yaw,len,wid}] cars it must not drive through */
+function cruiser(o){const a=A(),C={obj:o.obj,pts:o.points,d:o.d||0,spd:o.spd||0,max:o.speed||11,acc:o.accel||5,brake:o.brake||9,len:o.len||5.2,wid:o.wid||2,off:0,want:0,x:0,z:0,yaw:0,stopT:0,done:false,col:o.col||null};
+  C.total=polyLen(C.pts);
+  const place=()=>{const p=polyAt(C.pts,C.d),n=polyAt(C.pts,C.d+3),r={x:Math.cos(p.yaw),z:-Math.sin(p.yaw)};C.x=p.x+r.x*C.off;C.z=p.z+r.z*C.off;
+    let yaw=Math.atan2(-(n.x+r.x*C.want-C.x),-(n.z+r.z*C.want-C.z));if(!isFinite(yaw))yaw=p.yaw;C.yaw=yaw};
+  C.ahead=(b,dist)=>{const fx=-Math.sin(C.yaw),fz=-Math.cos(C.yaw),dx=b.x-C.x,dz=b.z-C.z,along=dx*fx+dz*fz,side=-dx*fz+dz*fx;
+    /* the other car's half-extent across our path */
+    const by=b.yaw||0,ex=Math.abs(Math.sin(by-C.yaw))*(b.len||4.6)/2+Math.abs(Math.cos(by-C.yaw))*(b.wid||2)/2;return along>-.5&&along<dist&&Math.abs(side)<C.wid/2+ex+.15?{along,side,ex}:null};
+  C.revT=0;C.reverse=sec=>{C.revT=sec};
+  C.update=(dt,blockers=[])=>{if(C.done)return;let block=null;for(const b of blockers){const h=C.ahead(b,C.len/2+7+Math.max(0,C.spd)*.55);if(h&&(!block||h.along<block.along))block=h}
+    if(block)C.lastSide=block.side;
+    if(C.revT>0){/* backing up to go around: 2.5 m/s in reverse along the path */C.revT-=dt;C.spd=Math.max(-2.5,C.spd-C.brake*dt);C.d=Math.max(0,C.d+C.spd*dt);C.blocked=true;C.off+=(C.want-C.off)*Math.min(1,dt*.8);place();C.sync(dt);return}
+    C.blocked=!!block;let target=C.max;if(block){const gap=block.along-C.len/2-(block.ex||1);target=gap<1.2?0:Math.min(C.max,gap*1.6)}
+    if(C.spd<0)C.spd=Math.min(0,C.spd+C.brake*dt);else if(C.spd<target)C.spd=Math.min(target,C.spd+C.acc*dt);else C.spd=Math.max(target,C.spd-C.brake*dt);if(block&&block.along-C.len/2-(block.ex||1)<.3)C.spd=Math.min(C.spd,0);
+    C.off+=(C.want-C.off)*Math.min(1,dt*1.6);
+    C.d+=C.spd*dt;if(C.d>=C.total){C.d=C.total;C.done=true;if(o.onEnd)o.onEnd(C)}place();C.sync(dt)};
+  C.sync=dt=>{if(!C.obj)return;C.obj.position.set(C.x,a.groundAt(C.x,C.z),C.z);C.obj.rotation.set(0,C.yaw+Math.PI/2,0);const VM=window.HT&&HT.Vehicles;
+    if(C.obj.userData.mod&&VM&&VM.update)try{VM.update(C.obj,{speed:C.spd,steer:clamp((C.want-C.off)*.4,-.5,.5),braking:C.blocked||C.spd<.5,headlights:false,dt:dt||1/30})}catch(_){}
+    if(C.col){const hl=C.len/2,hw=C.wid/2,s=Math.abs(Math.sin(C.yaw)),c=Math.abs(Math.cos(C.yaw)),hx=s*hl+c*hw,hz=c*hl+s*hw;
+      /* while the dad drives, the van's own collider push handles contact through this box */
+      Object.assign(C.col,{x0:C.x-hx,x1:C.x+hx,z0:C.z-hz,z1:C.z+hz,ob:{x:C.x,z:C.z,fx:-Math.sin(C.yaw),fz:-Math.cos(C.yaw),hl,hw}})}};
+  place();C.sync(0);return C}
+
+/* ---------- the HUD layer ---------- */
+const CSS=`
+.stx{position:fixed;inset:0;pointer-events:none;z-index:11;font-family:var(--ht-ui,"Barlow Condensed",sans-serif);color:#fff}
+.stx-side{position:absolute;right:36px;top:212px;width:236px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.stx-clock{display:flex;align-items:baseline;justify-content:flex-end;gap:10px;text-shadow:0 2px 6px rgba(0,0,0,.55)}
+.stx-clock b{font:700 40px/1 var(--ht-ui,"Barlow Condensed",sans-serif);letter-spacing:.01em}
+.stx-clock span{font:700 12px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:#ffd36a}
+.stx-clock.hot b{color:#ff8a6a;animation:stxPulse .9s ease-in-out infinite}
+@keyframes stxPulse{50%{opacity:.55}}
+.stx-note{position:relative;background:linear-gradient(176deg,#fff7a8,#fbe97c 60%,#f3dc66);color:#3a3320;border-radius:2px 2px 10px 2px;padding:12px 14px 10px;transform:rotate(-1.2deg);
+  box-shadow:0 10px 22px rgba(0,0,0,.35),inset 0 -18px 24px -18px rgba(150,110,0,.35);font-family:var(--ht-body,"Barlow",sans-serif)}
+.stx-note:before{content:"";position:absolute;left:50%;top:-9px;width:64px;height:18px;margin-left:-32px;background:rgba(255,255,255,.55);transform:rotate(2deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.stx-note h4{margin:0 0 6px;font:800 13px/1 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:#7a5a00;display:flex;justify-content:space-between}
+.stx-note h4 i{font-style:normal;color:#b0352a}
+.stx-row{display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:baseline;padding:3px 0;border-bottom:1px dashed rgba(90,70,10,.25);font:600 14px/1.15 var(--ht-body)}
+.stx-row:last-child{border-bottom:0}
+.stx-row .bx{width:12px;height:12px;border:2px solid #5a4a20;border-radius:2px;position:relative;top:1px}
+.stx-row.done .bx:after{content:"";position:absolute;left:2px;top:-4px;width:5px;height:10px;border:solid #2f8f4a;border-width:0 3px 3px 0;transform:rotate(40deg)}
+.stx-row.done{color:rgba(58,51,32,.55)}
+.stx-row.done .nm{text-decoration:line-through;text-decoration-color:rgba(58,51,32,.5)}
+.stx-row.cur{color:#1d1a10}.stx-row.cur .nm{font-weight:800}
+.stx-row.cur .bx{border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,.18)}
+.stx-row .tm{font:700 13px/1 var(--ht-ui);letter-spacing:.04em;white-space:nowrap}
+.stx-row .tm.late{color:#c0392b}.stx-row .tm.ok{color:#2f7a3f}
+.stx-row .sub{display:block;font:500 11.5px/1.15 var(--ht-body);color:rgba(58,51,32,.75);margin-top:1px}
+.stx-row .st{color:#d18b00;letter-spacing:1px;font-size:11px}
+.stx-row.alert{color:#b0352a}.stx-row.alert .bx{border-color:#b0352a;background:rgba(176,53,42,.15)}
+.stx-ride{background:rgba(14,20,30,.62);border-radius:10px;padding:8px 10px 9px;display:grid;grid-template-columns:34px 1fr;gap:4px 9px;align-items:center;backdrop-filter:blur(4px)}
+.stx-ride svg{grid-row:span 2}
+.stx-ride .lb{font:700 11px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.7);display:flex;justify-content:space-between}
+.stx-ride .lb b{color:#fff;letter-spacing:.06em;font-size:13px}
+.stx-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;position:relative}
+.stx-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#ffb347,#ffd36a 40%,#7ed67e);transition:width .25s}
+.stx-bar.bad i{background:linear-gradient(90deg,#ff6a4d,#ffb347)}
+.stx-bar em{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.75)}
+.stx-radio{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;background:rgba(14,20,30,.62);border-radius:10px;padding:7px 10px;backdrop-filter:blur(4px);user-select:none;-webkit-tap-highlight-color:transparent}
+.stx-radio:active{transform:scale(.97)}
+.stx-radio .dial{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#3b4658,#1b2230);box-shadow:inset 0 0 0 2px #ffd36a;position:relative;flex:none}
+.stx-radio .dial:after{content:"";position:absolute;left:12px;top:4px;width:2px;height:9px;background:#ffd36a;border-radius:1px;transform-origin:1px 9px;transform:rotate(var(--r,0deg));transition:transform .3s}
+.stx-radio .tx{flex:1;min-width:0}
+.stx-radio .tx b{display:block;font:700 15px/1 var(--ht-ui);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stx-radio .tx span{display:block;font:500 11px/1.2 var(--ht-body);color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stx-radio .key{font:700 11px/1 var(--ht-ui);padding:3px 6px;border-radius:4px;background:#f2efe6;color:#1b2230}
+.stx-radio .moods{display:flex;gap:2px;font-size:13px}
+.stx-toast{position:absolute;left:50%;top:132px;transform:translate(-50%,-14px);opacity:0;transition:opacity .35s,transform .35s;background:rgba(14,20,30,.78);border-radius:12px;padding:10px 18px 11px;min-width:300px;text-align:center;backdrop-filter:blur(5px);border-top:3px solid #ffd36a}
+.stx-toast.on{opacity:1;transform:translate(-50%,0)}
+.stx-toast .k{font:700 11px/1 var(--ht-ui);letter-spacing:.2em;color:#ffd36a;text-transform:uppercase}
+.stx-toast .t{font:700 26px/1.05 var(--ht-ui);text-transform:uppercase;margin:4px 0 3px}
+.stx-toast .s{font:500 14px/1.2 var(--ht-body);color:rgba(255,255,255,.85)}
+.stx-toast .stars{font-size:22px;letter-spacing:3px;color:#ffd36a}.stx-toast .stars u{text-decoration:none;color:rgba(255,255,255,.22)}
+.stx-mid{position:absolute;left:50%;top:58%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.stx-slot:empty{display:none}
+@media (max-width:640px),(max-height:520px) and (orientation:landscape){
+  .stx-side{right:12px;top:300px;width:186px;gap:6px}.stx-clock b{font-size:30px}.stx-row{font-size:12.5px}.stx-row .sub{display:none}.stx-note{padding:9px 10px 7px}
+  .stx-toast{top:auto;bottom:250px;min-width:260px}.stx-toast .t{font-size:21px}.stx-mid{top:46%}}
+@media (max-height:520px) and (orientation:landscape){.stx-side{top:120px}}`;
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+function face(v){/* a little passenger face: smile to green-faced */const m=v>=75?'M10 21 Q17 27 24 21':v>=55?'M10 22 L24 22':'M10 24 Q17 18 24 24',c=v>=55?'#ffd36a':v>=35?'#ffb347':'#9bd36a';
+  return`<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="${c}" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/><circle cx="12" cy="14" r="2" fill="#2a2418"/><circle cx="22" cy="14" r="2" fill="#2a2418"/><path d="${m}" stroke="#2a2418" stroke-width="2.4" fill="none" stroke-linecap="round"/>${v<35?'<path d="M9 9 l4 2 M25 9 l-4 2" stroke="#2a2418" stroke-width="1.6"/>':''}</svg>`}
+function panel(o={}){if(!document.getElementById('stx-css')){const s=el('style');s.id='stx-css';s.textContent=CSS;document.head.appendChild(s)}
+  const root=el('div','stx');root.dataset.job=o.id||'';const side=el('div','stx-side'),clock=el('div','stx-clock','<b>--:--</b><span></span>'),note=el('div','stx-note'),ride=el('div','stx-ride'),rad=el('div','stx-radio');
+  const toast=el('div','stx-toast'),mid=el('div','stx-mid');side.append(clock,note,ride,rad);root.append(side,toast,mid);
+  const slots={};const P={root,clock,note,ride,radio:rad,toast,mid,last:{},shown:false};
+  rad.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(o.onRadio)o.onRadio()});
+  P.slot=(id,where)=>{if(!slots[id]){const s=el('div','stx-slot');(where==='side'?side:mid).appendChild(s);slots[id]=s}return slots[id]};
+  P.show=on=>{if(on&&!root.parentNode)document.body.appendChild(root);root.style.display=on?'':'none';P.shown=on};
+  P.remove=()=>{if(root.parentNode)root.parentNode.removeChild(root)};
+  const set=(k,e,html)=>{if(P.last[k]!==html){P.last[k]=html;e.innerHTML=html}};
+  P.clockSet=(t,sub,hot)=>{set('clock',clock,'<b>'+t+'</b><span>'+sub+'</span>');clock.classList.toggle('hot',!!hot)};
+  /* rows: [{name, sub, time, state:'done'|'cur'|'todo'|'alert', late:bool, stars:n}] */
+  P.list=(title,flag,rows)=>set('note',note,'<h4>'+title+(flag?'<i>'+flag+'</i>':'')+'</h4>'+rows.map(r=>`<div class="stx-row ${r.state||''}"><div class="bx"></div><div><span class="nm">${r.name}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div><div class="tm ${r.cls||''}">${r.time||''}${r.stars?'<br><span class="st">'+'★'.repeat(r.stars)+'</span>':''}</div></div>`).join(''));
+  P.rideSet=(v,word,avg,goal)=>{const html=face(v)+`<div class="lb">Ride <b>${word}</b></div><div class="stx-bar${v<55?' bad':''}"><i style="width:${Math.round(v)}%"></i>${goal?`<em style="left:${goal}%"></em>`:''}</div>`;set('ride',ride,html);if(avg!=null)ride.title='Average '+Math.round(avg)};
+  P.radioSet=(s,k,moods,touch)=>{set('radio',rad,`<div class="dial" style="--r:${-60+k*30}deg"></div><div class="tx"><b>${s.name}</b><span>${s.sub}</span></div><div class="moods">${moods}</div>${touch?'':'<span class="key">R</span>'}`)};
+  let toastT=0;P.toastShow=(k,t,s,stars,dur)=>{toast.innerHTML=`<div class="k">${k}</div><div class="t">${t}</div>${stars!=null?`<div class="stars">${'★'.repeat(stars)}<u>${'★'.repeat(Math.max(0,5-stars))}</u></div>`:''}<div class="s">${s||''}</div>`;toast.classList.add('on');toastT=dur||4.2};
+  P.tick=dt=>{if(toastT>0){toastT-=dt;if(toastT<=0)toast.classList.remove('on')}};
+  return P}
+
+HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
+})();
