@@ -149,7 +149,7 @@ function stopSign(M,scale){const T=T_(),g=new T.Group();const tex=M.cg.signTex||
     c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=5;oct(c,W/2,H/2,W/2-22);c.stroke();c.fillStyle='#ffffff';c.font='bold 74px Arial, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('STOP',W/2,H/2+3)}));
   const face=M.cg.signMat||(M.cg.signMat=reg(M,new T.MeshStandardMaterial({map:tex,roughness:.45,metalness:.05,transparent:true,alphaTest:.5,side:T.DoubleSide})));
   const plate=new T.Mesh(geo(M,new T.PlaneGeometry(.46,.46)),face);plate.position.y=1.28;plate.castShadow=true;g.add(plate);
-  const back=new T.Mesh(geo(M,new T.CylinderGeometry(.226,.226,.012,8)),mat(M,'#c8102e',{roughness:.5}));back.rotation.x=Math.PI/2;back.rotation.y=Math.PI/8;back.position.y=1.28;back.rotation.z=Math.PI/8;g.add(back);
+  const back=new T.Mesh(geo(M,new T.CylinderGeometry(.226,.226,.012,8)),mat(M,'#c8102e',{roughness:.5}));back.rotation.set(Math.PI/2,Math.PI/8,0);back.position.set(0,1.28,-.009);g.add(back);
   const pole=mesh(M,new T.CylinderGeometry(.016,.016,1.42,8),mat(M,'#c9ccd0',{metalness:.6,roughness:.35}),0,.62,-.012,g);
   const grip=mesh(M,new T.CylinderGeometry(.022,.022,.2,8),mat(M,'#1d1f22',{roughness:.9}),0,.1,-.012,g);
   if(scale)g.scale.setScalar(scale);g.userData.plate=plate;return g}
@@ -159,8 +159,8 @@ function vest(M){const T=T_(),g=new T.Group();const tex=canvasTex(M,256,128,(c,W
     c.fillStyle='rgba(60,70,0,.18)';for(let i=0;i<W;i+=4)c.fillRect(i,0,1,H);c.fillStyle='#e6e9e2';c.fillRect(W*.25-3,0,6,H);c.fillRect(W*.75-3,0,6,H)});
   const m=reg(M,new T.MeshStandardMaterial({map:tex,roughness:.65,side:T.DoubleSide,emissive:A().lin('#2b3600'),emissiveIntensity:.25}));
   /* a fitted tube around the chest (slightly narrower at the shoulders), with straps over the shoulders */
-  const body=new T.Mesh(geo(M,new T.CylinderGeometry(.92,1,.44,20,1,true)),m);body.scale.set(.205,1,.142);body.castShadow=true;g.add(body);
-  const sm=mat(M,'#d4ef22',{roughness:.65});for(const sx of[-1,1]){const st=new T.Mesh(geo(M,new T.BoxGeometry(.07,.018,.27)),sm);st.position.set(sx*.1,.225,0);st.castShadow=true;g.add(st)}
+  const body=new T.Mesh(geo(M,new T.CylinderGeometry(.9,1,.4,20,1,true)),m);body.scale.set(.198,1,.137);body.castShadow=true;g.add(body);
+  const sm=mat(M,'#d4ef22',{roughness:.65});for(const sx of[-1,1]){const st=new T.Mesh(geo(M,new T.BoxGeometry(.07,.018,.27)),sm);st.position.set(sx*.09,.203,0);st.castShadow=true;g.add(st)}
   return g}
 /* zebra stripes for a crosswalk rectangle (one merged mesh per crossing, painted on the road) */
 function zebra(M,X){const T=T_(),g=new T.Group();const m=M.cg.zebraMat||(M.cg.zebraMat=reg(M,new T.MeshStandardMaterial({color:A().lin('#eeeae0'),roughness:.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})));
@@ -736,7 +736,7 @@ function chalkSpot(M,q){const T=T_();const tex=M.cg.chalkTex||(M.cg.chalkTex=can
   const m=M.cg.chalkMat||(M.cg.chalkMat=reg(M,new T.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3})));
   const o=new T.Mesh(geo(M,new T.PlaneGeometry(1,1)),m);o.rotation.x=-Math.PI/2;o.position.set(q.x+.3,ground(q.x,q.z)+.01,q.z);o.scale.setScalar(.01);o.visible=false;M.cg.root.add(o);q.sun=o;return o}
 function gearUp(M){const C=M.cg,a=A(),P=a.P;if(C.gear)return;C.gear=true;C.signObj.visible=true;thwack();
-  if(P.dude){C.vest=vest(M);try{const sp=boneW(P.dude,'Bip01_Spine2'),loc=P.dude.root.worldToLocal(sp.clone());onBone(P.dude,C.vest,'Bip01_Spine2',[0,loc.y+.04,.01])}catch(_){P.dude.root.add(C.vest)}}
+  if(P.dude){C.vest=vest(M);try{const sp=boneW(P.dude,'Bip01_Spine2'),loc=P.dude.root.worldToLocal(sp.clone());onBone(P.dude,C.vest,'Bip01_Spine2',[0,loc.y+.02,.01])}catch(_){P.dude.root.add(C.vest)}}
   say(M,'dee',L_.dee[0],{now:true});say(M,'dee',L_.dee[1]);
   /* line up: on the lot, then along the sidewalk to you */
   trailSeed(M,[[325.5,34.6],[337.6,34.6],[339.2,36.2],[337.6,38.85],[P.pos.x,P.pos.z]]);const head=trailHead(M);

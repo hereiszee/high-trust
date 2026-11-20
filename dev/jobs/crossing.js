@@ -11,8 +11,10 @@ const OUT=path.join(__dirname,'../../docs/screenshots/jobs/crossing');const ONLY
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});const ev=(f,a)=>p.evaluate(f,a);
   const stream=async()=>ev(async()=>{try{window.__ht.ow.buildAll()}catch(_){}for(let k=0;k<60&&!window.__ht.assets.stream.idle();k++){window.__ht.draw();await new Promise(r=>setTimeout(r,400))}});
   const shot=async(n,prep)=>{if(!SHOTS)return;fs.mkdirSync(OUT,{recursive:true});if(prep)await ev(prep);await stream();
+    /* the start banner's letterbox is on a wall-clock timer that a stepped game never reaches: clear it for the stage pictures */
+    if(!/result/.test(n))await ev(()=>{for(const e of document.querySelectorAll('.ht-bn'))e.style.visibility='hidden';for(const e of document.querySelectorAll('.cine'))e.classList.remove('cine')});
     await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
-    await ev(()=>{const H=window.__ht;H.draw();H.draw()});await p.waitForTimeout(150);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('     shot '+n)};
+    await ev(()=>{const H=window.__ht;H.draw();H.draw()});await p.waitForTimeout(150);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('     shot '+n+' '+JSON.stringify(await ev(()=>{const H=window.__ht,i=H.renderer.info;i.autoReset=false;i.reset();H.draw();const calls=i.render.calls,tr=i.render.triangles;i.autoReset=true;let kidCalls=0;const C=H.M&&H.M.cg;if(C&&C.kids)for(const k of C.kids)if(k.d&&k.d.root.visible)k.d.root.traverse(o=>{if((o.isMesh||o.isSkinnedMesh)&&o.visible&&!(o.userData&&o.userData.hitbox)&&o.material&&o.material.visible!==false)kidCalls++});return{calls,kidMeshes:kidCalls,tris:tr,geo:i.memory.geometries,tex:i.memory.textures,progs:i.programs&&i.programs.length}})))};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
   await ev(async()=>{const H=window.__ht;await H.jobs.ready;const j=H.jobs.registry.get('crossing');j.test.give(H.jobs.api);H.prog.done[H.jobs.index('dee')]=true;
     const pp=window.HT.People;await Promise.race([pp.preload(['dee','son','daughter','nb_kid','nb_gran','nb_pops','nb_office','nb_sweater','nb_teen','nb_kenji','nb_marcus','nb_mei','nb_lucia','thug_cap','thug_hoodie','thug_track','thug_f_hood','thug_beanie','thug_red','thug_jacket']),new Promise(r=>setTimeout(r,30000))]);
@@ -35,7 +37,7 @@ const OUT=path.join(__dirname,'../../docs/screenshots/jobs/crossing');const ONLY
     /* the moments that tell the story, each framed: face the line (or the thing that matters) from behind the dad */
     const face=(sel,pitch)=>({sel,pitch});
     const want=[[r.stage==='main'&&r.allLine&&r.el>5,'02-line-up',face('kids')],[r.step===4&&r.ph==='over','03-main-crossing',face('kids')],
-      [r.stage==='river'&&/theo/.test(r.free),'04-river-dog',face('theo')],[r.step===7&&r.ph==='over','05-ash-crossing',face('kids')],
+      [/kev:l/.test(r.kids)&&r.p[1]>50&&r.p[1]<67,'04-kevin-joins',face('kevin')],[r.step===7&&r.ph==='over','05-ash-crossing',face('kids')],
       [/priya/.test(r.hw),'06-first-home',face('priya')],[r.talking,'07-talk-down',face('crewA')],[r.step===17&&r.ph==='over','08-2nd-st-crossing',face('kids')],
       [r.step===21&&r.ph==='over','09-mill-crossing',face('kids')],[r.home>=10&&r.stage==='mill','10-porch-lights',face('east')],[/gloria/.test(r.hw),'11-last-kid',face('gloria')],[r.exit,'12-done',face('kids')]];
     const prep=f=>(f?(o=>{const H=window.__ht,M=H.M,C=M.cg,P=H.P;let x,z;if(o.sel==='kids'){const ks=C.kids.filter(k=>k.state==='line'||k.state==='hand'||k.state==='free');if(!ks.length)return;x=ks.reduce((a,k)=>a+k.x,0)/ks.length;z=ks.reduce((a,k)=>a+k.z,0)/ks.length}
