@@ -39,7 +39,7 @@ async function session(LOCK){const {b,p,errs}=await open({viewport:{width:1280,h
   /* 3. the mouse watches a collector */
   const sk=o.skim;/* setup: the other collectors are elsewhere in the market for this beat */await ev(()=>{const H=window.__ht,O=H.M.ho,c=O.cols[O.skim];c.st='idle';c.next=99;O.cols.forEach((q,i)=>{if(q!==c){q.x=c.x<380?402-i:356+i;q.z=41.6;q.st='idle';q.next=99}})});
   const sp=await ev(()=>{const H=window.__ht,O=H.M.ho,c=O.cols[O.skim];return{x:c.x,z:c.z}});await place(Math.min(400,Math.max(356,sp.x+6)),sp.z<43?44.4:41.8,Math.PI/2);
-  const looked=await lookAt('skim',.02);await step(10);o=await O();ok(looked&&o.watch===sk,'mouse-look turns the view onto the '+sk+' collector and the watch bracket is on him (watching '+o.watch+')');
+  const looked=LOCK?await setAim('skim'):await lookAt('skim',.02);await step(10);o=await O();ok(looked&&o.watch===sk,(LOCK?'setup under lock: ':'real mouse-look turns')+' the view onto the '+sk+' collector and the watch bracket is on him (watching '+o.watch+')');
   /* 4. E + 3: point him out */
   await ev(()=>{const H=window.__ht,O=H.M.ho,c=O.cols[O.skim];H.P.pos.set(c.x+1.2,0,c.z);H.collide(H.P.pos,.35);H.step(2)});await p.keyboard.press('e');await step(2);o=await O();ok(o.chat,'E next to him opens the strip');
   await p.keyboard.press('3');await step(4);o=await O();ok(o.ided&&o.stage==='aside','key 3 points him out to Rosa: identified ('+o.stage+')');

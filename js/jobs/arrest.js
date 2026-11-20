@@ -630,7 +630,7 @@ function garyStep(O,dt){const g=O.gary,r=O.rosa;if(r&&r.st==='watch'&&!O.down){i
     if(!O.down&&O.talked&&(g.idleT=(g.idleT||25)-dt)<=0){g.idleT=rr(40,70);const P=A().P;if(hyp(P.pos.x-g.x,P.pos.z-g.z)<14)say('gary',pick(LINES.garyIdle))}}
   /* he steps out of the line when you draw on the man he's talking to */
   if(g.st==='chat'&&O.drawn&&!g.moved){g.drawSeen=(g.drawSeen||0)+dt;if(g.drawSeen>1.0){g.moved=true;const P=A().P,sk=O.cols[O.skim],ax=sk.x-P.pos.x,az=sk.z-P.pos.z,l=hyp(ax,az)||1;
-      g.tx=g.x+(-az/l)*2.6;g.tz=g.z+(ax/l)*2.6;const a=A();if(!a.walkable(a.tx(g.tx),a.tx(g.tz))){g.tx=g.x+(az/l)*2.6;g.tz=g.z-(ax/l)*2.6}g.st='aside';say('gary',LINES.garyMove,true)}}}
+      const nx=-az/l,nz=ax/l,side=((g.x-sk.x)*nx+(g.z-sk.z)*nz)>=0?1:-1;/* out of the line on his own side, 3 m clear of it */g.tx=sk.x+nx*side*3.2;g.tz=sk.z+nz*side*3.2;const a=A();if(!a.walkable(a.tx(g.tx),a.tx(g.tz))){g.tx=sk.x-nx*side*3.2;g.tz=sk.z-nz*side*3.2}g.st='aside';say('gary',LINES.garyMove,true)}}}
 
 /* ---------------- the takedown: draw (a toggle), witnesses, panic, one round ---------------- */
 function civs(O){return O.people.filter(p=>!p.gone&&!(p.skim)&&p.kind!=='duffel')}
@@ -804,6 +804,7 @@ J.register('arrest',{
     const sk=O.cols[O.skim];if(O.drawn&&!O.down&&!O.run){const dx=P.pos.x-sk.x,dz=P.pos.z-sk.z,d=hyp(dx,dz),f=(-Math.sin(sk.yaw)*dx-Math.cos(sk.yaw)*dz)/(d||1);
       if(d<26&&(f>.2||d<4)&&losGrid(sk.x,sk.z,P.pos.x,P.pos.z))O.spotT=(O.spotT||0)+dt;else O.spotT=Math.max(0,(O.spotT||0)-dt*.5);
       if(O.spotT>2.6){O.spotT=0;bolt(O);say('rosa',"He saw it! Not 'in a second'. NOW. Go!",true)}}
+    if(O.drawn&&kidsNear(O)!=null){/* owner rule: a kid or a stroller came within 25 m: the gun goes away */toggleDraw(O,false);say('rosa',pick(LINES.rosaKids),true)}
     if(O.drawn)P.aim=true;
     for(const p of O.people)if(!p.gone)place(p,dt);
     if(O.chat){const d=hyp(P.pos.x-O.chat.x,P.pos.z-O.chat.z);if(d>4.5)closeChat(O)}
@@ -863,7 +864,7 @@ function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();
       else{F.objs.push(['Catch the duffel guy: run into him',false]);F.target={x:e.pos.x,z:e.pos.z,label:'Duffel guy'}}}
     else if(!O.tied)F.objs.push([O.rosa.st==='tie'?'Rosa is zip-tying him herself':'Rosa’s on her way over with the zip-ties',false]);if(D.st!=='run'&&O.tied)F.objs.push(['Hold on. Rosa has a few words for him',false]);meters(O,F)}}
 function meters(O,F){F.meters.push({id:'panic',label:'Panic',v:O.panic,max:100,style:'bar',warn:60,icon:'eye',sub:O.panic>=60?'they’re scared':''});
-  if(O.stage==='aside')F.widgets.push({id:'wit',kind:'score',label:'Eyes on you',v:O.wit,hot:O.wit>0,sub:O.wit?'if you drew now':'nobody\u2019s looking'})}
+  if(O.stage==='aside')F.widgets.push({id:'wit',kind:'score',label:'Eyes on you',v:O.wit,hot:O.wit>0,sub:O.wit?(O.drawn?'seeing the gun':'if you drew now'):'nobody\u2019s looking'})}
 /* E goes to whatever you're facing: a collector or a vendor, scored by distance and by how far off your view it is */
 function taps(O,F){const a=A(),P=a.P;let best=null,bs=1e9;
   const score=(x,z,r)=>{const d=hyp(x-P.pos.x,z-P.pos.z);if(d>r)return 1e9;const off=Math.abs(angWrap(yawTo(x-P.pos.x,z-P.pos.z)-P.yaw));return d+off*1.6};
@@ -914,7 +915,7 @@ let PRE=false;
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ho)return null;const O=M.ho,B=O.bot||(O.bot={phase:'',n:0,wi:0,wt:0,react:0});const H_=window.__ht;
   a.keys.e=false;if(H_)H_.mouse=false;
   if(a.CV){a.exitCar();return null}
-  const walk=(x,z,sp)=>{/* through the aisle: off it on a sidewalk, go round by the 3rd St crossing first (the counters are in the way) */if((P.pos.z>45.6||P.pos.z<40.4)&&P.pos.x>AISLE.x0-2&&P.pos.x<AISLE.x1+2&&Math.abs(x-P.pos.x)>2.5&&hyp(x-P.pos.x,z-P.pos.z)>3){if(Math.abs(P.pos.x-378.8)>.4){x=378.8;z=P.pos.z}else{x=378.8;z=43}}
+  const walk=(x,z,sp)=>{/* through the aisle: off it on a sidewalk, go round by the 3rd St crossing first (the counters are in the way) */if((P.pos.z>45.6||P.pos.z<40.4)&&P.pos.x>AISLE.x0-2&&P.pos.x<AISLE.x1-1&&z>40&&z<46&&Math.abs(x-P.pos.x)>2.5&&hyp(x-P.pos.x,z-P.pos.z)>3){if(Math.abs(P.pos.x-378.8)>.4){x=378.8;z=P.pos.z}else{x=378.8;z=43}}
     const dx=x-P.pos.x,dz=z-P.pos.z,d=hyp(dx,dz);if(d<.35)return true;const s=Math.min(d,(sp||4.2)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=yawTo(dx,dz);return false};
   const look=(x,y,z)=>{const c=a.camera.position,dx=x-c.x,dz=z-c.z;P.yaw=yawTo(dx,dz);P.pitch=Math.atan2(y-c.y,hyp(dx,dz))};
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};
@@ -939,7 +940,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ho)return null;c
     if(O.run){walk(sk.x,sk.z,6.4);return null}
     const R=sk.ruse;
     if(!R){if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>1.8){walk(sk.x+.8,sk.z+.3,4.6);return null}B.pickI=o.ruse==='donate'?0:o.ruse==='gary'?2:1;a.useTap=true;return null}
-    const fireWhenGreen=()=>{look(sk.x,1.15,sk.z);if(!O.drawn){if(kidsNear(O)==null&&O.wit===0){B.react=(B.react||0)+1;if(B.react>12){toggleDraw(O);B.react=0}}return}if(O.ret==='ok'){B.hold=(B.hold||0)+1;if(B.hold>10&&H_){H_.mouse=true;B.hold=0}}};
+    const fireWhenGreen=()=>{look(sk.x,1.15,sk.z);if(!O.drawn){B.wait=(B.wait||0)+1;if(kidsNear(O)==null&&(O.wit===0||O.wit<=1&&B.wait>150)){B.react=(B.react||0)+1;if(B.react>12){toggleDraw(O);B.react=0}}return}if(O.ret==='ok'){B.hold=(B.hold||0)+1;if(B.hold>10&&H_){H_.mouse=true;B.hold=0}}};
     if(R.kind==='donate'){/* lead him up 4th St and round the corner, at a walk he can keep up with */const way=[{x:405.5,z:43.2},{x:410.8,z:41.6},{x:410.8,z:24},{x:409.5,z:16.5}];B.wk=B.wk||0;
       if(B.wk<way.length){if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>6)return null;if(walk(way[B.wk].x,way[B.wk].z,2.3))B.wk++;return null}fireWhenGreen();return null}
     if(R.kind==='gary'){const way=[{x:405.5,z:43.2},{x:410.8,z:45.5},{x:410.9,z:55.6}];B.gk=B.gk||0;if(R.st!=='wait'){if(B.gk<2&&hyp(sk.x-P.pos.x,sk.z-P.pos.z)<9&&walk(way[B.gk].x,way[B.gk].z,2.6))B.gk++;return null}
