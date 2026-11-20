@@ -59,7 +59,8 @@ function staticColliders(def,S){const g=def.map,W=def.W,H=def.H;
   const LOW={crate:1,table:1,hedge:1,bed:1};const add=(x0,z0,x1,z1,h,k,o)=>{const c={x0,z0,x1,z1,ph:h,k};if(LOW[k])c.h=h;if(o)Object.assign(c,o);S.push(c);return c};
   for(let z=0;z<H;z++){let x=0;while(x<W){if(g[z][x]==='#'){const s=x;while(x<W&&g[z][x]==='#')x++;add(s*TILE,z*TILE,x*TILE,z*TILE+TILE,3.3,'wall')}else x++}}
   for(const b of def.houses)add(b.x0*TILE+.15,b.z0*TILE+.15,(b.x1+1)*TILE-.15,(b.z1+1)*TILE-.15,7.5,'house');
-  for(const[ch,h]of[['r',9.5],['x',7.5],['A',6]])for(const b of blocksOf(def,ch))add(b.x0*TILE+.1,b.z0*TILE+.1,(b.x1+1)*TILE-.1,(b.z1+1)*TILE-.1,h,'bldg');
+  for(const[ch,h]of[['r',9.5],['x',7.5],['A',6]])for(const b of blocksOf(def,ch)){const nb=ch==='A'&&def.buildings.find(q=>q.x0===b.x0&&q.z0===b.z0);   /* SPEC3: a building with a roofY (the Community Center) is that tall */
+    add(b.x0*TILE+.1,b.z0*TILE+.1,(b.x1+1)*TILE-.1,(b.z1+1)*TILE-.1,nb&&nb.roofY?nb.roofY+(nb.parapet||0):h,'bldg')}
   for(const b of blocksOf(def,'~'))add(b.x0*TILE,b.z0*TILE,(b.x1+1)*TILE,(b.z1+1)*TILE,0,'water');
   for(const t of def.trees)add(t.x-.45,t.z-.45,t.x+.45,t.z+.45,3,'tree');
   for(const l of def.lamps){const p=lampSpot(l);add(p.x-.2,p.z-.2,p.x+.2,p.z+.2,7,'lamp')}
@@ -73,6 +74,8 @@ function staticColliders(def,S){const g=def.map,W=def.W,H=def.H;
   for(const id in def.sites){const s=def.sites[id];const q=s.grill;if(!q)continue;
     if(q.shed)add(q.x-.8,q.z-.7,q.x+.8,q.z+.7,2.2,'shed');else{add(q.x-.7,q.z-.5,q.x+.7,q.z+.5,1,'grill');if(s.bounce)add(s.bounce.x-1.55,s.bounce.z-1.55,s.bounce.x+1.55,s.bounce.z+1.55,3,'bounce')}}
   for(const r of R9_STORAGE)add(r.x0,r.z0,r.x1,r.z1,3.2,'bldg');
+  /* SPEC3 site props with bodies (garage walls, loading dock, pay booth, counters...): js/worldgen.js site.solids */
+  for(const id in def.sites)for(const c of def.sites[id].solids||[])add(c.x0,c.z0,c.x1,c.z1,c.ph,c.k||'prop',c.h!=null?{h:c.h,site:id}:{site:id});
   for(const b of R9_BILL)for(const dx of[-2.4,2.4])add(b.x+dx-.25,b.z-.25,b.x+dx+.25,b.z+.25,7,'pole');
   for(const b of def.barricade)add(b.x-.4,b.z-1,b.x+.6,b.z+1,1.3,'barricade',{barricade:true});
   return S}
@@ -201,8 +204,11 @@ OW.build=(def,lvl,ctx)=>{if(ctx)C=Object.assign(C||{},ctx);const t0=performance.
   prepRowBlocks(ws);ws.barricadeCols=S.filter(c=>c.barricade);
   /* cull units: chunks (lazy) + set pieces */
   for(const ch of def.chunks){const u={kind:'chunk',ch,i:ch.i,built:false,group:null,box:{x0:ch.box.x0-8,z0:ch.box.z0-8,x1:ch.box.x1+8,z1:ch.box.z1+8,y1:22},visible:false,dress:[]};ws.units.push(u);ws.chunks.push(u)}
-  for(const id in def.sites){const s=def.sites[id];ws.units.push({kind:'site',site:s,built:false,box:{x0:s.box.x0-2,z0:s.box.z0-2,x1:s.box.x1+2,z1:s.box.z1+2,y1:8},visible:false,dress:[]})}
-  for(const sp of SETPIECES)ws.units.push({kind:'set',sp,built:false,box:sp.box(def),visible:false,dress:[]});
+  for(const id in def.sites){const s=def.sites[id];
+    /* SPEC3 sites: only the walled ones need a unit (their set piece draws the rest), and they are drawn within S3_SITE_R metres */
+    if((def.newSites||[]).includes(id)){let walls=false;for(let z=s.z0;z<=s.z1&&!walls;z++)for(let x=s.x0;x<=s.x1;x++)if(def.map[z][x]==='#'){walls=true;break}if(!walls)continue}
+    ws.units.push({kind:'site',site:s,built:false,box:{x0:s.box.x0-2,z0:s.box.z0-2,x1:s.box.x1+2,z1:s.box.z1+2,y1:8},visible:false,dress:[],r:S3_SITE_R[id]})}
+  for(const sp of SETPIECES)ws.units.push({kind:'set',sp,built:false,box:sp.box(def),visible:false,dress:[],r:sp.r});
   /* parked cars now: they are vehicles (colliders move when borrowed) */
   parkedCars(ws);
   lvl.nBaseCols=lvl.colliders.length;lvl.nBaseSolids=lvl.solids.length;ws.cars0=lvl.cars?lvl.cars.slice():null;
@@ -410,8 +416,9 @@ function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx
   ws.whBlocks.forEach((b,i)=>{const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz))return;const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2;
     let g=null;try{if(BUm)g=BUm.shell({kind:'warehouse',w,d,h:6.5+(i%3),seed:'wh'+i,facing:'-z'})}catch(e){g=null}
     if(g){g.position.set(cx,0,cz);g.userData._owCol='#a3a9ac';g.userData._owRoof='#6f7376';blds.push(g)}else B.gbOf('whsWall').box(cx-w/2,0,cz-d/2,cx+w/2,7,cz+d/2,2,null,{})});
-  const NAMES={gas:['FILL-ER-UP','GAS · SNACKS · BAIT'],mart:['RAMOS CORNER MART','GROCERY · DELI · LOTTO'],benny:["BENNY'S BRAIN FREEZE",'ICE CREAM · DEPOT'],center:['RIVERSIDE FLATS','COMMUNITY CENTER']};
-  for(const b of def.buildings){const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz)||b.id==='church')continue;
+  const NAMES={gas:['FILL-ER-UP','GAS · SNACKS · BAIT'],mart:['RAMOS CORNER MART','GROCERY · DELI · LOTTO'],benny:["BENNY'S BRAIN FREEZE",'ICE CREAM · DEPOT'],center:['RIVERSIDE FLATS','COMMUNITY CENTER'],
+    ortho:['BRACE YOURSELF','ORTHODONTICS · SMILES SINCE 1994']};
+  for(const b of def.buildings){const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz)||b.id==='church'||b.custom)continue;   /* custom: a SPEC3 set piece draws it (the school) */
     const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2,facing=b.face==='s'?'+z':'-z';let g=null;
     try{if(BUm)g=BUm.shop({kind:b.id==='auto'?'auto':'store',w,d,seed:'shop'+b.id,facing,name:NAMES[b.id]})}catch(e){g=null}
     /* the corner mart's awning is trust dressing (tier 3), not part of the building */
@@ -443,7 +450,7 @@ function gardenBed(B,b){const wd=B.gbOf('fence'),soil=B.gbOf('mulch');const x0=b
   soil.floor(x0+.08,z0+.08,x1-.08,z1-.08,.38,1.3)}
 
 /* ---------------- mission sites: walls in each site's own style ---------------- */
-const SITE_STYLE={gary:'gary',rick:'rick',dave:'dave',doug:'doug',earl:'gary',dee:'rick',rosa:'dave',duke:'gary'};
+const SITE_STYLE={gary:'gary',rick:'rick',dave:'dave',doug:'doug',earl:'gary',dee:'rick',rosa:'dave',duke:'gary',storage:'gary',millshop:'gary',pawn:'rick'};
 function buildSite(u){const ws=WS,s=u.site,W_=HW();if(!W_)return;const win={x0:s.x0,z0:s.z0,x1:s.x1,z1:s.z1};
   const B=newB(ws,u.group,SITE_STYLE[s.id]||'doug',win,1,77+s.x0);B.style=W_.LEVEL_STYLE[SITE_STYLE[s.id]]||B.style;
   const K=ws.K,Wd=ws.def.W;B.k=(x,z)=>x<win.x0-1||z<win.z0-1||x>win.x1+1||z>win.z1+1?'out':K[z*Wd+x];
@@ -641,6 +648,241 @@ function adArt(i){const c=canvas(1024,384),x=c.getContext('2d');const T=(t,sz,y,
     x.textAlign='left';x.fillStyle='#2f5d4a';x.font='900 64px Georgia, serif';x.fillText('BARB KOWALSKI',380,150);x.font='700 40px Arial';x.fillText('REALTY · "I sell porches"',380,215);x.font='800 46px Arial';x.fillText('555-0142',380,300);
     /* sun-faded and peeling */const r=rng(4);x.fillStyle='rgba(240,236,226,.35)';x.fillRect(0,0,1024,384);for(let k=0;k<26;k++){x.fillStyle='rgba(200,196,186,'+(.3+r()*.5)+')';x.fillRect(r()*1024,r()*384,20+r()*120,6+r()*30)}}
   return c}
+/* ================= SPEC3 small sites, pins and potholes (data: js/worldgen.js def.sites.school..roof, def.places.ortho/bus1-4, def.potholes) =================
+   One set piece per site, kept cheap (docs/PERF.md): plain parts share one vertex-coloured material, every sign of a piece sits in one canvas atlas
+   (opaque, cut-out and floor-decal atlases), textured buckets only where they read (brick, siding, roof, glass). sp.r: the piece is drawn within r metres. */
+const S3={},S3_SITE_R={pawn:110,storage:120,millshop:110};   /* props a job can move: S3['parkride.barrier'] (pivot; rotation.x 0 = closed), S3['storage.gate'], S3['millshop.gate'] (groups that slide) */
+OW.prop=name=>S3[name]||null;
+const s3Vc=()=>stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1});
+const S3C={white:[.82,.81,.77],galv:[.5,.53,.55],dark:[.1,.11,.12],conc:[.5,.49,.46],glass:[.03,.05,.08],wood:[.33,.22,.13],red:[.62,.06,.05],yellow:[.85,.62,.06],paint:[.86,.85,.8],brass:[.6,.45,.15]};
+/* sign atlases: add() collects canvases + placements, build() packs them into one texture per kind and emits one mesh per kind */
+function s3Signs(){const items=[];
+  const S={add(c,x,y,z,ry,w,h,o={}){items.push({c,x,y,z,ry,w,h,two:!!o.two,kind:o.kind||'sign',tilt:o.tilt||0,glow:o.glow});return S},
+    sign(lines,so,x,y,z,ry,w,h,o){const cw=Math.max(256,Math.min(1024,Math.round(w*120))),o2=Object.assign({},so,{w:cw,h:Math.max(32,Math.round(cw*h/w))});if(o2.size)o2.size*=cw/1024;
+      return S.add(signCanvas(lines,o2),x,y,z,ry,w,h,o)},
+    build(g){for(const kind of['sign','cut','floor']){const L=items.filter(i=>i.kind===kind);if(!L.length)continue;
+      /* shelf-pack at a common scale: every canvas is drawn at most 512 px wide */
+      const W=1024,P=4;let x=0,y=0,rowH=0;const pl=[];for(const it of L){const s=Math.min(1,512/it.c.width),w=Math.round(it.c.width*s),h=Math.round(it.c.height*s);
+        if(x+w+P>W){x=0;y+=rowH+P;rowH=0}pl.push({it,x,y,w,h});x+=w+P;rowH=Math.max(rowH,h)}
+      let H=8;while(H<y+rowH)H*=2;const cv=canvas(W,H),cx=cv.getContext('2d');cx.clearRect(0,0,W,H);for(const p of pl)cx.drawImage(p.it.c,p.x,p.y,p.w,p.h);
+      const t=ctex(cv),gb=new (HW().GB)();
+      for(const p of pl){const it=p.it,u0=(p.x+.5)/W,u1=(p.x+p.w-.5)/W,v1=1-(p.y+.5)/H,v0=1-(p.y+p.h-.5)/H;
+        if(kind==='floor'){const c=Math.cos(it.ry),s=Math.sin(it.ry),Q=(a,b)=>[it.x+a*c+b*s,it.y,it.z-a*s+b*c];gb.quad(Q(-it.w/2,it.h/2),Q(it.w/2,it.h/2),Q(it.w/2,-it.h/2),Q(-it.w/2,-it.h/2),[[u0,v0],[u1,v0],[u1,v1],[u0,v1]],null,[0,1,0]);continue}
+        for(const side of it.two?[0,1]:[0]){const ry=it.ry+side*Math.PI,n=[Math.sin(ry),0,Math.cos(ry)],r=[Math.cos(ry),0,-Math.sin(ry)],off=side?-.006:.006,ct=Math.cos(it.tilt),st=Math.sin(it.tilt);
+          const up=[n[0]*-st,ct,n[2]*-st],C=[it.x+n[0]*off,it.y,it.z+n[2]*off],Pt=(a,b)=>[C[0]+r[0]*a+up[0]*b,C[1]+up[1]*b,C[2]+r[2]*a+up[2]*b];
+          gb.quad(Pt(-it.w/2,-it.h/2),Pt(it.w/2,-it.h/2),Pt(it.w/2,it.h/2),Pt(-it.w/2,it.h/2),[[u0,v0],[u1,v0],[u1,v1],[u0,v1]],null,n)}}
+      const glow=L.some(i=>i.glow);const mat=kind==='floor'?new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.7,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6})
+        :new THREE.MeshStandardMaterial({map:t,roughness:.45,metalness:.05,alphaTest:kind==='cut'?.5:0});
+      if(glow){mat.emissive=lin('#ffffff');mat.emissiveMap=t;mat.emissiveIntensity=.14}
+      const m=gbMesh(gb,mat,{shadow:kind!=='floor'});if(m){if(kind==='floor')m.renderOrder=2;m.castShadow=false;g.add(m)}}}};return S}
+/* a yellow pentagon / white rectangle road sign with a transparent surround (cut-out atlas) */
+function s3Shape(kind,lines,col,fg){const c=canvas(256,256),x=c.getContext('2d');x.clearRect(0,0,256,256);x.fillStyle=col;x.strokeStyle=fg;x.lineWidth=8;x.beginPath();
+  if(kind==='pent'){x.moveTo(128,8);x.lineTo(248,96);x.lineTo(248,248);x.lineTo(8,248);x.lineTo(8,96)}else x.rect(8,8,240,240);x.closePath();x.fill();x.stroke();
+  x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';lines.forEach((l,i)=>{x.font='900 '+(l.length>6?40:56)+'px "Arial Narrow", Arial, sans-serif';x.fillText(l,128,(kind==='pent'?150:128)+(i-(lines.length-1)/2)*58,236)});return c}
+function s3Text(t,w,h,sz){const c=canvas(w,h),x=c.getContext('2d');x.clearRect(0,0,w,h);x.fillStyle='#f2efe6';x.font='900 '+sz+'px "Arial Narrow", Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(t,w/2,h/2+2,w-8);return c}
+const s3Post=(vc,x,z,h,col)=>vc.addGeo(cyl(.045,.045,h,8),M4(x,h/2,z),1,col||S3C.galv);
+const s3Back=(vc,x,y,z,ry,w,h)=>vc.obox(x-Math.sin(ry)*.02,y,z-Math.cos(ry)*.02,w/2,h/2,.012,ry,1,S3C.galv);
+function s3Lamp(vc,x,z,dir){vc.addGeo(cyl(.09,.06,6.2,8),M4(x,3.1,z),1,S3C.dark);const t=cyl(.04,.04,1.4,6);t.rotateZ(Math.PI/2);if(dir[1])t.rotateY(Math.PI/2);vc.addGeo(t,M4(x+dir[0]*.7,6.1,z+dir[1]*.7),1,S3C.dark);
+  vc.box(x+dir[0]*1.35-.25,5.92,z+dir[1]*1.35-.25,x+dir[0]*1.35+.25,6.08,z+dir[1]*1.35+.25,1,[1.6,1.5,1.2],{})}
+function s3Bench(vc,x,z,yaw){const c=Math.cos(yaw),s=Math.sin(yaw),P=(u,v)=>[x+u*c+v*s,z-u*s+v*c];
+  for(const u of[-.75,.75]){const p=P(u,0);vc.obox(p[0],.22,p[1],.03,.22,.25,yaw,1,S3C.dark)}const q=P(0,.02),b=P(0,-.24);vc.obox(q[0],.45,q[1],.88,.03,.22,yaw,1,S3C.wood);vc.obox(b[0],.72,b[1],.88,.14,.02,yaw,1,S3C.wood)}
+const s3Fin=(B,ws)=>{HW().finish(B,{bare:true,before:q=>{if(q.tuf)q.tuf.length=0;if(q.flw)q.flw.length=0}});for(const l of B.lod)ws.lod.push(l)};
+const s3VcMesh=(g,vc)=>{const m=gbMesh(vc,s3Vc(),{shadow:true});if(m)g.add(m);return m};
+
+/* ---- Maple Heights Elementary: single-storey brick school, entrance pavilion, flagpole, monument sign, bike rack, drop-off lane, crossing, school-zone signs ---- */
+SETPIECES.push({id:'s3school',r:140,box:def=>({x0:118,z0:0,x1:172,z1:24,y1:10}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.school;if(!s)return;
+  const B=newB(ws,g,'hub',{x0:62,z0:0,x1:81,z1:10},0,61),brick=B.gbOf('brickH'),glass=B.gbOf('glass'),vc=new (HW().GB)(),SG=s3Signs(),W_=S3C.white;
+  const b=s.building,x0=b.x0+.12,x1=b.x1-.12,z0=b.z0+.12,z1=b.z1-.12,H=4.2,cx=s.door.x;
+  brick.box(x0,0,z0,x1,H,z1,1.1,null,{top:true});vc.box(x0-.08,H,z0-.08,x1+.08,H+.28,z1+.08,1,W_,{});vc.floor(x0+.1,z0+.1,x1-.1,z1-.1,H+.285,2,()=>[.42,.42,.43]);
+  /* entrance pavilion: taller, lighter brick band, glass doors under a canopy */
+  const px0=cx-4.2,px1=cx+4.2;brick.box(px0,H,z0+1,px1,5.7,z1,1.1,[1.12,1.1,1.05],{top:true});vc.box(px0-.08,5.7,z0+.92,px1+.08,5.95,z1+.08,1,W_,{});
+  vc.box(px0-.1,0,z1-.02,px0+.15,5.7,z1+.08,1,W_,{});vc.box(px1-.15,0,z1-.02,px1+.1,5.7,z1+.08,1,W_,{});
+  glass.wz(cx-1.6,cx+1.6,.05,2.5,z1+.03,1,1);for(const dx of[-1.6,0,1.6])vc.box(cx+dx-.05,0,z1+.02,cx+dx+.05,2.55,z1+.09,1,W_,{});vc.box(cx-1.65,2.5,z1+.02,cx+1.65,2.6,z1+.09,1,W_,{});
+  glass.wz(cx-3.6,cx-2,1.0,2.4,z1+.03,1,1);glass.wz(cx+2,cx+3.6,1.0,2.4,z1+.03,1,1);
+  vc.box(cx-3.4,2.95,z1,cx+3.4,3.2,z1+2.1,1,W_,{});for(const dx of[-3.1,3.1])s3Post(vc,cx+dx,z1+1.9,2.95,W_);
+  /* classroom windows: white frames, three panes, front and back; one window on each end */
+  for(const[zf,nz]of[[z1,1],[z0,-1]])for(let x=x0+1.6;x<x1-1.5;x+=3.2){if(nz>0&&x>px0-1.3&&x<px1+1.3)continue;const za=Math.min(zf,zf+nz*.08),zb=Math.max(zf,zf+nz*.08);
+    vc.box(x-1.12,.95,za,x+1.12,2.62,zb,1,W_,{});glass.wz(x-1.0,x+1.0,1.05,2.5,zf+nz*.09,nz,1);
+    for(const dx of[-.34,.34])vc.box(x+dx-.03,1.05,Math.min(zf,zf+nz*.1),x+dx+.03,2.5,Math.max(zf,zf+nz*.1),1,W_,{});vc.box(x-1.2,.9,Math.min(zf,zf+nz*.18),x+1.2,.98,Math.max(zf,zf+nz*.18),1,W_,{})}
+  for(const[xf,nx]of[[x0,-1],[x1,1]]){const z=(z0+z1)/2;vc.box(Math.min(xf,xf+nx*.08),.95,z-1.1,Math.max(xf,xf+nx*.08),2.62,z+1.1,1,W_,{});glass.wx(z-1,z+1,1.05,2.5,xf+nx*.09,nx,1)}
+  SG.sign(['MAPLE HEIGHTS ELEMENTARY','HOME OF THE MIGHTY ACORNS'],{bg:'#1f4d3a',fg:'#f6f1e2',fg2:'#f2c230',size:74,border:false},cx,4.85,z1+.1,0,7.6,1.15);
+  /* monument sign and flagpole on the east lawn */
+  const mx=s.flag.x+.6,mz=6.45;brick.box(mx-1.4,0,mz-.35,mx+1.4,.55,mz+.35,1.1,null,{});vc.box(mx-1.5,.55,mz-.42,mx+1.5,.62,mz+.42,1,W_,{});vc.box(mx-1.42,.62,mz-.34,mx+1.42,1.52,mz+.34,1,W_,{});
+  SG.sign(['MAPLE HEIGHTS ELEMENTARY','BAKE SALE SAT · GO ACORNS!'],{bg:'#f4f0e6',fg:'#1f4d3a',fg2:'#b8323a',size:76},mx,1.08,mz,0,2.7,.8,{two:true});
+  const fz=s.flag.z-1.8;vc.addGeo(cyl(.06,.04,8,10),M4(s.flag.x,4,fz),1,S3C.galv);vc.addGeo(new THREE.SphereGeometry(.09,8,6),M4(s.flag.x,8.05,fz),1,S3C.brass);
+  {const c=canvas(256,160),x=c.getContext('2d');for(let i=0;i<13;i++){x.fillStyle=i%2?'#f4f1ea':'#b8323a';x.fillRect(0,i*160/13,256,160/13+1)}x.fillStyle='#2b3f73';x.fillRect(0,0,108,86);x.fillStyle='#fff';
+   for(let r=0;r<5;r++)for(let k=0;k<6;k++){x.beginPath();x.arc(10+k*17+(r%2)*8,10+r*16,2.6,0,6.28);x.fill()}SG.add(c,s.flag.x+.82,7.3,fz,0,1.6,1,{two:true})}
+  /* bike rack: concrete pad, six hoops, three bikes */
+  const rk=s.rack,pad=rk.pad;vc.box(pad.x0+.1,0,pad.z0+.15,pad.x1-.1,.03,pad.z1-.1,2.2,[.6,.59,.56],{});
+  for(const sl of rk.slots)vc.addGeo(new THREE.TorusGeometry(.36,.03,6,14,Math.PI),M4(rk.x+.2,0,sl.z,Math.PI/2),1,S3C.galv);for(const k of[0,2,3])bike(vc,rk.x+.25,rk.slots[k].z,0);
+  /* drop-off lane: dashed edge line, kerb paint, DROP-OFF stencils; zebra crossing over the lane and Oak St */
+  const ln=s.loop.lane,RY=HW().ROADY+.004,WP=S3C.paint;
+  for(let x=ln.x0+.4;x<ln.x1-.4;x+=1.6)vc.floor(x,ln.z1-.16,x+.9,ln.z1-.04,.012,3,()=>WP);vc.floor(ln.x0+.05,ln.z0+.02,ln.x1-.05,ln.z0+.14,.012,3,()=>S3C.yellow);
+  const cr=s.crossing;for(let z=cr.z0+.3;z<cr.z1-.25;z+=.62){const y=z+.34<=ln.z1?.014:RY;vc.floor(cr.x0,z,cr.x1,z+.34,y,3,()=>WP)}
+  const st=s3Text('DROP-OFF ONLY',512,96,72);for(const x of[ln.x0+5,ln.x1-5])SG.add(st,x,.016,(ln.z0+ln.z1)/2,0,4.2,.8,{kind:'floor'});
+  /* school zone signs ahead of the school for both directions, a no-parking sign by the door */
+  const pent=s3Shape('pent',['SCHOOL'],'#e9e04a','#1a1a1a'),lim=s3Shape('rect',['SPEED','LIMIT 20','WHEN FLASHING'],'#fbfbf8','#111'),nop=s3Shape('rect',['NO PARKING','7AM-4PM','SCHOOL DAYS'],'#fbfbf8','#b8323a');
+  for(const[x,z,ry]of[[ln.x0-6.5,19.4,-Math.PI/2],[ln.x1+7.5,10.6,Math.PI/2]]){s3Post(vc,x,z,2.9);SG.add(pent,x+Math.sin(ry)*.03,2.45,z,ry,.85,.85,{kind:'cut'});SG.add(lim,x+Math.sin(ry)*.03,1.6,z,ry,.62,.62,{kind:'cut'});s3Back(vc,x,2.0,z,ry,.62,1.3)}
+  s3Post(vc,cx+9,9.6,2.4);SG.add(nop,cx+9,2.0,9.63,0,.55,.55,{kind:'cut'});s3Back(vc,cx+9,2.0,9.63,0,.55,.55);
+  s3VcMesh(g,vc);SG.build(g);s3Fin(B,ws)}});
+
+/* ---- 1418 Walnut Dr: an open one-car garage beside the house (roll-up door raised), shelves of other people's stuff, a FOR SALE sign that never changes ---- */
+SETPIECES.push({id:'s3walnut',r:130,box:def=>({x0:108,z0:44,x1:132,z1:60,y1:6}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.walnut;if(!s)return;
+  const B=newB(ws,g,'hub',{x0:56,z0:24,x1:63,z1:28},0,63),sd=B.gbOf('siding'),rf=B.gbOf('roof'),vc=new (HW().GB)(),SG=s3Signs(),W_=S3C.white;
+  const G_=s.garage,x0=G_.x0,x1=G_.x1+.15,z0=G_.z0,z1=G_.z1,E=2.7,R=3.45,zc=(z0+z1)/2;
+  sd.box(x0,0,z0,x1,E,z0+.3,1.6,null,{});sd.box(x0,0,z1-.3,x1,E,z1,1.6,null,{});sd.box(x0-.05,2.45,z0+.3,x0+.25,E,z1-.3,1.6,null,{});
+  sd.tri([x0-.05,E,z0],[x0-.05,E,z1],[x0-.05,R,zc],[[0,0],[1,0],[.5,1]],null,[-1,0,0]);
+  for(const[za,zb]of[[z0-.35,zc],[z1+.35,zc]])rf.quad([x0-.3,E-.12,za],[x1,E-.12,za],[x1,R,zb],[x0-.3,R,zb],[[0,0],[2,0],[2,1],[0,1]],null,[0,1,za<zc?-1:1]);
+  vc.box(x0-.32,E-.2,z0-.38,x0-.18,E,z1+.38,1,W_,{});vc.box(x0+.02,2.15,z0+.3,x0+.42,2.45,z1-.3,1,W_,{});   /* fascia; the raised door rolled up under the header */
+  for(const z of[z0+.3,z1-.3])vc.box(x0-.06,0,Math.min(z,z+(z<zc?.12:-.12)),x0+.06,2.45,Math.max(z,z+(z<zc?.12:-.12)),1,W_,{});
+  vc.box(x0-4,0,z0+.35,x0,.02,z1-.35,2.2,[.62,.61,.58],{});vc.box(x0,0,z0+.3,x1-.15,.015,z1-.3,2.2,[.5,.49,.47],{});
+  /* shelves along the north wall with boxes, a bike on the back wall, a tool chest */
+  for(const y of[.05,.75,1.45,2.0])vc.box(x0+.6,y,z0+.32,x1-.7,y+.04,z0+.82,1,S3C.galv,{});for(const x of[x0+.6,x1-.74])vc.box(x,0,z0+.32,x+.04,2.05,z0+.82,1,S3C.galv,{});
+  const BX=[[.55,.42,.3],[.62,.5,.36],[.3,.32,.36],[.68,.18,.16]];let k=0;for(const y of[.09,.79,1.49])for(let x=x0+.75;x<x1-1.1;x+=.62){const c=BX[k++%4];vc.box(x,y,z0+.38,x+.5,y+.42+(k%3)*.06,z0+.78,1,c,{})}
+  bike(vc,x1-.6,zc-.4,Math.PI/2);vc.box(x1-.65,0,z1-1.6,x1-.3,.95,z1-.4,1,S3C.red,{});
+  SG.sign(['SOLD!','(NOT REALLY)'],{bg:'#b8323a',fg:'#fff',fg2:'#ffd23f'},x0+1.6,.55,z0+.9,0,1.1,.68,{tilt:-.12});
+  /* FOR SALE yard sign on the front lawn: post, arm, hanging panel */
+  const ss=s.saleSign;vc.box(ss.x-.05,0,ss.z-.05,ss.x+.05,1.55,ss.z+.05,1,W_,{});vc.box(ss.x-.05,1.45,ss.z-.05,ss.x+.95,1.53,ss.z+.05,1,W_,{});
+  for(const dx of[.18,.78])vc.addGeo(cyl(.008,.008,.2,4),M4(ss.x+dx,1.35,ss.z),1,S3C.dark);
+  SG.sign(['FOR SALE','PINNACLE HOMES · 555-0199'],{bg:'#fbfbf6',fg:'#1d3a5f',fg2:'#b8323a'},ss.x+.48,1.0,ss.z,0,.86,.54,{two:true});
+  s3VcMesh(g,vc);SG.build(g);s3Fin(B,ws)}});
+
+/* ---- Discount Storage Unlimited: numbered orange roll-up doors on the unit rows, row letters, office, open sliding gate + keypad, loading dock, cameras, floodlights ---- */
+function s3DoorAtlas(){if(TX.s3doors)return TX.s3doors;const c=canvas(1024,768),x=c.getContext('2d');/* 8 x 6 cells of 128 x 128: a door per unit number 1..48 */
+  for(let i=0;i<48;i++){const X=(i%8)*128,Y=Math.floor(i/8)*128;x.fillStyle='#e8611c';x.fillRect(X,Y,128,128);x.strokeStyle='rgba(0,0,0,.28)';x.lineWidth=2;for(let y=Y+26;y<Y+128;y+=8){x.beginPath();x.moveTo(X,y);x.lineTo(X+128,y);x.stroke()}
+    x.fillStyle='#f4f1ea';x.fillRect(X+38,Y+3,52,19);x.fillStyle='#1a1a1a';x.font='900 17px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(String(i+1),X+64,Y+13);
+    x.fillStyle='#2a2a2a';x.fillRect(X+52,Y+114,24,6);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(X,Y+124,128,4)}
+  return TX.s3doors=ctex(c)}
+/* a chain-link panel (posts + rails in vc, fabric in its own mesh) in a group a job can slide */
+function s3Panel(g,name,a,b,y0,y1){const gg=new THREE.Group();gg.name=name;gg.userData.noCompact=true;const vc=new (HW().GB)(),fb=new (HW().GB)(),L=Math.hypot(b[0]-a[0],b[1]-a[1]),yaw=Math.atan2(-(b[1]-a[1]),b[0]-a[0]);
+  for(const p of[a,b])vc.addGeo(cyl(.04,.04,y1-y0+.05,8),M4(p[0],(y0+y1)/2,p[1]),1,S3C.galv);for(const y of[y0+.05,y1])vc.obox((a[0]+b[0])/2,y,(a[1]+b[1])/2,L/2,.025,.025,yaw,1,S3C.galv);
+  fb.quad([a[0],y0+.05,a[1]],[b[0],y0+.05,b[1]],[b[0],y1,b[1]],[a[0],y1,a[1]],[[0,0],[L/.7,0],[L/.7,(y1-y0)/.7],[0,(y1-y0)/.7]],null,[Math.sin(yaw),0,Math.cos(yaw)]);
+  const m=gbMesh(vc,s3Vc(),{shadow:true}),f=gbMesh(fb,fabricMat(),{shadow:true});if(m)gg.add(m);if(f)gg.add(f);g.add(gg);S3[name]=gg;return gg}
+SETPIECES.push({id:'s3storage',r:140,box:def=>({x0:198,z0:126,x1:276,z1:160,y1:8}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.storage;if(!s)return;
+  const B=newB(ws,g,'hub',{x0:102,z0:65,x1:136,z1:78},0,67),vc=new (HW().GB)(),SG=s3Signs();
+  /* roll-up doors: one atlas, one merged mesh; a white header over each */
+  const dg=new (HW().GB)(),u0=n=>((n-1)%8)/8,v0=n=>1-Math.floor((n-1)/8)/6;
+  for(const un of s.units){const nz=un.face[1],z=un.z+nz*.06,a=un.x-1.65,b=un.x+1.65,U=u0(un.n),V=v0(un.n);
+    const P=[[a,.04,z],[b,.04,z],[b,2.5,z],[a,2.5,z]],uv=nz>0?[[U,V-1/6],[U+1/8,V-1/6],[U+1/8,V],[U,V]]:[[U+1/8,V-1/6],[U,V-1/6],[U,V],[U+1/8,V]];dg.quad(P[0],P[1],P[2],P[3],uv,null,[0,0,nz]);
+    vc.box(a-.08,2.5,Math.min(z,z+nz*.06),b+.08,2.62,Math.max(z,z+nz*.06),1,S3C.white,{})}
+  {const m=gbMesh(dg,MC.s3door||(MC.s3door=new THREE.MeshStandardMaterial({map:s3DoorAtlas(),roughness:.5,metalness:.3,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})),{});if(m)g.add(m)}
+  for(const[L,x,z]of[['A',212,136],['B',216,144],['C',224,152]])SG.sign([L],{bg:'#e8611c',fg:'#fff',size:200,border:false},x-.06,2.0,z,-Math.PI/2,1.3,1.3);
+  /* banner on the fence facing Industrial Way, office sign, guard rota board */
+  SG.sign(['DISCOUNT STORAGE UNLIMITED','1ST MONTH $1 · 24 HR ACCESS · NO QUESTIONS'],{bg:'#f2c230',fg:'#1a1a1a',fg2:'#b8323a',size:84},208.9,1.35,139.5,-Math.PI/2,8.6,1.85,{two:true});
+  const of=s.office;SG.sign(['OFFICE','RING BELL · BACK IN 5 MIN'],{bg:'#fbfbf8',fg:'#1d3a5f',fg2:'#444'},of.door.x+2.6,2.3,of.z0-.06,Math.PI,1.6,.62);
+  SG.sign(['GUARD ROTA','NIGHTS: 10P-2A · 2A-6A'],{bg:'#e9e5d8',fg:'#222',fg2:'#7a2626'},s.board.x,1.55,s.board.z-.08,Math.PI,.9,.56);
+  /* sliding gate (open, parked inside along the fence) and the keypad post on the sidewalk */
+  s3Panel(g,'storage.gate',[209.35,s.gate.z-2-4.1],[209.35,s.gate.z-2-.1],0,2.05);
+  const kp=s.gate.keypad;s3Post(vc,kp.x,kp.z,1.1);vc.box(kp.x-.13,1.05,kp.z-.09,kp.x+.13,1.4,kp.z+.09,1,S3C.dark,{});
+  SG.sign(['1 2 3','4 5 6 · 7 8 9'],{bg:'#20252b',fg:'#9fe0ff',fg2:'#9fe0ff',size:56,border:false},kp.x,1.24,kp.z+.095,0,.2,.26,{glow:true});
+  /* loading dock: concrete platform, yellow edge, bumpers, steps */
+  const d=s.dock;vc.box(d.x0,0,d.z0,d.x1,d.h,d.z1,2,S3C.conc,{});vc.box(d.x1-.02,d.h-.06,d.z0,d.x1+.02,d.h+.01,d.z1,1,S3C.yellow,{});
+  for(const z of[d.z0+.7,d.z1-.7])vc.box(d.x1,.55,z-.18,d.x1+.14,1.0,z+.18,1,S3C.dark,{});for(let i=0;i<3;i++)vc.box(d.x0+.15,0,d.z1+i*.3,d.x1-.15,d.h-(i+1)*.3,d.z1+(i+1)*.3,2,S3C.conc,{});
+  /* cameras (dark body, red LED), floodlights over the east aisle */
+  s.cameras.forEach((c,i)=>{if(i<3)s3Post(vc,c.x,c.z,c.y);const s_=Math.sin(c.yaw),co=Math.cos(c.yaw);vc.obox(c.x-s_*.18,c.y+.05,c.z-co*.18,.08,.08,.2,c.yaw,1,S3C.dark);
+    vc.addGeo(new THREE.SphereGeometry(.03,6,4),M4(c.x-s_*.4,c.y+.05,c.z-co*.4),1,[2.5,.1,.1])});
+  for(const z of[140,152])s3Lamp(vc,269.3,z,[-1,0]);
+  s3VcMesh(g,vc);SG.build(g);s3Fin(B,ws)}});
+
+/* ---- Route 9 Park & Ride: 24 painted bays with wheel stops, pay booth, barrier arm at the gate, sign on the fence, two light poles ---- */
+SETPIECES.push({id:'s3parkride',r:140,box:def=>({x0:252,z0:50,x1:284,z1:90,y1:9}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.parkride;if(!s)return;
+  const B=newB(ws,g,'hub',{x0:128,z0:26,x1:140,z1:44},0,69),glass=B.gbOf('glass'),vc=new (HW().GB)(),SG=s3Signs(),WP=()=>S3C.paint;
+  const rows={};for(const b of s.bays)(rows[b.row]||(rows[b.row]=[])).push(b);
+  for(const r in rows){const L=rows[r],z0=L[0].z-L[0].d/2,z1=L[0].z+L[0].d/2,nose=L[0].yaw===0?-1:1;
+    for(let k=0;k<=L.length;k++){const x=L[0].x-L[0].w/2+k*L[0].w;vc.floor(x-.05,z0+.15,x+.05,z1-.1,.012,3,WP)}
+    for(const b of L){const zn=b.z+nose*(b.d/2-.45);vc.box(b.x-.85,0,zn-.08,b.x+.85,.13,zn+.08,1.5,[.62,.6,.55],{})}}
+  {const c=canvas(512,128),x=c.getContext('2d');x.clearRect(0,0,512,128);x.fillStyle='#f2efe6';x.font='900 92px "Arial Narrow", Arial';x.textAlign='center';x.textBaseline='middle';x.fillText('EXIT',300,66);
+   x.beginPath();x.moveTo(20,64);x.lineTo(110,14);x.lineTo(110,44);x.lineTo(170,44);x.lineTo(170,84);x.lineTo(110,84);x.lineTo(110,114);x.closePath();x.fill();SG.add(c,263.4,.016,s.gate.z,Math.PI/2,3.2,.8,{kind:'floor'})}
+  /* pay booth */
+  const bo=s.booth,W_=S3C.white;vc.box(bo.x-.95,0,bo.z-1.25,bo.x+.95,1.0,bo.z+1.25,1,W_,{});glass.wz(bo.x-.9,bo.x+.9,1.0,2.25,bo.z+1.26,1,1);glass.wx(bo.z-1.2,bo.z+1.2,1.0,2.25,bo.x-.96,-1,1);glass.wx(bo.z-1.2,bo.z+1.2,1.0,2.25,bo.x+.96,1,1);
+  vc.box(bo.x-.95,2.25,bo.z-1.25,bo.x+.95,2.4,bo.z+1.25,1,W_,{});vc.box(bo.x-1.25,2.4,bo.z-1.5,bo.x+1.25,2.62,bo.z+1.5,1,W_,{});
+  for(const[dx,dz]of[[-.92,-1.22],[.92,-1.22],[-.92,1.22],[.92,1.22]])vc.box(bo.x+dx-.04,1,bo.z+dz-.04,bo.x+dx+.04,2.25,bo.z+dz+.04,1,W_,{});
+  SG.sign(['PAY HERE','$3 / DAY'],{bg:'#1d4f91',fg:'#fff',fg2:'#f2c230'},bo.x,2.51,bo.z+1.51,0,1.8,.26);
+  /* barrier arm: a pivot a job can lower (S3['parkride.barrier'].rotation.x = 0 closes it) */
+  {const ba=s.gate.barrier;vc.box(ba.x-.25,0,ba.z-.25,ba.x+.25,1.05,ba.z+.25,1.5,[.85,.7,.1],{});const pv=new THREE.Group();pv.name='parkrideBarrier';pv.userData.noCompact=true;pv.position.set(ba.x,1.0,ba.z);
+   const c=canvas(256,32),x=c.getContext('2d');for(let i=0;i<8;i++){x.fillStyle=i%2?'#f4f1ea':'#c8262b';x.fillRect(i*32,0,32,32)}
+   const arm=new THREE.Mesh(new THREE.BoxGeometry(.09,.09,4.1),MC.s3arm||(MC.s3arm=new THREE.MeshStandardMaterial({map:ctex(c),roughness:.5})));arm.position.set(0,0,2.1);arm.castShadow=true;pv.add(arm);pv.rotation.x=-1.32;g.add(pv);S3['parkride.barrier']=pv}
+  SG.sign(['ROUTE 9 PARK & RIDE','COMMUTER LOT · BUS TO DOWNTOWN · NO OVERNIGHT'],{bg:'#1d4f91',fg:'#fff',fg2:'#cfe0f6',size:92},258.9,1.4,58.6,-Math.PI/2,4.6,1.15,{two:true});
+  for(const z of[64,79])s3Lamp(vc,279.7,z,[-1,0]);
+  s3VcMesh(g,vc);SG.build(g);s3Fin(B,ws)}});
+
+/* ---- Cash-4-Yer-Stuff: sign over the shop front, barred windows, STAFF ONLY door, display counter, back-office desk with the ledger, a safe ---- */
+SETPIECES.push({id:'s3pawn',r:120,box:def=>({x0:346,z0:16,x1:368,z1:42,y1:8}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.pawn;if(!s)return;
+  const vc=new (HW().GB)(),SG=s3Signs(),sg=s.sign;vc.box(sg.x-sg.w/2-.12,3.05,sg.z-.1,sg.x+sg.w/2+.12,4.85,sg.z+.04,1,S3C.dark,{});
+  SG.sign(['CASH-4-YER-STUFF','WE BUY · WE SELL · GOLD · TOOLS · ELECTRONICS'],{bg:'#b8231e',fg:'#ffd23f',fg2:'#fff',size:96},sg.x,3.95,sg.z+.05,0,sg.w,1.7,{glow:true});
+  for(const dx of[-4.6,4.6])vc.addGeo(cyl(.03,.03,.9,6),M4(sg.x+dx,5.3,sg.z-.2),1,S3C.galv);
+  {const c=canvas(256,192),x=c.getContext('2d');x.fillStyle='#1a2026';x.fillRect(0,0,256,192);x.fillStyle='#ffd23f';x.font='900 30px Arial';x.textAlign='center';x.fillText('WE BUY GOLD',128,80);x.fillStyle='#7fe0ff';x.fillText('OPEN',128,130);
+   x.strokeStyle='#8a8f93';x.lineWidth=7;for(let i=12;i<256;i+=28){x.beginPath();x.moveTo(i,0);x.lineTo(i,192);x.stroke()}x.lineWidth=9;x.strokeRect(4,4,248,184);
+   for(const xx of[sg.x-3.6,sg.x+3.6])SG.add(c,xx,1.75,s.door.z+.04,0,2.1,1.55)}
+  for(const dx of[-2,2])vc.box(s.door.x+dx-.08,0,s.door.z-.04,s.door.x+dx+.08,2.5,s.door.z+.08,1,S3C.white,{});
+  const sd=s.staffDoor;SG.sign(['STAFF ONLY','NO EXCEPTIONS'],{bg:'#fbfbf8',fg:'#b8231e',fg2:'#222'},sd.x+1.75,1.65,sd.z+1.04,0,.9,.36);
+  /* display counter (glass top), shelves on the west wall, desk with the ledger and a safe in the back office (bodies: site.solids) */
+  const fl=s.floor;vc.box(fl.x1-3.6,0,fl.z0+.2,fl.x1-.25,.9,fl.z0+.9,1,S3C.wood,{});vc.box(fl.x1-3.55,.9,fl.z0+.24,fl.x1-.3,1.08,fl.z0+.86,1,[.25,.35,.38],{});
+  for(const y of[.4,1.1,1.8])vc.box(fl.x0+.05,y,fl.z0+.4,fl.x0+.55,y+.04,fl.z1-.4,1,S3C.galv,{});
+  const C=[[.2,.2,.22],[.75,.55,.2],[.55,.12,.1],[.15,.3,.6],[.8,.8,.78]];let k=0;
+  for(const y of[.44,1.14,1.84])for(let z=fl.z0+.55;z<fl.z1-.7;z+=.7){const c=C[k++%5];vc.box(fl.x0+.08,y,z,fl.x0+.5,y+.3+(k%3)*.12,z+.5,1,c,{})}
+  const dk=s.desk;vc.box(dk.x-1.2,.72,dk.z-1.0,dk.x+.9,.78,dk.z-.3,1,[.42,.3,.2],{});for(const dx of[-1.15,.85])vc.box(dk.x+dx-.03,0,dk.z-.95,dk.x+dx+.03,.72,dk.z-.35,1,[.25,.2,.15],{});
+  vc.box(dk.x-.2,.78,dk.z-.85,dk.x+.25,.86,dk.z-.5,1,[.08,.2,.12],{});vc.box(dk.x+.25,0,dk.z+.1,dk.x+.85,.8,dk.z+.75,1,[.25,.27,.3],{});
+  s3VcMesh(g,vc);SG.build(g)}});
+
+/* ---- Mill St Auto Recovery: sign over the bay, rolled-up bay door, floodlights, rolling yard gate (open), BEWARE OF DOG, a dog bed, tyre stacks ---- */
+SETPIECES.push({id:'s3millshop',r:130,box:def=>({x0:412,z0:98,x1:442,z1:126,y1:8}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.millshop;if(!s)return;
+  const vc=new (HW().GB)(),SG=s3Signs(),sg=s.sign;vc.box(sg.x-sg.w/2-.12,3.05,sg.z-.04,sg.x+sg.w/2+.12,4.9,sg.z+.1,1,S3C.dark,{});
+  SG.sign(['MILL ST AUTO RECOVERY','TOWING 24/7 · IMPOUND · CASH ONLY'],{bg:'#1c2a36',fg:'#f2c230',fg2:'#f4f1ea',size:96},sg.x,3.98,sg.z-.05,Math.PI,sg.w,1.75,{glow:true});
+  const d=s.door;vc.box(d.x-2.05,2.1,d.z+.1,d.x+2.05,2.45,d.z+.5,1,S3C.galv,{});for(const sx of[-1,1])vc.box(d.x+sx*2.02-.08,0,d.z-.06,d.x+sx*2.02+.08,2.45,d.z+.06,1,S3C.dark,{});
+  for(const x of[s.yard.x0+2,s.yard.x1-2]){vc.box(x-.35,2.85,s.yard.z0-.02,x+.35,3.1,s.yard.z0+.35,1,S3C.dark,{});vc.floor(x-.3,s.yard.z0+.02,x+.3,s.yard.z0+.3,2.84,1,()=>[2.2,2.1,1.7],true)}
+  s3Panel(g,'millshop.gate',[s.gate.x-3-6.05,s.yard.z1+.55],[s.gate.x-3-.1,s.yard.z1+.55],0,2.05);
+  SG.sign(['BEWARE OF DOG','HIS NAME IS TINY'],{bg:'#f2c230',fg:'#111',fg2:'#7a2626'},s.gate.x+4.6,1.25,s.yard.z1+1.0,0,1.0,.5,{two:true});
+  SG.sign(['NO TRESPASSING','VIOLATORS WILL BE TOWED'],{bg:'#fbfbf8',fg:'#b8231e',fg2:'#222'},s.vault.x+.02,1.25,s.vault.z,Math.PI/2,1.0,.5,{two:true});
+  const db=s.dogBed;vc.addGeo(new THREE.TorusGeometry(.42,.14,8,16).rotateX(Math.PI/2),M4(db.x,.12,db.z),1,[.55,.18,.16]);vc.addGeo(cyl(.36,.36,.06,14),M4(db.x,.04,db.z),1,[.62,.52,.42]);
+  vc.addGeo(cyl(.14,.11,.08,12),M4(db.x-.75,.04,db.z+.2),1,[.2,.35,.7]);
+  for(const[x,z,n]of[[s.shop.x1-.7,s.shop.z0+.55,4],[s.shop.x1-1.6,s.shop.z0+.55,3]])for(let i=0;i<n;i++)vc.addGeo(new THREE.TorusGeometry(.3,.11,8,16).rotateX(Math.PI/2),M4(x,.11+i*.22,z),1,[.07,.07,.07]);
+  s3VcMesh(g,vc);SG.build(g)}});
+
+/* ---- Community Center: a second storey to the 7 m roof (SPEC3 2.8), parapet, rooftop units, and the ladder with a safety cage on the east wall ---- */
+SETPIECES.push({id:'s3roof',box:def=>({x0:410,z0:44,x1:446,z1:64,y1:11}),build(ws,u){const def=ws.def,g=u.group,s=def.sites.roof;if(!s)return;
+  const B=newB(ws,g,'hub',{x0:207,z0:23,x1:220,z1:30},0,75),br=B.gbOf('brickH'),glass=B.gbOf('glass'),vc=new (HW().GB)(),SG=s3Signs(),W_=S3C.white,TINT=[1.08,1.05,1.0];
+  const b=s.building,x0=b.x0+.12,x1=b.x1-.12,z0=b.z0+.12,z1=b.z1-.12,Y=s.roofY,P=s.parapet,T=.25;
+  br.box(x0,4.6,z0,x1,Y,z1,1.1,TINT,{top:true});vc.box(x0-.06,4.55,z0-.06,x1+.06,4.75,z1+.06,1,W_,{});vc.floor(x0,z0,x1,z1,Y+.004,2.5,()=>[.45,.45,.44]);
+  for(const[a0,a1,b0,b1]of[[x0,x1,z0,z0+T],[x0,x1,z1-T,z1],[x0,x0+T,z0,z1],[x1-T,x1,z0,z1]])br.box(a0,Y,b0,a1,Y+P,b1,1.1,TINT,{});
+  vc.box(x0-.05,Y+P,z0-.05,x1+.05,Y+P+.08,z1+.05,1,W_,{});
+  /* upper windows on all sides (the east side keeps a gap for the ladder) */
+  const lz=s.ladder.z;for(const[zf,nz]of[[z0,-1],[z1,1]])for(let x=x0+1.5;x<x1-1.2;x+=2.8){glass.wz(x-.7,x+.7,5.3,6.45,zf+nz*.03,nz,1);vc.box(x-.78,5.2,Math.min(zf,zf+nz*.12),x+.78,5.28,Math.max(zf,zf+nz*.12),1,W_,{})}
+  for(const[xf,nx]of[[x0,-1],[x1,1]])for(let z=z0+1.5;z<z1-1.2;z+=2.8){if(nx>0&&Math.abs(z-lz)<1.6)continue;glass.wx(z-.7,z+.7,5.3,6.45,xf+nx*.03,nx,1);vc.box(Math.min(xf,xf+nx*.12),5.2,z-.78,Math.max(xf,xf+nx*.12),5.28,z+.78,1,W_,{})}
+  /* rooftop units (cover), roof hatch, vent stacks */
+  for(const[x,z,w,d]of[[x0+5,(z0+z1)/2-1.2,2.4,1.6],[x1-6.5,z0+3,1.8,1.4]]){vc.box(x-w/2,Y,z-d/2,x+w/2,Y+1.25,z+d/2,1,[.6,.62,.63],{});vc.box(x-w/2+.2,Y+1.25,z-d/2+.2,x+w/2-.2,Y+1.3,z+d/2-.2,1,S3C.dark,{})}
+  vc.box(x1-3.2,Y,z1-2.6,x1-2.2,Y+.45,z1-1.6,1,S3C.dark,{});for(const x of[x0+10,x0+12.5])vc.addGeo(cyl(.12,.12,.9,8),M4(x,Y+.45,z0+2.2),1,S3C.galv);
+  /* ladder: rails from the ground to a gooseneck over the parapet, rungs every 30 cm, cage hoops from 2.4 m, wall brackets */
+  const L=s.ladder,lx=L.x+.05,top=Y+P+1.0,LC=[.62,.64,.66];
+  for(const dz of[-.24,.24]){vc.addGeo(cyl(.025,.025,top,6),M4(lx,top/2,lz+dz),1,LC);const gn=cyl(.025,.025,1.1,6);gn.rotateZ(Math.PI/2);vc.addGeo(gn,M4(lx-.5,top,lz+dz),1,LC);vc.addGeo(cyl(.025,.025,top-Y,6),M4(x1-.55,(top+Y)/2,lz+dz),1,LC)}
+  for(let y=.3;y<Y+P;y+=.3){const r=cyl(.017,.017,.48,5);r.rotateX(Math.PI/2);vc.addGeo(r,M4(lx,y,lz),1,LC)}
+  for(let y=2.4;y<Y+P;y+=.9){const h=new THREE.TorusGeometry(.38,.018,4,14,Math.PI);h.rotateX(Math.PI/2);h.rotateY(Math.PI/2);vc.addGeo(h,M4(lx,y,lz),1,LC)}
+  for(const a of[-1.2,-.4,.4,1.2])vc.addGeo(cyl(.014,.014,Y+P-2.4,4),M4(lx+.38*Math.cos(a),2.4+(Y+P-2.4)/2,lz+.38*Math.sin(a)),1,LC);
+  for(let y=.5;y<Y;y+=2)vc.box(x1,y,lz-.3,lx-.02,y+.08,lz+.3,1,S3C.dark,{});
+  SG.sign(['ROOF ACCESS','STAFF · DOUG'],{bg:'#f2c230',fg:'#111',fg2:'#7a2626'},x1+.02,1.9,lz+.75,Math.PI/2,.7,.28);
+  s3VcMesh(g,vc);SG.build(g);s3Fin(B,ws)}});
+
+/* ---- bus stops (Earl's Shortcuts perk): pole with a blue flag sign, bench, bin ---- */
+SETPIECES.push({id:'s3bus',r:120,box:def=>({x0:310,z0:30,x1:430,z1:136,y1:5}),build(ws,u){const def=ws.def,g=u.group,vc=new (HW().GB)(),SG=s3Signs();
+  const fl=signCanvas(['BUS','ROUTE 9 · LINE 4'],{bg:'#1d4f91',fg:'#fff',fg2:'#ffd23f',w:256,h:256,size:110});
+  for(const k in def.places){const p=def.places[k];if(!p.bus)continue;const f=p.face,px=p.x+f[0]*.62,pz=p.z+f[1]*.62,along=[-f[1],f[0]];
+    s3Post(vc,px,pz,2.8);SG.add(fl,px+f[0]*.34,2.35,pz+f[1]*.34,Math.atan2(along[0],along[1]),.6,.6,{two:true});
+    s3Bench(vc,p.x-f[0]*.45+along[0]*1.0,p.z-f[1]*.45+along[1]*1.0,Math.atan2(f[0],f[1]));
+    const bx=p.x-f[0]*.5-along[0]*1.0,bz=p.z-f[1]*.5-along[1]*1.0;vc.box(bx-.28,0,bz-.33,bx+.28,1.0,bz+.33,1,[.1,.22,.5],{});vc.box(bx-.31,1.0,bz-.36,bx+.31,1.06,bz+.36,1,[.08,.17,.4],{})}
+  s3VcMesh(g,vc);SG.build(g)}});
+
+/* ---- potholes (SPEC3 2.18, def.potholes): one merged decal mesh on the asphalt ---- */
+function s3HoleTex(){if(TX.s3hole)return TX.s3hole;const c=canvas(128,128),x=c.getContext('2d'),r=rng(41);x.clearRect(0,0,128,128);
+  const blob=(R,col,j)=>{x.fillStyle=col;x.beginPath();for(let k=0;k<=20;k++){const a=k/20*6.283,rr=R*(1-j/2+r()*j);k?x.lineTo(64+Math.cos(a)*rr,64+Math.sin(a)*rr):x.moveTo(64+Math.cos(a)*rr,64+Math.sin(a)*rr)}x.fill()};
+  blob(60,'rgba(70,68,64,.55)',.3);blob(50,'rgba(28,27,25,.92)',.35);blob(36,'rgba(14,13,12,.96)',.4);
+  for(let i=0;i<40;i++){x.fillStyle='rgba(120,116,108,'+(.3+r()*.4)+')';const a=r()*6.283,d=40+r()*18;x.fillRect(64+Math.cos(a)*d,64+Math.sin(a)*d,2+r()*3,2+r()*3)}
+  x.fillStyle='rgba(40,48,56,.5)';x.beginPath();x.ellipse(60,68,16,9,.4,0,6.283);x.fill();return TX.s3hole=ctex(c)}
+SETPIECES.push({id:'s3potholes',r:150,box:def=>({x0:200,z0:30,x1:440,z1:136,y1:2}),build(ws,u){const def=ws.def,W_=HW();if(!def.potholes||!def.potholes.length)return;const gb=new (W_.GB)(),Y=W_.ROADY+.006;
+  for(const p of def.potholes){const s=p.r*1.35,a=(p.tx*7+p.tz*13)%628/100,c=Math.cos(a),sn=Math.sin(a),P=(q,w)=>[p.x+q*c+w*sn,Y,p.z-q*sn+w*c];
+    gb.quad(P(-s,-s),P(-s,s),P(s,s),P(s,-s),[[0,0],[0,1],[1,1],[1,0]],null,[0,1,0])}
+  const m=gbMesh(gb,MC.s3holeM||(MC.s3holeM=new THREE.MeshStandardMaterial({map:s3HoleTex(),transparent:true,depthWrite:false,roughness:.95,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6})),{});
+  if(m){m.renderOrder=2;m.name='potholes';u.group.add(m)}}});
+
 /* ---- backdrop: world.js terrain ring with far houses and trees, the river valley carved through it ---- */
 SETPIECES.push({id:'backdrop',box:def=>({x0:-400,z0:-400,x1:def.W*TILE+400,z1:def.H*TILE+400,y1:40}),always:true,build(ws,u){const W_=HW();if(!W_||!W_.backdrop)return;const def=ws.def;
   const B=W_.begin({def:{id:'world',lines:[]},g:[],W:0,H:0,group:u.group,colliders:[],solids:[]});B.W=def.W;B.H=def.H;B.hub=true;B.r=rng(99);
@@ -906,7 +1148,7 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
     if(!u.built){if(d<R+40&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue}
     if(!u.ready){u.group.visible=false;continue}
     if(u.mg){const far=d>ws.BLOD;if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
-    let vis=u.sp&&u.sp.always?true:d<R;if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
+    let vis=u.sp&&u.sp.always?true:d<(u.r?Math.min(u.r,R):R);   /* u.r: a unit drawn only within r metres (SPEC3 sites and their dressing) */if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
     u.visible=vis;u.group.visible=vis;
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}
