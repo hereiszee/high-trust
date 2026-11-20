@@ -1013,7 +1013,7 @@ function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<sm
 /* ================= SPAWNING ================= */
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
 function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
-function clearChars(){for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
+function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};
@@ -1129,7 +1129,7 @@ function owEnterHub(){const def=WORLD,O=OW();
 /* updHub hook: region banners, trust dressing, GPS route + ground chevrons */
 function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   if(OWS.q!==RENDER.q){OWS.q=RENDER.q;O.quality(RENDER.q)}
-  O.dress(prog.trustR);
+  O.dress(frDressT(prog.trustR));
   /* SPEC2 A.5 mood blend: Riverside starts overcast and gets sunnier as its trust rises */
   const bT=O.blockTrust?O.blockTrust(P.pos.x,P.pos.z):prog.trustR;
   {const t=P.pos.x/TILE,kR=clamp((t-140)/16,0,1),k=kR*kR*(3-2*kR)*(1-clamp((bT-10)/60,0,1));
@@ -1242,14 +1242,14 @@ function setCarSolid(e,on){if(e===VAN||!L)return;if(on){if(e.meshes)return;e.mes
 /* hero model while you drive (and while it carries dents); the light parked model once you walk away */
 function swapLod(e,lod){if(e===VAN||!e.obj||(e.obj.userData.lod|0)===lod)return;const nv=carModel(e.type,e.color,lod);if(!nv)return;const old=e.obj,solid=!!e.meshes;
   setCarSolid(e,false);nv.position.copy(old.position);nv.rotation.copy(old.rotation);if(old.parent){old.parent.add(nv);old.parent.remove(old)}try{old.userData.dispose&&old.userData.dispose()}catch(_){}
-  e.obj=nv;if(e.dmg&&nv.userData.setDamage)nv.userData.setDamage(e.dmg);if(solid)setCarSolid(e,true)}
+  e.obj=nv;if(solid)setCarSolid(e,true);if(e.fx)for(const k in e.fx)if(e.fx[k])e.fx[k].o.object=nv;carLook(e);if(lod===0&&e.dmg>.02)carRedent(e)}
 function carStats(e){const F=feel(e),S=carSize(e);
   const s={type:e.type,maxSpeed:F.max,boostMax:F.boostMax,accel:F.acc,boostAccel:F.boostAcc,brake:F.brake,hbrake:F.hbrake,coast:3.5,revMax:8,revAccel:7,steerResp:F.steerResp,turn:F.turn,turnFade:.75,grip:F.grip,
     absGrip:false,hp:100,sport:false,sportDur:0,sportCool:0,sportAccMul:1,sportMax:F.boostMax,len:Math.max(3.6,S.l*.86),wid:Math.max(1.8,Math.min(2.15,S.w))};
   if(e===VAN&&typeof VANK!=='undefined'){const K=VANK,M=CAR_FEEL.minivan;/* Dad's Auto upgrades and bought vehicles, as multipliers on the classic van */
     Object.assign(s,{maxSpeed:M.max*K.top,boostMax:M.boostMax*K.btop,accel:M.acc*K.accel,boostAccel:M.boostAcc*K.baccel,brake:M.brake*K.brake,hbrake:M.hbrake*K.brake,turn:M.turn*K.turn,grip:M.grip*K.grip,steerResp:M.steerResp*K.steer});
     try{const vs=vanStats();if(vs&&vs.hp)s.hp=vs.hp}catch(_){}}
-  return s}
+  s.hp=carHpMax(e);return s}
 /* arcade physics: HT.CarAI.drive when loaded (sliding grip model), else the classic van model */
 function drivePhys(c,inp,dt,col){const CA=HTM('CarAI');if(CA&&CA.drive)return CA.drive(c,inp,dt,col);
   const S=c.stats;let v=c.spd;const thr=inp.thr,MAX=inp.boost?S.boostMax:S.maxSpeed,A=inp.boost?S.boostAccel:S.accel;
@@ -1260,8 +1260,8 @@ function drivePhys(c,inp,dt,col){const CA=HTM('CarAI');if(CA&&CA.drive)return CA
   let hit=null;for(const s of[1,-1]){const p={x:c.x+f[0]*S.len/3*s,z:c.z+f[1]*S.len/3*s},q={x:p.x,z:p.z};col(q,S.wid/2+.05);const dx=q.x-p.x,dz=q.z-p.z;if(dx*dx+dz*dz>1e-6){c.x+=dx;c.z+=dz;if(!hit)hit={front:s===1===(v>=0),speed:Math.abs(v)}}}
   if(hit)c.spd*=hit.speed>5?-.25:.6;return hit}
 function makeHubVan(){const v=makeVan('#35577d','minivan',{roofRack:true});if(!v.userData.mod){box(3.4,.08,1.6,'#2a2a2a',-.3,2.04,0,v);for(const z of[-.7,.7])box(3.2,.1,.08,'#888',-.3,2.12,z,v)}
-  L.group.add(v);VAN.obj=v;VAN.pos.set(L.vanStart.x,0,L.vanStart.z);VAN.yaw=-Math.PI/2;VAN.spd=0;VAN.steer=0;VAN.on=false;CV=null;VAN.dmg=0;VAN.odo=0;VAN.col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(VAN.col);
-  VAN.home={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};(L.cars||(L.cars=[])).unshift(VAN);BORROW.car=null;syncVan()}
+  L.group.add(v);VAN.obj=v;VAN.pos.set(L.vanStart.x,0,L.vanStart.z);VAN.yaw=-Math.PI/2;VAN.spd=0;VAN.steer=0;VAN.on=false;CV=null;VAN.dmg=0;VAN.fx=null;VAN.odo=0;VAN.col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(VAN.col);
+  VAN.home={x:VAN.pos.x,z:VAN.pos.z,yaw:VAN.yaw};(L.cars||(L.cars=[])).unshift(VAN);BORROW.car=null;syncVan();carLook(VAN);carRedent(VAN)}
 /* place the car's model and its parked footprint */
 function syncCar(e){const v=e.obj;if(!v)return;v.position.set(e.pos.x,groundAt(e.pos.x,e.pos.z),e.pos.z);v.rotation.set(0,e.yaw+Math.PI/2,0);
   const c=e.col;if(!c)return;if(CV===e){Object.assign(c,VAN_OFF);return}const S=carSize(e),a=Math.abs(Math.sin(e.yaw)),b=Math.abs(Math.cos(e.yaw)),hl=S.l/2+.04,hw=S.w/2+.04,hx=a*hl+b*hw,hz=b*hl+a*hw;
@@ -1276,13 +1276,14 @@ const carCap=e=>{const F=feel(e);return F.seats+F.bed};
 function borrowNote(e){return pick(BORROW_NOTES).replace(/\{n\}/g,e.name).replace(/\{t\}/g,feel(e).label)}
 function enterCar(e){if(!e||!e.obj||CV)return;
   if(BORROW.car&&BORROW.car!==e)settleBorrow(false);/* taking another car settles the last borrowed one */
-  const fresh=e.owner==='neighbour'&&BORROW.car!==e;if(fresh){BORROW.car=e;BORROW.dmg0=e.dmg;BORROW.odo0=e.odo}
+  const fresh=e.owner==='neighbour'&&BORROW.car!==e;if(fresh){BORROW.car=e;BORROW.dmg0=1-carFrac(e);BORROW.odo0=e.odo;e.fixed=false}
   swapLod(e,0);setCarSolid(e,false);if(e.tile&&L.g[e.tile[1]]){L.g[e.tile[1]][e.tile[0]]=(L.def.under&&L.def.under.V)||',';e.tile=null}
   if(e===VAN)VAN.type=VAN.obj.userData.type||'minivan';CV=e;e.stats=carStats(e);e.base=Object.assign({},e.stats);
   const CA=HTM('CarAI');e.car=CA&&CA.make?CA.make(e.type,{x:e.pos.x,z:e.pos.z,yaw:e.yaw,stats:e.stats}):{x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:0,steer:0,vdx:0,vdz:0,slip:0,hp:100,stats:e.stats,bump:0,t:0};
-  e.car.hp=e.stats.hp||100;e.spd=0;e.steer=0;syncCar(e);
+  carBindHp(e);e.car.topMul=1;e.spd=0;e.steer=0;syncCar(e);DRV.bandQ=carBand(e);
   DRV.fp0=P.fp;P.fp=false;DRV.lights=null;DRV.lPrev=!!keys.l;camDist=feel(e).cam[0];
-  P.yaw=e.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;vm.visible=false;engine(true,e);snd('reload',.6);
+  P.yaw=e.yaw;P.pitch=-.22;P.aim=false;P.crouch=false;mouseDown=false;vm.visible=false;engine(true,e);snd('reload',.6);carLook(e);
+  if(carHp(e)<=0){try{ENG&&ENG.stall&&ENG.stall(true)}catch(_){}HUD.feed("It won't start. "+(e===VAN?"Call Dad's Auto.":'It needs a tow.'),'bad')}
   const cap=carCap(e)-1;let k=0;for(const a of allies){a.target=null;a.ride=!a.down&&k<cap;if(a.ride)k++;a.dude.root.visible=!a.ride}
   P.dude.root.visible=false;
   try{if(FX.emitter){const S=carSize(e);DRV.ex=FX.emitter('exhaust',{object:e.obj,offset:[-S.l/2+.08,.3,S.w*.27],dir:[-1,.06,0]})}}catch(_){DRV.ex=null}
@@ -1291,27 +1292,32 @@ function enterCar(e){if(!e||!e.obj||CV)return;
   else{if(fresh)radio('you',borrowNote(e),true);if(sp&&riders<crew)radio(sp,pick(NOFIT_LINES));else if(sp)radio(sp,pick(CREW_LINES[e.type]||CREW_LINES.sedan))}}
 function enterVan(){enterCar(VAN)}
 /* silent stop (level swaps): no exit placement */
-function stopDriving(){const e=CV;CV=null;if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}P.fp=DRV.fp0;if(e&&e.obj&&e.obj.parent){syncCar(e);setCarSolid(e,true)}for(const a of allies)a.ride=false}
+function stopDriving(){const e=CV;CV=null;if(e&&carBand(e)<5)carFxOff(e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}P.fp=DRV.fp0;if(e&&e.obj&&e.obj.parent){syncCar(e);setCarSolid(e,true)}for(const a of allies)a.ride=false}
 function exitCar(){const e=CV;if(!e)return;const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);
-  CV=null;e.spd=0;e.steer=0;if(e.car){e.car.spd=0;e.car.steer=0}syncCar(e);engine(false,e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}
-  setCarSolid(e,true);const VM=HTM('Vehicles');if(e.obj.userData.mod&&VM&&VM.update)try{VM.update(e.obj,{speed:0,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}
+  CV=null;e.spd=0;e.steer=0;if(e.car){e.car.spd=0;e.car.steer=0}syncCar(e);engine(false,e);if(carBand(e)<5)carFxOff(e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}
+  setCarSolid(e,true);const VM=HTM('Vehicles');if(e.obj.userData.mod&&VM&&VM.update)try{VM.update(e.obj,{speed:0,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}carLook(e);
   let ok=false;const side=S.w/2+.75;
   for(const s of[-side,side]){const p=e.pos.clone().addScaledVector(r,s),q=p.clone();collide(q,.35);if(q.distanceTo(p)<.05&&walkable(tx(p.x),tx(p.z))){P.pos.copy(p);ok=true;break}}
   if(!ok){const p=e.pos.clone().addScaledVector(f,-(S.l/2+1.1));collide(p,.35);P.pos.copy(p)}
   P.yaw=e.yaw;P.dude.root.visible=true;P.dude.root.position.set(P.pos.x,0,P.pos.z);P.fp=DRV.fp0;P.crouch=false;
   let i=0;for(const a of allies){if(!a.ride){a.dude.root.visible=true;continue}a.ride=false;a.pos.copy(P.pos).addScaledVector(f,-1.4-(i>>1)).addScaledVector(r,i%2?1.4:-1.4);collide(a.pos,.35);a.dude.root.visible=true;a.dude.root.position.set(a.pos.x,0,a.pos.z);i++}}
 function exitVan(){exitCar()}
-/* trust from borrowing: +1 for bringing it back near where it was, undamaged, after a real drive; -2 for leaving it far away or dented. Once per owner each way, +3/-6 per session */
+/* trust from borrowing, settled when the dad takes another car or starts a job. It scales with the damage left on the car (car health
+   now vs when he took it): -1 scuffed (10%+), -2 dented (30%+), -3 wrecked (60%+), -2 for leaving it far from home; broken down = towed home
+   (TOW_FEE_HOME and up to -3). +1 for bringing it back near where it was, undamaged, after a real drive, or after paying Dad's Auto to fix it.
+   Once per owner each way, +3/-6 per session */
 function settleBorrow(job){const e=BORROW.car;job=job&&CV===e;BORROW.car=null;if(!e||!L||!L.cars||!L.cars.includes(e))return null;
-  const dent=e.dmg-BORROW.dmg0,away=Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),moved=e.odo-BORROW.odo0,at=P.pos.clone().setY(2.2);
-  if(dent>=.3||(!job&&away>45&&moved>20)){if(BORROW.minus>-6&&!BORROW.dinged.has(e.name)){BORROW.dinged.add(e.name);BORROW.minus-=2;addTrust(-2);
-      try{FX.trustPop(at,'-2 TRUST',{sub:e.name+"'s going to mention this at the block party",color:'#ff6a4d'})}catch(_){}radio(e.name,pick(DING_LINES));return -2}return 0}
-  if(!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1);
-      try{FX.trustPop(at,'+1 TRUST',{sub:'Returned · thanks, '+e.name})}catch(_){}radio(e.name,pick(RETURN_LINES));return 1}}
+  if(carHp(e)<=0&&CV!==e){const r=towHome(e,true);return r?r.trust:0}
+  const dent=(1-carFrac(e))-BORROW.dmg0,away=Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z),moved=e.odo-BORROW.odo0,at=P.pos.clone().setY(2.2);
+  let pen=dent>=.6?3:dent>=.3?2:dent>=.1?1:0;if(!job&&away>45&&moved>20)pen=Math.max(pen,2);
+  if(pen){if(BORROW.minus>-6&&!BORROW.dinged.has(e.name)){BORROW.dinged.add(e.name);const t=-Math.min(pen,6+BORROW.minus);BORROW.minus+=t;addTrust(t,carHood(e));
+      try{FX.trustPop(at,t+' TRUST',{sub:dent>=.1?e.name+' is counting the dents':e.name+"'s going to mention this at the block party",color:'#ff6a4d'})}catch(_){}radio(e.name,pick(DING_LINES));return t}return 0}
+  if(e.fixed&&dent<.06||!job&&away<10&&dent<.06&&moved>80){if(BORROW.plus<3&&!BORROW.thanked.has(e.name)){BORROW.thanked.add(e.name);BORROW.plus+=1;addTrust(1,carHood(e));
+      try{FX.trustPop(at,'+1 TRUST',{sub:(e.fixed?'Fixed up · thanks, ':'Returned · thanks, ')+e.name})}catch(_){}radio(e.name,pick(e.fixed?FIXED_LINES:RETURN_LINES));return 1}}
   return 0}
-/* a dent where the car hit something: push is the collision push-out (world), sp the impact speed.
+/* a dent where the car hit something (drawn by carCrash / carRedent): push is the collision push-out (world), sp the impact speed.
    Crumples the hero body in place (paint shell and trim pushed in along the hit, crease shading) and scuffs the paint around it */
-function dentCar(e,push,sp){const ud=e.obj.userData,add=Math.min(.22,(sp-5)*.013);e.dmg=Math.min(1,e.dmg+add);if(ud.setDamage)ud.setDamage(e.dmg);
+function dentCar(e,push,sp){const ud=e.obj.userData;ud.dentN=(ud.dentN|0)+1;/* visuals only: the damage itself is carHp (car health, below) */
   const paint=ud.body&&ud.body[0];if(!paint||!ud.bodyRoot)return;
   const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw),S=carSize(e);
   const t=Math.min(S.l/2/Math.max(1e-3,Math.abs(lx)),S.w/2/Math.max(1e-3,Math.abs(lz))),P_={x:lx*t,y:S.h*(.3+Math.random()*.15),z:lz*t};
@@ -1328,6 +1334,161 @@ function dentGeo(g,c,lx,lz,R,dep,scuff){const pa=g.attributes.position,na=g.attr
     if(na){const nx=na.getX(i)+j*w*1.1,ny=na.getY(i)+Math.sin(h)*w*.6,nz=na.getZ(i)-j*w*1.1,nl=Math.hypot(nx,ny,nz)||1;na.setXYZ(i,nx/nl,ny/nl,nz/nl)}
     if(ca){const s=1-Math.min(.55,w*.75+(j>.3?.2*w:0));ca.setXYZ(i,Math.min(ca.getX(i),s),Math.min(ca.getY(i),s*.97),Math.min(ca.getZ(i),s*.93))}}
   if(!n)return;pa.needsUpdate=true;if(na)na.needsUpdate=true;if(ca)ca.needsUpdate=true;g.computeBoundingSphere()}
+/* ---------- car health: ONE value per car ----------
+   carHp(e) is the health of a car. Your own vehicles keep it in SAVE.garage.hp[active] (Dad's Auto reads and repairs that same number);
+   a neighbour's car keeps e.hp for the session; a bare HT.CarAI car (chase targets) its own .hp. maxHp is HT.Garage.apply for the type
+   and its reinforced panels. The HUD bar, the dents, the handling bands, hood smoke, sounds, Dad's Auto and the chase code all read it.
+   Bands, as a fraction of maxHp (CAR_BAND): >=70% fine · <70% dented (cosmetic: dents, rattles) · <50% pulling (alignment, top speed -10%,
+   a wisp of steam) · <30% smoking (acceleration x.7, top speed -25%, brakes x.75, rough engine, grey smoke, warning chime) · <12% limp
+   (25 mph, heavy smoke, sputtering, sparks off a dragging bumper) · 0 broken down (coasts to a stop, hazards, hood steam, no explosion).
+   API for other code: carHp(e), carHpMax(e), carBand(e), carDamage(e,amount,cause), carRepair(e,amount|'full'), onBreakdown(fn). */
+const CAR_BAND=[
+ {id:'fine',   top:1,  acc:1,  brk:1,  pull:0,  rough:0,  hood:0},
+ {id:'dented', top:1,  acc:1,  brk:1,  pull:0,  rough:.05,hood:0},
+ {id:'pulling',top:.9, acc:.95,brk:.95,pull:.04,rough:.18,hood:.22,steam:1},
+ {id:'smoking',top:.75,acc:.7, brk:.75,pull:.07,rough:.55,hood:.55,shade:.45},
+ {id:'limp',   top:.75,acc:.5, brk:.65,pull:.09,rough:.9, hood:1,  shade:.2,limp:11.2},
+ {id:'broken', top:.75,acc:0,  brk:.65,pull:0,  rough:0,  hood:.6, steam:1}];
+const CAR_HOOKS={breakdown:[],damage:[]},JOB_PATCH=.85/* jobs start with the van at least this healthy */,TOW_FEE=75,TOW_FEE_HOME=120,CRASH_MIN=6.5;
+const CAR_QUIPS=[null,["That's coming out of the swear jar.","{n} is going to count the dents.","Was that a mailbox? Tell me that wasn't a mailbox."],
+  ["Is it pulling left or is that me?","Why is the steering wheel crooked now?","I smell coolant. That's a smell I know."],
+  ["Is that smoke? Tell me that's steam.","The dash just lit up like Christmas.","She's making the noise. The bad noise."],
+  ["We're in limp mode, boys. Hazards on, dignity off.","Something is dragging. Don't look.","My grandma drives faster than this. My grandma is a lamp now."],
+  ["She's done. Everybody out. Nobody tell Jen.","Well. We live here now.","That's not a breakdown, that's a retirement."]];
+const CAR_WARN=['','','','Check engine. Also check everything.','Limp mode · 25 mph max','Broken down'];
+const TOW_LINES=["{n}'s {t} arrived home on a flatbed.","{n} watched the tow truck back up the driveway. Slowly.","A flatbed just dropped {n}'s {t} on the lawn. {n} is on the porch."];
+const FIXED_LINES=["Did you... get it detailed? It's nicer than when I lent it to you.","Sal called. You paid for the bodywork? You're a good egg.","It's got new headlights! I've been meaning to do that since 2017."];
+const BUMP_LINES=["Hey! That's my {t}!","I SAW that. I'm writing it in the newsletter.","Not the {t}! It's paid off!"];
+function carSave(e){if(e!==VAN)return null;try{const s=SV();return s&&s.garage&&s.garage.hp?s.garage:null}catch(_){return null}}
+function carHpMax(e){if(!e)return 100;if(e===VAN){if(VAN._mx)return VAN._mx;const vs=vanStats();return VAN._mx=vs&&vs.hp||100}/* cached; vanApply clears it */
+  if(!e.obj&&e.stats&&e.stats.hp)return e.stats.hp;if(e._mx&&e._mxT===e.type)return e._mx;let m=100;const G=HTM('Garage');try{if(G&&G.VEH[e.type])m=G.apply(e.type).hp}catch(_){}e._mxT=e.type;return e._mx=m}
+function carHp(e){if(!e)return 0;const g=carSave(e);if(g){const v=g.hp[g.active];return v==null?carHpMax(e):v}if(e.hp==null)e.hp=carHpMax(e);return e.hp}
+function carFrac(e){const m=carHpMax(e);return m>0?clamp(carHp(e)/m,0,1):1}
+function carBand(e){const f=carFrac(e);return f<=0?5:f<.12?4:f<.3?3:f<.5?2:f<.7?1:0}
+function carWear(e){const g=carSave(e);if(g){g.wear=g.wear||{};return g.wear[g.active]||(g.wear[g.active]={lamps:[0,0,0,0],tyre:0})}return e.wear||(e.wear={lamps:[0,0,0,0],tyre:0})}
+const carBare=e=>!e.obj&&e!==VAN;
+function carSetHp(e,v){const m=carHpMax(e);v=clamp(v,0,m);const g=carSave(e);if(g){g.hp[g.active]=v;try{SAVEM.touch('garage')}catch(_){}}else e.hp=v;
+  e.dmg=m>0?1-v/m:0;carLook(e);return v}
+/* the driven car's physics body (HT.CarAI car, e.car) reads and writes the same health: code that does e.car.hp -= x (chases, rams,
+   HT.CarAI.impact) lands in carDamage, and HT.CarAI.drive's 'no throttle at 0' sees the real value */
+function carBindHp(e){const c=e.car;if(!c||c===e)return;Object.defineProperty(c,'hp',{configurable:true,enumerable:true,get:()=>carHp(e),
+  set:v=>{const h=carHp(e);if(v<h-1e-6)carDamage(e,h-v,'ai');else if(v>h+1e-6)carRepair(e,v-h,{fresh:false})}})}
+/* the car's look from its health: paint wear, smashed lamps, hazards when broken down */
+function carLook(e){const ud=e.obj&&e.obj.userData;if(!ud)return;const f=carFrac(e),w=carWear(e);e.dmg=1-f;
+  try{if(ud.setDamage)ud.setDamage(e.dmg);if(ud.setLamps)ud.setLamps(w.lamps);if(ud.setHazard)ud.setHazard(f<=0)}catch(_){}}
+/* a model rebuilt or loaded damaged (save, lod swap): dents to match its health, scattered deterministically */
+function carRedent(e){const ud=e.obj&&e.obj.userData;if(!ud||!ud.bodyRoot||!ud.body||!ud.body[0])return;const want=Math.round((1-carFrac(e))*8);let n=ud.dentN|0,seed=((e.name||'van').charCodeAt(0)*977+n*131)%2147483647||7;
+  const rnd=()=>{seed=seed*16807%2147483647;return seed/2147483647};while(n<want){const a=rnd()*6.283;dentCar(e,{x:Math.cos(a),z:Math.sin(a)},9+rnd()*9);n++}}
+function carSwapModel(e,nv){if(!nv||!e.obj)return;const old=e.obj,solid=!!e.meshes;setCarSolid(e,false);nv.position.copy(old.position);nv.rotation.copy(old.rotation);
+  if(old.parent){old.parent.add(nv);old.parent.remove(old)}try{old.userData.dispose&&old.userData.dispose()}catch(_){}e.obj=nv;e._seatObj=null;if(solid)setCarSolid(e,true);
+  if(DRV.ex&&CV===e)DRV.ex.o.object=nv;const F=e.fx;if(F)for(const k in F)if(F[k]&&F[k].o)F[k].o.object=nv}
+/* a fresh, dent-free model (after Dad's Auto): the family van keeps its saved parts and paint */
+function carFresh(e){const u=e.obj&&e.obj.userData;if(!u||!(u.mod||u.bodyRoot))return;let nv=null;if(e===VAN){const lk=vanLook();nv=makeVan(lk.color,lk.type,lk.upgrades)}else nv=carModel(e.type,e.color,0);
+  if(nv&&e===VAN)nv.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});carSwapModel(e,nv)}
+const carName=e=>e===VAN?'the minivan':e.name+"'s "+feel(e).label;
+/* trust from a neighbour's car goes to the neighbourhood it lives in (Maple Heights or Riverside) */
+function carHood(e){try{const O=L&&L.ow&&OW();if(O&&O.regionAt&&e&&e.home)return O.regionAt(e.home.x,e.home.z)==='river'?'river':'maple'}catch(_){}return undefined}
+function carSay(e,s){return s.replace(/\{n\}/g,e&&e.name||'Jen').replace(/\{t\}/g,feel(e).label)}
+
+/* damage: amount in HP. Crossing into a worse band while you drive it: crew quip, chime, warning; reaching 0 breaks it down */
+function carDamage(e,amt,cause){if(!e||!(amt>0))return 0;
+  if(carBare(e)){const h0=e.hp||0;e.hp=Math.max(0,h0-amt);if(h0>0&&e.hp<=0)carBroke(e,cause);return h0-e.hp}
+  const h0=carHp(e);if(h0<=0)return 0;const b0=carBand(e),h=carSetHp(e,h0-amt),b=carBand(e);
+  for(const f of CAR_HOOKS.damage)try{f(e,h0-h,cause)}catch(_){}
+  if(b>b0)carBandDown(e,b,cause);if(h<=0)carBroke(e,cause);return h0-h}
+function carBandDown(e,b,cause){if(CV!==e)return;const sp=speaker(),q=CAR_QUIPS[b];if(b<5&&q&&DRV.bandQ!==b){DRV.bandQ=b;DRV.quipT=Math.max(DRV.quipT,2);radio(sp||'you',carSay(e,pick(q)))}
+  if(b>=3&&b<5){try{if(ENG&&ENG.chime)ENG.chime()}catch(_){}try{HUD.feed(CAR_WARN[b],'bad')}catch(_){}}}
+function carBroke(e,cause){e.brokeT=0;if(carSave(e))try{metaSave()}catch(_){}
+  if(CV===e){if(ENG){try{ENG.misfire&&ENG.misfire(1);ENG.chime&&ENG.chime();ENG.stall&&ENG.stall(true)}catch(_){}}
+    radio(speaker()||'you',carSay(e,pick(CAR_QUIPS[5])),true);
+    try{HUD.banner({kind:'fail',kicker:carName(e),title:'Broken down',sub:e===VAN?'Get out (E), then call Dad\'s Auto for a tow':'Get out (E). '+e.name+' is going to hear about this.',dur:2.6})}catch(_){}}
+  for(const f of CAR_HOOKS.breakdown.slice())try{f(e,cause)}catch(err){console.warn(err)}}
+function onBreakdown(fn){CAR_HOOKS.breakdown.push(fn);return()=>{const i=CAR_HOOKS.breakdown.indexOf(fn);if(i>=0)CAR_HOOKS.breakdown.splice(i,1)}}
+/* repair: 'full' (or omitted) = like new, a fresh body and every lamp; a number = that many HP (engine first), the tyre gets swapped */
+function carRepair(e,amt,o){if(!e)return 0;o=o||{};const m=carHpMax(e),h0=carHp(e),full=amt==null||amt==='full';
+  if(carBare(e)){e.hp=full?m:Math.min(m,(e.hp||0)+amt);e.dead=false;e.stopped=false;return e.hp-h0}
+  const h=carSetHp(e,full?m:h0+amt),w=carWear(e);if(full||o.parts){w.lamps=[0,0,0,0];w.tyre=0}else if(o.tyre!==false)w.tyre=0;
+  if(o.lamps)w.lamps=o.lamps.slice(0,4);if(o.tyreSet!=null)w.tyre=o.tyreSet;
+  if(h>0){e.brokeT=null;if(CV===e&&ENG){try{ENG.stall&&ENG.stall(false)}catch(_){}}}
+  if(o.fresh!==false&&(full||h>h0+.5)){carFresh(e);carLook(e);if(!full)carRedent(e)}else carLook(e);
+  DRV.bandQ=carBand(e);return h-h0}
+/* an impact at sp m/s. push = collision push-out (world, from the obstacle into the car), front = nose first. Gentle taps and kerb bumps
+   (< CRASH_MIN ~ 15 mph) do nothing; above that damage grows with the square of the extra speed, with the car's mass and with how
+   square-on the hit is. A bull bar halves nose hits, reinforced panels soak 15% / 30%. Returns HP lost. */
+function carImpact(e,sp,push,front,o){o=o||{};if(!(sp>CRASH_MIN))return 0;const G=HTM('Garage'),V=G&&G.VEH[e.type]||{mass:1},vs=e===VAN?vanStats():null;
+  let k=1;if(push&&(push.x||push.z)){const l=Math.hypot(push.x,push.z),c=Math.abs((push.x*-Math.sin(e.yaw)+push.z*-Math.cos(e.yaw))/l);k=.35+.65*c}
+  let mod=(o.mul||1)*(e===CV&&carChasing()?.5:1);/* frantic chase driving shouldn't end the job by itself: rams and bullets do that */if(vs){if(front&&vs.impactTakenFront)mod*=vs.impactTakenFront;if(vs.bulletMul)mod*=1-(1-vs.bulletMul)*.6}
+  const d=Math.min(carHpMax(e)*.45,.13*(sp-CRASH_MIN)*(sp-CRASH_MIN)*(V.mass||1)*k*mod);return carDamage(e,d,o.cause||'crash')}
+/* the full crash: health, a dent where it hit, lamps and a tyre that can give, and the parked car on the other end */
+function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!lost)return 0;const ud=e.obj&&e.obj.userData,w=carWear(e);
+  const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw);
+  if(!e.pullDir)e.pullDir=lz>0?-1:1;
+  if(sp>10&&Math.abs(lx)>.35&&Math.random()<.6){const i=(lx>0?0:2)+(lz>0?1:0);if(!w.lamps[i]){w.lamps[i]=1;if(CV===e)radio(speaker()||'you',pick(["There goes a headlight.","Was that glass? That was glass.","One-eyed Willy. That's what we call her now."]))}}
+  if(sp>13&&Math.abs(lz)>.45&&!w.tyre&&Math.random()<.3){w.tyre=1;e.pullDir=lz>0?1:-1;try{if(ENG&&ENG.thump)ENG.thump(1)}catch(_){}if(CV===e)try{HUD.feed('Flat tyre','bad')}catch(_){}}
+  if(carSave(e))try{SAVEM.touch('garage');metaSave()}catch(_){}
+  if(ud&&ud.bodyRoot)dentCar(e,push,sp);carLook(e);/* (bodyRoot, not .mod: setUpgrades drops .mod on the van) */
+  /* a parked car on the other end takes it too, and its owner notices */
+  if(L&&L.cars){const S=carSize(e);let v=null,bd=1e9;for(const c of L.cars){if(c===e||!c.obj||c===CV)continue;const ox=c.pos.x-e.pos.x,oz=c.pos.z-e.pos.z,d=Math.hypot(ox,oz),S2=carSize(c);
+      if(d<S.l/2+S2.l/2+1&&(ox*-push.x+oz*-push.z)/(d||1)>.2&&d<bd){bd=d;v=c}}
+    if(v){const got=carImpact(v,sp*.85,{x:-push.x,z:-push.z},false,{cause:'parked'});if(got>0){if(v!==VAN&&got>2.5){swapLod(v,0);dentCar(v,{x:-push.x,z:-push.z},sp*.85);carLook(v)}if(v!==VAN&&v!==BORROW.car)carNoticed(v,got)}}}
+  return lost}
+/* an owner who saw you hit (or shoot) their parked car: a small trust hit, once per owner, -3 a session at most */
+function carNoticed(e,got){if(got<3||!e.name)return;const B=BORROW;B.bumped=B.bumped||new Set();B.bmin=B.bmin||0;if(B.bumped.has(e.name)||B.bmin<=-3)return;B.bumped.add(e.name);B.bmin--;addTrust(-1,carHood(e));
+  try{FX.trustPop(e.pos.clone().setY(2.2),'-1 TRUST',{sub:e.name+' saw that',color:'#ff6a4d'})}catch(_){}radio(e.name,carSay(e,pick(BUMP_LINES)))}
+/* bullets: the dad's car soaks part of what's aimed at him; shooting a parked car dents it (its owner notices) */
+function carShot(obj,dmg){if(!L||!L.cars||!obj)return 0;let e=null;for(const c of L.cars)if(c.meshes&&c.meshes.includes(obj)){e=c;break}if(!e)return 0;
+  const got=carDamage(e,dmg*.25,'bullet');if(e!==VAN&&e!==BORROW.car)carNoticed(e,got*2);return got}
+function carBulletHit(d){if(!CV)return d;const vs=CV===VAN?vanStats():null;carDamage(CV,d*.6*(vs&&vs.bulletMul||1),'bullet');return d*.55}
+/* handling from health: called every frame from updVan after the base stats are set */
+/* in a chase or an escort the van keeps going: no limp mode and milder acceleration/brakes until it actually dies (0 still ends it) */
+const CAR_CHASE_BAND={id:'chase',top:.75,acc:.85,brk:.85,pull:.07,rough:.7,hood:.8,shade:.3};
+function carChasing(){return mode==='mission'&&M&&M.state==='go'&&!!(M.chase&&M.chase.state!=='done'||M.phase==='escort'||M.phase==='ambush')}
+function carDrive(e,S,B,I){const b=carBand(e),H=b>=3&&b<5&&carChasing()?CAR_CHASE_BAND:CAR_BAND[b],w=carWear(e),lim=H.limp||1e9,fl=w.tyre?.92:1;
+  S.maxSpeed=Math.min(lim,B.maxSpeed*H.top*fl);S.boostMax=Math.min(lim,B.boostMax*H.top*fl);if(B.sportMax)S.sportMax=Math.min(lim,B.sportMax*H.top*fl);
+  S.accel*=H.acc;S.boostAccel*=H.acc;S.brake=B.brake*H.brk;S.hbrake=B.hbrake*H.brk;if(w.tyre)S.grip*=.85;if(e.car)e.car.topMul=1;
+  const pull=(H.pull+(w.tyre?.07:0))*(e.pullDir||1);if(pull&&!I.hb)I.st=clamp(I.st+pull*clamp(Math.abs(e.spd)/10,0,1),-1,1);
+  if(b===5){I.thr=e.spd>.3?Math.min(0,I.thr):0;I.boost=false}return b}
+/* smoke, steam, sparks, hazards and the worn-car sounds; every frame for the car you drive, and for broken-down cars nearby */
+function carFxTick(e,dt,on){const b=carBand(e),H=CAR_BAND[b],F=e.fx||(e.fx={}),S=carSize(e);for(const k in F)if(F[k]&&F[k].dead)F[k]=null;/* FX.clear() on a level swap */if(b===5)e.brokeT=(e.brokeT||0)+dt;
+  const steamFade=b===5?Math.max(0,1-e.brokeT/45):1,want=H.hood>0&&(on||b===5)&&steamFade>0&&FX.emitter;
+  if(want&&!F.hood)try{F.hood=FX.emitter('hood',{object:e.obj,offset:[S.l/2-.8,Math.min(1.25,S.h*.58),0]});CARFX.cars.add(e)}catch(_){}
+  if(F.hood){if(!want){F.hood.remove();F.hood=null}else{F.hood.intensity=H.hood*Math.max(.25,steamFade)*(on&&b<5?.75+.25*clamp(Math.abs(e.spd)/15,0,1):1);F.hood.steam=!!H.steam;F.hood.shade=H.steam?.93:H.shade}}
+  const drag=on&&b===4&&FX.emitter;if(drag&&!F.drag)try{F.drag=FX.emitter('drag',{object:e.obj,offset:[-S.l/2+.05,.07,-S.w*.25],dir:[-1,0,0]});CARFX.cars.add(e)}catch(_){}
+  if(F.drag){if(!drag){F.drag.remove();F.drag=null}else F.drag.speed=Math.abs(e.spd)}
+  if(!on){if(b===5&&e.obj){const VM=HTM('Vehicles');if(VM&&VM.update&&e.obj.userData.mod&&Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<90)try{VM.update(e.obj,{speed:0,steer:0,braking:false,dt})}catch(_){}}return}
+  /* sounds while you drive it */
+  if(!ENG)return;const av=Math.abs(e.spd),w=carWear(e);DRV.wT=(DRV.wT||0)-dt;DRV.tT=(DRV.tT||0)-dt;
+  try{if(b===5){if(DRV.tT<=0){DRV.tT=.345;DRV.hz=!DRV.hz;ENG.tick&&ENG.tick(DRV.hz)}}
+    else if(DRV.wT<=0){DRV.wT=.6+Math.random()*(b>=3?1.4:4);
+      if(b>=3&&Math.random()<(b===4?.75:.4))ENG.misfire&&ENG.misfire(b===4?.8:.5);
+      else if(b>=1&&av>6&&Math.random()<.55)ENG.rattle&&ENG.rattle(.3+b*.15)}
+    if(w.tyre&&av>2&&DRV.tT<=0){DRV.tT=Math.max(.12,2.2/av);ENG.thump&&ENG.thump(Math.min(1,av/20))}}catch(_){}}
+const CARFX={L:null,cars:new Set()};
+function carTick(dt){if(CARFX.L!==L){for(const e of CARFX.cars)carFxOff(e);CARFX.cars.clear();CARFX.L=L}if(!L||!L.cars)return;for(const e of L.cars){if(!e.obj)continue;if(e===CV||e.fx&&(e.fx.hood||e.fx.drag)||carBand(e)===5)carFxTick(e,dt,e===CV)}}
+function carFxOff(e){const F=e&&e.fx;if(!F)return;for(const k in F)if(F[k]){try{F[k].remove()}catch(_){}F[k]=null}}
+/* towing: your own van to Dad's Auto (fee, or Sal's tab; patched to 60%), a neighbour's car home to its owner (fee and a trust hit) */
+function towVan(){const shop=HUBX.shops.find(s=>s.kind==='auto'),r=ECON&&ECON.towCharge?ECON.towCharge(TOW_FEE):{paid:0,tab:0};
+  if(CV===VAN)exitCar();const bay=shop&&shop.bay||VAN.home||{x:VAN.pos.x,z:VAN.pos.z};carFxOff(VAN);
+  VAN.pos.set(bay.x,0,bay.z);if(shop&&shop.door)VAN.yaw=Math.atan2(shop.door.nx,shop.door.nz);VAN.spd=0;VAN.steer=0;if(VAN.car){VAN.car.spd=0}syncVan();
+  const m=carHpMax(VAN);carRepair(VAN,Math.max(0,m*.6-carHp(VAN)),{fresh:false});carLook(VAN);
+  const p=V3(bay.x,0,bay.z).add(V3(Math.cos(VAN.yaw),0,-Math.sin(VAN.yaw)).multiplyScalar(2.8));collide(p,.35);P.pos.copy(p);P.dude.root.position.set(P.pos.x,0,P.pos.z);
+  for(const a of allies){a.pos.copy(P.pos).add(V3(rand(-1.5,1.5),0,rand(-1.5,1.5)));collide(a.pos,.35)}
+  const sub=(r.tab?'On Sal\'s tab · '+money(r.tab):'Paid '+money(r.paid))+' · patched up to 60%';try{HUD.feed("Towed to Dad's Auto",r.tab?'bad':'cash',r.tab?'tab '+money(r.tab):'-'+money(r.paid))}catch(_){}
+  setTimeout(()=>{try{HUD.banner({kind:'done',kicker:"Dad's Auto · tow",title:'Towed to Sal\'s',sub,dur:3})}catch(_){}},1500);/* after the region banner the move may trigger */
+  radio('Sal',pick(["I put her back together with zip ties and prayer. 60 percent. Come in for the rest.","Flatbed ride's on the tab. Don't make it a habit.","She's running. Don't ask me how. Don't ask her either."]));
+  if(typeof metaSave==='function')metaSave(true);return r}
+function towHome(e,auto){if(!e||e===VAN)return null;const r=ECON&&ECON.towCharge?ECON.towCharge(TOW_FEE_HOME):{paid:0,tab:0};if(CV===e)exitCar();if(BORROW.car===e)BORROW.car=null;
+  carFxOff(e);e.pos.set(e.home.x,0,e.home.z);e.yaw=e.home.yaw;e.spd=0;if(e.car)e.car.spd=0;carRepair(e,'full');syncCar(e);
+  try{HUD.feed(carSay(e,pick(TOW_LINES)),'bad',r.tab?'tab '+money(r.tab):'-'+money(r.paid))}catch(_){}
+  const B=BORROW,at=P.pos.clone().setY(2.2);let t=0;if(B.minus>-6&&!B.dinged.has(e.name)){B.dinged.add(e.name);t=-Math.min(3,6+B.minus);B.minus+=t;addTrust(t,carHood(e));
+    try{FX.trustPop(at,t+' TRUST',{sub:carSay(e,'{n} got the {t} back on a flatbed'),color:'#ff6a4d'})}catch(_){}}
+  radio(e.name,pick(["A FLATBED. In front of the whole street.","I lent you a car and got back a lawn ornament.","Sal said it 'sort of just died'. Cars don't just die!"]));
+  if(typeof metaSave==='function')metaSave();return{trust:t,...r}}
+function towCar(e){return e===VAN?towVan():towHome(e)}
+/* Dad's Auto: the car you pulled in with, as HT.Economy's repair target (null = the save's own active vehicle) */
+function carRepairTarget(e){if(!e||e===VAN)return null;const w=carWear(e);
+  return{own:false,name:e.name+"'s "+feel(e).label,owner:e.name,type:e.type,color:e.color,hp:carHp(e),maxHp:carHpMax(e),lamps:w.lamps.slice(),tyre:w.tyre,
+    onRepair:f=>{carRepair(e,f.hp-carHp(e),{lamps:f.lamps,tyreSet:f.tyre,tyre:false});e.fixed=true}}}
 function readDrive(){let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}return{thr,st,hb:!!keys[' '],boost:!!keys.shift}}
 const autoLights=()=>mood===MOODS.dusk;
@@ -1337,13 +1498,14 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   const v0=c.spd;S.accel=B.accel+F.torque*clamp(1-Math.abs(v0)/11,0,1);S.boostAccel=B.boostAccel+F.torque*clamp(1-Math.abs(v0)/11,0,1);
   S.grip=B.grip*(F.rear<1&&I.thr>0&&Math.abs(I.st)>.2&&Math.abs(v0)>3&&Math.abs(v0)<17?F.rear:1);
   if(!I.hb)I.st*=1-.38*clamp(Math.abs(v0)/34,0,1);/* less steering authority at speed: quick but controllable */
+  const band=carDrive(e,S,B,I);/* car health: slower, weaker brakes, a pull, limp mode, broken down */
   c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
   const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});JH.vehicle(e,dt);/* JOBS: tow, g-force, tail */
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
-      if(mod)dentCar(e,push,sp);if(mode==='mission'&&M&&M.world)wmVanImpact(e,sp,hit.front);const s2=speaker();
-      if(sp>11&&Math.random()<.5){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
+      const lost=carCrash(e,sp,push.x||push.z?push:{x:Math.sin(e.yaw)*(hit.front?1:-1),z:Math.cos(e.yaw)*(hit.front?1:-1)},hit.front),s2=speaker();if(mode==='mission'&&M&&M.world&&carHp(e)<=0)wmVanDown();
+      if(lost>0&&sp>11&&Math.random()<.5&&DRV.quipT<=0){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
         else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
   e.bump-=dt;syncCar(e);
   const braking=I.hb||(I.thr<0&&e.spd>.5)||(I.thr>0&&e.spd<-.5),heads=DRV.lights==null?autoLights():DRV.lights;
@@ -1357,7 +1519,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   if(DRV.ex)DRV.ex.intensity=clamp(.12+(I.thr>0?.75:0)*(1-av/S.boostMax)+(I.boost&&I.thr>0?.25:0),0,1);
   /* engine: rpm climbs through the gears, the note per body type */
   const fr=clamp(av/Math.max(1,S.boostMax),0,1),g=fr*F.gears*.999,gi=Math.floor(g),within=g-gi,rpm=clamp(((gi?.36:.1)+within*(gi?.52:.75)+(I.thr>0&&av<1?.18:0))*(.75+.25*F.eng),0,1);
-  if(ENG&&ENG.set)ENG.set({rpm,throttle:I.thr?1:0,speed:e.spd,skid:Math.min(1,sk)});
+  if(ENG&&ENG.set)ENG.set({rpm:band===5?0:rpm*(band===4?.7:1),throttle:band===5?0:I.thr?1:0,speed:e.spd,skid:Math.min(1,sk),damage:CAR_BAND[band].rough});
   else if(ENG){ENG.o.frequency.value=(38+av*4.2+(I.thr?8:0))*F.eng;ENG.o2.frequency.value=(19+av*2.1)*F.eng;ENG.g.gain.setTargetAtTime(running?.03+av*.0012:0,AC.currentTime,.05)}
 }
 /* inside height over a seat: first body surface straight down from above the car (local frame, metres above the ground) */
@@ -1546,6 +1708,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(pauseOpen){if(k==='escape'||k==='p')closePause();return}
   if(!running){if(k==='escape'&&HUD.screen==='brief'&&UI.acts['brief:no']){UI.acts['brief:no']();return}if(k==='escape'&&HUD.screen==='pause'&&mode==='title'){showTitle();return}if(k==='enter'&&HUD.screen==='title'&&e.target.tagName!=='BUTTON')start();return}
   if(k==='escape'||k==='p'){openPause();try{if(document.pointerLockElement)document.exitPointerLock()}catch(e){}return}
+  if(mode==='hub'&&frKey(k))return;
   if(k===' '&&!VAN.on)P.jumpBuf=MOVE.buf;
   if(k==='r')reload();if(k==='v')P.fp=!P.fp;if(k==='c'||k==='control')P.crouch=!P.crouch;
   if(k==='1'||k==='2'||k==='3'){const w=P.loadout[SLOT_KEYS[+k-1]];if(w)swap(w)}
@@ -1642,7 +1805,7 @@ function reload(){const id=P.cur,a=P.ammo[id],w=WEAPONS[id];if(!a||!w||P.rl||P.e
 function updWeapon(dt){
   const id=P.cur,w=WEAPONS[id],a=P.ammo[id];if(!w)return;
   P.fireT-=dt;P.equipT=Math.max(0,P.equipT-dt);
-  P.adsT=approach(P.adsT,P.aim&&mode==='mission'&&!VAN.on?1:0,dt/w.ads.t);
+  P.adsT=approach(P.adsT,P.aim&&armedNow()&&!VAN.on?1:0,dt/w.ads.t);
   const r=P.rDebt*(1-Math.exp(-w.rc.rec*dt));P.pitch-=r;P.rDebt-=r;
   P.bloom*=Math.exp(-(w.spread.bloomDec||6)*dt);
   if(P.rl&&a){const R=P.rl;R.t-=dt;R.el+=dt;
@@ -1655,7 +1818,7 @@ function updWeapon(dt){
   if(P.autoRlT>0){P.autoRlT-=dt;if(P.autoRlT<=0)reload()}
   for(let i=P.shellQ.length-1;i>=0;i--){const q=P.shellQ[i];q.t-=dt;if(q.t<=0){P.shellQ.splice(i,1);ejectShell(q.id)}}
   /* hunter scope: sway, Shift steadies for 3 s then it doubles for 2 s */
-  P.scoped=!!(w.scope&&P.adsT>.85&&mode==='mission');
+  P.scoped=!!(w.scope&&P.adsT>.85&&armedNow());
   let amp=0;if(P.scoped){if(keys.shift)P.steadyT+=dt;else P.steadyT=Math.max(0,P.steadyT-dt*.8);amp=keys.shift?(P.steadyT<3?.12:P.steadyT<5?2:1):1}else P.steadyT=0;
   const sp=.0015*amp*Math.sin(simT*1.3),sy=.0012*amp*Math.sin(simT*.9);P.pitch+=sp-P.swayP;P.yaw+=sy-P.swayY;P.swayP=sp;P.swayY=sy;
   vmSpring(dt,w.vm)}
@@ -1699,7 +1862,7 @@ function fire(){
     if(hit){const e=hit.object.userData.ent;
       if(e){FX.impact(hit.point,dir.clone().negate(),'cloth',{big:w.dmg>50,color:[.35,.45,.6]})}
       else if(id==='nailer')FX.impact(hit.point,(FX.ready&&hit.face)?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):dir.clone().negate(),'nail');
-      else FX.hit(hit,{big:id==='hunter'||id==='revolver'||id==='double'});
+      else{FX.hit(hit,{big:id==='hunter'||id==='revolver'||id==='double'});carShot(hit.object,w.dmg)}
       if(k<3){const A=AU();if(A)try{A.impact(e?(w.nonlethal?'beanbag':'cloth'):(FX.ready?FX.surfaceOf(hit):'concrete'),hit.point)}catch(_){}}
       if(e&&e.kind==='enemy'){const d=w.dmg*fallMul(w,hit.distance)*(hit.object.userData.head?w.head:1);dmgBy.set(e,(dmgBy.get(e)||0)+d);anyHit=true;if(hit.object.userData.head)(fire.heads||(fire.heads=new Set)).add(e);
         if(w.root&&Math.random()<w.root){e.rootT=.6;e.rootAt=e.pos.clone()}}}
@@ -1723,7 +1886,7 @@ function puff(p){FX.impact(p,V3(0,1,0),'wood',{big:true,decal:false})}
 /* ================= COMBAT ================= */
 function speaker(){const a=allies.filter(x=>!x.down);return a.length?pick(a).id:null}
 function hurtEnemy(e,dmg,by,opt={}){
-  if(e.state==='dead'||e.state==='cuffed')return;if(by==='ally'&&e.script&&e.script.kind==='to')return;/* the crew leaves the Duke's run for his car to the dad */
+  if(e.state==='dead'||e.state==='cuffed')return;if(by==='ally'&&e.script&&e.script.kind==='to')return;/* the crew leaves the Duke's run for his car to the dad */if(e.fr)frHurt(e,by);
   /* beanbag: never kills, never an execution; a hit on someone who already gave up costs a little trust */
   if(opt.nonlethal){if(e.state==='surrender'){if(simT-(e.surrAt||0)>=SURR_GRACE&&simT-(e.beanAt||-9)>1){e.beanAt=simT;addTrust(-1);const s=speaker();if(s)radio(s,"Okay, he gets it.",true)}return}
     e.hp=Math.max(1,e.hp-dmg);e.alert=true;cue('hit',e.dude,!!opt.head);if(!e.last)e.last=P.pos.clone();if(e.hp<e.maxhp*.6&&(!e.boss||!e.triedSurr)){e.triedSurr=true;surrender(e)}return}
@@ -1742,7 +1905,7 @@ function surrender(e){e.state='surrender';e.surrAt=simT;e.target=null;e.last=nul
 function killEnemy(e){cue('die',e.dude);if(e.state!=='surrender')dropGun(e,'drop');e.state='dead';equip(e.dude,null);if(e.tag){e.tag.remove();e.tag=null}if(M)M.kills++;prog.downed++;
   if(e.boss&&M)M.bossDone='down';
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
-function hurtPlayer(d,src){if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;if(src&&src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1));FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
+function hurtPlayer(d,src){if(CV)d=carBulletHit(d);/* the car soaks part of it */if(mode==='hub'){frHurtPlayer(d,src);return}if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;if(src&&src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1));FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
 function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
 function shootAt(src,target,acc,dmg,isEnemy){cue('fire',src.dude);
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
@@ -1877,7 +2040,7 @@ function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.
 function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
   let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
 /* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
-function aiShot(from,to,id,r){if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;{const n={x:from.x,z:from.z,r,t:simT,kind:'gun',id};noiseQ.push(n);JH.noise(n)}AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
+function aiShot(from,to,id,r){if(mode==='hub'){frNoise(from,to,id,r);return}if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;{const n={x:from.x,z:from.z,r,t:simT,kind:'gun',id};noiseQ.push(n);JH.noise(n)}AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
 function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
 /* per frame, before the enemy loop: what the AI can know about the dad and the crew */
 function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
@@ -1952,6 +2115,7 @@ function updEnemy(e,dt){
   if(e.state==='dead'){pose(d,dt,{mode:'down'});return}
   if(e.state==='cuffed'){pose(d,dt,{mode:'kneel'});return}
   if(e.state==='surrender'){faceTo(e,P.pos.x,P.pos.z,dt,3);pose(d,dt,{mode:'hands'});d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;return}
+  if(e.fr){frEnemy(e,dt);return}
   if(L.nav&&aiWorld){aiEnemy(e,dt);return}
   e.thinkT-=dt;
   if(e.thinkT<=0){e.thinkT=.25;let best=null,bd=1e9;
@@ -1986,6 +2150,7 @@ function updAlly(a,dt){
   if(VAN.on&&(mode==='hub'||a.ride))return;if(a.medic&&!a.down&&wmMedic(a,dt))return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
+  if(mode==='hub'&&frAlly(a,dt))return;
   if(mode==='mission'&&L.nav&&aiWorld){aiAlly(a,dt);return}
   a.thinkT-=dt;
   if(a.thinkT<=0&&mode==='mission'){a.thinkT=.3;let best=null,bd=30;
@@ -2053,7 +2218,7 @@ function updPlayer(dt){
   if(tj.id!==null){ix=tj.x;iz=tj.y;if(Math.hypot(ix,iz)<.2)ix=iz=0}
   const f=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw)),r=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
   const mv=V3().addScaledVector(r,ix).addScaledVector(f,-iz);const l=mv.length();P.moving=l>.1;
-  const sprint=keys.shift&&!P.aim&&!P.crouch;const gw=mode==='mission'&&WEAPONS[P.cur];/* each gun has its own weight and ADS walk speed */
+  const sprint=keys.shift&&!P.aim&&!P.crouch;const gw=armedNow()&&WEAPONS[P.cur];/* each gun has its own weight and ADS walk speed */
   let sp=(P.crouch?2.3:P.aim?(gw?4.3*gw.ads.speed:3):sprint?6.6:4.3)*(gw?gw.speed:1);
   if(P.landT>0){P.landT-=dt;sp*=1-.45*P.landAmt*clamp(P.landT/P.landT0,0,1)}/* landing recovery */
   P.spd=l>.1?sp*Math.min(1,l):0;
@@ -2079,13 +2244,13 @@ function updPlayer(dt){
   springs(dt);
   if(P.moving&&P.onGround&&!P.vault){P.stepD=(P.stepD||0)+sp*dt*Math.min(1,l);if(P.stepD>(sprint?2.3:1.7)){P.stepD=0;stepSnd({run:sprint,crouch:P.crouch})}}
   updWeapon(dt);
-  if(mode==='mission'&&mouseDown&&!(sprint&&P.moving)&&!P.vault){fire();if(!WEAPONS[P.cur].auto&&!touchFire)mouseDown=false}
+  if(armedNow()&&mouseDown&&!(sprint&&P.moving)&&!P.vault){fire();if(!WEAPONS[P.cur].auto&&!touchFire)mouseDown=false}
   if(P.regenT>0)P.regenT-=dt;else if(P.hp<100)P.hp=Math.min(100,P.hp+12*dt);
   const V=P.vault,air=V?{k:V.k,t:V.t}:!P.onGround?{k:P.vy>0?'jump':'fall',t:P.airT,vy:P.vy}:P.landT>0?{k:'land',t:1-P.landT/P.landT0,amt:P.landAmt}:null;
-  const d=P.dude;d.root.position.set(P.pos.x,0,P.pos.z);d.root.rotation.y=P.yaw+Math.PI;pose(d,dt,{moving:P.moving,speed:sprint?1.5:1,aim:mode==='mission'&&!(sprint&&P.moving)&&!V,mode:P.crouch?'crouch':'stand',pitch:P.pitch,air});
+  const d=P.dude;d.root.position.set(P.pos.x,0,P.pos.z);d.root.rotation.y=P.yaw+Math.PI;pose(d,dt,{moving:P.moving,speed:sprint?1.5:1,aim:armedNow()&&!(sprint&&P.moving)&&!V,mode:P.crouch?'crouch':'stand',pitch:P.pitch,air});
   d.root.position.y+=P.visY;
-  if(mode==='mission'&&!P.fp&&!d.rb){d.arms[1].rotation.x-=vmS.rx*1.6+vmS.y*2;d.arms[0].rotation.x-=vmS.rx*1.2+vmS.y*2}/* third-person kick and equip on the arms */
-  d.root.visible=!P.fp;vm.visible=P.fp&&mode==='mission';
+  if(armedNow()&&!P.fp&&!d.rb){d.arms[1].rotation.x-=vmS.rx*1.6+vmS.y*2;d.arms[0].rotation.x-=vmS.rx*1.2+vmS.y*2}/* third-person kick and equip on the arms */
+  d.root.visible=!P.fp;vm.visible=P.fp&&armedNow();
 }
 let camDist=2.7;
 function updCamera(dt){
@@ -2093,7 +2258,7 @@ function updCamera(dt){
   if(VAN.on&&mode!=='home'){if(mode==='mission'&&M&&M.world&&wmCamera(dt))return;updDriveCam(dt);return}
   const eye=V3(P.pos.x,P.visY+(P.crouch?1.15:1.65)+P.dip.y*.35+(P.vault?-.12*Math.sin(Math.PI*P.vault.t):0),P.pos.z);
   camera.rotation.set(P.pitch,P.yaw,0);
-  const gw=WEAPONS[P.cur],base=CFG.fov*(mode==='mission'&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
+  const gw=WEAPONS[P.cur],base=CFG.fov*(armedNow()&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vmPose(dt)}
   else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
@@ -2178,6 +2343,7 @@ function updMission(dt){
 }
 function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
+  const frp=L.ow?frUpdate(dt):null;
   let prompt=null,target=null;const mp=metaHubUpd(dt);
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
@@ -2189,10 +2355,12 @@ function updHub(dt){
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
         else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMissionWhenReady(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
-  }else{const e=nearCar();if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
+  }else{const e=nearCar();if(e&&carHp(e)<=0){/* broken down: tow it instead of driving it */const own=e===VAN,c=metaCash()||0,fee=own?TOW_FEE:TOW_FEE_HOME;
+      prompt=prompt||KE+' · '+(own?"Call Dad's Auto · tow ":'Have it towed home to '+e.name+' · ')+(c>=fee?money(fee):'on Sal\'s tab');if(useTap&&!prompt.includes('Talk')){useTap=false;towCar(e)}}
+    else if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
   DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
-  hubObj();setPrompt(mp||prompt);showMarker(target);
+  hubObj();setPrompt(mp||(frp&&frp[0])||prompt,!mp&&frp?frp[1]:0);showMarker(target);
 }
 
 /* ================= HUD ================= */
@@ -2223,21 +2391,21 @@ function hudEvents(){
 function hud(dt){
   if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
-  const drv=VAN.on&&(mode==='hub'||mode==='mission'),mis=mode==='mission',w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
+  const drv=VAN.on&&(mode==='hub'||mode==='mission'),mis=mode==='mission',arm=armedNow(),w=WEAPONS[P.cur],a=P.ammo[P.cur]||{mag:0,res:0};
   /* crosshair spread: same formula fire() uses */
-  const sp=mis?curSpread():.01;
-  let nf=false;if(mis){const sm=[];for(const e of enemies)if(e.state==='surrender')sm.push(...e.dude.meshes);
+  const sp=arm?curSpread():.01;
+  let nf=false;if(arm){const sm=[];for(const e of enemies)if(e.state==='surrender')sm.push(...e.dude.meshes);
     if(sm.length){ray.set(camera.position,camFwd());ray.near=0;ray.far=90;const h=ray.intersectObjects([...sm,...L.solids],false)[0];nf=!!(h&&h.object.userData.ent)}}
   hudEvents();
   /* subtitles: one line at a time, long enough to read */
   subT-=dt;if(subT<=0){if(subQ.length){const[n,t]=subQ.shift();UI.sub={speaker:n,text:t};subT=Math.max(2.4,t.length*.055)}else UI.sub=null}
   /* objective (the stash countdown moves into the objective timer) */
-  let obj=UI.obj,timer=null;
+  let obj=frObj(UI.obj),timer=null;
   if(obj){const st=mis&&M&&M.def.type==='stash'&&M.smashed<3&&M.state==='go';if(st)timer=Math.max(0,M.t);
     obj={kicker:mis?'Objective':JOB!==null?'New job · '+MISSIONS[JOB].place:'Saturday',title:obj.title,
       lines:st?obj.lines.map(l=>/^\d+:\d\d until /.test(l.text)?{...l,text:'Until reinforcements'}:l):obj.lines}}
   const markers=[];const mk=markerOf(UI.marker);if(mk)markers.push(mk);
-  markers.push(...metaMarkers(),...wmMarkers());
+  markers.push(...metaMarkers(),...wmMarkers(),...frMarkers());
   if(mode==='hub'&&VAN.obj&&!VAN.on&&(!mk||mk.kind!=='van'))markers.push({id:'van',kind:'van',label:'Minivan',x:VAN.pos.x,z:VAN.pos.z,world:false});
   /* route on the minimap to the current target (recomputed by the HUD when the target moves) */
   const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
@@ -2247,14 +2415,14 @@ function hud(dt){
     const dd=x.pos.distanceTo(P.pos);if(dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45))continue;
     const ally=x.kind==='ally',c=x.tag.className;
     tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
-  const hs={mode:drv?'drive':mis?'mission':mode==='home'?'home':'hub',
+  const hs={mode:drv?'drive':arm?'mission':mode==='home'?'home':'hub',
     player:{x:P.pos.x,z:P.pos.z},compassYaw:P.yaw,hp:P.hp,hpMax:100,trust:wmTrust(),trustLabel:wmTrustLabel(),cash:metaCash(),
-    weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!mis},
+    weapon:{name:w.name,type:P.cur,mag:a.mag,reserve:a.res,magSize:w.mag,reloading:P.rl&&P.rl.total?clamp(P.rl.el/P.rl.total,.001,.999):0,holstered:!arm},
     weapons:P.weapons.map(k=>({key:WEAPONS[k].key,name:WEAPONS[k].name,type:k,active:k===P.cur})),
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
-    enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):[],
+    enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):frBlips(),
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?wmVanHealth():1,
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
   JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
@@ -2327,19 +2495,27 @@ function furnSync(){const s=SV();if(!s||!HOMEM)return 0;const f=s.furniture;let 
   for(const id in f.owned){const own=f.owned[id]|0,seen=f.seen[id]|0;for(let k=seen;k<own;k++){const L2=HOMEM.autoPlace({items:f.placed},id);if(L2){f.placed=L2.items;n++}}f.seen[id]=own}
   for(const id in f.seen)if(!(id in f.owned))delete f.seen[id];
   if(n){SAVEM.touch('furniture');if(HOME3)HOME3.setLayout({items:f.placed})}return n}
-function openShop(kind){return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r),onPreview:p=>vanPreview(p)})))}
+function openShop(kind,opt){/* Dad's Auto repairs whichever car you pulled in with (a borrowed one included) and opens on Repair when it's hurt */
+  const car=kind==='auto'&&CV?CV:null,hurt=car&&(carFrac(car)<.999||carWear(car).lamps.some(Boolean)||carWear(car).tyre);
+  if(kind==='auto'&&ECON&&ECON.setRepairCar)ECON.setRepairCar(carRepairTarget(car));
+  return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r),onPreview:p=>vanPreview(p)},hurt?{tab:'repair'}:null,opt||null)))}
 function openLocker(tab){return openMenu(o=>HT.Locker.open(Object.assign(o,{tab,onChange:()=>{metaSave()}})))}
 function metaOnBuy(r){
   try{const C=HT.CATALOG,it=r.kind==='gun'?C.guns[r.id]:r.kind==='att'?C.attachments[r.id]:r.kind==='furn'?C.furniture[r.id]:r.kind==='sup'?C.supplies[r.id]:null;
     const nm=it?it.name:r.kind==='gar'&&HT.Garage?((HT.Garage.CATALOG.find(c=>c.id===r.id)||{}).name||r.id):String(r.id).replace(/^.*:/,'');
     if(r.price!=null)HUD.feed('Receipt · '+nm,'cash',(r.price?'-$'+Math.round(r.price).toLocaleString('en-US'):'free')+(r.delivered==='pending'?' · on the porch after your next job':''))}catch(e){}
   if(r.kind==='gun'&&r.delivered!=='pending'){const g=HT.CATALOG.guns[r.id];HUD.feed((g?g.name:r.id)+' is in your gun locker','info')}
-  if(/^(car|gar|cos|stick)$/.test(r.kind))vanApply();metaSave()}
+  if(/^(car|gar|cos|stick)$/.test(r.kind))vanApply();
+  if(r.kind==='rep'&&(!CV||CV===VAN)){/* the save's own vehicle was repaired: fresh body, lamps, engine back on */carRepair(VAN,0,{fresh:false});if(carFrac(VAN)>=.999)carFresh(VAN);carLook(VAN);carRedent(VAN);DRV.bandQ=carBand(VAN)}
+  if(r.kind==='rep'&&CV&&CV!==VAN)HUD.feed('Fixed '+CV.name+"'s "+feel(CV).label+' before '+CV.name+' notices','info');
+  metaSave()}
 /* 3D shop thumbnails from the real models, once the gun and vehicle modules are in */
 if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){try{HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})}catch(e){console.warn('shop thumbnails unavailable',e)}}
 
 /* ---------- payout ---------- */
-function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;metaSave()}
+function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;
+  /* no job starts on a wreck: the crew gives the van a once-over to 85% (jobs are balanced for a healthy van; Dad's Auto does the rest) */try{if(VAN&&carFrac(VAN)<JOB_PATCH){carRepair(VAN,carHpMax(VAN)*JOB_PATCH-carHp(VAN),{fresh:false});setTimeout(()=>radio(speaker()||'you',"Gary zip-tied the bumper back on. She'll hold. Probably."),1800)}}catch(_){}
+  metaSave()}
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
 function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
   try{pay=ECON.computePayout({mission:m.reg?m.id:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
@@ -2347,7 +2523,7 @@ function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=nu
   /* Coach Rick lets you keep the carbine after his job */
   const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
   if(s.pending&&s.pending.length){s.porch=s.pending.length;SAVEM.touch('pending')}/* everything ordered so far is on the porch when you get home */
-  metaSave(true);M.pay=pay;
+  metaSave(true);M.pay=pay;if(pay.tabPaid)setTimeout(()=>HUD.feed("Paid off Sal's tab",'cash','-'+money(pay.tabPaid)),2500);
   if(res){res.stats=(res.stats||[]).concat([['Payout',money(pay.total),money(s.cash)+' saved']]);res.goLabel='Head home';res.canRetry=true;if(ok)res.retryLabel='Back to the cul-de-sac'}
   const home=()=>{HUD.hide('result');UI.acts={};enterHub({at:'curb'});canvasFocus();requestLock()},street=()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()};
   UI.acts['result:go']=home;if(ok)UI.acts['result:retry']=street;
@@ -2369,12 +2545,13 @@ function metaAmmo(){if(!ECON||!M)return;try{for(const a of ECON.ammoFor())if(a.e
 const VANK={top:1,btop:1,accel:1,baccel:1,brake:1,turn:1,grip:1,steer:1};
 function vanStats(){try{return SV()&&ECON?ECON.vehicleStats():null}catch(e){return null}}
 function vanLook(){const vs=vanStats();if(!vs||!vs.makeOpts)return{type:'minivan',color:'#35577d',upgrades:{roofRack:true}};return{type:vs.type||'minivan',color:vs.makeOpts.color,upgrades:vs.makeOpts.upgrades,vs}}
-function vanApply(){const lk=vanLook(),vs=lk.vs;
+function vanApply(){const lk=vanLook(),vs=lk.vs;VAN._mx=null;
   if(vs){Object.assign(VANK,{top:vs.maxSpeed/25,btop:vs.boostMax/33,accel:vs.accel/9,baccel:vs.boostAccel/12,brake:vs.brake/24,turn:(vs.turn||1.55)/1.55,grip:(vs.grip||9)/9,steer:(vs.steerResp||7)/7})}
   const v=VAN.obj;if(!v||mode!=='hub')return;
   /* another vehicle bought or chosen at Dad's Auto: swap the model in place */
-  if(v.userData.type&&lk.type!==v.userData.type){const nv=makeVan(lk.color,lk.type,lk.upgrades);if(nv){const par=v.parent;if(par){par.add(nv);par.remove(v)}VAN.obj=nv;syncVan();return}}
-  if(v.userData.setUpgrades){try{if(v.userData.setColor)v.userData.setColor(lk.color);v.userData.setUpgrades(lk.upgrades)}catch(e){console.warn('van upgrades failed',e)}}}
+  if(v.userData.type&&lk.type!==v.userData.type){const nv=makeVan(lk.color,lk.type,lk.upgrades);if(nv){const par=v.parent;if(par){par.add(nv);par.remove(v)}VAN.obj=nv;syncVan();carLook(VAN);carRedent(VAN);return}}
+  if(v.userData.setUpgrades){try{if(v.userData.setColor)v.userData.setColor(lk.color);v.userData.setUpgrades(lk.upgrades)}catch(e){console.warn('van upgrades failed',e)}}
+  carLook(VAN);carRedent(VAN)}/* setUpgrades rebuilds the body: its dents come back to match the saved health */
 function vanPreview(p){const v=VAN.obj;if(!v||!v.userData.setUpgrades)return;try{if(p&&p.opts){if(p.opts.color&&v.userData.setColor)v.userData.setColor(p.opts.color);v.userData.setUpgrades(p.opts.upgrades||{})}else vanApply()}catch(e){}}
 function metaHorn(){const vs=vanStats();if(!vs||!vs.horn||!vs.horn.id||vs.horn.id==='stock'||!HT.Menus||!HT.Menus.playHorn)return false;try{HT.Menus.playHorn({notes:vs.horn.notes});return true}catch(e){return false}}
 
@@ -2505,7 +2682,8 @@ function enterHome(){if(!HOMEM||!homeReady)return false;const s=SV();
   if(L&&L.group){scene.remove(L.group);L.group.traverse(o=>{if(o.userData&&o.userData.wkey&&o.geometry)o.geometry.dispose()})}
   const got=[];/* Dadazon boxes wait on the porch (metaOpenPorch) */
   /* the van gets patched up in the driveway: at least 60% after a night at home */
-  try{const g=s&&s.garage,vs=vanStats();if(g&&vs&&g.hp){const t=g.active;g.hp[t]=Math.max(g.hp[t]==null?vs.hp:g.hp[t],Math.round(vs.hp*.6));SAVEM.touch('garage')}}catch(e){}
+  /* (after a job: once per job run, so it's no substitute for Dad's Auto; the tyre gets the spare) */
+  try{const g=s&&s.garage,vs=vanStats();if(g&&vs&&g.hp&&(s.prog.missionsRun||0)>(g.patchAt||0)){const t=g.active;g.patchAt=s.prog.missionsRun;if((g.hp[t]==null?vs.hp:g.hp[t])<vs.hp*.6){g.hp[t]=Math.round(vs.hp*.6);if(g.wear&&g.wear[t])g.wear[t].tyre=0;setTimeout(()=>radio('Tyler',"I hammered the van back to 60%. Mostly. Sal can do the rest."),2500)}SAVEM.touch('garage')}}catch(e){}
   furnSync();
   if(s)HOMEM.setLineState(s.family);
   const H=HOME3=HOMEM.build({layout:s?{items:s.furniture.placed}:HOMEM.starterLayout(),owned:s?s.furniture.owned:null,trust:prog.trust,timeOfDay:15});
@@ -2632,6 +2810,458 @@ function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptor
   saveGame:()=>metaSave(true),resetSave:()=>{SAVEM.reset();metaFixSave(SV());metaSave(true)},enterHome,exitHome,openShop,openLocker,decoStart,decoStop,decoAct,
   get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},place(x,z,yaw,pitch){P.pos.set(x,0,z);collide(P.pos,.35);if(yaw!=null)P.yaw=yaw;if(pitch!=null)P.pitch=pitch;return{x:P.pos.x,z:P.pos.z}},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
 
+/* ================= FREE ROAM / HEAT: Riverside street crews, free-roam weapons, heat (docs/riverside-heat.md) ================= */
+/* Riverside Flats only. Outside a job the dad can draw (1/2/3/Q, or Fire), aim, fire, reload, pick up and zip-tie; H or 20 s of calm holsters.
+   Three made-up crews of petty thieves loiter on their turf; drawing on them, shooting near them or walking into a car break-in turns them hostile.
+   Firing raises HEAT (0-5): 1-2 the local crew comes out, 3-4 the two nearest crews also fight EACH OTHER (a three-way turf war),
+   5 a reinforcement car drives in (HT.Roads + HT.CarAI). Heat cools when nobody fires, faster holstered, out of sight, off the block or driving away.
+   Zip-ties raise prog.trustR and thin that crew; kills lower it. As trustR rises crews and incidents dwindle; at the top tier the system is off.
+   The fight runs on HT.AI over a nav built for a moving window of the world grid (same size as L.g, so cell ids stay valid across rebuilds).
+   Hooks elsewhere: updEnemy/updAlly (crew AI), aiShot (gunfire), hurtPlayer/hurtEnemy, updHub, clearChars, keydown, updPlayer/updWeapon/updCamera/hud (armed), owUpdate (dressing scar). */
+var FR=null;
+const FR_CREWS=[
+ {id:'coupon',name:'The Coupon Boys',short:'Coupon Boys',col:'#2aa39a',turf:{x0:152,z0:0,x1:188,z1:47},guns:{pistol:50,nailer:30,double:20}},
+ {id:'returns',name:'Third Street Returns',short:'Third St Returns',col:'#9b7fd8',turf:{x0:189,z0:0,x1:231,z1:36},guns:{pistol:45,smg:25,shotgun:30}},
+ {id:'dock',name:'Dock Street Discount',short:'Dock St Discount',col:'#e0a82e',turf:{x0:152,z0:48,x1:231,z1:79},guns:{pistol:40,shotgun:30,nailer:30}}];
+/* per Riverside trust tier (HT.World TIERS 0/20/35/50/70/90): max heat, loitering groups per crew, group size, incident gap multiplier */
+const FR_TIER=[{cap:5,groups:3,size:[3,4],inc:1},{cap:5,groups:3,size:[2,3],inc:1.3},{cap:4,groups:2,size:[2,3],inc:1.7},{cap:3,groups:1,size:[2,2],inc:2.4},{cap:2,groups:1,size:[2,2],inc:4,only:'dock'},{cap:0,groups:0,size:[0,0],inc:0}];
+const FR_TUNE={shot:.16,firstShot:1.3,hit:.05,kill:.6,stray:.015,fightRise:.035,quiet:7,decay:.1,holster:2,losBreak:1.6,losHeld:.5,away:2,leftRiver:3,drive:2.5,cuff:.5,
+  spawnMin:30,engageR:45,navR:30,maxHostile:10,maxAmbient:12,calmHolster:20,carCool:75};
+const FR_LINES={
+ maple:["Not on Maple. Mrs. Henderson already thinks we're a militia.","Holster stays on in Maple Heights. The HOA has a whole bylaw.","Put that away. The Hendersons are watering their lawn."],
+ calm:["Streets are calm today. Let's keep them that way.","Nobody needs a gun to buy jerky at Ramos'."],
+ notice:["Whoa, whoa. He's strapped.","Is that dad carrying? At two in the afternoon?","Ay, put that away, man. This is our corner.","You lost, Costco?"],
+ back:["Yeah. Keep walking.","Whatever, old man.","Tell your HOA we said hi.","We're done. We're done."],
+ war:["{a} on OUR block?!","That's {b}! Get 'em off the corner!","{b} been waiting for this."],
+ holster:["Okay. Holstering.","Gun's away. Nobody panic.","Holstered. Deep breaths."],
+ leftRiver:"Holstering. We're out of Riverside.",
+ down:["Woke up on my own couch. Sal from Dad's Auto towed the van home and left a bill. And a lollipop.","Linda says I was 'napping in Riverside'. Sal says that's forty bucks.","Back home. My pride is still somewhere on 3rd St."],
+ topTier:["Nobody's out here but kids with chalk, man. Put it away.","Mrs. Ramos just looked at me. Holstering.","Riverside's fine. Riverside's great. Put it away."],
+ cool:["Okay. It's cooling off.","I think they're done. I'm done too.","Let's not do that again before lunch."],
+ goods:["Is that my package? Oh my goodness. Let me get my purse.","My humidifier! Here, for your trouble.","You found it! Here, take something for gas."],
+ car:["Car coming in hot! That's their cousin's sedan!","Reinforcements! Big sedan, three guys!"],
+ breakup:["Alright, alright. We're going.","Fine. This ain't over, Coupon Boys.","Whatever. It was his fault."],
+ porch:["Hey! That's not your package!","Porch pirate! On foot, heading up the block!"],
+ idle:["You ever return something without a receipt? Power move.","Coupon says buy one get one. I took two. Same thing.","My cousin says the bridge opening is bad for business.","Who ate my hot chips?","These dads keep walking by with lawn chairs. Suspicious.","Store credit is still money. I'm just saying.","Bro, every box this week is an air fryer."],
+ surrender:["Okay! Okay! It's a humidifier!","I give up! I just wanted the free shipping!","Don't shoot! It's mostly cat litter!"]};
+const frCrew=id=>FR_CREWS.find(c=>c.id===id)||null;
+const frTier=()=>{const G=HTM('WorldGen');return G&&G.tierOf?G.tierOf(prog.trustR||0):0};
+/* the trust tier of one block (HT.OpenWorld.blockTrust: Riverside renovates block by block); the street life follows the block */
+function frTierAt(x,z){const G=HTM('WorldGen'),O=OW();if(!G||!G.tierOf)return 0;const t=O&&O.blockTrust?O.blockTrust(x,z):prog.trustR;return G.tierOf(t==null?prog.trustR||0:t)}
+function frInit(){if(FR)return FR;
+  FR={drawn:false,heat:0,shotT:-99,shownHeat:0,heatAt:null,hotCrew:null,war:null,cool:false,members:[],groups:[],inc:null,incT:45,goods:[],civ:[],
+    nav:null,navC:null,navT:-9,squads:new Map(),pool:null,barker:null,crewBarker:null,noise:[],shooter:null,quipT:-99,calmT:0,carT:-999,car:null,
+    reinfT:{},warT:0,scar:0,fightT:0,spots:null,crewState:{},stats:{ms:0,frames:0,peak:0,navBuilds:0,navMs:0},musicSt:null,elT:null,lastTurf:null,turfSaid:{},regionWas:null,worlds:{},hostile:[],alive:[],fight:false,cap:5,rate:0};
+  for(const c of FR_CREWS)FR.crewState[c.id]={thin:0,thinT:0,hostileP:false};return FR}
+const frOn=()=>CFG.streetTrouble!=='calm';
+const frInRiver=(x,z)=>{const O=OW();return !!(L&&L.ow&&O&&O.regionAt(x==null?P.pos.x:x,z==null?P.pos.z:z)==='river')};
+function frArmed(){return !!(FR&&FR.drawn&&mode==='hub'&&!VAN.on)}
+function armedNow(){return mode==='mission'||frArmed()}
+const frTurfAt=(x,z)=>{const t=tx(x),u=tx(z);for(const c of FR_CREWS){const r=c.turf;if(t>=r.x0&&t<=r.x1&&u>=r.z0&&u<=r.z1)return c}return null};
+/* mission lots (with a margin) never host free-roam spawns */
+function frInSite(x,z,m=4){if(!WORLD||!WORLD.sites)return false;const t=tx(x),u=tx(z);for(const id in WORLD.sites){const s=WORLD.sites[id];if(t>=s.x0-m&&t<=s.x1+m&&u>=s.z0-m&&u<=s.z1+m)return true}return false}
+/* grid line of sight with the world's own blockers (rowhouses, walls, trees); chain-link and hedges don't hide anybody */
+function frLos(ax,az,bx,bz){const blk=(WORLD&&WORLD.losblock)||LOSBLOCK;const d=Math.hypot(bx-ax,bz-az),n=Math.ceil(d/.7);for(let i=1;i<n;i++){const x=ax+(bx-ax)*i/n,z=az+(bz-az)*i/n,r=L.g[tx(z)];if(!r)return false;if(blk.includes(r[tx(x)]))return false}return true}
+const _frV=new THREE.Vector3();
+function frInView(x,z){_frV.set(x,1.4,z).project(camera);return _frV.z<1&&Math.abs(_frV.x)<1.15&&Math.abs(_frV.y)<1.2}
+/* "within sight": closer than 25 m, or a clear line from the dad (in view or not, he can turn around) */
+function frSeen(x,z){const d=Math.hypot(x-P.pos.x,z-P.pos.z);if(d<25)return true;if(d>95)return false;return frLos(P.pos.x,P.pos.z,x,z)||(d<70&&frInView(x,z)&&frLos(camera.position.x,camera.position.z,x,z))}
+function frTrust(v,why){const b=prog.trustR||0;prog.trustR=clamp(b+v,0,100);const d=prog.trustR-b;if(Math.abs(d)>=.05&&why){const s=(d>0?'+':'')+(Math.round(d*10)/10)+' Riverside trust';HUD.feed(why,d>0?'trust':'bad',s)}return d}
+function frSay(lines,who,front){const l=Array.isArray(lines)?pick(lines):lines;radio(who||speaker()||'you',l,front)}
+
+/* ---------- hangout spots: street corners, stoops and the court, by crew turf ---------- */
+function frSpots(){if(FR.spots)return FR.spots;const g=L.g,out=[];const ok=(x,z)=>g[z]&&'sp'.includes(g[z][x])&&!frInSite(tc0(x),tc0(z),3);function tc0(i){return i*TILE+TILE/2}
+  for(const vx of[156,172,188,204,220])for(const hz of[6,20,34,48,62])for(const[x,z,fx,fz]of[[vx-1,hz-1,-1,-1],[vx+3,hz-1,1,-1],[vx-1,hz+3,-1,1],[vx+3,hz+3,1,1]]){
+    if(!ok(x,z))continue;const c=frTurfAt(tc0(x),tc0(z));if(!c)continue;out.push({x:tc0(x)+fx*.4,z:tc0(z)+fz*.4,kind:'corner',crew:c.id,id:'c'+x+'_'+z})}
+  for(const p of(WORLD.porches||[])){if(p.tx<152)continue;const c=frTurfAt(p.x,p.z);if(!c||frInSite(p.x,p.z,3))continue;const f=p.face||[0,1];out.push({x:p.x-f[0]*.6,z:p.z-f[1]*.6,kind:'stoop',crew:c.id,id:'p'+p.tx+'_'+p.tz,face:f})}
+  const ct=WORLD.court;if(ct){const c=frTurfAt(tc0(197),tc0(14));if(c)out.push({x:tc0(197),z:tc0(14),kind:'court',crew:c.id,id:'court'})}
+  for(const s of out){s.group=null;s.freeAt=0}return FR.spots=out}
+
+/* ---------- people ---------- */
+const FR_SHIRTS=['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a4a3a','#3d4a3a'];
+/* the crew colour: an armband on the left upper arm (box dudes: a band on the arm block) */
+function frBand(d,col){try{const m=new THREE.MeshStandardMaterial({color:lin(col),roughness:.75});m.color.multiplyScalar(1.15);
+  const rb=d.rb,ua=rb&&rb.bones&&rb.bones.Bip01_L_UpperArm,fa=rb&&rb.bones&&rb.bones.Bip01_L_Forearm;
+  if(ua&&fa&&fa.parent===ua){d.root.updateMatrixWorld(true);const s=ua.getWorldScale(V3()).x/(d.root.scale.x||1)||1,dir=fa.position.clone().normalize();
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(.054/s,.056/s,.07/s,16,1,true),m);band.material.side=THREE.DoubleSide;band.quaternion.setFromUnitVectors(V3(0,1,0),dir);band.position.copy(fa.position).multiplyScalar(.5);band.castShadow=false;ua.add(band);d.band=band;return}
+  const arm=d.arms&&d.arms[1];if(arm){const b=box(.18,.08,.18,col,0,-.12,0,arm);b.castShadow=false;d.band=b}}catch(e){}}
+function frMake(crew,x,z,gun,kind){gun=gun||pickW(crew.guns);
+  {const L_=FR.stats.spawnLog||(FR.stats.spawnLog=[]);var seen0=frSeen(x,z);L_.push({kind:kind||'ambient',x:+x.toFixed(1),z:+z.toFixed(1),d:+Math.hypot(x-P.pos.x,z-P.pos.z).toFixed(1),seen:seen0,t:+simT.toFixed(1)});if(L_.length>400)L_.shift()}const d=makeDude({shirt:pick(FR_SHIRTS),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#111','#7a6a5a'])});equip(d,null);frBand(d,crew.col);
+  const hp=gun==='shotgun'||gun==='double'?85:70;
+  const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss:false,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false,
+    fr:crew,hostile:false,drawn:false,born:simT,spawnSeen:seen0};
+  e.id='e'+(eidSeq++);e.maxHp=hp;e.role=AI.roleFor(gun,false);e.dmgMul=.75;collide(e.pos,.35);d.root.position.copy(e.pos);enemies.push(e);addChar(e);FR.members.push(e);return e}
+function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
+  if(e.group){const g=e.group;g.members=g.members.filter(m=>m!==e);if(!g.members.length)frDropGroup(g)}if(e.squad){const s=e.squad;s.members=s.members.filter(m=>m!==e);s.releaseFire(e)}FR.dirtyTargets=true}
+function frDropGroup(g){const i=FR.groups.indexOf(g);if(i>=0)FR.groups.splice(i,1);if(g.spot){g.spot.group=null;g.spot.freeAt=simT+40}}
+const frOut=e=>e.state==='dead'||e.state==='cuffed'||e.state==='surrender';
+const frAlive=()=>FR.members.filter(e=>e.state==='idle');
+const frHostiles=()=>FR.members.filter(e=>e.state==='idle'&&e.hostile&&!e.leave);
+/* a group of 2-4 standing round a spot, facing in */
+function frGroup(crew,spot,n,o={}){o.kind=o.kind||'loiter';const r=n>2?1.15:.8,ang=[];for(let i=0;i<n;i++)ang.push(i/n*6.283+rand(-.3,.3));
+  /* every member's own spot must be out of sight too (a corner can hide the centre and show a shoulder) */
+  if(o.unseen&&ang.some(a=>frSeen(spot.x+Math.sin(a)*r,spot.z+Math.cos(a)*r)))return null;
+  const g={crew,spot,members:[],x:spot.x,z:spot.z,kind:o.kind||'loiter',notice:0,t:simT};
+  for(let i=0;i<n;i++){const a=ang[i];const e=frMake(crew,spot.x+Math.sin(a)*r,spot.z+Math.cos(a)*r,o.gun,o.tag||'ambient');e.group=g;e.yaw=Math.atan2(spot.x-e.pos.x,spot.z-e.pos.z);g.members.push(e)}
+  if(spot.group!==undefined)spot.group=g;FR.groups.push(g);FR.dirtyTargets=true;return g}
+
+/* ---------- nav window ---------- */
+function frNav(force){const cx=tx(P.pos.x),cz=tx(P.pos.z),R=FR_TUNE.navR;
+  if(FR.nav&&!force&&(Math.abs(cx-FR.navC.x)<10&&Math.abs(cz-FR.navC.z)<10||simT-FR.navT<2))return FR.nav;
+  const t0=performance.now(),g=L.g,H=g.length,W=g[0].length,fillRow=new Array(W).fill('~'),rows=new Array(H);
+  for(let z=0;z<H;z++){if(Math.abs(z-cz)>R){rows[z]=fillRow;continue}const r=g[z],a=fillRow.slice();for(let x=Math.max(0,cx-R);x<=Math.min(W-1,cx+R);x++)a[x]=r[x];rows[z]=a}
+  const bx={x0:(cx-R)*TILE,z0:(cz-R)*TILE,x1:(cx+R+1)*TILE,z1:(cz+R+1)*TILE};
+  const cols=(L.cnear?L.cnear(P.pos.x,P.pos.z,R*TILE*1.5):L.colliders).filter(c=>!c.off&&c.x1>bx.x0&&c.x0<bx.x1&&c.z1>bx.z0&&c.z0<bx.z1&&c.x1-c.x0<30&&c.z1-c.z0<30);
+  const nav=AI.buildNav(rows,{solid:(WORLD&&WORLD.solid)||SOLID,losBlock:(WORLD&&WORLD.losblock)||LOSBLOCK,lowCover:'cTf',structural:'#hVrxA',colliders:cols,hiBox:{t:[.3,.3]}});
+  FR.nav=nav;FR.navC={x:cx,z:cz};FR.navT=simT;FR.stats.navBuilds++;FR.stats.navMs=performance.now()-t0;
+  for(const s of FR.squads.values())s.nav=nav;return nav}
+function frNavOk(e){const n=FR.nav;return n&&n.walkAt(e.pos.x,e.pos.z)}
+
+/* ---------- squads, worlds ---------- */
+function frSquad(crew){let s=FR.squads.get(crew.id);if(!s){if(!FR.pool)FR.pool=AI.pool({maxShooters:4});if(!FR.barker)FR.barker=AI.barker();
+    s=AI.squad(FR.nav,{diff:FR.diff,pool:FR.pool,barker:FR.barker,name:crew.id});FR.squads.set(crew.id,s)}return s}
+function frThreatOf(e){return{id:e.id,x:e.pos.x,z:e.pos.z,crouch:!!(e.ai&&e.ai.stance==='crouch'),moving:!!(e.ai&&e.ai.intent&&e.ai.intent.speed>.2),down:false}}
+function frWorld(crew){const st=FR.crewState[crew.id],w=FR.worlds[crew.id]||(FR.worlds[crew.id]={});const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
+  w.nav=FR.nav;w.t=simT;w.diff=FR.diff;w.noises=FR.noise;w.agents=FR.alive;const th=[];
+  if(st.hostileP){th.push({id:'player',x:P.pos.x,z:P.pos.z,fx,fz,fov:.96,isPlayer:true,crouch:P.crouch&&!(P.pos.y>.6),moving:P.moving||VAN.on,sprint:!!keys.shift&&P.moving,reloading:P.reloadT>0,busy:!!keys.e,down:false});
+    for(const a of allies)if(!a.ride)th.push({id:a.id,x:a.pos.x,z:a.pos.z,crouch:!!(a.ai&&a.ai.stance==='crouch'),moving:!!(a.ai&&a.ai.intent&&a.ai.intent.speed>.2),down:a.down})}
+  if(FR.war&&FR.war.includes(crew.id))for(const o of FR.alive)if(o.fr!==crew&&FR.war.includes(o.fr.id)&&!o.leave)th.push(frThreatOf(o));
+  w.threats=th;return w}
+function frTarget(id){if(id==='player')return P;return allies.find(a=>a.id===id)||FR.members.find(m=>m.id===id)||null}
+/* turn a member hostile: guns out, onto the crew's squad */
+function frArm(e,quiet){if(e.state!=='idle')return;if(!e.hostile&&FR.members.filter(m=>m.hostile&&!m.leave&&m.state==='idle').length>=FR_TUNE.maxHostile){e.leave=true;e.run=true;e.leaveAt=simT;e.frScript=null;return}if(!e.drawn){e.drawn=true;equip(e.dude,e.gun)}e.hostile=true;e.leave=false;e.frScript=null;if(FR.nav&&!e.squad)frSquad(e.fr).add(e);
+  if(!quiet&&(!FR.noticeT||simT-FR.noticeT>6)){FR.noticeT=simT;if(e.pos.distanceTo(P.pos)<30)radio(e.fr.short,pick(FR_LINES.notice))}}
+function frProvoke(crew,src){const st=FR.crewState[crew.id];if(src!=='heat')st.provT=simT;if(!st.hostileP){st.hostileP=true;HUD.feed(crew.name+(src==='draw'?' pulled their guns':' want a piece of you'),'bad')}
+  FR.fightT=simT;for(const e of FR.members)if(e.fr===crew&&e.state==='idle'&&e.pos.distanceTo(P.pos)<FR_TUNE.engageR+15)frArm(e,true)}
+
+/* ---------- per-member update (from updEnemy after its dead / cuffed / surrender branches) ---------- */
+function frEnemy(e,dt){const d=e.dude;const t0=performance.now();
+  if(mode!=='hub'){pose(d,dt,{aim:false});return}
+  if(e.hostile&&FR.nav&&!e.leave&&frNavOk(e)){if(!e.squad)frSquad(e.fr).add(e);const W=frWorld(e.fr);const I=AI.think(e,W,dt);AI.move(e,I,dt);collide(e.pos,.35);
+    if(I.bark&&e.pos.distanceTo(P.pos)<26&&I.bark.event!=='idle'&&I.bark.event!=='idleReply'){radio(e.fr.short,I.bark.text,I.bark.priority>=2);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
+    const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid?frTarget(tid):null;
+    if(I.fire){const t=frTarget(I.targetId);if(t&&!t.down&&t.state!=='dead'){if(t.fr){FR.shooter='crew';shootAt(e,t,I.hitChance*.85,I.dmg,true);FR.shooter=null;if(simT-FR.shotT<FR_TUNE.quiet)FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.stray)}else if(t===P||!t.ride)shootAt(e,t,I.hitChance,I.dmg*e.dmgMul,true)}}
+    if(I.wantsSurrender&&!e.triedSurr&&e.state==='idle'){e.triedSurr=true;surrender(e);FR.stats.ms+=performance.now()-t0;return}
+    e.alert=e.ai.mode!=='idle';d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;
+    pose(d,dt,{moving:I.speed>.2,speed:Math.max(.5,I.speed/3.4),aim:e.alert||I.stance==='crouch',mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(e,d,I.stance==='crouch',dt)}
+  else if(e.hostile&&!e.leave){/* hostile but outside the nav window: close in the plain way until the window covers him */
+    if(!e.drawn){e.drawn=true;equip(d,e.gun)}const mv=moveToward(e,P.pos.x,P.pos.z,3.6,dt);faceTo(e,P.pos.x,P.pos.z,dt,5);e.alert=true;d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;pose(d,dt,{moving:mv,speed:1.2,aim:true})}
+  else if(e.leave){/* walking off the block, then gone once nobody is looking */
+    if(!e.leaveTo){const a=Math.atan2(e.pos.x-P.pos.x,e.pos.z-P.pos.z)+rand(-.6,.6);e.leaveTo={x:clamp(e.pos.x+Math.sin(a)*45,306,460),z:clamp(e.pos.z+Math.cos(a)*45,4,156)}}
+    if(e.drawn&&simT-(e.leaveAt||0)>1.5){e.drawn=false;equip(d,null)}
+    const mv=moveToward(e,e.leaveTo.x,e.leaveTo.z,e.run?4.6:2.2,dt);faceTo(e,e.leaveTo.x,e.leaveTo.z,dt,5);e.alert=false;
+    d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;pose(d,dt,{moving:mv,speed:e.run?1.5:.8,aim:false})}
+  else{/* loitering: face the group, glance at the dad, small shuffles; incident scripts take over */
+    if(e.frScript)e.frScript(e,dt);
+    else{const g=e.group,near=e.pos.distanceTo(P.pos);let fx=g?g.x:e.pos.x+Math.sin(e.yaw),fz=g?g.z:e.pos.z+Math.cos(e.yaw);
+      if(near<9&&(e.lookT=(e.lookT||0)-dt)<0){e.lookT=rand(2,5);e.lookP=Math.random()<.6}
+      if(near<9&&e.lookP){fx=P.pos.x;fz=P.pos.z}faceTo(e,fx,fz,dt,2.5);collide(e.pos,.35);
+      if(g&&g.members[0]===e&&near<16&&simT>(g.chatT||(g.chatT=simT+rand(2,6)))){g.chatT=simT+rand(9,16);const sp=g.members[(Math.random()*g.members.length)|0];radio(e.fr.short,pick(FR_LINES.idle));aiVoice('thug',sp)}}
+    e.alert=false;d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;if(!e.frScript||!e.scriptPose)pose(d,dt,{moving:!!e.mv,speed:e.mvS||.8,aim:false})}
+  FR.stats.ms+=performance.now()-t0}
+/* crew dads in a free-roam fight (from updAlly after its down branch); returns true when it handled the dad */
+function frAlly(a,dt){if(!FR||mode!=='hub'||!FR.nav||!FR.fight)return false;const t0=performance.now(),d=a.dude;
+  const I=AI.ally(a,{nav:FR.nav,t:simT,barker:FR.crewBarker||(FR.crewBarker=AI.barker({gap:1.2})),player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,crouch:P.crouch,moving:P.moving,reloading:P.reloadT>0,busy:!!keys.e,hp:P.hp},
+    camera:{x:camera.position.x,z:camera.position.z,yaw:P.yaw},enemies:FR.hostile,allies},dt);
+  if(I.teleport)a.pos.set(I.teleport.x,0,I.teleport.z);
+  if(I.state==='follow'&&!I.path&&Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z)>8){a.lostT=(a.lostT||0)+dt;if(a.lostT>3){a.lostT=0;const k=FR.nav.nearestWalkable(P.pos.x+Math.sin(P.yaw)*2.2,P.pos.z+Math.cos(P.yaw)*2.2);if(k>=0)a.pos.set(FR.nav.wx(k),0,FR.nav.wz(k))}}else a.lostT=0;
+  AI.move(a,I,dt);collide(a.pos,.35);
+  if(I.bark){radio(a.id,I.bark.text,I.bark.priority>=2);aiVoice(AI_VOICE[I.bark.event],a)}
+  if(I.fire){const e=FR.hostile.find(x=>x.id===I.targetId);if(e&&e.state==='idle')shootAt(a,e,I.hitChance,I.dmg,false)}
+  if(I.reviving){const o=allies.find(x=>x.id===I.revive);if(o)o.downT-=dt*2}
+  d.root.position.set(a.pos.x,0,a.pos.z);d.root.rotation.y=a.yaw;pose(d,dt,{moving:I.speed>.2,aim:true,mode:I.stance==='crouch'?'crouch':'stand'});deepCrouch(a,d,I.stance==='crouch',dt);
+  FR.stats.ms+=performance.now()-t0;return true}
+
+/* ---------- gunfire, hits, the dad getting hurt ---------- */
+/* every shot in the hub lands here (aiShot): the dad's raise heat; any shot startles loiterers near the shooter or the round's path */
+function frNoise(from,to,id,r){if(!FR||!frOn()||mode!=='hub')return;FR.noise.push({x:from.x,z:from.z,r,t:simT,kind:'gun',id});
+  if(FR.nav)AI.shotFired(from.x,from.z,to.x,to.z,FR.hostile||[],simT);
+  if(id==='player'){FR.shotT=simT;FR.calmT=0;if(!frInRiver())return;
+    if(FR.cap<=0){if(simT-FR.quipT>10){FR.quipT=simT;frSay(FR_LINES.topTier)}return}
+    const was=FR.heat;FR.heat=Math.min(FR.cap,Math.max(FR.heat+FR_TUNE.shot,was<FR_TUNE.firstShot?FR_TUNE.firstShot:0));FR.heatAt={x:P.pos.x,z:P.pos.z};
+    if(!FR.hotCrew||was<.5)FR.hotCrew=frTurfAt(P.pos.x,P.pos.z)||frNearestCrew(P.pos.x,P.pos.z);
+    const dx=to.x-from.x,dz=to.z-from.z,L2=dx*dx+dz*dz||1;let first=null,fd=1e9;
+    for(const g of FR.groups){if(g.members.every(e=>e.hostile))continue;let hit=false;for(const e of g.members){if(e.state!=='idle')continue;const t=clamp(((e.pos.x-from.x)*dx+(e.pos.z-from.z)*dz)/L2,0,1),qx=from.x+dx*t,qz=from.z+dz*t;
+        if(Math.hypot(e.pos.x-qx,e.pos.z-qz)<5||e.pos.distanceTo(P.pos)<FR_TUNE.engageR)hit=true}
+      if(hit){const gd=Math.hypot(g.x-P.pos.x,g.z-P.pos.z);if(gd<fd){fd=gd;first=g}frProvoke(g.crew,'shot');const I=FR.inc;if(I&&I.group===g&&I.kind==='scuffle'){frProvoke(I.crew2,'shot');FR.war=[I.crew.id,I.crew2.id];for(const e of g.members)frArm(e,true)}}}
+    /* the first shots: the crew you startled is the one that calls its friends */
+    if(first&&was<.5)FR.hotCrew=first.crew}}
+/* hurtEnemy hook: who hurt a crew member (the dad, a crew dad, a rival crew) */
+function frHurt(e,by){e.frBy=FR&&FR.shooter==='crew'?'crew':by;FR.stats['hits_'+e.frBy]=(FR.stats['hits_'+e.frBy]||0)+1;if(e.frBy==='player'&&FR){FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.hit);if(!FR.crewState[e.fr.id].hostileP)frProvoke(e.fr,'shot')}
+  if(e.frBy!=='crew'&&e.state==='idle'&&!e.hostile)frArm(e,true)}
+function frHurtPlayer(d,src){if(!FR||FR.downT)return;const k=VAN.on?.5:1;d*=k;P.hp-=d;P.regenT=4.5;if(src&&src.pos){FR_HUD.dmg(src,d)}FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);
+  if(P.hp<=0){P.hp=0;frDown()}}
+/* the dad goes down in free roam: fade, wake up at home, Dad's Auto towed the van (small fee), heat reset */
+function frDown(){FR.downT=1;running=false;mouseDown=false;const fee=40;let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}
+  f.style.transition='opacity .6s';f.style.background='#0d1116';f.style.opacity='1';HUD.banner({kind:'fail',kicker:'Riverside Flats',title:'Lights out',sub:"The guys got you home.",dur:1.6});
+  const go=()=>{FR.downT=0;frReset();enterHub();const S=HTM('Save');let paid=0;try{if(S&&S.addCash&&S.data){const c=S.data.cash||0;paid=Math.min(fee,c);S.addCash(-paid,'tow')}}catch(e){}
+    frSay(FR_LINES.down,'you',true);HUD.feed("Dad's Auto towed the van home",'bad',paid?'-$'+paid:'on the house');FR.stats.downs=(FR.stats.downs||0)+1;
+    setTimeout(()=>{f.style.opacity='0';setTimeout(()=>{f.style.background='#c9dcea';f.style.transition='opacity .35s'},700)},120)};
+  if(FR.instant)go();else setTimeout(go,900)}
+/* clearChars hook (job start, enterHub, title): every free-roam person goes */
+function frReset(){if(!FR)return;for(const e of[...FR.members]){scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}}
+  for(const c of FR.civ)if(c.dude)scene.remove(c.dude.root);if(FR.car)frCarGone();
+  if(L&&L.pickups)for(const p of[...L.pickups])removePickup(p);
+  Object.assign(FR,{members:[],groups:[],civ:[],inc:null,heat:0,reinfT:{},drawn:false,war:null,hotCrew:null,cool:false,squads:new Map(),pool:null,nav:null,navC:null,worlds:{},hostile:[],alive:[],fight:false,noise:[],car:null,goods:[]});
+  for(const id in FR.crewState){FR.crewState[id].hostileP=false;FR.crewState[id].provT=-99}if(FR.spots)for(const s of FR.spots){s.group=null;s.freeAt=0}FR.incT=rand(40,70)}
+const frNearestCrew=(x,z)=>{let b=null,bd=1e9;for(const c of FR_CREWS){const r=c.turf,cx=clamp(tx(x),r.x0,r.x1),cz=clamp(tx(z),r.z0,r.z1),d=Math.hypot(cx-tx(x),cz-tz(z));if(d<bd){bd=d;b=c}}return b};
+function tz(z){return Math.floor(z/TILE)}
+
+/* ---------- drawing and holstering ---------- */
+function frDraw(id){if(!frInRiver()||!frOn()){if(simT-FR.quipT>6){FR.quipT=simT;frSay(frOn()?FR_LINES.maple:FR_LINES.calm,'you',true)}return}
+  if(FR.cap<=0&&frTier()>=5){if(simT-FR.quipT>6){FR.quipT=simT;frSay(FR_LINES.topTier,speaker()||'you',true)}return}
+  id=id&&P.weapons.includes(id)?id:P.cur;FR.drawn=true;FR.calmT=0;FR.drawT=simT;swap(id,true);if(P.dude)equip(P.dude,id);
+  /* drawing on a loitering group up close gets noticed */
+  for(const g of FR.groups){if(g.members.some(e=>e.hostile))continue;const dd=Math.hypot(g.x-P.pos.x,g.z-P.pos.z);if(dd<14&&frLos(P.pos.x,P.pos.z,g.x,g.z))g.notice=Math.max(g.notice,.2)}}
+function frHolster(say){if(!FR||!FR.drawn)return;FR.drawn=false;P.aim=false;mouseDown=false;if(P.dude)equip(P.dude,null);vm.visible=false;if(P.rl){P.rl=null;P.reloadT=0}if(say)frSay(say===true?FR_LINES.holster:say,'you',true)}
+/* keydown hook (hub, on foot): weapon keys draw in Riverside (a quip in Maple), H holsters. true = handled */
+function frKey(k){if(!FR||VAN.on||mode!=='hub')return false;const gunKey=k==='1'||k==='2'||k==='3'||k==='q';
+  if(k==='h'){if(FR.drawn){frHolster(true);return true}return false}
+  if(!gunKey)return false;if(FR.drawn)return false;
+  const id=k==='q'?P.cur:P.loadout[SLOT_KEYS[+k-1]];if(!id)return true;frDraw(id);return true}
+
+/* ---------- spawning: ambient groups (never in sight, never on a job lot) and heat reinforcements ---------- */
+function frAmbient(){const tier=frTier(),T=FR_TIER[tier];if(!T.groups)return;const spots=frSpots();let amb=FR.members.filter(e=>!e.hostile).length;
+  /* at the cap, the farthest quiet group nobody can see goes home so the street life follows the dad */
+  while(amb>FR_TUNE.maxAmbient-4){const far=FR.groups.filter(g=>g.kind==='loiter'&&g.members.every(e=>e.state==='idle'&&!e.hostile)).map(g=>({g,d:Math.hypot(g.x-P.pos.x,g.z-P.pos.z)})).filter(o=>o.d>60&&!frSeen(o.g.x,o.g.z)).sort((a,b)=>b.d-a.d)[0];
+    if(!far)return;for(const e of[...far.g.members])frRemove(e);amb=FR.members.filter(e=>!e.hostile).length}
+  const want={};for(const c of FR_CREWS)want[c.id]=frWant(c);
+  const have={};for(const g of FR.groups)if(g.kind==='loiter')have[g.crew.id]=(have[g.crew.id]||0)+1;
+  const near=spots.filter(s=>!s.group&&simT>=s.freeAt&&(have[s.crew]||0)<want[s.crew]).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>FR_TUNE.spawnMin&&o.d<85).sort((a,b)=>a.d-b.d);
+  for(const o of near){if((have[o.s.crew]||0)>=want[o.s.crew])continue;const TB=FR_TIER[Math.max(tier,frTierAt(o.s.x,o.s.z))];if(!TB.groups||TB.only&&TB.only!==o.s.crew)continue;if(frSeen(o.s.x,o.s.z))continue;const crew=frCrew(o.s.crew),st=FR.crewState[crew.id];
+    let n=Math.round(rand(TB.size[0],TB.size[1]))-(st.thin%2);n=clamp(n,1,4);if(o.s.kind==='stoop')n=Math.min(n,2);
+    if(!frGroup(crew,o.s,n,{unseen:true})){o.s.freeAt=simT+5;continue}have[o.s.crew]=(have[o.s.crew]||0)+1;return}}
+/* loitering groups a crew keeps out at this trust tier: two zip-ties thin it by one group */
+function frWant(c){const T=FR_TIER[frTier()],st=FR.crewState[c.id];let n=T.groups-Math.floor(st.thin/2);if(T.only&&c.id!==T.only)n=0;return Math.max(0,n)}
+/* out-of-sight cells 30-55 m from the dad, preferring the crew's own turf side */
+function frSpawnCells(crew,n){const nav=FR.nav;if(!nav)return[];const out=[],c=crew.turf,tcx=(c.x0+c.x1+1)*TILE/2,tcz=(c.z0+c.z1+1)*TILE/2;let best=[];
+  const R=FR_TUNE.navR,cx0=FR.navC.x,cz0=FR.navC.z;for(let k=0;k<260;k++){const gx=cx0+((Math.random()*(2*R+1))|0)-R,gz=cz0+((Math.random()*(2*R+1))|0)-R,i=gz*nav.W+gx;if(gx<0||gz<0||gx>=nav.W||gz>=nav.H||!nav.walk[i])continue;const x=nav.wx(i),z=nav.wz(i),d=Math.hypot(x-P.pos.x,z-P.pos.z);if(d<32||d>58)continue;
+    if(frInSite(x,z,2)||!frInRiver(x,z))continue;if(frSeen(x,z))continue;if(!'s,pb'.includes(L.g[tx(z)][tx(x)]))continue;best.push({x,z,s:Math.hypot(x-tcx,z-tcz)*.3+rand(0,12)})}
+  best.sort((a,b)=>a.s-b.s);for(const b of best){if(out.every(o=>Math.hypot(o.x-b.x,o.z-b.z)>2.5))out.push(b);if(out.length>=n)break}return out}
+function frReinforce(crew,n,why){if(frHostiles().length>=FR_TUNE.maxHostile)return 0;n=Math.min(n,FR_TUNE.maxHostile-frHostiles().length);const cells=frSpawnCells(crew,1);if(!cells.length)return 0;const c=cells[0];
+  const g={crew,spot:{x:c.x,z:c.z},members:[],x:c.x,z:c.z,kind:'reinf',notice:0,t:simT};FR.groups.push(g);
+  for(let i=0;i<n;i++){const e=frMake(crew,c.x+rand(-1.2,1.2),c.z+rand(-1.2,1.2),null,'reinforce');e.group=g;g.members.push(e);frArm(e,true);const ai=AI.mem(e,frWorld(crew));ai.mode='combat';ai.sub='react';ai.react=simT+rand(.6,1.4);ai.lkp={x:P.pos.x,z:P.pos.z,t:simT}}
+  FR.stats.reinf=(FR.stats.reinf||0)+n;FR.dirtyTargets=true;return n}
+
+/* ---------- heat ---------- */
+function frHeat(dt){const tier=Math.max(frTier(),frInRiver()?frTierAt(P.pos.x,P.pos.z):0);FR.cap=frOn()?FR_TIER[tier].cap:0;if(FR.heat>FR.cap)FR.heat=FR.cap;
+  const H=FR.hostile,quiet=simT-FR.shotT,inR=frInRiver();
+  /* an ongoing fight close by keeps escalating slowly; stray rounds between crews add a little (frEnemy) */
+  const engaged=H.filter(e=>e.ai&&e.ai.mode==='combat'&&e.pos.distanceTo(P.pos)<40);if(engaged.length&&quiet<4)FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.fightRise*dt);
+  let rate=0;FR.why=null;
+  if(quiet>FR_TUNE.quiet&&FR.heat>0){rate=FR_TUNE.decay;const why=[];
+    if(!FR.drawn){rate*=FR_TUNE.holster;why.push('holstered')}
+    const seen=FR.nav&&H.some(e=>e.pos.distanceTo(P.pos)<50&&FR.nav.los(e.pos.x,e.pos.z,P.pos.x,P.pos.z,false));if(seen)rate*=FR_TUNE.losHeld;else{rate*=FR_TUNE.losBreak;why.push('out of sight')}
+    if(!inR){rate*=FR_TUNE.leftRiver;why.push('left Riverside')}else if(FR.heatAt&&Math.hypot(P.pos.x-FR.heatAt.x,P.pos.z-FR.heatAt.z)>55){rate*=FR_TUNE.away;why.push('off the block')}
+    if(VAN.on&&Math.abs((CV||VAN).spd)>6){rate*=FR_TUNE.drive;why.push('driving away')}
+    FR.why=why;FR.heat=Math.max(0,FR.heat-rate*dt)}
+  FR.rate=rate;const lvl=Math.floor(FR.heat+1e-6);
+  /* escalation, twice a second */
+  FR.escT=(FR.escT||0)-dt;if(FR.escT>0||FR.noEsc)return;FR.escT=.5;
+  if(lvl>=1&&inR&&FR.hotCrew){const A=FR.hotCrew;frNav();
+    if(!FR.crewState[A.id].hostileP)frProvoke(A,'heat');
+    for(const g of FR.groups)if(g.crew===A||Math.hypot(g.x-P.pos.x,g.z-P.pos.z)<FR_TUNE.engageR)for(const e of g.members)if(e.state==='idle'&&!e.hostile&&e.fr===A)frArm(e,true);
+    const live=H.filter(e=>e.fr===A).length;if(live<Math.min(2+lvl,5)&&simT-(FR.reinfT[A.id]||-99)>9&&(quiet<20||engaged.length)){if(frReinforce(A,lvl>=2?3:2,'heat'))FR.reinfT[A.id]=simT}
+    if(lvl>=3&&FR.cap>=3){/* turf war: the nearest other crew joins and the two crews go at each other as well as the dads */
+      if(!FR.war){const B=FR_CREWS.filter(c=>c!==A).map(c=>({c,d:Math.hypot((c.turf.x0+c.turf.x1)-2*tx(P.pos.x),(c.turf.z0+c.turf.z1)-2*tz(P.pos.z))})).sort((a,b)=>a.d-b.d)[0].c;
+        FR.war=[A.id,B.id];FR.warAt=simT;FR.crewState[B.id].hostileP=true;HUD.banner({kind:'alert',kicker:'Heat 3',title:'TURF WAR',sub:A.name+' vs '+B.name+'. And you.',dur:2.6});
+        radio(B.short,pick(FR_LINES.war).replace('{a}',A.short).replace('{b}',A.short),true);FR.stats.wars=(FR.stats.wars||0)+1;
+        for(const g of FR.groups)if(g.crew===B&&Math.hypot(g.x-P.pos.x,g.z-P.pos.z)<70)for(const e of g.members)frArm(e,true)}
+      const B=frCrew(FR.war[1]);if(H.filter(e=>e.fr===B).length<3&&simT-(FR.reinfT[B.id]||-99)>12&&(quiet<20||engaged.length)){if(frReinforce(B,3,'war'))FR.reinfT[B.id]=simT}}
+    if(lvl>=5&&FR.cap>=5&&!FR.car&&simT-FR.carT>FR_TUNE.carCool)frCarSpawn(A)}
+  if(FR.war)FR.warT+=.5;
+  /* cooling off: below heat 1 with the guns quiet, the crews lose interest (they still answer a gun pointed at them up close) */
+  if(FR.heat<1&&quiet>FR_TUNE.quiet&&(FR.war||FR_CREWS.some(c=>FR.crewState[c.id].hostileP))&&FR_CREWS.every(c=>simT-(FR.crewState[c.id].provT||-99)>15)){const seenBy=H.some(e=>e.pos.distanceTo(P.pos)<16&&FR.drawn);
+    if(!seenBy&&(!FR.drawn||quiet>14)){FR.war=null;for(const c of FR_CREWS)FR.crewState[c.id].hostileP=false;let any=false;
+      for(const e of FR.members)if(e.state==='idle'&&e.hostile){e.hostile=false;e.leave=true;e.leaveAt=simT;e.run=false;any=true;if(e.squad){e.squad.releaseFire(e)}}
+      if(any&&H.length){const e=H.find(x=>x.pos.distanceTo(P.pos)<30);if(e)radio(e.fr.short,pick(FR_LINES.back))}}}}
+
+/* ---------- reinforcement car (heat 5): a crew sedan drives in on the road graph, three guys bail out ---------- */
+function frCarSpawn(crew){const O=OW(),G=O&&O.roads&&O.roads(),CA=HTM('CarAI');FR.carT=simT;if(!G||!CA||!CA.make||!G.route)return;
+  const nodes=G.nodes.filter(n=>{const d=Math.hypot(n.x-P.pos.x,n.z-P.pos.z);return d>60&&d<120&&frInRiver(n.x,n.z)&&!frInSite(n.x,n.z,1)&&!frSeen(n.x,n.z)});if(!nodes.length)return;
+  const n=pick(nodes);let r=null;try{r=G.route({x:n.x,z:n.z},{x:P.pos.x,z:P.pos.z})}catch(e){}if(!r||!r.points||r.points.length<2)return;
+  const p0=r.points[0],p1=r.points[1],yaw=Math.atan2(-(p1.x-p0.x),-(p1.z-p0.z));const v=makeVehicle('sedan','#2b2f36');if(!v)return;
+  const car=CA.make('sedan',{x:p0.x,z:p0.z,yaw});CA.follow(car,r.points,{speed:13,turnSpeed:6});L.group.add(v);
+  FR.car={c:car,v,crew,t:0,stuckT:0,done:false};FR.stats.cars=(FR.stats.cars||0)+1;frSay(FR_LINES.car,speaker()||'you',true);HUD.feed(crew.name+' called their cousin','bad')}
+function frCarStep(dt){const R=FR.car;if(!R)return;const CA=HTM('CarAI'),c=R.c;R.t+=dt;
+  if(!R.done){CA.step(c,dt,{collide:(p,r)=>collide(p,r),van:{x:P.pos.x,z:P.pos.z}});const d=Math.hypot(c.x-P.pos.x,c.z-P.pos.z);if(Math.abs(c.spd)<.5)R.stuckT+=dt;else R.stuckT=0;
+    if(d<18||c.ai&&c.ai.done||R.stuckT>2.5||R.t>40){R.done=true;c.spd=0;const col={x0:0,z0:0,x1:0,z1:0};L.colliders.push(col);R.col=col;
+      const S={l:4.6,w:1.9},a=Math.abs(Math.sin(c.yaw)),b=Math.abs(Math.cos(c.yaw)),hx=a*S.l/2+b*S.w/2,hz=b*S.l/2+a*S.w/2;Object.assign(col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz});
+      const r=V3(Math.cos(c.yaw),0,-Math.sin(c.yaw));const g={crew:R.crew,spot:{x:c.x,z:c.z},members:[],x:c.x,z:c.z,kind:'reinf',notice:0,t:simT};FR.groups.push(g);
+      for(let i=0;i<3&&frHostiles().length<FR_TUNE.maxHostile+2;i++){const s=i%2?1:-1,e=frMake(R.crew,c.x+r.x*1.6*s-Math.sin(c.yaw)*(i-1)*1.2,c.z+r.z*1.6*s-Math.cos(c.yaw)*(i-1)*1.2,null,'car');e.group=g;g.members.push(e);frArm(e,true);
+        const ai=AI.mem(e,frWorld(R.crew));ai.mode='combat';ai.sub='react';ai.react=simT+.8;ai.lkp={x:P.pos.x,z:P.pos.z,t:simT}}FR.dirtyTargets=true}}
+  R.v.position.set(c.x,groundAt(c.x,c.z),c.z);R.v.rotation.set(0,c.yaw+Math.PI/2,0);const VM=HTM('Vehicles');if(VM&&VM.update)try{VM.update(R.v,{speed:R.done?0:c.spd,steer:c.steer||0,braking:R.done,headlights:false,dt})}catch(_){}
+  if(R.done&&R.t>20&&Math.hypot(c.x-P.pos.x,c.z-P.pos.z)>70&&!frSeen(c.x,c.z))frCarGone()}
+function frCarGone(){const R=FR.car;if(!R)return;if(R.v&&R.v.parent)R.v.parent.remove(R.v);if(R.col){const i=L?L.colliders.indexOf(R.col):-1;if(i>=0)L.colliders.splice(i,1)}FR.car=null}
+
+/* ---------- incidents: porch pirate, car break-in, a scuffle between two crews ---------- */
+function frIncidentTick(dt){const tier=frTier(),T=FR_TIER[tier];if(FR.inc){frIncUpdate(dt);return}
+  if(!T.inc||FR.heat>0||FR.hostile.length||VAN.on&&Math.abs((CV||VAN).spd)>9)return;FR.incT-=dt;if(FR.incT>0)return;FR.incT=rand(55,95)*T.inc;
+  const kinds=['porch','carjack','scuffle'];const k=FR.forceInc||pick(kinds);FR.forceInc=null;frIncStart(k)}
+function frIncStart(kind){const spots=frSpots(),only=FR_TIER[frTier()].only;if(only&&kind==='scuffle')kind='porch';const cand=(list,fn)=>list.filter(fn).map(s=>({s,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
+  let I=null;
+  if(kind==='porch'){const c=cand(spots,s=>s.kind==='stoop'&&!s.group&&(!only||s.crew===only))[0];if(!c)return false;const crew=frCrew(c.s.crew),s=c.s;
+    const e=frMake(crew,s.x,s.z,Math.random()<.35?'pistol':'nailer','incident');e.goods={what:pick(['a humidifier','forty pounds of dog food','an air fryer','a box of printer ink','a garden gnome',"somebody's insulin"]),porch:{x:s.x,z:s.z},val:Math.round(rand(14,26))};
+    const box_=box(.42,.3,.34,'#b8874f',0,1.05,.32,e.dude.root);box_.castShadow=true;e.parcel=box_;
+    I={kind,text:'Stop the porch pirate',crew,members:[e],x:s.x,z:s.z,t:0,porch:{x:s.x,z:s.z}};
+    const run=pick(spots.filter(o=>o.kind==='corner'&&Math.hypot(o.x-s.x,o.z-s.z)>40&&Math.hypot(o.x-s.x,o.z-s.z)<90))||{x:s.x+40,z:s.z};
+    e.frScript=(e,dt)=>{I.t+=0;if(e.state!=='idle')return;const d=e.pos.distanceTo(P.pos);
+      if(!e.flee&&I.t>3)e.flee=true;if(e.flee){e.mv=moveToward(e,run.x,run.z,d<14?4.2:2.6,dt);e.mvS=d<14?1.5:1;faceTo(e,run.x,run.z,dt,6)}else{e.mv=false;faceTo(e,s.x+(s.face?s.face[0]:0)*3,s.z+(s.face?s.face[1]:1)*3,dt,4)}
+      if(d<3.6&&!e.triedSurr){e.triedSurr=true;surrender(e);radio(crew.short,pick(FR_LINES.surrender),true)}}}
+  else if(kind==='carjack'){const cars=(L.cars||[]).filter(c=>c!==VAN&&c!==CV&&c.owner==='neighbour'&&frInRiver(c.pos.x,c.pos.z)&&(!only||(frTurfAt(c.pos.x,c.pos.z)||{}).id===only)&&!frInSite(c.pos.x,c.pos.z,2)).map(c=>({s:{x:c.pos.x,z:c.pos.z,car:c},d:Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z)})).filter(o=>o.d>32&&o.d<75&&!frSeen(o.s.x,o.s.z)).sort((a,b)=>a.d-b.d);
+    const c=cars[0];if(!c)return false;const car=c.s.car,crew=frTurfAt(car.pos.x,car.pos.z)||frNearestCrew(car.pos.x,car.pos.z),S=carSize(car),r=V3(Math.cos(car.yaw),0,-Math.sin(car.yaw)),f=V3(-Math.sin(car.yaw),0,-Math.cos(car.yaw));
+    let side=1;{const q=car.pos.clone().addScaledVector(r,S.w/2+.6);if(!walkable(tx(q.x),tx(q.z)))side=-1}
+    const a=frMake(crew,car.pos.x+r.x*(S.w/2+.55)*side+f.x*.2,car.pos.z+r.z*(S.w/2+.55)*side+f.z*.2,null,'incident'),b=frMake(crew,car.pos.x+r.x*(S.w/2+1.6)*side-f.x*2.2,car.pos.z+r.z*(S.w/2+1.6)*side-f.z*2.2,null,'incident');
+    a.goods={what:pick(["a car stereo","a catalytic converter","somebody's sunglasses","a booster seat"]),val:Math.round(rand(16,30)),car};
+    I={kind,text:'Stop the car break-in',crew,members:[a,b],x:car.pos.x,z:car.pos.z,t:0,car};
+    a.frScript=(e,dt)=>{faceTo(e,car.pos.x,car.pos.z,dt,6);e.mv=false;if((e.jT=(e.jT||0)-dt)<0){e.jT=rand(1.2,2.2);cue('interact',e.dude);snd('smash',.25)}};
+    b.frScript=(e,dt)=>{e.mv=false;faceTo(e,P.pos.x,P.pos.z,dt,2)}}
+  else{const c=cand(spots,s=>s.kind==='corner'&&!s.group)[0];if(!c)return false;const A=frCrew(c.s.crew),B=FR_CREWS.filter(x=>x!==A)[Math.random()<.5?0:1],s=c.s;
+    const ms=[];for(let i=0;i<4;i++){const cr=i<2?A:B,side=i<2?-1:1,e=frMake(cr,s.x+side*1.1+rand(-.3,.3),s.z+(i%2?.7:-.7),null,'incident');ms.push(e)}
+    I={kind,text:'Break it up',crew:A,crew2:B,members:ms,x:s.x,z:s.z,t:0};
+    for(const e of ms)e.frScript=(e,dt)=>{const o=ms.filter(m=>m.fr!==e.fr&&m.state==='idle').sort((p,q)=>p.pos.distanceTo(e.pos)-q.pos.distanceTo(e.pos))[0];e.mv=false;if(o)faceTo(e,o.pos.x,o.pos.z,dt,6);
+      if((e.jT=(e.jT||rand(.5,2))-dt)<0){e.jT=rand(1.4,3);cue(Math.random()<.5?'interact':'hit',e.dude,false)}}}
+  if(!I)return false;
+  /* a member who would pop up in sight (around a corner from the spot) cancels the incident */
+  if(I.members.some(e=>e.spawnSeen)){for(const e of[...I.members])frRemove(e);const L_=FR.stats.spawnLog;for(const e of I.members){const j=L_.findIndex(q=>q.t===+simT.toFixed(1)&&q.kind==='incident');if(j>=0)L_.splice(j,1)}return false}
+  const g={crew:I.crew,spot:{x:I.x,z:I.z},members:I.members,x:I.x,z:I.z,kind:'incident',notice:0,t:simT};for(const e of I.members)e.group=g;FR.groups.push(g);I.group=g;
+  FR.inc=I;FR.stats.incidents=(FR.stats.incidents||0)+1;HUD.banner({kind:'alert',kicker:'Optional',title:I.text.toUpperCase(),sub:kind==='scuffle'?I.crew.name+' and '+I.crew2.name+' on the corner':kind==='porch'?'Somebody is lifting a package off a porch':'Somebody is in '+I.car.name+"'s car",dur:2.4});
+  if(kind==='porch')frSay(FR_LINES.porch,speaker()||'you');FR.dirtyTargets=true;return true}
+function frIncUpdate(dt){const I=FR.inc;I.t+=dt;const live=I.members.filter(e=>e.state==='idle'&&!e.leave),d=Math.hypot(I.x-P.pos.x,I.z-P.pos.z);
+  if(I.kind==='porch'){const e=I.members[0];if(e){I.x=e.pos.x;I.z=e.pos.z}}
+  const end=(ok,msg)=>{for(const e of I.members){e.frScript=null;if(e.state==='idle'&&!e.hostile){e.leave=true;e.leaveAt=simT}}FR.inc=null;if(msg)HUD.feed(msg,ok?'trust':'info')};
+  if(!I.members.some(e=>e.state==='idle'&&!e.leave)&&!I.members.some(e=>e.state==='surrender')){end(true);return}
+  if(I.members.some(e=>e.hostile)){I.text=I.kind==='scuffle'?'Turf fight':'Deal with them';return}
+  /* walking into a break-in in progress: a drawn gun or a 50/50 gets you a fight, otherwise they bolt */
+  if(I.kind==='carjack'&&!I.spotted&&(d<(FR.drawn?14:10))&&live.some(e=>frLos(P.pos.x,P.pos.z,e.pos.x,e.pos.z))){I.spotted=true;for(const e of live)e.frScript=null;frNav();
+    if(FR.drawn||Math.random()<.5){frProvoke(I.crew,'draw');for(const e of live)frArm(e);radio(I.crew.short,"Wrong car, Costco.",true)}
+    else{for(const e of live){e.leave=true;e.run=true;e.leaveAt=simT}radio(I.crew.short,"It's a dad! RUN!",true)}}
+  if(I.kind==='scuffle'&&d<12&&!I.spotted&&FR.drawn){I.spotted=true;for(const e of live){e.frScript=null;e.leave=true;e.run=true;e.leaveAt=simT}radio(I.crew.short,'He\'s strapped! Scatter!');end(true,'Broke it up · they scattered')}
+  /* fleeing thieves who get caught give up */
+  for(const e of live)if(e.leave&&e.run&&e.pos.distanceTo(P.pos)<3.2&&!e.triedSurr){e.triedSurr=true;e.leave=false;surrender(e);radio(e.fr.short,pick(FR_LINES.surrender),true)}
+  if(I.kind==='porch'&&live.length&&live[0].pos.distanceTo(P.pos)>95){end(false,'He got away. It was probably a humidifier.')}
+  if(I.t>150&&d>60)end(false)}
+
+/* ---------- zip-ties, stolen goods, the drop box ---------- */
+function frCuff(e){cue('interact',P.dude);e.state='cuffed';e.cuffT=simT;confiscate(e);if(e.tag){e.tag.remove();e.tag=null}prog.cuffed++;snd('cuff');radio('you',pick(LINES.cuff),true);
+  const st=FR.crewState[e.fr.id];st.thin++;st.thinT=simT;FR.heat=Math.max(0,FR.heat-FR_TUNE.cuff);FR.stats.cuffs=(FR.stats.cuffs||0)+1;
+  frTrust(1.5,'Zip-tied · '+e.fr.short+' thinned out');
+  if(e.parcel){e.dude.root.remove(e.parcel);e.parcel=null}
+  if(e.goods||Math.random()<.45){const gd=e.goods||{what:pick(['a stack of stolen packages','a bag of somebody\'s mail','three phones that are not his','a lawn ornament']),val:Math.round(rand(10,22))};FR.goods.push(gd);toast('Recovered '+gd.what,'#9fe58a')}}
+function frDropBox(){const c=WORLD&&WORLD.places&&WORLD.places.center;if(!c)return null;if(!FR.box){const g=new THREE.Group();box(.62,1.05,.5,'#2f5d9e',0,.53,0,g);box(.66,.08,.54,'#24497d',0,1.08,0,g);box(.42,.05,.06,'#111',0,.88,.26,g);
+    const sp=labelSprite('LOST & FOUND','Riverside drop box','#f6f1e3');sp.position.set(0,1.75,0);sp.scale.multiplyScalar(.5);g.add(sp);
+    let x=c.x,z=c.z+1.6;for(const[dx,dz]of[[0,1.6],[1.6,1.6],[-1.6,1.6],[0,2.6]]){if(walkable(tx(c.x+dx),tx(c.z+dz))&&!solidAt(c.x+dx,c.z+dz,.4,0)){x=c.x+dx;z=c.z+dz;break}}
+    g.position.set(x,groundAt(x,z),z);L.group.add(g);FR.box={g,x,z}}else if(!FR.box.g.parent)L.group.add(FR.box.g);return FR.box}
+function frDeliver(where){const n=FR.goods.length;if(!n)return;let cash=0;for(const gd of FR.goods)cash+=gd.val;FR.goods=[];const S=HTM('Save');try{if(S&&S.addCash)S.addCash(cash,'goods')}catch(e){}
+  frTrust(.5*n,'Returned stolen goods');HUD.feed(where,'cash','+$'+cash);radio(where==='Lost & found drop box'?'Mrs. Ramos':'Neighbour',pick(FR_LINES.goods));sfx('pick');FR.stats.delivered=(FR.stats.delivered||0)+n}
+
+/* ---------- neighbours: out on porches as trust rises, inside the moment there is heat. Never targetable (not in rayTargets) ---------- */
+function frCivTick(dt){const tier=frTier(),inR=frInRiver(),pp=people();if(!pp||!pp.has)return;
+  const want=inR&&FR.heat<.01&&!FR.hostile.length&&tier>=2&&simT-(FR.calmSince||0)>6?Math.min(4,tier):0;
+  if(want&&!FR.civPre){FR.civPre=1;try{pp.preload(['wife','son','daughter']).catch(()=>{})}catch(e){}}
+  for(const c of FR.civ){if(FR.heat>=1||FR.hostile.length){if(!c.inside){c.inside=true;c.goT=0}}
+    const d=c.dude;if(c.inside){c.goT+=dt;moveToward(c,c.door.x,c.door.z,2.4,dt);faceTo(c,c.door.x,c.door.z,dt,6);pose(d,dt,{moving:true,speed:1.4,aim:false});if(c.goT>2.5)d.root.visible=false}
+    else{faceTo(c,c.look.x,c.look.z,dt,2);pose(d,dt,{aim:false});d.root.visible=true}d.root.position.set(c.pos.x,0,c.pos.z);d.root.rotation.y=c.yaw}
+  FR.civT=(FR.civT||0)-dt;if(FR.civT>0)return;FR.civT=1;
+  for(const c of[...FR.civ])if((c.inside&&c.goT>2.5)||Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z)>70){if(!frSeen(c.pos.x,c.pos.z)||c.inside){scene.remove(c.dude.root);FR.civ.splice(FR.civ.indexOf(c),1)}}
+  if(FR.civ.length>=want)return;const G=HTM('WorldGen');const slots=G&&G.neighbourSlots?G.neighbourSlots(WORLD,prog.trustR,P.pos.x,P.pos.z,12,60):[];
+  for(const p of slots){if(FR.civ.length>=want)break;if(FR.civ.some(c=>c.slot===p)||frInSite(p.x,p.z,2))continue;const kid=tier>=3&&Math.random()<.5,role=kid?pick(['son','daughter']):'wife';if(!pp.has(role))continue;
+    if(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)<20||frSeen(p.x,p.z)&&Math.hypot(p.x-P.pos.x,p.z-P.pos.z)<45)continue;
+    const f=p.face||[0,1];const d=makeDude({role});if(!d)continue;/* face points from the house to the street: grown-ups on the porch, kids out on the sidewalk, the door behind them */
+    const pos=V3(p.x+f[0]*(kid?2.4:.2)+(kid?rand(-1,1):0),0,p.z+f[1]*(kid?2.4:.2));const c={kind:'civ',dude:d,pos,yaw:0,slot:p,door:{x:p.x-f[0]*1.4,z:p.z-f[1]*1.4},look:{x:p.x+f[0]*6,z:p.z+f[1]*6},inside:false,goT:0};
+    d.root.position.copy(pos);scene.add(d.root);FR.civ.push(c)}}
+
+/* ---------- HUD: heat pips (under the trust meter), objective line, markers, blips, turf tints on the full map ---------- */
+const FR_HUD={el:null,pips:[],shown:-1,lab:null,st:null,
+  build(){if(this.el)return this.el;const tr=document.querySelector('.ht-tr');if(!tr)return null;const st=document.createElement('style');
+    st.textContent='.fr-heat{margin-top:10px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;transition:opacity .35s;pointer-events:none}.fr-heat.off{opacity:0}'+
+      '.fr-heat .row{display:flex;gap:8px;align-items:baseline;font:700 var(--t-xs,11px)/1 var(--ht-ui,sans-serif);letter-spacing:.16em;text-transform:uppercase;color:var(--fg2,#cfd6df)}'+
+      '.fr-heat .row b{color:var(--alarm,#ff5a47);font-weight:800}.fr-heat .row .cool{color:var(--sky,#6fb8ff)}'+
+      '.fr-heat .pips{display:flex;gap:4px}.fr-heat .pips i{position:relative;width:22px;height:9px;transform:skewX(-18deg);background:rgba(10,12,16,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);overflow:hidden;border-radius:1.5px}'+
+      '.fr-heat .pips i u{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,#ff8a3c,var(--alarm,#ff5a47));transition:transform .25s}'+
+      '.fr-heat.hot .pips i.on{box-shadow:0 0 10px rgba(255,90,71,.55),inset 0 0 0 1px rgba(255,200,180,.5)}.fr-heat.cooling .pips i u{background:linear-gradient(90deg,#9cc8ff,var(--sky,#6fb8ff))}'+
+      '.fr-heat.pulse .pips i.on{animation:frp .5s ease-out}@keyframes frp{0%{transform:skewX(-18deg) scale(1.35)}100%{transform:skewX(-18deg) scale(1)}}';
+    document.head.appendChild(st);const el=document.createElement('div');el.className='fr-heat off';el.innerHTML='<div class="row"><span class="st"></span><span>Heat</span></div><div class="pips">'+'<i><u></u></i>'.repeat(5)+'</div>';
+    tr.appendChild(el);this.el=el;this.pips=[...el.querySelectorAll('i')];this.st=el.querySelector('.st');return el},
+  update(){const el=this.build();if(!el)return;const show=mode==='hub'&&!!FR&&frOn()&&(frInRiver()||FR.heat>0)&&FR.cap>0;el.classList.toggle('off',!show);if(!show)return;
+    const h=FR.heat,lvl=Math.floor(h+1e-6);for(let i=0;i<5;i++){const f=clamp(h-i,0,1),p=this.pips[i];p.firstChild.style.transform='scaleX('+f.toFixed(2)+')';p.classList.toggle('on',f>=.999)}
+    const cooling=h>0&&FR.rate>0;el.classList.toggle('cooling',cooling);el.classList.toggle('hot',lvl>=1&&!cooling);
+    if(lvl>this.shown&&this.shown>=0){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse')}this.shown=lvl;
+    const t=cooling?'<span class="cool">Cooling off</span>':lvl>=5?'<b>Backup inbound</b>':lvl>=3?'<b>Turf war</b>':lvl>=1?'<b>Crews out</b>':FR.hostile.length?'<b>Standoff</b>':'';if(this.st._t!==t){this.st._t=t;this.st.innerHTML=t}},
+  dmg(src,d){HUD.damage({x:src.pos.x,z:src.pos.z},d);if(src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1))}};
+function frObj(obj){if(!FR||mode!=='hub')return obj;const lines=[];
+  if(FR.inc)lines.push({text:FR.inc.text+' · optional'});if(FR.goods.length)lines.push({text:'Return the stolen goods · '+FR.goods.length+' on you'});
+  if(!lines.length)return obj;return{title:obj?obj.title:'Riverside Flats',lines:[...(obj?obj.lines:[]),...lines]}}
+function frMarkers(){FR_HUD.update();const out=[];if(!FR||mode!=='hub')return out;
+  if(FR.inc&&!VAN.on){const I=FR.inc;out.push({id:'fr_inc',kind:'obj',label:I.text,x:I.x,z:I.z,screen:project(I.x,2.4,I.z),always:true,edge:true})}
+  if(FR.goods.length){const b=frDropBox();if(b)out.push({id:'fr_box',kind:'loot',label:'Lost & found',x:b.x,z:b.z,screen:project(b.x,1.6,b.z),edge:true});
+    const q=FR.lastPorch;if(q)out.push({id:'fr_porch',kind:'home',label:'Their porch',x:q.x,z:q.z,screen:project(q.x,1.4,q.z),edge:true})}
+  return out}
+function frBlips(){if(!FR||mode!=='hub')return[];return FR.members.filter(e=>e.hostile&&e.alert||e.state==='surrender').map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'}))}
+function frMapOverlay(c,w2s,z){if(!frOn()||!prog.world||!prog.world.visited||!prog.world.visited.river)return;const tier=frTier();if(tier>=5)return;const a=[.2,.18,.15,.11,.07][tier]||.07;
+  for(const cr of FR_CREWS){const t=cr.turf;const[x0,y0]=w2s(t.x0*TILE,t.z0*TILE),[x1,y1]=w2s((t.x1+1)*TILE,(t.z1+1)*TILE);const col=new THREE.Color(cr.col);const rgb=(col.r*255|0)+','+(col.g*255|0)+','+(col.b*255|0);
+    c.fillStyle='rgba('+rgb+','+a+')';c.fillRect(x0,y0,x1-x0,y1-y0);c.setLineDash([6,5]);c.strokeStyle='rgba('+rgb+',.7)';c.lineWidth=1.5;c.strokeRect(x0+.5,y0+.5,x1-x0-1,y1-y0-1);c.setLineDash([]);
+    if(x1-x0>60){c.font='800 '+clamp(Math.round((x1-x0)/14),10,18)+'px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='middle';const mx=(x0+x1)/2,my=y0+Math.min(26,(y1-y0)/2);
+      c.fillStyle='rgba(0,0,0,.55)';c.fillText(cr.name.toUpperCase(),mx+1,my+1);c.fillStyle='rgba('+rgb+',1)';c.fillText(cr.name.toUpperCase(),mx,my)}}}
+/* owUpdate hook: a long turf war scuffs the block for a while (the dressing drops back a tier, heals over a few minutes) */
+function frDressT(t){return FR&&FR.scar>0?Math.max(0,t-FR.scar):t}
+
+/* pause settings: Riverside street trouble On / Calm (stored in CFG like the other settings) */
+{if(CFG.streetTrouble==null)CFG.streetTrouble='on';HUD.settings.streetTrouble=CFG.streetTrouble;
+ HUD.settingsSchema.push({tab:'controls',h:'Riverside',items:[{k:'streetTrouble',l:'Riverside street trouble',sub:'Calm: no street crews, incidents or heat in Riverside Flats',type:'seg',opts:[['on','On'],['calm','Calm']]}]});
+ HUD.on('setting',(k,v)=>{if(k==='streetTrouble'&&v==='calm'&&FR){frHolster();frReset()}});
+ if(HUD.minimap.overlay)HUD.minimap.overlay((c,w2s,z)=>frMapOverlay(c,w2s,z))}
+/* ---------- music: combat while hot, tension while it cools ---------- */
+function frMusic(){const A=AU();if(!A)return;const h=FR.heat,want=h>=1||FR.hostile.length&&FR.fight?'combat':h>0?'cool':null;if(want===FR.musicSt)return;const was=FR.musicSt;FR.musicSt=want;
+  try{if(want==='combat')A.music('combat');else if(want==='cool'){A.music('tension');if(was==='combat')frSay(FR_LINES.cool,speaker()||'you')}else{A.music('hub');A.ambience&&A.ambience('suburb')}}catch(e){}}
+
+/* ---------- per frame (updHub hook). Returns a prompt or null ---------- */
+function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=performance.now();
+  if(!FR.drawn&&P.dude&&P.dude.gun&&!VAN.on)equip(P.dude,null);
+  if(!FR.drawn&&mouseDown&&!VAN.on){mouseDown=false;frDraw(P.cur)}
+  if(!frOn()){if(FR.members.length||FR.drawn||FR.heat)frReset();return null}
+  const inR=frInRiver();FR.diff=FR.diff||Object.assign({},AI.MISSION_DIFF[0]||AI.DIFFICULTY.normal);
+  while(FR.noise.length&&simT-FR.noise[0].t>.5)FR.noise.shift();
+  FR.alive=frAlive();FR.hostile=frHostiles();
+  /* holster: car, leaving Riverside, 20 s of calm; the dad's gun stays out of sight while holstered */
+  if(FR.drawn){if(VAN.on)frHolster();else if(!inR)frHolster(FR_LINES.leftRiver);
+    else{const calm=simT-FR.shotT>FR_TUNE.calmHolster&&simT-(FR.drawT||0)>FR_TUNE.calmHolster&&FR.heat<1&&!FR.hostile.some(e=>e.alert&&e.pos.distanceTo(P.pos)<40)&&!P.aim;if(calm)frHolster()}}
+  if(inR&&FR.regionWas!=='river'){FR.incT=Math.max(FR.incT,20)}FR.regionWas=inR?'river':'other';
+  /* the fight: nav window follows the dad while anyone is hostile */
+  FR.fight=FR.hostile.length>0&&FR.hostile.some(e=>e.pos.distanceTo(P.pos)<70);
+  if(FR.fight){frNav();FR.fightT=simT;FR.calmSince=simT}else if(FR.heat>0)FR.calmSince=simT;
+  for(const s of FR.squads.values())s.update(dt,frWorld(frCrew(s.name)));
+  /* notice: a drawn gun pointed at a loitering group up close */
+  if(FR.drawn&&inR)for(const g of FR.groups){if(g.kind==='incident'&&g.members.some(e=>e.frScript))continue;if(g.members.every(e=>e.hostile||e.state!=='idle'))continue;const dd=Math.hypot(g.x-P.pos.x,g.z-P.pos.z);
+    const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),dot=((g.x-P.pos.x)*fx+(g.z-P.pos.z)*fz)/(dd||1);
+    if(dd<13&&dot>.8&&frLos(P.pos.x,P.pos.z,g.x,g.z)){g.notice+=dt*(P.aim?1.6:1);if(g.notice>1.4){g.notice=0;frNav();frProvoke(g.crew,'draw');for(const e of g.members)if(e.state==='idle')frArm(e)}}else g.notice=Math.max(0,g.notice-dt*.5)}
+  frHeat(dt);if(FR.car)frCarStep(dt);
+  if(inR&&!VAN.on||inR&&Math.abs((CV||VAN).spd)<12){FR.ambT=(FR.ambT||0)-dt;if(FR.ambT<=0&&FR.heat<1&&!FR.fight){FR.ambT=1;frAmbient()}}
+  if(inR)frIncidentTick(dt);else if(FR.inc&&Math.hypot(FR.inc.x-P.pos.x,FR.inc.z-P.pos.z)>120)FR.inc=null;
+  frCivTick(dt);
+  /* thinning heals one step every 4 minutes; the turf-war scar heals over ~3 minutes */
+  for(const c of FR_CREWS){const st=FR.crewState[c.id];if(st.thin>0&&simT-st.thinT>240){st.thin--;st.thinT=simT}}
+  if(FR.war&&FR.warT>45&&FR.scar<20){FR.scar=Math.min(20,FR.scar+dt*.4)}else if(!FR.war&&FR.scar>0)FR.scar=Math.max(0,FR.scar-dt*.12);
+  /* bookkeeping: deaths (trust), cleanup out of sight */
+  for(const e of[...FR.members]){if(e.state==='dead'&&!e.frCounted){e.frCounted=true;e.deadT=simT;FR.stats.kills=(FR.stats.kills||0)+1;
+      if(e.frBy==='player'){frTrust(-2,'Neutralized · that stays with you');FR.heat=Math.min(FR.cap,FR.heat+FR_TUNE.kill)}else if(e.frBy==='ally')frTrust(-1,'Neutralized');else HUD.feed(e.fr.short+' lost one','info')}
+    const far=e.pos.distanceTo(P.pos),gone=(e.state==='dead'&&simT-e.deadT>25||e.state==='cuffed'&&simT-e.cuffT>20||e.leave&&far>35||e.state==='surrender'&&simT-e.surrAt>45||far>95&&!e.hostile||e.state==='idle'&&!inR&&far>60);
+    if(gone&&(!frSeen(e.pos.x,e.pos.z)||far>95))frRemove(e)}
+  for(const g of[...FR.groups])if(!g.members.length)frDropGroup(g);
+  if(FR.dirtyTargets){FR.dirtyTargets=false;rebuildTargets()}
+  frMusic();
+  /* prompts: zip-tie a surrendered crew member, hand over stolen goods, break up a scuffle, pickups */
+  let prompt=null,pp=null;
+  if(!VAN.on){let near=null,nd=2.4;for(const e of FR.members)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
+    if(near){prompt=KE+' · Zip-tie';if(useTap){useTap=false;frCuff(near)}}
+    if(!prompt&&FR.goods.length){const b=frDropBox();if(b&&Math.hypot(b.x-P.pos.x,b.z-P.pos.z)<2.6){prompt=KE+' · Drop off the stolen goods';if(useTap){useTap=false;frDeliver('Lost & found drop box')}}
+      else for(const c of FR.civ)if(!c.inside&&c.pos.distanceTo(P.pos)<2.4){prompt=KE+' · Hand over the stolen goods';if(useTap){useTap=false;frDeliver('Returned to a neighbour')}break}
+      if(!prompt&&FR.lastPorch&&Math.hypot(FR.lastPorch.x-P.pos.x,FR.lastPorch.z-P.pos.z)<2.4){prompt=KE+' · Leave the package on the porch';if(useTap){useTap=false;FR.lastPorch=null;frDeliver('Package back on the porch')}}}
+    const I=FR.inc;if(!prompt&&I&&I.kind==='scuffle'&&!I.spotted&&!FR.drawn&&Math.hypot(I.x-P.pos.x,I.z-P.pos.z)<6.5){prompt=KE+' · Break it up';if(useTap){useTap=false;I.spotted=true;
+        for(const e of I.members)if(e.state==='idle'){e.frScript=null;e.leave=true;e.leaveAt=simT}radio(I.crew.short,pick(FR_LINES.breakup),true);frTrust(1,'Broke up a scuffle');FR.inc=null}}
+    if(FR.drawn||FR.members.length||(L.pickups&&L.pickups.length)){const pk=updPickups(dt,!!prompt);if(pk){prompt=pk[0];pp=pk[1]}}}
+  if(FR.inc&&FR.inc.kind==='porch'&&FR.inc.members[0]&&FR.inc.members[0].state==='cuffed')FR.lastPorch=FR.inc.porch;
+  FR.stats.ms+=performance.now()-t0;FR.stats.frames++;return prompt?[prompt,pp]:null}
 /* ================= RIVERSIDE JOBS: people and data (SPEC2 B.0-B.5) ================= */
 /* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): a clearly temporary stand-in until the owner casts them */
 Object.assign(HOMIES,{
@@ -3376,7 +4006,7 @@ let last=performance.now();
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
-    (VAN.on?updVan:updPlayer)(dt);
+    (VAN.on?updVan:updPlayer)(dt);carTick(dt);
     aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);
     if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);
     useTap=false;
@@ -3425,9 +4055,10 @@ ASSETS.onAsset(s=>{const k=/people\/rocketbox\/(\w+)\.glb$/.exec(s);const pm=HTM
   const upd=()=>{t=0;const n=ASSETS.stream.pending(),f=ASSETS.stream.failing();const txt=!ASSETS.done||mode==='title'||!n?'':(f&&f===n?'Waiting for the network…':'Streaming details · '+n);
     if(txt!==shown){shown=txt;el.textContent=txt;el.hidden=!txt}};
   ASSETS.stream.onChange(()=>{if(!t)t=setTimeout(upd,250)})}
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
+  crash(e,speed,o){e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1,push={x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f};return carCrash(e,speed,push,!o.rear)},setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},
@@ -3451,6 +4082,13 @@ Object.defineProperties(window.__ht,{WORLD:{get:()=>WORLD},ow:{get:()=>OW()},OWS
   mode:{get:()=>mode},JOB:{get:()=>JOB,set:v=>{JOB=v}},running:{get:()=>running,set:v=>{running=v}}});
 Object.assign(window.__ht,{hoodAt:x=>OW()?OW().regionAt(x,0):'maple',openBridge:()=>{const r=OW()&&OW().openBridge();if(r&&WORLD)owMinimap();return r},fastTravel:id=>owFastTravel({place:id,fast:true}),
   dress:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();return r},previewTrust:t=>{prog.trustR=t;const r=OW()&&OW().dress(t);if(OW())OW().snapTrust();OWS.moodK=null;owRegions();return r},blockTrust:(x,z)=>OW()?OW().blockTrust(x,z):0,blocks:()=>OW()?OW().blocks():[],owW,drawCalls:()=>renderer.info.render.calls,collide,walkable,exitVan,enterVan,syncVan,HUD,setMood,openBrief});
+/* free roam / heat test hooks (docs/riverside-heat.md) */
+Object.defineProperties(window.__ht,{fr:{get:()=>frInit()},crews:{get:()=>FR_CREWS},frArmed:{get:()=>frArmed()},
+  heat:{get:()=>FR?FR.heat:0,set:v=>{frInit();FR.heat=v;FR.shotT=simT;FR.heatAt={x:P.pos.x,z:P.pos.z};FR.hotCrew=FR.hotCrew||frTurfAt(P.pos.x,P.pos.z)||frNearestCrew(P.pos.x,P.pos.z)}}});
+Object.assign(window.__ht,{setHeat(v){window.__ht.heat=v},
+  spawnCrew(id,x,z,n=3,o={}){frInit();const c=frCrew(id);const g=frGroup(c,{x,z},n,Object.assign({tag:'test'},o));if(o.hostile){frNav(true);frProvoke(c,'test');for(const e of g.members)frArm(e,true)}return g},
+  frDraw:id=>{frInit();frDraw(id)},frHolster:()=>frHolster(),frKey:k=>{frInit();return frKey(k)},frIncident:k=>{frInit();return frIncStart(k)},frReset:()=>frReset(),frNav:()=>{frInit();return frNav(true)},
+  frSeen:(x,z)=>frSeen(x,z),frWant:id=>frWant(frCrew(id)),frHurtPlayer:(d,src)=>frHurtPlayer(d,src),frTrust:(v,w)=>frTrust(v,w),frCuff:e=>frCuff(e),frUpdate:dt=>frUpdate(dt||1/30),frMapOverlay:frMapOverlay});
 window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get solids(){return L?L.solids:[]},groundPass,supportAt,baseGroundY};
 requestAnimationFrame(frame);
 })();

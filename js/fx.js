@@ -759,7 +759,7 @@ const emitters=[];
 const amb={on:false,leaves:false,pollen:false,dens:1,motes:[],pollenP:null,leafT:0};
 function ambient(o){if(!ready)return;if(!o){amb.on=false;return}amb.on=true;amb.leaves=o.leaves!==false;amb.pollen=o.pollen!==false;amb.dens=o.density||1;amb.wind=o.wind||[.6,0,.25];
   const n=96;if(!amb.pollenP){amb.pollenP=new Float32Array(n*4)}for(let i=0;i<n;i++)amb.pollenP[i*4+3]=-1}
-function emitter(type,o){if(!ready)return null;o=o||{};const h={type,o,t:0,acc:0,intensity:o.intensity==null?1:o.intensity,remove(){const i=emitters.indexOf(h);if(i>=0)emitters.splice(i,1)}};
+function emitter(type,o){if(!ready)return null;o=o||{};const h={type,o,t:0,acc:0,intensity:o.intensity==null?1:o.intensity,dead:false,remove(){h.dead=true;const i=emitters.indexOf(h);if(i>=0)emitters.splice(i,1)}};
   if(type==='motes'){const n=Math.round((o.count||60));h.p=new Float32Array(n*4);const b=o.box;for(let i=0;i<n;i++){h.p[i*4]=rnd(b[0],b[3]);h.p[i*4+1]=rnd(b[1],b[4]);h.p[i*4+2]=rnd(b[2],b[5]);h.p[i*4+3]=R()*100}}
   if(type==='shaft'){/* sunbeam through a window or roof hole: soft additive cards along the light, motes drifting inside it */
     const O=new T.Vector3().fromArray(o.origin),dir=new T.Vector3().fromArray(o.dir||[.55,.74,.38]).normalize(),L=o.length||4,w=(o.size||[1,1])[0],d=(o.size||[1,1])[1];
@@ -796,6 +796,16 @@ function updEmitters(dt){
     else if(h.type==='exhaust'){if(!o.object)continue;h.acc+=dt*(8+22*h.intensity)*Q.amb;
       while(h.acc>=1){h.acc-=1;_ew.fromArray(o.offset||[0,.3,-2.2]);o.object.localToWorld(_ew);_ed.fromArray(o.dir||[0,0,-1]).transformDirection(o.object.matrixWorld);
         const sp=rnd(.6,1.4)*(1+h.intensity),sh=o.shade||.62;smoke(_ew.x,_ew.y,_ew.z,_ed.x*sp+rnd(-.1,.1),_ed.y*sp+rnd(.05,.25),_ed.z*sp+rnd(-.1,.1),rnd(.9,1.6),.05,rnd(.35,.6)*(1+h.intensity*.5),[sh,sh,sh*1.04],.16+.12*h.intensity,{drag:1.6,grav:-.25,tile:S.WISP})}}
+    else if(h.type==='hood'){/* a hurt car: steam (h.steam) or smoke from under the hood, attached to o.object; h.intensity 0..1, h.shade 0 (black) .. 1 (white) */
+      if(!o.object||h.intensity<=0)continue;h.acc+=dt*(3+22*h.intensity)*Q.amb;
+      while(h.acc>=1){h.acc-=1;_ew.fromArray(o.offset||[1.6,1,0]);_ew.x+=rnd(-.25,.25);_ew.z+=rnd(-.3,.3);o.object.localToWorld(_ew);
+        const st=!!h.steam,sh=h.shade==null?(st?.92:.4):h.shade,it=h.intensity,i=smoke(_ew.x,_ew.y,_ew.z,rnd(-.25,.25)+(o.wind||.15),rnd(.7,1.4)*(st?1.5:1)*(.7+it*.6),rnd(-.25,.25),
+          rnd(1.5,2.6)*(st?.8:1.35),.18,rnd(.9,1.6)*(.65+it)*(st?.85:1.2),[sh,sh,sh*1.02],st?.24+.14*it:.34+.32*it,{tile:st?S.WISP:undefined,drag:.8,grav:st?-.5:-.28,fi:.08,fo:.45});
+        if(i>=0)ALP.rv[i]=rnd(-.6,.6)}}
+    else if(h.type==='drag'){/* sparks from a bumper scraping the road: h.speed (m/s) drives the rate; o.offset is the scrape point on o.object */
+      if(!o.object)continue;const v=h.speed||0;if(v<2.5)continue;h.acc+=dt*(6+v*2.2)*h.intensity*Q.amb;
+      if(h.acc>=1){_ew.fromArray(o.offset||[-2.2,.08,0]);o.object.localToWorld(_ew);_ed.fromArray(o.dir||[-1,0,0]).transformDirection(o.object.matrixWorld)}
+      while(h.acc>=1){h.acc-=1;const sp=rnd(2,5)+v*.15;spark(_ew.x+rnd(-.2,.2),_ew.y,_ew.z+rnd(-.2,.2),_ed.x*sp+rnd(-1,1),rnd(.6,2.6),_ed.z*sp+rnd(-1,1),rnd(.15,.45),rnd(.008,.013),.02,7,4.3,1.8,true)}}
     else if(h.type==='smoke'){/* lingering smoke from a wreck or grill */const P=o.pos,s=o.size||1;h.acc+=dt*(o.rate||5)*Q.amb*(o.life?1-h.t/o.life:1);
       while(h.acc>=1){h.acc-=1;const sh=o.shade||.15;smoke(P.x+rnd(-.3,.3)*s,P.y,P.z+rnd(-.3,.3)*s,rnd(-.2,.2)+(o.wind||.3),rnd(1,2)*s,rnd(-.2,.2),rnd(4,7),.4*s,rnd(2.5,4)*s,[sh,sh,sh],.45,{drag:.4,grav:-.1,fi:.1,fo:.4})}}}
   /* outdoor: pollen around the camera and falling leaves */

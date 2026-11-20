@@ -106,7 +106,8 @@ function ownedIds(g){const v=g.vehicles[g.active],out=[];
     if(c.group==='prot'&&(c.slot==='bullBar'?v.prot.bullBar:(v.prot.armor|0)>=c.lvl))out.push(c.id);
     if(c.group==='util'&&g.util[c.slot])out.push(c.id);if(c.group==='vehicle'&&g.owned.includes(c.type))out.push(c.id)}return out}
 const defaultGarage=()=>({active:'minivan',owned:['minivan'],purchases:0,dirt:0,vehicles:{minivan:defaultVehicle()},hp:{minivan:100},
-  util:{cargo:false,rack:false,aid:false},stickers:[null,null,null],ownedStickers:[],horn:'stock',ownedHorns:['stock'],ownedCos:{paint:['slate'],rims:['steel'],tint:['none']}});
+  util:{cargo:false,rack:false,aid:false},stickers:[null,null,null],ownedStickers:[],horn:'stock',ownedHorns:['stock'],ownedCos:{paint:['slate'],rims:['steel'],tint:['none']},
+  wear:{minivan:{lamps:[0,0,0,0],tyre:0}},tab:0,patchAt:0});
 /* HT.Vehicles.make options from a SAVE.garage (SPEC2 C.6) */
 function vehicleOpts(g,type){type=type||g.active;const v=g.vehicles[type],c=COSMETICS.paint[v.paint]||COSMETICS.paint.slate;
   return{color:c.hex,upgrades:{paint:c.finish,rims:v.rims,roofRack:g.util.cargo?'cargo':'rails',bullBar:!!v.prot.bullBar,lightBar:v.lightBar?'amber':false,
@@ -123,7 +124,7 @@ function make(type,o){o=o||{};const st=o.stats||apply(type,o.vehicle,o.util);con
 function drive(c,inp,dt,collide){const S=c.stats;let thr=inp.thr||0,st=inp.st||0;if(c.hp<=0)thr=0;
   if(inp.sport&&S.sport&&c.sportCd<=0){c.sportT=S.sportDur;c.sportCd=S.sportCool}
   c.sportT=Math.max(0,c.sportT-dt);c.sportCd=Math.max(0,c.sportCd-dt);
-  const sp=c.sportT>0,boost=!!inp.boost,dmg=c.hp<S.hp*.3?.75:1;
+  const sp=c.sportT>0,boost=!!inp.boost,dmg=c.topMul!=null?c.topMul:c.hp<S.hp*.3?.75:1;   // the game sets c.topMul from its own damage bands
   const MAX=(sp?S.sportMax:boost?S.boostMax:S.maxSpeed)*dmg,A=(boost||sp?S.boostAccel:S.accel)*(sp?S.sportAccMul:1);let v=c.spd;
   if(thr>0)v+=(v<0?S.brake:A)*dt*thr;else if(thr<0)v-=(v>0?S.brake:S.revAccel)*dt*-thr;else v-=Math.sign(v)*Math.min(Math.abs(v),S.coast*dt);
   if(inp.hb)v-=Math.sign(v)*Math.min(Math.abs(v),S.hbrake*dt);
