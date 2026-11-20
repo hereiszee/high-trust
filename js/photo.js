@@ -44,6 +44,7 @@ function grade(c,subjects,o){o=o||{};const B=basis(c),fr=c.frame||{x0:-1,y0:-1,x
     if((s.need==='face'||s.need==='plate'||s.need==='sign')&&s.facing!=null){const fx=-Math.sin(s.facing),fz=-Math.cos(s.facing),vx=c.x-s.pos.x,vz=c.z-s.pos.z,l=Math.hypot(vx,vz)||1;
       const ang=Math.acos(Math.max(-1,Math.min(1,(fx*vx+fz*vz)/l)))/D2R,lim=s.need==='face'?T.face:T.plate;
       if(ang>lim&&st>1){st=1;why.push(s.need==='face'?"Can't see the face":s.need==='plate'?"Plate's at an angle":"Sign's at an angle")}}
+    if(o.cap&&st>o.cap.n){st=o.cap.n;why.push(o.cap.why||'Capped')}
     let pen=0;const lim=T.blur/Math.pow(T.zoom[zi],.7);
     if((o.turn||0)>lim||(o.move||0)>T.run){pen++;why.push('Blurry: hold still')}
     if(o.focus&&!o.focus.locked){pen++;why.push('Still focusing')}
@@ -76,6 +77,7 @@ Photo.raise=function(on){const a=A();if(!a||!Photo.S)return;a.P.aim=!!on};
 /* point the phone at a world point (bots, cutscenes): sets the look and the turn-rate baseline */
 Photo.aimAt=function(x,y,z){const a=A(),P=a.P,e=eye();const dx=x-e.x,dy=y-e.y,dz=z-e.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.max(-1.2,Math.min(1.2,Math.atan2(dy,Math.hypot(dx,dz))));R.py=P.yaw;R.pp=P.pitch};
 Photo.isRaised=()=>R.on;
+Photo.preview=()=>R.on?gradeNow():null;/* the live grade (bots, tests) */
 function M_(){const a=A();return a&&a.M&&a.M.state==='go'?a.M:null}
 function active(){const a=A(),M=M_();return!!(Photo.S&&M&&M.item==='phone'&&a.mode==='mission'&&!a.CV)}
 function eye(){const a=A(),P=a.P,M=M_();const o=Photo.S&&Photo.S.eye&&Photo.S.eye();if(o)return o;return{x:P.pos.x-Math.sin(P.yaw)*.18,y:(P.crouch?1.25:1.6),z:P.pos.z-Math.cos(P.yaw)*.18}}
@@ -135,7 +137,7 @@ function liveGrade(dt){const u=R.ui;if(!u)return;setBlur(R.fLock?0:(1-R.fK)*2.2*
   else u.vf.set({bracket:null,stars:b?0:null});
   u.af.classList.toggle('lk',R.fLock);u.af.classList.toggle('hunt',!R.fLock);
   const why=b&&b.stars>0?b.why.filter(x=>x!=='Sharp')[0]||'':'';u.tip.textContent=why;u.tip.classList.toggle('on',!!why)}
-function gradeNow(){_ray.list=solids();const c=camState();return grade(c,Photo.S?Photo.S.subjects():[],{los,zoom:T.zoom[R.zi],turn:R.turn,move:R.move,focus:{locked:R.fLock,dist:R.fDist},dark:Photo.S&&Photo.S.dark?Photo.S.dark():false})}
+function gradeNow(){_ray.list=solids();const c=camState();return grade(c,Photo.S?Photo.S.subjects():[],{los,zoom:T.zoom[R.zi],turn:R.turn,move:R.move,focus:{locked:R.fLock,dist:R.fDist},dark:Photo.S&&Photo.S.dark?Photo.S.dark():false,cap:Photo.S&&Photo.S.cap?Photo.S.cap():null})}
 
 /* ---------------- the shutter ---------------- */
 Photo.shoot=function(){const a=A(),S=Photo.S;if(!S||!R.on||R.cool>0)return null;if(S.canShoot&&S.canShoot()===false)return null;R.cool=T.cool;
@@ -203,7 +205,7 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
 .ph .ph-zoom button.on{color:#ffd60a;width:40px;height:34px;border-radius:17px;font-size:14px}
 .ph .ph-modes{position:absolute;left:0;right:0;top:12px;display:flex;justify-content:center;gap:22px;font:700 12px/1 var(--ht-ui);letter-spacing:.16em;color:rgba(255,255,255,.55)}
 .ph .ph-modes b{color:#ffd60a}
-.ph .ph-row{position:absolute;left:0;right:0;bottom:16px;height:74px;display:flex;align-items:center;justify-content:space-between;padding:0 calc(var(--sa-r,0px) + 44px) 0 calc(var(--sa-l,0px) + 44px)}
+.ph .ph-row{position:absolute;left:0;right:0;bottom:20px;height:74px;display:flex;align-items:center;justify-content:space-between;padding:0 calc(var(--sa-r,0px) + 44px) 0 calc(var(--sa-l,0px) + 44px)}
 .ph .ph-th{width:52px;height:52px;border-radius:10px;overflow:hidden;background:#222;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85)}
 .ph .ph-th img{width:100%;height:100%;object-fit:cover;display:block;opacity:0}.ph .ph-th.has img{opacity:1}
 .ph .ph-sh{width:72px;height:72px;border-radius:50%;box-shadow:inset 0 0 0 4px #fff;display:grid;place-items:center}
@@ -229,7 +231,13 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
 .ph .ph-flash{position:absolute;inset:0;background:#fff;opacity:0}.ph .ph-flash.go{animation:ph-fls .35s ease-out}
 @keyframes ph-fls{0%{opacity:1}100%{opacity:0}}
 .ph .ph-fly{position:absolute;object-fit:cover;border-radius:10px;transform-origin:0 0;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-.ph .ht-vf .ft{bottom:-36px}
+.ph .ht-vf .ft{display:none}
+.ph .ph-hint{position:absolute;left:0;right:0;bottom:5px;text-align:center;font:700 10px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.ph .ph-hint b{color:#fff;font-weight:700;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,.14);margin:0 4px 0 12px}
+.ht-root.touch .ph .ph-hint,.ht-root.compact .ph .ph-hint{display:none}
+.ph .ph-st{display:flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:14px;background:rgba(255,255,255,.1);font:700 12px/1 var(--ht-ui);letter-spacing:.14em;color:#fff;transition:background .2s}
+.ph .ph-st svg{width:16px;height:16px}.ph .ph-st.w1{background:rgba(255,201,74,.85);color:#111}.ph .ph-st.w2{background:rgba(255,138,60,.92);color:#111}.ph .ph-st.w3{background:#ff5a47;color:#fff;animation:ph-hunt .3s infinite alternate}
+.ph .ph-st:empty{display:none}
 .ph-note{position:fixed;left:50%;top:calc(var(--sa-t,0px) + 12px);transform:translate(-50%,-140%);width:min(380px,calc(100vw - 32px));display:flex;gap:10px;padding:10px 12px;border-radius:16px;background:rgba(242,242,247,.94);color:#111;
   box-shadow:0 10px 30px rgba(0,0,0,.35);font:500 14px/1.3 system-ui,-apple-system,Segoe UI,sans-serif;z-index:30;pointer-events:none;transition:transform .32s cubic-bezier(.2,.9,.25,1.15)}
 .ph-note.on{transform:translate(-50%,0)}
@@ -243,13 +251,13 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
 function ui(){if(R.ui&&R.ui.root.isConnected)return R.ui;css();const a=A(),H=a.HUD,root=document.createElement('div');root.className='ph';
   const vf=H&&H.kit&&H.kit.viewfinder?H.kit.viewfinder():{el:document.createElement('div'),set(){return this}};root.appendChild(vf.el);
   root.insertAdjacentHTML('beforeend',`<div class="ph-af"><b>AF</b></div><div class="ph-tip"></div><div class="ph-top"><button class="ph-fl" data-ph="flash">${SVG.flash}<b></b></button>
-    <div class="ph-mid"><span>${SVG.live}</span><span>HDR</span><span class="clk"></span></div><span class="ph-lb" style="font:700 12px/1 var(--ht-ui);letter-spacing:.16em;color:#ffd60a"></span></div>
+    <div class="ph-mid"><span>${SVG.live}</span><span>HDR</span><span class="clk"></span></div><span class="ph-st"></span></div>
     <div class="ph-bot"><div class="ph-zoom">${T.zoom.map((z,i)=>`<button data-z="${i}">${z}${'×'}</button>`).join('')}</div>
     <div class="ph-modes"><span>TIME-LAPSE</span><span>SLO-MO</span><span>VIDEO</span><b>PHOTO</b><span>PORTRAIT</span><span>PANO</span></div>
-    <div class="ph-row"><button class="ph-th" data-ph="gallery"><img alt=""></button><button class="ph-sh" data-ph="shoot" aria-label="Shutter"><i></i></button><button class="ph-x" data-ph="lower" aria-label="Lower the phone">${SVG.back}</button></div></div>
+    <div class="ph-hint"><b>LMB</b>Shutter<b>Wheel</b>Zoom<b>F</b>Flash<b>RMB</b>Lower</div><div class="ph-row"><button class="ph-th" data-ph="gallery"><img alt=""></button><button class="ph-sh" data-ph="shoot" aria-label="Shutter"><i></i></button><button class="ph-x" data-ph="lower" aria-label="Lower the phone">${SVG.back}</button></div></div>
     <div class="ph-ts"></div><div class="ph-flash"></div><div class="ph-bl"></div>`);
   const q=s=>root.querySelector(s);
-  const u={root,vf,af:q('.ph-af'),tip:q('.ph-tip'),ts:q('.ph-ts'),bl:q('.ph-bl'),fl:q('.ph-flash'),sh:q('.ph-sh'),th:q('.ph-th'),thImg:q('.ph-th img'),clk:q('.clk'),lb:q('.ph-lb'),flb:q('.ph-fl'),pills:[...root.querySelectorAll('.ph-zoom button')]};
+  const u={root,vf,af:q('.ph-af'),tip:q('.ph-tip'),ts:q('.ph-ts'),bl:q('.ph-bl'),fl:q('.ph-flash'),sh:q('.ph-sh'),th:q('.ph-th'),thImg:q('.ph-th img'),clk:q('.clk'),stx:q('.ph-st'),flb:q('.ph-fl'),pills:[...root.querySelectorAll('.ph-zoom button')]};
   root.addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;e.preventDefault();e.stopPropagation();
     if(b.dataset.z!=null)Photo.setZoom(+b.dataset.z);else if(b.dataset.ph==='shoot')Photo.shoot();else if(b.dataset.ph==='flash')Photo.toggleFlash();else if(b.dataset.ph==='lower')Photo.raise(false)});
   vf.set({zoom:T.zoom[R.zi]+'×',label:'',hint:'[LMB] Shutter   [Wheel] Zoom   [F] Flash   [RMB] Lower'});
@@ -260,7 +268,8 @@ function syncFlash(){if(R.ui)R.ui.flb.classList.toggle('on',!!R.flash)}
 /* the HUD each frame: crosshair off while raised, a phone chip, the clock and label in the top bar */
 J.on('hud',st=>{const a=A(),M=a&&a.M;
   if(!Photo.S||!M||M.state!=='go'){if(R.on)lower(true);if(R.ui&&(!M||M.state!=='go')){a.overlay('photo',null);R.ui=null;setBlur(0)}return}
-  if(R.on&&R.ui){st.crosshair=Object.assign({},st.crosshair,{hidden:true});st.prompt=null;const S=Photo.S;if(S.stamp)R.ui.clk.textContent=S.stamp();R.ui.lb.textContent=S.label||''}
+  if(R.on&&R.ui){st.crosshair=Object.assign({},st.crosshair,{hidden:true});st.prompt=null;const S=Photo.S;if(S.stamp)R.ui.clk.textContent=S.stamp();const sx=S.status?S.status():null;if(sx){const k=sx.v<.2?0:sx.v<.35?0:sx.v<.6?1:sx.v<.9?2:3,h='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'+sx.text;if(R.ui.stx.dataset.h!==h){R.ui.stx.dataset.h=h;R.ui.stx.innerHTML=h}R.ui.stx.className='ph-st w'+k}
+    st.objective=null;st.meters=[];st.widgets=[]}
   if(M.item==='phone'){st.gadgets=(st.gadgets||[]).concat([{id:'phone',label:R.on?'Phone · '+T.zoom[R.zi]+'×':'Phone',key:a.P&&'RMB',on:R.on,icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><circle cx="12" cy="18" r="1"/></svg>'}])}});
 /* zoom on the wheel and flash on F while raised (capture phase: the game's wheel would swap guns) */
 addEventListener('wheel',e=>{if(!R.on)return;e.stopImmediatePropagation();Photo.setZoom(R.zi+(e.deltaY<0?1:-1))},{capture:true,passive:true});

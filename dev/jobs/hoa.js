@@ -23,7 +23,7 @@ const FAIL=!!arg('fail',false),TOUCH=!!arg('touch',false),QUIET=!!arg('quiet',fa
     T.step=()=>{const M=H.M;if(!M||M.state!=='go')return 'end';j.test.step(a,T.t,fail?{fail:true}:{});T.t++;H.step(1);const M2=H.M;if(!M2)return 'end';
       const sub=H.HUD&&window.__ht.jobs.JRS?null:null;const u=document.querySelector('.ht-sub,.ht-subs');
       const s=M2.st!=null?Math.round(M2.st):0;const B=M2.bot||{};
-      if(M2.ph!==T.lastPh||B.step!==T.lastStep){T.lastPh=M2.ph;T.lastStep=B.step;T.log.push(['@'+s,'phase '+M2.ph+' / bot '+(B.step||'-')+' at '+H.P.pos.x.toFixed(1)+','+H.P.pos.z.toFixed(1)])}
+      if(B.want!==T.lastWant){T.lastWant=B.want;T.log.push(['@'+s,'  want '+B.want+' lk '+(M2.A?M2.A.lookout.x.toFixed(1)+','+M2.A.lookout.z.toFixed(1)+' f'+M2.A.lookout.face:'')+' sus '+M2.sus.toFixed(2)])}if(M2.ph!==T.lastPh||B.step!==T.lastStep){T.lastPh=M2.ph;T.lastStep=B.step;T.log.push(['@'+s,'phase '+M2.ph+' / bot '+(B.step||'-')+' at '+H.P.pos.x.toFixed(1)+','+H.P.pos.z.toFixed(1)])}
       if(M2.sus>T.susHi+.1||(M2.sus<T.susHi-.2)){T.susHi=M2.sus;const o=M2.A&&M2.A[M2.seen];T.log.push(['@'+s,'sus '+M2.sus.toFixed(2)+' seen by '+M2.seen+' ('+(M2.lastLine&&M2.lastLine.why)+') you '+H.P.pos.x.toFixed(1)+','+H.P.pos.z.toFixed(1)+(H.P.crouch?' crouch':'')+(o?' them '+o.x.toFixed(1)+','+o.z.toFixed(1)+' f'+(o.seeing||0).toFixed(2):'')])}
       return null};
     T.run=(max,until)=>{for(let i=0;i<max;i++){const r=T.step();if(r)return r;let u=null;try{u=until(H.M)}catch(e){}if(u)return u}return 'timeout'};
@@ -31,7 +31,7 @@ const FAIL=!!arg('fail',false),TOUCH=!!arg('touch',false),QUIET=!!arg('quiet',fa
     const R=H.jobs.api.radio;},FAIL);
   /* subtitle log: patch radio through the api object (job files call api.radio) */
   await ev(()=>{const H=window.__ht,a=H.jobs.api,T=window.__T;const r0=a.radio;a.radio=function(w,t,f){T.log.push(['@'+(H.M&&H.M.st!=null?Math.round(H.M.st):0),'  '+w+': '+t]);return r0.apply(this,arguments)};
-    const Ph=window.HT.Photo;const n0=Ph.notify;Ph.notify=function(f,t,o){T.log.push(['@'+(H.M&&H.M.st!=null?Math.round(H.M.st):0),'  [text] '+f+': '+t]);return n0.apply(this,arguments)};
+    const Ph=window.HT.Photo;const s0=Ph.shoot;Ph.shoot=function(){const r=s0.apply(this,arguments);if(r)T.log.push(['@'+(H.M&&H.M.st!=null?Math.round(H.M.st):0),'  [shot] z'+r.zoom+(r.flash?' flash':'')+' '+(r.hits.map(h=>h.id+'='+h.stars+'('+h.why.join('/')+')').join(' ')||'nothing')]);return r};const n0=Ph.notify;Ph.notify=function(f,t,o){T.log.push(['@'+(H.M&&H.M.st!=null?Math.round(H.M.st):0),'  [text] '+f+': '+t]);return n0.apply(this,arguments)};
     const f0=a.feed;a.feed=function(t,k,s){T.log.push(['@'+(H.M&&H.M.st!=null?Math.round(H.M.st):0),'  [feed] '+t+(s?' · '+s:'')]);return f0.apply(this,arguments)}});
   const WANT=FAIL?[['f1-driveway',`M.bot&&M.bot.fs&&M.sus>.2`],['f2-noticed',`M.sus>.5`],['f3-spooked',`M.ph==='gone'&&M.leaveT>1.2`]]:
    [['01-barb-brief',`M.ph==='intro'&&M.sayT>1&&M.say.length<=3`],['02-checklist',`M.ph==='stake'&&M.st>1.5`],['03-walk-sidewalk',`M.bot&&M.bot.step==='toPorch'&&M.bot.ri>=2`],
