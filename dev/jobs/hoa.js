@@ -49,7 +49,11 @@ const PART=+arg('part',0),FAIL=!!arg('fail',false),TOUCH=!!arg('touch',false),QU
     if(r==='end'){console.log('run:',r);break}if(r==='timeout'){console.log('  ...',await ev(()=>{const M=window.__ht.M;const H=window.__ht;return M&&(M.state+' '+M.ph+' '+(M.bot&&M.bot.step)+' st'+Math.round(M.st||0)+' t'+window.__T.t+' seat'+M.seat+' e'+H.keys.e+' pos'+H.P.pos.x.toFixed(1)+','+H.P.pos.z.toFixed(1)+' raised'+window.HT.Photo.isRaised()+' say'+M.say.length+' gal'+window.HT.Photo.gallery.length+' shots'+M.shots)}));continue}await shot(r);if(PART===1&&await ev(()=>window.__T.want.every(w=>w.done)))break}
   if(PART!==1){await ev(()=>window.__ht.step(40));await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(2200);await shot(FAIL?'f4-fail-card':'18-result')}
   const out=await ev(()=>{const H=window.__ht,M=H.M,T=window.__T;return{log:T.log,state:M&&M.state,board:M&&M.board?Object.fromEntries(Object.entries(M.board).map(([k,v])=>[k,v.stars])):null,susMax:M&&M.susMax,t:M&&Math.round(M.elapsed),
-    pay:M&&M.pay?M.pay.lines.map(l=>l.label+':'+l.amount):null,medal:M&&M.medal,missed:T.want.filter(w=>!w.done).map(w=>w.n),shots:M&&M.shots,flashes:M&&M.flashes}});
+    pay:M&&M.pay?M.pay.lines.map(l=>l.label+':'+l.amount):null,loseWhy:M&&M.loseWhy||null,unstuck:M&&M.bot&&M.bot.unstuck||0,rec:(()=>{const S=H.jobs.api.SV(),j=S&&S.jobs&&S.jobs.hoa;return j?{done:j.done,medal:j.medal,runs:j.runs,cal:!!(S.calendar.entries||[]).find(e=>e.id==='hoa')}:null})(),medal:M&&M.medal,missed:T.want.filter(w=>!w.done).map(w=>w.n),shots:M&&M.shots,flashes:M&&M.flashes}});
   if(!QUIET)for(const l of out.log)console.log(l.join(' '));
-  delete out.log;console.log(JSON.stringify(out));const bad=errs.filter(e=>!/favicon/.test(e));console.log(bad.length?'console errors: '+bad.slice(0,6).join(' | '):'no console errors');
-  await b.close();process.exit(0)})().catch(e=>{console.error(e);process.exit(1)});
+  delete out.log;console.log(JSON.stringify(out));
+  /* regression: a won run is always on the books (done, medal, a calendar pin); a lost one says why */
+  if(out.state==='won'&&!(out.rec&&out.rec.done&&out.rec.cal&&out.rec.medal>=1)){console.log('FAIL won but not recorded: '+JSON.stringify(out.rec));process.exitCode=1}
+  else if(out.state==='won')console.log('ok   won and recorded '+JSON.stringify(out.rec));
+  if(out.state==='lost')console.log((FAIL?'ok   ':'FAIL ')+'lost: '+out.loseWhy);const bad=errs.filter(e=>!/favicon/.test(e));console.log(bad.length?'console errors: '+bad.slice(0,6).join(' | '):'no console errors');
+  await b.close();process.exit(process.exitCode||0)})().catch(e=>{console.error(e);process.exit(1)});
