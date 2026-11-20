@@ -756,8 +756,8 @@ function buskStep(O,dt){const P=A().P,b=O.busk;if(!b||O.panic>40||O.run)return;c
 let BORROW=null;
 function borrow(){const a=A(),P=a.P;if(BORROW)return;BORROW={lo:Object.assign({},P.loadout),ammo:JSON.parse(JSON.stringify(P.ammo||{})),cur:P.cur};
   P.loadout.side=null;P.loadout.p1=null;P.loadout.p2=null;try{a.give('beanbag',{mag:1,extra:0,auto:true})}catch(_){}if(P.ammo.beanbag){P.ammo.beanbag.mag=1;P.ammo.beanbag.res=0}}
-function giveBack(){const a=A(),P=a&&a.P;if(!BORROW||!P)return;const b=BORROW;BORROW=null;try{P.loadout.p1=null;P.loadout.p2=null;P.loadout.side=null;
-    for(const k of['side','p1','p2']){const id=b.lo[k];if(id)a.give(id,{mag:0,extra:0,auto:false})}for(const id in b.ammo)if(P.ammo[id])Object.assign(P.ammo[id],b.ammo[id]);
+function giveBack(){const a=A(),P=a&&a.P;if(!BORROW||!P)return;const b=BORROW;BORROW=null;try{P.loadout.p1=null;P.loadout.p2=null;P.loadout.side=null;if(P.weapons)P.weapons.length=0;/* with the slots empty the list must be too, or give() finds the gun 'held' in no slot and writes loadout[undefined] */
+    for(const k of['side','p1','p2']){const id=b.lo[k];if(id)a.give(id,{mag:0,extra:0,auto:false,slot:k})}/* each gun back in its own slot (without one, the pistol landed under loadout['undefined'] and free roam had no sidearm) */for(const id in b.ammo)if(P.ammo[id])Object.assign(P.ammo[id],b.ammo[id]);
     if(P.ammo.beanbag&&!Object.values(b.lo).includes('beanbag'))delete P.ammo.beanbag;if(b.cur&&P.weapons.includes(b.cur))a.swap(b.cur,true)}catch(e){console.warn('[arrest] loadout',e)}}
 
 /* the open world's moving-truck set piece parks at the kerb of whichever Riverside block is mid-renovation, which can be inside the
