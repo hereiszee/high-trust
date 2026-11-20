@@ -245,7 +245,7 @@ J.register('tail',{
     /* stops along the way */
     const st=[];for(const k of STOPS)st.push({s:M.nodeS[k]-6.6,t:K.stopT,kind:'stop',node:k});
     st.push({s:M.nodeS[LIGHT_NODE]-6.8,t:K.lightT,kind:'light',node:LIGHT_NODE,onHold:()=>{M.lightHold=true},onGo:()=>{M.lightHold=false;M.lightDone=true}});
-    const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[24]+14,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
+    if(!(o&&o.checkpoint))carsHome(M);const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[24]+14,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
     M.tg.rail.stops=st.sort((p,q)=>p.s-q.s);M.tg.rail.max=K.r9Max;
     M.truck=truckModel();M.truck.position.set(TRUCK.x,a.groundAt(TRUCK.x,TRUCK.z),TRUCK.z);M.truck.rotation.y=TRUCK.yaw;a.wmAdd(M.truck,true);doorSet(M.truck,0);
     {const S=7.6,W=2.4,s=Math.abs(Math.sin(TRUCK.yaw)),c=Math.abs(Math.cos(TRUCK.yaw));a.wmCol({x0:TRUCK.x-(s*S/2+c*W/2),x1:TRUCK.x+(s*S/2+c*W/2),z0:TRUCK.z-(c*S/2+s*W/2),z1:TRUCK.z+(c*S/2+s*W/2)})}
@@ -386,9 +386,11 @@ function tailTick(M,dt,F){const a=A(),Tl=TL(),tg=M.tg,r=tg.rail,p=playerCar();
   if(M.swaps)F.widgets.push({id:'car',kind:'score',label:'Car',v:M.swaps,sub:CAR_NAME[p.type]||p.type});
   /* he arrives */
   if(r.s>=M.lotS){M.ph='drop';a.CP.mark('drop');dropStart(M,false)}}
-function failNow(M){const a=A();if(M.failWhy==='spooked')a.endMission(false,"He spotted the tail and floored it. Doug says it was the minivan. It was the minivan.","Made");
+function loseWhy(M,why){const S=M.T&&M.T.S,r=M.tg&&M.tg.rail,p=playerCar();M.loseWhy={why,t:Math.round(M.t),stage:M.stage,s:r?Math.round(r.s):0,d:r?Math.round(Math.hypot(r.x-p.x,r.z-p.z)):0,
+  sus:S?Math.round(S.sus):0,lose:S?+S.lose.toFixed(1):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,made:S?!!S.made[S.carId]:false,cause:S?S.why||null:null,car:p.id,swaps:M.swaps,sight:!!M.sight}}
+function failNow(M){const a=A();loseWhy(M,M.failWhy);if(M.failWhy==='spooked')a.endMission(false,"He spotted the tail and floored it. Doug says it was the minivan. It was the minivan.","Made");
   else a.endMission(false,"You lost the grey sedan. Doug is drawing the route from memory on a napkin.","Lost him")}
-function rammed(M){const a=A();M.rammed=true;M.rams++;say(M,"You RAMMED him. That's not tailing. That's the opposite of tailing.",{front:true});
+function rammed(M){const a=A();loseWhy(M,'rammed');M.rammed=true;M.rams++;say(M,"You RAMMED him. That's not tailing. That's the opposite of tailing.",{front:true});
   a.endMission(false,"You rammed the man you were tailing. He's fine. He's furious. Doug sighs a sigh you will remember.","Rammed him")}
 /* chatter: band, cover, the light, familiarity, being ahead */
 function commentary(M,R,t,p){const a=A(),Tl=TL();
@@ -418,6 +420,10 @@ function bumped(M,p,t){if(!p.e)return false;const v=Math.abs(p.spd),dv=(M.pv||0)
 /* ---------------- the swap ---------------- */
 function neighbourCars(){const a=A();return(a.L&&a.L.cars||[]).filter(e=>e&&e.obj&&e!==a.CV&&(e.owner==='neighbour'||e===a.VAN))}
 /* the parked neighbour's car the route passes before his stop, and a stop ~30 m on round the corner */
+/* the swap beat depends on neighbours' cars being where they live: whoever borrowed one last time (you, in an earlier run) has
+   brought it back by now. Cars within 12 m of the route go home (never the car you're sitting in) */
+function carsHome(M){const a=A();for(const e of neighbourCars()){if(e===a.VAN||e===a.CV||!e.home)continue;const h=e.home;if(Math.hypot(e.pos.x-h.x,e.pos.z-h.z)<1.5&&Math.abs(wrap(e.yaw-h.yaw))<.2)continue;
+    if(M.P.project(h.x,h.z).d>12)continue;e.pos.set(h.x,0,h.z);e.yaw=h.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}}}
 function swapSpot(M){let best=null;for(const e of neighbourCars()){if(e===A().VAN)continue;const r=M.P.project(e.pos.x,e.pos.z,700,260);if(r.d>9||r.s<480||r.s>900)continue;if(!best||r.s>best.s)best={car:e,s:r.s}}
   if(!best)return null;let s=best.s+30;for(let k=0;k<6;k++){if(M.nodeS.every(n=>Math.abs(n-s)>11))break;s+=6}return{car:best.car,stopS:s}}
 /* he waits a little longer while you're parked beside the swap car (never more than 10 s extra) */
@@ -511,7 +517,7 @@ function dropTick(M,dt,F){const a=A(),Tl=TL(),r=M.tg.rail,p=playerCar();r.step(d
   const seen=loiter&&near<K.dropNear&&Tl.los(TRUCK.x+4,TRUCK.z+1,p.x,p.z,{grid:{map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2}});
   if(seen&&M.handoff!=='done'){M.T.event('drop',K.dropSus*dt);chat(M,'dropNear',10,L_.dropNear)}else M.T.calm(4*dt);
   M.T.S.maxSus=Math.max(M.T.S.maxSus,M.T.S.sus);
-  if(M.T.S.sus>=100){M.ph='lost';M.failWhy='crew';M.state==='go'&&a.endMission(false,"The loaders looked up, saw two dads in a car staring at them, and everybody left at once. That's the opposite of a handoff.","They made you");return}
+  if(M.T.S.sus>=100){M.ph='lost';M.failWhy='crew';loseWhy(M,'crew');M.state==='go'&&a.endMission(false,"The loaders looked up, saw two dads in a car staring at them, and everybody left at once. That's the opposite of a handoff.","They made you");return}
   /* objectives */
   const parked=p.e&&Math.abs(p.spd)<1,dist=Math.hypot(p.x-(TRUCK.x+3.8),p.z-TRUCK.z),g=M.vfOn?grade(M):null;
   F.objs.push([M.handoff==='done'?'Photograph the box truck\'s plate':'Watch the handoff from 30-60 m away',false]);
@@ -646,7 +652,7 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(B.wp<WP.length){const w=WP[B.wp],r0=M.tg.rail;if(Math.hypot(w[0]-c.x,w[1]-c.z)<3.2){B.wp++;return null}const want=r0.s>6?8:0;steerTo(c,w[0],w[1],want);unstick(e,c,want,null);B.ps=0;return null}
     /* where am I on his route (first time: search behind him, so a checkpoint retry mid-route finds the right pass of the loop) */
     if(!B.init){B.init=1;B.ps=M.P.project(c.x,c.z,Math.max(0,r.s-35),120).s}B.ps=M.P.project(c.x,c.z,B.ps,60).s;
-    if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
+    if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail&&!o.noswap){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
       if(d<5.5){off();k.s=c.spd>.3;k.e=Math.abs(c.spd)<2.5;return null}k.e=false;const goal=M.P.at(M.P.project(sc.pos.x,sc.pos.z,B.ps,60).s);steerTo(c,goal.x,goal.z,Math.min(9,d*.6+1.5));if(d>40)B.ps=M.P.project(c.x,c.z,B.ps,60).s;return null}
     k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
     let want=Math.max(0,Math.min(14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
