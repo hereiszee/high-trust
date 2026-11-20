@@ -179,6 +179,10 @@ function build(root){
   R.sub=el('div','ht-sub off',hud,'<span></span>');R.subS=R.sub.firstChild;
   R.bn=el('div','ht-bn',hud,'<div class="sc"></div><div class="lb t"></div><div class="lb b"></div><div class="box"><div class="kick"></div><div class="tt"></div><div class="sb"></div><div class="stamp"></div></div>');
   R.bnBox=R.bn.querySelector('.box');
+  /* mission widgets: top-centre column (widgets row, meters, checkpoint), gadgets by the gun, overlay layer */
+  R.tc=el('div','ht-tc',hud,'<div class="ht-wg"></div><div class="ht-mt"></div><div class="ht-cp" hidden></div>');R.wg=R.tc.children[0];R.mt=R.tc.children[1];R.cp=R.tc.children[2];
+  R.gd=el('div','ht-gd tx');R.wp.insertBefore(R.gd,R.wp.querySelector('.main'));R.gd.hidden=true;
+  R.ovl=el('div','ht-ovl',root);
   /* touch */
   R.touch=el('div','ht-touch',root,'<div class="ht-stick"><div class="kn"></div></div>');
   R.stick=R.touch.firstChild;R.knob=R.stick.firstChild;R.tbtn={};
@@ -723,7 +727,7 @@ function screenResult(d){const e=el('div','ht-scr ht-result'+(d.fail?' fail':'')
   const stats=(d.stats||[]).map(([k,v,s])=>`<div><b>${esc(k)}</b><span class="ht-num">${esc(v)}</span>${s?`<small>${esc(s)}</small>`:''}</div>`).join('');
   e.innerHTML=`<div class="scrim"></div><div class="col"><div class="stamp">${esc(d.stamp||(d.fail?'Job failed':'Job done'))}</div><h2>${esc(d.title||'')}</h2>${d.text?`<p>${esc(d.text)}</p>`:''}
   ${stats?`<div class="ht-stats">${stats}</div>`:''}<div class="ht-payout" data-slot="payout"></div>
-  <div class="ht-btns row">${btn(d.goLabel||'Back to the cul-de-sac','result:go','pri')}${d.canRetry?btn(d.retryLabel||'Run it back','result:retry','ghost'):''}</div></div>`;
+  <div class="ht-btns row">${btn(d.goLabel||'Back to the cul-de-sac','result:go','pri')}${d.canRetry?btn(d.retryLabel||'Run it back','result:retry','ghost'):''}${d.restartLabel?btn(d.restartLabel,'result:restart','ghost'):''}</div></div>`;
   HUD.payoutEl=e.querySelector('.ht-payout');
   if(d.payout)payout(d.payout);
   return e}
@@ -751,7 +755,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
   pane.querySelectorAll('.ht-seg3').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
   const rs=pane.querySelector('[data-reset]');if(rs)rs.onclick=()=>{if(rs.dataset.arm){emit('action','resetSave');rs.textContent='Save reset';rs.disabled=true}else{rs.dataset.arm=1;rs.textContent='Tap again to wipe everything';rs.classList.remove('ghost')}};
 }
-const BUILD={title:screenTitle,brief:screenBrief,result:screenResult,pause:screenPause};
+const BUILD={title:screenTitle,brief:screenBrief,result:screenResult,pause:screenPause,calendar:(d)=>screenCalendar(d)};
 function showScreen(name,d={}){
   if(name==='map'){MAP.openMap();return}
   hideScreen(null,true);SCR.cur=name;SCR.data[name]=d;const e=BUILD[name](d);SCR.el[name]=e;R.scr.appendChild(e);bindActs(e);
@@ -788,6 +792,7 @@ function update(st,dt=1/60){
   updCrosshair(st,dt);
   updMarkers(st.markers);updTags(st.tags);
   updPrompt(st.prompt);updSubs(st.subtitles);
+  updMeters(st.meters);updWidgets(st.widgets);updGadgets(st.gadgets);
   if(st.banner){const k=st.banner.id||JSON.stringify(st.banner);if(k!==BN.key){BN.key=k;banner(st.banner)}}
   if(BN.t>0&&now()>=BN.end){BN.t=0;R.bn.classList.remove('lbx');cls(R.hud,'cine',false)}
   sty(R.vig,'display',mode==='drive'?'none':'');
@@ -799,15 +804,332 @@ function update(st,dt=1/60){
   if(st.zone!=null){const z=String(st.zone).split(' · ');htm(R.mmZone,'<b>'+esc(z[0])+'</b>'+(z[1]?' · '+esc(z.slice(1).join(' · ')):''))}
 }
 
+/* =====================================================================
+   MISSION WIDGETS (SPEC3 wave 0) — the generic HUD pieces jobs build on.
+   Jobs and systems only feed state / call these; they never edit this file.
+   ---------------------------------------------------------------------
+   STATE (HUD.update fields, all optional, read every frame, DOM written only on change)
+   meters:[{id,label,v,max=1,style:'bar'|'ring'|'pips'|'bands',warn,warnBelow,icon,zones,marker,sub,color,glyph}]
+     top-centre stack under the compass (phones: one row under the minimap), first 3 shown.
+     bar   fill v/max. warn:number -> warn colour once v>=warn (warnBelow:true: once v<warn),
+           with a notch at the threshold. marker:number -> a white target notch.
+     ring  detection "eye": white, yellow from 0.35, orange from 0.6, red at 1.0 of max.
+           centre glyph: eye, then "?", then "!" (glyph:'…' overrides). color overrides the palette.
+     pips  max pips (1..12), v filled (fractions fill the last one part-way); warn as for bar.
+     bands zones:[[from,to,'good'|'warn'|'bad',label?],...] over 0..max, a marker at v, the label
+           of the zone v is in on the right (sub is appended). marker:number -> target notch.
+     icon  'eye' 'car' 'chat' 'star' 'mask' 'clock' 'heart' 'bolt' 'cam' or an '<svg…>' string. sub: small text.
+   widgets:[{id,kind:'timer'|'score'|'combo',label,v,max,hot,sub,n}]  (first 4, a row under the compass;
+     phones: the strip between the minimap and the pause button)
+     timer v seconds -> m:ss (tenths under 10 s), hot pulses red, max -> a draining bar.
+     score v big number, pops (and floats "+n") on increase, max -> " / max".
+     combo n -> "×n" (falls back to max), v 0..1 the decaying bar, hot glows.
+   gadgets:[{id,label,key,on,charge,icon}]  chips above the gun (id 'nv'|'goggles' and 'flashlight'|'torch'
+     get their icons; icon:'nv'|'light' or an svg string otherwise). charge 0..1 -> battery bar, < 0.2 blinks.
+     Touch: tapping a chip emits HUD.on('gadget',id).
+
+   CALLS
+   HUD.overlay(id, el)    mount a full-screen layer (above the world HUD, below the map and screens);
+   HUD.overlay(id, null)  unmount (fades); HUD.overlay(id) returns the mounted element or null.
+                          Elements with el.htModal=true hide the touch buttons while mounted.
+   HUD.checkpoint(label, sub?)   2.2 s stage toast: "CHECKPOINT · Stage 2: The swap".
+   HUD.kit.viewfinder()   -> {el, set({zoom:'2×',label,bracket:{x,y,w,h,label?}|null (screen px),
+                              stars:0..3|null, flash:bool (rising edge fires the shutter), rec:bool,
+                              hint:'[RMB] Lower · [Wheel] Zoom' ([X] becomes a keycap)}), close()}
+   HUD.kit.choices({speaker,color?,prompt,tell,options:[{text,reg,disabled?}],onPick(i,opt),keys=true})
+                          -> {el, set(sameShape) (a new round, unlocks), close()}
+                          keys 1..n and tap; after a pick the strip locks until the next set().
+                          reg chips: joke real over|overshare compliment (anything else is shown as is).
+   HUD.kit.roles({kicker,title,roles:[{id,label,desc,need}],crew:[{id,name,color?,stars:{role:1..3}}],
+                  assign:{role:crewId},entries:[{id,label,lock?}],entry,gear:[{id,label,where,have}],
+                  forecast:[text|{text,tone:'good'|'bad'}],goLabel,backLabel,onChange({assign,entry}),
+                  onGo({assign,entry}),onBack?})  -> {el, set(partial), get()->{assign,entry}, close()}
+                          Tap a role row, then a crew chip (one role per person). Keys: 1..9 pick a role
+                          row (entries continue the numbering); with a row picked, 1..9 pick a crew chip.
+                          Enter = Go (only when every need>0 role is filled and, if there are entries,
+                          an unlocked one is picked), Esc = drop the row selection, then onBack.
+   Kit elements are meant for HUD.overlay(id, kit.el). close() unmounts. While a choices strip or a
+   roles card is mounted, its keys are taken in the capture phase (so 1-3 don't switch guns).
+   Screens: HUD.show('calendar', {title,kicker,day,entries:[{id,title,giver,place,hood,medal:0..3,best,
+            runs,day,replayable,note}],selected}). Acts: 'calendar:replay' and 'calendar:close' (also Esc;
+            the card hides itself). 'calendar:replay' passes the selected job id as the action's 2nd
+            argument (HUD.on('action',(a,arg)=>…)); 'calendar:close' passes none. The card stays open
+            on replay: the game calls HUD.hide('calendar'). No entries -> an empty-state note.
+   Result card: res.restartLabel adds a ghost button with act 'result:restart' after 'result:retry'.
+   ===================================================================== */
+const MICON={
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-6.5 10-6.5S22 12 22 12s-4 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>',
+  car:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 11l2-5h10l2 5h1v6h-2v2h-3v-2H9v2H6v-2H4v-6zm3.3-3.2L7.2 11h9.6l-1.1-3.2zM7 13a1.3 1.3 0 1 0 0 2.6A1.3 1.3 0 0 0 7 13zm10 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5h16v10H10l-4 4v-4H4z"/></svg>',
+  star:UI_ICON.star,
+  mask:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8c3-1.5 6-1 9 .5C15 7 18 6.5 21 8c0 4.5-2 8-5 8-2 0-3-1.5-4-1.5S10 16 8 16c-3 0-5-3.5-5-8zm4.5 2.5a1.6 1.6 0 1 0 0 .1zm9 0a1.6 1.6 0 1 0 0 .1z"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-8-4.6-8-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.8C20 15.4 12 20 12 20z"/></svg>',
+  bolt:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L5 13.5h5.5L9.5 22 18 10h-5.5z"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 5h7l1.5 2.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1h3zM12 9.5a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z"/></svg>',
+  nv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2.5 9.5h19V14a3 3 0 0 1-3 3h-3l-2-2.4h-3L8.5 17h-3a3 3 0 0 1-3-3z"/><path d="M8 9.5V6.5h8v3"/><circle cx="7.6" cy="13" r="1.7" fill="currentColor" stroke="none"/><circle cx="16.4" cy="13" r="1.7" fill="currentColor" stroke="none"/></svg>',
+  light:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 9.5h9l3-2.5v10l-3-2.5h-9z"/><path d="M6.5 12h3"/><path class="ray" d="M18.5 8.5l2.5-1.5M19 12h3M18.5 15.5l2.5 1.5"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h2v18H5z"/><path d="M8 4h11l-2.5 4L19 12H8z"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1.5v11h-13V10zm2.4 0h5.2V7.5a2.6 2.6 0 0 0-5.2 0z"/></svg>'
+};
+const iconOf=k=>!k?'':String(k).trim().startsWith('<svg')?k:MICON[k]||UI_ICON[k]||'';
+const chg=(o,k,v)=>{if(o[k]===v)return false;o[k]=v;return true};
+const keycaps=s=>esc(s).replace(/\[([^\]]{1,12})\]/g,'<b class="ht-kc">$1</b>');
+const MW={mt:[],wg:[],gd:[],gdKey:'',ov:new Map(),kits:[]};
+
+/* ---------------- meters ---------------- */
+const ZCOL={good:'var(--leaf)',warn:'var(--sun)',bad:'var(--alarm)'},ZLBL={good:'Good',warn:'Careful',bad:'Too far'};
+function ringTick(f){const a=(f*360-90)*Math.PI/180;const p=r=>(24+Math.cos(a)*r).toFixed(2)+' '+(24+Math.sin(a)*r).toFixed(2);return `M${p(15.5)}L${p(22.5)}`}
+function meterDom(s,style){s.style=style;s.e.dataset.s=style;s.zones=null;s.np=-1;s.c={};
+  const hd='<div class="hd"><span class="ic"></span><span class="lb"></span><span class="vl ht-num"></span></div>';
+  s.e.innerHTML=style==='ring'?`<svg class="rg" viewBox="0 0 48 48"><circle class="tk" cx="24" cy="24" r="19"/><circle class="fg" cx="24" cy="24" r="19" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 24 24)"/><path class="th" d="${ringTick(.35)}${ringTick(.6)}"/><g class="eye"><path d="M14.5 24s4-6 9.5-6 9.5 6 9.5 6-4 6-9.5 6-9.5-6-9.5-6z"/><circle cx="24" cy="24" r="3.1"/></g><text class="gl" x="24" y="25.5">?</text></svg><div class="tx">${hd}</div>`
+    :style==='pips'?hd+'<div class="ht-pips"></div>'
+    :style==='bands'?hd+'<div class="ht-bands"><div class="zs"></div><i class="tg"></i><i class="mk"></i></div><div class="zl"></div>'
+    :hd+'<div class="ht-mbar"><b class="fl"></b><i class="wt"></i><i class="tg"></i></div>';
+  const q=x=>s.e.querySelector(x);Object.assign(s,{ic:q('.ic'),lb:q('.lb'),vl:q('.vl'),fg:q('.fg'),eye:q('.eye'),gl:q('.gl'),fl:q('.fl'),wt:q('.wt'),tg:q('.tg'),mk:q('.mk'),zs:q('.zs'),zl:q('.zl'),pp:q('.ht-pips')})}
+function sameZones(a,b){if(a===b)return true;if(!a||!b||a.length!==b.length)return false;for(let i=0;i<a.length;i++){const x=a[i],y=b[i];if(x.length!==y.length)return false;for(let j=0;j<x.length;j++)if(x[j]!==y[j])return false}return true}
+function updMeters(list){list=list||[];const n=Math.min(3,list.length);
+  if(chg(MW,'mtN',n)){cls(H.root,'has-mt',n>0);cls(H.root,'has-mt3',n>2)}
+  for(let i=0;i<3;i++){let s=MW.mt[i];const m=list[i];
+    if(i>=n){if(s)show(s.e,false);continue}
+    if(!s){s=MW.mt[i]={e:el('div','ht-me',R.mt)};}
+    const style=m.style==='ring'||m.style==='pips'||m.style==='bands'?m.style:'bar';
+    if(s.style!==style)meterDom(s,style);
+    if(s.e._v!==true||s.id!==m.id){s.id=m.id;show(s.e,true);anim(s.e,[{opacity:0,transform:'translateY(-6px)'},{opacity:1,transform:'none'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'})}
+    const c=s.c,max=m.max>0?m.max:1,v=+m.v||0,f=clamp(v/max,0,1);
+    txt(s.lb,m.label);if(chg(c,'icon',m.icon))htm(s.ic,iconOf(m.icon));show(s.ic,!!m.icon);
+    if(chg(c,'col',m.color||''))sty(s.e,'--mc',m.color||'');
+    if(style==='bar'||style==='pips'){
+      const w=m.warn!=null&&(m.warnBelow?v<m.warn:v>=m.warn);cls(s.e,'warn',w);txt(s.vl,m.sub);
+      if(style==='bar'){if(chg(c,'f',Math.round(f*1000)))sty(s.fl,'transform',`scaleX(${(f).toFixed(3)})`);
+        const wt=m.warn!=null?clamp(m.warn/max,0,1):-1;if(chg(c,'wt',wt)){show(s.wt,wt>0&&wt<1);sty(s.wt,'left',(wt*100).toFixed(2)+'%')}
+        const tg=m.marker!=null?clamp(m.marker/max,0,1):-1;if(chg(c,'tg',tg)){show(s.tg,tg>=0);sty(s.tg,'left',(tg*100).toFixed(2)+'%')}}
+      else{const np=clamp(Math.round(max),1,12);if(s.np!==np){s.np=np;s.pp.innerHTML='<i><b></b></i>'.repeat(np);s.pb=[...s.pp.querySelectorAll('b')];c.pv=null}
+        if(chg(c,'pv',v))s.pb.forEach((b,k)=>{const p=clamp(v-k,0,1);sty(b,'transform',`scaleX(${p.toFixed(3)})`);cls(b.parentNode,'on',p>=1)})}}
+    else if(style==='ring'){const lv=f>=1?3:f>=.6?2:f>=.35?1:0;
+      if(chg(c,'f',Math.round(f*1000)))sty(s.fg,'strokeDashoffset',(100-f*100).toFixed(1));
+      if(c.lv!==lv){if(lv>(c.lv??0))anim(s.e.querySelector('.rg'),[{transform:'scale(1.22)'},{transform:'scale(1)'}],{duration:380,easing:'cubic-bezier(.3,1.45,.45,1)'});c.lv=lv;for(let k=0;k<4;k++)cls(s.e,'lv'+k,k===lv)}
+      const g=m.glyph!=null?m.glyph:lv===0?'':lv===3?'!':'?';txt(s.gl,g);sty(s.eye,'display',g?'none':'');sty(s.gl,'display',g?'':'none');txt(s.vl,m.sub)}
+    else{/* bands */
+      if(!sameZones(s.zones,m.zones)){const z=m.zones||[];s.zones=z.map(a=>a.slice());
+        s.zs.innerHTML=z.map(([a,b,k])=>`<i class="z ${esc(k)}" style="left:${(clamp(a/max,0,1)*100).toFixed(2)}%;width:${(clamp((b-a)/max,0,1)*100).toFixed(2)}%"></i>`).join('');
+        s.zl.innerHTML=z.map(([a,b,k,l])=>(b-a)/max<.14?'':`<span style="left:${(clamp(a/max,0,1)*100).toFixed(2)}%;width:${(clamp((b-a)/max,0,1)*100).toFixed(2)}%">${esc(l||'')}</span>`).join('');s.zi=[...s.zs.children];c.zone=-2}
+      let zi=-1;for(let k=0;k<s.zones.length;k++){const z=s.zones[k];if(v>=z[0]&&(v<z[1]||(k===s.zones.length-1&&v<=z[1]))){zi=k;break}}
+      if(zi<0&&s.zones.length)zi=v<s.zones[0][0]?0:s.zones.length-1;
+      if(chg(c,'zone',zi)){s.zi.forEach((z,k)=>cls(z,'on',k===zi));const z=s.zones[zi];const k=z?z[2]:'good';sty(s.e,'--zc',ZCOL[k]||'var(--fg)');
+        if(c.zone!==-2&&z)anim(s.vl,[{transform:'scale(1.18)'},{transform:'scale(1)'}],{duration:300,easing:'ease-out'})}
+      const z=s.zones[zi];txt(s.vl,(z?(z[3]||ZLBL[z[2]]||''):'')+(m.sub?' · '+m.sub:''));
+      if(chg(c,'f',Math.round(f*1000)))sty(s.mk,'transform',`translateX(${(f*100).toFixed(2)}%)`);
+      const tg=m.marker!=null?clamp(m.marker/max,0,1):-1;if(chg(c,'tg',tg)){show(s.tg,tg>=0);sty(s.tg,'left',(tg*100).toFixed(2)+'%')}}
+  }}
+
+/* ---------------- widgets: timer / score / combo ---------------- */
+function fmtTime(v){if(v<10){const t=Math.max(0,Math.ceil(v*10)/10);return t.toFixed(1)}const s=Math.ceil(v);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function updWidgets(list){list=list||[];const n=Math.min(4,list.length);
+  if(chg(MW,'wgN',n))cls(H.root,'has-wg',n>0);
+  for(let i=0;i<4;i++){let s=MW.wg[i];const w=list[i];
+    if(i>=n){if(s)show(s.e,false);continue}
+    if(!s){s=MW.wg[i]={e:el('div','ht-wi',R.wg,'<div class="lb"></div><div class="v ht-num"><span class="n"></span><span class="mx"></span></div><div class="br"><i></i></div><div class="sb"></div>')};
+      Object.assign(s,{lb:s.e.querySelector('.lb'),v:s.e.querySelector('.v'),n:s.e.querySelector('.n'),mx:s.e.querySelector('.mx'),br:s.e.querySelector('.br'),bi:s.e.querySelector('.br i'),sb:s.e.querySelector('.sb'),c:{}})}
+    const c=s.c,kind=w.kind==='score'||w.kind==='combo'?w.kind:'timer';
+    if(chg(c,'kind',kind)||s.id!==w.id){s.id=w.id;s.e.dataset.k=kind;c.v=c.n=c.key=undefined;show(s.e,true);anim(s.e,[{opacity:0,transform:'translateY(-6px)'},{opacity:1,transform:'none'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'})}
+    show(s.e,true);txt(s.lb,w.label||({timer:'Time',score:'Score',combo:'Combo'})[kind]);txt(s.sb,w.sub);show(s.sb,!!w.sub);cls(s.e,'hot',!!w.hot);
+    const v=+w.v||0;
+    if(kind==='timer'){const key=v<10?Math.ceil(v*10):Math.ceil(v)*10+1000;if(chg(c,'key',key))txt(s.n,fmtTime(Math.max(0,v)));txt(s.mx,'');
+      const hasB=w.max>0;show(s.br,hasB);if(hasB&&chg(c,'b',Math.round(clamp(v/w.max,0,1)*500)))sty(s.bi,'transform',`scaleX(${clamp(v/w.max,0,1).toFixed(3)})`)}
+    else if(kind==='score'){const r=Math.round(v);if(c.v!==r){const up=c.v!=null&&r>c.v;if(up){anim(s.v,[{transform:'scale(1.28)',color:'#ffdd85'},{transform:'scale(1)',color:'#fff'}],{duration:420,easing:'cubic-bezier(.3,1.45,.45,1)'});
+          const p=el('i','pl ht-num',s.e,'+'+(r-c.v).toLocaleString('en-US'));const a=anim(p,[{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'translateY(-6px)',offset:.2},{opacity:0,transform:'translateY(-22px)'}],{duration:900,easing:'ease-out',fill:'forwards'});if(a)a.onfinish=()=>p.remove();else setTimeout(()=>p.remove(),900)}
+        c.v=r;txt(s.n,r.toLocaleString('en-US'))}
+      if(chg(c,'mx',w.max))txt(s.mx,w.max!=null?'/'+Math.round(w.max).toLocaleString('en-US'):'');show(s.br,false)}
+    else{const nn=w.n!=null?w.n:w.max!=null?w.max:1;if(c.n!==nn){if(c.n!=null&&nn>c.n)anim(s.v,[{transform:'scale(1.35) rotate(-4deg)'},{transform:'none'}],{duration:360,easing:'cubic-bezier(.3,1.45,.45,1)'});c.n=nn;txt(s.n,'×'+nn)}
+      txt(s.mx,'');show(s.br,true);if(chg(c,'b',Math.round(clamp(v,0,1)*500)))sty(s.bi,'transform',`scaleX(${clamp(v,0,1).toFixed(3)})`);cls(s.e,'cold',v<=0)}
+  }}
+
+/* ---------------- gadgets (near the gun) ---------------- */
+function gadgetIcon(g){if(g.icon)return iconOf(g.icon);const id=String(g.id||'').toLowerCase();return /nv|goggle|night/.test(id)?MICON.nv:/light|torch|lamp/.test(id)?MICON.light:UI_ICON.info}
+function updGadgets(list){list=list||[];
+  let same=list.length===MW.gd.length;if(same)for(let i=0;i<list.length;i++)if(MW.gd[i].id!==list[i].id){same=false;break}
+  if(!same){R.gd.innerHTML='';MW.gd=list.map(g=>{const e=el('div','ht-gc',R.gd,`<span class="ic">${gadgetIcon(g)}</span><span class="lb"></span><b class="ht-kc"></b><span class="bt"><i></i></span>`);
+      e.addEventListener('pointerdown',ev=>{ev.preventDefault();emit('gadget',g.id)});
+      return{id:g.id,e,lb:e.querySelector('.lb'),kc:e.querySelector('.ht-kc'),bt:e.querySelector('.bt'),bi:e.querySelector('.bt i'),c:{}}})}
+  show(R.gd,list.length>0);
+  list.forEach((g,i)=>{const s=MW.gd[i];txt(s.lb,g.label||'');txt(s.kc,g.key||'');show(s.kc,!!g.key);
+    if(chg(s.c,'on',!!g.on)){cls(s.e,'on',!!g.on);if(g.on)anim(s.e,[{transform:'scale(1.12)'},{transform:'none'}],{duration:260,easing:'cubic-bezier(.3,1.45,.45,1)'})}
+    const has=g.charge!=null;show(s.bt,has);if(has){const ch=clamp(+g.charge,0,1);if(chg(s.c,'ch',Math.round(ch*200)))sty(s.bi,'transform',`scaleX(${ch.toFixed(3)})`);cls(s.e,'low',ch<.2);cls(s.e,'dead',ch<=0)}})}
+
+/* ---------------- checkpoint toast ---------------- */
+function checkpoint(label,sub){const e=R.cp;const m=/^(.*?):\s*(.+)$/.exec(String(label||''));
+  e.innerHTML=`<span class="fg">${MICON.flag}</span><span class="tx"><span class="k">Checkpoint${m?' · '+esc(m[1]):''}</span><span class="t">${esc(m?m[2]:label||'')}</span>${sub?`<span class="s">${esc(sub)}</span>`:''}</span><i class="dr"></i>`;
+  show(e,true);if(e._a)e._a.cancel();
+  e._a=anim(e,[{opacity:0,transform:'translateY(-10px) scale(.96)',easing:'cubic-bezier(.3,1.45,.45,1)'},{opacity:1,transform:'none',offset:.12},{opacity:1,transform:'none',offset:.86,easing:'cubic-bezier(.5,0,.75,0)'},{opacity:0,transform:'translateY(-6px)'}],{duration:2200,fill:'forwards'});
+  anim(e.querySelector('.dr'),[{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:2000,delay:150,fill:'both'});
+  anim(e.querySelector('.fg'),[{transform:'rotate(-25deg) scale(.6)'},{transform:'none'}],{duration:500,delay:80,easing:'cubic-bezier(.3,1.45,.45,1)',fill:'backwards'});
+  if(e._a)e._a.onfinish=()=>{show(e,false);e._a=null};else setTimeout(()=>show(e,false),2200)}
+
+/* ---------------- overlay layer ---------------- */
+function ovClasses(){let m=false,c=false,v=false;for(const e of MW.ov.values()){if(e.htModal)m=true;if(e.htChoices)c=true;if(e.htViewfinder)v=true}cls(H.root,'ovm',m);cls(H.root,'ovc',c);cls(H.root,'ovv',v)}
+function overlay(id,e){const cur=MW.ov.get(id);if(e===undefined)return cur||null;
+  if(cur===e)return e;
+  if(cur){MW.ov.delete(id);cur.classList.add('out');clearTimeout(cur._ovT);const a=anim(cur,[{opacity:1},{opacity:0}],{duration:180,fill:'forwards'});cur._ovT=setTimeout(()=>{if(![...MW.ov.values()].includes(cur))cur.remove()},a?190:0)}
+  if(e){for(const[k,v]of MW.ov)if(v===e)MW.ov.delete(k);clearTimeout(e._ovT);e.classList.remove('out');e.classList.add('ht-ov');e.dataset.ov=id;MW.ov.set(id,e);R.ovl.appendChild(e);
+    e.getAnimations&&e.getAnimations().forEach(a=>a.cancel());anim(e,[{opacity:0},{opacity:1}],{duration:200,easing:'ease-out'});if(e.htEnter)e.htEnter()}
+  ovClasses();return e||null}
+function kitClose(e){for(const[k,v]of MW.ov)if(v===e)return overlay(k,null);e.remove()}
+function kitKeys(e){if(SCR.cur==='calendar')return calKey(e);
+  if(SCR.cur||MAP.open||(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen()))return;
+  const els=[...MW.ov.values()];for(let i=els.length-1;i>=0;i--){const k=els[i].htKey;if(k&&k(e)){e.preventDefault();e.stopPropagation();return}}}
+const digitOf=e=>{const m=/^(?:Digit|Numpad)([1-9])$/.exec(e.code||'');return m?+m[1]:(/^[1-9]$/.test(e.key)?+e.key:0)};
+
+/* ---------------- kit: viewfinder ---------------- */
+function kitViewfinder(){const e=el('div','ht-vf');e.htViewfinder=true;
+  e.innerHTML=`<div class="vg"></div><div class="fr"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><i class="g v1"></i><i class="g v2"></i><i class="g h1"></i><i class="g h2"></i>
+  <div class="tp"><span class="rec"><i></i>REC</span><span class="md">${MICON.cam}Photo</span><span class="lb"></span></div><div class="st"></div><div class="zm ht-num"></div><div class="ft"></div></div>
+  <div class="sj"><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i><span class="sl"></span></div><div class="fl"></div>`;
+  const q=x=>e.querySelector(x),S={c:{}},r={rec:q('.rec'),md:q('.md'),lb:q('.lb'),st:q('.st'),zm:q('.zm'),ft:q('.ft'),sj:q('.sj'),sl:q('.sl'),fl:q('.fl')};
+  r.st.innerHTML='<span class="k">Grade</span>'+[0,1,2].map(()=>`<i>${UI_ICON.star}</i>`).join('');r.stars=[...r.st.querySelectorAll('i')];
+  const api={el:e,set(o={}){const c=S.c;
+    if('zoom' in o&&chg(c,'zoom',o.zoom)){txt(r.zm,o.zoom);show(r.zm,!!o.zoom);anim(r.zm,[{transform:'scale(1.25)'},{transform:'none'}],{duration:260,easing:'cubic-bezier(.3,1.45,.45,1)'})}
+    if('label' in o){txt(r.lb,o.label);show(r.lb,!!o.label)}
+    if('rec' in o){show(r.rec,!!o.rec);show(r.md,!o.rec)}
+    if('hint' in o&&chg(c,'hint',o.hint))htm(r.ft,keycaps(o.hint||''));
+    if('stars' in o){const n=o.stars;show(r.st,n!=null);if(n!=null&&chg(c,'stars',n)){r.stars.forEach((s,i)=>cls(s,'on',i<n));if(n>0)anim(r.stars[n-1],[{transform:'scale(1.6)'},{transform:'none'}],{duration:320,easing:'cubic-bezier(.3,1.45,.45,1)'})}}
+    if('bracket' in o){const b=o.bracket;show(r.sj,!!b);if(b){sty(r.sj,'transform',`translate3d(${Math.round(b.x)}px,${Math.round(b.y)}px,0)`);sty(r.sj,'width',Math.round(b.w)+'px');sty(r.sj,'height',Math.round(b.h)+'px');txt(r.sl,b.label||'Subject');cls(r.sj,'ok',!!(b.ok||(o.stars||c.stars)>0))}}
+    if('flash' in o){const f=!!o.flash;if(f&&!c.flash){anim(r.fl,[{opacity:.92},{opacity:0}],{duration:420,easing:'ease-out'});anim(e.querySelector('.fr'),[{scale:'.985'},{scale:'1'}],{duration:240,easing:'ease-out'})}c.flash=f}
+    return api},close(){kitClose(e)}};
+  api.set({rec:false,stars:null,bracket:null,label:'',zoom:'1×',hint:''});return api}
+
+/* ---------------- kit: dialogue choices ---------------- */
+const REG={joke:['Joke','#ffc94a'],real:['Keep it real','#6fb8ff'],over:['Overshare','#ff9a5c'],overshare:['Overshare','#ff9a5c'],compliment:['Compliment','#7fdc6e']};
+function spkCol(sp){const s=String(sp||'').toLowerCase();return SPK_COL[s.split(' ').pop()]||SPK_COL[s]||'#ffc94a'}
+function kitChoices(o={}){const e=el('div','ht-ch');e.htModal=true;e.htChoices=true;
+  e.innerHTML='<div class="pl"><div class="hd"><b class="sp"></b><span class="pr"></span></div><div class="tl"></div><div class="ops"></div></div>';
+  const q=x=>e.querySelector(x),sp=q('.sp'),pr=q('.pr'),tl=q('.tl'),ops=q('.ops');let O=o,locked=false,btns=[];
+  function pick(i){const op=(O.options||[])[i];if(locked||!op||op.disabled)return false;locked=true;e.classList.add('lk');
+    btns.forEach((b,k)=>{b.classList.toggle('pk',k===i);b.disabled=true});anim(btns[i],[{transform:'scale(1.04)'},{transform:'none'}],{duration:260,easing:'cubic-bezier(.3,1.45,.45,1)'});
+    try{O.onPick&&O.onPick(i,op)}catch(err){console.error(err)}return true}
+  const api={el:e,set(n={}){O=Object.assign({},O,n);locked=false;e.classList.remove('lk');
+    txt(sp,O.speaker||'');show(sp,!!O.speaker);sty(sp,'color',O.color||spkCol(O.speaker));txt(pr,O.prompt||'');
+    const t=O.tell?String(O.tell).trim():'';txt(tl,t?(t[0]==='['?t:'['+t+']'):'');show(tl,!!t);
+    ops.innerHTML='';btns=(O.options||[]).map((op,i)=>{const rg=REG[op.reg]||[op.reg||'',null];
+      const b=el('button','op',ops,`<b class="ht-kc">${i+1}</b><span class="tx">${esc(op.text)}</span>${rg[0]?`<i class="rg" style="--rc:${rg[1]||'rgba(255,255,255,.7)'}">${esc(rg[0])}</i>`:''}`);
+      b.disabled=!!op.disabled;b.addEventListener('click',ev=>{ev.stopPropagation();pick(i)});return b});
+    btns.forEach((b,i)=>anim(b,[{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:300,delay:60+i*60,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'}));
+    return api},pick,close(){kitClose(e)}};
+  e.htKey=ev=>{if(O.keys===false||ev.repeat)return false;const d=digitOf(ev);return d>0&&d<=btns.length?(pick(d-1),true):false};
+  return api.set()}
+
+/* ---------------- kit: crew roles card ---------------- */
+function stars(n,of=3){let h='';for(let i=0;i<of;i++)h+=`<i class="${i<n?'on':''}">${UI_ICON.star}</i>`;return `<span class="ht-stars">${h}</span>`}
+function kitRoles(o={}){const e=el('div','ht-rc');e.htModal=true;
+  const S={o:Object.assign({},o),assign:Object.assign({},o.assign||{}),entry:o.entry??null,sel:null};
+  e.innerHTML=`<div class="scrim"></div><div class="pn" role="dialog"><div class="ph"><div class="kick"></div><h2></h2></div><div class="bd">
+    <section class="s-ro"><h3>Roles<small></small></h3><div class="ro"></div><h3 class="ch">Crew<small></small></h3><div class="cw"></div></section>
+    <section class="s-gr"><h3>Gear</h3><div class="gr"></div></section><section class="s-en"><h3>Entry</h3><div class="en"></div></section>
+    <section class="s-fc"><h3>Forecast</h3><ul class="fc"></ul></section></div>
+    <div class="pf"><span class="why"></span><button class="ht-btn ghost bk"></button><button class="ht-btn pri go"></button></div></div>`;
+  const q=x=>e.querySelector(x),ro=q('.ro'),cw=q('.cw'),gr=q('.gr'),en=q('.en'),fc=q('.fc'),why=q('.why'),go=q('.go'),bk=q('.bk');
+  const crew=id=>(S.o.crew||[]).find(c=>c.id===id),roleOf=cid=>{for(const k in S.assign)if(S.assign[k]===cid)return k;return null};
+  const missing=()=>(S.o.roles||[]).filter(r=>(r.need||0)>0&&!S.assign[r.id]);
+  const entryOk=()=>{const es=S.o.entries||[];if(!es.length||S.o.needEntry===false)return true;const x=es.find(z=>z.id===S.entry);return !!(x&&!x.lock)};
+  const ready=()=>!missing().length&&entryOk();
+  const changed=()=>{render();try{S.o.onChange&&S.o.onChange(api.get())}catch(err){console.error(err)}};
+  function assign(rid,cid){if(!rid)return;if(S.assign[rid]===cid){delete S.assign[rid]}else{for(const k in S.assign)if(S.assign[k]===cid)delete S.assign[k];S.assign[rid]=cid;
+      const nx=(S.o.roles||[]).find(r=>!S.assign[r.id]&&(r.need||0)>0)||(S.o.roles||[]).find(r=>!S.assign[r.id]);S.sel=nx?nx.id:null}changed()}
+  function selRole(id){S.sel=S.sel===id?null:id;render()}
+  function pickCrew(cid){let r=S.sel;if(!r){const m=missing()[0]||(S.o.roles||[]).find(x=>!S.assign[x.id]);r=m&&m.id}if(!r)return;assign(r,cid)}
+  function pickEntry(id){const x=(S.o.entries||[]).find(z=>z.id===id);if(!x||x.lock)return;S.entry=id;changed()}
+  function render(){const O=S.o,roles=O.roles||[],cr=O.crew||[],es=O.entries||[];
+    txt(q('.kick'),O.kicker||'The plan');txt(q('h2'),O.title||'Who does what');
+    q('.s-ro h3 small').textContent=missing().length?missing().length+' to fill':'All set';q('.s-ro h3 small').className=missing().length?'':'ok';
+    ro.innerHTML=roles.map((r,i)=>{const c=crew(S.assign[r.id]);const st=c&&c.stars?c.stars[r.id]||0:0;
+      return `<button class="rr${S.sel===r.id?' sel':''}${c?' fill':''}${(r.need||0)>0&&!c?' req':''}" data-r="${esc(r.id)}"><b class="ht-kc">${i+1}</b><span class="tx"><span class="l">${esc(r.label)}${(r.need||0)>0?'<em>Required</em>':''}</span><span class="d">${esc(r.desc||'')}</span></span>
+      <span class="as">${c?`<span class="av" style="--c:${c.color||portraitColor(c.name)}">${esc(initials(c.name))}</span><span class="nm">${esc(c.name)}${stars(st)}</span>`:`<span class="em">${S.sel===r.id?'Pick someone':'Tap to assign'}</span>`}</span></button>`}).join('');
+    const sr=roles.find(r=>r.id===S.sel);
+    q('.ch small').textContent=sr?'Pick a '+sr.label.toLowerCase():'Tap a role first';
+    cw.classList.toggle('arm',!!sr);
+    cw.innerHTML=cr.map((c,i)=>{const on=roleOf(c.id),st=sr&&c.stars?c.stars[sr.id]||0:0,rl=on&&roles.find(r=>r.id===on);
+      return `<button class="cc${on?' used':''}${sr&&S.assign[sr.id]===c.id?' cur':''}" data-c="${esc(c.id)}"><b class="ht-kc">${i+1}</b><span class="av" style="--c:${c.color||portraitColor(c.name)}">${esc(initials(c.name))}</span><span class="tx"><span class="nm">${esc(c.name)}</span>${sr?stars(st):`<span class="rl">${rl?esc(rl.label):'Free'}</span>`}</span></button>`}).join('');
+    gr.innerHTML=(O.gear||[]).map(g=>`<div class="gi${g.have?' ok':''}"><i class="bx"></i><span class="l">${esc(g.label)}</span><span class="w">${g.have?'Packed':esc(g.where||'Missing')}</span></div>`).join('')||'<div class="none">Nothing to borrow.</div>';
+    en.innerHTML=es.map((x,i)=>`<button class="er${S.entry===x.id?' sel':''}${x.lock?' lk':''}" data-e="${esc(x.id)}"${x.lock?' aria-disabled="true"':''}><b class="ht-kc">${roles.length+i+1}</b><i class="rd"></i><span class="tx"><span class="l">${esc(x.label)}</span>${x.lock?`<span class="lr">${MICON.lock}${esc(x.lock)}</span>`:''}</span></button>`).join('')||'<div class="none">Front door. Like normal people.</div>';
+    fc.innerHTML=(O.forecast||[]).map(f=>{const F=typeof f==='string'?{text:f}:f;return `<li class="${esc(F.tone||'')}">${esc(F.text)}</li>`}).join('')||'<li class="none">Assign the crew to see how it plays out.</li>';
+    q('.s-gr').hidden=!(O.gear||[]).length&&O.showEmpty===false;q('.s-en').hidden=!es.length&&O.showEmpty===false;
+    const m=missing();go.disabled=!ready();go.innerHTML=esc(O.goLabel||'Go')+'<span class="ht-kc dim">Enter</span>';
+    why.textContent=m.length?'Needs '+m.map(r=>r.label).join(', '):!entryOk()?'Pick a way in':'Ready when you are';why.classList.toggle('ok',ready());
+    bk.hidden=!O.onBack;bk.innerHTML=esc(O.backLabel||'Not yet')+'<span class="ht-kc dim">Esc</span>'}
+  e.addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t||!e.contains(t))return;ev.stopPropagation();
+    if(t.dataset.r)selRole(t.dataset.r);else if(t.dataset.c)pickCrew(t.dataset.c);else if(t.dataset.e)pickEntry(t.dataset.e);
+    else if(t===go&&ready()){try{S.o.onGo&&S.o.onGo(api.get())}catch(err){console.error(err)}}else if(t===bk&&S.o.onBack)S.o.onBack()});
+  e.htKey=ev=>{if(ev.repeat)return false;const d=digitOf(ev),R2=S.o.roles||[];
+    if(d){if(S.sel){const c=(S.o.crew||[])[d-1];if(c){pickCrew(c.id);return true}return false}
+      if(d<=R2.length){selRole(R2[d-1].id);return true}const x=(S.o.entries||[])[d-1-R2.length];if(x){pickEntry(x.id);return true}return false}
+    if(ev.key==='Enter'){if(ready()&&S.o.onGo)S.o.onGo(api.get());return true}
+    if(ev.key==='Escape'||ev.key==='Backspace'){if(S.sel){S.sel=null;render();return true}if(S.o.onBack){S.o.onBack();return true}return ev.key==='Escape'}
+    return false};
+  const api={el:e,set(p={}){Object.assign(S.o,p);if(p.assign)S.assign=Object.assign({},p.assign);if('entry' in p)S.entry=p.entry;if(S.sel&&!(S.o.roles||[]).some(r=>r.id===S.sel))S.sel=null;render();return api},
+    get(){return{assign:Object.assign({},S.assign),entry:S.entry}},close(){kitClose(e)}};
+  e.htEnter=()=>{anim(q('.pn'),[{opacity:0,transform:'translateY(16px) scale(.98)'},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.8,.2,1)'})};
+  render();return api}
+
+/* ---------------- calendar / replay card (HUD.show('calendar',…)) ---------------- */
+const MONTHS=['September','October','November','December','January','February','March','April','May','June','July','August'];
+const MEDAL=['Done','Bronze','Silver','Gold'];
+const CAL={page:0};
+function calPageOf(day){return Math.max(0,Math.floor(((day||1)-1)/30))}
+function screenCalendar(d){const e=el('div','ht-scr ht-cal');const ents=(d.entries||[]).slice().sort((a,b)=>(b.day||0)-(a.day||0)||String(a.title).localeCompare(b.title));d._ents=ents;
+  if(d.selected==null&&ents.length)d.selected=ents[0].id;
+  const sel=ents.find(x=>x.id===d.selected);CAL.page=calPageOf(sel?sel.day:d.day);
+  e.innerHTML=`<div class="scrim full"></div><div class="wrap"><div class="paper"><i class="mag"></i><div class="ph"><div><div class="yr">Fridge calendar</div><h3 class="mo"></h3></div><div class="nv"><button data-pg="-1" aria-label="Previous month">‹</button><button data-pg="1" aria-label="Next month">›</button></div></div>
+    <div class="wk">${['S','M','T','W','T','F','S'].map(x=>`<span>${x}</span>`).join('')}</div><div class="gd"></div><div class="lg"><span><i class="ht-pin m3"></i>Gold</span><span><i class="ht-pin m2"></i>Silver</span><span><i class="ht-pin m1"></i>Bronze</span><span><i class="ht-pin m0"></i>Done</span></div></div>
+    <div class="side"><div class="kick">${esc(d.kicker||'Replay a job')}</div><h2>${esc(d.title||'The calendar')}</h2><div class="ls"></div><div class="dt"></div>
+    <div class="ht-btns row"><button class="ht-btn pri" data-cal="replay">Replay<span class="ht-kc dim">Enter</span></button><button class="ht-btn ghost" data-cal="close">Close<span class="ht-kc dim">Esc</span></button></div>
+    <p class="note">Replays pay half; no story changes.</p></div></div>`;
+  e.addEventListener('click',ev=>{const t=ev.target.closest('[data-cal],[data-pg],[data-id]');if(!t)return;ev.stopPropagation();
+    if(t.dataset.pg){CAL.page=Math.max(0,CAL.page+ +t.dataset.pg);calRender(e,d)}
+    else if(t.dataset.id){calSelect(t.dataset.id,true)}
+    else if(t.dataset.cal==='replay')calAct('replay');else if(t.dataset.cal==='close')calAct('close')});
+  calRender(e,d);return e}
+function calSelect(id,keepPage){const d=SCR.data.calendar,e=SCR.el.calendar;if(!d||!e)return;const x=d._ents.find(z=>String(z.id)===String(id));if(!x)return;d.selected=x.id;CAL.page=calPageOf(x.day);calRender(e,d)}
+function calAct(a){const d=SCR.data.calendar;if(!d)return;const x=d._ents.find(z=>z.id===d.selected)||null;
+  if(a==='replay'&&(!x||x.replayable===false))return;
+  d.id=x?x.id:null;d.entry=x;if(a==='close'){hideScreen('calendar');emit('action','calendar:close')}else emit('action','calendar:replay',x.id)}
+function calKey(e){const d=SCR.data.calendar;if(!d)return;const k=e.key;let used=true;const i=d._ents.findIndex(x=>x.id===d.selected);
+  if(k==='Escape')calAct('close');
+  else if(k==='ArrowDown'||e.code==='KeyS'){const x=d._ents[Math.min(d._ents.length-1,i+1)];x&&calSelect(x.id)}
+  else if(k==='ArrowUp'||e.code==='KeyW'){const x=d._ents[Math.max(0,i-1)];x&&calSelect(x.id)}
+  else if(k==='ArrowLeft'||e.code==='KeyQ'){CAL.page=Math.max(0,CAL.page-1);calRender(SCR.el.calendar,d)}
+  else if(k==='ArrowRight'||e.code==='KeyE'){CAL.page++;calRender(SCR.el.calendar,d)}
+  else if(k==='Enter'&&!(e.target&&e.target.tagName==='BUTTON'))calAct('replay');
+  else used=false;
+  if(used){e.preventDefault();e.stopPropagation()}}
+function calRender(e,d){const ents=d._ents,p=CAL.page,first=p*30+1,wd=(6+p*30)%7;/* in-game day 1 is a Saturday */
+  e.querySelector('.mo').textContent=MONTHS[p%12];
+  let h='';for(let i=0;i<wd;i++)h+='<i class="x"></i>';
+  for(let k=0;k<30;k++){const day=first+k,on=ents.filter(x=>x.day===day),sel=on.some(x=>x.id===d.selected);
+    h+=`<div class="dy${day===d.day?' td':''}${sel?' sel':''}${on.length?' has':''}"${on.length?` data-id="${esc(on[0].id)}"`:''}><b>${k+1}</b>${on.length?`<span class="pins">${on.slice(0,3).map(x=>`<i class="ht-pin m${clamp(x.medal|0,0,3)}"></i>`).join('')}${on.length>3?'<em>+'+(on.length-3)+'</em>':''}</span><span class="tt">${esc(on[0].title)}</span>`:''}</div>`}
+  const tail=(7-(wd+30)%7)%7;for(let i=0;i<tail;i++)h+='<i class="x"></i>';
+  e.querySelector('.gd').innerHTML=h;
+  e.querySelector('[data-pg="-1"]').disabled=p<=0;
+  const ls=e.querySelector('.ls');ls.innerHTML=ents.length?ents.map(x=>`<button class="ce${x.id===d.selected?' sel':''}" data-id="${esc(x.id)}"><i class="ht-pin m${clamp(x.medal|0,0,3)}"></i><span class="tx"><span class="t">${esc(x.title)}</span><span class="g">${esc([x.giver,x.place].filter(Boolean).join(' · '))}</span></span><span class="b ht-num">${esc(x.best||'')}</span></button>`).join(''):'<div class="none">Nothing on the fridge yet. Finish a job and it gets a pin.</div>';
+  const x=ents.find(z=>z.id===d.selected);const dt=e.querySelector('.dt'),rp=e.querySelector('[data-cal=replay]');
+  if(!x){dt.innerHTML='';rp.disabled=true;return}
+  const m=clamp(x.medal|0,0,3),dd=x.day?MONTHS[calPageOf(x.day)%12].slice(0,3)+' '+(((x.day-1)%30)+1):'';
+  dt.innerHTML=`<div class="hd"><i class="ht-pin big m${m}"></i><div><div class="k">${esc(MEDAL[m])}${m?' medal':''}${dd?' · '+esc(dd):''}</div><h3>${esc(x.title)}</h3><div class="g">${esc([x.giver,x.place,x.hood].filter(Boolean).join(' · '))}</div></div></div>
+    <div class="ht-meta"><div><b>Best</b><span class="ht-num">${esc(x.best||'—')}</span></div><div><b>Runs</b><span class="ht-num">${esc(x.runs!=null?x.runs:'—')}</span></div><div><b>Medal</b><span>${[1,2,3].map(k=>`<i class="ht-pin sm m${k<=m?k:'n'}"></i>`).join('')}</span></div></div>
+    ${x.note?`<p class="nt">${esc(x.note)}</p>`:''}`;
+  const sr=e.querySelector('.ls .sel');if(sr&&sr.scrollIntoView)sr.scrollIntoView({block:'nearest'});
+  rp.disabled=x.replayable===false;rp.firstChild.textContent=x.replayable===false?'Not replayable yet':'Replay'}
+
 const HUD={
   init(rootEl,opt={}){H.root=rootEl||document.body.appendChild(document.createElement('div'));if(opt.touch!=null)H.forceTouch=opt.touch;if(opt.compact!=null)H.forceCompact=opt.compact;build(H.root);
     addEventListener('keydown',e=>{if(!MAP.open&&((HUD.blockKeys&&HUD.blockKeys())||(window.HT&&HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())))return;if(e.code==='KeyM'&&(MAP.open||!SCR.cur)&&!e.repeat&&opt.mapKey!==false){MAP.toggle();e.stopPropagation()}else if(e.code==='Escape'&&MAP.open){MAP.close();e.preventDefault();e.stopPropagation()}else if(MAP.open)mapKey(e)},true);
+    addEventListener('keydown',kitKeys,true);
     /* canvases draw text with the web fonts: redraw once they are in */
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{CMP.last='';MAP.dirty=true});
     return HUD},
   update,
   on,emit,
-  hit,damage,feed,toast,ammoToast,banner,payout,
+  hit,damage,feed,toast,ammoToast,banner,payout,checkpoint,overlay,
+  kit:{viewfinder:kitViewfinder,choices:kitChoices,roles:kitRoles},
   show:showScreen,hide:hideScreen,set:setScreen,
   get screen(){return SCR.cur},
   minimap:{setRegions(r){MM.regions=r||null;MAP.dirty=true},setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},overlay(fn){MM.overlay=fn||null;MAP.dirty=true},

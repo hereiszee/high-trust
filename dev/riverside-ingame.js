@@ -83,7 +83,7 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
   /* new game from the title screen */
   await p.click('.ht-title [data-act=newgame]').catch(()=>p.evaluate(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));
   await p.waitForTimeout(300);
-  const g0=await p.evaluate(()=>{const H=window.__ht;H.step(3);return{mode:H.mode,lvl:H.L.def.id,n:H.MISSIONS.length,givers:H.npcs.map(n=>n.marker.i),bridge:H.WORLD.bridgeOpen,inWorld:H.CFG.inWorld,cash:H.cash}});
+  const g0=await p.evaluate(()=>{const H=window.__ht;H.step(3);return{mode:H.mode,lvl:H.L.def.id,n:H.MISSIONS.filter(m=>!m.reg).length,givers:H.npcs.map(n=>n.marker.i),bridge:H.WORLD.bridgeOpen,inWorld:H.CFG.inWorld,cash:H.cash}});
   ok(g0.mode==='hub'&&g0.lvl==='world'&&g0.n===9&&g0.givers.join()==='0'&&!g0.bridge,'new game: the world hub, 9 jobs, only Gary is waiting, bridge closed ('+JSON.stringify(g0)+')');
 
   /* jump ahead: these jobs done, back in the hub (the Act 2 card, if it shows, is dismissed) */

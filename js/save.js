@@ -158,10 +158,17 @@ const SUPPLIES={
   rangeDay:{name:'Range Day Box',price:40,flag:'rangeDay',fx:'+1 extra mag of every ammo type at the next mission',blurb:"Bulk ammo, the same way you buy paper towels: too much, and proud of it."},
   zipPack:{name:'Zip-Tie Contractor Pack',price:30,flag:'zipPack',fx:'Zip-tie 25% faster during the next mission',blurb:"Five hundred zip-ties. Also good for cable management, which you will never do."},
   icePack:{name:'Ice Packs & Ibuprofen',price:35,flag:'icePack',fx:'Your crew gets back up 30% faster during the next mission',blurb:"For hamstrings, lower backs and the knee you hurt getting out of the van."}};
+/* Gadgets (Hank's Hardware, "Gadgets" tab). Kept forever in SAVE.gadgets[id]={owned,equipped,charge?}; equipped = shows up on its key in the field. */
+const GADGETS={
+  flashlight:{name:"Dad's Maglite",price:0,key:'F',free:true,fx:'Toggle with F · runs forever · doubles as a doorstop',on:'Clip it on',off:'Leave it in the junk drawer',
+    blurb:"Four D-cells and thirty years of \"who touched my flashlight.\" Nobody touched your flashlight."},
+  nvg:{name:'NightOwl Gen-1 Goggles',price:650,key:'N',battery:240,fx:'Toggle with N · battery 4 min · recharges at home',on:'Strap them on',off:'Put them back in the box',
+    blurb:"Doug owns two pairs. He won't say why. Now you own one, and you also won't say why."}};
+const GADGET_ORDER=['flashlight','nvg'];
 
 const STORES={
   dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Boxes land on your porch after your next job.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
-  hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies']],deliver:'now',discount:{hood:'trust',at:60}},
+  hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies'],['gad','Gadgets']],deliver:'now',discount:{hood:'trust',at:60}},
   mart:{name:'Ramos Corner Mart',who:'Riverside Flats · Open late',tag:'"Your friend with the mustache bought all my beef jerky." Mrs. Ramos',tabs:[['sup','Supplies'],['stick','Stickers']],deliver:'now',discount:{hood:'trustR',at:60}},
   auto:{name:"Dad's Auto",who:'Route 9 · Sal Benedetto, proprietor',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['looks','Looks'],['cars','Vehicles'],['repair','Repair']],deliver:'now',
     lines:["Every van's a sports car if you believe in it.","I put a V6 in a minivan once. The man cried. Good tears.","Bull bar's off a snowplow. It's fine. It's mostly fine.",
@@ -169,13 +176,13 @@ const STORES={
     lineRosa:"Your nurse friend told me to stop eating gas station sushi. I'm considering it."}};
 /* Vehicle data (VEH, upgrade CATALOG, COSMETICS, HORNS) lives in js/carai.js as HT.Garage: read it there, not here. */
 const CATALOG={missions:MISSIONS,ammo:AMMO,guns:GUNS,gunOrder:GUN_ORDER,npcGuns:NPC_GUNS,attachments:ATTACHMENTS,attSlots:ATT_SLOTS,furniture:FURNITURE,furnOrder:FURN_ORDER,
-  supplies:SUPPLIES,stores:STORES,family:FAMILY,get garage(){return HT.Garage||null}};
+  supplies:SUPPLIES,gadgets:GADGETS,gadgetOrder:GADGET_ORDER,stores:STORES,family:FAMILY,get garage(){return HT.Garage||null}};
 HT.CATALOG=CATALOG;
 
 /* =====================================================================
-   SAVE  (localStorage 'ht-save', schema v1 per SPEC E, plus optional extension fields)
+   SAVE  (localStorage 'ht-save': v1 per SPEC E, v2 per SPEC2 D, v3 per SPEC3 4.0/4.8, plus optional extension fields)
    ===================================================================== */
-const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=2;
+const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=3;
 const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
@@ -204,9 +211,15 @@ const SAVE_DEFAULT=()=>({v:SAVE_V,t:0,
   family:{firstVisit:true,seen:[],pets:0,lastShotSurr:0},
   crew:{rosa:false},
   events:[],
-  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false},
-  world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0},
-  garage:defGarage()});
+  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false,hankDiscount:false},
+  world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0,households:[],storefronts:{}},
+  garage:defGarage(),
+  /* v3 (SPEC3 4.0, 4.5, 4.8). Crew strand perks live in perks[crewId]=true, not crew[id].perk: crew[id] stays the v2 boolean index.html tests for truthiness. */
+  day:1,calendar:{entries:[]},album:[],gear:[],perks:{},jobs:{},
+  gadgets:{nvg:{owned:false,equipped:true,charge:1},flashlight:{owned:true,equipped:true}}});
+/* SAVE.jobs[id]: one per job id, legacy MISSIONS ids and any id a js/jobs/* file registers at runtime. best={t,score,trustGain,clean} (each field its own personal best) */
+const JOB_DEFAULT=()=>({done:false,best:null,medal:0,runs:0,replays:0,plan:null,medalPaid:0});
+const ALBUM_MAX=24,MEDAL_PAY={2:100,3:250};
 
 /* Fill missing keys from defaults, keep unknown keys (other modules may add their own), reject wrong types. */
 function deepMerge(def,s){
@@ -247,7 +260,15 @@ const MIGRATIONS={
       g.ownedCos.paint=[...new Set(['slate',...((v.cos&&v.cos.paint)||[]).map(x=>V1_PAINT[x]).filter(Boolean)])];
       g.ownedCos.rims=[...new Set(['steel',...((v.cos&&v.cos.rims)||[]).map(x=>V1_RIMS[x]).filter(Boolean)])];
       g.ownedCos.tint=['none',...(mv.tint!=='none'?[mv.tint]:[])];s.garage=g}
-    delete s.vehicle;s.v=2;return s}};
+    delete s.vehicle;s.v=2;return s},
+  2:s=>{ /* SPEC3 4.0: prog.done (by MISSIONS index) -> jobs[id].done + a bronze calendar pin on day 1. prog.done itself stays (index.html reads it). */
+    const d=s.prog&&Array.isArray(s.prog.done)?s.prog.done:[];
+    const jobs=isObj(s.jobs)?s.jobs:{},cal=isObj(s.calendar)&&Array.isArray(s.calendar.entries)?s.calendar:{entries:[]};let n=0;
+    MISSIONS.forEach((m,i)=>{if(!d[i])return;n++;const j=jobs[m.id]=Object.assign(JOB_DEFAULT(),isObj(jobs[m.id])?jobs[m.id]:{});
+      j.done=true;j.medal=Math.max(1,num(j.medal,0));j.medalPaid=Math.max(j.medalPaid|0,j.medal);j.runs=Math.max(1,num(j.runs,0));
+      if(!cal.entries.some(e=>isObj(e)&&e.id===m.id))cal.entries.push({id:m.id,day:1,medal:j.medal,best:{t:null,trustGain:null,clean:false},runs:j.runs})});
+    s.jobs=jobs;s.calendar=cal;if(typeof s.day!=='number')s.day=1+n;
+    s.v=3;return s}};
 function migrate(s){
   let v=typeof s.v==='number'?s.v:0,guard=0;
   while(v<SAVE_V&&MIGRATIONS[v]&&guard++<20){s=MIGRATIONS[v](s);v=s.v}
@@ -320,11 +341,65 @@ function sanitize(s){
   w.scrubTrust=Math.max(0,num(w.scrubTrust,0));w.tier=Math.max(0,Math.floor(num(w.tier,0)));w.bridgeOpen=!!w.bridgeOpen;
   if(!(isObj(w.lastPos)&&isFinite(w.lastPos.x)&&isFinite(w.lastPos.z)))w.lastPos=null;
   s.crew.rosa=!!s.crew.rosa;
+  sanitizeV3(s);
   s.family.seen=s.family.seen.filter(x=>typeof x==='string');
   s.events=s.events.filter(x=>typeof x==='string').slice(-50);
   for(const k in s.flags)s.flags[k]=!!s.flags[k];
   s.t=num(s.t,0);
   return s}
+
+const optN=v=>typeof v==='number'&&isFinite(v)?v:null;
+const normBest=(b,keys)=>{if(!isObj(b))return null;const o={};for(const k of keys)o[k]=k==='clean'?!!b[k]:optN(b[k]);return o};
+function normJob(j){j=deepMerge(JOB_DEFAULT(),j);j.done=!!j.done;
+  for(const k of['medal','medalPaid'])j[k]=clampN(Math.floor(num(j[k],0)),0,3);for(const k of['runs','replays'])j[k]=Math.max(0,Math.floor(num(j[k],0)));
+  j.best=normBest(j.best,['t','score','trustGain','clean']);if(!isObj(j.plan))j.plan=null;return j}
+function sanitizeV3(s){const w=s.world;
+  s.day=Math.max(1,Math.floor(num(s.day,1)));
+  const jobs={};for(const id in s.jobs)if(isObj(s.jobs[id]))jobs[id]=normJob(s.jobs[id]);s.jobs=jobs;
+  MISSIONS.forEach((m,i)=>{if(s.prog.done[i]){const j=jobs[m.id]=jobs[m.id]||JOB_DEFAULT();j.done=true}});
+  const seen=new Set();s.calendar.entries=s.calendar.entries.filter(e=>isObj(e)&&typeof e.id==='string'&&!seen.has(e.id)&&seen.add(e.id)).map(e=>(
+    {id:e.id,day:Math.max(1,Math.floor(num(e.day,1))),medal:clampN(Math.floor(num(e.medal,0)),0,3),best:normBest(e.best,['t','trustGain','clean'])||{t:null,trustGain:null,clean:false},runs:Math.max(0,Math.floor(num(e.runs,0)))}));
+  s.album=capAlbum(s.album.filter(p=>isObj(p)));
+  w.households=[...new Set(w.households.filter(x=>typeof x==='string'))];if(!isObj(w.storefronts))w.storefronts={};
+  s.gear=s.gear.filter(g=>isObj(g)&&typeof g.id==='string');
+  for(const k in s.perks)s.perks[k]=!!s.perks[k];
+  for(const k in s.gadgets){const g=s.gadgets[k];if(!isObj(g)){delete s.gadgets[k];continue}g.owned=!!g.owned;g.equipped=g.equipped!==false;if('charge'in g)g.charge=clampN(num(g.charge,1),0,1)}
+  s.gadgets.flashlight.owned=true}
+/* album cap: oldest goes first, but 3-star photos outlive the rest */
+function capAlbum(a){while(a.length>ALBUM_MAX){const i=a.findIndex(p=>!(p.stars>=3));a.splice(i<0?0:i,1)}return a}
+
+/* ---------- v3 helpers (pure: pass a save object, or null for the live one; the live one emits change events and schedules a write) ---------- */
+function jobRec(s,id){s=S(s);return s.jobs[id]=isObj(s.jobs[id])?s.jobs[id]:JOB_DEFAULT()}
+/* r={ok,t,score,medal,replay,trustGain,clean,story}. story:false = a repeatable side job (no day passes). Returns {medalUp,bonus,first,rec}.
+   bonus = [CAL] medal-upgrade pay (+100 silver, +250 gold), each once per job, only on a run that improves a medal you already had; the caller pays it. */
+function recordRun(s,id,r){s=S(s);r=r||{};const j=jobRec(s,id),replay=!!r.replay,ok=!!r.ok;
+  j.runs++;if(replay)j.replays++;
+  const out={medalUp:false,bonus:0,first:false,rec:j};
+  if(ok){const b=j.best||(j.best={t:null,score:null,trustGain:null,clean:false}),t=optN(r.t),sc=optN(r.score),tg=optN(r.trustGain);
+    if(t!=null&&(b.t==null||t<b.t))b.t=t;if(sc!=null&&(b.score==null||sc>b.score))b.score=sc;if(tg!=null&&(b.trustGain==null||tg>b.trustGain))b.trustGain=tg;if(r.clean)b.clean=true;
+    const m=clampN(Math.floor(num(r.medal,1)),0,3),prev=j.medal,had=j.done||prev>0;
+    if(m>prev){j.medal=m;out.medalUp=true}
+    if(had&&m>prev)for(const k of[2,3])if(m>=k&&j.medalPaid<k)out.bonus+=MEDAL_PAY[k];
+    j.medalPaid=Math.max(j.medalPaid,m);
+    if(!replay&&!j.done){j.done=true;out.first=true}
+    let e=s.calendar.entries.find(x=>x.id===id);
+    if(!e){e={id,day:s.day,medal:0,best:{t:null,trustGain:null,clean:false},runs:0};s.calendar.entries.push(e)}
+    e.medal=j.medal;e.best={t:b.t,trustGain:b.trustGain,clean:b.clean};
+    if(!replay&&r.story!==false)s.day++}
+  const e=s.calendar.entries.find(x=>x.id===id);if(e)e.runs=j.runs;
+  if(mine(s))Save.touch('jobs','calendar','day');
+  return out}
+/* photo={id,job,item,stars,day,jpg}; same id replaces; returns the stored photo */
+function addPhoto(s,p){s=S(s);if(!isObj(p))return null;p=Object.assign({id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),job:null,item:null,stars:0,day:s.day,jpg:null},p);
+  const i=s.album.findIndex(x=>x.id===p.id);if(i>=0)s.album.splice(i,1);s.album.push(p);capAlbum(s.album);
+  if(mine(s))Save.touch('album');return p}
+/* returns true when the household is new */
+function household(s,id){s=S(s);const h=s.world.households;if(h.includes(id))return false;h.push(id);if(mine(s))Save.touch('world');return true}
+/* storefront(s,id) reads, storefront(s,id,state) sets; returns the state */
+function storefront(s,id,state){s=S(s);const f=s.world.storefronts;if(state===undefined)return f[id];if(f[id]!==state){f[id]=state;if(mine(s))Save.touch('world')}return state}
+function gadget(s,id){s=S(s);return s.gadgets[id]=isObj(s.gadgets[id])?s.gadgets[id]:{owned:!!(GADGETS[id]&&GADGETS[id].free),equipped:true}}
+/* perk(s,id) reads, perk(s,id,true) grants */
+function perk(s,id,on){s=S(s);if(on!==undefined){on=!!on;if(!!s.perks[id]!==on){s.perks[id]=on;if(mine(s))Save.touch('perks')}}return!!s.perks[id]}
 
 /* storage adapter: localStorage in the browser, a Map elsewhere (tests can swap it with Save.useStorage) */
 function memStore(){const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),_m:m}}
@@ -350,6 +425,7 @@ function attachProg(){if(!boundProg)return;Object.assign(boundProg,data.prog);da
 const Save={
   KEY:SAVE_KEY,VERSION:SAVE_V,
   defaults:SAVE_DEFAULT,starterPlaced,migrate,sanitize,MIGRATIONS,
+  jobRec,recordRun,album:addPhoto,household,storefront,gadget,perk,jobDefault:JOB_DEFAULT,ALBUM_MAX,MEDAL_PAY,
   get data(){if(!data)Save.load();return data},
   get lastLoad(){return lastLoad},
   useStorage(s){store=s||memStore();data=null;return store},
@@ -432,11 +508,12 @@ function gunAvail(id,s){s=S(s);const g=GUNS[id],u=g.unlock;
 
 function basePrice(kind,id,s){s=S(s);
   if(kind==='gun')return GUNS[id].price;if(kind==='att')return ATTACHMENTS[id].price;if(kind==='furn')return FURNITURE[id].price;
-  if(kind==='sup')return SUPPLIES[id].price;
+  if(kind==='sup')return SUPPLIES[id].price;if(kind==='gad')return GADGETS[id]?GADGETS[id].price:0;
   if(GARAGE_KINDS.includes(kind))return garPrice(kind,id,s);
   return 0}
 function discountFor(store,s){s=S(s);const st=STORES[store];
   if(store==='auto')return(s.garage.purchases||0)>=5?.05:0;
+  if(store==='hardware'&&s.flags.hankDiscount)return .1; /* SPEC3 2.17: Hank's lifetime 10% (same size as the neighbor discount; they don't stack) */
   if(st&&st.discount)return(s.prog[st.discount.hood]||0)>=st.discount.at?.1:0;return 0}
 function priceOf(kind,id,store,s){const b=basePrice(kind,id,s),d=discountFor(store,s);return{price:Math.round(b*(1-d)),base:b,discount:d}}
 
@@ -456,6 +533,8 @@ function status(kind,id,store,s){s=S(s);const pr=priceOf(kind,id,store,s),cash=s
     if(f.max&&have>=f.max){if(pend){out.state='pending';return out}out.state='maxed';out.reason=f.max===1?"You've got one. One is plenty.":'That is enough of those.';return out}
     return afford()}
   if(kind==='sup'){if(s.flags[SUPPLIES[id].flag]){out.state='owned';out.reason='Packed for the next job';return out}return afford()}
+  if(kind==='gad'){if(!GADGETS[id]){out.state='locked';out.reason='Unknown item';return out}const g=gadget(s,id);
+    if(g.owned){out.state=g.equipped?'equipped':'owned';return out}if(store!=='hardware'){out.state='locked';out.reason="Only at Hank's Hardware";return out}return afford()}
   if(GARAGE_KINDS.includes(kind)){if(!HT.Garage){out.state='locked';out.reason="Dad's Auto is closed (js/carai.js not loaded)";return out}
     garStatus(kind,id,store,s,out);return afford()}
   out.state='locked';out.reason='Unknown item';return out}
@@ -556,6 +635,9 @@ function garUse(kind,id,s){s=S(s);const g=s.garage,v=actV(s);
   if(mine(s))Save.touch('garage');return{ok:true}}
 
 const canAfford=(price,s)=>S(s).cash>=price;
+/* equip / unequip an owned gadget (on = true|false, or omitted to toggle) */
+function gadgetUse(id,on,s){s=S(s);if(!GADGETS[id])return{ok:false,reason:'Unknown gadget.'};const g=gadget(s,id);
+  if(!g.owned)return{ok:false,reason:'Buy it first.'};g.equipped=on===undefined?!g.equipped:!!on;if(mine(s))Save.touch('gadgets');return{ok:true,equipped:g.equipped}}
 
 function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   const st=status(kind,id,store,s);
@@ -570,9 +652,10 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
   else if(kind==='sup'){s.flags[SUPPLIES[id].flag]=true}
+  else if(kind==='gad'){const g=gadget(s,id);g.owned=true;g.equipped=true;if(GADGETS[id].battery)g.charge=1}
   else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s,st);if(kind!=='rep')ev='boughtCar'}
   if(ev)s.events.push(ev);
-  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats')}
+  if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats','gadgets')}
   return{ok:true,price:st.price,delivered:deliverLater?'pending':'now',status:st}}
 
 /* a new gun fills an empty primary slot; a new attachment goes on the first owned compatible gun with that slot free */
@@ -714,7 +797,7 @@ function applyPayout(p,s){s=S(s);const old=s.cash;s.cash+=p.total;s.stats.earned
 const resultLines=p=>p.lines.map(l=>({label:l.label,text:(l.amount<0?'−$':'+$')+Math.abs(l.amount).toLocaleString('en-US'),neg:l.amount<0,kind:l.kind,note:l.note||''}));
 
 const Economy={money,missionOf,condReason,gunAvail,priceOf,basePrice,discountFor,status,canAfford,buy,sell,sellValue,deliverPending,collectGun,
-  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS,
+  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,gadgetUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS,
   setRepairCar,repairQuote,towCharge,vehMaxHp:(t,s)=>{s=S(s);return vehMaxHp(t||s.garage.active,s.garage)}};
 HT.Economy=Economy;
 
@@ -865,11 +948,15 @@ const SUP_ICONS={
     `<path d="M48 22c-6-14 0-22 8-18M62 22c-4-14 4-20 10-16M98 22c4-14-4-20-10-16M112 22c6-14 0-22-8-18" fill="none" stroke="${K}" stroke-width="3"/>`,
   icePack:()=>ground(48)+R(34,26,92,56,'#7fc4ec',16)+R(42,34,76,40,'#b6e0f6',12)+T(80,60,14,'OUCH',POLO)+R(54,14,10,14,RED,2)+R(68,12,8,16,PAP,2)+P('M100 30l10-16 8 4-10 16z',SUN),
 };
+const GAD_ICONS={
+  nvg:()=>ground(52)+P('M34 30c10-10 82-10 92 0',null)+R(30,34,100,34,DK,10)+Ci(56,62,18,MT)+Ci(104,62,18,MT)+Ci(56,62,11,'#5fe08a')+Ci(104,62,11,'#5fe08a')+
+    Ci(52,58,3,WHT)+Ci(100,58,3,WHT)+R(74,40,12,14,K,3)+R(72,22,16,8,SUN,2),
+  flashlight:()=>ground(50)+P('M118 40l20-10v40l-20-10z','#fff6b8')+R(30,40,72,20,'#3a3f47',8)+R(96,34,24,32,'#4a5059',6)+R(40,44,8,12,MT,2)+R(56,44,8,12,MT,2)+Ci(120,50,9,'#fff6b8')};
 function horn(ids){return ground(46)+P('M40 40h18l40-22v64L58 60H40z',SUN)+R(30,40,12,20,DK,2)+
   `<path d="M108 34c8 6 8 26 0 32M118 26c14 10 14 38 0 48M128 18c20 14 20 50 0 64" fill="none" stroke="${K}" stroke-width="3" opacity="${ids==='stock'?.4:.9}"/>`}
 function iconSVG(kind,id){
   let f;const G=HT.Garage;
-  if(kind==='gun')f=GUN_ICONS[id];else if(kind==='att')f=ATT_ICONS[id];else if(kind==='furn')f=FURN_ICONS[id];else if(kind==='sup')f=SUP_ICONS[id];
+  if(kind==='gun')f=GUN_ICONS[id];else if(kind==='att')f=ATT_ICONS[id];else if(kind==='furn')f=FURN_ICONS[id];else if(kind==='sup')f=SUP_ICONS[id];else if(kind==='gad')f=GAD_ICONS[id];
   else if(kind==='gar'){if(id.startsWith('v_'))return svg(carSVG(id.slice(2),'#6b7d8f','steel'),'0 -12 164 112');f=GAR_MAP[id]}
   else if(kind==='car')return svg(carSVG(id,id==='minivan'?'#35577d':{workvan:'#f2f2ee',pickup:'#8a2f2a',suv:'#1f2226'}[id],'steel'),'0 -12 164 112');
   else if(kind==='rep')f=GAR_ICONS.repair;
@@ -1089,7 +1176,7 @@ function garFx(it){const G=HT.Garage;if(!it)return'';const n=v=>(v>=1?'×':'×')
   return{sport:'Press N (or SPORT): '+G.SPORT.dur+' s burst, acceleration ×'+G.SPORT.accMul+', top speed boost +'+G.SPORT.maxAdd+' m/s, '+G.SPORT.cool+' s recharge. Spoiler included.',
     bullBar:'Front ram damage ×2, front impact damage ×0.5',cargo:'+2 reserve mags of every carried ammo type at each mission start',
     rack:'A 4th loadout slot (key 4) for another primary',aid:'Once per job: get back up at 50 HP instead of going down. Or instantly revive a downed buddy.'}[it.slot]||''}
-function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')return ATTACHMENTS[id];if(kind==='furn')return FURNITURE[id];if(kind==='sup')return SUPPLIES[id];
+function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')return ATTACHMENTS[id];if(kind==='furn')return FURNITURE[id];if(kind==='sup')return SUPPLIES[id];if(kind==='gad')return GADGETS[id];
   const G=HT.Garage;
   if(kind==='gar'){const it=garItem(id)||{};return it.group==='vehicle'?{name:it.name,blurb:VEH_BLURB[it.type]||it.blurb}:{name:it.name,blurb:it.blurb}}
   if(kind==='car')return{name:G?G.VEH[id].name:id,blurb:VEH_BLURB[id]};
@@ -1119,6 +1206,7 @@ function shopEntries(store,tab){
     const list=FURN_ORDER.filter(id=>store!=='hardware'||FURNITURE[id].hw).map(id=>({kind:'furn',id,sec:SECTION_OF_ROOM[FURNITURE[id].room]||'Odds & ends'}));
     list.sort((a,b)=>secs.indexOf(a.sec)-secs.indexOf(b.sec));E.push(...list)}
   else if(tab==='sup'){for(const id in SUPPLIES)E.push({kind:'sup',id})}
+  else if(tab==='gad'){for(const id of GADGET_ORDER)E.push({kind:'gad',id})}
   else if(!G){}
   else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tyres',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility'};
     for(const c of G.CATALOG)if(c.group===tab)E.push({kind:'gar',id:c.id,sec:secN[c.slot]})}
@@ -1139,6 +1227,7 @@ function entrySub(kind,id){const G=HT.Garage;
   if(kind==='att'){const a=ATTACHMENTS[id];return ATT_SLOTS.find(s=>s[0]===a.slot)[1]+' · fits '+a.compat.length+' guns'}
   if(kind==='furn'){const f=FURNITURE[id];return f.room+' · '+f.cells[0]+'×'+f.cells[1]+' m'}
   if(kind==='sup')return'Next mission only';
+  if(kind==='gad'){const g=GADGETS[id];return'Gadget · key '+g.key+(g.battery?' · '+Math.round(g.battery/60)+' min battery':' · no batteries to buy')}
   if(kind==='gar'){const it=garItem(id);if(it.group==='vehicle'){const v=G.VEH[it.type];return v.seats+' seats · '+v.hp+' HP'}
     if(it.lvl&&G.CATALOG.filter(c=>c.slot===it.slot).length>1){const n=G.CATALOG.filter(c=>c.slot===it.slot).length;return`<span class="htm-pips">${Array.from({length:n},(x,i)=>`<i class="${i<it.lvl?'on':''}"></i>`).join('')}</span>Stage ${it.lvl}`}
     return({perf:'Performance',prot:'Protection',util:'Utility · moves with you'})[it.group]}
@@ -1157,10 +1246,11 @@ function tagHTML(st){
     pending:'On its way',maxed:st.kind==='furn'?'Have one':st.kind==='rep'?'Like new':'Maxed',locked:'Locked'}[st.state];
   return`<span class="htm-chip s-${st.state}">${st.state==='locked'?'<i class="htm-lock"></i>':''}${lab}</span>`}
 
+const tCls=k=>k==='gad'?'sup':k;
 function shopTile(e,st,sel){
   const lockR=st.state==='locked'?`<span class="htm-ireason">${esc(st.reason||'')}</span>`:'';
   return`<button class="htm-item${sel?' sel':''}" data-nav data-key="${e.key}" data-state="${st.state}" role="listitem" aria-label="${esc(entryName(e.kind,e.id))}">
-    <span class="htm-thumb t-${e.kind}">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id)||gunFor(e.kind,e.id))}${e.kind==='att'?`<span class="htm-attbadge">${iconSVG('att',e.id)}</span>`:''}</span>
+    <span class="htm-thumb t-${tCls(e.kind)}">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id)||gunFor(e.kind,e.id))}${e.kind==='att'?`<span class="htm-attbadge">${iconSVG('att',e.id)}</span>`:''}</span>
     <span class="htm-itx"><span class="htm-iname">${esc(entryName(e.kind,e.id))}</span><span class="htm-isub">${entrySub(e.kind,e.id)}</span>${lockR}</span>
     <span class="htm-tag">${tagHTML(st)}</span></button>`}
 
@@ -1177,6 +1267,7 @@ function buyButtonHTML(st,armed,store){
   if(st.state==='owned'&&use)return`<button class="htm-btn" data-nav data-act="primary"><span>${use}</span></button>`;
   if(st.state==='equipped'&&st.kind==='stick')return`<button class="htm-btn alt" data-nav data-act="primary"><span>Peel it off</span></button>`;
   if(st.kind==='sup')return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>Packed for the next job</span></button>`;
+  if(st.kind==='gad'){const g=GADGETS[st.id];return st.state==='equipped'?`<button class="htm-btn alt" data-nav data-act="primary"><span>${esc(g.off)}</span></button>`:`<button class="htm-btn" data-nav data-act="primary"><span>${esc(g.on)}</span></button>`}
   const off={car:"You're driving it",cos:'On the van now',gar:'Installed'}[st.kind];
   return`<button class="htm-btn off" data-nav data-act="primary" aria-disabled="true"><span>${off||(st.state==='equipped'?'Equipped':'In your locker')}</span></button>`}
 
@@ -1215,6 +1306,8 @@ function shopDetail(m,e){
       factsHTML([['You own',own?own+(placed?` · ${placed} placed`:''):'None yet'],['Family uses it',[...new Set(f.tags.map(t=>TAG_TXT[t]).filter(Boolean))].join(', ')||'Just looks nice']]);
     if(st.state==='owned'||own-placed>0)m.canSell=true}
   else if(e.kind==='sup'){const u=SUPPLIES[e.id];kicker='Supplies · next mission';fx=u.fx}
+  else if(e.kind==='gad'){const u=GADGETS[e.id],g=gadget(s,e.id);kicker='Gadget · press '+u.key;fx=u.fx;
+    if(g.owned)body=factsHTML([['In the field',g.equipped?'On your belt · key '+u.key:'Left at home'],u.battery?['Battery',Math.round(100*num(g.charge,1))+'% · '+Math.round(u.battery/60)+' min full']:null])}
   else if(G&&(e.kind==='gar'||e.kind==='car')){const it=e.kind==='gar'?garItem(e.id):null,veh=it&&it.group==='vehicle'?it.type:e.kind==='car'?e.id:null,g=s.garage,active=G.VEH[g.active].name;
     const now=vehicleStats();
     if(veh){const v=G.VEH[veh];kicker='Vehicle · '+v.seats+' seats';const then=vehicleStats(Object.assign(clone(s),{garage:Object.assign(clone(g),{owned:[...new Set([...g.owned,veh])],active:veh,vehicles:Object.assign(clone(g.vehicles),{[veh]:g.vehicles[veh]||defVehicle()})})}));
@@ -1238,7 +1331,7 @@ function shopDetail(m,e){
     body=hpBar(q.hp,q.maxHp,t.own?'Health':t.owner+"'s car")+(q.rows.length?`<ul class="htm-reprows">${q.rows.map(r=>`<li><span><b>${esc(r.label)}</b><small>${esc(r.detail)}</small></span><em>${money(r.price)}</em></li>`).join('')}</ul>`:'')+
       `<div class="htm-note left">${t.own?(s.garage.tab?'Sal\'s tab: '+money(s.garage.tab)+' (comes out of your next payout). ':'')+'Free patch-up at home after a job: Tyler hammers it back to 60%. Mostly.':'Paying for it yourself keeps '+esc(t.owner)+' happy. Bringing it back wrecked costs trust.'}</div>`}
   const sellV=(e.kind==='gun'||e.kind==='att')&&(st.state==='owned')?sellValue(e.kind,e.id):e.kind==='furn'&&m.canSell?sellValue('furn',e.id):0;m.canSell=false;
-  return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true)||gunFor(e.kind,e.id,m.attTarget))}</div>${stampHTML(st,m.store)}</div>
+  return`<div class="htm-hero t-${tCls(e.kind)}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true)||gunFor(e.kind,e.id,m.attTarget))}</div>${stampHTML(st,m.store)}</div>
     <div class="htm-dscroll"><div class="htm-kicker">${esc(kicker)}</div><h3 class="htm-name">${esc(name)}</h3>
     ${blurb?`<p class="htm-blurb">${esc(blurb)}</p>`:''}${fx?`<div class="htm-fx"><b>What it does</b>${esc(fx)}</div>`:''}${body}</div>
     <div class="htm-buy"><div class="htm-buyrow">${buyButtonHTML(st,armed,m.store)}${sellV?`<button class="htm-ghost" data-nav data-act="sell">Sell · ${money(sellV)}</button>`:''}</div>
@@ -1341,6 +1434,9 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
         toast(m,res.delivered==='pending'?entryName(e.kind,e.id)+' ordered. Biscuit will open it for you.':thanks(e),'good');
         if(m.onBuy)try{m.onBuy({kind:e.kind,id:e.id,price:res.price,store,delivered:res.delivered})}catch(err){console.error(err)}
         return}
+      if(st.kind==='gad'&&(st.state==='owned'||st.state==='equipped')){const r=gadgetUse(e.id);
+        if(r.ok){sfx('equip');toast(m,r.equipped?entryName('gad',e.id)+' packed. Press '+GADGETS[e.id].key+' in the field.':entryName('gad',e.id)+' stays home.','good');m.renderGrid(true);m.renderDetail();
+          if(m.onBuy)try{m.onBuy({kind:'gad',id:e.id,price:0,store,delivered:'now',use:true})}catch(err){console.error(err)}}else{sfx('error');toast(m,r.reason,'bad')}return}
       if((st.state==='owned'&&['car','cos','stick'].includes(st.kind))||(st.state==='equipped'&&st.kind==='stick')){const r=garUse(e.kind,e.id);
         if(r.ok){sfx('equip');if(e.id.startsWith('horn:'))playHorn(hornOf(e.id.slice(5)));toast(m,st.kind==='car'?'Keys to the '+entryName('car',e.id)+'. Sal moved your utility gear over.':st.kind==='stick'?(st.state==='equipped'?'Peeled off. It left a rectangle.':'Stuck on. Slightly crooked. Perfect.'):'Done. Looks good on her.','good');
           m.renderGrid(true);m.renderDetail();if(m.onBuy)try{m.onBuy({kind:e.kind,id:e.id,price:0,store,delivered:'now',use:true})}catch(err){console.error(err)}}else{sfx('error');toast(m,r.reason,'bad')}return}

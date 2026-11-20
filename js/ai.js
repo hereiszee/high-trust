@@ -411,8 +411,9 @@ const atGoal=(a,ai)=>!ai.path||ai.pi2>=ai.path.length||(ai.goal&&hyp(ai.goal.x-a
 function perceive(a,ai,world){const nav=world.nav,t=world.t;let best=null,bs=1e9;let crouched=ai.stance==='crouch';const alert=ai.mode!=='idle';
   /* a man crouched behind a crate still glances over it now and then */
   if(crouched&&ai.mode==='combat'&&t>=(ai.glanceT||0)){ai.glanceT=t+rr(.5,.9);crouched=false}
-  const range=ai.gun.range>40?60:38,fov=alert?2.2:1.1;
-  for(const th of world.threats||[]){if(th.down)continue;const d=hyp(th.x-a.pos.x,th.z-a.pos.z);if(d>range)continue;
+  /* world.sight scales the view range (night: 14/24 of day); a threat's own .sight overrides it (a dad with his flashlight on is seen as in daylight) */
+  const range=ai.gun.range>40?60:38,fov=alert?2.2:1.1,ws=world.sight!=null?world.sight:1;
+  for(const th of world.threats||[]){if(th.down)continue;const d=hyp(th.x-a.pos.x,th.z-a.pos.z);if(d>range*(th.sight!=null?th.sight:ws))continue;
     const ang=Math.atan2(th.x-a.pos.x,th.z-a.pos.z);let df=Math.abs(((ang-a.yaw+Math.PI*3)%(Math.PI*2))-Math.PI);
     if(df>fov&&d>(alert?9:6))continue;if(!nav.los(a.pos.x,a.pos.z,th.x,th.z,crouched&&th.crouch?true:crouched?'a':th.crouch?'b':false))continue;
     const s=d*(th.isPlayer?.8:1);if(s<bs){bs=s;best=th}}
