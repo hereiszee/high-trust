@@ -28,4 +28,8 @@ test('GPS is bounded: from a roof, off the map, NaN, or to an enclosed tile it a
   const t0=Date.now();const a=R.gps(def,{x:c.x,z:c.z},far);assert(a&&a.points.length>1,'from inside the community center');
   assert.strictEqual(R.gps(def,{x:NaN,z:0},far),null);const b=R.gps(def,{x:-50,z:-50},far);assert(b===null||b.points.length>0,'off the map clamps');
   const n=R.gps(def,def.vanStart,far,{budget:50});assert.strictEqual(n,null,'tiny budget gives up');assert(Date.now()-t0<3000,'took '+(Date.now()-t0)+' ms')});
+test('route along one stretch of road goes straight there (Industrial Way to the chop shop: no U-turn via Route 9)',()=>{const ring=def.sites.gary.ring,from={x:203,z:78};
+  const r=G.route(from,ring);assert(r,'a route');const s=G.nearestRoad(from.x,from.z),t=G.nearestRoad(ring.x,ring.z);
+  if((s.a===t.a&&s.b===t.b)||(s.a===t.b&&s.b===t.a)){assert.strictEqual(r.points.length,2);assert(r.len<Math.abs(ring.z-from.z)+1)}
+  for(const p of r.points)assert(p.z>=Math.min(from.z,ring.z)-2,'never doubles back north of the start (z '+p.z+')')});
 if(require.main===module)done();
