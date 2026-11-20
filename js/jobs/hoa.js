@@ -170,6 +170,7 @@ const LOOKS={barb:{shirt:'#5a6f8f',pants:'#3a3a48'},phil:{shirt:'#7a8a5a',pants:
   lookout:{shirt:'#3a4a6a',pants:'#2a2a2a',hood:1},driver:{shirt:'#4a3a2a',pants:'#2a2a2a'},loaderA:{shirt:'#2f5d4a',pants:'#3a3a3a'},loaderB:{shirt:'#5a3a3a',pants:'#2a2a2a'},buyer:{shirt:'#3a5a8a',pants:'#2a2a3a'}};
 function PP(){return window.HT&&HT.People}
 function preload(){const p=PP();if(!p||!p.ok||!p.preload)return Promise.resolve(false);const keys=Object.values(CAST).filter(k=>!p.has||!p.has(k));return keys.length?p.preload(keys).catch(()=>false):Promise.resolve(true)}
+function castReady(){const p=PP();if(!p||!p.ok)return true;/* no rocketbox at all: the box people are the only people */return Object.values(CAST).every(k=>!p.has||p.has(k))}
 function makeActor(id){const a=A(),p=PP();let d=null;try{if(p&&p.ok&&(!p.has||p.has(CAST[id])))d=p.make(CAST[id],{scale:id==='lookout'?1.16:undefined})}catch(e){d=null}
   if(!d)d=a.makeDude(Object.assign({role:CAST[id]},LOOKS[id]));
   if(id==='lookout'&&d.root&&!d.rb)d.root.scale.setScalar(.9);a.wmAdd(d.root);
@@ -241,7 +242,8 @@ J.register('hoa',{
     M.loadT0=performance.now();preload().then(()=>{M.loaded=true});
     if(!PH())M.waitPhoto=true},
   upd(dt,M,F){const a=A(),L_=lay(),P=a.P;
-    if(M.ph==='load'){F.objs.push(['Barb is waiting on her front walk',false]);M.loadG=(M.loadG||0)+dt;if((M.loaded&&PH())||performance.now()-M.loadT0>15000||M.loadG>8){spawnCast(M);M.ph=M.retry||M.resumeStake?'stake0':'intro';if(M.ph==='intro')intro(M)}return}
+    if(M.ph==='load'){F.objs.push(['Barb is waiting on her front walk',false]);if(!M.updNote&&performance.now()-M.loadT0>1500&&PH()){M.updNote=true;HT.Photo.notify('Maddie','updating your camera app. dont touch anything. dad. DAD.',{color:'linear-gradient(#ff8ad8,#d24fa8)',dur:6000})}
+    if((castReady()&&PH())||performance.now()-M.loadT0>30000){spawnCast(M);M.ph=M.retry||M.resumeStake?'stake0':'intro';if(M.ph==='intro')intro(M)}return}
     phoneHold(M);sayTick(M,dt);actors(M,dt);fxTick(M,dt);
     if(M.ph==='intro'){F.target={x:L_.barb.x,z:L_.barb.z,label:'Barb'};F.objs.push(['Talk to Barb',false]);
       if(Math.hypot(P.pos.x-L_.barb.x,P.pos.z-L_.barb.z)<3.2)F.taps.push({x:L_.barb.x,z:L_.barb.z,r:3.2,txt:'Take the checklist',fn:()=>takeChecklist(M)});return}
@@ -261,7 +263,7 @@ J.register('hoa',{
   medal(M){const b=M.board,n2=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=2).length,n3=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=3).length;return n3>=6?3:n2>=6?2:1},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV();if(!s)return;s.flags=s.flags||{};s.flags.hoaWalnut=true;if(M.flags.summer)s.flags.lookoutMows=true},
   camera(dt){const M=A().M;if(!M)return;if(M.mt&&M.mt.st==='talk')return meetCam(dt,M);if(!M.seat)return;return seatCam(dt)},
-  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;/* js/hud.js findRoute can loop forever on some routes (Float32 distances re-push in its Dijkstra): no minimap route for this job until that is fixed; the marker still shows */st.routeTo=null;if(M.mt&&M.mt.st==='talk')st.crosshair=Object.assign({},st.crosshair,{hidden:true});hudExtras(M,st)},
+  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;if(M.mt&&M.mt.st==='talk')st.crosshair=Object.assign({},st.crosshair,{hidden:true});hudExtras(M,st)},
   test:{give(a){const H=window.__ht;if(!H)return;const i=H.jobs.index('gary');if(i>=0)H.prog.done[i]=true;const s=a.SV();if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,'gary').done=true;if(H.mode==='hub'&&!H.M){H.enterHub();H.step(2)}},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ph:'stake',board:{},susMax:0,flashes:0,shots:0,item:'phone'})}
@@ -322,7 +324,7 @@ function beginStake(M){const a=A(),L_=lay();M.ph='stake';M.st=0;M.sus=0;M.unseen
   if(M.retry){for(const l of LN.retry)say(M,l[0],l[1]);M.board={}}
   if(M.retry&&!M.resumeStake){}
   M.board={};
-  const Ph=PH();if(Ph){Ph.begin({job:'hoa',label:'Exhibit HOA',subjects:()=>subjects(M),occluders:()=>occluders(M),onShot:s=>onShot(M,s),stamp:()=>clockTxt(M,true),eye:()=>M.seat?L_.seat:null,flash:true,cap:()=>M.seat?{n:2,why:'Through the windshield'}:null,status:()=>({v:M.sus,text:'SUSPICION '+Math.round(M.sus*100)+'%'}),
+  const Ph=PH();if(Ph){Ph.begin({job:'hoa',label:'Exhibit HOA',subjects:()=>subjects(M),occluders:()=>occluders(M),onShot:s=>onShot(M,s),stamp:()=>clockTxt(M,true),eye:()=>M.seat?L_.seat:null,flash:true,cap:()=>M.seat?{n:2,why:'Through the windshield'}:null,canShoot:()=>{const bx=M.A&&Object.values(M.A).some(o=>o&&o.box&&o.d&&o.d.root.visible);if(bx){a.feed('Camera app still updating…','info');return false}return true},status:()=>({v:M.sus,text:'SUSPICION '+Math.round(M.sus*100)+'%'}),
     onRaise:on=>{if(on&&!M.flags.raised){M.flags.raised=true}}})}
   for(const p of M.pins)p.s.visible=true;
   const Au=window.HT&&HT.Audio;if(Au&&Au.ready)try{Au.music('tension');Au.setIntensity(.15);Au.ambience&&Au.ambience('suburb')}catch(e){}

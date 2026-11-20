@@ -166,10 +166,17 @@ function capture(stamp){const H=window.__ht,a=A();if(!H||!H.renderer)return null
     rd.setRenderTarget(R.rt);rd.clear();rd.render(a.scene,cam);rd.setRenderTarget(null);rd.readRenderTargetPixels(R.rt,0,0,W,Hh,R.px);
     cam.fov=fov;cam.aspect=asp;cam.updateProjectionMatrix();if(a.P&&a.P.dude)a.P.dude.root.visible=vis;
     /* linear 8-bit out of the target: ACES (fitted) + sRGB encode here; flip rows */
-    const L=R.lut||(R.lut=(()=>{const t=new Uint8ClampedArray(256),ex=rd.toneMappingExposure||1;for(let i=0;i<256;i++){let v=i/255;v*=ex*1.1;
-      v=(v*(2.51*v+.03))/(v*(2.43*v+.59)+.14);v=Math.max(0,Math.min(1,v));v=v<=.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-.055;t[i]=Math.round(v*255)}return t})());
-    const d=R.id.data,px=R.px,noTM=true;
-    for(let y=0;y<Hh;y++){const so=(Hh-1-y)*W*4,dO=y*W*4;for(let k=0;k<W*4;k+=4){d[dO+k]=noTM?L[px[so+k]]:px[so+k];d[dO+k+1]=noTM?L[px[so+k+1]]:px[so+k+1];d[dO+k+2]=noTM?L[px[so+k+2]]:px[so+k+2];d[dO+k+3]=255}}
+    /* the screen's look, in JS: ACES (linear LUT), then the game's grade pass (saturation, warm/cool split by luminance, sRGB, S-curve contrast, vignette).
+       Uniforms are read live from the grade material when the post pass exists, else its defaults. */
+    const ex=rd.toneMappingExposure||1,A_=R.aces||(R.aces=(()=>{const t=new Float32Array(256);for(let i=0;i<256;i++){let v=i/255*ex*1.1;v=(v*(2.51*v+.03))/(v*(2.43*v+.59)+.14);t[i]=Math.max(0,Math.min(1,v))}return t})());
+    const gu=H.render&&H.render.mats&&H.render.mats.grade&&H.render.mats.grade.uniforms,sat=gu?gu.sat.value:1.06,con=gu?gu.contrast.value:.22,vig=gu?gu.vig.value:.28;
+    const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)},enc=v=>{v=Math.max(0,Math.min(1,v));return v<=.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-.055};
+    const d=R.id.data,px=R.px,ar=W/Hh;
+    for(let y=0;y<Hh;y++){const so=(Hh-1-y)*W*4,dO=y*W*4,vy=(y/Hh-.5);for(let x2=0;x2<W;x2++){const k=x2*4;let r=A_[px[so+k]],g=A_[px[so+k+1]],b=A_[px[so+k+2]];
+      const l=.2126*r+.7152*g+.0722*b;r=Math.max(l+(r-l)*sat,0);g=Math.max(l+(g-l)*sat,0);b=Math.max(l+(b-l)*sat,0);
+      const w=ss(.04,.5,l);r*=.95+.1*w;g*=.99+.01*w;b*=1.07-.15*w;
+      r=enc(r);g=enc(g);b=enc(b);r+=(r*r*(3-2*r)-r)*con;g+=(g*g*(3-2*g)-g)*con;b+=(b*b*(3-2*b)-b)*con;
+      const vx=(x2/W-.5)*ar,vg=1-vig*ss(.25,.95,Math.hypot(vx,vy));d[dO+k]=r*vg*255;d[dO+k+1]=g*vg*255;d[dO+k+2]=b*vg*255;d[dO+k+3]=255}}
     R.cv2.getContext('2d').putImageData(R.id,0,0);x.imageSmoothingQuality='high';x.drawImage(R.cv2,0,0,c.width,c.height)}
   catch(e){try{H.draw();const src=H.renderer.domElement,fr=frame(),k=src.width/innerWidth;let sx=fr.px.left*k,sy=fr.px.top*k,sw=fr.px.width*k,sh=fr.px.height*k;
       const want=T.thumbW/T.thumbH;if(sw/sh>want){const nw=sh*want;sx+=(sw-nw)/2;sw=nw}else{const nh=sw/want;sy+=(sh-nh)/2;sh=nh}x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height)}catch(e2){console.warn('[photo] capture failed',e2);return null}}
