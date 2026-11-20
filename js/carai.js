@@ -185,6 +185,15 @@ function pickNext(c,threat){const ai=c.ai,G=ai.G,n=G.nodes[ai.cur];let opts=n.e.
   ai.next=best.to;ai.pts=G.lane(ai.prev>=0?[ai.prev,ai.cur,ai.next]:[ai.cur,ai.next]);
   if(ai.prev<0){/* start: lane from the car's position */ai.pts=[{x:c.x,z:c.z},...G.lane([ai.cur,ai.next]).slice(1)]}ai.tr={i:0}}
 
+/* follow-mode wedge recovery: back onto the polyline at the tracked point, facing along it; a car that wedges again at the
+   same spot (something parked on its path) is put down a few metres further each time so it can never loop forever */
+function snapToPath(c,ai){const pts=ai.pts,tr=ai.tr||(ai.tr={i:0});let i=Math.min(tr.i,pts.length-2);if(i<0)return;
+  const A=pts[i],B=pts[i+1],dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1,t=clamp(((c.x-A.x)*dx+(c.z-A.z)*dz)/L2,0,1);
+  const n=ai.snapAt===i?(ai.snapN||0)+1:0;ai.snapAt=i;ai.snapN=n;
+  let px=A.x+dx*t,pz=A.z+dz*t,rem=n*4,k=i;/* skip ahead n*4 m along the path */
+  while(rem>0&&k<pts.length-1){const Q=pts[k+1],seg=Math.hypot(Q.x-px,Q.z-pz);if(seg>=rem){px+=(Q.x-px)*rem/seg;pz+=(Q.z-pz)*rem/seg;rem=0;break}rem-=seg;px=Q.x;pz=Q.z;k++}
+  const Q=pts[Math.min(k+1,pts.length-1)],P0=pts[k];c.x=px;c.z=pz;c.yaw=yawTo(Q.x-P0.x||dx,Q.z-P0.z||dz);c.spd=0;c.stuckCount=0;c.stuckT=0;c.revT=0;tr.i=k;c.snapped=(c.snapped||0)+1}
+
 function step(c,dt,ctx){ctx=ctx||{};const ai=c.ai;if(!ai||c.dead)return null;let hit=null;
   if(c.hp<=0){/* coast to a stop */c.spd=Math.max(0,c.spd-c.stats.brake*.35*dt);moveFwd(c,dt);if(c.spd<.3)c.stopped=true;return collideBody(c,ctx.collide)}
   if(ai.mode==='follow'){const p=track(c,ai.pts,Math.max(3.5,c.spd*.5+2));
@@ -192,6 +201,7 @@ function step(c,dt,ctx){ctx=ctx||{};const ai=c.ai;if(!ai||c.dead)return null;let
     if(ctx.van&&Math.hypot(ctx.van.x-c.x,ctx.van.z-c.z)>ai.waitDist)ts=0;
     if(ctx.blocked&&ctx.blocked(c))ts=0;ai.blocked=ts===0;
     if(p.end&&Math.hypot(p.x-c.x,p.z-c.z)<2.5){ts=0;ai.done=true}
+    if(c.stuckCount>=3&&!(ctx.canSnap&&!ctx.canSnap(c)))snapToPath(c,ai);
     hit=aiMove(c,p.x,p.z,ts,dt,ctx.collide);return hit}
   /* flee / wander along the graph */
   const G=ai.G;

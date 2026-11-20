@@ -960,7 +960,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
   for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw);
     /* yield: something within 10 m ahead in the lane (the player, his car, another car) */
     const ahead=(x,z,r)=>{const dx=x-c.x,dz=z-c.z,f=dx*fx+dz*fz,s=Math.abs(dx*-fz+dz*fx);return f>0&&f<r&&s<2.2};
-    let block=ahead(p.x,p.z,10)||(o.car&&ahead(o.car.x,o.car.z,11))||T.cars.some(u=>u!==t&&ahead(u.c.x,u.c.z,8));
+    let block=ahead(p.x,p.z,10)||(o.car&&ahead(o.car.x,o.car.z,11))||T.cars.some(u=>u!==t&&ahead(u.c.x,u.c.z,8))||!!(o.others&&o.others.some(u=>ahead(u.x,u.z,11)));/* o.others: mission cars (escort truck, getaways) */
     /* pause at intersections (3+ roads) before crossing */
     const nn=ai&&ai.next>=0&&G.nodes[ai.next];if(nn&&nn.e.length>=3&&t.paused!==ai.next&&Math.hypot(nn.x-c.x,nn.z-c.z)<8.5){t.pause=1.1;t.paused=ai.next}
     if(t.pause>0){t.pause-=dt;block=true}

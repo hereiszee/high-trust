@@ -51,6 +51,17 @@ test("followPath: Benny's truck drives the escort route, centre never more than 
   assert(truck.ai.done,'arrived');assert(worst<=.75,'centre strays '+worst.toFixed(2)+' m past the kerb');assert(t>25&&t<70,'took '+t.toFixed(1)+' s (route is ~216 m at 6 m/s)')});
 test('followPath waits for the escort',()=>{const pts=G.lane([G.nodes.findIndex(n=>n.tx===205&&n.tz===21),G.nodes.findIndex(n=>n.tx===189&&n.tz===21)]);const truck=C.make('workvan',{x:pts[0].x,z:pts[0].z,yaw:Math.PI/2});
   C.follow(truck,pts,{speed:6,waitDist:28});for(let i=0;i<90;i++)C.step(truck,1/30,{van:{x:pts[0].x+100,z:pts[0].z}});assert(truck.spd<.5&&truck.ai.blocked)});
+test('followPath: a truck wedged off its route recovers onto the lane and still arrives (escort soft-lock)',()=>{const ids=[[205,21],[205,35],[189,35]].map(([x,z])=>G.nodes.findIndex(n=>n.tx===x&&n.tz===z));
+  let path=[ids[0]];for(let i=1;i<ids.length;i++)path=path.concat(G.path(ids[i-1],ids[i]).slice(1));const pts=G.lane(path);
+  const truck=C.make('workvan',{x:pts[0].x,z:pts[0].z,yaw:0});C.follow(truck,pts,{speed:6});
+  /* a wall right across its nose that only lets go once the truck is back on the lane: it can only get out by being snapped */
+  const wall=(p,r)=>{if(!truck.snapped&&p.z>pts[0].z+1.5)p.z=pts[0].z+1.5;return collide(p,r)};truck.yaw=Math.PI;/* facing +z into the wall, across the route */
+  let t=0;for(;t<90&&!truck.ai.done;t+=1/30)C.step(truck,1/30,{collide:wall});assert(truck.snapped>=1,'snapped back onto the lane');assert(truck.ai.done,'arrived after '+t.toFixed(1)+' s')});
+test('followPath: something parked on the lane is skipped past, never an endless wedge',()=>{const pts=G.lane([G.nodes.findIndex(n=>n.tx===205&&n.tz===21),G.nodes.findIndex(n=>n.tx===205&&n.tz===35)]);
+  const truck=C.make('workvan',{x:pts[0].x,z:pts[0].z,yaw:C.yawTo(pts[1].x-pts[0].x,pts[1].z-pts[0].z)});C.follow(truck,pts,{speed:6});
+  const L=Math.hypot(pts[pts.length-1].x-pts[0].x,pts[pts.length-1].z-pts[0].z),dir={x:(pts[pts.length-1].x-pts[0].x)/L,z:(pts[pts.length-1].z-pts[0].z)/L},bx=pts[0].x+dir.x*12,bz=pts[0].z+dir.z*12;
+  const block=(p,r)=>{const a=(p.x-bx)*dir.x+(p.z-bz)*dir.z;if(Math.abs(a)<2.4+r){const s=Math.sign(a)||-1;p.x+=dir.x*(s*(2.4+r)-a);p.z+=dir.z*(s*(2.4+r)-a)}return collide(p,r)};/* a 4.8 m car-sized block across the lane */
+  let t=0;for(;t<120&&!truck.ai.done;t+=1/30)C.step(truck,1/30,{collide:block});assert(truck.ai.done,'got past the block and arrived ('+t.toFixed(1)+' s, '+truck.snapped+' snaps)')});
 test('flee: stays mostly on the road, slows when the van is far, escapes after 8 s past 110 m',()=>{const n=G.nodes[G.nearestNode(380,70)];const car=C.make('sedan',{x:n.x,z:n.z});C.flee(car,G,{max:27,seed:4});
   const van={x:n.x+15,z:n.z};let off=0,f=0;for(let i=0;i<30*20;i++){C.step(car,1/30,{van,G,collide});f++;if(!',=Vl'.includes(def.map[Math.floor(car.z/2)][Math.floor(car.x/2)]))off++}
   assert(off/f<.1,'off-road '+(100*off/f).toFixed(1)+'%');const far={x:-5000,z:-5000};let peak=0;for(let i=0;i<30*12&&!car.ai.escaped;i++){C.step(car,1/30,{van:far,G,collide});peak=Math.max(peak,car.spd)}

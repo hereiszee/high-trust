@@ -1151,7 +1151,8 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   {const amb=OWS.region==='river'&&bT<40?'industrial':'suburb';if(amb!==OWS.amb){OWS.amb=amb;const A=AU();if(A&&A.ambience)try{A.ambience(amb)}catch(e){}}}
   owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
-  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,
+    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):null});/* traffic yields to the escort truck and getaway cars too */
   owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
@@ -3726,6 +3727,9 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
       if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10)wmAmbush(a)}
       if(M.phase==='ambush')wmAmbushTick(dt);
       if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Rocket Pops are not.","They got the truck.");
+      /* backstop: CarAI puts a wedged truck back on its lane; if it still makes no headway for 45 s while it isn't waiting, fail cleanly to the retry card rather than soft-lock */
+      {const pr=c.ai.tr?c.ai.tr.i:0,w=M.escW||(M.escW={i:pr,x:c.x,z:c.z,t:0});if(c.ai.blocked||M.phase!=='escort'||pr!==w.i||Math.hypot(c.x-w.x,c.z-w.z)>4){w.i=pr;w.x=c.x;w.z=c.z;w.t=0}else w.t+=dt;
+        if(w.t>45)return endMission(false,"Benny's truck is wedged and Benny refuses to leave it. Somebody call Sal.","The truck's stuck.")}
       if(c.ai.done&&M.phase==='escort'){M.phase='court';M.courtT=0;M.payX.truckHp=c.hp/c.stats.hp;c.spd=0;
         const r_=V3(Math.cos(c.yaw),0,-Math.sin(c.yaw)),bp=wmSnap(c.x-r_.x*2.6,c.z-r_.z*2.6);const d=giverModel('benny');scene.add(d.root);M.bennyN={dude:d,pos:V3(bp.x,0,bp.z),yaw:0,stepT:0,step:null};
         radio('benny',"Free cones! Line up! One per kid, two if you said thank you!",true);banner('THE COURT','Benny is handing out cones.',2.2)}

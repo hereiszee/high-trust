@@ -59,9 +59,21 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
   T.leave=()=>{/* walk to the exit ring beside your ride and get in */const x=H.exitAt;if(x)T.tp(x.x,x.z);const seen=[];for(let i=0;i<12&&H.M&&H.M.state==='go';i++){H.step(1);seen.push((H.prompt&&H.prompt.text)+'|'+H.running+'|'+H.mode+'|'+Math.round(H.P.hp)+'|'+(H.HUD.screen||''));H.use=true;H.step(1)}return seen};
   T.look=(x,y,z)=>{/* point the view (binoculars) at a world point */const c=H.camera.position,dx=x-c.x,dy=y-c.y,dz=z-c.z;H.P.yaw=Math.atan2(-dx,-dz);H.P.pitch=Math.atan2(dy,Math.hypot(dx,dz))};
   T.follow=(steps,stopIf)=>{/* escort: stay ~10 m behind Benny's truck */let s=0;for(;s<steps;s++){if(stopIf&&stopIf())break;const tr=H.truck;const e=H.CV;if(!tr||!e)break;const c=tr.car;
-      const f={x:-Math.sin(c.yaw),z:-Math.cos(c.yaw)},gx=c.x-f.x*9,gz=c.z-f.z*9,dx=gx-e.pos.x,dz=gz-e.pos.z,dd=Math.hypot(dx,dz);let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
-      const want=Math.min(12,dd*.8);k.a=dd>2&&d>.06;k.d=dd>2&&d<-.06;k.w=dd>2&&e.spd<want&&Math.abs(d)<1.4;k.s=e.spd>want+1.5||(Math.abs(d)>=1.4&&e.spd>1);H.step(1)}T.clear();return s};
-  T.toCar=()=>{/* walk back to the ride and get in */const c=H.M.car;H.P.pos.set(c.pos.x+Math.cos(c.yaw)*2,0,c.pos.z-Math.sin(c.yaw)*2);H.collide(H.P.pos,.35);for(let i=0;i<8&&!H.CV;i++){H.step(1);H.use=true;H.step(1)}return !!H.CV};
+      const f={x:-Math.sin(c.yaw),z:-Math.cos(c.yaw)};let gx=c.x-f.x*9,gz=c.z-f.z*9;const dd=Math.hypot(gx-e.pos.x,gz-e.pos.z);
+      /* well back (after an ambush): drive the roads to the truck instead of cutting across a block */
+      if(dd>16){/* along the truck's own lane (the road it just took): project onto the polyline, aim 7 m further on */const ln=H.M.lane;let bi=0,bt=0,bd=1e9;
+        for(let j=0;j<ln.length-1;j++){const A=ln[j],B=ln[j+1],ax=B.x-A.x,az=B.z-A.z,l2=ax*ax+az*az||1,t=Math.max(0,Math.min(1,((e.pos.x-A.x)*ax+(e.pos.z-A.z)*az)/l2)),q=Math.hypot(A.x+ax*t-e.pos.x,A.z+az*t-e.pos.z);if(q<bd){bd=q;bi=j;bt=t}}
+        if(bi<=(c.ai.tr?c.ai.tr.i:ln.length)){let j=bi,px=ln[j].x+(ln[j+1].x-ln[j].x)*bt,pz=ln[j].z+(ln[j+1].z-ln[j].z)*bt,rem=7;
+          while(j<ln.length-1){const B=ln[j+1],sg=Math.hypot(B.x-px,B.z-pz);if(sg>=rem){px+=(B.x-px)*rem/sg;pz+=(B.z-pz)*rem/sg;break}rem-=sg;px=B.x;pz=B.z;j++}gx=px;gz=pz}}
+      const dx=gx-e.pos.x,dz=gz-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
+      const want=Math.min(12,dd*.8);k.a=dd>2&&d>.06;k.d=dd>2&&d<-.06;
+      /* facing well away (after an ambush) a car can't turn on the spot: crawl forward on full lock instead of waiting; wedged: back out */
+      k.w=dd>2&&e.spd<(Math.abs(d)<1.4?want:3);k.s=e.spd>want+1.5||(Math.abs(d)>=1.4&&e.spd>4);
+      if(dd>4&&Math.abs(e.spd)<.5)T.fst=(T.fst||0)+1;else T.fst=0;if(T.fst>45){for(let j=0;j<25;j++){k.w=false;k.s=true;k.a=d<0;k.d=d>0;H.step(1);s++}T.fst=0;k.s=false}
+      H.step(1)}T.clear();return s};
+  T.toCar=()=>{/* walk back to the ride and get in: driver's side, else the other side or the back if it's parked against something */const c=H.M.car;
+    for(const [sx,sz] of[[1,0],[-1,0],[0,1],[0,-1]]){if(H.CV)break;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),rx=Math.cos(c.yaw),rz=-Math.sin(c.yaw);
+      H.P.pos.set(c.pos.x+rx*sx*2+fx*sz*3.2,0,c.pos.z+rz*sx*2+fz*sz*3.2);H.collide(H.P.pos,.35);for(let i=0;i<8&&!H.CV;i++){H.step(1);H.use=true;H.step(1)}}return !!H.CV};
   T.cuff=e=>{for(let i=0;i<60&&e.state==='surrender';i++){H.P.pos.set(e.pos.x+.9,0,e.pos.z);H.step(1);H.use=true;H.step(1)}return e.state};
   T.done=()=>{const a=H.UIacts||{};return a};
 };
