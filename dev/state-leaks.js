@@ -17,7 +17,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     wrap(window,'win');wrap(document,'doc');const cv=document.querySelector('canvas');if(cv)wrap(cv,'cv')});
   await p.click('.ht-title [data-act=newgame]');await p.waitForTimeout(300);
   await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.step(5);
-    window.__snap=()=>{const H=window.__ht,P=H.P,M=H.M,vis=e=>!!e&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>0;
+    window.__snap=()=>{try{window.__ht.draw()}catch(e){}/* step() doesn't refresh the HUD */const H=window.__ht,P=H.P,M=H.M,vis=e=>!!e&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>0;
       const drv=document.querySelector('.ht-drv');const cv=document.querySelector('canvas');
       return{mode:H.mode,gunInHand:!!(P.dude&&P.dude.gun),weapons:(P.weapons||[]).join(','),cur:P.cur,aim:!!P.aim,crouch:!!P.crouch,fp:!!P.fp,fov:Math.round(H.camera.fov),
         night:+(H.night?H.night.target:0).toFixed(2),noCars:!!(M&&M.noCars&&M.state==='go'),drvHud:vis(drv)===!!H.CV,prompt:!!(H.prompt&&H.prompt.text)&&!H.prompt.text.match(/Talk to|Drive|Borrow|Go inside|Get out|Open the|Pull into|Hardware|Auto/)?H.prompt.text:null,
