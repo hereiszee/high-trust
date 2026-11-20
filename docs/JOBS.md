@@ -90,6 +90,11 @@ Each hook calls the **running job's** handler first, then every **system** handl
 
 ## 4. `HT.Jobs.api` (the game surface for job files)
 
+**Cast and givers.** Crew and giver ids resolve to People models through `HT.People.roles` (register a stand-in with `HT.People.roles.hank='nb_pops'`); unknown ids are skipped by the cast preload, never fetched. Givers of jobs that unlock mid-session appear within a second (no hub rebuild needed).
+
+**Sound.** Never make your own `AudioContext`: `HT.Audio.tone({f,to,type,d,gain,at,bus})` plays a short enveloped tone on the game's sfx bus (`bus:'ui'` for UI blips), and `HT.Audio.bus('sfx'|'ui'|'music')` gives the GainNode to connect your own nodes to (`HT.Audio.ctx` is the context), so the volume sliders and ducking apply.
+
+
 Getters: `P M L VAN CV WORLD mode enemies allies npcs keys simT useTap(settable) stage`. Objects: `THREE scene camera MISSIONS HOMIES WEAPONS CP JH HUD`.
 Functions: `radio(who,text,front) banner(t,sub,dur) feed(text,kind,sub) addTrust(v,hood) spawnEnemy(x,z,boss) spawnAlly(id,x,z) surrender(e) equip(dude,gun) makeDude(look) makeVehicle(type,color) makeVanBox(color) wmAdd(obj,solid) wmCol(box) wmCarry(kind,mesh,it) wmDrop() wmSign(lines,x,z,yaw,o) wmSnap(x,z) wmSnapRoad(x,z) wmWindow(cx,cz,r) wmSetWindow(w) wmNearest(list,ok) wmCuff(e) box(w,h,d,col,x,y,z,parent) mat(col) lin(col) rand pick clamp V3 tileC tx walkable groundAt collide carSize syncCar owStopCar enterCar exitCar nearCar puff snd rebuildTargets project endMission(ok,why,title) spotted(why) CarAI() roads() setNight(k) SV() save() overlay(id,el)`.
 
