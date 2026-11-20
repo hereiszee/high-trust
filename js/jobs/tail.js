@@ -661,8 +661,8 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(!B.init){B.init=1;B.ps=M.P.project(c.x,c.z,Math.max(0,r.s-35),120).s}B.ps=M.P.project(c.x,c.z,B.ps,60).s;
     if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail&&!o.noswap){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
       if(d<5.5){off();k.s=c.spd>.3;k.e=Math.abs(c.spd)<2.5;return null}k.e=false;const goal=M.P.at(M.P.project(sc.pos.x,sc.pos.z,B.ps,60).s);steerTo(c,goal.x,goal.z,Math.min(9,d*.6+1.5));if(d>40)B.ps=M.P.project(c.x,c.z,B.ps,60).s;return null}
-    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
-    let want=Math.max(0,Math.min(14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
+    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const urgent=M.T.S.lose>4;/* the reacquire meter is filling: close up like a person would */const gap=o.fail?5:urgent?20:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
+    let want=Math.max(0,Math.min(urgent?17:14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
     /* slow for corners like a person: the heading change over the next 16 m */
     {const y0=M.P.at(B.ps).yaw;for(let q=4;q<=16;q+=4){if(Math.abs(wrap(M.P.at(B.ps+q).yaw-y0))>.5){want=Math.min(want,5.5+q*.25);break}}}
     const g=TL().aheadGap({x:c.x,z:c.z,yaw:c.yaw,len:4.6},obstacles(M,null).filter(q=>q.pri<3),18);B.g=g;B.want=want;if(g!=null)want=Math.min(want,Math.max(0,(g-4)*.8));
