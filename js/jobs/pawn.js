@@ -779,7 +779,7 @@ J.register('pawn',{
       "Their buy ledger is in the back office. Every bike and drill some kid sold them for ten dollars, with the kid's name next to it. I need that book.",
       "No guns, no shouting. Put on a disguise, smile, eat a hot dog, and walk into the back like you belong. You won't. Nobody will say a word."],
     obj:"Crash the grand opening in a disguise, keep your cover, get past the staff into the back office, get the buy ledger (photos or the book), and walk out.",
-    crew:[],weapons:[],from:{place:'g_dee'},start:{x:S.van.x,z:S.van.z},site:'pawn',
+    crew:[],weapons:[],from:{x:323,z:39}/* the church sidewalk, a few steps from the steps (Crossing Guard's Dee stands at g_dee) */,start:{x:S.van.x,z:S.van.z},site:'pawn',
     unlock:{done:['dee'],trustR:30},pay:900,par:K.par,order:30,
     noGuns:L.noGuns,failPolicy:'soft',
     stages:['party','office','exit'],stageLabels:{party:'Back at the van: pick a disguise',office:'The back office',exit:'Walking out'},
