@@ -191,7 +191,7 @@ function crash(a,e,why){const s=sv();if(s&&s.jet)s.jet.crashes=(s.jet.crashes|0)
 function events(a,e,dt){if(!F.air)return;F.flightT+=dt;const reg=HT.WorldGen.regionAt(F.pos.x,F.pos.z),overTown=reg==='maple'||reg==='river'||reg==='route9';
   if(F.spd>K.BOOM&&F.lastAlt<K.BOOM_ALT&&overTown&&a.simT-F.boomT>25){F.boomT=a.simT;sonicBoom(a)}
   /* the house: within 80 m, under 50 m: the family comes out and waves */
-  const h=a.L.start;if(h&&Math.hypot(F.pos.x-h.x,F.pos.z-h.z)<80&&F.lastAlt<50&&a.simT-F.buzzT>60){F.buzzT=a.simT;buzz(a)}}
+  const h=a.L.start;if(h&&Math.hypot(F.pos.x-h.x,F.pos.z-h.z)<90&&F.lastAlt<60&&a.simT-F.buzzT>60){F.buzzT=a.simT;buzz(a)}}
 function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;persist();a.feed('Achievement · Sonic boom over the neighborhood','trust')}
   boom();try{HT.FX&&HT.FX.shake(.5)}catch(_){}a.feed(pick(LINES.boom),'info');setTimeout(()=>say(pick(['Barb','Linda','Phil','Marcy','Ted','Gil','Bev']),pick(LINES.boomN)),900);
   /* car alarms within 120 m of the pass */
