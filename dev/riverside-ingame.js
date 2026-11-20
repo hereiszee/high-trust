@@ -19,7 +19,8 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
       while(wi<pts.length-1&&Math.hypot(pts[wi].x-e.pos.x,pts[wi].z-e.pos.z)<6)wi++;const w=d0<12?tgt:pts[Math.min(wi,pts.length-1)];
       const dx=w.x-e.pos.x,dz=w.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
       const want=d0<12?Math.max(2,d0*.5):Math.abs(d)>.5?7:(o.v||14);k.a=d>.05;k.d=d<-.05;k.w=e.spd<want;k.s=e.spd>want+2;k.shift=false;
-      if(Math.abs(e.spd)<.5){stuck++;if(stuck>60){k.w=false;k.s=true;k.a=!k.a;k.d=!k.d}if(stuck>100){stuck=0;route=G.route({x:e.pos.x,z:e.pos.z},tgt);pts=route?route.points:[tgt];wi=1}}else stuck=0;
+      if(s%30===0){const mv=T.dp?Math.hypot(e.pos.x-T.dp.x,e.pos.z-T.dp.z):9;T.dp={x:e.pos.x,z:e.pos.z};if(mv<1.2&&d0>4)stuck=Math.max(stuck,61)}/* no headway (bouncing off a parked or stopped car counts) */
+      if(Math.abs(e.spd)<.5||stuck>60){stuck++;if(stuck>60){k.w=false;k.s=true;k.a=!k.a;k.d=!k.d}if(stuck>100){stuck=0;route=G.route({x:e.pos.x,z:e.pos.z},tgt);pts=route?route.points:[tgt];wi=1}}else stuck=0;
       H.step(1);if(H.mode!=='hub'&&!o.inMission)break;if(o.until&&o.until())break}
     T.clear();k.s=true;H.step(8);k.s=false;return{steps:s,d:Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z),mode:H.mode}};
   T.pursue=(steps,o={})=>{/* chase like a player: pure pursuit along the getaway car's own trail, close in and ram; back out when wedged */
