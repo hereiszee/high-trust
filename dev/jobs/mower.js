@@ -13,11 +13,12 @@ const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),TT=has('tt'),ID=TT
     H.jobs.start(id);H.step(3)},ID);
   const st=()=>ev(()=>{const H=window.__ht,M=H.M;if(!M)return{mode:H.mode};const me=M.me,R=M.R;return{mode:H.mode,state:M.state,phase:M.phase,stage:M.stage,t:+M.elapsed.toFixed(1),
     lap:me?me.lap:null,pos:R&&me?R.pos(me):null,q:M.qTime,bumps:M.bumps,choice:M.choice,cuffed:M.cuffedN,esc:M.escN,place:M.place,hp:M.ride&&M.ride.car?Math.round(M.ride.car.hp):null,
-    order:R?R.order().map(r=>r.id+(r.finished?'*':'')).join(' '):''}});
+    order:R?R.order().map(r=>r.id+(r.finished?'*':'')).join(' '):'',mem:performance.memory?Math.round(performance.memory.usedJSHeapSize/1e6):0,best:R?R.racers.map(r=>r.id+':'+(r.best||0).toFixed(1)+(r.stuckT>0?'!':'')).join(' '):''}});
   const step=(frames,o)=>ev(([f,o,id])=>{const H=window.__ht,j=H.jobs.registry.get(id),a=H.jobs.api;let t=window.__t||0;for(let i=0;i<f&&H.M&&H.M.state==='go';i++){j.test.step(a,t++,o);H.P.hp=Math.max(H.P.hp,60);H.step(1)}window.__t=t;return t},[frames,o,ID]);
   const o={keep:has('keep')};let last='',shotsDone={};const want={pick:'pick',toLine:'ride-out',quali:'qualifying',qdone:'qualified',count:'grid-countdown',race:'race',fix:'pit-stop',chase:'chase',back:'back-on',finish:'finish',podium:'podium'};
   for(let k=0;k<1400;k++){await step(10,o);const s=await st();const key=s.phase+'|'+s.lap+'|'+s.pos+'|'+s.choice+'|'+s.cuffed;if(key!==last){last=key;console.log(JSON.stringify(s))}
     if(s.phase&&want[s.phase]&&!shotsDone[s.phase]){shotsDone[s.phase]=1;if(s.phase==='race'||s.phase==='podium'||s.phase==='chase'||s.phase==='quali')await step(s.phase==='race'?45:s.phase==='quali'?140:60,o);await shot(want[s.phase])}
+    if(s.phase==='finish'&&!shotsDone.top){shotsDone.top=1;await ev(()=>{window.__ht.M.shotCam=[92,34,150,92,0,115,55]});await shot('stripes-overhead');await ev(()=>{window.__ht.M.shotCam=null})}
     if(s.phase==='race'&&s.lap===1&&!shotsDone.race2){shotsDone.race2=1;await step(70,o);await shot('race-lap2')}
     if(s.state!=='go')break}
   await ev(()=>window.__ht.step(45));const res=await ev(()=>{const H=window.__ht;return{state:H.M&&H.M.state,pay:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.label+':'+l.amount):null,total:H.M&&H.M.pay&&H.M.pay.total,medal:H.M&&H.M.medal}});

@@ -15,7 +15,7 @@
 (function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;
 const RACE=()=>window.HT&&HT.Race;
 /* ---------------------------------------------------------------- tuning */
-const LAPS=3,LINE_X=92,BUMP_VN=2.4,BUMPS_DQ=3,YELLOW_V=2.4,LEAVE_T=3.5,CHASE_MAX=40,HUSTLER_V=4.3,ESCAPE_D=46,CONE_PEN=1,GATE_PEN=2,
+const LAPS=3,LINE_X=92,BUMP_VN=2.8,BUMPS_DQ=3,YELLOW_V=2.4,LEAVE_T=3.5,CHASE_MAX=40,HUSTLER_V=5.1,ESCAPE_D=46,CONE_PEN=1,GATE_PEN=2,
   RUBBER={ahead:12,behind:10,k:.008,max:.16,kb:.005,maxb:.08},PARK={x0:61,z0:99,x1:124,z1:131};
 /* the racing line (clockwise from the start straight): Gil's Oak squeeze, the east straight with the hay-bale chicane, the
    sprinkler run and Dave's grill squeeze along the south, "The Stripes" (two hairpins round hay walls: mow it like a lawn),
@@ -30,11 +30,11 @@ const SPRINKLERS=[{x:107.5,z:124.6,r:3.2,ph:0},{x:99,z:125,r:2.8,ph:2.1}];
 const GNOMES=[[64.9,121.5],[68.4,119.2],[64.9,116.6],[68.5,113.8],[65,111.5],[72.6,111.6]];
 /* the field: you + five neighbours. skill scales top speed; quali = their flying-lap time (s) on this course */
 const FIELD=[
-  {id:'marcus',name:'Marcus',num:23,col:'#2f6fb5',seat:'#1d2a44',skill:.99,quali:20.0,hood:'river',look:'marcus'},
-  {id:'phil',name:'Phil Kowalski',short:'Phil',num:88,col:'#e9e3cf',seat:'#5b2a20',skill:.975,quali:20.3,look:'phil'},
-  {id:'dave',name:'Big Dave',short:'Dave',num:7,col:'#c8331f',seat:'#1c1c1f',skill:.965,quali:20.6,look:'dave'},
-  {id:'gil',name:'Gil',num:1,col:'#7b8f3a',seat:'#3a2a1c',skill:.925,quali:21.7,look:'gil'},
-  {id:'walt',name:'Walt',num:4,col:'#d9a521',seat:'#1c1c1f',skill:.905,quali:22.6,look:'walt'}];
+  {id:'marcus',name:'Marcus',num:23,col:'#2f6fb5',seat:'#1d2a44',skill:.99,quali:19.3,hood:'river',look:'marcus'},
+  {id:'phil',name:'Phil Kowalski',short:'Phil',num:88,col:'#e9e3cf',seat:'#5b2a20',skill:.975,quali:19.6,look:'phil'},
+  {id:'dave',name:'Big Dave',short:'Dave',num:7,col:'#c8331f',seat:'#1c1c1f',skill:.965,quali:20.0,look:'dave'},
+  {id:'gil',name:'Gil',num:1,col:'#7b8f3a',seat:'#3a2a1c',skill:.9,quali:21.0,look:'gil'},
+  {id:'walt',name:'Walt',num:4,col:'#d9a521',seat:'#1c1c1f',skill:.885,quali:21.9,look:'walt'}];
 /* the three stock mowers (pick one): multipliers on VEH.mower */
 const MOWERS={
   reliable:{name:'The Old Reliable',col:'#3e8a35',blurb:'Balanced. Grippy. Has never once let you down, or been asked to go fast.',max:1,acc:1,turn:1,grip:1,steer:1,bars:[3,3,3],
@@ -275,7 +275,7 @@ function ovMount(id,node){const wrap=el('div','pointer-events:none');wrap.append
 function ovDrop(id){const n=OV[id];if(!n)return;OV[id]=null;try{A().overlay(id,null)}catch(e){if(n._wrap)n._wrap.remove()}}
 function ovDropAll(){for(const k in OV)ovDrop(k)}
 /* standings tower: right side, under the trust meter */
-function towerEl(){if(OV.tower)return OV.tower;const w=el('div','position:absolute;right:18px;top:150px;width:210px;pointer-events:none;'+FONT+';color:#f4f1e6;text-shadow:0 1px 2px rgba(0,0,0,.6)');
+function towerEl(){if(OV.tower)return OV.tower;const w=el('div','position:absolute;left:18px;top:'+(COARSE?'170px':'138px')+';width:200px;pointer-events:none;'+FONT+';color:#f4f1e6;text-shadow:0 1px 2px rgba(0,0,0,.6)');
   el('div','font-size:12px;letter-spacing:.14em;opacity:.8;margin-bottom:4px','GRAND PRIX · STANDINGS',w);w.list=el('div','',null,w);ovMount('mowtower',w);return w}
 function towerSet(rows,title){const w=towerEl();if(title)w.firstChild.textContent=title;const key=rows.map(r=>r.key).join('|');if(w._k===key)return;w._k=key;
   w.list.innerHTML=rows.map(r=>'<div style="display:flex;align-items:center;gap:6px;margin:2px 0;padding:3px 8px;border-radius:3px;background:'+(r.you?'rgba(255,201,74,.92)':'rgba(16,20,18,.62)')+';color:'+(r.you?'#1a1a16':'#f4f1e6')+';font-weight:'+(r.you?800:600)+';font-size:15px">'
@@ -301,7 +301,7 @@ function photoFinish(img,txt,sub){const w=el('div','position:absolute;inset:0;di
   if(sub)el('div','position:absolute;right:14px;top:18px;padding:3px 8px;background:#c4231a;color:#fff;font-weight:800;font-size:14px;letter-spacing:.12em',sub,card);
   ovMount('mowphoto',w);setTimeout(()=>{card.style.transform='rotate(-2deg) scale(1)'},30);return w}
 /* final classification (Barb's clipboard) */
-function classCard(rows,title,sub){const w=el('div','position:absolute;left:50%;top:13%;transform:translateX(-50%);width:min(92vw,460px);padding:16px 20px 14px;border-radius:6px;background:#f4f1e6;color:#1a1a16;pointer-events:none;box-shadow:0 18px 50px rgba(0,0,0,.5);'+FONT);
+function classCard(rows,title,sub){const w=el('div','position:absolute;left:max(16px,4vw);top:13%;width:min(92vw,430px);padding:16px 20px 14px;border-radius:6px;background:#f4f1e6;color:#1a1a16;pointer-events:none;box-shadow:0 18px 50px rgba(0,0,0,.5);'+FONT);
   el('div','height:14px;margin:-16px -20px 10px;background:repeating-linear-gradient(90deg,#16181a 0 14px,#f4f1e6 14px 28px);border-radius:6px 6px 0 0',null,w);
   el('div','font-size:12px;letter-spacing:.18em;color:#7a6a4a','MAPLE HEIGHTS RIDE-ON GRAND PRIX · FINAL',w);el('div','font-size:30px;font-weight:800;margin:2px 0 8px',title,w);
   for(const r of rows)el('div','display:flex;gap:10px;align-items:center;padding:4px 6px;border-top:1px solid rgba(0,0,0,.1);font-size:17px;'+(r.you?'background:rgba(255,201,74,.55);font-weight:800':'font-weight:600'),
@@ -334,6 +334,8 @@ function buildCourse(M){const a=A(),R_=RACE();const bales=[];
   for(const[x0,z0,x1,z1]of BLOCKS){const n=Math.round((x1-x0)/1.02);for(let i=0;i<n;i++)for(const z of[z0+.3,z1-.3]){bales.push({x:x0+.51+i*1.02,y:.23,z,yaw:0});if((i+(z>z0+.5?1:0))%2===0)bales.push({x:x0+.51+i*1.02,y:.69,z,yaw:.04})}a.wmCol({x0,z0,x1,z1})}
   /* the gate: a barrier either side of the walkway, spectators behind it */
   hayRun(bales,88.3,103.6,89.9,103.6,false);hayRun(bales,94.3,103.6,95.9,103.6,false);
+  /* the walkway between them: a timber kerb a dad steps over and a mower can't climb (low collider: h) */
+  {const T=a.THREE,k=new T.Mesh(new T.BoxGeometry(4.4,.18,.22),std('kerb',{color:lin('#8a6a46'),roughness:.85}));k.position.set(92.1,.09,103.6);k.castShadow=true;a.wmAdd(k);a.wmCol({x0:89.9,z0:103.45,x1:94.3,z1:103.75,h:.2})}
   M.hay=hayBales(bales);
   M.T=R_.track(LINE,{clear:clearance(parkCols()),step:1,margin:.85,maxHalf:2.1});M.line=M.T.project(LINE_X,105.3,null).s;
   /* cones on the outside of every corner, and the four qualifying gates (pairs) */
@@ -372,8 +374,11 @@ function mount(M){const a=A(),e=M.ride;if(!e||a.CV===e)return;if(a.CV)a.exitCar(
 function dismount(M){const a=A();if(a.CV===M.ride)a.exitCar();M.mounted=false;touchThrottle(false)}
 /* ---------------------------------------------------------------- the job */
 const NAME={marcus:'Marcus',phil:'Phil',gil:'Gil',walt:'Walt',dave:'dave',gary:'gary',you:'you',Barb:'Barb',Hustler:'Hustler',Gil:'Gil'};
-const say=(who,t,front)=>{const a=A();a.radio(NAME[who]||who,t,front)};
-const sayAll=(list,front)=>{for(const[w,t]of list)say(w,t,false)};
+/* dialogue: the game's subtitle queue holds 4 lines, so scenes are fed to it one line at a time, paced by length */
+const TALK={q:[],t:0};
+const say=(who,t,front)=>{const a=A();if(front){TALK.q.length=0;TALK.t=Math.max(2.2,t.length*.055);a.radio(NAME[who]||who,t,true)}else TALK.q.push([who,t])};
+const sayAll=(list,front)=>{if(front&&list.length){say(list[0][0],list[0][1],true);list=list.slice(1)}for(const[w,t]of list)TALK.q.push([w,t])};
+function talkTick(dt){TALK.t-=dt;if(TALK.t<=0&&TALK.q.length){const[w,t]=TALK.q.shift();TALK.t=Math.max(2.2,t.length*.055);A().radio(NAME[w]||w,t,false)}}
 const barb=(t,front)=>say('Barb',t,front);
 function meRacer(M){if(M.me)return M.me;const r={id:'you',name:'You',player:true,col:'#ffc94a',num:12};Object.defineProperty(r,'car',{get:()=>M.ride.car,enumerable:true});return M.me=r}
 function freshRace(M,laps,racers){const R_=RACE(),R=R_.make(M.T,{laps,line:M.line,racers,gates:M.gates});R.on(e=>raceEvent(M,e));return R}
@@ -394,14 +399,16 @@ function setupRace(M,quiet){const a=A();M.phase='count';M.cT=quiet?4.2:9.5;M.lig
   if(!quiet){sayAll(SAY.grid,true);setTimeout(()=>{if(M.state==='go')sayAll(SAY.hustle)},5200)}
   a.CP.mark('race')}
 function spawnHustlers(M){const a=A();M.hustlers=[[102.4,112.0],[104.8,112.6]].map(([x,z],k)=>{const e=a.spawnEnemy(x,z,false);a.equip(e.dude,null);e.gun=null;e.noLeash=true;e.hp=e.maxhp=40;e.script={kind:'mow'};e.yaw=Math.PI*.9;
-    e.onCuff=()=>{a.addTrust(-2);M.cuffedN++;a.feed('Hustler zip-tied','trust','+2 trust');if(M.cuffedN+M.escN>=2)M.chaseDone=true};return{e,k,state:'loiter',path:null}});a.rebuildTargets()}
+    e.onCuff=()=>{M.cuffedN++;if(M.cuffedN+M.escN>=2)M.chaseDone=true};return{e,k,state:'loiter',path:null}});a.rebuildTargets()}
 /* Marcus's fuel line: smoke, a cough, he coasts into the pit box */
 function sabotage(M,r){M.sabot=true;r.stalled=true;r.stallT=0;M.sabotT=0;const a=A();barb(SAY.barb.lap2,true);setTimeout(()=>{if(M.state==='go')sayAll(SAY.stall)},2600);
   const me=meRacer(M),pitS=((M.T.project(PIT.x,PIT.z,null).s-M.line)%M.T.len+M.T.len)%M.T.len;M.pitS=pitS;
   const ahead=((pitS+9-me.s)%M.T.len+M.T.len)%M.T.len;M.decideAt=me.prog+ahead+(ahead<6?M.T.len:0);
   for(const h of M.hustlers)if(h.state==='loiter'){h.e.pos.set(PIT.x+2.4+h.k*1.1,0,PIT.z+2.2+h.k*.6);h.e.script={kind:'mow'}}}
 function helpStart(M){const a=A();M.choice='help';M.helped=true;M.yellow=true;dismount(M);M.phase='fix';barb(SAY.barb.yellow,true);music('tension',.6);a.CP&&0}
-function boltStart(M){const a=A();M.phase='chase';M.chaseT=0;M.cuffedN=M.cuffedN||0;M.escN=0;M.chaseDone=false;sayAll(SAY.bolt,true);music('combat',.9);
+function boltStart(M){M.phase='chase';M.chaseT=0;M.chaseDone=false;say('you',SAY.bolt[1][1],true);music('combat',.9)}
+/* while you're bent over Marcus's engine the two of them slip off: a head start of a few metres before you look up */
+function runStart(M){const a=A();M.cuffedN=M.cuffedN||0;M.escN=0;say('Hustler',SAY.bolt[0][1],true);
   const paths=[[[106.5,113.8],[101,107.4],[93.2,104.6],[92.4,100.6],[84,98.6],[74,98.4]],[[110,117],[111,124.4],[100,124.2],[88.6,120.6],[81.6,116.4],[73.8,110.6],[66,106.2],[64.2,104]]];
   M.hustlers.forEach((h,k)=>{h.state='run';h.path=paths[k];h.pi=0;const tag=document.createElement('div');tag.className='tag';tag.textContent='HUSTLER';const host=document.getElementById('tags');if(host)host.appendChild(tag);h.e.tag=tag;h.e.script=null;runTo(h)});a.rebuildTargets()}
 function runTo(h){const p=h.path[h.pi];h.e.script={kind:'to',x:p[0],z:p[1],speed:HUSTLER_V,then:()=>{h.pi++;if(h.pi<h.path.length)runTo(h);else h.state='out'}}}
@@ -418,7 +425,7 @@ function contacts(M,dt){const a=A(),CA=a.CarAI(),cars=[];if(M.mounted&&a.CV===M.
   for(let i=0;i<cars.length;i++)for(let j=i+1;j<cars.length;j++){const A_=cars[i],B_=cars[j];if(Math.hypot(A_.c.x-B_.c.x,A_.c.z-B_.c.z)>3)continue;
     const vA=A_.c.spd,vB=B_.c.spd,res=CA.ram(A_.c,B_.c);if(!res)continue;
     if(A_.me){const e=M.ride;e.pos.x=A_.c.x;e.pos.z=A_.c.z;a.syncCar(e);
-      if(res.vn>BUMP_VN&&vA>3&&(a.keys.w||a.keys.arrowup)&&M.phase==='race'&&!M.dq){const k='b'+B_.r.id;if((M.bumpCd[k]||0)<=0){M.bumpCd[k]=2.5;M.bumps++;
+      if(res.vn>BUMP_VN&&res.front&&vA>vB+1.5&&vA>3.5&&(a.keys.w||a.keys.arrowup)&&M.phase==='race'&&!M.yellow&&!M.dq){const k='b'+B_.r.id;if((M.bumpCd[k]||0)<=0){M.bumpCd[k]=2.5;M.bumps++;
           if(M.bumps>=BUMPS_DQ){M.dq=true;say('gary',SAY.marshal[2].slice(6),true);setTimeout(()=>{if(M.state==='go')sayAll(SAY.dq)},1800);dqStart(M)}
           else say('gary',SAY.marshal[M.bumps-1].slice(6),true);try{a.feed("Gary's clipboard",'bad','bump '+M.bumps+'/'+BUMPS_DQ)}catch(e){}}}
       else if(res.vn>BUMP_VN&&(M.softCd||0)<=0&&M.phase==='race'){M.softCd=6;say('gary',SAY.marshalSoft[0].slice(6))}}}
@@ -431,12 +438,12 @@ function raceEvent(M,e){const a=A(),r=e.r;
   if(e.type==='lap'&&r.id==='marcus'&&e.lap===1&&!M.sabot&&!M.dq)sabotage(M,r);
   if(e.type==='finish'){if(r.player)finishRace(M);else if(M.phase==='finish'&&!M.photoSeen&&Math.abs(e.t-(M.me.finishT||-9))<.35)M.photoWant={a:M.me,b:r}}
   if(e.type==='wrong'&&r.player&&(M.wrongCd||0)<=0){M.wrongCd=3;try{a.banner('WRONG WAY','Turn it around',1.4)}catch(_){}}}
-function qualiDone(M,r){const a=A(),raw=r.finishT-r.lapStart,t=raw+M.qPen;M.qTime=t;M.qRaw=raw;
+function qualiDone(M,r){const a=A(),raw=r.laps.length?r.laps[r.laps.length-1]:r.finishT-r.lapStart,t=raw+M.qPen;M.qTime=t;M.qRaw=raw;
   if(M.mode==='tt'){M.score=Math.round(t*100)/100;let best=null;try{const j=a.SV().jobs.mowertt;best=j&&j.best&&j.best.score}catch(e){}
     try{a.banner('TIME TRIAL · '+tfmt(t),(M.qPen?'incl. '+M.qPen+' s of penalties · ':'')+(best!=null?(t<best?'New best! Was '+tfmt(best):'Best '+tfmt(best)):'First time on the board'),3.2)}catch(e){}
     barb(t<19.8?"Gold! Somebody call Phil! Actually don't, he'll cry.":t<21?"Silver! That's a lawn you could putt on!":"A time! On the board! In chalk!",true);cheer(.8);M.phase='qdone';M.qdT=3.4;return}
   const all=[{id:'you',t}].concat(FIELD.map(f=>({id:f.id,t:f.quali}))).sort((p,q)=>p.t-q.t);M.gridOrder=all.map(x=>x.id);M.qPos=M.gridOrder.indexOf('you')+1;
-  const k=t<20.4?'good':t<22.5?'ok':'bad';say('Barb',pick(SAY.quali[k]).replace(/^Barb: /,''),true);
+  const k=t<19.7?'good':t<21.6?'ok':'bad';say('Barb',pick(SAY.quali[k]).replace(/^Barb: /,''),true);
   try{a.banner('QUALIFIED '+ord(M.qPos).toUpperCase(),tfmt(t)+(M.qPen?' · incl. '+M.qPen+' s of penalties':''),3)}catch(e){}cheer(.6);
   M.phase='qdone';M.qdT=3.2;if(M.qPos===1)M.pole=true}
 function finishRace(M){const a=A(),me=meRacer(M);M.phase='finish';M.finT=6;M.finishAt=me.finishT;M.place=M.R.pos(me);cheer(M.place<=3?1.2:.7);
@@ -448,7 +455,9 @@ function classify(M){const R=M.R,rows=[];const order=R.racers.slice();const est=
   order.sort((p,q)=>est(p)-est(q));const t0=est(order.find(r=>!r.dnf));order.forEach((r,k)=>{r.cls=k+1;r.est=est(r)});
   M.place=M.dq?null:meRacer(M).cls;return order.map(r=>({pos:r.dnf?'DQ':ord(r.cls),name:r.player?'You · #12':r.name+' · #'+r.num,col:r.player?MOWERS[M.opt||'reliable'].col:r.col,you:!!r.player,
     sub:r.dnf?'black flag':r.cls===1?tfmt(r.est-M.raceT0):'+'+pf(r.est-t0,2)+' s',r}))}
-function podiumStart(M){const a=A();M.phase='podium';M.podT=0;dismount(M);const rows=classify(M);M.rows=rows;M.trophyDone=false;
+function podiumStart(M){const a=A();M.phase='podium';M.podT=0;dismount(M);
+  /* the first cross-neighbourhood trust event: both meters move, more if you stopped for Marcus */
+  const tr=M.helped?6:3;a.addTrust(tr,'maple');a.addTrust(tr,'river');try{a.feed('Maple Heights and Riverside','trust','+'+tr+' trust each')}catch(e){}const rows=classify(M);M.rows=rows;M.trophyDone=false;
   const top=rows.filter(x=>x.pos!=='DQ').slice(0,3).map(x=>x.r);M.podiumDudes=[];
   top.forEach((r,k)=>{const off=[[0,.75],[-1.1,.5],[1.1,.32]][k];const x=PODIUM.x+off[0],z=PODIUM.z,y=off[1];
     if(r.player){a.P.pos.set(x,0,z);a.P.yaw=Math.PI;M.podiumY=y}else{M.podiumDudes.push({d:r.rider,x,z,y})}});
@@ -460,7 +469,8 @@ function podiumStart(M){const a=A();M.phase='podium';M.podT=0;dismount(M);const 
 /* ---------------------------------------------------------------- per-frame */
 function aiTick(M,dt){const a=A(),CA=a.CarAI(),R=M.R,me=meRacer(M),P=a.P,onFoot=!a.CV;
   const col=(p,r)=>a.collide(p,r);
-  for(const r of M.field){const c=r.car;if(r.parked){if(Math.abs(c.spd)>.05){c.spd*=.9}syncAI(r,dt);continue}
+  const go=M.phase==='race'||M.phase==='fix'||M.phase==='chase'||M.phase==='back'||M.phase==='finish';
+  for(const r of M.field){const c=r.car;if(r.parked||!go){if(!r.parked&&Math.abs(c.spd)>.05)CA.drive(c,{thr:c.spd>0?-1:1,st:0},dt,col);if(Math.abs(c.spd)>.05){c.spd*=.9}syncAI(r,dt);continue}
     let inp;
     if(r.finished||r.dnf){/* cool-down lap: roll to the infield and stop */inp=R.ai(r,dt,{cap:4});inp.boost=false;if(r.coolT==null)r.coolT=0;r.coolT+=dt;if(r.coolT>3.5){inp.thr=-1;inp.st=0}}
     else if(r.stalled&&!r.held){/* fuel line cut: coast and pull into the pit box */r.stallT+=dt;const dx=PIT.x-c.x,dz=PIT.z-c.z,d=Math.hypot(dx,dz),err=Math.atan2(-dx,-dz)-c.yaw,e2=Math.atan2(Math.sin(err),Math.cos(err));
@@ -491,6 +501,7 @@ function propsTick(M,dt){const a=A(),movers=[];const add=(c,id)=>movers.push({x:
   /* Gary waves the right flag; Barb and the fans */
   const flag=M.yellow?'#ffd31a':M.dq&&M.phase==='finish'?'#16181a':M.phase==='race'&&meRacer(M).lap===LAPS-1?'#f4f1e6':'#2fbf4a';if(M.flagMat&&M.flagHex!==flag){M.flagHex=flag;M.flagMat.color.copy(lin(flag))}
   if(M.flagObj){M.flagObj.rotation.z=Math.sin(a.simT*(M.phase==='race'?7:2))*.5}
+  if(!M.barb&&has('wife'))M.barb=dude('barb');if(!M.fans.length&&has('son')&&has('daughter'))M.fans=[{d:dude('fan'),x:90.4,z:101.6},{d:dude('fan2'),x:93.4,z:101.3}];
   standDude(M.gary,93.2,108.3,0,dt,{});standDude(M.barb,95.8,102.4,Math.PI,dt,{y:.46});(M.fans||[]).forEach((f,k)=>standDude(f.d,f.x,f.z,Math.PI,dt,{}));
   dogTick(M,dt)}
 /* Biscuit: runs across the east straight twice in the race (and once in qualifying if you're slow) */
@@ -520,7 +531,7 @@ const DEF={giver:'dave',hood:'maple',title:'The Grass Is Greener',role:'Big Dave
   radio:[],endLine:"Linden Park smells like cut grass and lemonade. Riverside and Maple Heights shared a podium. Gil says this one doesn't count as an Incident."};
 function setupWorld(M,o){const a=A();M.noCars=true;M.noGuns=DEF.noGuns;M.bumpCd={};M.bumps=0;M.cuffedN=0;M.escN=0;M.helped=false;M.choice=null;M.dq=false;
   a.wmSetWindow(a.wmWindow(92,116,19));buildCourse(M);buildField(M);parkField(M);
-  M.gary=dude('gary');M.barb=dude('barb');M.fans=[];if(has('son'))M.fans.push({d:dude('fan'),x:90.4,z:101.6});if(has('daughter'))M.fans.push({d:dude('fan2'),x:93.4,z:101.3});
+  M.gary=dude('gary');M.barb=null;M.fans=[];try{const pp=PP();if(pp&&pp.preload)pp.preload(['wife','son','daughter']).catch(()=>{})}catch(e){}
   /* Barb's stage (two bales) and megaphone, Gary's flag */
   const T=a.THREE;hayBales([{x:95.8,y:.23,z:102.4,yaw:0}]);const mg=new T.Mesh(merge([[new T.CylinderGeometry(.05,.13,.3,14,1,true),M4(0,0,0,0,0,Math.PI/2),'#f4f1e6'],[new T.CylinderGeometry(.03,.03,.12,8),M4(-.18,-.06,0),'#d6281c']]),VC());mg.position.set(95.8,1.95,102.85);mg.rotation.y=Math.PI/2;a.wmAdd(mg);
   M.flagMat=new T.MeshStandardMaterial({color:lin('#2fbf4a'),side:T.DoubleSide,roughness:.8});const fg=new T.Group(),pole=new T.Mesh(new T.CylinderGeometry(.012,.012,1.2,6),std('leg',{}));pole.position.y=.6;fg.add(pole);
@@ -530,7 +541,7 @@ function setupWorld(M,o){const a=A();M.noCars=true;M.noGuns=DEF.noGuns;M.bumpCd=
   M.choices={};Object.keys(MOWERS).forEach((k,i)=>{const p=PADDOCK[i],m=MOWERS[k];M.choices[k]=makeRide(M,k,p.x,p.z,0);sign([m.name.replace('The ','').toUpperCase(),'#BARS'+m.bars.join(',')],{x:p.x,z:p.z+1.6,yaw:0,w:1.05,h:.62,y:.55,big:56,legs:2})});
   M.phase='pick';M.stage='pick'}
 J.register('mower',{def:DEF,
-  start(M,o){const a=A();M.mode='race';setupWorld(M,o);if(!o||!o.checkpoint){sayAll(SAY.intro,true);setTimeout(()=>{if(M.state==='go'&&M.phase==='pick')sayAll(SAY.intro2)},9000)}music('hub',.4)},
+  start(M,o){const a=A();M.mode='race';TALK.q.length=0;TALK.t=0;setupWorld(M,o);if(!o||!o.checkpoint){sayAll(SAY.intro,true);setTimeout(()=>{if(M.state==='go'&&M.phase==='pick')sayAll(SAY.intro2)},9000)}music('hub',.4)},
   upd(dt,M,F){mowerUpd(dt,M,F)},
   save:M=>({stage:M.stage,opt:M.opt||null,q:M.qTime==null?null:Math.round(M.qTime*100)/100,grid:M.gridOrder||null,pen:M.qPen||0}),
   load(M,s){if(!s)return;M.stage=s.stage;M.opt=s.opt;M.qTime=s.q;M.gridOrder=s.grid;M.qPen=s.pen||0;M.qPos=s.grid?s.grid.indexOf('you')+1:null;
@@ -540,7 +551,8 @@ J.register('mower',{def:DEF,
     if(M.helped)L_.push(['Sportsmanship (you stopped for Marcus)',200]);if(M.pole)L_.push(['Pole position · Barb bought the lemonade',25]);if(M.cuffedN)L_.push(['Hustlers zip-tied ×'+M.cuffedN,0]);return L_},
   medal:M=>M.dq?1:M.place===1&&M.helped?3:M.place<=3?2:1,
   end(M,ok){if(!ok)return;try{const a=A(),s=a.SV();if(s){s.flags=s.flags||{};s.flags.marcusContact=true;if(M.helped)s.flags.marcusOwes=true;if(M.place===1&&!M.dq)s.flags.mowerWon=true}}catch(e){}},
-  camera(dt){const M=A().M;if(!M||M.phase!=='podium')return false;const cam=A().camera,t=M.podT||0;cam.position.set(PODIUM.x-1.2+Math.sin(t*.15)*1.2,2.3+t*.03,PODIUM.z-6.4+t*.08);cam.lookAt(PODIUM.x,1.3,PODIUM.z);cam.fov=48;cam.updateProjectionMatrix();return true},
+  camera(dt){const M=A().M;if(M&&M.shotCam){const c=A().camera,q=M.shotCam;c.position.set(q[0],q[1],q[2]);c.lookAt(q[3],q[4],q[5]);c.fov=q[6]||50;c.updateProjectionMatrix();return true}/* (dev shots) */
+    if(!M||M.phase!=='podium')return false;const cam=A().camera,t=M.podT||0;cam.position.set(PODIUM.x-1.2+Math.sin(t*.15)*1.2,2.3+t*.03,PODIUM.z-6.4+t*.08);cam.lookAt(PODIUM.x,1.3,PODIUM.z);cam.fov=48;cam.updateProjectionMatrix();return true},
   test:{give(a){/* the hub spawns registered givers when it builds: unlocked mid-session (the harness), rebuild it */try{if(window.__ht&&__ht.enterHub)__ht.enterHub()}catch(e){}},step:(a,t,o)=>bot(a,t,o),sample:()=>({stage:'race',opt:'zero',qTime:21.4,gridOrder:['marcus','phil','you','dave','gil','walt'],qPen:1})}
 });
 function leaveCheck(M,dt,loose){const a=A(),p=a.CV===M.ride&&M.ride?M.ride.pos:a.P.pos,b=loose?{x0:PARK.x0-14,z0:PARK.z0-14,x1:PARK.x1+14,z1:PARK.z1+6}:PARK;
@@ -548,9 +560,10 @@ function leaveCheck(M,dt,loose){const a=A(),p=a.CV===M.ride&&M.ride?M.ride.pos:a
   if(M.leaveT>LEAVE_T){dismount(M);a.endMission(false,SAY.leave,'Did not finish');return true}
   if(M.ride&&a.CV===M.ride&&M.ride.car.hp<=0){dismount(M);a.endMission(false,SAY.broke,'Mower down');return true}return false}
 function rows6(M){const R=M.R;return R.order().map((r,k)=>({key:r.id+(k+1)+(r.dnf?'d':'')+(r.stalled&&!r.held?'s':''),pos:r.dnf?'DQ':k+1,name:r.player?'You':r.short||r.name,col:r.player?MOWERS[M.opt||'reliable'].col:r.col,you:!!r.player,
-  sub:r.finished?'FIN':r.stalled&&!r.held?'PIT':r.dnf?'':r.player?'':gapTxt(M,r)}))}
+  sub:M.phase==='count'?'#'+r.num:r.finished?'FIN':r.stalled&&!r.held?'PIT':r.dnf?'':r.player?'':gapTxt(M,r)}))}
 function gapTxt(M,r){const me=meRacer(M),d=r.prog-me.prog,v=Math.max(5,Math.abs(me.car.spd)||7);return(d>0?'+':'−')+pf(Math.abs(d)/v,1)}
-function mowerUpd(dt,M,F){const a=A(),P=a.P,me=M.ride?meRacer(M):null;
+function mowerUpd(dt,M,F){const a=A(),P=a.P,me=M.ride?meRacer(M):null;talkTick(dt);
+  /* no guns at the Grand Prix: the dad's hands stay empty */if(!a.CV&&P.dude&&P.dude.gun)a.equip(P.dude,null);
   propsTick(M,dt);if(M.hustlers)hustlerTick(M,dt);aiTick(M,dt);myTick(M,dt);if(M.ride&&!M.ride.mw)M.ride.mw={};
   for(const k in M.choices||{}){const c=M.choices[k];if(c!==M.ride&&c.obj&&a.CV!==c){/* parked */}}
   switch(M.phase){
@@ -597,7 +610,8 @@ function raceFrame(dt,M,F){const a=A(),P=a.P,R=M.R,me=meRacer(M);R.update(dt);co
     const c=M.ride.car,d=Math.hypot(c.x-PIT.x,c.z-PIT.z);if(a.CV===M.ride&&d<PIT.r&&Math.abs(c.spd)<1.8){helpStart(M);say('dave',"He's pulling in! He's pulling into the pit!")}
     else if(me.prog>M.decideAt&&!me.finished){M.choice='kept';sayAll(SAY.kept)}}
   if(M.phase==='fix'){const mr=M.field.find(r=>r.id==='marcus');F.objs.push(['Fit your spare fuel line on Marcus\'s mower',false]);F.target={x:mr.car.x,z:mr.car.z,label:'Marcus'};
-    F.holds.push({x:mr.car.x,z:mr.car.z,r:2.6,o:M.fixO||(M.fixO={}),txt:'Fit your spare fuel line',time:2.2,fn:()=>{mr.stalled=false;mr.held=true;sayAll(SAY.help,true);a.addTrust(0);M.fixed=true;setTimeout(()=>{if(M.state==='go'&&M.phase==='fix')boltStart(M)},2400)}})}
+    if(!M.fixed)F.holds.push({x:mr.car.x,z:mr.car.z,r:2.6,o:M.fixO||(M.fixO={}),txt:'Fit your spare fuel line',time:2.2,fn:()=>{mr.stalled=false;mr.held=true;sayAll(SAY.help);M.fixed=true;runStart(M);M.boltT=1.6}})}
+  if(M.phase==='fix'&&M.fixed){M.boltT-=dt;if(M.boltT<=0)boltStart(M)}
   if(M.phase==='chase'){const run=M.hustlers.filter(h=>h.state==='run'),sur=M.hustlers.filter(h=>h.e.state==='surrender');
     F.objs.push(['Catch the hustlers · run into them, then zip-tie them',false]);F.meters.push({id:'hus',label:'Hustlers',v:M.cuffedN,max:2,style:'pips',sub:M.escN?M.escN+' got away':''});
     const tgt=sur[0]||run.sort((p,q)=>Math.hypot(p.e.pos.x-P.pos.x,p.e.pos.z-P.pos.z)-Math.hypot(q.e.pos.x-P.pos.x,q.e.pos.z-P.pos.z))[0];if(tgt)F.target={x:tgt.e.pos.x,z:tgt.e.pos.z,label:tgt.e.state==='surrender'?'Zip-tie':'Hustler'};
@@ -621,7 +635,7 @@ J.register('mowertt',{def:{giver:'dave',hood:'maple',title:'Mower Time Trial',ro
     endLine:"Barb wrote your time on the board in chalk. Phil photographed it."},
   start(M,o){M.mode='tt';setupWorld(M,o);for(const r of M.field){r.obj.visible=false;if(r.rider)r.rider.root.visible=false;r.parked=true;r.car.x=-999;r.car.z=-999}
     M.field=[];if(!o||!o.checkpoint)sayAll(SAY.ttIntro,true);music('hub',.3)},
-  upd(dt,M,F){if(M.phase==='qdone'){M.qdT-=dt;F.objs.push(['Time: '+tfmt(M.qTime),true]);if(M.qdT<=0){ovDropAll();sndStop();A().endMission(true)}propsTick(M,dt);myTick(M,dt);return}
+  upd(dt,M,F){talkTick(dt);if(M.phase==='qdone'){M.qdT-=dt;F.objs.push(['Time: '+tfmt(M.qTime),true]);if(M.qdT<=0){ovDropAll();sndStop();A().endMission(true)}propsTick(M,dt);myTick(M,dt);return}
     if(M.phase==='quali'&&M.R&&M.R.racers[0].finished&&M.phase!=='qdone'){}
     mowerUpd(dt,M,F)},
   save:M=>({opt:M.opt||null}),load(M,s){if(!s)return;M.opt=s.opt;const a=A();if(!a||!a.P||!M.choices||!s.opt)return;choose(M,s.opt,true);placeRide(M,99.2,109.6,Math.PI*.5);M.phase='toLine'},
@@ -650,6 +664,7 @@ J.on('hud',st=>{const a=A();if(!a)return;freeRoam();const cv=a.CV;
     if(dl>3&&!P.fp&&!(a.M&&a.M.phase==='podium')){const k=Math.max(.5,4.6/dl);cam.position.set(tx+dx*k,Math.max(gy+1.0,ty+dy*k*.85+.25),tz+dz*k)}
     st.vehicleName=(MOWERS[cv.opt]||{name:'Ride-on mower'}).name+' · #12';if(st.speedMph!=null)st.gear='D'}
   const mine=a.mode==='mission'&&a.M&&a.M.def&&(a.M.def.id==='mower'||a.M.def.id==='mowertt')&&a.M.state==='go';
+  if(mine&&st.weapon){st.weapon.holstered=true;st.weapons=[];if(st.crosshair)st.crosshair.hidden=true}
   if(!mine){if(SND.on&&!(cv&&cv.type==='mower'))sndStop();if(Object.values(OV).some(Boolean))ovDropAll()}});
 /* ---------------------------------------------------------------- the scripted player (dev/jobs-check.js): drives with the keys like
    a person would (steering duty-cycled, throttle, full throttle on straights), stops for Marcus, chases the hustlers on foot.
@@ -658,22 +673,23 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return n
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};const keysOff=()=>{k.w=k.a=k.s=k.d=k.shift=false;k.e=false};
   const steer=(c,tx,tz,vmax)=>{const dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz);let err=Math.atan2(-dx,-dz)-c.yaw;err=Math.atan2(Math.sin(err),Math.cos(err));const duty=Math.min(1,Math.abs(err)*2.2);
     k.a=err>0&&(t%5)/5<duty;k.d=err<0&&(t%5)/5<duty;const want=Math.min(vmax,1+d*1.1);k.w=c.spd<want;k.s=c.spd>want+1.2;k.shift=want>9;return d};
-  const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz),s=Math.min(d,(sp||6.5)/30);P.pos.x+=dx/(d||1)*s;P.pos.z+=dz/(d||1)*s;P.yaw=Math.atan2(-dx,-dz);a.collide(P.pos,.35);return d};
+  const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz),s=Math.min(d,(sp||6.5)/30);P.pos.x+=dx/(d||1)*s;P.pos.z+=dz/(d||1)*s;P.yaw=Math.atan2(-dx,-dz);a.collide(P.pos,.35,0);return d};
   switch(M.phase){
   case 'pick':{keysOff();if(a.CV)a.exitCar();const id=o.fail?'zero':(M.mode==='tt'?'estate':'reliable'),e=M.choices[id];if(walk(e.pos.x+1.7,e.pos.z)<.3)a.useTap=true;return null}
-  case 'toLine':{if(a.CV!==ride){keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}const c=ride.car;
-    if(o.fail){const W=[[92,108.5],[92,101.5],[92,94],[70,94]];M._bw=M._bw||0;while(M._bw<W.length-1&&Math.hypot(W[M._bw][0]-c.x,W[M._bw][1]-c.z)<2.2)M._bw++;steer(c,W[M._bw][0],W[M._bw][1],8);return null}
+  case 'toLine':{if(o.fail&&!a.CV){keysOff();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
+    if(a.CV!==ride){keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}const c=ride.car;
+    if(o.fail){/* gives up: off the mower and out of the gate on foot */if(a.CV)a.exitCar();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
     const W=[[99.6,108.6],[90,108.4],[82.8,107.6],[80.5,106.6]];M._bw=M._bw||0;while(M._bw<W.length-1&&Math.hypot(W[M._bw][0]-c.x,W[M._bw][1]-c.z)<2)M._bw++;steer(c,W[M._bw][0],W[M._bw][1],5.5);return null}
   case 'qdone':case 'count':case 'podium':keysOff();return null;
   case 'fix':{keysOff();const mr=M.field.find(r=>r.id==='marcus');if(walk(mr.car.x+1.3,mr.car.z)<.3)k.e=true;return null}
   case 'chase':{keysOff();const sur=M.hustlers.find(h=>h.e.state==='surrender');if(sur){if(walk(sur.e.pos.x+.8,sur.e.pos.z)<.3)a.useTap=true;return null}
-    const run=M.hustlers.filter(h=>h.state==='run').sort((p,q)=>Math.hypot(p.e.pos.x-P.pos.x,p.e.pos.z-P.pos.z)-Math.hypot(q.e.pos.x-P.pos.x,q.e.pos.z-P.pos.z))[0];if(run)walk(run.e.pos.x,run.e.pos.z,6.8);return null}
+    const run=M.hustlers.filter(h=>h.state==='run').sort((p,q)=>Math.hypot(p.e.pos.x-P.pos.x,p.e.pos.z-P.pos.z)-Math.hypot(q.e.pos.x-P.pos.x,q.e.pos.z-P.pos.z))[0];if(run)walk(run.e.pos.x,run.e.pos.z,6.4);return null}
   case 'back':{keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}}
   /* racing: the same line the AI drives, the throttle and steering as key presses */
   if(a.CV!==ride){keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}
   const me=meRacer(M),c=ride.car;
   if(M.phase==='race'&&M.sabot&&M.choice==null&&!o.keep){const dS=((M.pitS-me.s)%M.T.len+M.T.len)%M.T.len;if(dS<26||Math.hypot(c.x-PIT.x,c.z-PIT.z)<6){steer(c,PIT.x,PIT.z,Math.max(1.2,Math.hypot(c.x-PIT.x,c.z-PIT.z)*.9));if(Math.hypot(c.x-PIT.x,c.z-PIT.z)<2){k.w=false;k.s=c.spd>.4}return null}}
   if(M.phase==='finish'){k.w=false;k.shift=false;k.s=c.spd>.5;k.a=k.d=false;return null}
-  const inp=M.R.ai(me,1/30,{});const duty=Math.min(1,Math.abs(inp.st));k.a=inp.st>0&&(t%4)/4<duty;k.d=inp.st<0&&(t%4)/4<duty;k.w=inp.thr>.1;k.s=inp.thr<-.4;k.shift=!!inp.boost;
+  me.skill=o.skill||.97;const inp=M.R.ai(me,1/30,{});const duty=Math.min(1,Math.abs(inp.st)*1.2);k.a=inp.st>.04&&(t%3)/3<duty;k.d=inp.st<-.04&&(t%3)/3<duty;k.w=inp.thr>.1;k.s=inp.thr<-.4;k.shift=!!inp.boost;
   return null}
 })();
