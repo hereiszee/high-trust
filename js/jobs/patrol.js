@@ -151,10 +151,10 @@ function setupRun(M,o){const a=A(),cj=o&&o.checkpoint&&o.checkpoint.job,V=cj&&cj
 function addP(M,o){A().wmAdd(o);return o}
 function buildEvent(M,s){const a=A(),P_=pt(M),e=s.ev,T=T3(),px=-s.fz,pz=s.fx;/* perpendicular along the street */
   if(e.k==='package'){const m=addP(M,parcel());m.position.set(s.x+s.fx*.35,0,s.z+s.fz*.35);m.rotation.y=Math.random()*3;e.m=m}
-  else if(e.k==='sprinkler'){const x=s.x+s.fx*3.6+px*2.2,z=s.z+s.fz*3.6+pz*2.2;const m=addP(M,sprinklerModel());m.position.set(x,0,z);e.m=m;e.tap={x:s.x-s.fx*.2+px*1.7,z:s.z-s.fz*.2+pz*1.7};const t=addP(M,tapModel());t.position.set(e.tap.x,0,e.tap.z);t.rotation.y=Math.atan2(s.fx,s.fz);
+  else if(e.k==='sprinkler'){const x=s.x+s.fx*1.7+px*2.4,z=s.z+s.fz*1.7+pz*2.4;const m=addP(M,sprinklerModel());m.position.set(x,0,z);e.m=m;e.tap={x:s.x-s.fx*.2+px*1.7,z:s.z-s.fz*.2+pz*1.7};const t=addP(M,tapModel());t.position.set(e.tap.x,0,e.tap.z);t.rotation.y=Math.atan2(s.fx,s.fz);
     try{const F=window.HT.FX;if(F&&F.emitter)e.fx=F.emitter('sprinkler',{pos:new T.Vector3(x,.35,z),radius:3.4,arc:Math.PI*1.2,yaw:Math.atan2(s.fx,s.fz)})}catch(_){}
     const w=new T.Mesh(geoC('disc',()=>new T.CircleGeometry(1,24)),tm(new T.MeshStandardMaterial({color:new T.Color('#3a4650').convertSRGBToLinear(),roughness:.05,metalness:.2,transparent:true,opacity:.5,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4})));
-    w.rotation.x=-Math.PI/2;w.scale.set(2.6,1.6,1);w.position.set(x+s.fx*.4,.03,z+s.fz*.4);addP(M,w);e.puddle=w}
+    w.rotation.x=-Math.PI/2;w.scale.set(2.6,1.6,1);w.position.set(x+s.fx*1.5,.03,z+s.fz*1.5);addP(M,w);e.puddle=w}
   else if(e.k==='dog'){const d=dogModel(pick(['#c99a5a','#8a5a3a','#d8c8a8','#3a3430']));addP(M,d);e.dog={d,x:s.sx+px*3,z:s.sz+pz*3,yaw:0,t:0};d.position.set(e.dog.x,0,e.dog.z)}
   else if(e.k==='chalk'){const tex=chalkTex();const m=plane(4.2,2.1,tex,s.sx+s.fx*.6,.035,s.sz+s.fz*.6,null,Math.atan2(px,pz)+Math.PI/2,{tr:true,decal:true,flat:true});addP(M,m);e.m=m;e.kidRole='nb_kid'}
   else if(e.k==='van'){const v=a.makeVehicle('workvan','#f4f1ea');if(v){const x=s.sx+s.fx*3.4,z=s.sz+s.fz*3.4;v.position.set(x,0,z);v.rotation.y=Math.atan2(-pz,px);addP(M,v);if(v.userData&&v.userData.dispose)R().own.push(v);const tex=vanSide();
