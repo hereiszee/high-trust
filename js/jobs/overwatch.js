@@ -115,16 +115,42 @@ function castKeys(){return['rosa','nb_pops','nb_kid','nb_gran','nb_marcus','nb_k
 function preloadCast(){const pp=window.HT&&HT.People;if(!pp||!pp.preload)return Promise.resolve();return Promise.race([pp.preload(castKeys().filter(k=>!pp.has||!pp.has(k))).catch(()=>{}),new Promise(r=>setTimeout(r,8000))])}
 
 /* ---------------- geometry of the roof ---------------- */
+/* the height of whatever is visibly under (x,z): a downward ray against the level's solid meshes (the open-world building masses
+   are taller than a site's nominal roofY, so heights are measured, not assumed) */
+const _dn={};function surfaceY(x,z,from,fallback){const a=A(),L=a&&a.L;if(!L||!L.solids||!a.THREE)return fallback;const T=a.THREE;if(!_dn.r)_dn.r=new T.Raycaster();
+  _dn.r.set(new T.Vector3(x,from,z),new T.Vector3(0,-1,0));_dn.r.near=0;_dn.r.far=from+2;
+  /* the drawn world, not just the shootable solids (the open-world building tops are drawn but not in L.solids); characters and our own props skipped */
+  const list=[];a.scene.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||!o.visible||o.userData.hitbox||o.userData.ow)return;const bs=o.geometry&&(o.geometry.boundingSphere||(o.geometry.computeBoundingSphere(),o.geometry.boundingSphere));
+    if(!bs)return;o.updateMatrixWorld();const c=bs.center.clone().applyMatrix4(o.matrixWorld),r=bs.radius*o.matrixWorld.getMaxScaleOnAxis();if(Math.hypot(c.x-x,c.z-z)<=r+.5)list.push(o)});
+  const h=_dn.r.intersectObjects(list,false).find(h=>!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<.5));return h?h.point.y:fallback}
+let ROOFY=null,ROOFT=0,ROOFN=0;/* measured once the building's chunk is drawn; retried at most once a second */
 function roofInfo(){const a=A(),s=a.WORLD&&a.WORLD.sites&&a.WORLD.sites.roof;if(!s)return null;const r=s.roof,b=s.building;
-  return{r,y:s.roofY,par:s.parapet,ladder:s.ladder,bottom:{x:s.ladder.bottom.x+.4,z:s.ladder.bottom.z},top:{x:s.ladder.top.x-.3,z:s.ladder.top.z},b,
+  if(ROOFY==null&&ROOFN<40&&Date.now()-ROOFT>1000){ROOFT=Date.now();ROOFN++;const ys=[[.3,.3],[.7,.5],[.5,.8],[.2,.7]].map(([u,v])=>surfaceY(r.x0+(r.x1-r.x0)*u,r.z0+(r.z1-r.z0)*v,20,null)).filter(y=>y!=null&&y>=s.roofY-.2&&y<s.roofY+2).sort((p,q)=>p-q);
+    if(ys.length>=2)ROOFY=ys[Math.floor(ys.length/2)]}
+  return{r,y:ROOFY!=null?ROOFY:s.roofY,par:s.parapet,ladder:s.ladder,bottom:{x:s.ladder.bottom.x+.4,z:s.ladder.bottom.z},top:{x:s.ladder.top.x-.3,z:s.ladder.top.z},b,
     doug:{x:r.x0+1.1,z:r.z0+.9},green:{x:r.x0+1.9,z:r.z0+.55},red:{x:r.x0+2.5,z:r.z0+.55},vantage:{x:r.x0+.75,z:r.z0+3.2}}}
 /* stand on the roof: the building's collider becomes a 7 m floor, the parapet a wall; restored when you climb down or the job ends */
 function roofOn(M,on){const a=A(),R=roofInfo(),L=a.L;if(!R||!L)return;const O=M.ow;
   if(on&&!O.roofCols){const b=R.b;O.bld=L.colliders.find(c=>(c.h==null||c.h>R.y)&&c.x0<=b.x0+.5&&c.x1>=b.x1-.5&&c.z0<=b.z0+.5&&c.z1>=b.z1-.5)||null;if(O.bld){O.bldH=O.bld.h;O.bld.h=R.y}
     const r=R.r,t=.3,H=R.y+2.2,cols=[[r.x0-t,r.z0-t,r.x1+t,r.z0],[r.x0-t,r.z1,r.x1+t,r.z1+t],[r.x0-t,r.z0,r.x0,r.z1],[r.x1,r.z0,r.x1+t,r.z1],
-      [419.9,52.0,422.4,53.7,R.y+1.25],[430.4,50.4,432.3,51.9,R.y+1.25],[434.6,57.2,435.7,58.3,R.y+.45]];
+      ...ROOF_UNITS.map(u=>[u.x-u.w/2-.05,u.z-u.d/2-.05,u.x+u.w/2+.05,u.z+u.d/2+.05,R.y+u.h])];
     O.roofCols=cols.map(c=>{const o={x0:c[0],z0:c[1],x1:c[2],z1:c[3],h:c[4]||H};L.colliders.push(o);return o})}
   else if(!on&&O.roofCols){if(O.bld){if(O.bldH==null)delete O.bld.h;else O.bld.h=O.bldH;O.bld=null}for(const c of O.roofCols){const k=L.colliders.indexOf(c);if(k>=0)L.colliders.splice(k,1)}O.roofCols=null}}
+/* the roof as the player sees it: the slab is the open-world building's top, so the parapet, the units and the hatch are dressed here */
+const ROOF_UNITS=[{x:421.12,z:52.8,w:2.4,d:1.6,h:1.25,k:'ac'},{x:431.38,z:51.12,w:1.8,d:1.4,h:1.25,k:'ac'},{x:435.18,z:57.78,w:1.1,d:1.1,h:.45,k:'hatch'}];
+function roofDress(M){const a=A(),T=a.THREE,R=roofInfo(),r=R.r,Y=R.y,g=new T.Group();const brick='#8d4a37',cap='#d9d4c8',P_=.82,t=.28;
+  const bx=(w,h,d,col,x,y,z,o)=>{const m=mk(new T.BoxGeometry(w,h,d),col,o);m.position.set(x,y,z);g.add(m);return m};
+  const x0=r.x0-.35,x1=r.x1+.35,z0=r.z0-.35,z1=r.z1+.35,W=x1-x0,D=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)/2;
+  for(const[w,d,x,z]of[[W,t,cx,z0+t/2],[W,t,cx,z1-t/2],[t,D,x0+t/2,cz],[t,D,x1-t/2,cz]]){bx(w,P_,d,brick,x,Y+P_/2,z,{rough:.9});bx(w+.06,.07,d+.06,cap,x,Y+P_+.035,z,{rough:.6})}
+  for(const u of ROOF_UNITS){if(u.k==='hatch'){bx(u.w,u.h,u.d,'#3b3f44',u.x,Y+u.h/2,u.z,{rough:.7});bx(u.w+.08,.06,u.d+.08,'#2a2d31',u.x,Y+u.h+.03,u.z);continue}
+    bx(u.w,u.h,u.d,'#a9aeb2',u.x,Y+u.h/2,u.z,{rough:.45});bx(u.w-.3,.05,u.d-.3,'#3a3d41',u.x,Y+u.h+.025,u.z);
+    for(let i=0;i<5;i++)bx(.04,u.h*.6,u.d+.01,'#8b9094',u.x-u.w/2+.3+i*(u.w-.6)/4,Y+u.h*.45,u.z);
+    const fan=new T.Mesh(new T.CylinderGeometry(u.d*.28,u.d*.28,.04,18),a.mat('#2b2e32'));fan.position.set(u.x+u.w*.2,Y+u.h+.06,u.z);g.add(fan)}
+  /* tar seams so the slab doesn't read as a white sheet */
+  for(let i=1;i<6;i++){const s_=mk(new T.BoxGeometry(.06,.01,D-1),'#6d6b67');s_.position.set(x0+i*W/6,Y+.006,cz);g.add(s_)}
+  g.traverse(o=>{o.userData.ow=1});a.wmAdd(g);M.ow.dress=g;M.ow.dressY=Y}
+/* the roof height is measured once the building's chunk is in: if it changes after the props went up, move them with it */
+function dressFollow(M){const O=M.ow,R=roofInfo();if(!R||O.dressY==null||Math.abs(R.y-O.dressY)<.01)return;const dy=R.y-O.dressY;O.dressY=R.y;for(const o of[O.dress,O.cans&&O.cans[0],O.cans&&O.cans[1]])if(o)o.position.y+=dy;if(O.roofCols){const b=O.bld;if(b)b.h=R.y}}
 /* Doug's rifle: the roof gets one gun. The loadout you came with waits at the bottom of the ladder */
 function borrowRifle(M){const a=A(),P=a.P,O=M.ow,H=G();if(O.borrowed||!H.give)return;
   O.borrowed={lo:Object.assign({},P.loadout),ammo:JSON.parse(JSON.stringify(P.ammo||{})),cur:P.cur};
@@ -163,13 +189,13 @@ J.register('overwatch',{
     M.ow.castP=preloadCast().then(()=>{if(M.ow)M.ow.cast=true});
     /* the crew the brief lists are scripted here, not the follow-the-dad AI: take them out of the ally list */
     for(const al of a.allies.slice()){if(al.dude&&al.dude.root.parent)al.dude.root.parent.remove(al.dude.root);if(al.tag)al.tag.remove()}a.allies.length=0;a.rebuildTargets();
-    props(M);
-    if(!o||!o.checkpoint){a.P.pos.set(R.bottom.x+2.2,0,R.bottom.z-3.2);a.P.yaw=Math.atan2(2.2,-3.2)+Math.PI;a.P.pitch=.08;
+    props(M);roofDress(M);
+    if(!o||!o.checkpoint){/* south of the ladder, facing it: the camera clears the car parked in the ring */a.P.pos.set(R.bottom.x-.4,0,R.bottom.z+4.2);a.P.yaw=0;a.P.pitch=.1;
       later(M,5,()=>{if(M.state==='go'&&!M.ow.roof.on)a.radio('doug',"Green box is beans, red box is the real thing. The red box stays closed unless I say so. Or a car does.")})}
     music('tension',.25)},
 
   upd(dt,M,F){const a=A(),O=M.ow,P=a.P,R=roofInfo();if(!O||!R)return;
-    laterStep(dt,M);if(O.roof.fade>0)fadeStep(dt,M);
+    laterStep(dt,M);dressFollow(M);if(O.roof.fade>0)fadeStep(dt,M);
     if(O.roof.on){P.pos.y=Math.max(P.pos.y,R.y-.02);keepOnRoof(M)}
     rifleStep(dt,M);projStep(dt,M);dougStep(dt,M);propsStep(dt,M);
     if(O.esc){O.esc.step(dt,{threat:escortHeld(M),pose,face:threatFace(M)});wit(M)}
@@ -275,7 +301,7 @@ function props(M){const a=A(),O=M.ow,R=roofInfo();
   O.dump=[{x:403.4,z:57.6,yaw:Math.PI/2},{x:375.1,z:34.2,yaw:0}];
   for(const d of O.dump){const yaw=d.yaw,c=Math.abs(Math.cos(yaw)),s=Math.abs(Math.sin(yaw)),hx=.95*c+.58*s,hz=.95*s+.58*c;a.wmCol({x0:d.x-hx,z0:d.z-hz,x1:d.x+hx,z1:d.z+hz,h:1.3})}
   const sc=scarecrow();sc.position.set(411.6,a.groundAt(411.6,88.6),88.6);sc.rotation.y=Math.PI*.92;a.wmAdd(sc);O.scare={x:411.6,z:88.6,mesh:sc,wob:0};
-  const g=ammoCan('#4c6a3a','BEANS');g.position.set(R.green.x,R.y,R.green.z);g.rotation.y=.2;a.wmAdd(g);const r=ammoCan('#8e2b26','LIVE · DAD');r.position.set(R.red.x,R.y,R.red.z);r.rotation.y=-.1;a.wmAdd(r);
+  const g=ammoCan('#4c6a3a','BEANS');g.position.set(R.green.x,R.y,R.green.z);g.rotation.y=.2;a.wmAdd(g);const r=ammoCan('#8e2b26','LIVE · DAD');r.position.set(R.red.x,R.y,R.red.z);r.rotation.y=-.1;a.wmAdd(r);O.cans=[g,r];
   const db=dude(a.HOMIES.doug);a.equip(db,null);db.root.position.set(R.doug.x,R.y,R.doug.z);db.root.rotation.y=Math.PI*.78;O.doug={d:db,bin:toHand(db,binos(),'R',[.02,.05,.08,0,0,0])}}
 function dougStep(dt,M){const O=M.ow,d=O.doug;if(!d)return;const R=roofInfo();d.d.root.position.set(R.doug.x,R.y,R.doug.z);
   /* Doug watches the walk through his binoculars */let t=O.esc&&O.esc.member('ferreira');const tx=t?t.pos.x:407,tz=t?t.pos.z:80;
@@ -416,7 +442,7 @@ function rangeStep(dt,M){const a=A(),O=M.ow,R=O.rifle;R.rangeT-=dt;if(R.rangeT>0
 /* ---------------- waves ---------------- */
 function wave(M,id){const a=A(),O=M.ow;if(O.waves[id])return;O.waves[id]=true;
   if(id==='garden'){threat(M,{id:'alley',x:401.9,z:58.7,yaw:-Math.PI/2,crouch:true,spot:'behind the dumpster in the alley',reveal:TUNE.reveal.alley,fuse:TUNE.fuse[0]});
-    threat(M,{id:'roof',x:398.5,z:62.6,y:9.5,yaw:-Math.PI/2,spot:'on the rowhouse roof',reveal:TUNE.reveal.roof,fuse:TUNE.fuse[0]+1,phone:true});
+    threat(M,{id:'roof',x:405.1,z:61.2,y:9.9,yaw:-Math.PI/2,spot:'on the rowhouse roof',reveal:TUNE.reveal.roof,fuse:TUNE.fuse[0]+1,phone:true});
     civ(M,{id:'gran',name:'Mrs. Alvarez',yelp:'My GROCERIES! Not the eggs! I just got the eggs!',key:'nb_gran',line:'gran',path:[{x:407.3,z:52},{x:407.3,z:66},{x:409,z:71.5},{x:418,z:72}],speed:.9,prop:'bags',delay:6});
     civ(M,{id:'mei',name:'Mei',yelp:"I'm calling the Gazette! Is there a Gazette? I'm calling it!",key:'nb_mei',line:'mei',path:[{x:403.2,z:46.9}],sit:true,yaw:0})}
   else if(id==='court'){threat(M,{id:'hoop',x:401,z:29.6,yaw:Math.PI*.15,spot:'by the hoop on the court',reveal:TUNE.reveal.court,fuse:TUNE.fuse[1],delay:5.5});
@@ -429,7 +455,7 @@ function wave(M,id){const a=A(),O=M.ow;if(O.waves[id])return;O.waves[id]=true;
   else if(id==='car'){O.carT=0;say('ferreira',"Steps. I made it to the steps. Somebody tell my wife.",true);
     later(M,2.6,()=>{say('doug',"Car! Grey sedan, coming up the east side. It's going to turn onto Main right under us. Fast.",true);say('doug',"Beans won't stop a car. Red box, Hawk. Tyres.",false);spawnCar(M)})}}
 function threat(M,o){const a=A(),O=M.ow;const t=Object.assign({st:'pending',marked:false,y:o.y||0,t:0,fireT:0,seen:0},o);O.threats.push(t);if(!o.delay)spawnThreat(M,t);return t}
-function spawnThreat(M,t){const a=A(),O=M.ow;if(t.e)return;const e=a.spawnEnemy(t.x,t.z,false);e.script={kind:'overwatch'};e.noLeash=true;e.hp=e.maxhp=75;e.yaw=t.yaw||0;a.equip(e.dude,null);e.gun=null;e.alert=false;
+function spawnThreat(M,t){const a=A(),O=M.ow;if(t.e)return;if(t.y>1)t.y=surfaceY(t.x,t.z,t.y+6,t.y);const e=a.spawnEnemy(t.x,t.z,false);e.script={kind:'overwatch'};e.noLeash=true;e.hp=e.maxhp=75;e.yaw=t.yaw||0;a.equip(e.dude,null);e.gun=null;e.alert=false;
   e.pos.set(t.x,0,t.z);t.e=e;t.st='lurk';t.key=e.dude.rb&&e.dude.rb.key||'thug_hoodie';t.desc=DESC[t.key]||'hoodie';
   if(t.phone)t.prop=toHand(e.dude,phone(),'L',[.02,.06,.06,0,0,0]);
   if(e.tag){e.tag.remove();e.tag=null}a.rebuildTargets()}
@@ -441,7 +467,7 @@ function threatStep(dt,M,F){const a=A(),O=M.ow,E=O.esc;
     const e=t.e;if(!e)continue;t.t+=dt;
     if(e.state==='dead'){if(t.fled){t.st='gone';continue}if(!t.counted){t.counted=true;t.st='gone';O.stats.lethal++;a.addTrust(-10,'river');a.feed('Lethal force','bad','−10 Riverside trust');say('doug',pick(LINES.lethal),true);M.clean=false;gary(M,null)}poseAt(t,dt,{mode:'down'});continue}
     if(e.state==='cuffed'){if(!t.cuffed){t.cuffed=true;t.st='gone'}poseAt(t,dt,{mode:'kneel'});continue}
-    if(e.state==='surrender'){if(!t.surr){t.surr=true;t.st='surr';O.stats.beaned+=t.bean?1:0;if(t.y>1){/* nobody goes up a roof for him: he sits tight till Dee's deacons fetch him */later(M,2.2,()=>{e.state='cuffed';O.stats.cuffed++;a.addTrust(4,'river');a.feed('He\'s staying put on that roof','trust','+4 Riverside trust');say('gary',"I'm not going up a roof. He can sit there and think about his choices. Deacon Lou's got a ladder.",true)})}else gary(M,t)}
+    if(e.state==='surrender'){if(!t.surr){t.surr=true;t.st='surr';O.stats.beaned+=t.bean?1:0;if(t.y>1){/* nobody goes up a roof for him: he sits tight till Dee's deacons fetch him */later(M,2.2,()=>{e.state='cuffed';O.stats.cuffed++;M.cuffs=(M.cuffs||0)+1;a.addTrust(4,'river');a.feed('He\'s staying put on that roof','trust','+4 Riverside trust');say('gary',"I'm not going up a roof. He can sit there and think about his choices. Deacon Lou's got a ladder.",true)})}else gary(M,t)}
       if(t.y)e.dude.root.position.y=t.y;continue}
     if(t.st==='run'){/* spooked: off down the street (the game's scripted mover), gone for good */if(t.t>9||!e.script){t.st='gone';vanish(e)}continue}
     if(t.st==='dash'){if(!e.script)e.script={kind:'overwatch'};continue}
@@ -486,7 +512,7 @@ function hitThreat(M,t,p,h){const a=A(),O=M.ow,e=t.e,head=!!(h.object&&h.object.
 function gary(M,t){const a=A(),O=M.ow,E=O.esc;if(!E||!t)return;const g=E.member('gary');O.cuffQ=O.cuffQ||[];if(!O.cuffQ.includes(t))O.cuffQ.push(t);if(O.garyBusy)return;garyNext(M)}
 function garyNext(M){const a=A(),O=M.ow,E=O.esc,g=E.member('gary');O.garyBusy=false;const t=(O.cuffQ||[]).shift();if(!t){E.rejoin('gary');return}O.garyBusy=true;
   const e=t.e;if(e.state!=='surrender'){garyNext(M);return}
-  E.detach('gary',{x:e.pos.x+.7,z:e.pos.z+.4},3.6,()=>{if(A().M!==M)return;if(e.state==='surrender'){e.state='cuffed';if(e.tag){e.tag.remove();e.tag=null}O.stats.cuffed++;a.addTrust(4,'river');a.snd&&a.snd('cuff');a.feed('Zip-tied','trust','+4 Riverside trust');say('gary',pick(LINES.gary),true)}
+  E.detach('gary',{x:e.pos.x+.7,z:e.pos.z+.4},3.6,()=>{if(A().M!==M)return;if(e.state==='surrender'){e.state='cuffed';if(e.tag){e.tag.remove();e.tag=null}O.stats.cuffed++;M.cuffs=(M.cuffs||0)+1;a.addTrust(4,'river');a.snd&&a.snd('cuff');a.feed('Zip-tied','trust','+4 Riverside trust');say('gary',pick(LINES.gary),true)}
     later(M,0.7,()=>{garyNext(M)})})}
 
 /* ---------------- Kevin, his Super Soaker, and the neighbours ---------------- */
