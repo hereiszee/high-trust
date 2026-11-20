@@ -1,0 +1,35 @@
+ok   new game: the world hub, 9 jobs, only Gary is waiting, bridge closed ({"mode":"hub","lvl":"world","n":9,"givers":[0],"bridge":false,"inWorld":true,"cash":0})
+     job 0: talked to the giver, accepted, drove 882 steps to the ring -> world (go)
+ok   job 0 Return to Sender: completed and paid $1185 [base:400 cuffs:300 guns:125 hamstring:150 packages:120 quick:100 trust:-10] {"en":10,"items":4,"lvl":"world","got":4,"exitOpen":true}
+ok   Keep driving: back in the hub at the chop shop, nobody left over ({"mode":"hub","lvl":"world","enemies":0,"van":[212,94]})
+     job 1: talked to the giver, accepted, drove 562 steps to the ring -> world (go)
+ok   job 1 Fourth Quarter: completed and paid $1649 [base:550 cuffs:240 guns:100 hamstring:150 clock:432 trust:177] {"smashed":3}
+ok   bridge opens after job 2: banner + Act 2 card, Earl is waiting in Riverside next to Dave ([{"bridge":true,"card":true,"act":2,"givers":[4,2]},{"running":true,"givers":[4,2],"first":4,"gps":17}])
+ok   drive across the open bridge into Riverside ({"steps":169,"d":4.052306498266308,"mode":"hub"})
+     job 4: talked to the giver, accepted, drove 525 steps to the ring -> world (go)
+ok   job 4 End of the Line: completed and paid $1504 [base:650 cuffs:240 guns:100 hamstring:150 bikes:240 converters:120 quick:100 trust:-96] {"en":8,"bikes":6,"conv":4,"loaded":6,"converters":2,"exit":true}
+     job 5: talked to the giver, accepted, drove 333 steps to the ring -> world (stake)
+ok   job 5 Fellowship Hall: completed and paid $1940 [base:800 cuffs:240 guns:100 hamstring:150 stakeout:200 ids:200 courier:250] {"phase":"stake","inCar":true,"sus":[0,0,0],"ids":4,"clean":true,"after":"walkoff","raid":"raid","en":7,"courier":"THE COURIER","smashed":2,"boss":"cuffed"}
+ok   stakeout: three honks -> suspicion 100, the lookouts scatter, every enemy is alerted ({"sus":100,"phase":"raid","loud":true,"alerted":7,"en":7})
+     job 6: talked to the giver, accepted, drove 407 steps to the ring -> world (go)
+ok   job 6 Garden Variety: completed and paid $1844 [base:900 cuffs:420 guns:175 tomatoes:200 trust:149] {"beds0":12,"reviveS":1.77,"state":"won","wave":3,"beds":12,"rosa":true}
+ok   Rosa revives a downed crew member in 1.77 s (9 s without her)
+ok   Rosa follows the crew in the hub as the honorary dad (gary:Gary, rick:Coach Rick, rosa:Rosa · Honorary Dad)
+     job 7: talked to the giver, accepted, drove 290 steps to the ring -> world (escort)
+ok   job 7 Brain Freeze: completed and paid $2627 [base:1000 cuffs:540 guns:225 hamstring:150 truck:200 chase:150 trust:362] {"phase":"escort","amb":[{"i":0,"truck":300},{"i":1,"truck":300},{"i":2,"truck":300}],"court":"court","chase":"chase","truckHp":1,"pursueS":493,"stop":"stopped","rams":4,"Mst":"go","van":37,"vanDmg":{"wall":0,"ram":63.25956392646031,"gun":0},"why":false,"gap":5,"driver":"cuffed","exit":false}
+     job 2: talked to the giver, accepted, drove 795 steps to the ring -> world (go)
+ok   job 2 Block Party: completed and paid $2058 [base:700 cuffs:540 guns:225 hamstring:150 quick:100 trust:343] {"lvl":"world","dir":true,"state":"won","wave":3}
+     job 3: talked to the giver, accepted, drove 309 steps to the ring -> world (go)
+ok   job 3 The Kingpin: completed and paid $2202 [base:1000 cuffs:60 guns:25 hamstring:150 bail:500 quick:100 trust:367] {"lvl":"world","boss":true,"bossDone":"cuffed"}
+     job 8: talked to the giver, accepted, drove 324 steps to the ring -> world (yard)
+FAIL job 8 The Duke: completed and paid $2606 [base:1400 cuffs:60 guns:25 hamstring:150 bail:600 dents:100 trust:271] {"duke":"THE DUKE OF CATALYTIC CONVERTERS","hp":380,"flee":"to","phase":"yard","pursueS":0,"vanHp":100,"bossDone":"cuffed"}
+ok   finale after The Duke: the Act 2 card (both neighbourhoods) with New Saturday / Keep driving ({"finale":true,"both":true,"acts":["result:go","result:retry"],"done":"truetruetruetruetruetruetruetruetrue","mode":"hub","scr":"result","t":"MAPLE HEIGHTS & RIVERSIDE FLATS · ONE MONTH LATER\nDOORS UNLOCKED.\n\nKids bike to "})
+ok   chase win path: the pursuit bot stops the Duke and he is cuffed on 10/10 seeds [[1,"stopped","34s","rams 5","pits 1","van 14","re-centred 1","19/56/12"],[2,"stopped","34s","rams 5","pits 1","van 13","re-centred 2","19/56/12"],[3,"stopped","34s","rams 5","pits 1","van 11","re-centred 1","19/56/15"],[4,"stopped","34s","rams 5","pits 1","van 10","re-centred 2","19/56/15"],[5,"stopped","34s","rams 5","pits 1","van 11","re-centred 1","19/56/15"],[6,"stopped","34s","rams 5","pits 1","van 13","re-centred 2","19/56/12"],[7,"stopped","34s","rams 5","pits 1","van 11","re-centred 1","19/56/15"],[8,"stopped","34s","rams 5","pits 1","van 22","re-centred 2","19/56/3"],[9,"stopped","38s","rams 5","pits 1","van 25","re-centred 2","3/63/9"],[10,"stopped","34s","rams 5","pits 1","van 11","re-centred 1","19/56/15"]]
+ok   chase fail path: nobody follows -> he escapes, the job fails with a chase checkpoint on 10/10 seeds (16s 16s 16s 16s 16s 16s 16s 16s 16s 41s)
+ok   leash: an enemy dragged 12 tiles outside the site window walks back toward his spawn ({"d0":229,"d1":161,"script":"home","unit":"route cost"})
+ok   leaving the job: 40 m outside the site for 8 s fails it with the windshield note
+ok   fallback: CFG.inWorld=false builds the old separate level ({"lvl":"gary","en":10,"note":true,"back":"world"})
+ok   gates: at Riverside trust 10 Pastor Dee says "needs Riverside trust 15%" and offers no brief; at 16 she does ({"g":{"x":331,"z":39,"locked":"Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.","tag":"needs Riverside trust 15%"},"brief":false,"g2":{"x":331,"z":39,"locked":null,"tag":null},"lock":null})
+ok   no console errors
+1 FAILED
+(job 8 re-run after the crew-hold-fire fix: ok, paid $2662 incl bail 600 + chase 150, twice)
