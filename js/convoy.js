@@ -43,7 +43,8 @@ const K={
   stopDec:7,                          /* decel used to brake for a stop line or something in the lane */
   laneW:2.3,look:14,                  /* "something in my lane": within 2.3 m to the side and 14 m ahead */
   headCruise:11,headSlack:16,headWaitD:34, /* a van in the lead: cruise, slow when the line stretches by 16 m, stop past 34 m */
-  bumpMin:2.2,bumpK:2.6               /* convoy-on-convoy contacts: damage (vn - 2.2) * 2.6 hp to each car */
+  bumpMin:2.2,bumpK:2.6,              /* convoy-on-convoy contacts: damage (vn - 2.2) * 2.6 hp to each car */
+  joinSpeed:5,bridgeStraight:30       /* pulling out of a bay on rails; a gap to the car in front shorter than this is driven straight */
 };
 
 /* ---------------- polyline helpers ---------------- */
@@ -52,6 +53,11 @@ function segProj(A,B,x,z){const dx=B.x-A.x,dz=B.z-A.z,L2=dx*dx+dz*dz||1e-9,t=cla
 function nearest(pts,x,z,i0,i1){let best=null,s=0;const n=pts.length;if(n<2)return n?{i:0,t:0,d:hyp(pts[0].x-x,pts[0].z-z),s:0,px:pts[0].x,pz:pts[0].z}:null;
   i0=Math.max(0,i0||0);i1=Math.min(n-2,i1==null?n-2:i1);for(let i=0;i<i0;i++)s+=hyp(pts[i+1].x-pts[i].x,pts[i+1].z-pts[i].z);
   for(let i=i0;i<=i1;i++){const r=segProj(pts[i],pts[i+1],x,z);if(!best||r.d<best.d-1e-6)best={i,t:r.t,d:r.d,s:s+r.t*r.L,px:r.px,pz:r.pz};s+=r.L}return best}
+/* a rounded polyline with arc length (corners filleted by two Chaikin passes): {len, at(s)->{x,z,yaw}} */
+function railPath(raw){let P=raw.map(p=>({x:p.x,z:p.z}));for(let it=0;it<2;it++){const o=[P[0]];for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1];o.push({x:a.x*.75+b.x*.25,z:a.z*.75+b.z*.25},{x:a.x*.25+b.x*.75,z:a.z*.25+b.z*.75})}o.push(P[P.length-1]);P=o}
+  const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+hyp(P[i].x-P[i-1].x,P[i].z-P[i-1].z));const len=cum[cum.length-1];
+  const pt=s=>{s=clamp(s,0,len);let i=0;while(i<cum.length-2&&cum[i+1]<s)i++;const A=P[i],B=P[i+1]||A,L=(cum[i+1]-cum[i])||1,t=(s-cum[i])/L;return{x:A.x+(B.x-A.x)*t,z:A.z+(B.z-A.z)*t}};
+  return{pts:P,len,at:s=>{const q=pt(s),a=pt(s-1),b=pt(s+1);return{x:q.x,z:q.z,yaw:yawTo(b.x-a.x,b.z-a.z)}}}}
 function arcLen(pts){let s=0;for(let i=1;i<pts.length;i++)s+=hyp(pts[i].x-pts[i-1].x,pts[i].z-pts[i-1].z);return s}
 /* the turn ahead on a path within d metres: -1 right, 1 left, 0 none (positive yaw change = left) */
 function turnAhead(pts,from,d){let s=0,y0=null;for(let i=Math.max(1,from);i<pts.length;i++){const a=pts[i-1],b=pts[i],L=hyp(b.x-a.x,b.z-a.z);if(L<.2)continue;const y=yawTo(b.x-a.x,b.z-a.z);
@@ -107,19 +113,25 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
     const all=ch.map(e=>e.car);
     for(const m of C.cars){const c=m.car,st0=m.st;if(m.st==='out'){c.spd=Math.max(0,c.spd-k.dadBrake*dt);continue}
       const i=ch.indexOf(m),p=i>0?ch[i-1]:null;let v=0,pts=null;
-      const others=(ctx.others||[]).concat(all.filter(x=>x!==c));
+      /* yield to everything outside the line, and to the cars ahead in it; never to your own followers (they yield to you) */
+      const others=(ctx.others||[]).concat(i>0?ch.slice(0,i).map(e=>e.car).filter(x=>x!==c):[]).concat(C.cars.filter(e=>e.st==='out'||e.st==='park').map(e=>e.car).filter(x=>x!==c));
       if(m.st==='head'){/* in the lead: the route home, at a convoy pace, waiting for the line */
-        pts=m.route&&m.route.length>1?m.route:[{x:c.x,z:c.z},{x:c.x+fwd(c.yaw)[0],z:c.z+fwd(c.yaw)[1]}];const nx=ch[1];v=k.headCruise;
-        if(nx&&nx.st!=='wait'&&nx.st!=='park'){const d=hyp(nx.car.x-c.x,nx.car.z-c.z)-(nx.len+m.len)/2;if(d>gap+k.headWaitD)v=0;else if(d>gap+k.headSlack)v=k.headCruise*.5}
+        pts=m.route&&m.route.length>1?m.route:[{x:c.x,z:c.z},{x:c.x+fwd(c.yaw)[0],z:c.z+fwd(c.yaw)[1]}];v=k.headCruise;
+        /* pace the whole line: the worst stretch between any two rolling cars behind */
+        let worst=0;for(let q=1;q<ch.length;q++){const a=ch[q-1],b=ch[q];if(b.st==='wait'||b.st==='park'||b.st==='join'||b.st==='out')break;worst=Math.max(worst,hyp(a.car.x-b.car.x,a.car.z-b.car.z)-(a.len+b.len)/2-gap)}
+        if(worst>k.headWaitD)v=0;else if(worst>k.headSlack)v=k.headCruise*.5
         if(C.holding)v=0;const nr=nearest(pts,c.x,c.z);if(nr&&nr.i>2){m.route=pts=pts.slice(nr.i)}}
       else if(m.st==='park'){/* in its bay, engine running: go when the car in front is past the join's end */
         v=0;pts=m.join;const e=m.join[m.join.length-1];if(!p||p.st==='park'||p.st==='join'){/* wait */}
         else{const pd=hyp(p.car.x-e.x,p.car.z-e.z),ok=p===C.lead?pd>gap+3:pd>gap+m.len;if(ok&&!C.holding){m.st='join'}}}
-      if(m.st==='join'){pts=m.join;v=6.5;const e=pts[pts.length-1];if(hyp(c.x-e.x,c.z-e.z)<3.2){m.st='line';m.lagT=0}
-        if(p&&p.st!=='park'&&p.st!=='join'){const tr=trail(m,p);if(tr.off<2.5){m.st='line'}}}
+      if(m.st==='join'){/* out of the bay on rails: the join path is authored and checked clear, and a parking lot is no place for an AI to improvise */
+        const J=m.jp||(m.jp=railPath(m.join));let vj=Math.min(k.joinSpeed,(m.jv||0)+3*dt);const g=laneGap(c,others,k.look,k.laneW);if(g!=null)vj=Math.min(vj,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.4))));
+        const left=J.len-(m.js||0);vj=Math.max(0,vj);m.jv=vj;m.js=Math.min(J.len,(m.js||0)+vj*dt);const q=J.at(m.js);const y0=c.yaw;c.x=q.x;c.z=q.z;c.yaw=q.yaw;c.spd=vj;c.steer=clamp(wrap(c.yaw-y0)/Math.max(dt,1e-3)*.4,-1,1);
+        m.want=vj;m.signal=turnAhead(m.join,1,10);record(m,dt);if(left<.3){m.st='line';m.lagT=0;m.jp=null;if(c.ai)c.ai=null;ev.changed.push(m)}else{if(m.st!==st0)ev.changed.push(m);continue}}
       if((m.st==='line'||m.st==='lag'||m.st==='hold'||m.st==='wait')&&p){
         const tr=trail(m,p),want=gap+(p.len+m.len)/2;
-        if(tr.off>k.bridgeD&&ctx.bridge){m.bridgeT-=dt;if(!m.bridge||m.bridgeT<=0){m.bridgeT=k.bridgeT;m.bridge=ctx.bridge(m,{x:p.car.x,z:p.car.z})}pts=m.bridge&&m.bridge.length>1?m.bridge:tr.pts}
+        if(tr.off>k.bridgeD){m.bridgeT-=dt;if(!m.bridge||m.bridgeT<=0){m.bridgeT=k.bridgeT;const d=hyp(p.car.x-c.x,p.car.z-c.z);/* close: just drive over to it; far: the roads */
+            m.bridge=d<k.bridgeStraight||!ctx.bridge?[{x:c.x,z:c.z},{x:p.car.x,z:p.car.z}]:ctx.bridge(m,{x:p.car.x,z:p.car.z})}pts=m.bridge&&m.bridge.length>1?m.bridge:tr.pts}
         else{m.bridge=null;pts=tr.pts}
         const arc=pts===tr.pts?tr.arc:arcLen(pts)+0,vp=speedOf(p,k.react);
         /* a dad sees the gap a moment late too: where the car in front was react seconds ago, carried on at the speed he saw then */
@@ -127,13 +139,13 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
         if(tt>k.react+.4)H.splice(0,1);const seen=Math.min(arc+2,old+vp*Math.min(tt,k.react)-dme),e=seen-want;
         v=vp+k.kp*e;if(e<-1.5)v=Math.min(v,0);v=clamp(v,0,e>20?k.lagMax:k.max);
         /* lost: far behind for a while -> pull over and wait */
-        if(m.st==='wait'){v=0;if(hyp(p.car.x-c.x,p.car.z-c.z)<k.resume+want){m.st='line';m.lagT=0}}
+        if(m.st==='wait'){v=0;const L_=C.lead&&C.lead.car;/* the car it follows comes back, or you do: it rejoins (a road route if the trail's gone) */if(hyp(p.car.x-c.x,p.car.z-c.z)<k.resume+want||L_&&hyp(L_.x-c.x,L_.z-c.z)<k.resume*.75){m.st='line';m.lagT=0}}
         else if(m.st==='hold'){v=0}
         else{const stopped=ctx.stop&&ctx.stop(m)!=null&&c.spd<1;if(arc>k.wait+want&&!stopped)m.lagT+=dt;else m.lagT=Math.max(0,m.lagT-dt*2);m.st=arc>k.wait*.6+want?'lag':'line';if(m.lagT>=k.waitT){m.st='wait';m.lagT=0;v=0}}}
       else if(m.st!=='head'&&m.st!=='park'&&m.st!=='join'){v=0}
       /* stop lines (red lights, the job's own holds) and anything in the lane */
-      if(ctx.stop&&m.st!=='park'){const d=ctx.stop(m);if(d!=null)v=Math.min(v,Math.sqrt(Math.max(0,2*k.stopDec*(d-.6))))}
-      if(m.st!=='park'){const g=laneGap(c,p?others.filter(x=>x!==p.car):others,k.look,k.laneW);if(g!=null)v=Math.min(v,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.2))))}
+      m.lim=v.toFixed(1);if(ctx.stop&&m.st!=='park'){const d=ctx.stop(m);if(d!=null){v=Math.min(v,Math.sqrt(Math.max(0,2*k.stopDec*(d-.6))));m.lim+=' stop'+d.toFixed(1)}}
+      if(m.st!=='park'){const g=laneGap(c,p?others.filter(x=>x!==p.car):others,k.look,k.laneW);if(g!=null){v=Math.min(v,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.2))));m.lim+=' gap'+g.g.toFixed(1)}}
       /* bends on the trail: crumbs every 2 m hide a corner from HT.CarAI's per-segment check, so slow for it here */
       if(pts&&pts.length>2&&m.st!=='park'){const b=bendAhead(pts,1,Math.max(10,c.spd*1.4));if(b>.45)v=Math.min(v,Math.max(k.turnSpeed*(1.25-b*.35),4.5))}
       m.want=v;m.signal=pts?turnAhead(pts,1,16):0;
@@ -157,6 +169,6 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
     for(const m of C.cars)if(!ord.includes(m))ord.push(m);C.cars=ord;C.head=null;if(C.holding)for(const m of C.cars)if(m.st==='line')m.st='hold'};
   return C}
 
-HT.Convoy={create,K,nearest,arcLen,turnAhead,bendAhead,laneGap,fwd,yawTo,wrap};
+HT.Convoy={create,K,nearest,arcLen,railPath,turnAhead,bendAhead,laneGap,fwd,yawTo,wrap};
 if(typeof module!=='undefined'&&module.exports)module.exports=HT.Convoy;
 })(typeof window!=='undefined'?window:globalThis);
