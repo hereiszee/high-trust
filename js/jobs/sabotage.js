@@ -490,7 +490,7 @@ function nvgOn(){const N=window.NIGHT;return!!(N&&N.nvg)}
 
 function postInit(M,o){const a=A(),P=a.P;
   /* no guns tonight: the hands hold a pocketful of jerky (fire = toss a treat) */
-  if(P.dude&&P.dude.gun)a.equip(P.dude,null);if(P.weapons&&P.weapons.length){M.savedW=P.weapons.slice();P.weapons.length=0}M.item='sab_treat';
+  if(P.dude&&P.dude.gun)a.equip(P.dude,null);M.item='sab_treat';/* def.noGuns holsters the gun (framework); fire tosses a treat */
   if(!(o&&o.checkpoint)){const ex=a.L.exit;if(ex){P.pos.set(ex.x,0,ex.z);a.collide(P.pos,.35);P.yaw=Math.atan2(-(427-ex.x),-(114-ex.z))}
     lineSeq(M,L.open.concat([nvgUsable()?L.nvgYes:L.nvgNo,L.route,L.flash,L.sign]),3.6)}
   try{const Au=window.HT&&HT.Audio;if(Au&&Au.music)Au.music('tension',{intensity:.2})}catch(_){}}
@@ -629,7 +629,7 @@ const _start=J.get('sabotage').start;J.get('sabotage').start=function(M,o){if(LI
 function safeAt(M,x,z,stance,dur){const S=M.S;if(S.max()>.3)return false;const pr=S.probe({x,z,stance:stance||'crouch',lit:S.lightAt(x,z,1,.4)});if(pr.v>0)return false;
   for(const id of ORDER){const g=M.g[id];if(g.tied)continue;const d=hyp(g.pos.x-x,g.pos.z-z);if(d<5)return false;const ang=Math.abs(wrap(yawTo(x-g.pos.x,z-g.pos.z)-g.ob.yaw));
     if(d<(dur||2.5)*1.5+6&&ang<2)return false;if(g.ob.lamp&&d<27&&ang<.75&&!M.S.blocked(g.pos.x,g.pos.z,1.65,x,z,stance==='crouch'?.9:1.45))return false}
-  const T=M.tiny;if(T&&!T.ob.off&&hyp(T.pos.x-x,T.pos.z-z)<(stance==='crouch'?4.6:12.5))return false;return true}
+  const T=M.tiny;if(T&&!T.ob.off){const rr=(stance==='crouch'?4.6:12.5)*(S.blocked(x,z,1.2,T.pos.x,T.pos.z,1.2,2.6)?.6:1);if(hyp(T.pos.x-x,T.pos.z-z)<rr)return false}return true}
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.S||!M.vis||!M.vis.trucks)return null;const k=a.keys;
   const B=M.bot||(M.bot={act:null,wait:0,log:[]});const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};
   if(a.CV){if(!M.exitOpen)a.exitCar();return null}

@@ -28,8 +28,8 @@ const OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/sabot
     if(/approach|in-the-yard/.test(n))set([427,9.5,129],[427,0,115]);
     else if(/tarp/.test(n))set([421.8,1.9,119.4],[418.6,.4,116.8]);
     else if(/air-out/.test(n)){const v=M.valves.find(v=>v.prog>0)||M.valves[0],sd=v.wz<116.5?1:-1;set([v.wx+1.9,1.15,v.wz+sd*2.5],[v.wx,.35,v.wz])}
-    else if(/rims/.test(n)){const i=M.valves.findIndex(v=>v.done),t=Y_[i>>1],sd=t.z<116.5?1:-1;set([t.x+3.6,1.5,t.z+sd*4.6],[t.x,.45,t.z])}
-    else if(/tiny|good-boy/.test(n)){const T=M.tiny;set([430,1.5,113.2],[T.pos.x,.45,T.pos.z])}
+    else if(/rims/.test(n)){const i=M.valves.findIndex(v=>v.done),t=Y_[i>>1],v=M.valves[i];set([t.x<427?426.2:428,1.25,116.6],[v.wx,.4,v.wz])}
+    else if(/tiny|good-boy/.test(n)){const T=M.tiny;set([T.pos.x-1.6,1.25,T.pos.z+2.6],[T.pos.x,.4,T.pos.z])}
     else if(/banner-going|banner-up/.test(n))set([424,2.3,95.5],[426,3.4,104])
     else if(/ledger/.test(n))set([422.8,2.1,110.8],[419.6,.8,107.3])},n);
   const shot=async(n,prep)=>{if(!SHOTS)return;await frame(n);await place(n);if(prep)await ev(prep);

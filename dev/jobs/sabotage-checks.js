@@ -40,7 +40,17 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   if(SHOTS){const {b,p,errs}=await open({viewport:{width:844,height:390},dpr:2});const ev=(f,a)=>p.evaluate(f,a);fs.mkdirSync(OUT,{recursive:true});
     await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}H.HUD.hide('title');H.enterHub();await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('sabotage');j.test.give(H.jobs.api);H.giveNvg(1);
       await window.HT.People.preload(['nb_pops','thug_track','thug_jacket']).catch(()=>{});for(let i=0;i<40&&H.assets.stream&&!H.assets.stream.idle();i++)await new Promise(r=>setTimeout(r,500));
-      H.jobs.start('sabotage');H.step(200);const P=H.P,M=H.M;P.pos.set(424.6,0,116.4);P.crouch=true;P.yaw=Math.atan2(-(421.3-424.6),-(115.52-116.4))-.3;P.pitch=-.25;H.step(30);
+      H.jobs.start('sabotage');H.step(330);const P=H.P,M=H.M;P.pos.set(424.6,0,116.4);P.crouch=true;P.yaw=Math.atan2(-(421.3-424.6),-(115.52-116.4))-.3;P.pitch=-.25;H.step(30);
       H.ow&&H.ow.buildAll&&H.ow.buildAll();H.ow&&H.ow.update&&H.ow.update(H.camera);H.draw()});
-    await p.screenshot({path:path.join(OUT,'touch-yard.jpg'),type:'jpeg',quality:82});console.log('     shot touch-yard.jpg');await b.close()}
+    await p.screenshot({path:path.join(OUT,'touch-yard.jpg'),type:'jpeg',quality:82});console.log('     shot touch-yard.jpg');await b.close()
+    /* HUD in play (1280x720): the eye, the gem, a guard's "?", the cones; then the same with the goggles */
+    const o2=await open();const e2=(f,a)=>o2.p.evaluate(f,a);
+    await e2(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}H.HUD.hide('title');H.enterHub();await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('sabotage');j.test.give(H.jobs.api);
+      await window.HT.People.preload(['nb_pops','thug_track','thug_jacket']).catch(()=>{});for(let i=0;i<40&&H.assets.stream&&!H.assets.stream.idle();i++)await new Promise(r=>setTimeout(r,500));
+      H.jobs.start('sabotage');H.step(60*36)});
+    const hs=async(n,f,a)=>{await e2(f,a);await e2(()=>{const H=window.__ht;H.ow&&H.ow.buildAll&&H.ow.buildAll();H.ow&&H.ow.update&&H.ow.update(H.camera);H.draw()});await o2.p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:82});console.log('     shot '+n)};
+    await hs('hud-walt-wonders',()=>{const H=window.__ht,P=H.P;P.pos.set(422.6,0,116.6);P.crouch=false;P.yaw=Math.atan2(-(426-422.6),-(118.6-116.6));P.pitch=-.12;for(let i=0;i<70;i++)H.step(1)});
+    await hs('hud-hidden-under-tarp',()=>{const H=window.__ht,P=H.P,M=H.M;M.hide='tarp';M.S.calm(3);H.step(30);P.yaw=Math.atan2(-(426-418.5),-(116-116.8))-.35;P.pitch=-.2;H.step(2)});
+    await hs('hud-goggles-routes',()=>{const H=window.__ht,P=H.P,M=H.M;M.hide=null;H.giveNvg(1);H.nvg(true);P.pos.set(416,0,113);P.crouch=true;P.yaw=Math.atan2(-(427-416),-(117-113));P.pitch=-.3;H.step(40)});
+    const e3=o2.errs.filter(e=>!/favicon/.test(e));ok(!e3.length,'HUD shots without console errors');await o2.b.close()}
   console.log(fails?fails+' FAILED':'all ok');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});
