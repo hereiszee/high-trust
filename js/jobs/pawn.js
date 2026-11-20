@@ -966,6 +966,11 @@ function bakeryTick(){const a=A();if(!a)return;const s=a.SV&&a.SV(),on=!!(s&&s.w
   /* a striped awning over the doors and windows */
   const aw=document.createElement('canvas');aw.width=512;aw.height=64;const ax=aw.getContext('2d');for(let i=0;i<16;i++){ax.fillStyle=i%2?'#f6ead2':'#2f7d55';ax.fillRect(i*32,0,33,64)}
   const ag=own_(new T3.PlaneGeometry(10.6,1.3));const am=new T3.Mesh(ag,own_(new T3.MeshStandardMaterial({map:tex(aw),roughness:.85,side:T3.DoubleSide})));am.position.set(358,2.75,38.75);am.rotation.x=-Math.PI/2+.62;am.castShadow=true;g.add(am);
+  /* the barred "WE BUY GOLD" window posters become bakery windows */
+  const wv=document.createElement('canvas');wv.width=256;wv.height=192;const wx=wv.getContext('2d');const gr=wx.createLinearGradient(0,0,0,192);gr.addColorStop(0,'#f9e9c8');gr.addColorStop(1,'#e8c98f');wx.fillStyle=gr;wx.fillRect(0,0,256,192);
+  wx.strokeStyle='#7a4a24';wx.lineWidth=8;wx.strokeRect(4,4,248,184);wx.fillStyle='#7a4a24';wx.textAlign='center';wx.font='italic 900 34px Georgia, serif';wx.fillText('Fresh Bread',128,62);wx.font='700 22px Georgia, serif';wx.fillText('conchas · bolillos',128,104);wx.fillText('empanadas · cafe',128,134);wx.font='700 18px Georgia, serif';wx.fillText('OPEN 7 AM',128,170);
+  const wt=tex(wv),wm=own_(new T3.MeshStandardMaterial({map:wt,roughness:.6,emissive:new T3.Color(.18,.14,.08),emissiveMap:wt})),wg=own_(new T3.PlaneGeometry(2.15,1.6));
+  for(const x of[354.4,361.6]){const w=new T3.Mesh(wg,wm);w.position.set(x,1.75,38.1);g.add(w)}
   L_.group.add(g);BAK.g=g;BAK.L=L_;g.visible=!inJob}
 J.on('pose',()=>{try{bakeryTick()}catch(e){BAK.err=String(e)}});HT.Jobs.bakery=BAK;
 /* warm the party cast while the job is on offer in the hub */
