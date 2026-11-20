@@ -120,6 +120,7 @@ const _f=V(0,0,0),_u=V(0,0,0),_r=V(0,0,0),_q=new THREE.Quaternion(),_e=new THREE
 function start(a,e){F.on=true;F.air=false;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
   F.q.setFromEuler(_e.set(0,e.yaw+Math.PI/2,0,'YZX'));e.fly=true;F.trails=[[],[]];F.said={};F.flightT=0;
   const s=sv();if(s&&s.jet)s.jet.flights=(s.jet.flights|0)+1;say(TOWER,pick(LINES.enter),true);
+  try{if(HT.People&&HT.People.preload)HT.People.preload(['wife','son','daughter'])}catch(_){}/* so they can come out and wave when you buzz the house */
   teach(a,'fly1','Jet: W / S throttle · Shift afterburner · A / D steer on the ground · nose up (mouse up or ↑) past 90 mph to take off');
   hudShow(true)}
 function stop(a,e){F.on=false;F.air=false;if(e){e.fly=false;e.noExit=false}flight(false);hudShow(false);jetSound(0,0)}

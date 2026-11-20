@@ -137,7 +137,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await fly({to:[-200,230],alt:90,max:140});await perf('jet climbing out');
     await press('v');await step(4);await shot('jet-cockpit');await press('v');await step(2);await ev(()=>{window.__ht.P.fp=false});
     /* the circuit: north over Maple Heights, low and fast over the house (the family comes out), a sonic boom */
-    await fly({to:[40,-120],alt:110,max:260,until:q=>q.z<-40});
+    await fly({to:[250,120],alt:80,max:300,until:q=>Math.hypot(q.x-250,q.z-120)<60});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
     await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:105,ab:true,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
     await fly({to:[home.x+260,home.z+40],alt:45,spd:100,ab:true,max:120});
@@ -145,9 +145,8 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz,'buzzed the house: the family came out ('+j.fam+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
     /* the High Bridge: north along the river, under the deck */
     const HB=await ev(()=>HT.Jet.HB);
-    await fly({to:[294,HB.z+400],alt:60,spd:70,max:400,until:q=>Math.abs(q.x-294)<40&&q.z>HB.z+300});
-    await fly({to:[294,HB.z+120],alt:60,spd:65,max:300,until:q=>q.z<HB.z+150});
-    await fly({to:[294,HB.z-200],alt:q=>q.z<HB.z+110?7:30,spd:60,max:400,until:q=>q.z<HB.z-30});
+    await fly({to:[294,210],alt:60,spd:70,max:500,until:q=>Math.hypot(q.x-294,q.z-210)<40});
+    await fly({to:[294,-400],alt:q=>q.z<130?8:45,spd:62,max:600,until:q=>q.z<HB.z-30||!q.on});
     await shot('jet-bridge');j=await js();const ach2=await ev(()=>HT.Jobs.api.SV().base.jet);ok(ach2.bridge,'flew under the High Bridge ('+(j.on?'still flying':'crashed')+')');
     /* back to Fort Sensible: around to the east, line up with runway 27, gear down, land heading west */
     if(!j.on){say('  (back to the jet for the landing)');await ev(()=>{const P=window.__ht.P;P.pos.set(256,0,215.6)});await step(4);await press('e')}
