@@ -21,7 +21,7 @@ const TW=()=>window.HT&&HT.Tow&&HT.Tow.S?HT.Tow:null;
 
 /* ---------------- tuning ---------------- */
 const K={sweep:720,goldT:540,talkR:3.2,dropR:3.4,dropYaw:32,ownerSee:85,pounceSlow:1.3,pounceD:20,unhook:4.5,tailGap:11,brakeDv:5.5,stall:9,
-  stealSpd:10.5,fakeMax:15,carPay:80,clean:200,truck:250,hire:3,wreckFail:3};
+  stealSpd:10.5,fakeMax:15,carPay:80,clean:200,truck:250,talk:50,hire:3,wreckFail:3};
 const D2R=Math.PI/180;
 /* the lot: grass at the river end of Dock St, in line with River Rd; gate on the north side */
 const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:310.9,g1:318.9,desk:{x:309.6,z:131.3},ring:{x:322,z:127}};
@@ -182,7 +182,7 @@ J.register('tow',{
     M.att=[attendant(M,LOT.desk.x+.1,LOT.desk.z+.95,'MANAGER','pistol',Math.PI),attendant(M,LOT.desk.x+2.6,LOT.desk.z+.2,'KYLE','nailer',Math.PI*.85),attendant(M,LOT.g1+.9,LOT.z0-.9,'VEST GUY','pistol',Math.PI*1.2)];
     a.rebuildTargets();a.wmSetWindow(a.wmWindow(314,138,16));
     /* Sal behind your ride with the hitch kit */
-    const c=M.car;if(c){const f=fwd(c.yaw),S=a.carSize(c);M.sal=person(null,{look:a.HOMIES.sal},SAL.x,SAL.z,0);M.salTo={x:c.pos.x-f[0]*(S.l/2+1.1),z:c.pos.z-f[1]*(S.l/2+1.1)};
+    const c=M.car;if(c){const f=fwd(c.yaw),S=a.carSize(c);const r=rgt(c.yaw);M.salTo={x:c.pos.x-f[0]*(S.l/2+1.1),z:c.pos.z-f[1]*(S.l/2+1.1)};M.sal=person(null,{look:a.HOMIES.sal},M.salTo.x+r[0]*3.2-f[0]*1.5,M.salTo.z+r[1]*3.2-f[1]*1.5,0);
       const kit=a.box(.6,.3,.4,'#c0392b',M.salTo.x+.6,.15,M.salTo.z+.3);a.wmAdd(kit);M.kit=kit}
     if(o&&o.checkpoint)return;
     const Au=window.HT&&HT.Audio;if(Au&&Au.ready)try{Au.music('tension',{intensity:.3})}catch(_){}},
@@ -220,7 +220,7 @@ J.register('tow',{
   payout(M,ok){if(!ok)return[];const n=M.cars.filter(e=>e.st==='done').length,out=[['Cars returned ×'+n,K.carPay*n]];
     if(n===5&&M.cars.every(e=>(e.dropF||0)>=.9))out.push(['Not a scratch',K.clean]);
     if(M.brought)out.push(['Brought me the truck',K.truck]);
-    if(M.talked&&!M.fought)out.push(['Talked past the "attendants"',0]);
+    if(M.talked&&!M.fought)out.push(['Talked past the "attendants"',K.talk]);
     return out},
   medal:M=>{const n=M.cars.filter(e=>e.st==='done'&&!e.wreck).length;if(n<5)return 1;const clean=M.cars.every(e=>(e.dropF||0)>=.9);return clean&&(M.sweepDone||M.sweep)<K.goldT?3:2},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV(),Sv=window.HT&&HT.Save;if(!s)return;
