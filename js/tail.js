@@ -128,7 +128,9 @@ function Rail(path,o){o=o||{};const R={path,s:o.s||0,v:o.v||0,max:o.max||11.5,ac
     /* the end of the path */
     const left=path.len-R.s;if(o.stopAtEnd!==false){want=Math.min(want,Math.sqrt(Math.max(0,2*R.dec*.8*(left-.3))));if(left<.4){R.done=true;want=0}}
     /* gap keeping: anything ahead in the lane */
-    R.blocked=false;if(ctx.ahead){const g=ctx.ahead(R);if(g!=null){const vg=Math.sqrt(Math.max(0,2*R.dec*.9*Math.max(0,g-R.gap)));if(vg<want){want=vg;R.blocked=g<R.gap+3}}}
+    /* never wait forever: after 6 s blocked, nose through (a stuck rail would end a tail for nothing) */
+    R.blocked=false;R.ghostT=Math.max(0,(R.ghostT||0)-dt);if(ctx.ahead&&!R.ghostT){const g=ctx.ahead(R);if(g!=null){const vg=Math.sqrt(Math.max(0,2*R.dec*.9*Math.max(0,g-R.gap)));if(vg<want){want=vg;R.blocked=g<R.gap+3}}}
+    R.blockT=R.blocked&&R.v<.3?(R.blockT||0)+dt:0;if(R.blockT>=6){R.blockT=0;R.ghostT=2.5}
     const v0=R.v;if(R.v<want)R.v=Math.min(want,R.v+R.acc*dt);else R.v=Math.max(want,R.v-R.dec*1.4*dt);R.brake=R.v<v0-.05||want<.3&&R.v<.5;
     const y0=R.yaw;R.s=Math.min(path.len,R.s+R.v*dt);R.lat+=(R.latWant-R.lat)*Math.min(1,dt*1.3);
     const a=path.at(R.s),r=rgt(a.yaw);R.x=a.x+r[0]*R.lat;R.z=a.z+r[1]*R.lat;R.yaw=a.yaw+(R.latWant!==R.lat?clamp((R.latWant-R.lat)*.35,-.25,.25)*-1:0);
@@ -137,7 +139,7 @@ function Rail(path,o){o=o||{};const R={path,s:o.s||0,v:o.v||0,max:o.max||11.5,ac
 /* "something ahead of me in my lane": distance to the nearest of `others` ({x,z,yaw}) within r m ahead and 2.2 m to the side */
 function aheadGap(me,others,r){const f=fwd(me.yaw);let best=null;for(const o of others){if(!o||o===me)continue;const dx=o.x-me.x,dz=o.z-me.z,a=dx*f[0]+dz*f[1];if(a<=0||a>r)continue;
   const side=Math.abs(dx*-f[1]+dz*f[0]);if(side>(o.w||2.2))continue;
-  if(o.yaw!=null&&o.pri!=null&&me.pri!=null){/* crossing traffic: only the lower priority waits (no two-way standoffs at a corner) */const dy=Math.abs(wrap(o.yaw-me.yaw));if(dy>1.75&&o.pri<me.pri)continue}
+  if(o.yaw!=null&&o.pri!=null&&me.pri!=null){/* crossing traffic: only the lower priority waits (no two-way standoffs at a corner) */const dy=Math.abs(wrap(o.yaw-me.yaw));if(dy>.6&&o.pri<me.pri)continue}
   const g=a-(me.len||4.6)/2-(o.len||4.6)/2;if(best==null||g<best)best=g}return best}
 
 /* ---------------- formation slots (Brake Check, wave 4): STUBS ----------------

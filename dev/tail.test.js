@@ -23,10 +23,10 @@ test('LOS: blocked by a building tile and by a car in between',()=>{const map=['
 test('copying his turns raises suspicion (1st free, then +7, +14)',()=>{const tl=T.create();const tg={x:0,z:-200,yaw:0,spd:0};
   for(let k=0;k<3;k++){tl.turn({x:100*k,z:0},Math.PI/2);for(const[p,y]of[[{x:100*k,z:20},0],[{x:100*k,z:0},0],[{x:100*k-20,z:0},Math.PI/2]])tl.tick(.01,{t:{x:p.x,z:p.z-50,yaw:0,spd:5},p:Object.assign(p,{yaw:y,spd:10}),carId:'van',los:false})}
   assert.equal(tl.S.streak,3);assert.ok(Math.abs(tl.S.sus-21)<1,'sus '+tl.S.sus)});
-test('rail: brakes to a stop line, holds, goes; keeps its gap behind a stopped car',()=>{const P=T.poly([{x:0,z:0},{x:0,z:-300}]);let went=0;
+test('rail: brakes to a stop line, holds, goes; keeps its gap behind a stopped car (and noses through after 6 s blocked)',()=>{const P=T.poly([{x:0,z:0},{x:0,z:-300}]);let went=0;
   const R=T.Rail(P,{max:12,stops:[{s:100,t:2,onGo:()=>went++}]});let t=0,held=0;for(;t<30;t+=1/30){R.step(1/30);if(R.holding)held+=1/30}
   assert.equal(went,1);assert.ok(held>1.9&&held<2.4,'held '+held);assert.ok(R.s>200);
-  const B={x:0,z:-60,yaw:0,len:4.6},R2=T.Rail(P,{max:12});for(let i=0;i<600;i++)R2.step(1/30,{ahead:me=>T.aheadGap(me,[B],40)});const gap=Math.abs(B.z-R2.z)-4.6;assert.ok(gap>6&&gap<10,'gap '+gap)});
+  const B={x:0,z:-60,yaw:0,len:4.6},R2=T.Rail(P,{max:12});for(let i=0;i<330;i++)R2.step(1/30,{ahead:me=>T.aheadGap(me,[B],40)});const gap=Math.abs(B.z-R2.z)-4.6;assert.ok(gap>6&&gap<10,'gap '+gap);for(let i=0;i<400;i++)R2.step(1/30,{ahead:me=>T.aheadGap(me,[B],40)});assert.ok(R2.s>80,'never stuck forever')});
 test('save/load round trip',()=>{const{tl}=run(20,3);const s=JSON.stringify(tl.save()),t2=T.create();t2.load(JSON.parse(s));assert.equal(JSON.stringify(t2.save()),s)});
 test('formation stubs keep their signatures',()=>{const p=T.slot({x:0,z:0,yaw:0},{side:1,back:8});assert.ok(Math.abs(p.z-8)<1e-9&&p.x>0);assert.equal(T.boxed({},[],{}),false)});
 console.log(n+' passed');

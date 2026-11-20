@@ -94,6 +94,7 @@ const ITEMS=[{id:'blower',label:"Phil's leaf blower",col:'#e8752a',line:"That's 
 let RES=null;const res=()=>RES||(RES={geo:[],mat:[],tex:[],veh:[],listeners:[],ov:{}});
 const G_=g=>{res().geo.push(g);return g},M_=m=>{res().mat.push(m);return m},T_=t=>{res().tex.push(t);return t};
 function freeAll(){const R=RES;RES=null;if(!R)return;const a=A();
+  if(R.near0!=null&&a&&a.camera){a.camera.near=R.near0;a.camera.updateProjectionMatrix()}
   for(const o of Object.keys(R.ov))try{a&&a.overlay&&a.overlay(o,null)}catch(_){}
   for(const g of R.geo)try{g.dispose()}catch(_){}for(const m of R.mat)try{m.dispose()}catch(_){}for(const t of R.tex)try{t.dispose()}catch(_){}
   for(const v of R.veh)try{v.userData&&v.userData.dispose&&v.userData.dispose()}catch(_){}
@@ -196,7 +197,7 @@ function faceTo(d,x,z,dt){const r=d.root,w=Math.atan2(x-r.position.x,z-r.positio
 /* ---------------- vehicles on rails: the sedan, cover traffic, oncoming traffic ---------------- */
 function railCar(M,type,color,path,o){const a=A(),Tl=TL(),obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);if(obj.userData&&obj.userData.dispose)res().veh.push(obj);
   const S=a.carSize({obj}),rail=Tl.Rail(path,Object.assign({len:S.l,gap:7},o||{}));const col=a.wmCol({x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1});
-  const v={type,color,obj,rail,col,S,kind:o&&o.kind||'cover',doneT:0,id:(M.vid=(M.vid||0)+1)};syncRail(v,0);return v}
+  const v={type,color,obj,rail,col,S,kind:o&&o.kind||'cover',doneT:0,id:(M.vid=(M.vid||0)+1)};rail.pri=(o&&o.pri||0)+v.id*1e-4;v.pri=rail.pri;/* unique priorities: no two-way standoffs */syncRail(v,0);return v}
 function syncRail(v,dt){const a=A(),r=v.rail,o=v.obj;o.position.set(r.x,a.groundAt(r.x,r.z),r.z);o.rotation.set(0,r.yaw+Math.PI/2,0);
   const hl=v.S.l/2+.04,hw=v.S.w/2+.04,s=Math.abs(Math.sin(r.yaw)),c=Math.abs(Math.cos(r.yaw)),hx=s*hl+c*hw,hz=c*hl+s*hw;
   Object.assign(v.col,{x0:r.x-hx,x1:r.x+hx,z0:r.z-hz,z1:r.z+hz,ob:o.userData&&o.userData.mod?{x:r.x,z:r.z,fx:-Math.sin(r.yaw),fz:-Math.cos(r.yaw),hl,hw}:null});
@@ -293,9 +294,9 @@ J.register('tail',{
     try{a.save()}catch(_){}},
   /* E actions: the car swap, the binocular photo, leaving the borrowed car */
   interact(prompt){const M=A().M;if(!M||M.state!=='go')return null;return interactFor(M,prompt)},
-  camera(dt){const M=A().M;if(!M||M.state!=='go')return false;return binoCam(M,dt)},
+  camera(dt){const M=A().M;if(!M||M.state!=='go')return undefined;return binoCam(M,dt)||undefined},
   hud(st){const M=A().M;if(!M)return;if(M.ph==='tail'||M.ph==='spook'||M.ph==='lost')st.routeTo=null;if(M.vfOn&&st.crosshair)st.crosshair.hidden=true},
-  test:{give(a){const h=window.__ht,s=a.SV();for(const id of['gary','rick']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}if(s&&s.world)s.world.bridgeOpen=true;
+  test:{give(a){const h=window.__ht,s=a.SV();for(const id of['gary','rick']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}if(s&&s.world)s.world.bridgeOpen=true;/* the Act 2 "bridge is open" card was seen after Rick's job */if(s&&s.flags)s.flags.act2Intro=true;if(h&&h.prog)h.prog.act=Math.max(h.prog.act||1,2);
       const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'tail',s0:412.5,Ts:{sus:22.5,max:48,lose:1.2,fam:{van:.62},made:[],car:'van',type:'minivan'},swaps:0,bi:-1,vanAt:null,pullDone:false,lightDone:false,items:{},photo:null,maxSus:48,everMade:false})}
@@ -417,13 +418,13 @@ function doSwap(M,e){const a=A(),Tl=TL();const from=a.CV,wasVan=from===a.VAN;if(
   a.CP.mark('swap')}
 function interactFor(M,prompt){const a=A();
   if(M.ph==='tail'&&a.CV){const e=swapTarget(M);if(e){const lab=e===a.VAN?'the minivan':e.name+"'s "+(CAR_NAME[e.type]||'car');return{txt:'Swap into '+lab,hold:1.2,fn:()=>doSwap(M,e)}}}
-  if(M.vfOn&&a.CV&&M.ph==='drop'){const g=grade(M);return{txt:M.handoff==='done'?(g.ok?'Take the photo · '+'★'.repeat(g.stars):'Line up the plate'):'Watch the handoff',fn:()=>snap(M)}}
+  if(M.vfOn&&a.CV&&M.ph==='drop'){const g=grade(M);return{txt:M.handoff==='done'?(g.ok?'Take the photo · '+'★'.repeat(g.stars):'Line up the plate · '+(g.why||'')):'Photo (once they shut the truck)',fn:()=>snap(M)}}
   if(M.ph==='home'&&a.CV&&a.CV!==a.VAN&&Math.abs(a.CV.car?a.CV.car.spd:0)<1){const b=M.borrowed[0];if(b&&Math.hypot(b.pos.x-b.home.x,b.pos.z-b.home.z)>12)return{txt:"Call it a day (leave "+b.name+"'s car here)",hold:1.5,fn:()=>homeEnd(M,false)}}
   return null}
 
 /* ---------------- traffic: cover cars on his route, oncoming cars, Route 9 ---------------- */
 const COVER_TYPES=['hatch','suv','sedan','pickup','workvan','sedan'],COVER_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#7a5a3a','#c9b48a','#4c5b70'];
-function obstacles(M,me){const a=A(),out=[];const add=(v,pri)=>{if(v&&v.rail!==me&&v!==me)out.push({x:v.rail.x,z:v.rail.z,yaw:v.rail.yaw,len:v.S.l,pri})};
+function obstacles(M,me){const a=A(),out=[];const add=(v,pri)=>{if(v&&v.rail!==me&&v!==me)out.push({x:v.rail.x,z:v.rail.z,yaw:v.rail.yaw,len:v.S.l,pri:v.pri!=null?v.pri:pri})};
   if(M.tg&&M.tg!==me)add(M.tg,2);for(const v of M.covers)if(v!==me)add(v,1);for(const v of M.oncoming)if(v!==me)add(v,1);
   const p=playerCar();if(p.e){const S=a.carSize(p.e);out.push({x:p.x,z:p.z,yaw:p.yaw,len:S.l,pri:3})}return out}
 function blockers(M){const out=[];for(const v of M.covers)out.push({x:v.rail.x,z:v.rail.z,r:v.type==='hatch'?1.0:1.25});for(const v of M.oncoming)out.push({x:v.rail.x,z:v.rail.z,r:1.0});return out}
@@ -524,6 +525,8 @@ function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.p
   if(!can){if(M.vfOn)vfOff(M);return false}
   const cam=a.camera,S=a.carSize(e),lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),f=fwd(e.yaw),rr=rgt(e.yaw),fa=Math.abs(lx*f[0]+lz*f[1]),sa=Math.abs(lx*rr[0]+lz*rr[1]),out=Math.min(fa>.01?S.l/2/fa:99,sa>.01?S.w/2/sa:99)+.45;
   cam.position.set(e.pos.x+lx*out,a.groundAt(e.pos.x,e.pos.z)+Math.max(1.55,S.h*.85),e.pos.z+lz*out);cam.rotation.set(P.pitch,P.yaw,0,'YXZ');
+  /* binoculars focus past the foreground: anything within 14 m (a kerbside fence, the wing mirror) is out of the picture */
+  if(M.near0==null){M.near0=cam.near;res().near0=cam.near}cam.near=Math.max(M.near0,14);
   cam.fov+=(11-cam.fov)*Math.min(1,dt*10);cam.updateProjectionMatrix();cam.updateMatrixWorld();if(P.dude)P.dude.root.visible=false;
   const cf=[-Math.sin(P.yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(P.yaw)*Math.cos(P.pitch)];M.camInfo={x:cam.position.x,y:cam.position.y,z:cam.position.z,f:cf};
   vfOn(M);if(M.handoff&&M.handoff!=='done'&&M.handoff!=='wait')spotItems(M,M.camInfo);
@@ -532,7 +535,7 @@ function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.p
   return true}
 function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;const HD=a.HUD;if(!M.vf&&HD&&HD.kit&&HD.kit.viewfinder){M.vf=HD.kit.viewfinder()}if(M.vf){a.overlay('tail-vf',M.vf.el);res().ov['tail-vf']=1}
   if(!M.said.binoUp&&M.ph==='drop'){M.said.binoUp=1;say(M,"There. Truck's open. Count what comes out of that trunk. Out loud. I'll count too. We'll compare.",{chatter:true})}}
-function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;try{a.overlay('tail-vf',null)}catch(_){}if(M.vf&&M.vf.close)try{M.vf.close()}catch(_){}M.vf=null;
+function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}try{a.overlay('tail-vf',null)}catch(_){}if(M.vf&&M.vf.close)try{M.vf.close()}catch(_){}M.vf=null;
   const e=a.CV;if(a.P.dude&&!e)a.P.dude.root.visible=true}
 function plateWorld(){const f=fwd(TRUCK.yaw),bk=3.955;return{x:TRUCK.x-f[0]*bk,y:A().groundAt(TRUCK.x,TRUCK.z)+.9,z:TRUCK.z-f[1]*bk,nx:-f[0],nz:-f[1]}}
 /* any star rating is enough; stars for angle, distance and how centred it is */
@@ -587,10 +590,11 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     /* out of the lot round the pumps first (they're solid), then his route */
     if(B.wp==null)B.wp=Math.hypot(c.x-START.x,c.z-START.z)<14?0:9;const WP=[[226,19.5],[227.6,24.5],[232.5,31.5],[240,40]];
     if(B.wp<WP.length){const w=WP[B.wp],r0=M.tg.rail;if(Math.hypot(w[0]-c.x,w[1]-c.z)<3.2){B.wp++;return null}const want=r0.s>6?8:0;steerTo(c,w[0],w[1],want);unstick(e,c,want,null);B.ps=0;return null}
-    /* where am I on his route */B.ps=M.P.project(c.x,c.z,B.ps||0,60).s;
+    /* where am I on his route (first time: search behind him, so a checkpoint retry mid-route finds the right pass of the loop) */
+    if(!B.init){B.init=1;B.ps=M.P.project(c.x,c.z,Math.max(0,r.s-35),120).s}B.ps=M.P.project(c.x,c.z,B.ps,60).s;
     if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
       if(d<5.5){off();k.s=c.spd>.3;k.e=Math.abs(c.spd)<2.5;return null}k.e=false;const goal=M.P.at(M.P.project(sc.pos.x,sc.pos.z,B.ps,60).s);steerTo(c,goal.x,goal.z,Math.min(9,d*.6+1.5));if(d>40)B.ps=M.P.project(c.x,c.z,B.ps,60).s;return null}
-    k.e=false;const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
+    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
     let want=Math.max(0,Math.min(14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
     /* slow for corners like a person: the heading change over the next 16 m */
     {const y0=M.P.at(B.ps).yaw;for(let q=4;q<=16;q+=4){if(Math.abs(wrap(M.P.at(B.ps+q).yaw-y0))>.5){want=Math.min(want,5.5+q*.25);break}}}
@@ -603,7 +607,7 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(M.ph==='wrap'){P.aim=false;return null}
     P.aim=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
     const cam=M.camInfo||{x:c.x,y:1.6,z:c.z};const dx=aimAt.x-cam.x,dz=aimAt.z-cam.z,dy=(aimAt.y||1)-cam.y;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));
-    if(M.handoff==='done'&&M.vfOn&&(B.snapT=(B.snapT||0)+1)>20&&grade(M).ok){a.useTap=true;B.snapT=0}return null}
+    if(M.handoff==="done"&&M.vfOn&&(B.snapT=(B.snapT||0)+1)>45&&grade(M).ok){a.useTap=true;B.snapT=0}return null}
   if(M.ph==='home'){const b=M.borrowed[0];if(!b){off();return null}if(a.CV===b){const hm=b.home;if(drive({x:hm.x,z:hm.z},11,3)||Math.hypot(b.pos.x-hm.x,b.pos.z-hm.z)<6&&Math.abs((b.car||b).spd)<.5){off();a.exitCar()}return null}
     off();if(!a.CV){const V=a.VAN,r=rgt(V.yaw),sd=Math.hypot(V.pos.x+r[0]*2-b.pos.x,V.pos.z+r[1]*2-b.pos.z)>Math.hypot(V.pos.x-r[0]*2-b.pos.x,V.pos.z-r[1]*2-b.pos.z)?1:-1;
       P.pos.set(V.pos.x+r[0]*2.1*sd,0,V.pos.z+r[1]*2.1*sd);a.collide(P.pos,.35);a.useTap=true;if((B.vanT=(B.vanT||0)+1)>40){B.vanT=0;a.enterCar(V)}}else if(a.CV!==V0())a.exitCar();return null}
