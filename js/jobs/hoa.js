@@ -501,8 +501,8 @@ function endStake(M,why){const a=A(),n2=ITEMS.filter(it=>M.board[it.id]&&M.board
 /* the truck pulls out and drives north up Walnut (the spook, or the clock) */
 function fxTick(M,dt){const a=A();if(!M.truckGo)return;M.leaveT+=dt;const T_=M.truck,t=Math.max(0,M.leaveT-1.5);T_.position.z=lay().truck.z-(t*t*1.6);
   if(M.leaveWhy&&M.ph==='gone'&&M.leaveT>4.5){const w=M.leaveWhy;M.leaveWhy=null;
-    if(w==='spook')a.endMission(false,"They'll be back next week. The lookout made you, the truck's gone, and Barb is drafting a memo about it.","They spooked.");
-    else{const n2=ITEMS.filter(it=>M.board[it.id]&&M.board[it.id].stars>=T.need).length;a.endMission(false,"The truck's gone and the board has "+n2+" of the 5 photos it needs. Barb: 'A blurry photo is a rumour.'","Not enough evidence.")}}
+    if(w==='spook'){M.loseWhy='spook';a.endMission(false,"They'll be back next week. The lookout made you, the truck's gone, and Barb is drafting a memo about it.","They spooked.")}
+    else{M.loseWhy='clock';const n2=ITEMS.filter(it=>M.board[it.id]&&M.board[it.id].stars>=T.need).length;a.endMission(false,"The truck's gone and the board has "+n2+" of the 5 photos it needs. Barb: 'A blurry photo is a rumour.'","Not enough evidence.")}}
   if(T_.position.z<lay().truck.z-60)T_.visible=false}
 
 /* ---------------- the emergency HOA meeting ---------------- */
@@ -604,7 +604,11 @@ J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='hoa'){return}
    the lookout from his own lawn until they spook. */
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load')return null;const L_=lay(),B=M.bot||(M.bot={}),Ph=PH();
   if(a.CV){a.exitCar();return null}
-  const goTo=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.25)return true;const s=Math.min(d,(sp||2.6)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);return false};
+  const goTo=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.25){B.stuck=0;return true}const s=Math.min(d,(sp||2.6)/30);const x0=P.pos.x,z0=P.pos.z;
+    /* a person walks around a parked car or a passing one: when blocked for half a second, step sideways for a moment */
+    let ux=dx/d,uz=dz/d;if(B.side>0){B.side--;const sx=-uz*B.sideDir,sz=ux*B.sideDir;ux=ux*.3+sx;uz=uz*.3+sz}
+    P.pos.x+=ux*s;P.pos.z+=uz*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);
+    if(Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3){B.stuck=(B.stuck||0)+1;if(B.stuck>15){B.stuck=0;B.side=20;B.sideDir=B.sideDir===1?-1:1;B.unstuck=(B.unstuck||0)+1}}else B.stuck=0;return false};
   const route=(pts,sp)=>{B.ri=B.ri||0;while(B.ri<pts.length&&goTo(pts[B.ri],sp))B.ri++;return B.ri>=pts.length};
   if(M.ph==='intro'){B.i=(B.i||0)+1;if(B.i<60)return null;if(!goTo({x:L_.barb.x-.2,z:L_.barb.z+1.6}))return null;if(M.say.length>1)return null;a.useTap=true;return null}
   if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(M.seat){a.useTap=true;return null}if(B.mr==null){B.mr=1;B.ri=0}if(route([{x:105.6,z:67.7},{x:L_.podium.x,z:67.7},{x:L_.podium.x,z:L_.podium.z+.2}]))a.useTap=true;return null}
@@ -626,7 +630,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
     case'toPorch':/* west along Elm St, north up the far sidewalk of Walnut, onto Phil's porch */
       lower();P.crouch=false;if(route([{x:112.5,z:70.4},{x:105.8,z:70.4},{x:105.8,z:48.6},{x:L_.porch.x,z:L_.porch.z-.1}]))B.step='phil',B.ri=0;return null;
     case'phil':if(!M.porch){a.useTap=true;return null}B.w=(B.w||0)+1;if(B.w<90)return null;B.step='bike';return null;
-    case'bike':if(have('bike')&&have('crate')){lower();B.step='toCar';B.ri=0;return null}shoot(have('bike')?'crate0':'bike',2);return null;
+    case'bike':if((have('bike')&&have('crate'))||(st>70&&have('bike'))||st>110){lower();B.step='toCar';B.ri=0;return null}/* the crates come by the Buick too */shoot(have('bike')?'crate0':'bike',2);return null;
     case'face':/* wait for the lookout's pause at the corner, facing the porch */
       if(have('face')||st>110){lower();B.step='toCar';B.ri=0;return null}
       if(lk.face===Math.PI/2&&!lk.path&&Math.hypot(lk.x-L_.lk.n.x,lk.z-L_.lk.n.z)<.6){shoot('face',2)}else lower();return null;
