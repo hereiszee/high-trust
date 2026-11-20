@@ -858,7 +858,103 @@ function build(type,opts){shared();const lod=autoLod(opts),K=lod?null:kit(type),
   return{root,ud}}
 
 /* group.userData also carries setUpgrades(u), setColor(hex), setLights(on), flashBar(seconds), setDamage(0..1), dispose() */
-function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
+/* ---------------------------------------------------------------- ride-on mower (The Grass Is Greener, SPEC3 2.13)
+   make('mower',{color,upgrades:{seat,rims,num}}): a lawn tractor with the same userData interface as the cars. Front at +X, right at +Z.
+   ~1.95 m long, 1.18 m wide over the deck, steering wheel top at 1.08 m. Hood, grille and lamps, dash with key and throttle, raked
+   steering wheel, high-back vinyl seat, ribbed footboards, fenders with a cup holder (and a lemonade), cutting deck with anti-scalp
+   rollers and a side grass chute, turf-tread tyres (big rear, small front), tow hitch and tail lamps. ~8 draw calls, ~9k triangles. */
+const MOW={};
+function mowerGeo(){if(MOW.g)return MOW.g;const o=new Out(),add=(m,g,x,y,z,rx,ry,rz,sx,sy,sz)=>o.geo(m,g,mat4(x,y,z,rx,ry,rz,sx,sy,sz));
+  /* hood: rounded block that narrows and drops toward the grille */
+  const hood=rbox(.66,.36,.56,.07,3),hp=hood.attributes.position;for(let i=0;i<hp.count;i++){const x=hp.getX(i),t=clamp((x+.1)/.43,0,1);hp.setZ(i,hp.getZ(i)*(1-.16*t));if(hp.getY(i)>0)hp.setY(i,hp.getY(i)-.07*t*t)}hood.computeVertexNormals();
+  add('paint',hood,.6,.6,0);
+  add('paint',rbox(.2,.06,.5,.025),.33,.8,0,0,0,-.18);                                   /* cowl that meets the dash */
+  for(const s of[-1,1]){add('acc',new T.BoxGeometry(.56,.05,.008),.6,.665,s*.256,0,s*.075);add('blk',new T.BoxGeometry(.56,.012,.009),.6,.635,s*.256,0,s*.075);  /* yellow stripe along each side */
+    for(let k=0;k<3;k++)add('blk',rbox(.07,.022,.012,.008,2),.52+k*.1,.55,s*.247,0,s*.07);/* side vents */
+    add('lamp',rbox(.045,.075,.11,.018,2),.915,.66,s*.16);                                  /* headlamps */
+    add('steel',new T.TorusGeometry(.05,.008,6,16),.92,.66,s*.16,0,Math.PI/2);
+    add('tail',rbox(.03,.05,.08,.01,2),-.985,.55,s*.27);                                    /* tail lamps */
+    add('blk',new T.BoxGeometry(1.1,.07,.05),-.02,.26,s*.24);                               /* frame rails */
+    /* footboards with rubber ribs */
+    add('blk',new T.BoxGeometry(.56,.035,.27),.02,.33,s*.37);for(let k=0;k<6;k++)add('rub',new T.BoxGeometry(.035,.018,.25),-.22+k*.09,.355,s*.37);
+    add('paint',rbox(.6,.12,.03,.012,2),.02,.29,s*.505);                                    /* footboard skirts */
+    /* rear fenders: an arc of steel over each big wheel, flat top deck between */
+    const sh=new T.Shape();sh.absarc(0,0,.37,.12,Math.PI-.12,false);sh.absarc(0,0,.33,Math.PI-.12,.12,true);
+    const fen=new T.ExtrudeGeometry(sh,{depth:.27,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:2,curveSegments:18});fen.translate(0,0,-.135);
+    add('paint',fen,-.48,.29,s*.43);
+    add('paint',rbox(.46,.04,.24,.015,2),-.48,.66,s*.42)}
+  add('blk',rbox(.04,.24,.42,.02,2),.925,.6,0);for(let k=0;k<5;k++)add('steel',new T.BoxGeometry(.012,.018,.36),.95,.5+k*.045,0); /* grille */
+  add('steel',new T.CylinderGeometry(.035,.035,.025,14),.48,.84,0);                         /* fuel cap */
+  add('blk',rbox(.12,.08,.62,.03,2),.97,.32,0);                                              /* front bumper */
+  /* dash, key, throttle, steering column and wheel */
+  add('blk',rbox(.16,.36,.44,.04,2),.2,.66,0,0,0,.28);
+  add('steel',new T.CylinderGeometry(.012,.012,.05,8),.15,.84,.12,0,0,Math.PI/2+.3);add('acc',rbox(.03,.04,.012,.006,2),.12,.86,.12);
+  add('blk',new T.BoxGeometry(.012,.11,.012),.2,.88,-.15,0,0,-.4);add('tail',new T.SphereGeometry(.022,10,8),.18,.94,-.15);
+  /* the wheel is tilted back 35 degrees toward the seat, its column runs down its axis into the dash */
+  const sa=.62,wx=.05,wy=1.02,W=M4().makeTranslation(wx,wy,0).multiply(M4().makeRotationZ(sa)).multiply(M4().makeRotationX(-Math.PI/2)),ad=(m,g,l)=>o.geo(m,g,W.clone().multiply(l||M4()));
+  add('blk',new T.CylinderGeometry(.028,.04,.36,10),wx+Math.sin(sa)*.18,wy-Math.cos(sa)*.18,0,0,0,sa);
+  ad('blk',new T.TorusGeometry(.165,.022,10,40));
+  for(let k=0;k<3;k++){const a=k*Math.PI*2/3-Math.PI/2;ad('blk',new T.BoxGeometry(.15,.022,.014),mat4(Math.cos(a)*.085,Math.sin(a)*.085,-.012,0,0,a))}
+  ad('steel',new T.CylinderGeometry(.042,.042,.03,18),mat4(0,0,-.01,Math.PI/2));ad('acc',new T.CylinderGeometry(.026,.026,.034,18),mat4(0,0,-.012,Math.PI/2));
+  ad('blk',new T.SphereGeometry(.022,8,6),mat4(.12,-.11,.02));                               /* spinner knob */
+  /* seat: pan, cushion, raked high back, springs */
+  add('blk',new T.BoxGeometry(.5,.05,.48),-.47,.6,0);add('blk',new T.BoxGeometry(.12,.38,.4),-.72,.78,0,0,0,-.22);
+  add('seat',rbox(.44,.11,.46,.045,3),-.44,.7,0);add('seat',rbox(.11,.46,.46,.045,3),-.69,.94,0,0,0,-.2);
+  add('steel',new T.CylinderGeometry(.018,.018,.08,8),-.32,.62,.15);add('steel',new T.CylinderGeometry(.018,.018,.08,8),-.32,.62,-.15);
+  /* cup holder on the right fender, with a can of lemonade */
+  add('blk',new T.CylinderGeometry(.05,.045,.07,16,1,true),-.36,.71,.46);add('blk',new T.TorusGeometry(.05,.008,6,18),-.36,.745,.46,Math.PI/2);
+  add('can',new T.CylinderGeometry(.033,.033,.12,16),-.36,.76,.46);add('steel',new T.CylinderGeometry(.03,.033,.012,16),-.36,.826,.46);
+  /* rear: body pan, hitch, bag mount */
+  add('paint',rbox(.36,.2,.62,.04,2),-.8,.5,0);add('steel',new T.BoxGeometry(.12,.025,.1),-1.0,.3,0);add('steel',new T.CylinderGeometry(.012,.012,.06,8),-1.03,.32,0);
+  /* cutting deck between the axles, anti-scalp rollers, side chute (right) */
+  const dk=rbox(.62,.13,1.14,.05,3),dp=dk.attributes.position;for(let i=0;i<dp.count;i++)if(dp.getY(i)>0)dp.setY(i,dp.getY(i)+.02*Math.cos(dp.getZ(i)*2.6));dk.computeVertexNormals();
+  add('deck',dk,.06,.17,0);add('deck',new T.BoxGeometry(.64,.025,1.18),.06,.11,0);
+  for(const z of[-.52,.52])for(const x of[-.2,.33])add('blk',new T.CylinderGeometry(.035,.035,.04,12),x,.06,z,Math.PI/2);
+  add('blk',rbox(.32,.11,.26,.03,2),.08,.18,.66,-.35,0,0);add('blk',rbox(.3,.02,.24,.01,2),.08,.23,.69,-.35,0,0);
+  add('acc',new T.BoxGeometry(.1,.04,.004),.08,.2,.79,-.35);
+  add('steel',new T.BoxGeometry(.03,.2,.03),-.08,.42,.3,0,0,.4);add('blk',new T.SphereGeometry(.025,8,6),-.04,.52,.3); /* deck lift lever */
+  add('steel',new T.CylinderGeometry(.035,.035,.18,10),.62,.4,-.32,Math.PI/2);add('blk',new T.CylinderGeometry(.012,.012,.05,6),.72,.4,-.41,Math.PI/2); /* muffler */
+  return MOW.g=o.build()}
+/* one wheel (tyre + chunky turf lugs + rim + hub) with vertex colours: one draw call each; spins about local Z */
+function mowerWheel(r,w,key){if(MOW[key])return MOW[key];const o=new Out(),add=(m,g,x,y,z,rx,ry,rz)=>o.geo(m,g,mat4(x,y,z,rx,ry,rz));
+  const tyre=new T.CylinderGeometry(r*.94,r*.94,w,30,1);add('rub',tyre,0,0,0,Math.PI/2);
+  add('rub',new T.TorusGeometry(r*.86,w*.18,8,30),0,0,w*.4);add('rub',new T.TorusGeometry(r*.86,w*.18,8,30),0,0,-w*.4);
+  const n=Math.round(r*70);for(let k=0;k<n;k++){const a=k/n*Math.PI*2;for(const s of[-1,1]){const g=new T.BoxGeometry(r*.13,w*.52,r*.12);
+      o.geo('rub',g,mat4(Math.cos(a)*r*.96,Math.sin(a)*r*.96,s*w*.24+(k%2?.02:-.02)*s,0,0,a,1,1,1).multiply(mat4(0,0,0,s*.45)))}}
+  const rim=new T.CylinderGeometry(r*.55,r*.55,w*1.04,22);add('rim',rim,0,0,0,Math.PI/2);
+  add('hub',new T.CylinderGeometry(r*.2,r*.24,w*1.12,14),0,0,0,Math.PI/2);
+  for(let k=0;k<5;k++){const a=k/5*Math.PI*2;add('hub',new T.CylinderGeometry(.012,.012,w*1.14,6),Math.cos(a)*r*.32,Math.sin(a)*r*.32,0,Math.PI/2)}
+  const B=o.build(),cols={rub:[.03,.03,.03],rim:[.78,.42,.02],hub:[.42,.43,.45]},gs=[];
+  for(const k in B){const g=B[k],c=new Float32Array(g.attributes.position.count*3);for(let i=0;i<c.length;i+=3){c[i]=cols[k][0];c[i+1]=cols[k][1];c[i+2]=cols[k][2]}g.setAttribute('color',new T.BufferAttribute(c,3));gs.push(g)}
+  return MOW[key]=mergeGeos(gs)}
+function makeMower(opts){shared();const paintHex=opts.color||'#3e8a35',u=opts.upgrades||{};
+  const root=new T.Group(),body=new T.Group();body.name='bodyRoot';root.add(body);root.name='vehicle_mower';
+  const U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uLamp:{value:new T.Vector4(1,1,1,1)},uSpin:{value:0},uSteer:{value:0},uPaint:{value:col(paintHex)}};
+  const paint=new T.MeshPhysicalMaterial({color:col(paintHex),metalness:.25,roughness:.38,clearcoat:.8,clearcoatRoughness:.12,normalMap:MAT.flake,normalScale:new T.Vector2(.05,.05)});paint.userData.U=U;
+  const lamp=new T.MeshStandardMaterial({color:col('#fff8e6'),emissive:col('#fff2c8'),emissiveIntensity:.3,roughness:.15}),tail=new T.MeshStandardMaterial({color:col('#7a0d0d'),emissive:col('#ff2a1a'),emissiveIntensity:.1,roughness:.3});
+  const mats={paint,lamp,tail,deck:new T.MeshStandardMaterial({color:col(u.deck||'#2d3034'),metalness:.55,roughness:.42}),blk:new T.MeshStandardMaterial({color:col('#17181a'),roughness:.55}),
+    rub:new T.MeshStandardMaterial({color:col('#1c1c1c'),roughness:.92}),seat:new T.MeshPhysicalMaterial({color:col(u.seat||'#1c1c1f'),roughness:.32,clearcoat:.5,clearcoatRoughness:.3}),
+    acc:new T.MeshStandardMaterial({color:col(u.rims||'#f0c02a'),roughness:.35,metalness:.1}),steel:new T.MeshStandardMaterial({color:col('#c3c7cc'),metalness:.92,roughness:.22}),
+    can:new T.MeshStandardMaterial({color:col(u.can||'#f2d23a'),metalness:.6,roughness:.3})};
+  const G=mowerGeo();let tris=0,calls=0;const meshes={};
+  for(const k in G){const m=new T.Mesh(G[k],mats[k]);m.castShadow=k!=='lamp'&&k!=='tail';m.receiveShadow=true;body.add(m);meshes[k]=m;tris+=G[k].attributes.position.count/3;calls++}
+  meshes.lamp.onBeforeRender=()=>{lamp.emissiveIntensity=.35+U.uCh.value[1]*1.2*U.uLamp.value.x};meshes.tail.onBeforeRender=()=>{tail.emissiveIntensity=.12+Math.max(U.uCh.value[2],U.uCh.value[3]*.7)*.9*U.uLamp.value.z};
+  const wm=new T.MeshStandardMaterial({vertexColors:true,roughness:.8,metalness:.05}),wheels=[],steer=[],radii=[];
+  for(const[x,r,w,z,front]of[[.62,.19,.13,.37,1],[-.48,.29,.21,.43,0]])for(const s of[1,-1]){const piv=new T.Object3D();piv.position.set(x,r,s*z);root.add(piv);const spin=new T.Object3D();piv.add(spin);
+    const wg=mowerWheel(r,w,'w'+r);const mesh=new T.Mesh(wg,wm);mesh.castShadow=true;mesh.receiveShadow=true;spin.add(mesh);wheels.push(spin);radii.push(r);if(front)steer.push(piv);tris+=wg.attributes.position.count/3;calls++}
+  const shg=new T.PlaneGeometry(2.3,1.5),sh=new T.Mesh(shg,MAT.shadow);sh.rotation.x=-Math.PI/2;sh.position.y=.006;sh.renderOrder=1;Object.defineProperty(sh,'castShadow',{get:()=>false,set(){}});root.add(sh);calls++;
+  const L=lightProxy,ud={type:'mower',lod:0,size:{l:1.98,w:1.18,h:1.1},len:1.98,wid:1.18,wheels,steer,wheelRadius:.29,wheelRadii:radii,wheelBase:1.1,
+    lights:{head:[L(U,CH.head)],tail:[L(U,CH.tail)],brake:[L(U,CH.brake)],bar:[],drl:[L(U,CH.drl)],amber:[L(U,CH.amber)],reverse:[L(U,CH.rev)]},
+    body:[paint,paint],glass:[],material:paint,bodyRoot:body,parts:{body,glass:null,wheels,rear:null},contactShadow:sh,
+    colliders:[{x0:-1,z0:-.59,x1:.99,z1:.59}],upgrades:u,color:paintHex,seat:{x:-.44,y:.76,z:0},
+    stats:{triangles:Math.round(tris),drawCalls:calls,tris:Math.round(tris),calls},_own:[shg],_mats:Object.values(mats).concat([wm]),
+    _s:{roll:0,pitch:0,last:0,acc:0,head:false,flash:0,t:0},damage:0};
+  root.userData=ud;
+  ud.setUpgrades=()=>{};ud.setColor=hex=>{ud.color=hex;paint.color.copy(col(hex));U.uPaint.value.copy(col(hex))};ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};ud.flashBar=()=>{};
+  ud.setLamps=a=>{a=a||[];ud.lamps=[0,1,2,3].map(i=>a[i]?1:0);U.uLamp.value.set(a[0]||a[1]?0:1,1,a[2]||a[3]?0:1,1)};ud.setHazard=on=>{ud._s.haz=!!on;applyLights(root,false)};
+  ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;paint.roughness=lerp(.38,.82,f);paint.clearcoat=lerp(.8,.1,f)};ud.dispose=()=>disposeOwn(ud);
+  applyLights(root,false);return root}
+function make(type='minivan',opts={}){if(type==='mower')return makeMower(opts);if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
   const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);applyLights(root,false);return root}
 function api(root,type,opts){const ud=root.userData;
   ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,lamps=ud.lamps,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
@@ -880,7 +976,7 @@ function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head,c=d.materi
   c[CH.bar]=d.lights.bar.length?(s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)):0}
 
 function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,Math.max(0,o.dt??1/60)),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
-  const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z=(w.rotation.z+da)%(Math.PI*2);
+  const da=-sp*dt/d.wheelRadius;d.wheels.forEach((w,i)=>{w.rotation.z=(w.rotation.z+(d.wheelRadii?-sp*dt/d.wheelRadii[i]:da))%(Math.PI*2)});
   for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12||1);
   if(dt>0){const acc=clamp((sp-s.last)/dt,-15,15);s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
     const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
