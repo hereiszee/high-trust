@@ -867,7 +867,9 @@ J.register('heist',{
   pose(dt){},
   test:{give(a){const H=window.__ht,s=a.SV();for(const id of['gary','rick','dave','doug','dee','talk']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&H&&H.prog)H.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
       if(s&&s.flags){s.flags.talkUnit47=true;s.flags.act2Intro=true}if(s&&s.world)s.world.bridgeOpen=true;if(s)s.cash=Math.max(s.cash||0,500);
-      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(castKeys().filter(k=>PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
+      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(castKeys().filter(k=>PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}
+      /* the harness waits for H.jobs.castKeys(id) before it plays synchronously; this job's cast isn't in def.crew (they're scripted, not allies), so add it (framework ask: def.cast) */
+      if(H&&H.jobs&&!H.jobs._heistCast){const ck=H.jobs.castKeys;H.jobs._heistCast=true;H.jobs.castKeys=id=>{const r=ck(id)||[];return id==='heist'&&PP?[...new Set(r.concat(castKeys().filter(k=>PP.keys.includes(k)&&!PP.has(k))))]:r}}},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({stage0:'job',tags:{keypad:true,u47:true,cams:true},weird:.2,weirdFlag:false,gear:{walkies:true,dolly:true},talked:{hank:true,dave:true},spend:60,
       plan:{assign:{lookout:'doug',driver:'rick',lifter:'dave',distraction:'gary'},entry:'quiet'},loadedIds:['grill','gnome'],lock:'cut',truckIn:true,gateOpen:true,loud:false,ghost:true,clock:300,laser:3,ties:0,cpNode:true})}
@@ -898,6 +900,8 @@ J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='heist'||M.state==='go'||
       cell('Crew',M.plan?'4 dads':'—',crew)+cell('Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),'')+medal}
   if(won&&n){const w=document.createElement('div');w.className='htp-lf';const rows=ITEMS.map(it=>{const got=(M.loadedIds||[]).includes(it.id);return`<li class="${got?'ok':''}"><i></i><span>${it.label}</span><em>${it.owner}</em></li>`}).join('');
     w.innerHTML='<div class="hk">Lost &amp; Found · Gary\'s driveway, Sunday</div><ul>'+rows+'</ul>';const pay=r.querySelector('.ht-payout');r.insertBefore(w,pay||r.querySelector('.ht-btns'))}});
+/* warm the cast while the job is on offer (neighbour models load on demand) */
+let PRE=false;J.on('hud',()=>{if(PRE)return;const a=A();if(!a||a.mode!=='hub')return;const s=a.SV&&a.SV();if(!(s&&s.jobs&&s.jobs.talk&&s.jobs.talk.done))return;PRE=true;preloadCast()});
 /* free roam: the things that came home sit on their owners' porches; walk by and the owner has a word (once a visit) */
 const HOME={L:null,built:false,M:null,said:{},dirty:false,list:[]};
 function homeTeardown(){const H=HOME;for(const o of H.list)if(o.g&&o.g.parent)o.g.parent.remove(o.g);for(const x of(H.M&&H.M.vis.own)||[])try{x.dispose()}catch(_){}H.list=[];H.M=null;H.built=false;H.L=null}
