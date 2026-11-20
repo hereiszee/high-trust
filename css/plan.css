@@ -1,0 +1,29 @@
+/* HT.Plan (js/crewplan.js): extras on top of HUD.kit.roles (.ht-rc, css/hud.css). Good Fences' planning board; reusable by the finale. */
+.ht-rc.htp .ph{position:relative;padding-bottom:10px;background:linear-gradient(180deg,rgba(255,201,74,.07),rgba(255,201,74,0) 80%);border-radius:var(--r3,14px) var(--r3,14px) 0 0}
+.ht-rc.htp .ph::after{content:'';position:absolute;left:26px;right:26px;bottom:0;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 6px,transparent 6px 11px)}
+.ht-rc.htp h2{letter-spacing:.02em}
+.htp-x{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-top:10px}
+.htp-you{display:flex;align-items:center;gap:8px;font:600 var(--t-s,13px)/1.25 var(--ht-body,system-ui);color:var(--fg2,#cfd3d8);max-width:520px}
+.htp-you b{flex:none;font:800 10px/1 var(--ht-ui,system-ui);letter-spacing:.2em;text-transform:uppercase;color:var(--ink,#111);background:var(--sun,#ffc94a);padding:4px 7px;border-radius:3px}
+.htp-intel{display:flex;flex-wrap:wrap;gap:6px}
+.htp-i{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 7px;border-radius:12px;font:700 10px/1 var(--ht-ui,system-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--fg3,#8d939b);box-shadow:inset 0 0 0 1px var(--line-2,rgba(255,255,255,.16))}
+.htp-i i{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1.5px currentColor;position:relative}
+.htp-i.ok{color:var(--leaf,#8fd18a);box-shadow:inset 0 0 0 1px rgba(143,209,138,.45);background:rgba(143,209,138,.07)}
+.htp-i.ok i{background:currentColor}
+.htp-i.ok i::after{content:'';position:absolute;left:3.5px;top:2px;width:3px;height:6px;border:solid #111;border-width:0 1.6px 1.6px 0;transform:rotate(45deg)}
+.ht-rc.htp .gi{flex-wrap:wrap}
+.ht-rc.htp .htp-does{flex-basis:100%;padding-left:24px;margin-top:2px;font:500 11px/1.25 var(--ht-body,system-ui);color:var(--fg3,#8d939b)}
+.ht-rc.htp .gi.ok .htp-does{color:var(--fg2,#cfd3d8)}
+.ht-rc.htp .htp-ed{display:block;margin-top:3px;font:500 11px/1.3 var(--ht-body,system-ui);color:var(--fg3,#8d939b);text-transform:none;letter-spacing:0}
+.ht-rc.htp .er.lk .htp-ed{display:none}
+.ht-rc.htp .fc li{line-height:1.35}
+@media (max-width:720px){.htp-x{gap:8px}.htp-you{font-size:12px}.htp-i{height:22px;font-size:9px}.ht-rc.htp .htp-does{padding-left:20px}}
+/* Good Fences result card: the Lost & Found list */
+.ht-result .htp-lf{margin:10px 0 4px}
+.ht-result .htp-lf .hk{font:700 12px/1 var(--ht-ui,system-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--fg2,#aaa);margin-bottom:8px}
+.ht-result .htp-lf ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 18px}
+.ht-result .htp-lf li{display:flex;align-items:baseline;gap:7px;font:600 12px/1.35 var(--ht-body,system-ui);color:var(--fg3,#8d939b)}
+.ht-result .htp-lf li i{flex:none;width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 1.5px currentColor;transform:translateY(1px)}
+.ht-result .htp-lf li.ok{color:var(--fg,#eee)}.ht-result .htp-lf li.ok i{background:var(--leaf,#8fd18a);box-shadow:none}
+.ht-result .htp-lf li em{margin-left:auto;font-style:normal;font-weight:500;color:var(--fg3,#8d939b);white-space:nowrap}
+@media (max-width:720px){.ht-result .htp-lf ul{grid-template-columns:1fr}}
