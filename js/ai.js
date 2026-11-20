@@ -669,11 +669,12 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
   const say=(ev,vars)=>{if(I.bark)return;const b=barker.say('ally',ev,a.id,t,vars);if(b)I.bark=b};
   const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
   const dP=hyp(a.pos.x-P.x,a.pos.z-P.z);
+  const RO=a.role&&a.role.kind?a.role:null;/* role commands (see below) */
   /* enemies: active and seen by me (or close to the dad and alert) */
   const live=(world.enemies||[]).filter(e=>!isOut(e));
   ai.thinkT-=dt;const decide=ai.thinkT<=0;if(decide)ai.thinkT=rr(.25,.35);
   if(decide){let best=null,bs=1e9;ai.visible=[];
-    for(const e of live){const d=hyp(e.pos.x-a.pos.x,e.pos.z-a.pos.z);if(d>32)continue;const crouch=e.ai&&e.ai.stance==='crouch';
+    for(const e of live){const d=hyp(e.pos.x-a.pos.x,e.pos.z-a.pos.z);if(d>32)continue;if(RO&&(RO.kind==='lift'||RO.fire===false||(RO.ok&&!RO.ok(e))))continue;const crouch=e.ai&&e.ai.stance==='crouch';
       if(!nav.los(a.pos.x,a.pos.z,e.pos.x,e.pos.z,crouch?'b':false))continue;const alert=e.ai?e.ai.mode!=='idle':!!e.alert;if(!alert&&hyp(e.pos.x-P.x,e.pos.z-P.z)>15)continue;
       ai.visible.push(e);
       /* covering the dad while he reloads or zip-ties: whoever is closest to him first */
@@ -698,7 +699,7 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
     if(mine&&safe){mode='revive';goal={x:o.pos.x,z:o.pos.z};speed=5.5;I.revive=o.id;if(hyp(o.pos.x-a.pos.x,o.pos.z-a.pos.z)<1.3){I.reviving=true;goal=null;say('revive')}}}
 
   /* stack up: the dad crouches next to a doorway with no fight on */
-  let stackDoor=null;if(!combat&&P.crouch&&mode==='follow'){let bd=3.2;for(const d of nav.doors){if(d.cells.length>4)continue;const dd=hyp(d.x-P.x,d.z-P.z);if(dd<bd){bd=dd;stackDoor=d}}}
+  let stackDoor=null;if(!RO&&!combat&&P.crouch&&mode==='follow'){let bd=3.2;for(const d of nav.doors){if(d.cells.length>4)continue;const dd=hyp(d.x-P.x,d.z-P.z);if(dd<bd){bd=dd;stackDoor=d}}}
   if(stackDoor){mode='stack';const d=stackDoor;const ax=d.axis==='x'?1:0,az=1-ax;/* through-direction */const side=Math.sign((P.x-d.x)*ax+(P.z-d.z)*az)||1;
     const k=a.slot||0,lat=(k%2?1:-1)*(1.5+Math.floor(k/2)*1.2);/* along the wall, either side of the door */
     let gx=d.x+ax*side*nav.tile*.9+az*lat,gz=d.z+az*side*nav.tile*.9+ax*lat;const c=nav.nearestWalkable(gx,gz,2);if(c>=0&&nav.door[c]){gx+=az*lat*.6;gz+=ax*lat*.6}
@@ -716,15 +717,24 @@ AI.ally=function(a,world,dt){const nav=world.nav,t=world.t,P=world.player;
   if(mode==='follow'){goal=formationSlot(a,world,P,fx,fz,rx,rz);speed=dP>6?6.4:4.5;if(dP>30){I.teleport={x:P.x-fx*1.2,z:P.z-fz*1.2}}}
   /* never block a doorway the dad is heading for */
   const myCell=nav.cellOf(a.pos.x,a.pos.z);
-  if(myCell>=0&&nav.door[myCell]&&dP<5&&mode!=='stack'){const y=yieldSpot(a,world,P);if(y){goal=y;speed=4.5;I.yield=true;if(P.moving)say('yield')}}
+  if(!RO&&myCell>=0&&nav.door[myCell]&&dP<5&&mode!=='stack'){const y=yieldSpot(a,world,P);if(y){goal=y;speed=4.5;I.yield=true;if(P.moving)say('yield')}}
   if(goal&&mode!=='stack'&&mode!=='revive'){const gc=nav.cellOf(goal.x,goal.z);if(gc>=0&&nav.door[gc]&&mode==='follow'){const y=nav.nearestWalkable(goal.x+(a.pos.x-goal.x)*.5,goal.z+(a.pos.z-goal.z)*.5);if(y>=0&&!nav.door[y])goal={x:nav.wx(y),z:nav.wz(y)}}}
 
+  /* role commands (js/jobs/moving.js, the crew radio): a.role={kind:'cover'|'lift'|'go', x, z, r?, speed?, face?:{x,z}, fire?:false, ok?:e=>bool}.
+     The job, not the dad, decides where this crewman stands. cover: hold (x,z) and fight from there; go: walk there and stay (fire allowed);
+     lift: walk to (x,z) and never fire (the job moves the point between the truck and the door). ok(e) filters who may be shot at.
+     I.state='role', I.role=kind, I.arrived once within r (default .7) of the point. a.role=null hands him back to the formation. */
+  if(RO){mode='role';ai.cover=null;ai.stackDoor=null;I.teleport=null;I.yield=false;I.revive=null;I.reviving=false;
+    if(RO.kind==='lift'||RO.fire===false)ai.target=null;
+    const dr=hyp(RO.x-a.pos.x,RO.z-a.pos.z);I.arrived=dr<(RO.r||.7);goal=I.arrived?null:{x:RO.x,z:RO.z};speed=RO.speed||(RO.kind==='lift'?3.4:dr>6?5.6:4);
+    if(!ai.target&&I.arrived&&RO.face)I.face={x:RO.face.x,z:RO.face.z}}
+  I.role=RO?RO.kind:null;
   /* move */
   if(goal){const dg=hyp(goal.x-a.pos.x,goal.z-a.pos.z);
-    if(dg>.6){if(!ai.path||!ai.goal||hyp(ai.goal.x-goal.x,ai.goal.z-goal.z)>1.2||t-ai.repathT>1.2){const p=nav.path(a.pos.x,a.pos.z,goal.x,goal.z);ai.path=p?p.pts:null;ai.pi2=1;ai.goal=goal;ai.repathT=t}
+    if(dg>.6){if(!ai.path||!ai.goal||hyp(ai.goal.x-goal.x,ai.goal.z-goal.z)>1.2||t-ai.repathT>1.2){const p=nav.path(a.pos.x,a.pos.z,goal.x,goal.z);ai.path=p?p.pts:null;if(mode==='role')ai.path=(ai.path||[{x:a.pos.x,z:a.pos.z}]).concat([{x:goal.x,z:goal.z}]);/* a role point is exact, not a cell centre */ai.pi2=1;ai.goal=goal;ai.repathT=t}
       const fake={pos:a.pos};steer(a,ai,{agents:world.allies,threats:[{x:P.x,z:P.z}]},speed,I);void fake}
     else ai.path=null}
-  ai.stance=mode==='stack'?'crouch':(mode==='cover'&&ai.cover&&ai.cover.hide==='crouch'&&!(ai.target&&ai.fireT<.25))?'crouch':'stand';
+  ai.stance=mode==='stack'?'crouch':mode==='role'&&RO.crouch&&!(ai.target&&ai.fireT<.25)?'crouch':(mode==='cover'&&ai.cover&&ai.cover.hide==='crouch'&&!(ai.target&&ai.fireT<.25))?'crouch':'stand';
   /* fire */
   if(ai.target&&mode!=='revive'){const e=ai.target,d=hyp(e.pos.x-a.pos.x,e.pos.z-a.pos.z);I.face={x:e.pos.x,z:e.pos.z};ai.aimT+=dt;ai.fireT-=dt;
     const crouch=e.ai&&e.ai.stance==='crouch';

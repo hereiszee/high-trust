@@ -52,9 +52,9 @@ const FAILAT=arg('failat',''),SHOTS=!!arg('shots',false),FR=+arg('frames',14000)
     if(r.ph==='tail'&&r.hold==='light'&&!taken.light){taken.light=1;await cam([358,3.4,42.6],[382,2.4,45.6],44);await shot('05-light');await camOff()}
     if(r.ph==='tail'&&r.ts>180&&r.cov>0&&r.d>22&&r.d<55&&!taken.cover){taken.cover=1;await cam({follow:true,back:7.5,up:2.9,fov:55});await shot('02b-cover');await camOff()}
     if(r.ph==='tail'&&r.hold==='pull'&&!taken.pull){taken.pull=1;await shot('03-swap-window')}
-    if(r.ph==='drop'&&r.ho==='go'&&r.items>=1&&!taken.lot){taken.lot=1;await ev(()=>{window.__ht.P.aim=false});await cam([427,7,123],[398,1.2,138],38);await shot('06b-handoff');await camOff()}
-    if(r.ph==='drop'&&r.ho==='go'&&r.vf&&r.items>=2&&!taken.bino){taken.bino=1;await shot('07-binoculars',()=>{window.__ht.P.aim=true;window.__ht.step(1)})}
-    if(r.ph==='drop'&&r.ho==='done'&&r.vf&&!taken.plate){taken.plate=1;await shot('08-plate',()=>{window.__ht.P.aim=true;window.__ht.step(1)})}
+    if(r.ph==='drop'&&r.ho==='go'&&r.items>=1&&!taken.lot){taken.lot=1;await ev(()=>{window.__ht.M.binoUp=false});await cam([427,7,123],[398,1.2,138],38);await shot('06b-handoff');await camOff()}
+    if(r.ph==='drop'&&r.ho==='go'&&r.vf&&r.items>=2&&!taken.bino){taken.bino=1;await shot('07-binoculars',()=>{window.__ht.M.binoUp=true;window.__ht.step(1)})}
+    if(r.ph==='drop'&&r.ho==='done'&&r.vf&&!taken.plate){taken.plate=1;await shot('08-plate',()=>{window.__ht.M.binoUp=true;window.__ht.step(1)})}
     /* --failat=<stage>: once that stage is reached, tailgate until he spooks, then "Retry from <stage>" and carry on */
     if(FAILAT&&!retried&&r.stage===FAILAT&&r.state==='go')failNow=true;
     if(FAILAT&&!retried&&r.state==='lost'){retried=true;failNow=false;await ev(()=>window.__ht.step(45));const rt=await ev(()=>{const H=window.__ht;const lab=[...document.querySelectorAll('button')].map(e=>e.textContent.trim()).filter(t=>/Retry|Restart/.test(t));H.UIacts['result:retry']();H.step(3);return{lab,state:H.M.state,stage:H.M.stage,retried:H.M.retried,car:H.CV?(H.CV===H.VAN?'van':H.CV.name):'foot',van:[Math.round(H.VAN.pos.x),Math.round(H.VAN.pos.z)]}});console.log('RETRY',JSON.stringify(rt));continue}
