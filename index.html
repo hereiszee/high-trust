@@ -1333,7 +1333,7 @@ const CAR_BAND=[
  {id:'smoking',top:.75,acc:.7, brk:.75,pull:.07,rough:.55,hood:.55,shade:.45},
  {id:'limp',   top:.75,acc:.5, brk:.65,pull:.09,rough:.9, hood:1,  shade:.2,limp:11.2},
  {id:'broken', top:.75,acc:0,  brk:.65,pull:0,  rough:0,  hood:.6, steam:1}];
-const CAR_HOOKS={breakdown:[]},TOW_FEE=75,TOW_FEE_HOME=120,CRASH_MIN=6.5;
+const CAR_HOOKS={breakdown:[],damage:[]},JOB_PATCH=.85/* jobs start with the van at least this healthy */,TOW_FEE=75,TOW_FEE_HOME=120,CRASH_MIN=6.5;
 const CAR_QUIPS=[null,["That's coming out of the swear jar.","{n} is going to count the dents.","Was that a mailbox? Tell me that wasn't a mailbox."],
   ["Is it pulling left or is that me?","Why is the steering wheel crooked now?","I smell coolant. That's a smell I know."],
   ["Is that smoke? Tell me that's steam.","The dash just lit up like Christmas.","She's making the noise. The bad noise."],
@@ -1378,6 +1378,7 @@ function carSay(e,s){return s.replace(/\{n\}/g,e&&e.name||'Jen').replace(/\{t\}/
 function carDamage(e,amt,cause){if(!e||!(amt>0))return 0;
   if(carBare(e)){const h0=e.hp||0;e.hp=Math.max(0,h0-amt);if(h0>0&&e.hp<=0)carBroke(e,cause);return h0-e.hp}
   const h0=carHp(e);if(h0<=0)return 0;const b0=carBand(e),h=carSetHp(e,h0-amt),b=carBand(e);
+  for(const f of CAR_HOOKS.damage)try{f(e,h0-h,cause)}catch(_){}
   if(b>b0)carBandDown(e,b,cause);if(h<=0)carBroke(e,cause);return h0-h}
 function carBandDown(e,b,cause){if(CV!==e)return;const sp=speaker(),q=CAR_QUIPS[b];if(b<5&&q&&DRV.bandQ!==b){DRV.bandQ=b;DRV.quipT=Math.max(DRV.quipT,2);radio(sp||'you',carSay(e,pick(q)))}
   if(b>=3&&b<5){try{if(ENG&&ENG.chime)ENG.chime()}catch(_){}try{HUD.feed(CAR_WARN[b],'bad')}catch(_){}}}
@@ -1400,7 +1401,7 @@ function carRepair(e,amt,o){if(!e)return 0;o=o||{};const m=carHpMax(e),h0=carHp(
    square-on the hit is. A bull bar halves nose hits, reinforced panels soak 15% / 30%. Returns HP lost. */
 function carImpact(e,sp,push,front,o){o=o||{};if(!(sp>CRASH_MIN))return 0;const G=HTM('Garage'),V=G&&G.VEH[e.type]||{mass:1},vs=e===VAN?vanStats():null;
   let k=1;if(push&&(push.x||push.z)){const l=Math.hypot(push.x,push.z),c=Math.abs((push.x*-Math.sin(e.yaw)+push.z*-Math.cos(e.yaw))/l);k=.35+.65*c}
-  let mod=o.mul||1;if(vs){if(front&&vs.impactTakenFront)mod*=vs.impactTakenFront;if(vs.bulletMul)mod*=1-(1-vs.bulletMul)*.6}
+  let mod=(o.mul||1)*(e===CV&&carChasing()?.5:1);/* frantic chase driving shouldn't end the job by itself: rams and bullets do that */if(vs){if(front&&vs.impactTakenFront)mod*=vs.impactTakenFront;if(vs.bulletMul)mod*=1-(1-vs.bulletMul)*.6}
   const d=Math.min(carHpMax(e)*.45,.13*(sp-CRASH_MIN)*(sp-CRASH_MIN)*(V.mass||1)*k*mod);return carDamage(e,d,o.cause||'crash')}
 /* the full crash: health, a dent where it hit, lamps and a tyre that can give, and the parked car on the other end */
 function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!lost)return 0;const ud=e.obj&&e.obj.userData,w=carWear(e);
@@ -1423,7 +1424,10 @@ function carShot(obj,dmg){if(!L||!L.cars||!obj)return 0;let e=null;for(const c o
   const got=carDamage(e,dmg*.25,'bullet');if(e!==VAN&&e!==BORROW.car)carNoticed(e,got*2);return got}
 function carBulletHit(d){if(!CV)return d;const vs=CV===VAN?vanStats():null;carDamage(CV,d*.6*(vs&&vs.bulletMul||1),'bullet');return d*.55}
 /* handling from health: called every frame from updVan after the base stats are set */
-function carDrive(e,S,B,I){const b=carBand(e),H=CAR_BAND[b],w=carWear(e),lim=H.limp||1e9,fl=w.tyre?.92:1;
+/* in a chase or an escort the van keeps going: no limp mode and milder acceleration/brakes until it actually dies (0 still ends it) */
+const CAR_CHASE_BAND={id:'chase',top:.75,acc:.85,brk:.85,pull:.07,rough:.7,hood:.8,shade:.3};
+function carChasing(){return mode==='mission'&&M&&M.state==='go'&&!!(M.chase&&M.chase.state!=='done'||M.phase==='escort'||M.phase==='ambush')}
+function carDrive(e,S,B,I){const b=carBand(e),H=b>=3&&b<5&&carChasing()?CAR_CHASE_BAND:CAR_BAND[b],w=carWear(e),lim=H.limp||1e9,fl=w.tyre?.92:1;
   S.maxSpeed=Math.min(lim,B.maxSpeed*H.top*fl);S.boostMax=Math.min(lim,B.boostMax*H.top*fl);if(B.sportMax)S.sportMax=Math.min(lim,B.sportMax*H.top*fl);
   S.accel*=H.acc;S.boostAccel*=H.acc;S.brake=B.brake*H.brk;S.hbrake=B.hbrake*H.brk;if(w.tyre)S.grip*=.85;if(e.car)e.car.topMul=1;
   const pull=(H.pull+(w.tyre?.07:0))*(e.pullDir||1);if(pull&&!I.hb)I.st=clamp(I.st+pull*clamp(Math.abs(e.spd)/10,0,1),-1,1);
@@ -2481,7 +2485,9 @@ function metaOnBuy(r){
 if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){try{HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})}catch(e){console.warn('shop thumbnails unavailable',e)}}
 
 /* ---------- payout ---------- */
-function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;metaSave()}
+function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;
+  /* no job starts on a wreck: the crew gives the van a once-over to 85% (jobs are balanced for a healthy van; Dad's Auto does the rest) */try{if(VAN&&carFrac(VAN)<JOB_PATCH){carRepair(VAN,carHpMax(VAN)*JOB_PATCH-carHp(VAN),{fresh:false});setTimeout(()=>radio(speaker()||'you',"Gary zip-tied the bumper back on. She'll hold. Probably."),1800)}}catch(_){}
+  metaSave()}
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
 function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
   try{pay=ECON.computePayout({mission:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
@@ -3426,7 +3432,7 @@ ASSETS.onAsset(s=>{const k=/people\/rocketbox\/(\w+)\.glb$/.exec(s);const pm=HTM
   const upd=()=>{t=0;const n=ASSETS.stream.pending(),f=ASSETS.stream.failing();const txt=!ASSETS.done||mode==='title'||!n?'':(f&&f===n?'Waiting for the network…':'Streaming details · '+n);
     if(txt!==shown){shown=txt;el.textContent=txt;el.hidden=!txt}};
   ASSETS.stream.onChange(()=>{if(!t)t=setTimeout(upd,250)})}
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
   crash(e,speed,o){e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1,push={x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f};return carCrash(e,speed,push,!o.rear)},setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},

@@ -17,6 +17,7 @@ While you drive a car, `e.car.hp` (the `HT.CarAI` body) is an accessor onto the 
 - `carHp(e)`, `carHpMax(e)`, `carFrac(e)`, `carBand(e)` (0 to 5), `carWear(e)`
 - `carDamage(e, hp, cause)`: returns HP lost. Crossing into a worse band while you drive plays the crew quip, the chime and the warning; reaching 0 breaks the car down.
 - `carRepair(e, 'full' | hp, opts)`: a full repair gives a fresh body and fixes every lamp and the tyre.
+- `CAR_HOOKS.damage.push(fn)`: `fn(e, hpLost, cause)` runs on every hit (causes: `crash`, `parked`, `bullet`, `ai` for writes to `e.car.hp`).
 - `onBreakdown(fn)`: `fn(e, cause)` runs when any car reaches 0. Returns an unsubscribe function. Chase missions use this instead of polling.
 - `towCar(e)`: your van goes to Dad's Auto (fee $75, or on Sal's tab, patched to 60%). A neighbour's car goes home on a flatbed ($120 and up to −3 trust).
 - `__ht.crash(e, speed, {angle, rear})` runs a wall impact through the real crash path. `__ht.repairCar(e, amount)`.
@@ -48,8 +49,14 @@ Measured on a sedan (`node dev/car-damage/handling.js`): top speed 67 → 67 →
 
 `openShop('auto')` hands the car you are driving to `HT.Economy.setRepairCar` and opens on the Repair tab if it is hurt. The tab lists what is wrong (body work, engine and radiator, lights, tyre) with prices: $2 per HP, $30 per lamp, $45 per tyre. The family discount applies. If you are short, "Patch what you can afford" spends what you have, fixing the engine first. Paying for a borrowed car's repair cancels the trust loss and earns a thank-you (+1) when you return it.
 
+## Jobs and chases
+
+- When a job starts, the crew gives the van a once-over up to `JOB_PATCH` (85%), because the jobs are balanced for a healthy van.
+- During a chase, an escort or an ambush (`carChasing()`), bands 3 and 4 use a milder chase band: top speed ×0.75, acceleration and brakes ×0.85, no limp mode. Wall crashes do half damage to the car you drive. Rams and gunfire count in full, and 0 still ends the chase (the world-mission code calls `wmVanDown`).
+- Ambient traffic cars are not in `L.cars`. Hitting one damages your car but not theirs, and costs no trust.
+
 ## Consequences
 
-- **Borrowing.** `settleBorrow` scales with the damage left on the car compared with when you took it: 10% costs −1, 30% costs −2, 60% costs −3. Leaving it far from home costs −2. A broken-down car is towed home. Each owner counts once, with a cap of −6 per session.
+- **Borrowing.** `settleBorrow` scales with the damage left on the car compared with when you took it: 10% costs −1, 30% costs −2, 60% costs −3. Leaving it far from home costs −2. A broken-down car is towed home. Each owner counts once, with a cap of −6 per session. Trust goes to the neighbourhood where the car lives (`carHood`: Maple Heights or Riverside).
 - **Home.** After a job, Tyler patches the van back to 60% the next time you go home (once per job run) and fits the spare tyre.
 - **Tows.** A tow is always affordable: whatever cash can't cover goes on Sal's tab (`SAVE.garage.tab`), and the next payout pays it off.
