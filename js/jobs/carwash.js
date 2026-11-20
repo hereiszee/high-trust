@@ -13,9 +13,9 @@
    ===================================================================== */
 (function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;
 const ID='carwash';
-const TUNE={shift:240,bronze:60,silver:130,gold:185,price:5,tipBase:2,tipShine:8,tipFast:4,spotless:2,
-  needClean:.84,foamLeft:.2,scrubOnly:.3,soapRate:1/11,soap2:1.65,youScrub:1/8,dryRate:1/6.5,youDry:1/5.5,wetLeave:24,
-  bucketUse:.03,bucketFill:.5,hoseNodes:34,hoseSeg:.8,speed:12.5,kinkSpeed:3.4,eraseR:.5,eraseK:9,
+const TUNE={shift:240,bronze:50,silver:100,gold:150,price:5,tipBase:2,tipShine:8,tipFast:4,spotless:2,
+  needClean:.8,foamLeft:.2,scrubOnly:.3,soapRate:1/11,soap2:1.65,youScrub:1/8,dryRate:1/6.5,youDry:1/5.5,wetLeave:24,
+  bucketUse:.03,bucketFill:.5,hoseNodes:34,hoseSeg:.8,speed:12.5,kinkSpeed:3.4,eraseR:.58,eraseK:13,
   gap:[15,20],gapMin:9,signMul:.62,freeMul:.55,patience:95,queueMax:4,kidR:14,catchR:1.35,thiefLost:52,
   trustCar:.3,trustRun:4,trustWeek:12,trustTalk:1,trustCuff:1.5,garyUses:2,goals:[500,1200]};
 /* tile geometry of the church lawn (worldgen: B('A',160,10,170,15,'church'), lawn 160..170 x 16..18, sidewalk z19, 2nd St z20..22) */
@@ -942,7 +942,10 @@ function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;o=o||{};if(!M||M.state!=='go'||!M
   if(a.CV){stop();if(t%10===0)a.useTap=true;return null}
   if(C.phase==='load'||C.phase==='tally'){stop();k.e=false;return null}
   if(C.phase==='over'){stop();k.e=false;if(C.phase==='over'&&C.overT>2)return null;return null}
-  const go=(x,z,r)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz);if(d<(r||.6)){stop();return true}const want=Math.atan2(-dx,-dz);let dy=want-P.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;P.yaw+=clamp(dy,-.22,.22);
+  /* around the parked cars and the table: if the straight line crosses one, go by the sidewalk */
+  const blocked=(x0,z0,x1,z1)=>{const L=Math.hypot(x1-x0,z1-z0);for(let s=.5;s<L;s+=.4){const x=x0+(x1-x0)*s/L,z=z0+(z1-z0)*s/L;if(C.cars.some(c=>c.bay>=0&&c.st!=='leave'&&Math.abs(x-c.x)<1.5&&Math.abs(z-c.z)<2.95))return true;if(Math.abs(x-SPOT.table.x)<1.3&&Math.abs(z-SPOT.table.z)<.8)return true}return false};
+  const go=(x,z,r)=>{if(Math.hypot(x-P.pos.x,z-P.pos.z)>(r||.6)&&blocked(P.pos.x,P.pos.z,x,z)){const W_=39.7;if(Math.abs(P.pos.z-W_)>.6&&!blocked(P.pos.x,P.pos.z,P.pos.x,W_)){x=P.pos.x;z=W_}else if(!blocked(x,W_,x,z)||Math.abs(z-W_)<.6){if(Math.abs(P.pos.z-W_)<=.8){z=W_}else{x=P.pos.x;z=W_}}r=.4}
+    const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz);if(d<(r||.6)){stop();return true}const want=Math.atan2(-dx,-dz);let dy=want-P.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;P.yaw+=clamp(dy,-.22,.22);
     k.w=Math.abs(dy)<1.4;k.shift=d>5&&Math.abs(dy)<.5;if(t%15===0){const mv=Math.hypot(P.pos.x-B.px,P.pos.z-B.pz);if(k.w&&mv<.3)B.stuck++;else B.stuck=0;B.px=P.pos.x;B.pz=P.pos.z;
       if(B.stuck>=3){/* caught on a chair or the canopy leg: sidestep */P.pos.x+=(Math.random()-.5)*1.2;P.pos.z+=(Math.random()-.5)*1.2;a.collide(P.pos,.35);B.stuck=0}}return false};
   const aim=(x,y,z)=>{const c=a.camera.position;const dx=x-c.x,dy=y-c.y,dz=z-c.z,h=Math.hypot(dx,dz);const wy=Math.atan2(-dx,-dz);let d=wy-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;P.yaw+=clamp(d,-.35,.35);
@@ -974,18 +977,21 @@ function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;o=o||{};if(!M||M.state!=='go'||!M
   /* rinse: the dirtiest face first, from where a person stands */
   const cars=C.cars.filter(c=>c.bay>=0&&(c.st==='rinse'||c.st==='soap'&&c.soap>.75)).sort((p,q)=>(p.st==='rinse'?0:1)-(q.st==='rinse'?0:1)||p.id-q.id);const c=cars[0];
   if(c&&c.S){const pr=c.S.pr,G=c.S.grid,inner=c.bay?-1:1;
-    /* where a person stands for each side: east, west, behind, the front corner; every dirty cell belongs to the side you'd hit it from */
-    const ST={E:{x:c.x+3.3,z:c.z+.6},W:{x:c.x-3.3,z:c.z+.6},S:{x:c.x+.5,z:c.z+5.1},N:{x:c.x+inner*1.95,z:32.65}};
-    const cellOf=(q,x,y)=>{if(q===1)return'E';if(q===2)return'W';if(q===3)return x<16?'N':'S';const lz=pr.min.z+(y+.5)/32*pr.size.z,lx=pr.min.x+(x+.5)/32*pr.size.x;return lz>.3?'E':lz<-.3?'W':lx>0?'N':'S'};
-    const sums={E:0,W:0,S:0,N:0},best={};for(let q=0;q<4;q++){const ox=(q===1||q===3)?32:0,oy=q>=2?32:0;for(let y=0;y<32;y++)for(let x=0;x<32;x++){const v=G[(oy+y)*64+ox+x];if(v<.04)continue;const k_=cellOf(q,x,y);sums[k_]+=v;if(!best[k_]||v>best[k_].v)best[k_]={q,x,y,v}}}
-    B.blk=B.blk||{};if(B.side&&B.faceC===c&&B.faceT<=0){if(B.face0-sums[B.side]<.04*Math.max(1,B.face0))B.blk[c.id+':'+B.side]=t+360}/* no progress from there: try another side for a while */
-    if(!B.side||B.faceT<=0||B.faceC!==c){let bs=-1,bf=null;for(const k_ in sums){if(B.blk[c.id+':'+k_]>t)continue;if(sums[k_]>bs){bs=sums[k_];bf=k_}}if(!bf)bf=['E','W','S','N'][(t/200|0)%4];B.side=bf;B.faceT=150;B.faceC=c;B.face0=sums[bf]}
-    const sd=B.side,stand=ST[sd];/* walk round the car, never through it */
-    const pl=toLocal(c,P.pos.x,1,P.pos.z),sl=toLocal(c,stand.x,1,stand.z);let wp=stand;if(Math.sign(pl.z)!==Math.sign(sl.z)&&Math.abs(pl.z)>.9&&Math.abs(sl.z)>.9&&pl.x>pr.min.x-1.2)wp={x:P.pos.x,z:c.z+5};
-    B.dbgS=sd+'@'+stand.x.toFixed(1)+','+stand.z.toFixed(1)+' d'+Math.hypot(P.pos.x-stand.x,P.pos.z-stand.z).toFixed(1)+(wp!==stand?' detour':'');if(!go(wp.x,wp.z,.7)||wp!==stand)return null;B.faceT--;const bc=best[sd];if(!bc||sums[sd]<.5){B.faceT=0;return null}
-    const u=(bc.x+.5)/32,v=(bc.y+.5)/32;let lx,ly,lz;if(bc.q===0){lx=pr.min.x+u*pr.size.x;lz=pr.min.z+v*pr.size.z;ly=pr.top[binOf(pr,lx)]-.02}
-    else if(bc.q===3){const front=u<.5;lz=pr.min.z+(front?u*2:(u-.5)*2)*pr.size.z;lx=front?pr.min.x+pr.size.x:pr.min.x;ly=pr.min.y+(1-v)*pr.size.y}else{lx=pr.min.x+u*pr.size.x;ly=pr.min.y+(1-v)*pr.size.y;lz=(bc.q===1?1:-1)*pr.hw[binOf(pr,lx)]}
-    const cs=Math.cos(c.yaw),sn=Math.sin(c.yaw);const wx=c.x+lx*cs+lz*sn,wz=c.z-lx*sn+lz*cs;if(aim(wx,ly,wz)||B.sweep>0){C.botSpray=true;if(B.sweep<=0)B.sweep=5}B.sweep--;return null}
+    /* where a person stands for each side, and the sweep of spots they'd spray from there (skipping what's already clean) */
+    const ST={E:{x:c.x+3.3,z:c.z+.6},W:{x:c.x-3.3,z:c.z+.6},S:{x:c.x+.5,z:c.z+5.1},N:{x:c.x+inner*2.2,z:32.75}};
+    const cellV=(q,u,v)=>{const ox=(q===1||q===3)?32:0,oy=q>=2?32:0;let m=0;const cx=clamp(Math.floor(u*32),0,31),cy_=clamp(Math.floor(v*32),0,31);for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const X=cx+dx,Y=cy_+dy;if(X<0||Y<0||X>31||Y>31)continue;m=Math.max(m,G[(oy+Y)*64+ox+X])}return m};
+    const spots=sd=>{const out=[];const add=(lx,ly,lz,q,u,v)=>{const val=cellV(q,u,v);if(val>.06)out.push({lx,ly,lz,val})};
+      if(sd==='E'||sd==='W'){const sg=sd==='E'?1:-1,q=sd==='E'?1:2;for(let i=0;i<9;i++){const u=(i+.5)/9,lx=pr.min.x+u*pr.size.x,b=binOf(pr,lx);for(const ly of[.45,.75,1.05,pr.top[b]-.12])if(ly<pr.top[b])add(lx,ly,sg*pr.hw[b],q,u,1-(ly-pr.min.y)/pr.size.y);
+          for(const f of[.75,.35])add(lx,pr.top[b]-.02,sg*pr.hw[b]*f,0,u,(sg*pr.hw[b]*f-pr.min.z)/pr.size.z)}}
+      else{const front=sd==='N',lx=front?pr.min.x+pr.size.x:pr.min.x,b=binOf(pr,lx);for(let i=0;i<5;i++){const v=(i+.5)/5,lz=pr.min.z+v*pr.size.z;for(const ly of[.45,.75,Math.max(.8,pr.top[b]-.1)])if(ly<pr.top[b]+.05)add(lx,ly,lz,3,front?v*.5:.5+v*.5,1-(ly-pr.min.y)/pr.size.y);
+          for(let k=1;k<=3;k++){const lx2=front?pr.min.x+pr.size.x*(1-k*.12):pr.min.x+pr.size.x*k*.12,b2=binOf(pr,lx2);add(lx2,pr.top[b2]-.02,lz*.8,0,(lx2-pr.min.x)/pr.size.x,(lz*.8-pr.min.z)/pr.size.z)}}}
+      return out};
+    if(!B.side||B.faceC!==c||!B.list||!B.list.length){let bs=-1,bf=null;for(const k_ of['E','W','S','N']){if(B.blk&&B.blk[c.id+':'+k_]>t)continue;const L_=spots(k_);const v=L_.reduce((a_,q)=>a_+q.val,0);if(v>bs){bs=v;bf=k_;B.list=L_}}
+      if(!bf||bs<=0){B.side=null;B.list=null}else{B.side=bf;B.faceC=c;B.list.sort((p,q)=>q.ly-p.ly||p.lx-q.lx);B.spotT=0;B.walkT=0}}
+    if(B.side){const stand=ST[B.side];B.dbgS=B.side+' '+B.list.length+' d'+Math.hypot(P.pos.x-stand.x,P.pos.z-stand.z).toFixed(1);
+      if(!go(stand.x,stand.z,.8)){B.walkT=(B.walkT||0)+1;if(B.walkT>360){B.blk=B.blk||{};B.blk[c.id+':'+B.side]=t+600;B.list=null}return null}
+      const sp=B.list[0];const cs=Math.cos(c.yaw),sn=Math.sin(c.yaw);const wx=c.x+sp.lx*cs+sp.lz*sn,wz=c.z-sp.lx*sn+sp.lz*cs;if(aim(wx,sp.ly,wz)||B.spotT>0){C.botSpray=true;B.spotT++}
+      if(B.spotT>6){B.list.shift();B.spotT=0}return null}}
   /* nothing to rinse: help scrub a bay with no kids */const sc=C.cars.find(q=>q.bay>=0&&q.st==='soap'&&!C.kids.some(kk=>kk.st==='w'+q.bay));if(sc){if(go(sc.x+(sc.bay?1.9:-1.9),sc.z,.6))k.e=true;return null}
   const s=C.cars.find(q=>q.bay>=0&&q.st==='soap');if(s){go(s.x+(s.bay?2.4:-2.4),s.z+3.4,.8);return null}
   go(330.5,38.4,1);return null}
