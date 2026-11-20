@@ -192,7 +192,7 @@ function truckModel(plate){const a=A(),T3=a.THREE,g=new T3.Group();g.name='coneB
   wheel(-1.0,-2.82,false);wheel(1.0,-2.82,false);wheel(-.92,2.3,true);wheel(.92,2.3,true);
   for(const s of[-1,1])mesh(bx(.06,.5,.04),dark,s*1.0,.45,3.05,g);
   /* the cargo: 20 catalytic converters on two pallets, a crate of packages, a hay bale (Pepper stands on the floor at the back) */
-  const cargo=new T3.Group();cargo.position.set(0,1.09,0);g.add(cargo);const pal=std('#b08a5a',{roughness:.85}),cat=std('#a9aeb2',{roughness:.3,metalness:.75}),pipe=std('#6d7276',{roughness:.4,metalness:.7});
+  const cargo=new T3.Group();cargo.position.set(0,1.09,0);g.add(cargo);const pal=std('#b08a5a',{roughness:.85}),cat=std('#d4d8dc',{roughness:.35,metalness:.35,emissive:A().lin('#3a3c3e'),emissiveIntensity:.5}),pipe=std('#9a9fa4',{roughness:.4,metalness:.4});
   for(const pz of[-.6,.55]){mesh(bx(1.0,.12,1.0),pal,-.5,.06,pz,cargo);for(let i=0;i<10;i++){const c=mesh(cy(.11,.11,.34,10),cat,-.78+(i%3)*.27,.24+Math.floor(i/6)*.24,pz-.3+(Math.floor(i/3)%2)*.3,cargo,0,0,Math.PI/2);c.scale.z=.7;mesh(cy(.03,.03,.12,6),pipe,c.position.x+.22,c.position.y,c.position.z,cargo,0,0,Math.PI/2)}}
   const crate=std('#9c7a4a',{roughness:.85});mesh(bx(.9,.6,.8),crate,.55,.3,-.3,cargo);for(let i=0;i<5;i++)mesh(bx(.28+(i%2)*.1,.2,.24),std(['#c69c66','#b8874f','#d1a874'][i%3],{roughness:.8}),.35+(i%3)*.22,.7+(i>2?.2:0),-.45+(i%2)*.3,cargo);
   mesh(bx(.7,.42,.42),std('#d8c070',{roughness:.95}),.5,.21,1.0,cargo);
@@ -247,7 +247,7 @@ J.register('cones',{
     unlock:{done:['tail','benny']},
     pay:950,par:330,roam:true,order:40,
     stages:['build','convoy'],stageLabels:{build:'The roadblock',convoy:'The convoy'},failPolicy:'escalate',
-    medals:['Finished','Airtight: stopped cold, no chase','Airtight, and not a single shot fired'],
+    medals:['Finished','Stopped cold: no chase','Airtight (two cars and a lit flare), not a single shot fired'],
     radio:[['earl',"Cones are in the back of my truck. Ninety seconds once you're there. Don't be late. Nobody's ever late on a Thursday."]],
     endLine:"Earl: Twenty converters back in twenty driveways. A goat back in a yard. And not one cone on Industrial Way. Thursday."},
 
@@ -281,6 +281,7 @@ J.register('cones',{
     else if(M.ph==='open')openTick(M,dt,F);
     else if(M.ph==='wrap')wrapTick(M,dt,F);
     crewTick(M,dt);vehicles(M,dt);carWatch(M);goatTick(M,dt,F);
+    if(M.earl){const P=a.P;if(Math.hypot(P.pos.x-EARL.x,P.pos.z-EARL.z)<14)faceTo(M.earl,P.pos.x,P.pos.z,dt);posePerson(M.earl,dt)}
     if(M.state!=='go')return;
     /* the crew all down = the job's over (unless the truck's already ours) */
     const cr=a.allies.length?a.allies:null;if(cr&&cr.every(c=>c.down)&&['standoff'].includes(M.ph))return a.endMission(false,L_.crewDown,'Crew down');
@@ -297,7 +298,7 @@ J.register('cones',{
     (s.posts||[]).forEach((p,i)=>{const c=M.crew&&M.crew[i];if(!p||!c)return;c.post={x:p.x,z:p.z};c.pos.set(p.x,0,p.z);c.dude.root.position.set(p.x,0,p.z);if(p.p)givePaddle(M,c)});
     if(s.ph==='convoy'){M.clock=0;M.said.t60=M.said.t30=M.said.t10=1;startConvoy(M,true)}},
   payout(M,ok){if(!ok)return[];const out=[];
-    if(M.stoppedCold)out.push(['Airtight · stopped without a chase',K.airtight]);
+    if(M.stoppedCold)out.push([M.airtight?'Airtight · stopped cold, no chase':'Stopped cold · no chase',K.airtight]);
     out.push(['Catalytic converters back ×20',0]);
     if(M.goatPaid)out.push(['Goat returned · Pepper',K.goat]);
     return out},
@@ -334,7 +335,7 @@ function pileSync(M){const P_=M.pile;for(const k in P_.meshes)P_.meshes[k].forEa
 /* ---------------- the build ---------------- */
 function buildTick(M,dt,F){const a=A(),S=res().props,P=a.P;pileSync(M);
   if(!M.paused)M.clock=Math.max(0,M.clock-dt);
-  const t=M.clock,B={ph:'build',ttl:6};if(t<=60&&once(M,'t60'))say(M,[L_.t60],false,B);if(t<=30&&once(M,'t30')){say(M,[L_.t30],false,B);music('tension',.6)}if(t<=10&&once(M,'t10'))say(M,[L_.t10],true,B);
+  const t=M.clock,B={ph:'build',ttl:6};if(t<=62&&!M.said.stack&&once(M,'stackIdea'))say(M,L_.stack,false,B);if(t<=60&&once(M,'t60'))say(M,[L_.t60],false,B);if(t<=30&&once(M,'t30')){say(M,[L_.t30],false,B);music('tension',.6)}if(t<=10&&once(M,'t10'))say(M,[L_.t10],true,B);
   if(M.clock<=0)return startConvoy(M,false);
   if(M.elapsed>6&&once(M,'hint'))a.feed(L_.hint,'info');
   /* carry + place */
@@ -349,7 +350,8 @@ function buildTick(M,dt,F){const a=A(),S=res().props,P=a.P;pileSync(M);
   if(!carrying&&!a.CV){
     for(const k of['cone','sawhorse','sign','flare'])if(M.stock[k]>0){const p=PILE[k];F.holds.push({x:p.x,z:p.z,r:1.15,o:M.pile.meshes[k],txt:'Grab '+(k==='cone'?Math.min(2,M.stock.cone)+' cones':k==='flare'?Math.min(2,M.stock.flare)+' flares':'the '+PR().KINDS[k].label),time:.35,fn:()=>grab(M,k)})}
     const near=S.near(P.pos.x,P.pos.z,1.5,p=>p.state!=='flying');if(near)F.holds.push({x:near.x,z:near.z,r:1.5,o:near,txt:near.state==='down'?'Stand it back up':'Pick up the '+PR().KINDS[near.kind].label,time:.3,fn:()=>{if(near.state==='down'){S.upright(near);return}pickUp(M,near)}});
-    F.holds.push({x:EARL.x,z:EARL.z,r:1.6,o:M.readyO||(M.readyO={}),txt:"We're ready. Bring them on",time:1.0,fn:()=>{say(M,L_.ready,true);M.clock=Math.min(M.clock,3);M.said.t60=M.said.t30=M.said.t10=1}})}
+}
+  if(!a.CV)F.holds.push({x:EARL.x,z:EARL.z,r:1.6,o:M.readyO||(M.readyO={}),txt:"We're ready. Bring them on",time:1.0,fn:()=>{say(M,L_.ready,true);M.clock=Math.min(M.clock,3);M.said.t60=M.said.t30=M.said.t10=1}})
   /* the plan, the meter */
   M.planT-=dt;if(M.planT<=0){M.planT=.2;M.plan=readBlock(items(M));M.rankBest=M.plan.rank;drawPlan(M)}
   const pl=M.plan||readBlock(items(M));
@@ -429,7 +431,7 @@ function planWalk(M,dt){const a=A(),P=a.P,g=M.planGo;if(!g||a.CV)return;const f=
   if(d>1.75){const s=Math.min(d-1.7,6.2*dt);M.planYaw=P.yaw;P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.moving=true}else if(g.place){const c=P.carry;if(c&&c.kind.startsWith('cz:')&&M.ghostAt)placeHeld(M,M.ghostAt);M.planGo=null}else M.planGo=null}
 function planOverlay(M){const a=A();if(typeof document==='undefined')return;const R=res();
   if(!M.planOn||M.ph!=='build'){if(R.ov['cz-plan']){a.overlay('cz-plan',null);delete R.ov['cz-plan'];M.planEl=null}return}
-  if(!M.planEl){const wrapEl=document.createElement('div');wrapEl.style.cssText='position:absolute;inset:0;pointer-events:none';const el=document.createElement('div');wrapEl.appendChild(el);el.className='cz-plan';el.style.cssText='position:absolute;right:16px;top:150px;width:min(330px,calc(100vw - 32px));padding:12px 14px;border-radius:14px;background:rgba(14,18,24,.78);color:#f3efe6;font:500 13px/1.45 system-ui,sans-serif;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12)';
+  if(!M.planEl){const wrapEl=document.createElement('div');wrapEl.style.cssText='position:absolute;inset:0;pointer-events:none';const el=document.createElement('div');wrapEl.appendChild(el);el.className='cz-plan';el.style.cssText='position:absolute;left:16px;top:178px;width:min(300px,calc(100vw - 32px));max-height:calc(100vh - 440px);overflow:hidden;padding:10px 12px;border-radius:14px;background:rgba(14,18,24,.78);color:#f3efe6;font:500 12px/1.4 system-ui,sans-serif;pointer-events:none;backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.12)';
     el.innerHTML='<div style="font:700 11px/1 system-ui;letter-spacing:.14em;color:#ffb35c;margin-bottom:6px">PLANNING · INDUSTRIAL WAY</div><div class="cz-v" style="font:700 17px/1.25 system-ui;margin-bottom:6px"></div><div class="cz-g"></div>'+
       '<div style="margin-top:8px;color:#b8b4aa;font-size:12px"><b style="color:#fff">Click</b> the road: walk there, put it down · <b style="color:#fff">G</b> post a dad · <b style="color:#fff">Tab</b> back<br>Sell it with any two: the sign 4-50 m before the wall, a flagger with the paddle, a lit flare. Two cars wall to wall stop anyone.</div>'+
       '<div style="margin-top:8px;display:flex;gap:10px;font-size:11px;color:#cfcac0"><span><i style="display:inline-block;width:10px;height:10px;background:#e8473b;border-radius:2px"></i> car</span><span><i style="display:inline-block;width:10px;height:10px;background:#ff9a2e;border-radius:2px"></i> sawhorse/sign</span><span><i style="display:inline-block;width:10px;height:10px;background:#ffd84a;border-radius:2px"></i> cones/crew</span><span><i style="display:inline-block;width:10px;height:10px;background:#47e08a;border-radius:2px"></i> their way</span></div>';
@@ -565,8 +567,8 @@ function startStandoff(M){const a=A();M.ph='standoff';drawPlan(M);crewBack(M);M.
 function breakPeace(M,shot){const a=A();if(!M.peace)return;M.peace=false;M.airtight=false;for(const e of M.esc){if(e.state!=='idle')continue;e.peace=false;e.script=null;if(!a.enemies.includes(e))a.enemies.push(e);e.loud=1}a.rebuildTargets();say(M,L_.airShot,true);music('combat',1)}
 function standoffTick(M,dt,F){const a=A(),P=a.P;
   if(M.peace){for(const e of M.esc){if(e.state!=='idle')continue;const d=e.dude;d.root.position.set(e.pos.x,0,e.pos.z);faceTo(d,P.pos.x,P.pos.z,dt);posePerson(d,dt,{moving:false,aim:false,mode:'stand'})}
-    M.standT=(M.standT||0)+dt;const near=M.standT>5&&M.esc.some(e=>Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<K.surrR);
-    if(near){M.peace=false;for(const e of M.esc){e.peace=false;e.script=null;if(!a.enemies.includes(e))a.enemies.push(e);a.surrender(e)}say(M,L_.airGive,true);a.rebuildTargets();
+    M.standT=(M.standT||0)+dt;const near=M.standT>8&&M.esc.some(e=>Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<K.surrR);
+    if(near){M.peace=false;for(const e of M.esc){e.peace=false;e.script=null;if(!a.enemies.includes(e))a.enemies.push(e);a.surrender(e)}say(M,L_.airGive);a.rebuildTargets();
       if(!M.replay)a.addTrust(K.airTrust,'river');a.feed('Nobody fought a wall','trust','+'+K.airTrust+' Riverside trust');music('tension',.2)}
     F.objs.push(['Walk up to the escorts. Keep the gun down.',false]);F.target={x:M.esc[0].pos.x,z:M.esc[0].pos.z,label:'Escorts'};return}
   const left=M.esc.filter(e=>e.state==='idle'||e.state==='surrender').length;
@@ -674,34 +676,38 @@ J.on('pose',()=>{if(!RES)return;const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='
    the chase branch, blocked by the van parked across Route 9. */
 function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||!M.ph)return null;const P=a.P,k=a.keys,B=M.bot||(M.bot={i:0,w:0,t:0});
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};const S=res().props;B.t++;
-  const off=()=>{for(const x of['w','a','s','d','e','g'])k[x]=false};
-  if(B.w>0){B.w--;return null}const pace=n=>{B.w=n};
-  if(M.ph==='build'){if(o.fail||M.retried){if(a.CV)a.exitCar();if(!B.ready){tp(EARL.x+.6,EARL.z);k.e=true;if(M.clock<=3.5){k.e=false;B.ready=1}}return null}
+  /* o.human: walk there at a jog (5.2 m/s) instead of teleporting; a car trip waits as long as the drive would take */
+  const at=(x,z,r)=>{if(!o.human){tp(x,z);return true}const d=Math.hypot(x-P.pos.x,z-P.pos.z);if(B.arr&&Math.hypot(B.arr.x-x,B.arr.z-z)<.05||d<(r||.35)+.2){B.arr=null;return true}B.arr={x,z};
+    /* human-ish: the time a jog there takes (5.2 m/s), then arrive */B.w=Math.round(d/5.2*60);P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));tp(x,z);return false};
+  const H=o.human?2:1,off=()=>{for(const x of['w','a','s','d','e','g'])k[x]=false};
+  if(B.w>0){B.w--;return null}const pace=n=>{B.w=n*H};
+  if(M.ph==='build'){if(o.fail||M.retried){if(a.CV)a.exitCar();if(!B.ready){if(!at(EARL.x+.6,EARL.z))return null;k.e=true;if(M.clock<=3.5){k.e=false;B.ready=1}}return null}
     if(a.CV&&!B.driving){a.exitCar();return null}
-    const plan=B.plan||(B.plan=planSteps());const s=plan[B.i];if(!s){if(!B.ready){tp(EARL.x+.6,EARL.z);k.e=true;if(M.clock<=3.5){k.e=false;B.ready=1}}return null}
+    const plan=B.plan||(B.plan=planSteps());const s=plan[B.i];if(!s){if(!B.ready){if(!at(EARL.x+.6,EARL.z)){k.e=false;return null}k.e=true;if(M.clock<=3.5){k.e=false;B.ready=1}}return null}
     k.e=false;
-    if(s.car!=null){const e=M.lot[s.car];if(!e){B.i++;return null}if(a.CV!==e){if(a.CV)a.exitCar();tp(e.pos.x+2.4,e.pos.z);a.enterCar(e);B.driving=1;pace(20);return null}
+    if(s.car!=null){const e=M.lot[s.car];if(!e){B.i++;return null}if(a.CV!==e){if(a.CV)a.exitCar();if(!at(e.pos.x+2.4,e.pos.z,1))return null;tp(e.pos.x+2.4,e.pos.z);a.enterCar(e);B.driving=1;pace(o.human?150:20);return null}
       e.pos.set(s.x,0,s.z);e.yaw=s.yaw;if(e.car){e.car.x=s.x;e.car.z=s.z;e.car.yaw=s.yaw;e.car.spd=0}a.syncCar(e);a.exitCar();B.driving=0;B.i++;pace(30);return null}
-    if(s.post){tp(s.x,s.z+2.6);P.yaw=0;k.g=true;B.i++;B.gUp=1;pace(4);return null}
+    if(s.post){if(!at(s.x,s.z+2.6))return null;P.yaw=0;k.g=true;B.i++;B.gUp=1;pace(4);return null}
     if(B.gUp){k.g=false;B.gUp=0}
-    const c=P.carry;if(!c){const p=PILE[s.k];tp(p.x+.3,p.z+.3);k.e=true;B.hold=(B.hold||0)+1;if(B.hold>40){B.hold=0;k.e=false}return null}
-    B.hold=0;k.e=false;tp(s.x,s.z+1.7);P.yaw=0;a.useTap=true;B.i++;pace(14);return null}
-  if(M.ph==='convoy'){off();if(a.CV&&!M.retried&&!o.fail)a.exitCar();if(!a.CV)tp(EARL.x+1,EARL.z+1.5);return null}
-  if(M.ph==='standoff'){off();const sur=M.esc.find(e=>e.state==='surrender');if(sur){tp(sur.pos.x+.9,sur.pos.z);a.useTap=true;pace(8);return null}
-    if(M.peace){const e=M.esc[0];tp(e.pos.x,e.pos.z-9);P.yaw=Math.PI;return null}
+    const c=P.carry;if(!c){const p=PILE[s.k];if(!at(p.x+.3,p.z+.3))return null;k.e=true;B.hold=(B.hold||0)+1;if(B.hold>40){B.hold=0;k.e=false}return null}
+    B.hold=0;k.e=false;if(!at(s.x,s.z+1.7))return null;P.yaw=0;a.useTap=true;B.i++;pace(14);return null}
+  if(M.ph==='convoy'){off();if(a.CV&&!M.retried&&!o.fail)a.exitCar();if(!a.CV)at(EARL.x+1,EARL.z+1.5);return null}
+  if(M.ph==='standoff'){off();const sur=M.esc.find(e=>e.state==='surrender');if(sur){if(!at(sur.pos.x+.9,sur.pos.z))return null;a.useTap=true;pace(8);return null}
+    if(M.peace){const e=M.esc[0];at(e.pos.x,e.pos.z-9);P.yaw=Math.PI;return null}
     /* a fight: the bot fires at whoever is up (the crew help) */
-    const e=M.esc.find(e=>e.state==='idle');if(e){tp(e.pos.x+3,e.pos.z+3);a.hurtEnemy(e,40,'player');return null}return null}
+    const e=M.esc.find(e=>e.state==='idle');if(e){tp(e.pos.x+3,e.pos.z+3);if(B.t%20===0)a.hurtEnemy(e,40,'player');return null}return null}
   if(M.ph==='chase'){off();const c=M.truck.c;if(o.fail)return null;
     const V=a.VAN;if(!B.blocked){if(a.CV!==V){if(a.CV)a.exitCar();tp(V.pos.x+2.5,V.pos.z);a.enterCar(V);pace(10);return null}
       /* park the van across Route 9 well ahead of the truck */const x=Math.min(c.x-40,150);V.pos.set(x,0,42.6);V.yaw=0;if(V.car){V.car.x=x;V.car.z=42.6;V.car.yaw=0;V.car.spd=0}a.syncCar(V);a.exitCar();B.blocked=1;pace(10);return null}
     return null}
-  if(M.ph==='driver'){off();if(a.CV){a.exitCar();return null}const e=M.driver;if(!e){const d=cabDoor(M);tp(d.x,d.z);return null}if(e.state==='surrender'){tp(e.pos.x+.9,e.pos.z);a.useTap=true;pace(6)}return null}
-  if(M.ph==='open'){off();const r=rearDoor(M);tp(r.x,r.z);k.e=true;return null}
+  if(M.ph==='driver'){off();if(a.CV){a.exitCar();return null}const e=M.driver;if(!e){const d=cabDoor(M);at(d.x,d.z);return null}if(e.state==='surrender'){if(!at(e.pos.x+.9,e.pos.z))return null;a.useTap=true;pace(6)}return null}
+  if(M.ph==='open'){off();const r=rearDoor(M);if(!at(r.x,r.z))return null;k.e=true;return null}
   if(M.ph==='wrap'){off();
-    if(M.goatSt==='truck'&&!o.skipGoat){const r=rearDoor(M);tp(r.x,r.z);a.useTap=true;pace(6);return null}
-    if(M.goatSt==='follow'){tp(LINDQVIST.x+2,LINDQVIST.z+1.5);if(M.goatG)M.goatG.position.set(LINDQVIST.x+1.5,0,LINDQVIST.z+1);pace(4);return null}
-    const p=S.list.find(p=>p.state!=='flying');if(p){tp(p.x+.4,p.z+.4);k.e=true;B.hold=(B.hold||0)+1;if(B.hold>30){B.hold=0;k.e=false;S.remove(p)}return null}
-    k.e=false;const car=M.car||a.VAN;if(!a.CV){tp(car.pos.x+2.6,car.pos.z);a.useTap=true;pace(20)}return null}
+    if(M.goatSt==='truck'&&!o.skipGoat){const r=rearDoor(M);if(!at(r.x,r.z))return null;pace(o.human?60:0);a.useTap=true;pace(6);return null}
+    if(M.goatSt==='follow'){if(o.human&&!B.goatT){B.goatT=1;pace(240);return null}/* the drive over the bridge */tp(LINDQVIST.x+2,LINDQVIST.z+1.5);if(M.goatG)M.goatG.position.set(LINDQVIST.x+1.5,0,LINDQVIST.z+1);pace(4);return null}
+    if(o.human&&M.goatSt==='home'&&!B.back){B.back=1;tp(203,96);pace(200);return null}
+    const p=S.list.find(p=>p.state!=='flying');if(p){if(!at(p.x+.4,p.z+.4))return null;k.e=true;B.hold=(B.hold||0)+1;if(B.hold>30){B.hold=0;k.e=false;S.remove(p)}return null}
+    k.e=false;const car=M.car||a.VAN;if(!a.CV){if(!at(car.pos.x+2.6,car.pos.z,1.2))return null;a.useTap=true;pace(20)}return null}
   return null}
 /* the airtight wall at z 104: Pam's Buick and Hal's hatchback nose to tail across the road, a sawhorse in the gap by the fence,
    flares lit in front, Dave with the paddle on the verge, the sign 22 m upstream, a cone taper leading in */
@@ -709,5 +715,5 @@ function planSteps(){const W=104;return[
   {car:0,x:198.6,z:W,yaw:Math.PI/2},{car:1,x:203.4,z:W,yaw:Math.PI/2},
   {k:'sawhorse',x:206.6,z:W},{k:'flare',x:201,z:W+3},{k:'flare',x:204,z:W+3},
   {k:'sign',x:203,z:W+30},{post:1,x:196,z:W+1.5},
-  {k:'cone',x:206,z:W+24},{k:'cone',x:205.5,z:W+21},{k:'cone',x:205,z:W+18},{k:'cone',x:200,z:W+24},{k:'cone',x:200.5,z:W+21},{k:'cone',x:201,z:W+18}]}
+  {k:'cone',x:206,z:W+24},{k:'cone',x:206,z:W+24},{k:'cone',x:205.5,z:W+21},{k:'cone',x:205,z:W+18},{k:'cone',x:200,z:W+24},{k:'cone',x:200.5,z:W+21},{k:'cone',x:201,z:W+18},{k:'cone',x:200,z:W+24}]}
 })();
