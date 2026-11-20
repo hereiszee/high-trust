@@ -76,7 +76,7 @@ const L_={
   lightGood:["Hanging back at a light. Beautiful. That's the stuff they don't teach. Because nobody teaches this."],
   arrive:[["doug","He's turning into the old Dock Street lot. The Duke's place. Don't follow him in. Never follow him in."],
     ["doug","Park somewhere boring with a view of the back of that truck. Thirty, sixty metres. The plate's on the back. Plates live on the back."]],
-  bino:[["doug","Binoculars. Right mouse. I keep a pair in every car. Including yours, now. Surprise."]],
+  bino:[["doug","Binoculars. Right-click. I keep a pair in every car. Including yours, now. Surprise."]],
   plate:[["doug","Box truck. Get the plate. Steady. Steadier. Breathe like a sniper. A sniper who coaches T-ball."]],
   photo:[["doug","Got it. That's going on the corkboard. With red string."],["doug","Same truck, same lot, every week, I'd bet my glasses. Earl knows every timetable in this town. I'll ask Earl."]],
   photoBad:["Closer to the back. I need the plate, not a lovely shot of a truck's personality.","That's the side of the truck. The plate's on the back. I'm repeating myself because I care."],
@@ -255,7 +255,9 @@ J.register('tail',{
     /* the ambient traffic froze where it was when the job began: clear it, the job runs its own */
     try{const O=H().ow;if(O&&O.traffic)O.traffic(0,{player:a.P.pos,car:null,camera:a.camera,off:true})}catch(_){}
     a.wmSetWindow(a.wmWindow(START.x,START.z,20));
-    if(typeof window!=='undefined'&&window.addEventListener)listen(window,'mousedown',e=>{if(e.button===0&&M===A().M&&M.vfOn)snap(M)});
+    /* the binoculars are a toggle (nothing held down): right-click raises and lowers, left-click / E / Space shoots, Esc lowers */
+    if(typeof window!=='undefined'&&window.addEventListener){listen(window,'mousedown',e=>{if(M!==A().M||M.state!=='go')return;if(e.button===2)binoToggle(M);else if(e.button===0&&M.vfOn)snap(M)});
+      listen(window,'keydown',e=>{if(M!==A().M||M.state!=='go'||e.repeat)return;if(e.key==='Escape'&&M.binoUp)binoToggle(M,false);else if((e.key===' '||e.code==='Space')&&M.vfOn)snap(M)})}
     if(o&&o.checkpoint)return;
     /* parked properly: nose toward the exit, so getting out after him is a drive, not a seven-point turn */
     {const e=a.CV;if(e&&Math.hypot(e.pos.x-START.x,e.pos.z-START.z)<12){e.pos.set(START.x,0,START.z);e.yaw=-Math.PI/2+.25;a.owStopCar(e);a.syncCar(e);a.P.yaw=e.yaw}}
@@ -523,7 +525,7 @@ function dropTick(M,dt,F){const a=A(),Tl=TL(),r=M.tg.rail,p=playerCar();r.step(d
   /* objectives */
   const parked=p.e&&Math.abs(p.spd)<1,dist=Math.hypot(p.x-(TRUCK.x+3.8),p.z-TRUCK.z),g=M.vfOn?grade(M):null;
   F.objs.push([M.handoff==='done'?'Photograph the box truck\'s plate':'Watch the handoff from 30-60 m away',false]);
-  F.objs.push(['Binoculars: hold right mouse while parked'+(M.touch?' (or the binoculars button)':''),!!M.vfOn]);
+  F.objs.push([M.touch?'Binoculars button · Photo button for the plate':'Binoculars: right-click · left-click to photograph the plate',!!M.vfOn]);
   const n=Object.keys(M.items).length;F.meters.push({id:'items',label:'Itemised',v:n,max:ITEMS.length,style:'pips'});
   F.meters.push({id:'sus',label:'Suspicion',v:M.T.S.sus,max:100,style:'ring',icon:'eye'});
   if(!M.vfOn){const w=WATCH.reduce((b,q)=>Math.hypot(q.x-p.x,q.z-p.z)<Math.hypot(b.x-p.x,b.z-p.z)?q:b,WATCH[0]);F.target=dist>30&&dist<62&&parked?{x:TRUCK.x+3.8,z:TRUCK.z,label:'Box truck'}:{x:w.x,z:w.z,label:w.label}}
@@ -548,8 +550,8 @@ function spotItems(M,cam){const a=A();for(const L of M.loaders){if(!L.it||!L.it.
     const f=cam.f,c=(dx*f[0]+dy*f[1]+dz*f[2])/d;if(c>Math.cos(4.5*D)&&d<85){M.items[L.it.it.id]=true;say(M,L.it.it.line,{front:L.it.it.id==='washer'});M.score=Object.keys(M.items).length}}}
 
 /* ---------------- binoculars: from the driver's window, the photo viewfinder kit ---------------- */
-function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail'||M.ph==='wrap'&&M.wrapT<1.4)&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&P.aim;
-  if(!can){if(M.vfOn)vfOff(M);return false}
+function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail'||M.ph==='wrap'&&M.wrapT<1.4)&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&M.binoUp;
+  if(!can){if(M.vfOn)vfOff(M);if(M.binoUp&&e&&Math.abs(e.car?e.car.spd:0)>=1.5)M.binoUp=false;/* driving off puts them down */return false}
   const cam=a.camera,S=a.carSize(e),lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),f=fwd(e.yaw),rr=rgt(e.yaw),fa=Math.abs(lx*f[0]+lz*f[1]),sa=Math.abs(lx*rr[0]+lz*rr[1]),out=Math.min(fa>.01?S.l/2/fa:99,sa>.01?S.w/2/sa:99)+.45;
   cam.position.set(e.pos.x+lx*out,a.groundAt(e.pos.x,e.pos.z)+Math.max(1.55,S.h*.85),e.pos.z+lz*out);cam.rotation.set(P.pitch,P.yaw,0,'YXZ');
   /* binoculars focus past the foreground: anything within 14 m (a kerbside fence, the wing mirror) is out of the picture */
@@ -582,7 +584,7 @@ function binoDraw(M,o){const B=binoEl(M);if(!B)return;const W=innerWidth,Hh=inne
   const fs=Math.max(11,Math.round(Hh*.019));x.font='700 '+fs+'px system-ui,Arial';x.textBaseline='middle';x.fillStyle='rgba(255,255,255,.9)';
   const lx=Math.max(16,cxs[0]-r-16);x.textAlign='right';x.fillText('BINOCULARS',lx,cy-fs*.8);x.fillStyle='#ffc94a';x.font='800 '+Math.round(fs*1.5)+'px system-ui,Arial';x.fillText('6×',lx,cy+fs*.7);
   const rx=Math.min(W-16,cxs[1]+r+16);x.textAlign='left';x.font='700 '+fs+'px system-ui,Arial';
-  const keyE=M.touch?'Photo':'E',keyR=M.touch?'Binoculars':'RMB';
+  const keyE=M.touch?'Photo':'LMB',keyR=M.touch?'Binoculars':'RMB';
   const hint=o.phase==='drop'?(o.done&&!M.photo?[[keyE,'Photo'],[keyR,'Lower']]:[['','Watch the handoff'],[keyR,'Lower']]):[[keyR,'Lower']];
   /* keep the longest line on screen: start where it fits */
   const lineW=([k,t])=>{x.font='800 '+fs+'px system-ui,Arial';const kw=k?x.measureText(k).width+fs*1.4:0;x.font='700 '+fs+'px system-ui,Arial';return kw+x.measureText(t.toUpperCase()).width};
@@ -595,6 +597,9 @@ function binoDraw(M,o){const B=binoEl(M);if(!B)return;const W=innerWidth,Hh=inne
     for(const[px,py,dx,dy]of[[br.x,br.y,1,1],[br.x+br.w,br.y,-1,1],[br.x,br.y+br.h,1,-1],[br.x+br.w,br.y+br.h,-1,-1]]){x.moveTo(px+dx*L,py);x.lineTo(px,py);x.lineTo(px,py+dy*L)}x.stroke();
     x.font='800 '+fs+'px system-ui,Arial';x.textAlign='left';x.textBaseline='bottom';x.fillStyle=col;x.fillText(br.ok?'PLATE  '+'★'.repeat(br.stars)+'☆'.repeat(3-br.stars):'PLATE · '+String(br.why||'').toUpperCase(),br.x,br.y-6)}
   if(B.flash>0){x.fillStyle='rgba(255,255,255,'+(B.flash*.85).toFixed(3)+')';x.fillRect(0,0,W,Hh)}}
+/* raise or lower (on = force). Only while parked in a car during the tail or at the drop */
+function binoToggle(M,on){const a=A(),e=a.CV;const want=on!=null?!!on:!M.binoUp;if(want&&!(e&&(M.ph==='drop'||M.ph==='tail')&&Math.abs(e.car?e.car.spd:0)<1.5)){if(e&&M.ph==='drop')chat(M,'binoMove',6,["Park first. Binoculars and driving is how I lost a mailbox."]);return}
+  M.binoUp=want;if(a.P)a.P.aim=false}
 function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;const B=binoEl(M);if(B){B.c.style.display='block';B.key=''}hudHide(true);
   if(!M.said.binoUp&&M.ph==='drop'){M.said.binoUp=1;say(M,"There. Truck's open. Count what comes out of that trunk. Out loud. I'll count too. We'll compare.",{chatter:true})}}
 function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}if(M.bino)M.bino.c.style.display='none';hudHide(false);
@@ -617,7 +622,7 @@ function touchButtons(M,on){const a=A();const touch=typeof window!=='undefined'&
   if(on&&!M.tbtn){const el=document.createElement('div');el.style.cssText='position:fixed;right:18px;bottom:190px;display:flex;flex-direction:column;gap:10px;z-index:30;pointer-events:none';
     const b=(txt,fn)=>{const x=document.createElement('button');x.textContent=txt;x.style.cssText='pointer-events:auto;font:600 15px system-ui;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(16,20,26,.62);color:#fff;backdrop-filter:blur(4px)';
       x.addEventListener('touchstart',ev=>{ev.preventDefault();fn()},{passive:false});x.addEventListener('click',fn);el.appendChild(x);return x};
-    b('Binoculars',()=>{a.P.aim=!a.P.aim});b('Photo',()=>{if(M.vfOn)snap(M)});M.tbtn=el;a.overlay('tail-touch',el);res().ov['tail-touch']=1}}
+    b('Binoculars',()=>binoToggle(M));b('Photo',()=>{if(M.vfOn)snap(M)});M.tbtn=el;a.overlay('tail-touch',el);res().ov['tail-touch']=1}}
 
 /* ---------------- 4. wrap-up, then the borrowed car ---------------- */
 function wrapTick(M,dt,F){const a=A();M.wrapT+=dt;F.objs.push(['Plate on file. Doug is already thinking about red string.',true]);
@@ -656,8 +661,8 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(!B.init){B.init=1;B.ps=M.P.project(c.x,c.z,Math.max(0,r.s-35),120).s}B.ps=M.P.project(c.x,c.z,B.ps,60).s;
     if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail&&!o.noswap){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
       if(d<5.5){off();k.s=c.spd>.3;k.e=Math.abs(c.spd)<2.5;return null}k.e=false;const goal=M.P.at(M.P.project(sc.pos.x,sc.pos.z,B.ps,60).s);steerTo(c,goal.x,goal.z,Math.min(9,d*.6+1.5));if(d>40)B.ps=M.P.project(c.x,c.z,B.ps,60).s;return null}
-    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
-    let want=Math.max(0,Math.min(14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
+    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const urgent=M.T.S.lose>4;/* the reacquire meter is filling: close up like a person would */const gap=o.fail?5:urgent?20:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
+    let want=Math.max(0,Math.min(urgent?17:14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
     /* slow for corners like a person: the heading change over the next 16 m */
     {const y0=M.P.at(B.ps).yaw;for(let q=4;q<=16;q+=4){if(Math.abs(wrap(M.P.at(B.ps+q).yaw-y0))>.5){want=Math.min(want,5.5+q*.25);break}}}
     const g=TL().aheadGap({x:c.x,z:c.z,yaw:c.yaw,len:4.6},obstacles(M,null).filter(q=>q.pri<3),18);B.g=g;B.want=want;if(g!=null)want=Math.min(want,Math.max(0,(g-4)*.8));
@@ -666,8 +671,8 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(!B.parked){const WP=[[384,128.5],[396,128.5],[408,128.5],[418,128.5],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
       const w=WP[B.dw],dw=Math.hypot(w[0]-c.x,w[1]-c.z),lastW=B.dw===WP.length-1;if(dw<(lastW?1.6:3)){if(lastW){off();k.s=c.spd>.2;if(Math.abs(c.spd)<.3)B.parked=true;return null}B.dw++;return null}
       steerTo(c,w[0],w[1],lastW?Math.max(1.5,dw*.6):B.dw>=2?6:9);unstick(e,c,6,[{x:w[0],z:w[1]}]);return null}off();k.s=c.spd>.2;k.w=c.spd<-.2;
-    if(M.ph==='wrap'){P.aim=false;return null}
-    P.aim=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
+    if(M.ph==='wrap'){M.binoUp=false;return null}
+    M.binoUp=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
     const cam=M.camInfo||{x:c.x,y:1.6,z:c.z};const dx=aimAt.x-cam.x,dz=aimAt.z-cam.z,dy=(aimAt.y||1)-cam.y;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));
     if(M.handoff==="done"&&M.vfOn&&(B.snapT=(B.snapT||0)+1)>45&&grade(M).ok){a.useTap=true;B.snapT=0}return null}
   if(M.ph==='home'){const b=M.borrowed[0];if(!b){off();return null}if(a.CV===b){const hm=b.home;if(drive({x:hm.x,z:hm.z},11,3)||Math.hypot(b.pos.x-hm.x,b.pos.z-hm.z)<6&&Math.abs((b.car||b).spd)<.5){off();a.exitCar()}return null}
