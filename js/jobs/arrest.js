@@ -60,12 +60,12 @@ const ROSA_STALL=STALLS.find(s=>s.rosa),ROSA_FRONT=front(ROSA_STALL);
 const BUSKER={x:383.7,z:39.05,yaw:2.6};
 const GARY_SPOT={x:372.9,z:41.9};
 const DUFFEL={x:406.4,z:39.1};
-const CAR={x:411.6,z:18.5,yaw:0};                     /* the skimmers' hatchback, round the corner on 4th St */
-const TOW_SPOT={x:410.6,z:21.6};
+const CAR={x:401.2,z:13.3,yaw:Math.PI/2};             /* the skimmers' hatchback: up 4th St and round the corner, behind the court */
+const TOW_SPOT={x:401.4,z:15.3};
 const GARY_SPOT2={x:411.2,z:63.5};                    /* "my chequebook's in the car": the bins down 4th St */
-const ROUTE_N=[{x:405.5,z:43},{x:410.8,z:41.5},{x:410.8,z:32},TOW_SPOT];
+const ROUTE_N=[{x:405.5,z:43},{x:410.8,z:41.5},{x:410.8,z:16.2},{x:405,z:15.6},TOW_SPOT];
 const ROUTE_S=[{x:405.5,z:43.2},{x:410.8,z:45.5},{x:410.8,z:54},GARY_SPOT2];
-const ESCAPES=[{x:410.8,z:13,via:[{x:410.8,z:41.5}]},{x:410.8,z:70,via:[{x:410.8,z:45.5}]},{x:379,z:70,via:[{x:379,z:46.5}]}];
+const ESCAPES=[{x:410.8,z:6,via:[{x:410.8,z:41.5}]},{x:410.8,z:70,via:[{x:410.8,z:45.5}]},{x:379,z:70,via:[{x:379,z:46.5}]}];
 
 /* ---------------- the cast ---------------- */
 /* four collectors: what they look like is fixed; which one is the skimmer is drawn per run. Vendor gossip splits them by hat and by what they carry. */
@@ -426,7 +426,12 @@ function showProp(O,c,kind,on){const T=A().THREE;if(kind==='bill'){if(on&&!c.bil
 function clink(O,c){const a=A(),P=a.P,d=hyp(P.pos.x-c.x,P.pos.z-c.z);if(d>16)return;const g=.06*(1-d/16);tone({f:2400,to:1800,type:'triangle',d:.09,gain:g});tone({f:3100,to:2600,type:'triangle',d:.07,gain:g*.7,at:.06})}
 
 /* ---------------- watching: the collector nearest the centre of the view, in line of sight, accrues what you see ---------------- */
-function losGrid(x0,z0,x1,z1){const a=A(),d=hyp(x1-x0,z1-z0),n=Math.ceil(d/.9);for(let i=1;i<n;i++){const t=i/n,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;if(!a.walkable(a.tx(x),a.tx(z)))return false}return true}
+/* line of sight across the tiles (walls, fences) and through the stalls (a canopy, a table, a vendor: you can't see past one) */
+const STALL_BOX=STALLS.map(s=>({x0:s.x-1.75,x1:s.x+1.75,z0:s.side==='n'?38.3:45.4,z1:s.side==='n'?40.6:47.7}));
+function segBox(x0,z0,x1,z1,b){if(x0>b.x0&&x0<b.x1&&z0>b.z0&&z0<b.z1||x1>b.x0&&x1<b.x1&&z1>b.z0&&z1<b.z1)return false;let t0=0,t1=1;const dx=x1-x0,dz=z1-z0;
+  for(const[p,d,lo,hi]of[[x0,dx,b.x0,b.x1],[z0,dz,b.z0,b.z1]]){if(Math.abs(d)<1e-9){if(p<lo||p>hi)return false;continue}let a_=(lo-p)/d,b_=(hi-p)/d;if(a_>b_){const q=a_;a_=b_;b_=q}t0=Math.max(t0,a_);t1=Math.min(t1,b_);if(t0>t1)return false}return true}
+function losGrid(x0,z0,x1,z1){const a=A(),d=hyp(x1-x0,z1-z0),n=Math.ceil(d/.9);for(let i=1;i<n;i++){const t=i/n,x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;if(!a.walkable(a.tx(x),a.tx(z)))return false}
+  for(const b of STALL_BOX)if(segBox(x0,z0,x1,z1,b))return false;return true}
 function camRay(){const a=A(),P=a.P,cam=a.camera;const f={x:-Math.sin(P.yaw)*Math.cos(P.pitch),y:Math.sin(P.pitch),z:-Math.cos(P.yaw)*Math.cos(P.pitch)};return{o:{x:cam.position.x,y:cam.position.y,z:cam.position.z},d:f}}
 function watchStep(O,dt){const a=A(),P=a.P,R=camRay();let best=null,ba=K.watchAng;
   for(const c of O.cols){if(c.gone)continue;const tx=c.x-R.o.x,ty=1.25-R.o.y,tz=c.z-R.o.z,l=Math.hypot(tx,ty,tz);if(l>K.watchD||l<.6)continue;
@@ -452,7 +457,7 @@ function note(O,c,k){const n=NOTE[k];let txt=n[1];if(k==='lanyard')txt=c.skim?'L
 /* ---------------- overlays: the notebook, speech bubbles, the watch bracket, the takedown ring ---------------- */
 const CSS=`
 .ho-ov{position:fixed;inset:0;pointer-events:none;font-family:var(--ui,system-ui,sans-serif)}
-.ho-nb{position:absolute;left:calc(var(--sa-l,0px) + 16px);top:50%;transform:translateY(-38%);width:258px;background:#f6f0dc;color:#2b2a26;border-radius:6px;padding:10px 12px 9px 26px;
+.ho-nb{position:absolute;right:calc(var(--sa-r,0px) + 18px);top:156px;width:262px;background:#f6f0dc;color:#2b2a26;border-radius:6px;padding:10px 12px 9px 26px;
   box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transition:opacity .4s;background-image:repeating-linear-gradient(#f6f0dc 0 21px,#cfdbe6 21px 22px);font-size:12.5px;line-height:1.25}
 .ho-nb::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:1.5px;background:#e19a9a}
 .ho-nb.on{opacity:.96}.ho-nb h4{margin:0 0 6px;font:700 11px/1 var(--ui,system-ui);letter-spacing:.18em;text-transform:uppercase;color:#7a5a2a}
@@ -474,7 +479,7 @@ const CSS=`
 .ho-ret.on{opacity:1}.ho-ret.ok{border-color:#47e07a;box-shadow:0 0 14px rgba(71,224,122,.55)}.ho-ret.bad{border-color:#ff5a4a}.ho-ret.ok{transform:scale(.86)}
 .ho-retl{position:absolute;left:50%;top:calc(50% + 34px);transform:translateX(-50%);font:800 12px/1 var(--ui,system-ui);letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 1px 4px #000;opacity:0}
 .ho-retl.on{opacity:1}.ho-retl.ok{color:#7dffa6}.ho-retl.bad{color:#ffb0a6}
-@media (max-width:700px){.ho-nb{top:auto;bottom:calc(var(--sa-b,0px) + 170px);transform:none;width:210px;font-size:11px}.ho-nb .n{font-size:10.5px}}
+@media (max-width:700px),(max-height:520px){.ho-nb{top:auto;bottom:calc(var(--sa-b,0px) + 190px);width:200px;font-size:10.5px;padding:7px 9px 6px 22px}.ho-nb .n{font-size:10px}.ho-nb .n:nth-of-type(n+3){display:none}}
 `;
 function overlay(O){if(O.ov)return O.ov;const d=document;if(!d.getElementById('ho-css')){const st=d.createElement('style');st.id='ho-css';st.textContent=CSS;d.head.appendChild(st)}
   const el=d.createElement('div');el.className='ho-ov';el.innerHTML='<div class="ho-nb"><h4>Notebook · the collectors</h4><div class="rows"></div><div class="ft"></div></div><div class="ho-br"></div><div class="ho-brl"><span></span><i><b></b></i></div><div class="ho-ret"></div><div class="ho-retl"></div>';
@@ -593,7 +598,7 @@ function kidsNear(O){const P=A().P;let n=null,nd=1e9;for(const p of O.people){if
 /* who would see the gun: within 22 m, facing roughly your way (or close), with a clear line across the tiles; refreshed a few at a time */
 function witnessStep(O){const P=A().P,list=civs(O);if(!list.length){O.wit=0;return}const n=Math.min(10,list.length);
   for(let i=0;i<n;i++){O.witK=(O.witK+1)%list.length;const p=list[O.witK];const dx=P.pos.x-p.x,dz=P.pos.z-p.z,d=hyp(dx,dz);
-    if(d>K.seeR){p.sees=false;continue}const fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw),dot=(fx*dx+fz*dz)/(d||1);p.sees=(dot>-.15||d<5)&&losGrid(p.x,p.z,P.pos.x,P.pos.z);p.seeD=d}
+    if(d>K.seeR){p.sees=false;continue}const fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw),dot=(fx*dx+fz*dz)/(d||1);p.sees=(dot>.05||d<5)&&losGrid(p.x,p.z,P.pos.x,P.pos.z);p.seeD=d}
   O.wit=list.filter(p=>p.sees).length}
 function toggleDraw(O,force){const a=A();if(!O||O.endSeq)return;const want=force!=null?force:!O.drawn;
   if(want){if(O.stage!=='aside'&&!O.run){say('rosa',pick(["Draw on who? The whole market? Find him first.","Put that away. We don't even know which one it is."]),true);return}
@@ -679,15 +684,16 @@ function downStep(O,dt){const a=A(),sk=O.cols[O.skim],g=O.gary,r=O.rosa;if(!O.do
 function dufBolt(O){const a=A(),D=O.duf,e=D.e,P=a.P;if(!e||D.st!=='post')return;D.st='run';D.t=0;
   let best=ESCAPES[0],bd=-1e9;for(const x of ESCAPES){const s=hyp(x.x-P.pos.x,x.z-P.pos.z)-hyp(x.x-e.pos.x,x.z-e.pos.z)*.7;if(s>bd){bd=s;best=x}}D.esc=best;
   D.carry=true;if(D.bag.parent)D.bag.parent.remove(D.bag);D.bag.position.set(.0,.0,.25);D.bag.rotation.set(0,Math.PI/2,0);e.dude.root.add(D.bag);
-  const go=(i)=>{const pts=best.via.concat([{x:best.x,z:best.z}]);const t=pts[i];e.script={kind:'to',x:t.x,z:t.z,speed:K.dufSpeed,then:()=>{if(i+1<pts.length)go(i+1);else D.arrived=true}}};go(0);
+  const go=(i)=>{const pts=best.via.concat([{x:best.x,z:best.z}]);const t=pts[i];e.script={kind:'to',x:t.x,z:t.z,speed:D.carry?K.dufSpeed*.75:K.dufSpeed,then:()=>{if(i+1<pts.length)go(i+1);else D.arrived=true}}};go(0);
   seq(LINES.dufBolt,1.6);music('combat',.5)}
 function dufStep(O,dt){const a=A(),D=O.duf,P=a.P;if(!D||!D.e)return;const e=D.e;
   if(D.st==='post'){e.pos.set(DUFFEL.x,0,DUFFEL.z);return}
   if(D.st!=='run')return;D.t+=dt;
-  if(D.carry&&D.t>2.4){D.carry=false;if(D.bag.parent)D.bag.parent.remove(D.bag);a.wmAdd(D.bag);D.bag.position.set(e.pos.x+.4,0,e.pos.z);D.bag.rotation.y=rr(0,3);say('rosa',pick(LINES.dufDrop),true)}
+  if(D.carry&&D.t>3.4){D.carry=false;if(e.script&&e.script.speed)e.script.speed=K.dufSpeed;if(D.bag.parent)D.bag.parent.remove(D.bag);a.wmAdd(D.bag);D.bag.position.set(e.pos.x+.4,0,e.pos.z);D.bag.rotation.y=rr(0,3);say('rosa',pick(LINES.dufDrop),true)}
   if(e.state==='surrender'&&!D.surr){D.surr=true;say('Duffel guy',pick(LINES.dufCaught),true)}
   if(e.state==='cuffed'&&!D.cuffed){D.cuffed=true;D.st='done';a.addTrust(3,'river');a.feed('Zip-tied the duffel guy','trust','+3 Riverside trust');say('rosa',"Two for two. Officer Dana's on her way. She sounded delighted. She sounded tired, but delighted.",true)}
   if(e.state==='idle'&&!D.surr){const d=hyp(P.pos.x-e.pos.x,P.pos.z-e.pos.z);if(d<K.dufTackle){e.script=null;a.surrender(e);D.surr=true;say('Duffel guy',pick(LINES.dufCaught),true)}
+    else if(D.arrived&&d<14){/* out of road and out of breath */e.script=null;a.surrender(e);D.surr=true;say('Duffel guy',"I'm out of breath. You're out of breath. Let's both just stop.",true)}
     else if(d>K.dufLost||D.arrived){D.st='gone';say('rosa',LINES.dufGone,true);e.script={kind:'incar'};e.state='dead';e.hp=0;if(e.dude.root.parent)e.dude.root.parent.remove(e.dude.root);const k=a.enemies.indexOf(e);if(k>=0)a.enemies.splice(k,1);a.rebuildTargets()}}
   checkWin(O)}
 function checkWin(O){const D=O.duf;if(O.won||!O.tied||!(D.st==='done'||D.st==='gone'))return;O.won=true;win(O)}
@@ -719,7 +725,7 @@ J.register('arrest',{
       "There are strollers at that market. Toddlers. Mr. Ferreira and his cane. I have seen what a panic at a crowded market does. I've stitched it up.",
       "Find him. Get him somewhere quiet. One beanbag, in front of nobody. Then I'd like a word with him."],
     obj:"Find the fake charity collector at the farmers' market, get him away from the crowd, and drop him with one beanbag without starting a panic.",
-    crew:['gary'],weapons:['beanbag'],from:{place:'g_rosa'},start:{place:'market'},site:'market',
+    crew:['gary'],weapons:['beanbag'],from:{place:'g_rosa'},site:'market',
     unlock:{done:['overwatch']},pay:850,par:420,winTrust:8,
     stages:['market','aside'],stageLabels:{market:'The market',aside:'Get him alone'},failPolicy:'escalate',
     medals:['Finished','One shot','One shot, panic under 10'],order:26,
@@ -797,7 +803,7 @@ function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();
     if(O.run){F.objs.push(['He’s running: run into him to stop him',false,'warn']);F.target={x:sk.x,z:sk.z,label:'Skimmer'};if(O.round>0)F.objs.push(['Or one round: G to draw, click to fire',false]);meters(O,F);return}
     if(!R){F.objs.push(['Get him away from the crowd: walk up to him and press '+E,false]);F.target={x:sk.x,z:sk.z,label:'Skimmer'}}
     else if(R.kind==='donate')F.objs.push(['He’s following you. Lead him somewhere quiet (east end, round a corner)',false]);
-    else if(R.kind==='tow'){F.objs.push([R.st==='wait'?'He’s at his car on 4th St, looking for the tow truck':'He’s hurrying to his car on 4th St. Follow him',false]);F.target={x:TOW_SPOT.x,z:TOW_SPOT.z+5,label:'4th St'}}
+    else if(R.kind==='tow'){F.objs.push([R.st==='wait'?'He’s at his car on 4th St, looking for the tow truck':'He’s hurrying to his car on 4th St. Follow him',false]);F.target={x:TOW_SPOT.x+6,z:TOW_SPOT.z,label:'His car'}}
     else if(R.kind==='gary'){F.objs.push([R.st==='wait'?'Gary has him by the bins on 4th St':'Gary is walking him round the corner. Follow at a distance',false]);if(R.st!=='talk')F.target={x:GARY_SPOT2.x,z:GARY_SPOT2.z-6,label:'4th St'}}
     const kn=kidsNear(O);if(kn!=null)F.objs.push(['Kids within 25 m: you can’t draw here',false,'warn']);
     else F.objs.push([(O.drawn?'Click to fire when the ring is green · G or right-click holsters':'G or right-click: draw the beanbag (toggle)')+' · one round',false]);
@@ -855,33 +861,38 @@ let PRE=false;
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ho)return null;const O=M.ho,B=O.bot||(O.bot={phase:'',n:0,wi:0,wt:0,react:0});const H_=window.__ht;
   a.keys.e=false;if(H_)H_.mouse=false;
   if(a.CV){a.exitCar();return null}
-  const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=hyp(dx,dz);if(d<.35)return true;const s=Math.min(d,(sp||4.2)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=yawTo(dx,dz);return false};
+  const walk=(x,z,sp)=>{/* through the aisle: off it, step onto it first (counters are in the way) */if((P.pos.z>45.6||P.pos.z<40.4)&&P.pos.x>AISLE.x0-2&&P.pos.x<AISLE.x1+2&&Math.abs(x-P.pos.x)>2.5&&hyp(x-P.pos.x,z-P.pos.z)>3){z=43;x=P.pos.x}
+    const dx=x-P.pos.x,dz=z-P.pos.z,d=hyp(dx,dz);if(d<.35)return true;const s=Math.min(d,(sp||4.2)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=yawTo(dx,dz);return false};
   const look=(x,y,z)=>{const c=a.camera.position,dx=x-c.x,dz=z-c.z;P.yaw=yawTo(dx,dz);P.pitch=Math.atan2(y-c.y,hyp(dx,dz))};
-  if(M.exitOpen){const c=M.car;if(walk(c.pos.x+2.4,c.pos.z,6))a.useTap=true;return null}
+  const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};
+  if(M.exitOpen){const c=M.car;B.ex=(B.ex||0)+1;if(B.ex<60){walk(c.pos.x+2.4,c.pos.z,6);return null}tp(c.pos.x+2.4,c.pos.z);a.useTap=true;return null}
   if(!O.spawned)return null;
   if(!O.talked){if(walk(ROSA_FRONT.x,ROSA_FRONT.z-.6))a.useTap=true;return null}
-  if(O.chat)return null;
+  /* a choice strip is open: a person reads it for a moment, then picks */
+  if(O.chat){B.read=(B.read||0)+1;if(B.read>24&&O.chat.kit){B.read=0;O.chat.kit.pick(B.pickI||0)}return null}
   const sk=O.cols[O.skim];
   if(O.stage==='market'){
     /* gossip first: honey and peach */
-    for(const id of['honey','peach']){const v=O.people.find(q=>q.kind==='vendor'&&q.stall.id===id);if(v&&!v.asked){const f=front(v.stall);if(walk(f.x,f.z)){if(!B.chat){B.chat=1;a.useTap=true}else if(O.chat&&O.chat.kit){O.chat.kit.pick(0)}}if(O.chat&&O.chat.kit)O.chat.kit.pick(0);return null}}
+    for(const id of['honey','peach']){const v=O.people.find(q=>q.kind==='vendor'&&q.stall.id===id);if(v&&!v.asked){const f=front(v.stall);if(walk(f.x,f.z-(v.stall.side==='n'?-.5:.5))){B.pickI=0;a.useTap=true}return null}}
     /* then watch: cycle through the collectors the notebook hasn't ruled out, a few seconds each, from about 7 m */
     const cand=O.cols.filter(c=>!(c.notes||[]).some(n=>n.k==='hat'||n.k==='carry'||n.k==='cleared'));B.wt-=1/30;
     if(B.wt<=0){B.wi=(B.wi+1)%cand.length;B.wt=cand.length>1?6:999}const c=cand[B.wi%cand.length]||sk;
     const tx=clamp(c.x+(c.x<380?5.5:-5.5),AISLE.x0+1,AISLE.x1-1),tz=c.z<43?44.6:41.6;walk(tx,tz,3);look(c.x,1.3,c.z);
-    if(o.accuse||(O.clock>240)){if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>2)walk(sk.x+1,sk.z,5);else{a.useTap=true;B.acc=1}}
+    if(o.accuse||(O.clock>240)){B.pickI=2;if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>2)walk(sk.x+1,sk.z,5);else a.useTap=true}
     return null}
   if(O.stage==='aside'){
     if(o.fail){if(walk(396,43.2,4.2)){look(sk.x,1.2,sk.z);if(!O.drawn)toggleDraw(O)}return null}
     if(O.run){walk(sk.x,sk.z,6.4);return null}
     const R=sk.ruse;
-    if(!R){if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>1.8){walk(sk.x+.8,sk.z+.3,4.6);return null}if(!B.asked){B.asked=1;a.useTap=true;return null}if(O.chat&&O.chat.kit){O.chat.kit.pick(1);B.asked=0}else B.asked=0;return null}
+    if(!R){if(hyp(sk.x-P.pos.x,sk.z-P.pos.z)>1.8){walk(sk.x+.8,sk.z+.3,4.6);return null}B.pickI=1;a.useTap=true;return null}
     if(R.kind==='tow'){if(R.st==='go'||R.st==='back'){/* follow at a distance */const d=hyp(sk.x-P.pos.x,sk.z-P.pos.z);if(d>9)walk(sk.x,sk.z+3,3.2);return null}
       /* he's at the car: stand off to the south and take the shot */
-      if(!walk(TOW_SPOT.x-.4,TOW_SPOT.z+7.5,3.2))return null;look(sk.x,1.15,sk.z);
+      if(!walk(TOW_SPOT.x+7.5,TOW_SPOT.z+.6,3.2))return null;look(sk.x,1.15,sk.z);
       if(!O.drawn){if(kidsNear(O)==null&&O.wit===0){B.react=(B.react||0)+1;if(B.react>20){toggleDraw(O);B.react=0}}return null}
       if(O.ret==='ok'){B.hold=(B.hold||0)+1;if(B.hold>12&&H_){H_.mouse=true;B.hold=0}}return null}
     return null}
-  if(O.stage==='down'){const D=O.duf,e=D.e;if(D.st==='run'){if(e.state==='surrender'){if(walk(e.pos.x+.8,e.pos.z,6))a.useTap=true}else walk(e.pos.x,e.pos.z,6.5)}return null}
+  if(O.stage==='down'){const D=O.duf,e=D.e;if(D.st==='run'){const d=hyp(e.pos.x-P.pos.x,e.pos.z-P.pos.z);if(B.dd!=null&&d>B.dd-.05)B.stuck=(B.stuck||0)+1;else B.stuck=0;B.dd=d;
+      if(B.stuck>20){B.stuck=0;tp(e.pos.x+(P.pos.x-e.pos.x)/d*3,e.pos.z+(P.pos.z-e.pos.z)/d*3)}
+      if(e.state==='surrender'){if(walk(e.pos.x+.8,e.pos.z,6))a.useTap=true}else walk(e.pos.x,e.pos.z,6.5)}return null}
   return null}
 })();
