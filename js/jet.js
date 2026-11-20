@@ -341,10 +341,12 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
       <circle cx="0" cy="0" r="7"/><line x1="-20" y1="0" x2="-7" y2="0"/><line x1="7" y1="0" x2="20" y2="0"/><line x1="0" y1="-7" x2="0" y2="-16"/>
       <rect x="-330" y="-18" width="92" height="36" rx="3"/><rect x="238" y="-18" width="92" height="36" rx="3"/></g>
       <g fill="#7dff9a" font-size="22" text-anchor="middle" style="filter:drop-shadow(0 0 2px rgba(0,0,0,.7))"><text id="jspd" x="-284" y="8"></text><text id="jalt" x="284" y="8"></text><text x="-284" y="-26" font-size="13">MPH</text><text x="284" y="-26" font-size="13">FT</text>
-      <text id="jhdg" x="0" y="-250"></text><text x="0" y="-228" font-size="12">HDG</text><text id="jcall" x="-420" y="-250" text-anchor="start" font-size="18">${CALL}</text>
-      <text id="jthr" x="-420" y="250" text-anchor="start" font-size="18"></text><text id="jgear" x="420" y="250" text-anchor="end" font-size="18"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
+      <text id="jhdg" x="0" y="-250"></text><text x="0" y="-228" font-size="12">HDG</text><text id="jcall" x="0" y="-206" font-size="13">${CALL}</text>
+      <text id="jthr" x="-284" y="44" font-size="14"></text><text id="jgear" x="-284" y="64" font-size="14"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
     document.body.appendChild(HUDEL);for(const id of['jhl','jspd','jalt','jhdg','jthr','jgear','jwarn','jvs'])HE[id]=HUDEL.querySelector('#'+id)}
-  if(HUDEL)HUDEL.style.display=on?'block':'none'}
+  if(HUDEL)HUDEL.style.display=on?'block':'none';
+  /* the car dial and its keys (Horn · Brake · Hood) don't apply in the air: the flight HUD has speed, throttle and gear */
+  const dv=document.querySelector('.ht-drv');if(dv&&!!on!==!!S.drvHid){S.drvHid=!!on;dv.style.visibility=on?'hidden':''}}
 /* the game's mood and night code set the fog every frame after the camera hook: put the flight fog back late in the frame */
 function fogLate(a){if(!FOG0)return;const sc=a.scene,alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}if(a.camera.far<3600){a.camera.far=3600;a.camera.updateProjectionMatrix()}}
 Jet.fogLate=()=>fogLate(A());
