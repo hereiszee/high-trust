@@ -201,7 +201,9 @@ function garageProps(M){const a=A(),T=a.THREE,G=places().garage,g=new T.Group();
   const hd=new T.Mesh(new T.BoxGeometry(.14,.55,dz1-dz0),wall);hd.position.set(G.x0+.06,H-.27,G.door.z);g.add(hd);
   const roofM=new T.MeshStandardMaterial({color:a.lin('#5d6368'),roughness:.8});const roof=new T.Mesh(new T.BoxGeometry(G.x1-G.x0+.5,.12,G.z1-G.z0+.5),roofM);roof.position.set((G.x0+G.x1)/2,H+.12,(G.z0+G.z1)/2);roof.rotation.z=.05;roof.castShadow=true;g.add(roof);
   const roll=new T.Mesh(new T.CylinderGeometry(.22,.22,dz1-dz0,14),new T.MeshStandardMaterial({color:a.lin('#b9c0c5'),metalness:.5,roughness:.4}));roll.rotation.x=Math.PI/2;roll.position.set(G.x0+.3,H-.3,G.door.z);g.add(roll);
-  const fl=new T.Mesh(new T.BoxGeometry(G.x1-G.x0-.2,.04,G.z1-G.z0-.2),new T.MeshStandardMaterial({color:a.lin('#8e8a82'),roughness:.95}));fl.position.set((G.x0+G.x1)/2,.02,(G.z0+G.z1)/2);fl.receiveShadow=true;g.add(fl);
+  /* a poured slab (the greenbelt grass would poke through a floor at ground level): 25 cm, under a step, so you walk straight in */
+  const FY=.25;const fl=new T.Mesh(new T.BoxGeometry(G.x1-G.x0-.14,FY,G.z1-G.z0-.14),new T.MeshStandardMaterial({color:a.lin('#8e8a82'),roughness:.95}));fl.position.set((G.x0+G.x1)/2,FY/2,(G.z0+G.z1)/2);fl.receiveShadow=true;g.add(fl);
+  a.wmCol({x0:G.x0+.07,z0:G.z0+.07,x1:G.x1-.07,z1:G.z1-.07,h:FY});const inner=new T.Group();inner.position.y=FY;g.add(inner);
   const lt=new T.Mesh(new T.BoxGeometry(1.2,.05,.12),new T.MeshBasicMaterial({color:a.lin('#f4f6ff')}));lt.position.set((G.x0+G.x1)/2,H-.08,(G.z0+G.z1)/2);g.add(lt);
   /* outside: white corner and eave trim, the unit number over the door, a caged work light, an oil-stained apron */
   const trim=new T.MeshStandardMaterial({color:a.lin('#e9e6de'),roughness:.6});const TR=(w,h,d,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),trim);m.position.set(x,y,z);g.add(m)};
@@ -213,18 +215,18 @@ function garageProps(M){const a=A(),T=a.THREE,G=places().garage,g=new T.Group();
   const bulb=new T.Mesh(new T.BoxGeometry(.06,.08,.18),new T.MeshBasicMaterial({color:a.lin('#fff3c4')}));bulb.position.set(G.x0-.26,H-.17,G.door.z+1.7);g.add(bulb);
   const st=new T.Mesh(new T.CircleGeometry(.9,20),new T.MeshBasicMaterial({color:a.lin('#2b2724'),transparent:true,opacity:.35,depthWrite:false}));st.rotation.x=-Math.PI/2;st.scale.set(1,.6,1);st.position.set(G.x0-1.4,.015,G.door.z+.4);g.add(st);
   /* the bench along the back wall with the bolt cutters on it */
-  const wood=new T.MeshStandardMaterial({color:a.lin('#8a6440'),roughness:.8});const bench=new T.Mesh(new T.BoxGeometry(.7,.06,3.2),wood);bench.position.set(G.x1-.5,.9,G.door.z);g.add(bench);
-  for(const dz of[-1.4,1.4]){const l=new T.Mesh(new T.BoxGeometry(.06,.9,.06),wood);l.position.set(G.x1-.5,.45,G.door.z+dz);g.add(l)}a.wmCol({x0:G.x1-.85,z0:G.door.z-1.6,x1:G.x1-.12,z1:G.door.z+1.6,h:.95});
-  const cm=new T.MeshStandardMaterial({color:a.lin('#c22'),roughness:.5});for(const s of[-1,1]){const h=new T.Mesh(new T.BoxGeometry(.6,.025,.03),cm);h.position.set(G.x1-.5,.95,G.door.z+.3+s*.03);h.rotation.y=s*.08;g.add(h)}
-  const jaw=new T.Mesh(new T.BoxGeometry(.12,.03,.05),new T.MeshStandardMaterial({color:a.lin('#555'),metalness:.8,roughness:.3}));jaw.position.set(G.x1-.85,.95,G.door.z+.3);g.add(jaw);
-  try{a.wmSign(['BIKES $10 EA','NO QUESTIONS · CASH ONLY'],G.x1-.2,G.door.z,Math.PI/2,{w:1.6,h:.55,y:1.75,bg:'#f4f4f0',fg:'#c22'})}catch(e){}
+  const wood=new T.MeshStandardMaterial({color:a.lin('#8a6440'),roughness:.8});const bench=new T.Mesh(new T.BoxGeometry(.7,.06,3.2),wood);bench.position.set(G.x1-.5,.9,G.door.z);inner.add(bench);
+  for(const dz of[-1.4,1.4]){const l=new T.Mesh(new T.BoxGeometry(.06,.9,.06),wood);l.position.set(G.x1-.5,.45,G.door.z+dz);inner.add(l)}a.wmCol({x0:G.x1-.85,z0:G.door.z-1.6,x1:G.x1-.12,z1:G.door.z+1.6,h:.95+FY});
+  const cm=new T.MeshStandardMaterial({color:a.lin('#c22'),roughness:.5});for(const s of[-1,1]){const h=new T.Mesh(new T.BoxGeometry(.6,.025,.03),cm);h.position.set(G.x1-.5,.95,G.door.z+.3+s*.03);h.rotation.y=s*.08;inner.add(h)}
+  const jaw=new T.Mesh(new T.BoxGeometry(.12,.03,.05),new T.MeshStandardMaterial({color:a.lin('#555'),metalness:.8,roughness:.3}));jaw.position.set(G.x1-.85,.95,G.door.z+.3);inner.add(jaw);
+  try{a.wmSign(['BIKES $10 EA','NO QUESTIONS · CASH ONLY'],G.x1-.2,G.door.z,Math.PI/2,{w:1.6,h:.55,y:1.75+FY,bg:'#f4f4f0',fg:'#c22'})}catch(e){}
   /* the bikes: the six on the board stand in two rows, more hang on the walls */
   M.loot=[];const spots=[[G.x0+1.4,G.z0+.7],[G.x0+2.4,G.z0+.7],[G.x0+3.4,G.z0+.7],[G.x0+1.4,G.z1-.7],[G.x0+2.4,G.z1-.7],[G.x0+3.4,G.z1-.7]];
-  LOOT.forEach((l,k)=>{const b=staticBike(l.look),sp=spots[k];b.position.set(sp[0],0,sp[1]);b.rotation.y=Math.PI/2+(k<3?0:Math.PI)+(k%2?.06:-.06);g.add(b);
-    const tag=new T.Mesh(new T.PlaneGeometry(.12,.08),new T.MeshBasicMaterial({color:a.lin('#f6efd6'),side:T.DoubleSide}));tag.position.set(sp[0],.95,sp[1]+(k<3?.33:-.33));g.add(tag);
+  LOOT.forEach((l,k)=>{const b=staticBike(l.look),sp=spots[k];b.position.set(sp[0],0,sp[1]);b.rotation.y=Math.PI/2+(k<3?0:Math.PI)+(k%2?.06:-.06);inner.add(b);
+    const tag=new T.Mesh(new T.PlaneGeometry(.12,.08),new T.MeshBasicMaterial({color:a.lin('#f6efd6'),side:T.DoubleSide}));tag.position.set(sp[0],.95,sp[1]+(k<3?.33:-.33));inner.add(tag);
     M.loot.push({id:l.id,x:sp[0],z:sp[1]+(k<3?.9:-.9),b,done:false,tagMesh:tag,wrong:[]})});
-  for(let k=0;k<5;k++){const b=staticBike({size:k%2?'kid':'bmx',color:['#3fa0c8','#c84a3f','#4ac86a','#c8c23f','#8a8f96'][k]});b.position.set(G.x1-.3,1.25,G.z0+.9+k*.4);b.rotation.set(0,0,Math.PI/2);g.add(b)}
-  for(let k=0;k<4;k++){const b=staticBike({size:'kid',color:['#e86a9a','#6a9ae8','#9ae86a','#e8c06a'][k]});b.position.set(G.x0+4.6,0,G.z0+.6+k*.55);b.rotation.y=Math.PI/2+.1;g.add(b)}
+  for(let k=0;k<5;k++){const b=staticBike({size:k%2?'kid':'bmx',color:['#3fa0c8','#c84a3f','#4ac86a','#c8c23f','#8a8f96'][k]});b.position.set(G.x1-.3,1.25,G.z0+.9+k*.4);b.rotation.set(0,0,Math.PI/2);inner.add(b)}
+  for(let k=0;k<4;k++){const b=staticBike({size:'kid',color:['#e86a9a','#6a9ae8','#9ae86a','#e8c06a'][k]});b.position.set(G.x0+4.6,0,G.z0+.6+k*.55);b.rotation.y=Math.PI/2+.1;inner.add(b)}
   M.garage=g;return g}
 
 /* ---------------- conversation helper (HT.Social view + scene, on game time; E skips a line) ---------------- */
@@ -388,7 +390,7 @@ function stRack(dt,M,F){const a=A(),P=a.P,Pl=places();const left=['lock','wrappe
   let near=null,nd=1e9;for(const id of left){const p=M.cluePts[id],d=Math.hypot(p.x-P.pos.x,p.z-P.pos.z);if(d<nd){nd=d;near=id}}
   if(near)F.target={x:M.cluePts[near].x,z:M.cluePts[near].z,label:'Clue'};
   for(const id of left){const p=M.cluePts[id];F.taps.push({x:p.x,z:p.z,r:TUNE.clueR,txt:{lock:'Look at the cut lock',wrapper:'Look at the wrapper',tracks:'Look at the tracks'}[id],fn:()=>{
-    clueAdd(M,id);lookAt(M,M.cluePts[id],3.2);cardShow(M,id,null,{t:5});sparkOff(M,id);
+    clueAdd(M,id);lookAt(M,M.cluePts[id],3.2,{back:.7,side:.3,h:.95});cardShow(M,id,null,{t:5});sparkOff(M,id);
     const lines={lock:[['you',"Cut clean through. Eight-year-olds don't carry bolt cutters. A grown-up did this."]],wrapper:[['you',"Choco-Lumps. Ramos Corner Mart price sticker. That's over the bridge."]],tracks:[['you',"Two fat tyres side by side. A cargo bike. A heavy one. Somebody hauled a load off this pad."]]}[id];sayAll(lines,true)}})}
   if(!left.length){a.CP.mark('leads');music('hub');sayAll([['tyler',"(on the phone) Did you find it? Is it there?"],['you',"Not yet, buddy. But somebody saw something. I'm going to knock on some doors."],
     ['tyler',"Mrs. Linda sees EVERYTHING. And I've got the laptop on the porch. People sell stuff on Resale. Mom says I'm not allowed to buy anything."]]);M.boardT=12}}
@@ -565,7 +567,7 @@ function tagDone(M,l,quiet){if(l.done)return;l.done=true;M.tagged++;boardPaint(M
 function stHome(dt,M,F){const a=A(),P=a.P,Pl=places(),D=M.dez,cv=a.CV;
   if(!M.bikeIn){/* get Tyler's bike: from Dez at the mart, or the garage floor if he ran */const at=D&&D.R?{x:D.R.pos.x,z:D.R.pos.z}:Pl.meet;
     F.objs.push([M.caught?'Get Tyler\'s bike from Dez at the mart':'Tyler\'s bike is in the garage: pick it up (E)',false]);F.target={x:at.x,z:at.z,label:'Tyler\'s bike'};
-    if(D&&D.b){D.b.visible=true;if(D.st==='hidden'){D.R.pos.x=places().garage.inside.x;D.R.pos.z=places().garage.inside.z;D.b.position.set(D.R.pos.x,0,D.R.pos.z)}}
+    if(D&&D.b){D.b.visible=true;if(D.st==='hidden'){D.R.pos.x=places().garage.inside.x;D.R.pos.z=places().garage.inside.z;D.b.position.set(D.R.pos.x,.25,D.R.pos.z)/* on the garage slab */}}
     if(!cv)F.taps.push({x:at.x,z:at.z,r:2.6,txt:M.caught?'Take Tyler\'s bike from Dez':'Pick up Tyler\'s bike',fn:()=>{M.bikeIn=true;if(D){D.b.visible=false}
       if(M.caught){sayAll([['dez',"Tell the little dude sorry. And tell him it really is fast."],['you',"Earl's at the library tomorrow at nine. He says twelve bucks a bike to fix them."],['dez',"(trying not to look excited) ...Nine. Okay."]],true)}
       else say('you',"Got it. Into the van with you, Red Rocket.",true);M.vanBike=true}});return}
@@ -610,8 +612,8 @@ function resultCard(M){if(M.resDone)return;const r=document.querySelector('.ht-r
    drives to the mart, chases Dez on foot at sprint speed until he's winded, talks him down, the garage (the adults give up and get
    zip-tied), tags every bike, takes the bike home. o.fail: lets Dez go, walks into the garage and stands there. */
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.found)return null;const B=M.bot||(M.bot={}),Pl=places();o=o||{};
-  const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};
-  const walk=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.5)return true;const s=Math.min(d,(sp||6)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);return false};
+  const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35,0)};
+  const walk=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.5)return true;const s=Math.min(d,(sp||6)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35,0);/* feet at 0: steps up kerbs and the garage slab like the player */P.yaw=Math.atan2(-dx,-dz);return false};
   if(M.talk){const V=M.talk.V;if(V.choice&&(B.cw=(B.cw||0)+1)<24)return null;B.cw=0;if(V.choice){const ops=M.talk.o.rounds;const r=V.choice.list;let k=0;
       if(M.stage==='bikes'){const l=M.talk.o.lines[0][1];const L=LOOT.find(x=>l.indexOf(x.tag)>=0);k=Math.max(0,r.findIndex(c=>L&&c.text===OWNERS[L.owner]));if(o.sloppy&&!B.sl){B.sl=1;k=(k+1)%r.length}}
       else{const rr=M.talk.o.rounds[M.talk.picks.length];k=Math.max(0,rr.options.findIndex(x=>x.good))}V.choose(k)}else V.skip();return null}
