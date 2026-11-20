@@ -1092,7 +1092,7 @@ const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the side
 function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
 function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
-const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
+const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop'};
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
   if(def._lvl&&!def._lvl.assetsDone&&ASSETS.done){const old=def._lvl;scene.remove(old.group);old.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});def._lvl=null}
@@ -1100,7 +1100,7 @@ function owLevel(def){const O=OW();
   const g=def.map.map(r=>r.split('')),group=new THREE.Group();scene.add(group);
   const lvl={def,W:def.W,H:def.H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:def.markers.map(m=>({i:m.i,x:m.x,z:m.z})),start:V3(def.start.x,0,def.start.z),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[],
     vanStart:{x:def.vanStart.x,z:def.vanStart.z},sites:def.sites,places:def.places,doors:def.doors};
-  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
+  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.site||m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
   O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,riverDone:owRiverDone,player:()=>P.pos,
     onSolids:()=>{if(mode==='hub')rebuildTargets()},quality:()=>RENDER.q,sun,fogFar:()=>scene.fog?scene.fog.far:200});
   if(def.bridgeOpen)O.openBridge();
@@ -1115,7 +1115,8 @@ function owRegions(){const def=WORLD,v=owW();if(HUD.minimap.setRegions)HUD.minim
   {name:v.visited.river?'Riverside Flats · '+owTierName(prog.trustR):'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
 function owPins(){const def=WORLD,v=owW(),pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
-  MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
+  {const sv=SV();if(sv&&sv.perks&&sv.perks.earl)for(const id of['bus1','bus2','bus3','bus4']){const p=def.places[id];if(p)pins.push({id,kind:'travel',label:p.label||'Bus stop',x:p.x,z:p.z,fast:true,place:id})}}/* Earl's Shortcuts perk (SPEC3 3.2) */
+  MISSIONS.forEach((m,i)=>{const s=def.sites[m.site||m.id];if(s&&(!m.reg||prog.done[i]))pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
   HUD.minimap.setPins(pins);owRegions()}
 /* teleports: a car's speed also lives in its physics state (e.car) */
 function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
@@ -2721,7 +2722,7 @@ const WM={objs:[],navCache:new Map(),finaleSeen:false,last:null,beat:false};
 function missionInWorld(i){const m=MISSIONS[i];if(!m||!WORLD||!OW())return false;if(m.hood==='river'||m.reg)return true;return CFG.inWorld!==false&&m.inWorld!==false&&!!WORLD.sites[m.id]}
 function wmDests(lvl){/* rings for jobs whose start is not the site's own park spot: Dee's stakeout spot, Benny's depot */
   const P_=WORLD.places,tc_=t=>t*TILE+TILE/2;const ON_STREET={earl:[166,63],rosa:[200,35],duke:[192,63],benny:[217,21]};/* the Riverside lots are fenced: their rings sit on the street at the gate */
-  MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id}})}
+  MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id};else if(m.reg)lvl.dests[i]=jrDest(m)})}
 function wmAdd(o,solid){L.group.add(o);WM.objs.push(o);if(solid)o.traverse(m=>{if(m.isMesh){L.solids.push(m);(WM.solids||(WM.solids=[])).push(m)}});return o}
 function wmClear(){for(const o of WM.objs)if(o.parent)o.parent.remove(o);WM.objs=[];if(WM.solids&&L){const s=new Set(WM.solids);L.solids=L.solids.filter(m=>!s.has(m))}WM.solids=[];
   if(L&&WM.cols){const s=new Set(WM.cols);L.colliders=L.colliders.filter(c=>!s.has(c));L._hc=null}WM.cols=[];
