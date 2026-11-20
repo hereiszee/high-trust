@@ -2502,6 +2502,7 @@ function updPlayer(dt){
   if(P.moving&&P.onGround&&!P.vault){P.stepD=(P.stepD||0)+sp*dt*Math.min(1,l);if(P.stepD>(sprint?2.3:1.7)){P.stepD=0;stepSnd({run:sprint,crouch:P.crouch})}}
   updWeapon(dt);
   if(armedNow()&&mouseDown&&!(sprint&&P.moving)&&!P.vault){fire();if(!WEAPONS[P.cur].auto&&!touchFire)mouseDown=false}
+  else if(mouseDown&&mode==='mission'&&M&&(M.holster||M.noGuns)&&!P.vault){/* gun put away by the job: a click still reaches the job's own item (phone, treats, tools) */try{JH.fire()}catch(e){console.error(e)}if(!touchFire)mouseDown=false}
   if(P.regenT>0)P.regenT-=dt;else if(P.hp<100)P.hp=Math.min(100,P.hp+12*dt);
   const V=P.vault,air=V?{k:V.k,t:V.t}:!P.onGround?{k:P.vy>0?'jump':'fall',t:P.airT,vy:P.vy}:P.landT>0?{k:'land',t:1-P.landT/P.landT0,amt:P.landAmt}:null;
   const d=P.dude;d.root.position.set(P.pos.x,0,P.pos.z);d.root.rotation.y=P.yaw+Math.PI;pose(d,dt,{moving:P.moving,speed:sprint?1.5:1,aim:armedNow()&&!(sprint&&P.moving)&&!V,mode:P.crouch?'crouch':'stand',pitch:P.pitch,air});
