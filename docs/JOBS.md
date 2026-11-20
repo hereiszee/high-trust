@@ -70,7 +70,7 @@ Set `M.exitOpen=true` when the job is won: "Back to your ride" appears and getti
 | `meters.push({...})` | HUD meters (below), max 3. |
 | `widgets.push({...})` | HUD timer/score/combo widgets. |
 
-## 3. Hook reference
+## 3. Hook reference (8 from SPEC3, plus `pose`)
 
 Each hook calls the **running job's** handler first, then every **system** handler registered with `HT.Jobs.on(hook, fn)` (stealth, photo, tow… modules register system-wide). Errors in a handler are caught and logged, never fatal. Hooks with no handlers cost one property check.
 
@@ -83,6 +83,7 @@ Each hook calls the **running job's** handler first, then every **system** handl
 | `JH.interact(prompt)` | *MISSION LOGIC* `updMission()` and *WORLD MISSIONS* `wmFrame()`, after the job's own holds/taps | gets the current prompt (string or null). Return `null`, a string, `{txt,fn}` (press E) or `{txt,hold:secs,fn,o?}` (hold E) | anything adding an E action outside `F` |
 | `JH.fire()` | *WEAPONS* top of `fire()` | return `true` = the trigger is consumed (no shot). The core already blocks `M.noGuns` and routes `M.item` to `HT.Jobs.item(id).use(M)` | phone, stop sign, tool belt |
 | `JH.hud(state)` | *HUD* `hud()`, right before `HUD.update(state)` | mutate `state` (`meters`, `widgets`, `gadgets`…). `F.meters`/`F.widgets` are copied in before your handler runs | meters, viewfinder, band bar |
+| `JH.pose(dt)` | *LOOP* `frame()` and `__ht.step`, right after `HT.People.update` | per frame; return ignored. Layer bone poses on characters (added for wave 1) | [SOCIAL] tells |
 | `JH.home(id)` | *META* `updHome()`, before the built-in actions | `id` = the interactable (`laptop fridge calendar bed tv grill locker workbench door garage family`). Return `true` = handled. **Called for every registered job, running or not** (`home(id, isActive)`) | jobs offered from home, Doug's corkboard, Jen's note |
 
 `HT.Jobs.item(id,{name,use(M),hud(state)})` registers a special held item; a job sets `M.item=id` while it is held.
@@ -116,7 +117,7 @@ Save v3 helpers (`js/save.js`, `HT.Save`): `jobRec(s,id) recordRun(...) album(s,
 
 ## 9. Testing a job: `node dev/jobs-check.js <id>`
 
-It starts a new game, waits for the job files, unlocks your job (`unlock.done` + `test.give(api)`), takes it from its giver (home interactable or world giver), accepts the brief, drives the van into the ring, then calls your `test.step(api, frame, opts)` every frame until the job ends, and checks: won, paid, `SAVE.jobs[id]`, the calendar pin, zero console errors. Flags: `--retry` (first a run with `opts.fail=true` that must lose; then the fail card must offer retry/restart; retry from the stage and win; gold capped), `--replay` (the fridge calendar → Replay → half pay, same day, households unchanged), `--shots` (jpgs in `docs/screenshots/jobs-framework/`), `--no-giver` (start directly). Your bot may teleport (`api.P.pos.set`), press E (`api.useTap=true`) or hold it (`api.keys.e=true`). Also write `dev/jobs/<id>.js` for anything job-specific (SPEC3 section 5).
+It starts a new game, waits for the job files, unlocks your job (`unlock.done` + `test.give(api)`), takes it from its giver (home interactable or world giver), accepts the brief, drives the van into the ring, then calls your `test.step(api, frame, opts)` every frame until the job ends, and checks: won, paid, `SAVE.jobs[id]`, the calendar pin, zero console errors. Flags: `--retry` (first a run with `opts.fail=true` that must lose; then the fail card must offer retry/restart; retry from the stage and win; gold capped), `--replay` (the fridge calendar → Replay → half pay, same day, households unchanged), `--shots` (jpgs in `docs/screenshots/jobs/<id>/`), `--no-giver` (start directly). Your bot may teleport (`api.P.pos.set`), press E (`api.useTap=true`) or hold it (`api.keys.e=true`). Also write `dev/jobs/<id>.js` for anything job-specific (SPEC3 section 5).
 
 `node dev/jobs-registry.test.js` (Node, no browser): registration, MISSIONS/CATALOG entries, hook dispatch order and error isolation, gating, a 404'd file is skipped, the [CP] save/load round trip of every job file that registers in Node, save v2→v3 migration.
 

@@ -20,7 +20,7 @@
    ===================================================================== */
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
-const HOOKS=['perceive','noise','vehicle','camera','interact','fire','hud','home'];
+const HOOKS=['perceive','noise','vehicle','camera','interact','fire','hud','home','pose'];
 const jobs=new Map(),items=new Map(),sys={};for(const h of HOOKS)sys[h]=[];
 let G=null;/* glue from index.html: {MISSIONS, catalog, onRegister(job), active()} */
 const pending=[];const stats={fired:{},errors:0};for(const h of HOOKS)stats.fired[h]=0;
@@ -66,7 +66,9 @@ const hooks={
   interact:prompt=>{if(!sys.interact.length&&!(active()||{}).interact)return null;const r=run('interact',[prompt]);return r==null?null:r},
   fire:()=>{if(!sys.fire.length&&!(active()||{}).fire)return false;return!!run('fire',[])},
   hud:state=>{if(!sys.hud.length&&!(active()||{}).hud)return;run('hud',[state])},
-  home:id=>!!runHome(id)};
+  home:id=>!!runHome(id),
+  /* 9th hook (added for wave 1): after HT.People.update each frame, before the draw, so a job/system can layer poses (Small Talk tells) */
+  pose:dt=>{if(!sys.pose.length&&!(active()||{}).pose)return;run('pose',[dt])}};
 /* gating (SPEC3 3.1): unlock {done:[ids], trust, trustR, cuffed, flags:[...]} against a progress view {done:Set|fn, trust, trustR, cuffed, flags} */
 function lockReason(def,p){const u=def.unlock||{};const has=isFn(p.done)?p.done:id=>p.done&&p.done.has?p.done.has(id):!!(p.done&&p.done[id]);
   for(const id of [].concat(u.done||[]))if(!has(id))return{why:'locked',need:id};

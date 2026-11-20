@@ -725,17 +725,17 @@ function mergeGeos(gs){gs=gs.filter(Boolean);if(!gs.length)return null;const g=n
     g.setAttribute(k,new T.BufferAttribute(arr,n))}
   g.computeBoundingSphere();g.computeBoundingBox();return g}
 /* the per-car multi material (cheap: one shared shader program) */
-function multiMat(){const A=atlas(),U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uSpin:{value:0},uSteer:{value:0},uPaint:{value:new T.Color(1,1,1)}};
+function multiMat(){const A=atlas(),U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uLamp:{value:new T.Vector4(1,1,1,1)},uSpin:{value:0},uSteer:{value:0},uPaint:{value:new T.Color(1,1,1)}};
   const m=new T.MeshStandardMaterial({vertexColors:true,map:A.map,normalMap:A.normal,roughness:1,metalness:1});m.userData.U=U;
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.U);
     sh.vertexShader=sh.vertexShader.replace('#include <common>',`#include <common>
-attribute vec2 pbr;attribute vec3 em;attribute float ech;attribute float pnt;attribute vec4 wheel;uniform float uCh[8];uniform float uSpin;uniform float uSteer;uniform vec3 uPaint;
+attribute vec2 pbr;attribute vec3 em;attribute float ech;attribute float pnt;attribute vec4 wheel;uniform float uCh[8];uniform vec4 uLamp;uniform float uSpin;uniform float uSteer;uniform vec3 uPaint;
 varying vec2 vPbr;varying vec3 vEm;
 vec3 wrot(vec3 p){if(wheel.w>1.5){float s=sin(uSpin),c=cos(uSpin);p=vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);if(wheel.w>2.5){float s2=sin(uSteer),c2=cos(uSteer);p=vec3(c2*p.x+s2*p.z,p.y,-s2*p.x+c2*p.z);}}return p;}`)
       .replace('#include <beginnormal_vertex>','vec3 objectNormal=wrot(vec3(normal));')
       .replace('#include <begin_vertex>','vec3 transformed=wheel.w>1.5?wrot(position-wheel.xyz)+wheel.xyz:vec3(position);')
       .replace('#include <color_vertex>',`#include <color_vertex>
-vPbr=pbr;int ci=int(ech+.5);float k=0.;for(int i=0;i<8;i++){if(i==ci)k=uCh[i];}vEm=em*k;
+vPbr=pbr;int ci=int(ech+.5);float k=0.;for(int i=0;i<8;i++){if(i==ci)k=uCh[i];}if(ci==1||ci==5)k*=position.z>0.?uLamp.y:uLamp.x;else if(ci==2||ci==3||ci==7)k*=position.z>0.?uLamp.w:uLamp.z;vEm=em*k;
 #ifdef USE_COLOR
 if(pnt>.5)vColor=uPaint;
 #endif`);
@@ -861,19 +861,22 @@ function build(type,opts){shared();const lod=autoLod(opts),K=lod?null:kit(type),
 function make(type='minivan',opts={}){if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
   const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);applyLights(root,false);return root}
 function api(root,type,opts){const ud=root.userData;
-  ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
+  ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,lamps=ud.lamps,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
     disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
     const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
-    for(const k in ud)delete ud[k];Object.assign(ud,nu);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);applyLights(root,false)};
+    for(const k in ud)delete ud[k];Object.assign(ud,nu);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);if(lamps)ud.setLamps(lamps);applyLights(root,false)};
   ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.material.userData.U.uPaint.value.copy(c);
     if(ud.body[0]){ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)}};
   ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};
   ud.flashBar=t=>{ud._s.flash=t||0};
+  /* broken lamps [frontA, frontB, rearA, rearB] (truthy = smashed; A/B = the two sides) and hazard blinkers */
+  ud.setLamps=a=>{a=a||[];ud.lamps=[0,1,2,3].map(i=>a[i]?1:0);ud.material.userData.U.uLamp.value.set(a[0]?0:1,a[1]?0:1,a[2]?0:1,a[3]?0:1)};
+  ud.setHazard=on=>{ud._s.haz=!!on;applyLights(root,false)};
   ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;for(const m of new Set(ud.body)){m.roughness=lerp(m.userData.r0??(m.userData.r0=m.roughness),.8,f);m.clearcoat=lerp(1,.15,f)}};
   ud.dispose=()=>{disposeOwn(ud)};}
 function disposeOwn(ud){for(const g of ud._own||[])g.dispose();for(const m of ud._mats||[])if(m&&m.dispose)m.dispose()}
 function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head,c=d.material.userData.U.uCh.value;
-  c[CH.head]=hl?3.2:0;c[CH.tail]=hl?1.4:.08;c[CH.brake]=braking?5:(hl?1.2:.1);c[CH.drl]=1.6;c[CH.amber]=.25;c[CH.rev]=s.rev?2.5:0;
+  c[CH.head]=hl?3.2:0;c[CH.tail]=hl?1.4:.08;c[CH.brake]=braking?5:(hl?1.2:.1);c[CH.drl]=1.6;c[CH.amber]=s.haz?(((s.t*1.45)%1)<.5?6:0):.25;c[CH.rev]=s.rev?2.5:0;
   c[CH.bar]=d.lights.bar.length?(s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)):0}
 
 function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,Math.max(0,o.dt??1/60)),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
