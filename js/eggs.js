@@ -22,7 +22,7 @@ const LIST=[
   {id:'smoker',name:'225',hint:'Something smells great behind the barracks at Fort Sensible.',found:'The smoker behind Barracks B. It is always exactly 225°F. Nobody knows who feeds it.'},
   {id:'honk',name:'Two Bits',hint:'Shave and a haircut...',found:'Honked "shave and a haircut" and somebody answered "two bits". Community.'},
   {id:'mug',name:'World\'s Okayest Dad',hint:'Check the glovebox in Walt\'s car.',found:'A mug in Walt\'s glovebox: WORLD\'S OKAYEST DAD. You took it. Walt will understand.'},
-  {id:'bigfoot',name:'Proof',hint:'Something watches the range from the top of the far berm.',found:'You hit a cardboard Bigfoot at a hundred meters. Nobody will believe you.'}];
+  {id:'bigfoot',name:'Proof',hint:'Something watches the range from the top of the far berm. Bring something with reach.',found:'You hit a cardboard Bigfoot at a hundred meters. Nobody will believe you.'}];
 Eggs.LIST=LIST;
 const S={L:null,root:null,parts:{},simT:0,ring:0,ringOn:false,honks:[],honkT:0,said:{},taught:{}};Eggs.S=S;
 function sv(){try{const s=A().SV();if(s&&s.base&&!s.base.eggs)s.base.eggs={};return s&&s.base}catch(_){return null}}
@@ -60,7 +60,7 @@ function bigfootTex(){const c=document.createElement('canvas');c.width=128;c.hei
 
 /* where things are (metres); the gnome's lawn depends on the in-game day */
 function gnomeSpot(a){const def=a.WORLD;const hp=(def.housePorches||[]).filter(p=>p.hood==='maple');if(!hp.length)return null;let day=1;try{day=a.SV().day||1}catch(_){}
-  const p=hp[(day*7+3)%hp.length];return{x:p.x+1.7,z:p.z-p.face[1]*.6,yaw:Math.atan2(p.face[0],p.face[1]),day}}
+  const p=hp[(day*7+3)%hp.length];return{x:p.x+2.2,z:p.z+p.face[1]*2.4,yaw:Math.atan2(p.face[0],p.face[1]),day}}
 function lightsHouse(a){const def=a.WORLD;let best=null,bd=1e9;for(const h of def.houses){if(h.home)continue;const d=Math.hypot(h.cx-112,h.cz-60);if(d<bd){bd=d;best=h}}return best}
 const PHONE={x:244.6,z:35.2,yaw:0},SMOKER_OFF={dx:4.5,dz:5.4};
 

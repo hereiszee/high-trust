@@ -180,7 +180,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     const walt=await ev(()=>{const c=window.__ht.L.cars.find(q=>/walt/i.test(q.name||''));return c?{x:c.pos.x,z:c.pos.z,yaw:c.yaw,w:2}:null});
     if(walt){await ev(([x,z,yaw])=>{const P=window.__ht.P;P.pos.set(x+Math.cos(yaw)*2.2,0,z-Math.sin(yaw)*2.2);window.__ht.step(4)},[walt.x,walt.z,walt.yaw]);await press('e');s=await st();await p.keyboard.press('g');await step(4);await shot('egg-mug');ok(await found('mug'),"G in Walt's car finds the mug");await press('e')}else ok(false,"Walt's car exists");
     /* cardboard Bigfoot on the range berm */
-    const d=await ev(()=>HT.Base.def().range);await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(4)},[d.stand,d.lanes[1]+1.3]);await press('2');await press('1');await step(10);
+    const d=await ev(()=>HT.Base.def().range);await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x+1.2,0,z);window.__ht.step(4)},[d.rack.x,d.rack.z]);await step(4);
+    for(let i=0;i<10&&(await ev(()=>window.__ht.P.cur))!=='hunter';i++){await press('e');await step(4)}/* the .308 from the rental rack: a pistol doesn't reach 100 m */
+    await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(4)},[d.stand,d.lanes[1]+1.3]);await step(10);
     for(let i=0;i<6&&!(await found('bigfoot'));i++){await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await click(1);await step(8)}
     ok(await found('bigfoot'),'hit the cardboard Bigfoot at 100 m');
     /* the pause menu lists them */

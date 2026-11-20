@@ -1,50 +1,42 @@
-== drive: home to Fort Sensible in the minivan
-  ok   E gets in the minivan
-  shot drive-start.jpg
-  ok   drove through the gate (203,182)
-  ok   region is the base
-  ok   Fort Sensible pin is open for fast travel after the visit
-  perf base gate (driving) {"calls":471,"tris":437194,"drawMs":3153.4,"stepMs":4.18}
-== range
-  ok   out of the car by the range
-  on foot at 128,189
-  ok   walked to the range officer
-  shot range-arrive.jpg
-  ok   E talks to Sgt. Pruitt
-  ok   E again starts the timed course
-  shot range-course.jpg
-  ok   course finished: score 634, medal 2, 55 shots
-  shot range-result.jpg
-  ok   best saved per gun: {"pistol":[{"score":634,"time":23.4,"acc":0.22,"medal":2,"day":1,"rental":false}]}
-  ok   Enter closes the results card
-  rack prompt: {"key":"E","text":"Rental rack · try The Retirement Plan","hold":false,"progress":0}
-  ok   E at the rack rents revolver
-  shot range-rental.jpg
-  ok   free ammo on the line
-  ok   firing away from downrange is refused
-  ok   leaving the range returns the rental (pistol) and holsters
-  ok   the gun stays holstered elsewhere on the post
-  ok   no heat from range shooting
-  perf range {"calls":472,"tris":621076,"drawMs":208.6,"stepMs":2.35}
-== tank
-  ok   walked to the motor pool
-  ok   the tank is parked in the motor pool
-  shot tank-outside.jpg
-  ok   E borrows the tank
-  ok   A turns it on the spot (0.85 rad)
-  ok   W drives it (19.1 m, top 10.5 m/s)
-  ok   the turret follows the mouse look (turret 1.07 rad, off by -0.000)
-  shot tank-turret.jpg
-  ok   left click fires the main gun
-  shot tank-firing.jpg
-  shot tank-impact.jpg
-  ok   a second click while reloading does nothing (3.1 s left)
-  shot tank-sight.jpg
-  ok   drove through the cones and hay bales (13 knocked over)
-  ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
-  shot tank-flattened.jpg
-  perf tank driving {"calls":390,"tris":321196,"drawMs":24.7,"stepMs":3.62}
-  ok   jobs refuse the tank: "You can't bring that to the bake sale."
-  ok   E gets out
+== jet
+  ok   walked to the jet on the apron
+  ok   the jet is parked by Hangar 2
+  shot jet-apron.jpg
+  ok   E climbs into the jet
+  shot jet-takeoff.jpg
+  ok   took off (100 mph at x 167)
+  ok   G raises the gear
+  perf jet climbing out {"calls":43,"tris":29477,"drawMs":18.7,"stepMs":3.18}
+  shot jet-cockpit.jpg
+  shot jet-maple.jpg
+  perf jet over Maple Heights {"calls":785,"tris":405444,"drawMs":19.2,"stepMs":9.14}
+  FAIL buzzed the house: the family came out (0 waving)
+  ok   sonic boom over the neighborhood
+  shot jet-bridge.jpg
+  ok   flew under the High Bridge (still flying)
+  ok   G lowers the gear for landing
+  FAIL landed on runway 27 (159,264)
+  ok   E gets out on the ground
+  FAIL holding E ejects: parachute at ? m
+  shot jet-parachute.jpg
+  ok   landed under the parachute at 160,203 (back on the post)
+  FAIL the jet is back on the apron (it was a rental)
+== easter eggs
+  (walk to 90,23 stopped at 92.2,22.3)
+  FAIL found the gnome (E at 89,22)
+  shot egg-gnome.jpg
+  ok   found the lights (E at 121,67)
+  shot egg-lights.jpg
+  ok   found the phone (E at 245,35)
+  shot egg-phone.jpg
+  ok   found the smoker (E at 195,177)
+  shot egg-smoker.jpg
+  ok   shave and a haircut on the horn: two bits
+  shot egg-mug.jpg
+  ok   G in Walt's car finds the mug
+  FAIL hit the cardboard Bigfoot at 100 m
+  ok   pause menu has "Things your dad found"
+  FAIL the list fills in: 5/7
+  shot eggs-pause.jpg
 no console errors
-all ok · 224 s
+7 FAILED · 293 s

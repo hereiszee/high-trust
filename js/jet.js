@@ -271,16 +271,17 @@ function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;c
   const hgt=(x,z,d)=>{const n=Math.sin(x*.004)*Math.cos(z*.0047)+.5*Math.sin(x*.011+1.3)*Math.sin(z*.009+.7)+.25*Math.sin(x*.023+z*.017);return clamp((d-100)/160,0,1)*(9+24*clamp(n*.5+.5,0,1))+clamp((d-500)/1200,0,1)*60*Math.max(0,n+.3)-2};
   for(let j=0;j<=rings;j++){const t=j/rings,r=R0*.8+(R1-R0*.8)*t*t;for(let i=0;i<N;i++){const ang=i/N*Math.PI*2;let x=cx+Math.cos(ang)*r*1.15,z=cz+Math.sin(ang)*r*.75*(1+t*.6);
       const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);const y=hgt(x,z,d);P.push(x,y,z);
-      const fld=(Math.floor(x/140)+Math.floor(z/110))%4,base=[[.38,.5,.22],[.5,.56,.26],[.6,.56,.3],[.33,.44,.2]][(fld+4)%4],k=1-t*.25;C.push(base[0]*k,base[1]*k,base[2]*k)}}
+      const fld=(Math.floor(x/140)+Math.floor(z/110))%4,base=[[.085,.17,.035],[.15,.21,.05],[.2,.19,.07],[.07,.13,.035]][(fld+4)%4]/* linear: the grass texture's own range */,k=1-t*.25;C.push(base[0]*k,base[1]*k,base[2]*k)}}
   for(let j=0;j<rings;j++)for(let i=0;i<N;i++){const a0=j*N+i,a1=j*N+(i+1)%N,b0=(j+1)*N+i,b1=(j+1)*N+(i+1)%N;I.push(a0,b0,a1,a1,b0,b1)}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();
-  const m=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
+  const m=new T.Mesh(g,new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
 /* lids: flat roofs over interiors drawn without one (mission sites' '.' floors), shown only while you fly so ground play and the planning views never see them */
 function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.name='airLids';const m=new T.MeshStandardMaterial({color:new T.Color('#6d6f70').convertSRGBToLinear(),roughness:.95});
-    const seen=new Uint8Array(def.W*def.H),W=def.W,H=def.H,mp=def.map,inside=c=>c==='.'||c==='I'||c==='T'||c==='i'||c==='a'||c==='E'||c==='B'||c==='S'||c==='k'||c==='Q';const geo=new T.BoxGeometry(1,1,1);
+    const boxes=[],seen=new Uint8Array(def.W*def.H),W=def.W,H=def.H,mp=def.map,inside=c=>c==='.'||c==='I'||c==='T'||c==='i'||c==='a'||c==='E'||c==='B'||c==='S'||c==='k'||c==='Q';const geo=new T.BoxGeometry(1,1,1);
     for(let z=0;z<H;z++)for(let x=0;x<W;x++){if(seen[z*W+x]||!inside(mp[z][x])||def.ground[z][x]!=='.')continue;let x1=x;while(x1<W&&inside(mp[z][x1])&&def.ground[z][x1]==='.'&&!seen[z*W+x1])x1++;let z1=z+1;
       while(z1<H){let all=true;for(let xx=x;xx<x1;xx++)if(!(inside(mp[z1][xx])&&def.ground[z1][xx]==='.')||seen[z1*W+xx]){all=false;break}if(!all)break;z1++}
-      for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen[zz*W+xx]=1;const b=new T.Mesh(geo,m);b.scale.set((x1-x)*2+1.2,.25,(z1-z)*2+1.2);b.position.set((x+x1)+0,3.45,(z+z1)+0);g.add(b)}
+      for(let zz=z;zz<z1;zz++)for(let xx=x;xx<x1;xx++)seen[zz*W+xx]=1;boxes.push([(x1-x)*2+1.2,(z1-z)*2+1.2,x+x1,z+z1])}
+    {const gb=new (HT.World.GB)();for(const[w,d,cx,cz]of boxes)gb.box(cx-w/2,3.32,cz-d/2,cx+w/2,3.58,cz+d/2,4,[.5,.52,.53],{});const mm=new T.Mesh(gb.geo(),new T.MeshStandardMaterial({vertexColors:true,roughness:.95}));mm.name='airLids';g.add(mm)}/* one draw call for every lid */
     a.L.group.add(g);F.lid=g}
   if(F.lid){F.lid.visible=!!on;if(on&&F.lid.parent!==a.L.group)a.L.group.add(F.lid)}}
 
@@ -341,7 +342,10 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
       <text id="jthr" x="-420" y="250" text-anchor="start" font-size="18"></text><text id="jgear" x="420" y="250" text-anchor="end" font-size="18"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
     document.body.appendChild(HUDEL);for(const id of['jhl','jspd','jalt','jhdg','jthr','jgear','jwarn','jvs'])HE[id]=HUDEL.querySelector('#'+id)}
   if(HUDEL)HUDEL.style.display=on?'block':'none'}
-function hud(st){const a=A();if(!a)return;const on=F.on&&a.CV&&a.CV.type==='jet';hudShow(!!on);if(!on)return;
+/* the game's mood and night code set the fog every frame after the camera hook: put the flight fog back late in the frame */
+function fogLate(a){if(!FOG0)return;const sc=a.scene,alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}if(a.camera.far<3600){a.camera.far=3600;a.camera.updateProjectionMatrix()}}
+Jet.fogLate=()=>fogLate(A());
+function hud(st){const a=A();if(!a)return;fogLate(a);const on=F.on&&a.CV&&a.CV.type==='jet';hudShow(!!on);if(!on)return;
   _f.set(1,0,0).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);
   const bank=Math.atan2(-_r.y,_u.y),pitch=Math.asin(clamp(_f.y,-1,1))*180/Math.PI;let hdg=(Math.atan2(_f.x,-_f.z)*180/Math.PI+360)%360;
   HE.jhl.style.display=a.P.fp?'':'none';/* the pitch ladder only in the cockpit; the chase view keeps the readouts */
@@ -358,7 +362,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<140||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
-  if(!dt)return;chuteTick(a,dt);familyTick(a,dt);if(!F.on&&!F.chute)farFog(a,false)}
+  fogLate(a);if(!dt)return;chuteTick(a,dt);familyTick(a,dt);if(!F.on&&!F.chute)farFog(a,false)}
 /* keys the game doesn't own while flying: G gear (toggle), and E held in the air ejects (index.html: e.noExit) */
 addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='jet')return;const k=ev.key.toLowerCase();
   if(k==='g'&&F.air&&!ev.repeat){F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}});
