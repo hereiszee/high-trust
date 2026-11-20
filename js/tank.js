@@ -159,7 +159,7 @@ function fire(a,e){if(S.reload>0){if(a.simT-S.lastNagT>1.2){S.lastNagT=a.simT;a.
   if(!hit)hit=pos;
   S.shells.push({p:start.clone(),to:hit,dir,t:0,T:Math.max(.08,start.distanceTo(hit)/140),mesh:shellMesh(a)});
   /* at the muzzle: flash, a blast of dust off the deck, the whole hull rocks back, a boom */
-  try{const F=window.FX;if(F){F.muzzleFlash(start,dir,{type:'double'});F.impact(new THREE.Vector3(e.pos.x,.2,e.pos.z),new THREE.Vector3(0,1,0),'dirt',{big:true,decal:false});F.shake(.55)}}catch(_){}
+  try{const F=HT.FX;if(F){F.muzzleFlash(start,dir,{type:'double'});F.impact(new THREE.Vector3(e.pos.x,.2,e.pos.z),new THREE.Vector3(0,1,0),'dirt',{big:true,decal:false});F.shake(.55)}}catch(_){}
   boom(1,0);recoil(e);a.feed('Main gun · reloading 3.5 s','info');teach(a,'gun','Main gun reloads for 3.5 s · it never hurts anyone: it won\'t fire with people near the line of fire')}
 function isOwn(o,e){let p=o;while(p){if(p===e.obj)return true;p=p.parent}return false}
 function shellMesh(a){const m=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),MT.shell||(MT.shell=new THREE.MeshBasicMaterial({color:new THREE.Color(4,3,1.6),toneMapped:false})));a.L.group.add(m);return m}
@@ -179,7 +179,7 @@ function people(a){const out=[];const add=p=>{if(p)out.push({x:p.x,z:p.z})};for(
   if(a.P&&a.CV)void 0;return out}
 function land(a,s){const p=s.to;s.mesh.parent&&s.mesh.parent.remove(s.mesh);s.mesh.geometry.dispose();
   const dd=a.camera.position.distanceTo(p);
-  try{const F=window.FX;if(F){F.explosion(p.clone().setY(Math.max(.05,p.y)),1.3);for(let i=0;i<3;i++)F.impact(p.clone().add(new THREE.Vector3((Math.random()-.5)*2,.1,(Math.random()-.5)*2)),new THREE.Vector3(0,1,0),'dirt',{big:true});F.shake(clamp(1.1-dd/120,.1,.8))}}catch(_){}
+  try{const F=HT.FX;if(F){F.explosion(p.clone().setY(Math.max(.05,p.y)),1.3);for(let i=0;i<3;i++)F.impact(p.clone().add(new THREE.Vector3((Math.random()-.5)*2,.1,(Math.random()-.5)*2)),new THREE.Vector3(0,1,0),'dirt',{big:true});F.shake(clamp(1.1-dd/120,.1,.8))}}catch(_){}
   boom(clamp(1.2-dd/400,.25,1.2),Math.min(.5,dd/340*.4));
   /* knock things about: range targets, cones (HT.Props), base props */
   try{const R=HT.Range&&HT.Range.targets?HT.Range.targets():[];for(const t of R){const m=t.mesh;m.getWorldPosition(_v);const d=_v.distanceTo(p);if(d>14)continue;
@@ -206,7 +206,7 @@ function flatten(a,c){S.flat.add(c);const s=sv();if(s&&s.tank)s.tank.crushed=(s.
   try{a.carDamage(c,a.carHpMax(c)*2,'tank')}catch(_){}
   if(c.col){c.col.x1=c.col.x0;c.col.z1=c.col.z0}/* it's flat now: the tank (and you) can go over it */
   const o=c.obj;o.scale.y=.32;o.userData.flat=true;try{o.traverse(m=>{if(m.isMesh)m.userData.noBatch=true})}catch(_){}
-  try{const F=window.FX;if(F){F.impact(new THREE.Vector3(c.pos.x,.4,c.pos.z),new THREE.Vector3(0,1,0),'metal',{big:true});F.shake(.3)}HT.Audio.tone({f:120,to:40,type:'sawtooth',d:.5,gain:.2})}catch(_){}
+  try{const F=HT.FX;if(F){F.impact(new THREE.Vector3(c.pos.x,.4,c.pos.z),new THREE.Vector3(0,1,0),'metal',{big:true});F.shake(.3)}HT.Audio.tone({f:120,to:40,type:'sawtooth',d:.5,gain:.2})}catch(_){}
   const own=c.name&&c.owner==='neighbour';if(own){say(c.name,pick(LINES.car));try{a.addTrust(-1,HT.WorldGen.regionAt(c.pos.x,c.pos.z)==='river'?'river':'maple')}catch(_){}a.feed(c.name+"'s car is a pancake",'bad','-1 trust')}
   alarm(c,a)}
 /* base props the tank can push through: hay bales and cones on the motor pool's training lane, a wooden fence section */
@@ -229,8 +229,9 @@ function propsTick(a,dt){if(S.propRoot&&S.propRoot.parent!==a.L.group)a.L.group.
 
 /* ================= the camera: over the turret, along the mouse look; V = the gunner's sight ================= */
 const _c=new THREE.Vector3();
-function camera(dt){const a=A();if(!a)return false;const e=a.CV;if(!e||e.type!=='tank'||a.mode==='home')return false;const P=a.P,cam=a.camera,t=e.obj.userData.tank;
-  if(!t)return false;P.pitch=clamp(P.pitch,-.5,.35);
+/* hooks answer undefined when they don't apply: HT.Jobs keeps the first non-undefined answer */
+function camera(dt){const a=A();if(!a)return;const e=a.CV;if(!e||e.type!=='tank'||a.mode==='home')return;const P=a.P,cam=a.camera,t=e.obj.userData.tank;
+  if(!t)return;P.pitch=clamp(P.pitch,-.5,.35);t.mantle.visible=!P.fp;/* the gunner's sight looks along the barrel, not at it */
   if(P.fp){t.muzzle.getWorldPosition(_v);const tw=new THREE.Vector3();t.turret.getWorldPosition(tw);cam.position.set(tw.x,tw.y+1.05,tw.z);
     const dir=new THREE.Vector3(1,0,0).transformDirection(t.mantle.matrixWorld);cam.lookAt(cam.position.x+dir.x*10,cam.position.y+dir.y*10,cam.position.z+dir.z*10);cam.fov+=(42-cam.fov)*Math.min(1,dt*6);cam.updateProjectionMatrix()}
   else{const tw=new THREE.Vector3();t.turret.getWorldPosition(tw);const tgt=_c.set(tw.x,tw.y+1.6,tw.z),D=11.5;
@@ -281,7 +282,7 @@ function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||prompt)return
   if(Math.hypot(a.P.pos.x-sg.p.x,a.P.pos.z-sg.p.z)<2.6)return{txt:'Talk to '+SARGE,fn:()=>say(SARGE,pick(["The tank? Walk up to it and press E. Like any car. That's the problem.","Practice rounds only. They make a big noise and a big cloud and they don't hurt anybody. Mostly they hurt my paperwork.","Neutral steering: A and D turn it on the spot. Like a Roomba. A seventy-ton Roomba."]),true)};return null}
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('vehicle',(e,dt)=>{try{vehicle(e,dt)}catch(err){if(!S.err){S.err=1;console.warn('[tank]',err)}}});
-  Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[tank] camera',err)}return false}});
+  Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[tank] camera',err)}}});
   Jb.on('pose',()=>{try{tick()}catch(err){if(!S.err2){S.err2=1;console.warn('[tank] tick',err)}}});
   Jb.on('hud',st=>{try{hud(st)}catch(_){}});Bs.on('interact',p=>interact(p));
   (function touch(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(touch,500);return}a.HUD.on('touch',(k,down)=>{const c=A().CV;if(down&&k==='fire'&&c&&c.type==='tank')S.touchFire=true})})()}

@@ -80,7 +80,7 @@ function build(a){const T=THREE,root=new T.Group();root.name='eggs';S.root=root;
   if(d){const b=d.bld.barracks2,x=b.x1+SMOKER_OFF.dx,z=b.z0+SMOKER_OFF.dz;const m=smokerMesh();m.position.set(x,0,z);m.rotation.y=-Math.PI/2;root.add(m);S.parts.smoker={mesh:m,x,z}}
   /* Bigfoot on the backstop berm, 100 m out (a hit mesh in L.solids, like the range targets) */
   if(d){const R=d.range;const m=new T.Mesh(new T.PlaneGeometry(.55,1.1),new T.MeshStandardMaterial({map:bigfootTex(),transparent:true,alphaTest:.4,side:T.DoubleSide,roughness:.9}));
-    m.position.set(d.bld.bermW.x1-.8,5.15,R.lanes[1]+1.3);m.rotation.y=Math.PI/2;root.add(m);m.userData.onShot=hit=>{find('bigfoot');S.parts.bigfoot.down=6;try{window.FX&&window.FX.impact(hit.point,new THREE.Vector3(1,0,0),'wood',{decal:false})}catch(_){}return true};S.parts.bigfoot={mesh:m,down:0}}
+    m.position.set(d.bld.bermW.x1-.8,5.15,R.lanes[1]+1.3);m.rotation.y=Math.PI/2;root.add(m);m.userData.onShot=hit=>{find('bigfoot');S.parts.bigfoot.down=6;try{HT.FX&&HT.FX.impact(hit.point,new THREE.Vector3(1,0,0),'wood',{decal:false})}catch(_){}return true};S.parts.bigfoot={mesh:m,down:0}}
   a.L.group.add(root)}
 
 /* ================= per frame ================= */

@@ -9,7 +9,7 @@
 (function(){'use strict';
 const HT=window.HT=window.HT||{};
 const R={};HT.Range=R;
-const J=()=>HT.Jobs;const A=()=>HT.Jobs&&HT.Jobs.api;const B=()=>HT.Base;const RO=()=>HT.Roam;const AU=()=>HT.Audio;const FXm=()=>window.FX||null;
+const J=()=>HT.Jobs;const A=()=>HT.Jobs&&HT.Jobs.api;const B=()=>HT.Base;const RO=()=>HT.Roam;const AU=()=>HT.Audio;const FXm=()=>HT.FX||null;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;const pick=a=>a[Math.floor(Math.random()*a.length)];
 const KE=()=>{try{return(A().HUD&&A().HUD.touch)?'Use':'E'}catch(_){return'E'}};
 const NAMES={guard:'Cpl. Doyle',officer:'Sgt. Pruitt'};
@@ -118,7 +118,7 @@ function cap(dd){try{const T=THREE,m=mt('cap',{color:B().kit.lin('#55603f'),roug
 
 /* ================= hits ================= */
 function curShot(){return S.course?S.course.shot:0}
-function onHit(t,hit,gun,w,dir){const a=A(),FX=window.FX;const p=hit.point;
+function onHit(t,hit,gun,w,dir){const a=A(),FX=HT.FX;const p=hit.point;
   if(t.kind==='paper'){const lp=t.mesh.worldToLocal(p.clone());const r=Math.hypot(lp.x,lp.y)/(t.size/2);const ring=r<=1?Math.max(1,10-Math.floor(r*10)):0;score(t,ring?ring*8:0,ring?ring+' · paper':'edge');
     S.lastHit={text:'Lane '+(t.lane+1)+' · '+t.dist+' m · '+(ring?ring:'edge'),t:S.simT};return false}
   const n=dir?dir.clone().negate():new THREE.Vector3(1,0,0);
@@ -261,7 +261,7 @@ function hudPart(st){const a=A();if(!a||!st||a.mode!=='hub'||!B()||!B().def()||!
       if(c.stage)st.meters=(st.meters||[]).concat([{id:'rangeStage',label:c.stage.def.label+' · '+(c.stageI+1)+'/'+STAGES.length,v:Math.max(0,c.stage.t),max:c.stage.def.t,style:'bar'}])}
     if(S.lastHit&&S.simT-S.lastHit.t<2.2){st.widgets=st.widgets||[];st.widgets.push({id:'rangeHit',kind:'combo',label:'Hit',v:S.lastHit.text})}
     const s=sv();if(inB&&o&&o.d&&s&&!s.met){st.markers=st.markers||[];st.markers.push({id:'rangeOfficer',kind:'obj',label:'Range officer',x:o.p.x,z:o.p.z,screen:a.project(o.p.x,2.2,o.p.z),edge:true,always:true})}
-    if(inB&&!a.CV){const lines=[];if(s&&!s.met)lines.push({text:'Talk to '+NAMES.officer+' at the range'});else lines.push({text:'Run the timed course · '+NAMES.officer});lines.push({text:'Rental rack: try any gun'});
+    if(inB&&!(a.CV&&a.CV.type==='jet')){const lines=[];if(a.CV&&a.CV.type==='tank')lines.push({text:'Tank: W/S · A/D on the spot · mouse turret · left click fires'});if(s&&!s.met)lines.push({text:'Talk to '+NAMES.officer+' at the range'});else lines.push({text:'Run the timed course · '+NAMES.officer});lines.push({text:'Rental rack: try any gun'});
       if(!(st.objective&&st.objective.title&&/Job|Objective/.test(st.objective.kicker||'')))st.objective={kicker:'Fort Sensible',title:'Public range',lines}}}}
 
 function animate(a,d,dt,near){
@@ -295,18 +295,18 @@ function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||!B().def())re
   return null}
 
 /* ================= fire hook: count trigger pulls in a course, keep the muzzle downrange ================= */
-function onFire(){const a=A();if(!a||a.mode!=='hub'||a.CV)return false;const P=a.P;if(!B()||!B().armOk(P.pos.x,P.pos.z))return false;
+/* answers undefined unless it blocks the shot (HT.Jobs keeps the first non-undefined answer) */
+function onFire(){const a=A();if(!a||a.mode!=='hub'||a.CV)return;const P=a.P;if(!B()||!B().armOk(P.pos.x,P.pos.z))return;
   const fx=-Math.sin(P.yaw);/* west is -x: the muzzle must point within ~70 degrees of downrange */
   if(fx>-.35){S.aimT=(S.aimT||0);if(S.simT-S.aimT>4){S.aimT=S.simT;say('officer',pick(LINES.aim),true)}return true}
-  const c=S.course;if(c&&c.state==='run'){const am=P.ammo[P.cur];if(am&&am.mag>0&&P.fireT<=0&&P.equipT<=0&&!P.rl){c.shots++;c.shot++}}
-  return false}
+  const c=S.course;if(c&&c.state==='run'){const am=P.ammo[P.cur];if(am&&am.mag>0&&P.fireT<=0&&P.equipT<=0&&!P.rl){c.shots++;c.shot++}}}
 
 
 /* ================= wiring ================= */
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('pose',()=>{try{tick()}catch(e){if(!S.err){S.err=1;console.warn('[range]',e)}}});/* 'pose' runs every frame and in __ht.step */
   Jb.on('hud',st=>{try{hudPart(st)}catch(e){if(!S.err2){S.err2=1;console.warn('[range] hud',e)}}});
-  Jb.on('fire',()=>{try{return onFire()}catch(e){return false}});
+  Jb.on('fire',()=>{try{return onFire()}catch(e){}});
   Bs.on('interact',p=>interact(p))}
 hook();
 /* test hooks (dev/base-check.js) */

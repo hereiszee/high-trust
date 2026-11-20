@@ -92,6 +92,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/range.js"></script>
 <script src="js/tank.js"></script>
 <script src="js/jet.js"></script>
+<script src="js/eggs.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -1938,7 +1939,7 @@ function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
   if(!AC)return;if(!volNode){volNode=AC.createGain();volNode.connect(AC.destination);try{Object.defineProperty(AC,'destination',{value:volNode})}catch(e){}}
   volNode.gain.value=A?1:v('master')*v('sfx')}
 function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;
-  HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause()})}
+  HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){HUD.show('title',UI.title)}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
@@ -4168,7 +4169,7 @@ const JH={
   perceive:(e,w)=>{if(JR)JR.hooks.perceive(e,w)},
   noise:n=>{if(JR)JR.hooks.noise(n)},
   vehicle:(car,dt)=>{if(JR)JR.hooks.vehicle(car,dt)},
-  camera:dt=>!!(JR&&mode==='mission'&&JR.hooks.camera(dt)),
+  camera:dt=>!!(JR&&(mode==='mission'||mode==='hub')&&JR.hooks.camera(dt))/* hub too: the tank and the jet (js/tank.js, js/jet.js); photo and tow no-op outside jobs */,
   interact:prompt=>JR?JR.hooks.interact(prompt):null,
   /* M.noGuns: drawing is disabled with a line (Grand Opening, kids in the car); special items fire through their own use() */
   fire:()=>{if(mode==='mission'&&M&&M.state==='go'){const it=M.item&&JR&&JR.items.get(M.item);if(it&&it.use){try{it.use(M)}catch(e){console.warn(e)}mouseDown=false;return true}

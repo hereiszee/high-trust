@@ -748,12 +748,14 @@ function payout(rows){const p=HUD.payoutEl;if(!p)return;p.innerHTML=rows.map(r=>
 function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'controls';
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
-  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
+  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
   <div class="sep"></div>${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
   if(tab==='keys'){h='<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'}
+  else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
+    h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
   else for(const grp of SETTINGS.filter(g=>g.tab===tab)){h+=`<h3>${grp.h}</h3>`;for(const it of grp.items){const v=S[it.k];const lab=`<label for="hts-${it.k}">${it.l}${it.sub?`<small>${it.sub}</small>`:''}</label>`;
     if(it.type==='bool')h+=`<div class="ht-set">${lab}<button class="ht-tog" id="hts-${it.k}" role="switch" aria-checked="${!!v}" data-k="${it.k}"></button><span></span></div>`;

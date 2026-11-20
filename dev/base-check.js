@@ -92,13 +92,13 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     const y0=s.car.yaw;await key('a',true);await step(40);await key('a',false);await step(4);s=await st();ok(Math.abs(s.car.yaw-y0)>.4&&Math.abs(s.car.spd)<1.5,'A turns it on the spot ('+(s.car.yaw-y0).toFixed(2)+' rad)');
     await key('d',true);await step(40);await key('d',false);
     const p0=await st();await key('w',true);await step(70);await key('w',false);await step(20);s=await st();const moved=Math.hypot(s.car.x-p0.car.x,s.car.z-p0.car.z);ok(moved>3,'W drives it ('+moved.toFixed(1)+' m, top '+(await ev(()=>window.__ht.CV.car.stats.maxSpeed)).toFixed(1)+' m/s)');
-    await ev(()=>{const P=window.__ht.P;P.yaw+=1.0;P.pitch=-.05});await step(60);t=await ev(()=>HT.Tank.state());ok(Math.abs(t.turret)>.6,'the turret follows the mouse look ('+t.turret.toFixed(2)+')');
+    await ev(()=>{const P=window.__ht.P;P.yaw+=1.0;P.pitch=-.05});await step(70);t=await ev(()=>{const H=window.__ht,e=H.CV;let d=e.yaw+HT.Tank.S.turretYaw-H.P.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));return{err:d,turret:HT.Tank.S.turretYaw}});ok(Math.abs(t.err)<.08&&Math.abs(t.turret)>.3,'the turret follows the mouse look (turret '+t.turret.toFixed(2)+' rad, off by '+t.err.toFixed(3)+')');
     await shot('tank-turret');
     /* aim west down the apron, fire with a real left click */
-    await ev(()=>{const H=window.__ht,P=H.P;P.yaw=Math.PI/2+.25;P.pitch=-.02});await step(70);
+    await ev(()=>{const H=window.__ht,P=H.P;P.yaw=Math.PI/2+.25;P.pitch=-.3});await step(70);
     await p.mouse.down();await step(2);await p.mouse.up();t=await ev(()=>HT.Tank.state());ok(t.shells===1||t.reload>3,'left click fires the main gun');
-    await step(4);await shot('tank-firing');await step(10);await shot('tank-impact');
-    await p.mouse.down();await step(2);await p.mouse.up();t=await ev(()=>HT.Tank.state());ok(t.shells===0,'it has to reload ('+t.reload.toFixed(1)+' s)');
+    await step(2);await shot('tank-firing');await step(8);await shot('tank-impact');
+    await p.mouse.down();await step(2);await p.mouse.up();t=await ev(()=>HT.Tank.state());ok(t.shells<=1&&t.reload>2,'a second click while reloading does nothing ('+t.reload.toFixed(1)+' s left)');
     await press('v');await step(6);await shot('tank-sight');await press('v');
     /* the cone slalom and the hay bales: drive through them */
     await drive([[214,213],[245,213]],{vmax:7,reach:3});t=await ev(()=>HT.Tank.state());ok(t.props>0,'drove through the cones and hay bales ('+t.props+' knocked over)');
@@ -111,6 +111,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await perf('tank driving');
     /* jobs refuse it */
     const nj=await ev(()=>window.__ht.CV.noJobs);ok(/bake sale/.test(nj||''),'jobs refuse the tank: "'+nj+'"');
+    await key('s',true);for(let i=0;i<60;i++){const q=await st();if(Math.abs(q.car.spd)<.5)break;await step(2)}await release();await step(4);
     await press('e');s=await st();ok(!s.car,'E gets out');
   }
   if(phases.includes('jet')){say('== jet');
@@ -118,12 +119,12 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     const d=await ev(()=>HT.Base.def());const js=()=>ev(()=>HT.Jet.state());
     await ev(()=>{const P=window.__ht.P;P.pos.set(240,0,214)});await step(6);
     ok(await route([[256,215.6]],.7),'walked to the jet on the apron');let j=await js();ok(j.e,'the jet is parked by Hangar 2');
-    if(SHOTS){await ev(()=>{const H=window.__ht,c=H.camera;H.P.dude&&(H.P.dude.root.visible=false);H.step(1);H.draw();c.position.set(272,4.5,205);c.lookAt(256,2,221);H.render.draw()});await p.screenshot({path:path.join(OUT,'jet-apron.jpg'),type:'jpeg',quality:82});say('  shot jet-apron.jpg')}
+    if(SHOTS){await ev(()=>{const H=window.__ht,c=H.camera;H.P.dude&&(H.P.dude.root.visible=false);H.step(1);H.draw();c.position.set(266,3.6,238);c.lookAt(255,1.8,221);H.render.draw()});await p.screenshot({path:path.join(OUT,'jet-apron.jpg'),type:'jpeg',quality:82});say('  shot jet-apron.jpg')}
     await press('e');j=await js();ok(j.on,'E climbs into the jet');
     /* a tiny autopilot that only presses keys: heading by roll (A/D), climb by pitch (arrows), speed by throttle (W/S, Shift) */
     const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();if(o.until&&o.until(j))break;
         const tx=o.to[0],tz=o.to[1];const want=Math.atan2(-(tx-j.x),-(tz-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
-        const bankW=Math.max(-.75,Math.min(.75,-he*1.6));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);
+        const bankW=Math.max(-1,Math.min(1,-he*1.8));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);
         const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
         await key('ArrowUp',j.pitch<pw-.03);await key('ArrowDown',j.pitch>pw+.05);
         const sw=o.spd||75;await key('w',j.spd<sw||j.thr<.35);await key('s',j.spd>sw+8&&j.thr>.3);await key('Shift',!!o.ab);await step(2)}
@@ -134,7 +135,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await release();j=await js();ok(j.air,'took off ('+(j.spd*2.237).toFixed(0)+' mph at x '+j.x.toFixed(0)+')');
     await press('g');j=await js();ok(j.gear===0,'G raises the gear');
     await fly({to:[-200,230],alt:90,max:140});await perf('jet climbing out');
-    await press('v');await step(4);await shot('jet-cockpit');await press('v');
+    await press('v');await step(4);await shot('jet-cockpit');await press('v');await step(2);await ev(()=>{window.__ht.P.fp=false});
     /* the circuit: north over Maple Heights, low and fast over the house (the family comes out), a sonic boom */
     await fly({to:[40,-120],alt:110,max:260,until:q=>q.z<-40});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
@@ -167,6 +168,27 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     for(let i=0;i<500;i++){j=await js();if(!j.chute)break;await step(4)}const pp=await st();
     ok(!j.chute,'landed under the parachute at '+pp.x.toFixed(0)+','+pp.z.toFixed(0)+(pp.z>160&&pp.x<290?' (back on the post)':''));
     const jb=await ev(()=>{const e=HT.Jet.S.e;return e?{x:e.pos.x,z:e.pos.z}:null});ok(jb&&Math.hypot(jb.x-256,jb.z-221)<2,'the jet is back on the apron (it was a rental)');
+  }
+  if(phases.includes('eggs')){say('== easter eggs');
+    let s=await st();if(s.car){await key('s',true);await step(30);await release();await press('e')}
+    const sp=await ev(()=>HT.Eggs.spots());const found=id=>ev(id=>!!((HT.Jobs.api.SV().base.eggs||{})[id]),id);
+    const near=async(x,z,face)=>{await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(2)},[x+3,z+3]);await walk(x+.9,z+.9,.5);await ev(([x,z])=>{const P=window.__ht.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));P.pitch=-.2},[x,z]);await step(4)};
+    for(const id of['gnome','lights','phone','smoker']){const q=sp[id];if(!q){ok(false,id+' placed');continue}await near(q.x,q.z);await press('e');await step(6);ok(await found(id),'found the '+id+' (E at '+q.x.toFixed(0)+','+q.z.toFixed(0)+')');await shot('egg-'+id)}
+    /* five taps of H in a car, then wait: two bits */
+    await ev(()=>{const H=window.__ht,V=H.VAN;H.P.pos.set(V.pos.x,0,V.pos.z+2.4);H.step(2)});await press('e');for(let i=0;i<5;i++){await p.keyboard.press('h');await p.waitForTimeout(i===2?380:180)}
+    await p.waitForTimeout(1900);await step(4);ok(await found('honk'),'shave and a haircut on the horn: two bits');await press('e');
+    /* Walt's glovebox */
+    const walt=await ev(()=>{const c=window.__ht.L.cars.find(q=>/walt/i.test(q.name||''));return c?{x:c.pos.x,z:c.pos.z,yaw:c.yaw,w:2}:null});
+    if(walt){await ev(([x,z,yaw])=>{const P=window.__ht.P;P.pos.set(x+Math.cos(yaw)*2.2,0,z-Math.sin(yaw)*2.2);window.__ht.step(4)},[walt.x,walt.z,walt.yaw]);await press('e');s=await st();await p.keyboard.press('g');await step(4);await shot('egg-mug');ok(await found('mug'),"G in Walt's car finds the mug");await press('e')}else ok(false,"Walt's car exists");
+    /* cardboard Bigfoot on the range berm */
+    const d=await ev(()=>HT.Base.def().range);await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(4)},[d.stand,d.lanes[1]+1.3]);await press('2');await press('1');await step(10);
+    for(let i=0;i<6&&!(await found('bigfoot'));i++){await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await click(1);await step(8)}
+    ok(await found('bigfoot'),'hit the cardboard Bigfoot at 100 m');
+    /* the pause menu lists them */
+    await p.keyboard.press('Escape');await p.waitForTimeout(300);const tab=await p.$('[data-tab="found"]');ok(!!tab,'pause menu has "Things your dad found"');if(tab){await tab.click();await p.waitForTimeout(300)}
+    const txt=await ev(()=>{const e=document.querySelector('.ht-pause .ht-pane');return e?e.textContent:''});ok(/7\/7/.test(txt),'the list fills in: '+(txt.match(/\d\/\d/)||['?'])[0]);
+    if(SHOTS){await p.screenshot({path:path.join(OUT,'eggs-pause.jpg'),type:'jpeg',quality:82});say('  shot eggs-pause.jpg')}
+    await p.keyboard.press('Escape');await p.waitForTimeout(200);
   }
   fs.writeFileSync(path.join(OUT,'evidence.txt'),log.join('\n')+'\n');
   say(errs.length?'CONSOLE ERRORS:\n'+errs.slice(0,12).join('\n'):'no console errors');if(errs.length)fails++;

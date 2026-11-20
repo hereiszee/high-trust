@@ -16,7 +16,7 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;const pick=a=>a[Math.floor(Math.random()*a.le
 const T3=()=>THREE;const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 const CALL='DAD-1',TOWER='Tower';
 /* tuning: metres, seconds. TH thrust (m/s² at full throttle), AB afterburner, CD drag (top speed = sqrt(thrust/CD)) */
-const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:9,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
+const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:9,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
 const FEEL={label:'jet',seats:1,bed:0,max:6,boostMax:8,acc:2,boostAcc:3,brake:8,hbrake:8,turn:1,steerResp:5,grip:20,roll:0,cam:[16,4],eng:2,gears:1,horn:'short',door:'close',rear:1,torque:0};
 const LINES={
   enter:["DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm.","DAD-1, Tower. Throttle up with W. Pull back at a hundred and forty. Linda says wear a jacket.","Tower to DAD-1. The jet is fueled, the coffee is not. Have a nice flight."],
@@ -152,7 +152,7 @@ function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   _q.setFromEuler(_e.set(rollIn*K.ROLL*eff*dt,-yawIn*K.YAW*eff*dt,-pitchIn*K.PITCH*eff*dt,'XYZ'));F.q.multiply(_q);
   _f.set(1,0,0).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);
   /* coordinated turn: bank turns the heading (g·tan(bank)/v), and a stalled nose drops toward the ground */
-  const bank=Math.atan2(-_r.y,_u.y);const turn=9.8*Math.tan(clamp(bank,-1.35,1.35))/Math.max(F.spd,22)*clamp(_u.y*1.5,0,1);_q.setFromAxisAngle(_y,-turn*dt);F.q.premultiply(_q);
+  const bank=Math.atan2(-_r.y,_u.y);const turn=K.TURN*9.8*Math.tan(clamp(bank,-1.35,1.35))/Math.max(F.spd,22)*clamp(_u.y*1.5,0,1);/* K.TURN: arcade g (a 460 m town needs tight turns) */_q.setFromAxisAngle(_y,-turn*dt);F.q.premultiply(_q);
   F.stall=F.spd<K.STALL;if(F.stall){const drop=(1-F.spd/K.STALL)*1.2*dt;_q.setFromAxisAngle(_r,-drop*Math.sign(_f.y+.5));F.q.premultiply(_q)}
   F.q.normalize();_f.set(1,0,0).applyQuaternion(F.q);
   /* speed along the path: thrust, drag, gravity along the climb; sink when slow */
@@ -172,7 +172,7 @@ function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   if(F.stall&&F.lastAlt>4){F.warnT-=dt;if(F.warnT<=0){F.warnT=6;say(TOWER,pick(LINES.stall),true);beep(820)}}
   if(!F.gear&&F.lastAlt<25&&F.spd<60&&F.vs<-1){if(!F.said.gear){F.said.gear=1;say(TOWER,pick(LINES.gear),true)}}else if(F.lastAlt>60)F.said.gear=0}
 function touchdown(a,e){F.air=false;F.pos.y=0;_e.setFromQuaternion(F.q,'YZX');F.q.setFromEuler(_e.set(0,_e.y,Math.max(0,_e.z),'YZX'));
-  try{const Fx=window.FX;if(Fx){for(const s of[-1,1])Fx.tyreSmoke&&Fx.tyreSmoke(V(F.pos.x,0,F.pos.z),.8)}}catch(_){}tone(160,90,.2,.12);
+  try{const Fx=HT.FX;if(Fx){for(const s of[-1,1])Fx.tyreSmoke&&Fx.tyreSmoke(V(F.pos.x,0,F.pos.z),.8)}}catch(_){}tone(160,90,.2,.12);
   const onRunway=(()=>{const d=B().def();if(!d)return false;const r=d.runway;return F.pos.x>r.x0&&F.pos.x<r.x1&&F.pos.z>r.z0-6&&F.pos.z<r.z1+6})();
   say(TOWER,onRunway?pick(LINES.land):"That's... not the runway, DAD-1. But you're down. That counts.",true);const s=sv();if(s&&s.jet)s.jet.landings=(s.jet.landings|0)+1}
 /* ground height under the jet: 0 on the map (roads sit a little lower), the backdrop hills and the far terrain outside it */
@@ -184,7 +184,7 @@ function groundY(a,x,z){const def=a.WORLD;if(def&&x>0&&z>0&&x<def.W*2&&z<def.H*2
 function hitSolid(a,x,z,r,y){const L=a.L;if(!L||!L.cnear)return false;for(const c of L.cnear(x,z,8)){if(c.off||!(c.ph>0))continue;if(c.k==='fence'||c.k==='tree'&&y!=null&&y>3.5)continue;
     if(y!=null&&y>c.ph)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r){if(S.e&&c===S.e.col)continue;return true}}return false}
 function crash(a,e,why){const s=sv();if(s&&s.jet)s.jet.crashes=(s.jet.crashes|0)+1;
-  try{const Fx=window.FX;if(Fx){Fx.explosion(F.pos.clone().setY(Math.max(.3,F.pos.y)),.9);Fx.impact(F.pos.clone(),V(0,1,0),'dirt',{big:true});Fx.shake(.7)}}catch(_){}
+  try{const Fx=HT.FX;if(Fx){Fx.explosion(F.pos.clone().setY(Math.max(.3,F.pos.y)),.9);Fx.impact(F.pos.clone(),V(0,1,0),'dirt',{big:true});Fx.shake(.7)}}catch(_){}
   tone(90,30,.6,.3);tone(600,1400,.25,.08,.15);say(TOWER,pick(LINES.crash),true);eject(a,e,true)}
 
 /* ================= events: takeoff/landing lines live above; sonic boom, the bridge, buzzing home ================= */
@@ -193,7 +193,7 @@ function events(a,e,dt){if(!F.air)return;F.flightT+=dt;const reg=HT.WorldGen.reg
   /* the house: within 80 m, under 50 m: the family comes out and waves */
   const h=a.L.start;if(h&&Math.hypot(F.pos.x-h.x,F.pos.z-h.z)<80&&F.lastAlt<50&&a.simT-F.buzzT>60){F.buzzT=a.simT;buzz(a)}}
 function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;persist();a.feed('Achievement · Sonic boom over the neighborhood','trust')}
-  boom();try{window.FX&&window.FX.shake(.5)}catch(_){}a.feed(pick(LINES.boom),'info');setTimeout(()=>say(pick(['Barb','Linda','Phil','Marcy','Ted','Gil','Bev']),pick(LINES.boomN)),900);
+  boom();try{HT.FX&&HT.FX.shake(.5)}catch(_){}a.feed(pick(LINES.boom),'info');setTimeout(()=>say(pick(['Barb','Linda','Phil','Marcy','Ted','Gil','Bev']),pick(LINES.boomN)),900);
   /* car alarms within 120 m of the pass */
   let n=0;for(const c of a.L.cars||[]){if(!c.obj||c===S.e)continue;if(Math.hypot(c.pos.x-F.pos.x,c.pos.z-F.pos.z)<120&&n<6){n++;alarm(n*.13)}}}
 function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Achievement · Buzzed your own house','trust')}
@@ -239,10 +239,11 @@ function chuteTick(a,dt){const c=F.chute;if(!c)return;c.t+=dt;const P=a.P,k=a.ke
 
 /* ================= camera: chase, cockpit (V), look back (C); the parachute ================= */
 const _c=V(0,0,0),_t=V(0,0,0);
-function camera(dt){const a=A();if(!a)return false;const cam=a.camera;
+/* hooks answer undefined when they don't apply: HT.Jobs keeps the first non-undefined answer */
+function camera(dt){const a=A();if(!a)return;const cam=a.camera;
   if(F.chute){const c=F.chute;_t.copy(c.p).add(V(0,1.2,0));const back=V(Math.sin(c.yaw||0),0,Math.cos(c.yaw||0));_c.copy(_t).addScaledVector(back,9).add(V(0,3.5,0));
     if(!F.camP)F.camP=_c.clone();F.camP.lerp(_c,Math.min(1,dt*4));cam.position.copy(F.camP);cam.lookAt(_t.x,_t.y+1.5,_t.z);farFog(a,true);return true}
-  const e=a.CV;if(!e||e.type!=='jet'||!F.on)return false;const P=a.P;
+  const e=a.CV;if(!e||e.type!=='jet'||!F.on)return;const P=a.P;
   _f.set(1,0,0).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);
   if(P.fp){/* cockpit: the pilot's eye under the canopy; the jet's own nose and frame in view */
     _c.set(1.35,2.55,0).applyQuaternion(F.q).add(F.pos);cam.position.copy(_c);const back=a.keys.c;const dir=back?_f.clone().negate():_f;
@@ -272,7 +273,7 @@ function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;c
       const fld=(Math.floor(x/140)+Math.floor(z/110))%4,base=[[.38,.5,.22],[.5,.56,.26],[.6,.56,.3],[.33,.44,.2]][(fld+4)%4],k=1-t*.25;C.push(base[0]*k,base[1]*k,base[2]*k)}}
   for(let j=0;j<rings;j++)for(let i=0;i<N;i++){const a0=j*N+i,a1=j*N+(i+1)%N,b0=(j+1)*N+i,b1=(j+1)*N+(i+1)%N;I.push(a0,b0,a1,a1,b0,b1)}
   const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();
-  const m=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:1}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
+  const m=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
 /* lids: flat roofs over interiors drawn without one (mission sites' '.' floors), shown only while you fly so ground play and the planning views never see them */
 function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.name='airLids';const m=new T.MeshStandardMaterial({color:new T.Color('#6d6f70').convertSRGBToLinear(),roughness:.95});
     const seen=new Uint8Array(def.W*def.H),W=def.W,H=def.H,mp=def.map,inside=c=>c==='.'||c==='I'||c==='T'||c==='i'||c==='a'||c==='E'||c==='B'||c==='S'||c==='k'||c==='Q';const geo=new T.BoxGeometry(1,1,1);
@@ -342,6 +343,7 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
 function hud(st){const a=A();if(!a)return;const on=F.on&&a.CV&&a.CV.type==='jet';hudShow(!!on);if(!on)return;
   _f.set(1,0,0).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);
   const bank=Math.atan2(-_r.y,_u.y),pitch=Math.asin(clamp(_f.y,-1,1))*180/Math.PI;let hdg=(Math.atan2(_f.x,-_f.z)*180/Math.PI+360)%360;
+  HE.jhl.style.display=a.P.fp?'':'none';/* the pitch ladder only in the cockpit; the chase view keeps the readouts */
   HE.jhl.setAttribute('transform',`rotate(${(-bank*180/Math.PI).toFixed(1)}) translate(0,${(pitch*6).toFixed(1)})`);
   HE.jspd.textContent=Math.round(F.spd*2.237);HE.jalt.textContent=Math.round(Math.max(0,F.lastAlt||F.pos.y)*3.281);HE.jhdg.textContent=String(Math.round(hdg)).padStart(3,'0');
   HE.jthr.textContent='THR '+Math.round(F.thr*100)+'%'+(F.ab>.5?' · AFTERBURNER':'');HE.jgear.textContent=F.gear?'GEAR DOWN':'GEAR UP';HE.jvs.textContent=(F.vs>=0?'↑':'↓')+Math.abs(Math.round(F.vs*196.85))+' fpm';
@@ -362,7 +364,7 @@ function interact(prompt){const a=A();if(!a||a.mode!=='hub')return null;const e=
   if(F.air)return{txt:'Eject',hold:.5,fn:()=>eject(a,e,false)};if(F.spd>4)return null;return null}
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('vehicle',(e,dt)=>{try{vehicle(e,dt)}catch(err){if(!S.err){S.err=1;console.warn('[jet]',err)}}});
-  Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[jet] camera',err)}return false}});
+  Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[jet] camera',err)}}});
   Jb.on('pose',()=>{try{tick()}catch(err){if(!S.err2){S.err2=1;console.warn('[jet] tick',err)}}});
   Jb.on('hud',st=>{try{hud(st)}catch(err){if(!S.err4){S.err4=1;console.warn('[jet] hud',err)}}});Bs.on('interact',p=>interact(p));
   /* the car voice stays quiet in the jet: our own turbine plays (same trick as the mower) */
@@ -372,5 +374,5 @@ hook();
 /* test hooks (dev/base-check.js) */
 Jet.state=()=>({e:!!S.e,on:F.on,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
-Jet.HB=HB;
+Jet.HB=HB;Jet.camera=dt=>camera(dt);
 })();
