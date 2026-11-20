@@ -348,7 +348,7 @@ const PLACES={
   autoBay:{x:110,z:28},
   sale_workvan:{x:120,z:28,yaw:Math.PI/2},sale_pickup:{x:123,z:28,yaw:Math.PI/2},sale_suv:{x:126,z:28,yaw:Math.PI/2},
   g_gary:{x:13,z:10},g_rick:{x:37,z:24},g_dave:{x:20,z:32},g_doug:{x:44,z:18},
-  g_earl:{x:165,z:35},g_dee:{x:165,z:19},g_rosa:{x:205,z:40},g_benny:{x:213,z:15},
+  g_earl:{x:164,z:33},/* the Spoke Shop's sidewalk (tile 165,35 is the middle of the road; 165,33 is a lamp post) */g_dee:{x:165,z:19},g_rosa:{x:205,z:40},g_benny:{x:213,z:15},
   stake:{x:170,z:21},
 };
 const SITE_META={gary:{place:'Chop shop, Industrial Way',hood:'route9'},rick:{place:'The old duplex on Birch',hood:'maple'},dave:{place:'Linden Park',hood:'maple'},

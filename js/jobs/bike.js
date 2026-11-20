@@ -303,14 +303,14 @@ function worldDress(){const a=A();if(!a||a.mode!=='hub'||!a.L||!a.L.ow||!a.WORLD
   Pl.rack.slots.forEach((sl,k)=>{const b=R.bike(Object.assign({static:true},looks[k]));b.position.set(sl.x+.15,0,sl.z);b.rotation.y=Math.PI;g.add(b)});
   /* bikes on porches: the neighbours you knocked on, a few Riverside stoops */
   for(const p of Pl.nb){const b=R.bike({static:true,size:'kid',color:p.id==='linda'?'#ff7ab6':p.id==='phil'?'#3fa0c8':'#8a8f96'});b.position.set(p.x+1.4,0,p.z-p.face*.3);b.rotation.y=.4;g.add(b)}
-  const rp=(a.WORLD.porches||[]).slice(0,3);rp.forEach((p,k)=>{const b=R.bike({static:true,size:k?'kid':'adult',color:['#7d4fb3','#2b62c4','#3d8a4a'][k],basket:!k});b.position.set(p.x+1.2,0,p.z+(p.face?p.face[1]*1.2:1));b.rotation.y=-.3;g.add(b)});
+  const rp=(a.WORLD.porches||[]).slice(0,3);rp.forEach((p,k)=>{const b=R.bike({static:true,size:k?'kid':'adult',color:['#7d4fb3','#2b62c4','#3d8a4a'][k],basket:!k});b.position.set(p.x+1.2,0,p.z);b.rotation.y=Math.PI/2;g.add(b)});/* beside the porch on the sidewalk, along it (pushed 1.2 m toward the street they stood in the lane) */
   /* Dez's family's porch gets flower boxes */
   const fp=(a.WORLD.porches||[])[3];if(fp){const bx=new T.MeshStandardMaterial({color:a.lin('#7a5534'),roughness:.8});const fl=['#ff6b8a','#ffd23f','#ff9a3d','#c86bff'];
     for(const dx of[-1.1,1.1]){const m=new T.Mesh(new T.BoxGeometry(.8,.22,.26),bx);m.position.set(fp.x+dx,.62,fp.z+(fp.face?fp.face[1]*.2:0));g.add(m);
       for(let i=0;i<5;i++){const f=new T.Mesh(new T.SphereGeometry(.07,6,5),new T.MeshStandardMaterial({color:a.lin(fl[(i+(dx>0?2:0))%4]),roughness:.6}));f.position.set(fp.x+dx-.3+i*.15,.8,fp.z+(fp.face?fp.face[1]*.2:0));g.add(f)}}}
   /* the library: a bike stand of returned bikes, and Dez at the counter (Saturdays and every day after school, he says) */
-  const e=Pl.earl;if(e){for(let k=0;k<3;k++){const b=R.bike({static:true,size:k===1?'kid':'adult',color:['#e8772e','#f0c419','#24272c'][k]});b.position.set(e.x-2.4+k*.9,0,e.z+2.6);b.rotation.y=Math.PI/2;g.add(b)}
-    if(s.flags&&s.flags.dezLibrary&&has('nb_kid')){try{const d=HT.Cast?HT.Cast.teen('bike:dez',{look:'kidTall'}):PP().make('nb_kid',{scale:1.12});d.root.position.set(e.x-1.2,0,e.z+1.4);d.root.rotation.y=Math.PI;g.add(d.root);WD.dez=d}catch(err){}}}
+  const e=Pl.earl;/* g_earl: the Spoke Shop's sidewalk */if(e){for(let k=0;k<3;k++){const b=R.bike({static:true,size:k===1?'kid':'adult',color:['#e8772e','#f0c419','#24272c'][k]});b.position.set(e.x-2.4+k*.9,0,e.z);b.rotation.y=Math.PI/2;g.add(b)}
+    if(s.flags&&s.flags.dezLibrary&&has('nb_kid')){try{const d=HT.Cast?HT.Cast.teen('bike:dez',{look:'kidTall'}):PP().make('nb_kid',{scale:1.12});d.root.position.set(e.x-3.6,0,e.z-.3);d.root.rotation.y=0;/* past the bike stand: clear of Earl (the giver) and the lamp post east of him */g.add(d.root);WD.dez=d}catch(err){}}}
   a.L.group.add(g);WD.g=g;WD.L=a.L}
 J.on('pose',dt=>{const a=A();if(!a||a.mode!=='hub'){return}try{worldDress()}catch(e){console.warn('[bike] world',e)}if(WD.dez&&WD.dez.root.parent)a.pose(WD.dez,dt,{moving:false,aim:false})});
 /* Tyler waits on the porch as the giver: the son model streams in on demand; swap a box stand-in for him once it lands */

@@ -11,7 +11,7 @@ function bfs(def,sx,sz){const seen=new Uint8Array(W*H),q=[sz*W+sx];seen[q[0]]=1;
 const reach=bfs(open,open.vanStart.tx,open.vanStart.tz);
 /* snapshot of the world before SPEC3 (sites: x0,z0,x1,z1,park,huddle; places; named buildings; doors; starts) */
 const OLD={"S":{"rick":[1,51,28,70,4,53,7,53],"dave":[31,51,60,64,45,48,45,58],"doug":[62,51,90,75,65,53,67,53],"gary":[105,45,134,64,107,46,109,47],"earl":[160,66,185,78,163,67,167,67],"dee":[160,24,186,32,162,24,167,24],"rosa":[192,38,218,46,194,39,197,39],"duke":[192,66,218,78,195,67,200,67]},
-  "P":{"home":[19,7],"hank":[22,8],"auto":[110,27],"gas":[113,14],"center":[213,22],"mart":[184,21],"autoBay":[110,28],"sale_workvan":[120,28],"sale_pickup":[123,28],"sale_suv":[126,28],"g_gary":[13,10],"g_rick":[37,24],"g_dave":[20,32],"g_doug":[44,18],"g_earl":[165,35],"g_dee":[165,19],"g_rosa":[205,40],"g_benny":[213,15],"stake":[170,21]},
+  "P":{"home":[19,7],"hank":[22,8],"auto":[110,27],"gas":[113,14],"center":[213,22],"mart":[184,21],"autoBay":[110,28],"sale_workvan":[120,28],"sale_pickup":[123,28],"sale_suv":[126,28],"g_gary":[13,10],"g_rick":[37,24],"g_dave":[20,32],"g_doug":[44,18],"g_earl":[164,33],"g_dee":[165,19],"g_rosa":[205,40],"g_benny":[213,15],"stake":[170,21]},
   "B":{"gas":[115,8,122,11],"auto":[105,30,116,36],"church":[160,10,170,15],"mart":[182,16,186,18],"benny":[210,10,217,13],"center":[208,24,218,29]},
   "doors":{"home":[19,10],"store":[25,4],"auto":[110,29]},"start":[15,9],"van":[19,7]};
 
