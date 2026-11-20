@@ -3976,6 +3976,8 @@ function wmTruckModel(){const o=makeVehicle('workvan','#f4eef4')||makeVanBox('#f
 WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
     const r=m.route.map(([x,z])=>G.nearestNode(tileC(x),tileC(z)));let ids=[r[0]];for(let k=1;k<r.length;k++){const p=G.path(r[k-1],r[k]);if(p)ids.push(...p.slice(1))}
     M.escNodes=r;const lane=G.lane(ids);M.lane=lane;
+    /* each ambush also fires once the truck is past its node along the lane (a truck put back on its lane after a wedge may skip the 10 m ring) */
+    M.ambIdx=m.ambush.map(q=>{const n=G.nodes[r[q.at]];let bi=0,bd=1e9;lane.forEach((p,i)=>{const d=Math.hypot(p.x-n.x,p.z-n.z);if(d<bd){bd=d;bi=i}});return bi});
     const y0=Math.atan2(-(lane[1].x-lane[0].x),-(lane[1].z-lane[0].z));const car=CA.make('workvan',{x:lane[0].x,z:lane[0].z,yaw:y0});car.stats=Object.assign({},car.stats,{hp:m.truck.hp});car.hp=m.truck.hp;
     CA.follow(car,lane,{speed:m.truck.speed,waitDist:m.truck.waitDist,turnSpeed:5});
     const obj=wmAdd(wmTruckModel(),true);M.truck={car,obj,col:wmCol({x0:0,z0:0,x1:0,z1:0})};chaseSync(M.truck,0);
@@ -3990,7 +3992,7 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
       const vd=Math.hypot(van.x-c.x,van.z-c.z);if(!M.hold&&vd>m.truck.waitDist&&M.elapsed-M.waitSaid>10){M.waitSaid=M.elapsed;radio('benny',"I'm not going without my escort!",true)}
       M.jingleT-=dt;if(M.jingleT<=0&&!M.hold&&c.spd>2){M.jingleT=14;wmJingle(1)}
       const a=m.ambush[M.amb];
-      if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10)wmAmbush(a)}
+      if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10||(M.ambIdx&&c.ai.tr&&c.ai.tr.i>=M.ambIdx[M.amb]))wmAmbush(a)}
       if(M.phase==='ambush')wmAmbushTick(dt);
       if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Rocket Pops are not.","They got the truck.");
       /* backstop: CarAI puts a wedged truck back on its lane; if it still makes no headway for 45 s while it isn't waiting, fail cleanly to the retry card rather than soft-lock */

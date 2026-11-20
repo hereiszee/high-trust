@@ -65,11 +65,16 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
         for(let j=0;j<ln.length-1;j++){const A=ln[j],B=ln[j+1],ax=B.x-A.x,az=B.z-A.z,l2=ax*ax+az*az||1,t=Math.max(0,Math.min(1,((e.pos.x-A.x)*ax+(e.pos.z-A.z)*az)/l2)),q=Math.hypot(A.x+ax*t-e.pos.x,A.z+az*t-e.pos.z);if(q<bd){bd=q;bi=j;bt=t}}
         if(bi<=(c.ai.tr?c.ai.tr.i:ln.length)){let j=bi,px=ln[j].x+(ln[j+1].x-ln[j].x)*bt,pz=ln[j].z+(ln[j+1].z-ln[j].z)*bt,rem=7;
           while(j<ln.length-1){const B=ln[j+1],sg=Math.hypot(B.x-px,B.z-pz);if(sg>=rem){px+=(B.x-px)*rem/sg;pz+=(B.z-pz)*rem/sg;break}rem-=sg;px=B.x;pz=B.z;j++}gx=px;gz=pz}}
+      if(T.offT>0){T.offT--;const rx=Math.cos(e.yaw),rz=-Math.sin(e.yaw);gx+=rx*T.side*3.5;gz+=rz*T.side*3.5}/* sidestep past whatever we backed away from */
       const dx=gx-e.pos.x,dz=gz-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
       const want=Math.min(12,dd*.8);k.a=dd>2&&d>.06;k.d=dd>2&&d<-.06;
       /* facing well away (after an ambush) a car can't turn on the spot: crawl forward on full lock instead of waiting; wedged: back out */
       k.w=dd>2&&e.spd<(Math.abs(d)<1.4?want:3);k.s=e.spd>want+1.5||(Math.abs(d)>=1.4&&e.spd>4);
-      if(dd>4&&Math.abs(e.spd)<.5)T.fst=(T.fst||0)+1;else T.fst=0;if(T.fst>45){for(let j=0;j<25;j++){k.w=false;k.s=true;k.a=d<0;k.d=d>0;H.step(1);s++}T.fst=0;k.s=false}
+      /* wedged = no headway in 1.5 s (bouncing off a car counts too) */T.fq=(T.fq||0)+1;if(T.fq>=45){T.fq=0;const mv=T.fp?Math.hypot(e.pos.x-T.fp.x,e.pos.z-T.fp.z):9;T.fp={x:e.pos.x,z:e.pos.z};T.fst=dd>4&&mv<1.5?46:0}else if(T.fst>45)T.fst=0;if(T.fst>45&&(T.unst=(T.unst||0)+1)>2&&H.M.lane){/* wedged again after two sidesteps: the test driver re-centres on the truck's lane 14 m behind it (counted in T.recentres) */
+        const ln=H.M.lane,ti=Math.max(0,c.ai.tr?c.ai.tr.i:0);let j=ti,acc=Math.hypot(ln[ti].x-c.x,ln[ti].z-c.z),pt=ln[ti];while(j>0&&acc<14){acc+=Math.hypot(ln[j].x-ln[j-1].x,ln[j].z-ln[j-1].z);j--;pt=ln[j]}
+        const nx=ln[Math.min(j+1,ln.length-1)];e.pos.set(pt.x,0,pt.z);e.yaw=Math.atan2(-(nx.x-pt.x),-(nx.z-pt.z));e.spd=0;if(e.car){e.car.x=pt.x;e.car.z=pt.z;e.car.yaw=e.yaw;e.car.spd=0}H.syncVan&&H.syncVan();T.recentres=(T.recentres||0)+1;T.unst=0;T.fst=0;T.offT=0}
+      if(dd<16)T.unst=0;
+      if(T.fst>45){T.side=-(T.side||-1);for(let j=0;j<40;j++){k.w=false;k.s=true;k.a=T.side<0;k.d=T.side>0;H.step(1);s++}T.fst=0;k.s=false;T.offT=75}
       H.step(1)}T.clear();return s};
   T.toCar=()=>{/* walk back to the ride and get in: driver's side, else the other side or the back if it's parked against something */const c=H.M.car;
     for(const [sx,sz] of[[1,0],[-1,0],[0,1],[0,-1]]){if(H.CV)break;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),rx=Math.cos(c.yaw),rz=-Math.sin(c.yaw);
