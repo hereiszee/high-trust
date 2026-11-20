@@ -261,6 +261,16 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
 .ph-note.on{transform:translate(-50%,0)}
 .ph-note .ic{flex:none;width:34px;height:34px;border-radius:9px;background:linear-gradient(#5df07b,#28c048);display:grid;place-items:center;color:#fff;font:800 15px/1 system-ui}
 .ph-note .tx{flex:1;min-width:0}.ph-note .hd{display:flex;justify-content:space-between;font-weight:700;font-size:13px}.ph-note .hd span{font-weight:500;color:#777}
+@media (max-height:520px){
+ .ph .ht-vf{--fw:min(70vw,calc((100vh - 64px) * 16 / 9))}
+ .ph .ph-top{height:40px;padding:0 calc(var(--sa-r,0px) + 110px) 0 calc(var(--sa-l,0px) + 14px)}
+ .ph .ph-bot{top:40px;bottom:0;left:auto;right:0;width:calc(var(--sa-r,0px) + 96px);height:auto}
+ .ph .ht-vf .zm{display:none}
+ .ph .ph-top{padding-right:calc(var(--sa-r,0px) + 14px)}
+ .ph .ph-modes,.ph .ph-hint{display:none}
+ .ph .ph-row{left:0;right:0;top:0;bottom:0;height:auto;flex-direction:column-reverse;justify-content:space-around;padding:14px 0}
+ .ph .ph-zoom{left:auto;right:calc(var(--sa-r,0px) + 104px);top:50%;transform:translateY(-50%);flex-direction:column}
+ .ph .ph-ts{top:48px}}
 .ht-root.compact .ph .ph-bot{height:180px}.ht-root.compact .ph .ph-modes{display:none}
 .ht-root.compact .ph .ph-row{bottom:calc(var(--sa-b,0px) + 18px);padding:0 28px}
 .ht-root.compact .ph .ph-zoom{top:-52px}
