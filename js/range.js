@@ -198,8 +198,9 @@ function showCard(a,c){closeCard();const el=document.createElement('div');el.cla
   <div class="k"><span>${KE()} · run it again at the officer</span><span>E / Enter · close</span></div></div>`;
   const close=()=>closeCard();el.addEventListener('click',close);S.card={el,t:0,close};
   try{if(a.HUD&&a.HUD.overlay)a.HUD.overlay('rangeCard',el);else document.body.appendChild(el)}catch(_){document.body.appendChild(el)}
-  setTimeout(()=>{if(S.card&&S.card.el===el)document.addEventListener('keydown',S.card.key=e=>{if(e.code==='KeyE'||e.code==='Enter'||e.code==='Space'||e.code==='KeyF'){closeCard()}})},350)}
-function closeCard(){const c=S.card;if(!c)return;S.card=null;if(c.key)document.removeEventListener('keydown',c.key);try{const a=A();if(a.HUD&&a.HUD.overlay&&a.HUD.overlay('rangeCard'))a.HUD.overlay('rangeCard',null);else c.el.remove()}catch(_){try{c.el.remove()}catch(__){}}}
+  /* listen straight away (a short delay here missed fast key presses); auto-repeat from a held key never closes it */
+  document.addEventListener('keydown',S.card.key=e=>{if(e.repeat)return;if(e.code==='KeyE'||e.code==='Enter'||e.code==='NumpadEnter'||e.code==='Space'||e.code==='KeyF'){closeCard()}},true)}
+function closeCard(){const c=S.card;if(!c)return;S.card=null;if(c.key)document.removeEventListener('keydown',c.key,true);try{const a=A();if(a.HUD&&a.HUD.overlay&&a.HUD.overlay('rangeCard'))a.HUD.overlay('rangeCard',null);else c.el.remove()}catch(_){try{c.el.remove()}catch(__){}}}
 R.closeCard=closeCard;
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -316,7 +317,7 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
   Bs.on('interact',p=>interact(p))}
 hook();
 /* test hooks (dev/base-check.js) */
-R.start=()=>courseStart(A());R.state=()=>({course:S.course&&{state:S.course.state,stage:S.course.stageI,score:S.course.score,shots:S.course.shots,hitShots:S.course.hitShots,time:S.course.time,total:S.course.total,medal:S.course.medal},
+R.start=()=>courseStart(A());R.showLast=()=>{if(S.course&&S.course.state==='done')showCard(A(),S.course)};R.state=()=>({course:S.course&&{state:S.course.state,stage:S.course.stageI,score:S.course.score,shots:S.course.shots,hitShots:S.course.hitShots,time:S.course.time,total:S.course.total,medal:S.course.medal},
   rent:S.rent&&{cur:A().P.cur},card:!!S.card,targets:S.targets.length,met:!!(sv()||{}).met});
 R.targets=()=>S.targets;
 })();

@@ -70,6 +70,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await step(10);await shot('range-result');
     const saved=await ev(()=>{const s=HT.Jobs.api.SV();return s&&s.base&&s.base.range});ok(saved&&Object.keys(saved).length===1,'best saved per gun: '+JSON.stringify(saved).slice(0,90));
     await p.keyboard.press('Enter');await step(3);r=await ev(()=>HT.Range.state());ok(!r.card,'Enter closes the results card');
+    await ev(()=>HT.Range.showLast&&HT.Range.showLast());r=await ev(()=>HT.Range.state());if(r.card){await p.keyboard.press('e');await step(3);r=await ev(()=>HT.Range.state());ok(!r.card,'E closes it too')}
     /* rental rack */
     await walk(d.rack.x+1.2,d.rack.z,.5);await step(4);say('  rack prompt: '+await ev(()=>JSON.stringify(window.__ht.prompt)));await press('e');r=await ev(()=>HT.Range.state());const cur=await ev(()=>window.__ht.P.cur);ok(r.rent&&cur!=='pistol','E at the rack rents '+cur);
     await aimAt(d.line-50,1.4,d.lanes[3]);await click(3);await shot('range-rental');

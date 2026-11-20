@@ -266,8 +266,8 @@ function letter(a){const el=document.createElement('div');el.className='ht-hoa';
   .ht-hoa .p{width:min(440px,90vw);background:#fbf8ef;color:#222;padding:26px 30px;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5);font:15px/1.45 Georgia,serif;transform:rotate(-1.2deg)}
   .ht-hoa h3{margin:0 0 4px;font:700 13px Arial;letter-spacing:.14em;color:#5a6b3a}.ht-hoa h4{margin:0 0 14px;font:700 18px Georgia}.ht-hoa small{display:block;margin-top:16px;font:12px Arial;opacity:.6}</style>
   <div class="p"><h3>${L[0]}</h3><h4>${L[1]}</h4>${L.slice(2).map(t=>`<p style="margin:6px 0">${t}</p>`).join('')}<small>Any key · close</small></div>`;
-  const close=()=>{document.removeEventListener('keydown',kd);try{if(a.HUD.overlay('hoaLetter'))a.HUD.overlay('hoaLetter',null);else el.remove()}catch(_){el.remove()}};const kd=()=>close();
-  el.addEventListener('click',close);try{a.HUD.overlay('hoaLetter',el)}catch(_){document.body.appendChild(el)}setTimeout(()=>document.addEventListener('keydown',kd),400);say('you',"There's a letter from the HOA. About the tank. They said it's very nice.")}
+  const close=()=>{document.removeEventListener('keydown',kd);try{if(a.HUD.overlay('hoaLetter'))a.HUD.overlay('hoaLetter',null);else el.remove()}catch(_){el.remove()}};const kd=e=>{if(!e.repeat)close()};
+  el.addEventListener('click',close);try{a.HUD.overlay('hoaLetter',el)}catch(_){document.body.appendChild(el)}document.addEventListener('keydown',kd);say('you',"There's a letter from the HOA. About the tank. They said it's very nice.")}
 function teach(a,id,t){const s=sv();const m=s?(s.taught||(s.taught={})):S.taught;if(m[id])return;m[id]=1;try{a.feed(t,'info')}catch(_){}}
 
 /* ================= HUD: the reticle in the gunner's sight, the reload meter, the name ================= */
