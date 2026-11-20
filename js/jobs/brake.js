@@ -46,7 +46,7 @@ const PLAYS={
     call:[["rick","Sandwich play. I'm bread. Dave's bread. You're the meat. No. Wait. They're the meat."],["dave","I'm always bread."]]},
   fence:{id:'fence',name:'Fence',you:'nine',rick:'twelve',dave:'six',
     text:"FENCE · you're the fence: ride ALONGSIDE on his left so he can't swerve out. Rick gets in front, Dave on his bumper.",
-    call:[["rick","Fence. You're the fence. You ride his left side like a picket fence with a mortgage. I take the front. Dave takes his six."],["dave","I'm always the back."],["rick","Because you're reliable, Dave."],["dave","...I'll take it."]]}};
+    call:[["rick","Fence. You're the fence. You ride his left side like a picket fence with a mortgage. I take the front. Dave takes his six."],["dave","I'm always the back. ...Because I'm reliable. I'll take it."]]}};
 const WHO={you:'You',rick:'Rick',dave:'Dave'};
 
 /* ---------------- places (metres) ---------------- */
@@ -307,7 +307,7 @@ function huddleTick(M,dt,F){const a=A(),e=a.CV,you=e||{pos:a.P.pos};
     const doors=[{x:tg.x+f[0]*.2-r[0]*1.5,z:tg.z+f[1]*.2-r[1]*1.5},{x:tg.x+f[0]*.2+r[0]*1.5,z:tg.z+f[1]*.2+r[1]*1.5}];
     [[M.thA,0],[M.thB,1]].forEach(([d,i])=>{if(!d||d.inCar)return;if(walkTo(d,doors[i],4.6,dt)){d.inCar=true;M.thIn++}});
     if(M.snapT>1.6&&once(M,'atmOpen')){M.atm.userData.door.visible=true;M.atm.userData.hole.visible=true;try{a.puff&&a.puff(ATM.x,1,ATM.z+.4,'#c9ced3',6)}catch(_){}
-      say(M,"Panel's off! Cash box is out! Here they come!")}}
+      say(M,"Panel's off! Cash box is out! Here they come!",{ttl:5})}}
   if(M.thIn>=2&&M.crew.rick.inCar&&M.crew.dave.inCar&&M.snapT>3.2)snapNow(M,false)}
 function choice(M){const a=A(),HD=a.HUD;if(!HD||!HD.kit||!HD.kit.choices||typeof document==='undefined'){M.kit={close(){}};return}
   const opts=[{text:'SANDWICH: you get in FRONT of him (pass him first). Rick on his left, Dave behind.'},{text:'FENCE: you ride ALONGSIDE him, on his left. Rick in front, Dave behind.'}];
@@ -317,7 +317,7 @@ function pickPlay(M,id){const a=A();if(M.play||M!==a.M)return;M.play=id;const pl
   try{a.overlay('brake-choice',null)}catch(_){}try{const k=res().kit;if(k&&k.close)k.close()}catch(_){}delete res().ov['brake-choice'];res().kit=null;M.kit={close(){}};
   M.crew.rick.slot=pl.rick;M.crew.dave.slot=pl.dave;M.q.length=0;blip(660);blip(990,.18);
   sayAll(M,pl.call,false);setT(M,.2,()=>a.feed('Play: '+pl.name.toUpperCase(),'info',"You take "+SLOT[pl.you].name.toLowerCase()+": "+SLOT[pl.you].where));
-  sayAll(M,[["rick",pick(L_.hut)]]);setT(M,pl.call.reduce((t,l)=>t+Math.max(2.2,l[1].length*.052)+.3,0)+.3,()=>whistle(M,false));
+  say(M,pick(L_.hut),{ttl:9});setT(M,pl.call.reduce((t,l)=>t+Math.max(2.2,l[1].length*.052)+.3,0)+.3,()=>whistle(M,false));
   M.ph='snap';M.snapT=-1.6}
 /* the hatchback goes: the chase starts (and the [CP] for "Retry from the snap") */
 function snapNow(M,fromCP){const a=A(),tg=M.tg,pl=PLAYS[M.play]||PLAYS.sandwich;M.q=M.q.filter(l=>l[1]===pl.call[0][1]||l[1]===(pl.call[1]||[])[1]).slice(0,2);M.ph='chase';M.chaseT0=M.t-(fromCP?0:0);M.formT=0;M.breakT=0;M.box={t:0};M.phase='escort';/* the milder chase damage band (carChasing) */
