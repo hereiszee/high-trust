@@ -317,7 +317,7 @@ function addPieces(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(addPieces,0
   const unit=(id,box,fn,r)=>O.addSetpiece({id,r,box:()=>box,build(ws,u){const d=ws.def.base;if(!d||!GBc())return;const P=painter();fn(P,d);P.flush(u.group)}});
   unit('base_range',{x0:6,z0:186,x1:132,z1:230,y1:8},(P,d)=>{range(P,d);rangeOffice(P,d.bld.range)},150);
   unit('base_mid',{x0:118,z0:164,x1:204,z1:224,y1:22},(P,d)=>{barracks(P,d.bld.barracks1,'BARRACKS A');barracks(P,d.bld.barracks2,'BARRACKS B');parade(P,d);waterTower(P,d);roadSigns(P,d)},160);
-  unit('base_east',{x0:180,z0:150,x1:282,z1:232,y1:14},(P,d)=>{gate(P,d);gatehouse(P,d.bld.gate);tower(P,d.bld.tower);hangar(P,d.bld.hangar);motorPool(P,d.motor)},150);
+  unit('base_east',{x0:180,z0:158,x1:282,z1:232,y1:14},(P,d)=>{gate(P,d);gatehouse(P,d.bld.gate);tower(P,d.bld.tower);hangar(P,d.bld.hangar);motorPool(P,d.motor)},150);
   unit('base_air',{x0:8,z0:226,x1:282,z1:248,y1:7},(P,d)=>airfield(P,d),120);
   unit('base_r9',{x0:190,z0:40,x1:226,z1:170,y1:7},P=>r9Sign(P),160)}
 addPieces();

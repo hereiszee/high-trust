@@ -249,8 +249,8 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   if(!dt)return;propsTick(a,dt);
   for(let i=S.shells.length-1;i>=0;i--){const s=S.shells[i];s.t+=dt;const k=Math.min(1,s.t/s.T);s.mesh.position.lerpVectors(s.p,s.to,k);if(k>=1){S.shells.splice(i,1);land(a,s)}}
   for(const n of a.npcs||[])if(n.flee){const f=n.flee;f.t-=dt;const L=Math.hypot(f.x,f.z)||1;if(f.t>1){n.pos.x+=f.x/L*dt*3;n.pos.z+=f.z/L*dt*3}else{n.pos.x+=(f.home.x-n.pos.x)*Math.min(1,dt);n.pos.z+=(f.home.z-n.pos.z)*Math.min(1,dt)}if(f.t<=-2){n.pos.x=f.home.x;n.pos.z=f.home.z;n.flee=null}}
-  {/* far away it isn't drawn: the tank, its sergeant and the training-lane props (the camera is the judge) */const c=a.camera.position,d=B().def(),far=Math.hypot(c.x-d.tank.x,c.z-d.tank.z)>200;
-    if(S.e&&S.e.obj)S.e.obj.visible=a.CV===S.e||Math.hypot(c.x-S.e.pos.x,c.z-S.e.pos.z)<220;if(S.sarge&&S.sarge.d)S.sarge.d.root.visible=!far;if(S.propRoot)S.propRoot.visible=!far}
+  {/* far away it isn't drawn: the tank, its sergeant and the training-lane props (the camera is the judge) */const c=a.camera.position,d=B().def(),far=Math.hypot(c.x-d.tank.x,c.z-d.tank.z)>110;
+    if(S.e&&S.e.obj)S.e.obj.visible=a.CV===S.e||Math.hypot(c.x-S.e.pos.x,c.z-S.e.pos.z)<130||c.y>40;if(S.sarge&&S.sarge.d)S.sarge.d.root.visible=!far;if(S.propRoot)S.propRoot.visible=!far}
   const e=S.e;if(e&&a.mode==='hub'){
     if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank)s.tank.borrows=(s.tank.borrows|0)+1;say(SARGE,pick(LINES.borrow),true);
       teach(a,'drive','Tank: W/S drive · A/D turn on the spot · mouse aims the turret · left click fires · V gunner sight · E gets out')}
