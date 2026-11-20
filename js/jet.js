@@ -65,7 +65,7 @@ function model(o){const T=T3(),K2=B().kit,root=new T.Group(),W='#e9ebe8',G2='#a9
   /* engines: two nozzles at the back */
   for(const s of[-1,1]){P.cyl('metal',-5.3,1.82,s*.36,.34,.3,.6,'#5e6166',14,0,Math.PI/2);P.cyl('dark',-5.62,1.82,s*.36,.27,.27,.04,'#14161a',14,0,Math.PI/2)}
   /* the cockpit: a seat, a dash, a stick, a rail (seen from the cockpit view) */
-  P.box('dark',2.0,1.95,-.42,2.6,2.35,.42,'#2a2e33');P.box('glow',2.55,2.18,-.32,2.58,2.32,.32,'#4fd18a');P.box('paint',.5,1.9,-.38,1.1,2.6,.38,'#3a3f46');P.cyl('metal',1.6,2.1,0,.025,.025,.5,DK,6);
+  P.box('dark',2.25,1.9,-.36,2.75,2.16,.36,'#2a2e33');P.box('glow',2.24,2.02,-.26,2.26,2.13,.26,'#4fd18a');P.box('paint',.5,1.9,-.38,1.1,2.6,.38,'#3a3f46');P.cyl('metal',1.6,2.1,0,.025,.025,.5,DK,6);
   P.flush(body);
   /* canopy: a glass bubble (its own mesh so ejecting can throw it) */
   const cg=new T.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2);cg.scale(1.9,.62,.62);const canopy=new T.Mesh(cg,mt('jglass',{color:new T.Color('#5d7f99').convertSRGBToLinear(),roughness:.05,metalness:.3,transparent:true,opacity:.42,depthWrite:false}));
@@ -260,7 +260,7 @@ function camera(dt){const a=A();if(!a)return;const cam=a.camera;
 /* while flying: see far (camera far, fog pushed out), the far terrain ring, and a wider draw radius in the open world */
 let FOG0=null;
 function farFog(a,on){const sc=a.scene,cam=a.camera;if(on){if(!FOG0&&sc.fog)FOG0={near:sc.fog.near,far:sc.fog.far,cfar:cam.far};farTerrain(a);
-    const alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=180+alt*1.5;sc.fog.far=1500+alt*4}cam.far=3600;cam.updateProjectionMatrix();if(F.far)F.far.visible=true;lids(a,true)}
+    const alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}cam.far=3600;cam.updateProjectionMatrix();if(F.far)F.far.visible=true;lids(a,true)}
   else if(FOG0){if(sc.fog){sc.fog.near=FOG0.near;sc.fog.far=FOG0.far}cam.far=FOG0.cfar;cam.updateProjectionMatrix();FOG0=null;if(F.far)F.far.visible=false;lids(a,false);try{RO().setMood()}catch(_){}}}
 function flight(on){if(on===F.fly)return;F.fly=on;const O=OWm();if(O&&O.flight)O.flight(on?{R:900,blod:70}:null)}
 
@@ -375,4 +375,6 @@ hook();
 Jet.state=()=>({e:!!S.e,on:F.on,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
 Jet.HB=HB;Jet.camera=dt=>camera(dt);
+/* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
+Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
 })();
