@@ -229,7 +229,9 @@ J.register('tow',{
     try{const g=s.garage;if(g&&g.util&&!g.util.hitch){g.util.hitch=true;g.tab=(g.tab||0)+350;Sv&&Sv.touch&&Sv.touch('garage')}}catch(_){}
     try{a.save()}catch(_){}},
   noise(n){const M=A().M;if(!M||M.ph!=='lot'||M.lotClear||M.fight)return;if(n&&n.kind==='gun'&&Math.hypot(n.x-LOT.desk.x,n.z-LOT.desk.z)<40)fight(M,'shots')},
-  test:{give(a){/* the bridge opens after Rick's job (and Earl's job is across it) */const h=window.__ht,s=a.SV();for(const id of['gary','rick','earl']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}if(s&&s.world)s.world.bridgeOpen=true},step:(a,t,o)=>bot(a,t,o),
+  test:{give(a){/* the bridge opens after Rick's job (and Earl's job is across it) */const h=window.__ht,s=a.SV();for(const id of['gary','rick','earl']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}if(s&&s.world)s.world.bridgeOpen=true;
+    /* the cast the job start waits for (crew, Sal's stand-in, the attendants, the owners): load it now so the harness's synchronous drive finds it cached */
+    const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_gary','boss','sal','rosa','benny','earl','thug_hoodie','thug_track','thug_beanie','thug_red'].filter(k=>PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'tow',sweep:100,gate:true,lot:true,talked:true,fought:false,cars:[0,1,2,3,4].map(i=>({st:i<2?'done':'lot',hp:90,x:0,z:0,y:0})),truck:null})}
 });
 
