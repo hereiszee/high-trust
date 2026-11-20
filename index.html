@@ -780,7 +780,14 @@ function snd(kind,vol=1){const A=AU();if(A){try{A.legacy(kind,vol)}catch(e){}ret
 /* ================= CHARACTERS ================= */
 const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 /* realistic skinned people when js/people.js and its GLBs are in; the box dudes below stay as the fallback */
-function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
+function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});
+  if(m.ok&&!m._htReg&&typeof m.make==='function'){const mk=m.make.bind(m);m.make=(...a)=>{const d=mk(...a);if(d&&d.root)DUDE_REG.push(d.root);return d};m._htReg=true}/* every skinned person, wherever it is made (jobs, neighbours, givers) */
+  return m.ok?m:null}
+/* skinned people made so far that may still need their bone texture released (see dudeSweep, run by clearChars) */
+const DUDE_REG=[];
+function dudeSweep(){const keep=[];for(const r of DUDE_REG){let a=r;while(a.parent)a=a.parent;if(a===scene){keep.push(r);continue}
+    dudeFree(r)}/* out of the scene: release it and stop holding on to it (one that comes back is simply re-textured by three.js) */
+  DUDE_REG.length=0;DUDE_REG.push(...keep)}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
   if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
@@ -1248,14 +1255,20 @@ function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<sm
 /* ================= SPAWNING ================= */
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
 function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
-function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
+/* every enemy spawned since the last clear, including ones a job takes out of enemies[] (tow's peaceful attendants): all of them leave the scene at clearChars,
+   or each failed or retried run leaves their models behind */
+let spawnedEnemies=[];
+/* a skinned character's bone texture (one GPU texture per skeleton, made on its first render) is only freed by hand: release it when the character leaves
+   the scene for good (three.js rebuilds it if the same character is ever drawn again) */
+function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}})}
+function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};
   const d=makeDude(look);equip(d,gun,{gold:boss});
   const hp=boss?420:shotgunner?90:75;
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false};
-  d.root.position.copy(e.pos);enemies.push(e);addChar(e);
+  d.root.position.copy(e.pos);enemies.push(e);spawnedEnemies.push(e);addChar(e);
   e.id='e'+(eidSeq++);e.maxHp=e.maxhp;e.role=AI.roleFor(gun,boss);e.dmgMul=(M&&M.i===0?.8:1)*(boss?1.4:1);if(M&&M.squads&&L.nav)(sq||squadFor(x,z)).add(e);
   if(boss){const tag=document.createElement('div');tag.className='tag down';tag.textContent='THE PORCH PIRATE KING';$('tags').appendChild(tag);e.tag=tag}
   return e;
@@ -1388,7 +1401,8 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   {const amb=OWS.region==='river'&&bT<40?'industrial':'suburb';if(amb!==OWS.amb){OWS.amb=amb;const A=AU();if(A&&A.ambience)try{A.ambience(amb)}catch(e){}}}
   owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
-  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,
+    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):null});/* traffic yields to the escort truck and getaway cars too */
   owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
@@ -3139,7 +3153,7 @@ function frMake(crew,x,z,gun,kind){gun=gun||pickW(crew.guns);
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss:false,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false,
     fr:crew,hostile:false,drawn:false,born:simT,spawnSeen:seen0};
   e.id='e'+(eidSeq++);e.maxHp=hp;e.role=AI.roleFor(gun,false);e.dmgMul=.75;collide(e.pos,.35);d.root.position.copy(e.pos);enemies.push(e);addChar(e);FR.members.push(e);return e}
-function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
+function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
   if(e.group){const g=e.group;g.members=g.members.filter(m=>m!==e);if(!g.members.length)frDropGroup(g)}if(e.squad){const s=e.squad;s.members=s.members.filter(m=>m!==e);s.releaseFire(e)}FR.dirtyTargets=true}
 function frDropGroup(g){const i=FR.groups.indexOf(g);if(i>=0)FR.groups.splice(i,1);if(g.spot){g.spot.group=null;g.spot.freeAt=simT+40}}
 const frOut=e=>e.state==='dead'||e.state==='cuffed'||e.state==='surrender';
@@ -3648,11 +3662,11 @@ function activateSite(st){const lvl=L;lvl.items=[];lvl.bonus=[];lvl.stashes=[];l
   for(const p of st.waveSpawns)lvl.waveSpawns.push({x:p.x,z:p.z});
   if(st.grill){lvl.grill={x:st.grill.x,z:st.grill.z};if(st.bounce)lvl.bounce={x:st.bounce.x,z:st.bounce.z}}
   wmSetWindow(st.win)}
-function wmExitAt(car){/* the exit ring beside the dad's own vehicle, kerb side first */const e=car||VAN,r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);let p=null;
+function wmExitAt(car){/* the exit ring beside the dad's own vehicle */const e=car||VAN,r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);let p=null;
   const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),col=e.col,sv=col&&{x0:col.x0,z0:col.z0,x1:col.x1,z1:col.z1,ob:col.ob};if(col)Object.assign(col,VAN_OFF,{ob:null});
-  for(const[a,s]of[[0,S.w/2+1.05],[0,-(S.w/2+1.05)],[-.8,S.w/2+1.05],[.8,-(S.w/2+1.05)],[-(S.l/2+.9),0]]){const q=e.pos.clone().addScaledVector(f,a).addScaledVector(r,s);
+  /* driver's door first: that is where you get in, so that is where the ring goes */for(const[a,s]of[[0,-(S.w/2+1.05)],[0,S.w/2+1.05],[.8,-(S.w/2+1.05)],[-.8,S.w/2+1.05],[-(S.l/2+.9),0]]){const q=e.pos.clone().addScaledVector(f,a).addScaledVector(r,s);
     if(walkable(tx(q.x),tx(q.z))&&!solidAt(q.x,q.z,.4,0)&&Math.hypot(q.x-e.pos.x,q.z-e.pos.z)>S.w/2+.6){p=q;break}}
-  if(col)Object.assign(col,sv);if(!p)p=e.pos.clone().addScaledVector(r,S.w/2+1.05)
+  if(col)Object.assign(col,sv);if(!p)p=e.pos.clone().addScaledVector(r,-(S.w/2+1.05))
   L.exit={x:p.x,z:p.z};if(!L.exitRing||!L.exitRing.parent){const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));L.exitRing=wmAdd(ring)}
   L.exitRing.position.set(p.x,groundAt(p.x,p.z)+.04,p.z);L.exitRing.visible=false}
 function ensureWorld(){if(L&&L.ow&&L.def===WORLD)return;clearChars();buildLevel(HUB);makePlayer();makeHubVan()}
@@ -3966,6 +3980,8 @@ function wmTruckModel(){const o=makeVehicle('workvan','#f4eef4')||makeVanBox('#f
 WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
     const r=m.route.map(([x,z])=>G.nearestNode(tileC(x),tileC(z)));let ids=[r[0]];for(let k=1;k<r.length;k++){const p=G.path(r[k-1],r[k]);if(p)ids.push(...p.slice(1))}
     M.escNodes=r;const lane=G.lane(ids);M.lane=lane;
+    /* each ambush also fires once the truck is past its node along the lane (a truck put back on its lane after a wedge may skip the 10 m ring) */
+    M.ambIdx=m.ambush.map(q=>{const n=G.nodes[r[q.at]];let bi=0,bd=1e9;lane.forEach((p,i)=>{const d=Math.hypot(p.x-n.x,p.z-n.z);if(d<bd){bd=d;bi=i}});return bi});
     const y0=Math.atan2(-(lane[1].x-lane[0].x),-(lane[1].z-lane[0].z));const car=CA.make('workvan',{x:lane[0].x,z:lane[0].z,yaw:y0});car.stats=Object.assign({},car.stats,{hp:m.truck.hp});car.hp=m.truck.hp;
     CA.follow(car,lane,{speed:m.truck.speed,waitDist:m.truck.waitDist,turnSpeed:5});
     const obj=wmAdd(wmTruckModel(),true);M.truck={car,obj,col:wmCol({x0:0,z0:0,x1:0,z1:0})};chaseSync(M.truck,0);
@@ -3980,9 +3996,12 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
       const vd=Math.hypot(van.x-c.x,van.z-c.z);if(!M.hold&&vd>m.truck.waitDist&&M.elapsed-M.waitSaid>10){M.waitSaid=M.elapsed;radio('benny',"I'm not going without my escort!",true)}
       M.jingleT-=dt;if(M.jingleT<=0&&!M.hold&&c.spd>2){M.jingleT=14;wmJingle(1)}
       const a=m.ambush[M.amb];
-      if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10)wmAmbush(a)}
+      if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10||(M.ambIdx&&c.ai.tr&&c.ai.tr.i>=M.ambIdx[M.amb]))wmAmbush(a)}
       if(M.phase==='ambush')wmAmbushTick(dt);
       if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Rocket Pops are not.","They got the truck.");
+      /* backstop: CarAI puts a wedged truck back on its lane; if it still makes no headway for 45 s while it isn't waiting, fail cleanly to the retry card rather than soft-lock */
+      {const pr=c.ai.tr?c.ai.tr.i:0,w=M.escW||(M.escW={i:pr,x:c.x,z:c.z,t:0});if(c.ai.blocked||M.phase!=='escort'||pr!==w.i||Math.hypot(c.x-w.x,c.z-w.z)>4){w.i=pr;w.x=c.x;w.z=c.z;w.t=0}else w.t+=dt;
+        if(w.t>45)return endMission(false,"Benny's truck is wedged and Benny refuses to leave it. Somebody call Sal.","The truck's stuck.")}
       if(c.ai.done&&M.phase==='escort'){M.phase='court';M.courtT=0;M.payX.truckHp=c.hp/c.stats.hp;c.spd=0;
         const r_=V3(Math.cos(c.yaw),0,-Math.sin(c.yaw)),bp=wmSnap(c.x-r_.x*2.6,c.z-r_.z*2.6);const d=giverModel('benny');scene.add(d.root);M.bennyN={dude:d,pos:V3(bp.x,0,bp.z),yaw:0,stepT:0,step:null};
         radio('benny',"Free cones! Line up! One per kid, two if you said thank you!",true);banner('THE COURT','Benny is handing out cones.',2.2)}
@@ -4153,14 +4172,14 @@ function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;i
 /* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
 function jrGivers(){if(!JR||!WORLD)return[];const out=[];
   for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
-    const g=jrGiverAt(m);if(g&&out.length<3)out.push({i,x:g.x,z:g.z})}return out}
+    const g=jrGiverAt(m);/* every unlocked job gets its giver; two jobs that share a giver's spot take turns (the earlier one first) */if(g&&out.length<14&&!out.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5))out.push({i,x:g.x,z:g.z})}return out}
 function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
   if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
   const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
   /* registered while the hub is up: its destination ring and giver appear without a rebuild */
   if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
-    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<6){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
+    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!npcs.some(n=>n.marker&&Math.hypot(n.marker.x-g.x,n.marker.z-g.z)<1.5)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
 /* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
 function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}

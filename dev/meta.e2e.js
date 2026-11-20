@@ -77,11 +77,13 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   const r=await ev(()=>window.HT.Economy.buy('furn','tv','dadazon'));ok(r&&r.ok!==false,'bought a TV on Dadazon');
   const r2=await ev(()=>window.HT.Economy.buy('furn','plant','dadazon'));
   const rg=await ev(()=>window.HT.Economy.buy('gun','nailer','dadazon'));ok(rg&&rg.ok!==false,'ordered the Weekend Nailer on Dadazon'+(rg&&rg.reason?' ('+rg.reason+')':''));
+  const ra=await ev(()=>{const A=window.HT.CATALOG.attachments;const id=Object.keys(A).find(k=>window.HT.Economy.status('att',k,'dadazon').state==='buy');return id?{id,r:window.HT.Economy.buy('att',id,'dadazon')}:null});
+  ok(ra&&ra.r&&ra.r.ok!==false&&ra.r.delivered==='pending','ordered an attachment on Dadazon: '+(ra&&ra.id));
   ok(await ev(()=>/after your next job/.test(window.HT.CATALOG.stores.dadazon.tag)),'Dadazon says boxes arrive after your next job');
   await key('e');await sleep(150);await key('e');await sleep(300);await shot('05-dadazon');
   await key('Escape');await sleep(400);
   ok(await ev(()=>!window.HT.Menus.isOpen()&&window.__ht.running&&window.__ht.hudScreen!=='pause'),'Esc closes Dadazon without pausing');
-  ok(await ev(()=>window.__ht.save.pending.length===3),'3 orders pending');
+  ok(await ev(()=>window.__ht.save.pending.length===4),'4 orders pending');
   ok(await ev(()=>window.__ht.cash)<before,'cash spent');
   /* nothing arrives until a job is done: out the front door, no boxes yet */
   await ev(()=>window.__ht.exitHome('front'));await sleep(200);
@@ -90,13 +92,18 @@ let fails=0;const ok=(c,m)=>{console.log((c?'  ok   ':'  FAIL ')+m);if(!c)fails+
   await ev(()=>{const h=window.__ht;h.startMission(1);const M=h.M;M.smashed=3;for(const s of h.L.stashes)s.done=true;M.elapsed=120;M.t=40;M.exitOpen=true;if(M.intro)M.intro.done=true;h.P.pos.set(h.L.exit.x,0,h.L.exit.z)});
   await step(3);await sleep(1500);ok(await ev(()=>window.__ht.hudScreen==='result'),'job 2 result');
   await page.click('[data-act="result:go"]');await sleep(300);
-  ok(await ev(()=>!!window.__ht.hubx.porch&&window.__ht.save.porch===3),'Dadazon boxes on the porch after the job');
+  ok(await ev(()=>!!window.__ht.hubx.porch&&window.__ht.save.porch===4),'Dadazon boxes on the porch after the job');
+  /* Rick's job opens the bridge: the Act 2 card pauses the street 1.4 s after you get back (wmHubEnter); dismiss it like a player would */
+  const act2=await page.waitForFunction(()=>window.__ht.hudScreen==='result'&&!window.__ht.running,null,{timeout:5000}).then(()=>true,()=>false);
+  ok(act2,'Act 2 card after Rick\'s job');if(act2){await page.click('[data-act="result:go"]');await sleep(300)}
+  ok(await ev(()=>window.__ht.running&&window.__ht.mode==='hub'),'back on the street after the Act 2 card');
   await ev(()=>{const h=window.__ht,H=h.hubx.home;h.place(H.x+H.nx*3.2+(-H.nz)*1.2,H.z+H.nz*3.2+H.nx*1.2,Math.atan2(H.nx*3.2-H.nz*1.2,H.nz*3.2+H.nx*1.2),-.42);h.step(2)});
   await shot('10-porch-boxes');
   await ev(()=>{const h=window.__ht,H=h.hubx.home;h.place(H.x+H.nx*.4,H.z+H.nz*.4);h.step(1)});
   ok(await ev(()=>/Dadazon boxes/.test((window.__ht.prompt||{}).text)),'porch prompt: '+await ev(()=>(window.__ht.prompt||{}).text));
   await ev(()=>{window.__ht.use=true;window.__ht.step(1)});await sleep(100);
   ok(await ev(()=>window.__ht.save.owned.guns.includes('nailer')&&!window.__ht.save.pending.length&&!window.__ht.hubx.porch),'opened the boxes: nailer owned, nothing pending, porch clear');
+  ok(await ev(id=>window.__ht.save.owned.att.includes(id),ra&&ra.id),'attachment from the boxes is in the locker: '+(ra&&ra.id));
   await ev(()=>window.__ht.enterHome());await sleep(200);await step(5);
   const rack=await ev(()=>window.__ht.home.rack);ok(rack&&rack.hanging.includes('nailer'),'nailer hangs on the garage rack: '+JSON.stringify(rack));
   await ev(()=>{const h=window.__ht;h.P.fp=true;h.place(-5.15,4.65,Math.PI/2,-.1);h.step(2)});await shot('11-garage-rack');await ev(()=>{const h=window.__ht;h.P.fp=false;h.step(1)});
