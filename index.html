@@ -1832,9 +1832,12 @@ function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock
 let castWait=null;
 /* a cast id -> a People model key: its role (People.roles, a string key), the key itself, or null (unknown: skipped, never fetched) */
 function castKey(pm,c){const r=pm.roles&&pm.roles[c];if(typeof r==='string'&&(pm.keys||[]).includes(r))return r;return(pm.keys||[]).includes(c)?c:null}
+/* the People models a job waits for before it starts (crew, Riverside giver, the four thug looks, the boss): also used by the job harness */
+function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok||!pm.preload)return[];const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
+  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k)):[];
+  const keys=castKeysFor(i);
   if(!keys.length){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
   castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
@@ -4245,7 +4248,10 @@ if(JR){MISSIONS.forEach(m=>{const w=WJ[m.id];JR.wrap(m.id,m,w?{start:(M_,o)=>w.s
     /* holster(true): the gun goes away (no first-person or third-person gun, no aim pose, firing blocked); holster(false) brings it back */
     /* a new vehicle type: its handling row (CAR_FEEL: label, seats, max, acc, turn, cam...) on top of the minivan's, and its seats [fwd,hip,right,turn] */
     carFeel:(type,row,seats)=>{if(!type)return null;CAR_FEEL[type]=Object.assign({},CAR_FEEL[type]||CAR_FEEL.minivan,row||{});if(seats&&seats.length)SEATS[type]=seats;return CAR_FEEL[type]},CAR_FEEL,SEATS,
-    registerCar:(obj,x,z)=>registerCar(obj,x,z),/* a borrowable car in the current level (free roam): returns its entry */
+    registerCar:(obj,x,z)=>registerCar(obj,x,z),
+    pose:(d,dt,o)=>pose(d,dt,o||{}),/* animate a character made with makeDude/People (moving, aim, mode:'kneel'|'crouch'...) */
+    give:(id,o)=>{o=o||{};if(!WEAPONS[id])return null;const w=WEAPONS[id];return takeGun(id,o.mag!=null?o.mag:w.mag,o.extra||0,{auto:o.auto!==false,slot:o.slot||null})},
+    swap:(id,force)=>swap(id,force),reload:()=>reload(),hurtEnemy:(e,dmg,by,opt)=>hurtEnemy(e,dmg,by||'player',opt||{}),/* a borrowable car in the current level (free roam): returns its entry */
     holster:on=>{if(!M)return;M.holster=!!on;if(on){M.noGuns=M.noGuns||true;equip(P.dude,null)}else{if(M.noGuns===true)M.noGuns=false;equip(P.dude,P.cur)}},CarAI:()=>HTM('CarAI'),roads:()=>OW()&&OW().roads(),setNight:k=>{if(typeof setNight==='function')setNight(k)},SV,save:()=>metaSave(),
     HUD,overlay:(id,el)=>HUD.overlay&&HUD.overlay(id,el),get stage(){return M&&M.stage}}}
 
@@ -4328,6 +4334,7 @@ metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
   lock:id=>{const i=MISSIONS.findIndex(m=>m.id===id);return i<0?'no such job':jobLock(i)},calendar:openCalendar,calEntries,replay:id=>jrReplay(MISSIONS.findIndex(m=>m.id===id)),spotted:jobSpotted,
+  castKeys:id=>castKeysFor(MISSIONS.findIndex(m=>m.id===id)),get castWait(){return castWait},
   homeUse:id=>JH.home(id),openBrief:(id,o)=>openBrief(MISSIONS.findIndex(m=>m.id===id),o),finish:(ok,why)=>endMission(ok,why)};
 ASSETS.ready.then(()=>setTimeout(jrLoadFiles,1200));
 /* the house loads on demand (docs/PERF.md); tests that need it start it explicitly */
