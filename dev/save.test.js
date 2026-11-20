@@ -271,6 +271,13 @@ test('catalogue is complete and consistent',()=>{
   assert.ok(best>4500&&best<8000,'clean campaign pays '+best);
 });
 
+test('a Dadazon gun order is refunded when the armory unlocks the same gun first (no lost purchase)',()=>{
+  fresh();const d=Save.data;d.cash=2000;d.prog.done[1]=true;
+  const r=E.buy('gun','smg','dadazon');assert.equal(r.ok,true);assert.equal(r.delivered,'pending');const paid=r.price,after=d.cash;
+  let u;for(let i=0;i<10&&!(u&&u.unlocked);i++)u=E.collectGun('smg');assert.equal(u.unlocked,true);
+  assert.equal(d.pending.length,0,'order cancelled');assert.equal(d.cash,after+paid,'paid price refunded');assert.ok(d.owned.guns.includes('smg'));
+});
+
 /* ---------------- save v3 (SPEC3 4.0, 4.5, 4.8) ---------------- */
 const V2=()=>({v:2,t:1,cash:1234,prog:{done:[true,true,false,false,false,false,false,false,false],trust:30,trustR:5,act:1,cuffed:2,downed:0,shotSurr:0,missionsRun:3},
   stats:{earned:1500,spent:266},owned:{guns:['pistol','shotgun','revolver'],att:[]},attOn:{},loadout:{side:'pistol',p1:'shotgun',p2:null,p3:null},armory:{seen:{}},pending:[],
