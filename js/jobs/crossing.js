@@ -441,7 +441,7 @@ function trafficStep(dt,M){const C=M.cg,a=A(),P=a.P,Tr=C.traffic;if(!Tr)return;
       else{const rx=o.x-c.x,rz=o.z-c.z,ah=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx);if(ah>0&&ah<14&&lat<1.9){const g=ah-TUNE.car.len-1;if(g<d){d=g;why='car'}}}}
     for(const p of people){const rx=p.x-c.x,rz=p.z-c.z,ah=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx),sl=-rx*fz+rz*fx;if(ah<=-.5||ah>45)continue;
       if(p.van){if(lat<1.9){const g=ah-TUNE.car.len-1.5;if(g<d){d=g;why='van'}}continue}
-      if(p.kid?(sl>-4.6&&sl<1.7):lat<1.3){/* a kid anywhere in this street ahead (lane to the far kerb): every driver stops */const g=ah-half-1.2;if(g<d){d=g;why=p.kid?'kid':'dad';kidHit=p.kid||null}}}
+      if(p.kid?(sl>-4.6&&sl<.95):lat<1.3){/* a kid anywhere in this street ahead (lane to the far kerb): every driver stops */const g=ah-half-1.2;if(g<d){d=g;why=p.kid?'kid':'dad';kidHit=p.kid&&Math.abs(sl)<1.45?p.kid:null;if(p.kid&&!kidHit)why='kidfar'}}}
     /* the sign: you in or beside the road, ahead of the car, paddle up */
     c.forSign=false;if(C.sign.up&&!c.rick){const rx=P.pos.x-c.x,rz=P.pos.z-c.z,ah=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx);
       if(ah>half&&ah<TUNE.signR+half&&lat<TUNE.signLat){c.signSeen+=dt;const g=ah-half-TUNE.signStop;const need=c.v*c.v/(2*Math.max(.05,g));
@@ -458,7 +458,7 @@ function trafficStep(dt,M){const C=M.cg,a=A(),P=a.P,Tr=C.traffic;if(!Tr)return;
     c.s+=c.v*dt;if(d<1e8&&c.v===0&&d<0)c.s+=0;
     const q2=laneAt(L,c.s),q3=laneAt(L,c.s+2.5);c.x=q2.x;c.z=q2.z;const yaw=yawTo(q3.x-q2.x,q3.z-q2.z);c.yaw=c.yaw==null?yaw:turn(c.yaw,yaw,dt*6);
     /* waiting: count it, honk now and then */
-    if(c.v<.2&&(why==='sign'||why==='kid'||why==='dad')){c.waitT+=dt;if(c.waitT>TUNE.car.honkT&&C.clock>(c.honkAt||0)){c.honkAt=C.clock+7;horn(c.waitT>16?'long':'double');M.cs.honks++;if(Math.random()<.6)say(M,'you',pick(L_.honk))}
+    if(c.v<.2&&(why==='sign'||why==='kid'||why==='kidfar'||why==='dad')){c.waitT+=dt;if(c.waitT>TUNE.car.honkT&&C.clock>(c.honkAt||0)){c.honkAt=C.clock+7;horn(c.waitT>16?'long':'double');M.cs.honks++;if(Math.random()<.6)say(M,'you',pick(L_.honk))}
       if(why==='sign'&&!c.spoke&&Math.random()<dt*.35){c.spoke=1;driverLine(M,c)}}else if(c.v>2)c.waitT=0;
     c.obj.position.set(c.x,ground(c.x,c.z),c.z);c.obj.rotation.set(0,c.yaw+Math.PI/2,0);
     const VM=window.HT&&HT.Vehicles;if(VM&&VM.update)try{VM.update(c.obj,{speed:c.v,steer:0,braking:c.braking||c.v<.1,headlights:C.dusk>.3,dt})}catch(_){}
@@ -635,7 +635,7 @@ function crossStep(dt,M,F){const C=M.cg,a=A(),P=a.P;const line=lineKids(M);
       a.feed('Crossing'+(name?' · '+name:''),clean?'trust':'info',X.t.toFixed(1)+' s'+(X.cars?' · '+X.cars+' car'+(X.cars>1?'s':'')+' waited':'')+(clean?' · clean':''));if(clean)chime();C.lastCross=null;C.crossEnd=C.clock;C.cross=null;music('hub',.35)}}}
 /* is it safe to wave them across? (no car still rolling toward the crossing) — for the HUD line and the test player */
 function carsComing(M,x,z){const C=M.cg;if(!C.traffic)return 0;let n=0;for(const c of C.traffic.cars){const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);
-    if(ah>-1&&ah<34&&lat<6&&c.v>.6&&!c.forSign&&!(c.why==='car'||c.why==='kid'||c.why==='dad'||c.why==='sign'))n++}return n}
+    if(ah>-1&&ah<34&&lat<6&&c.v>.6&&!c.forSign&&!(c.why==='car'||c.why==='kid'||c.why==='kidfar'||c.why==='dad'||c.why==='sign'))n++}return n}
 function waveAcross(M){const C=M.cg,line=lineKids(M);if(!C.atKerb)return;const ok={};for(const k of C.kids)if(k.state==='line'||k.state==='hand'||k.state==='free')ok[k.id]=1;if(C.kevin)ok.kevin=1;
   const s0=Math.min(...C.atKerb.map(k=>k.s)),head=trailHead(M);for(const id in C.trail.runs){const r=C.trail.runs[id];if(r.s1<s0-1||r.s0>head+.1)continue;r.ok=1;r.okT=C.clock+TUNE.waveLife;r.okFor=ok}
   C.waveT=1.4;M.cs.waves++;say(M,'you',pick(L_.wave),{now:true});const cc=carsComing(M,C.atKerb[0].x,C.atKerb[0].z);if(cc&&!C.sign.up)later(M,.5,()=>{})}
@@ -857,7 +857,7 @@ const ROUTE=[{act:'gear'},{x:321.2,z:39.45},
   {cross:'mill',from:[374.8,95.3],mid:[374.8,99],to:[374.8,103.7]},{home:'dash'},{home:'rosie'},{home:'malik'},
   {cross:'2nd-s',from:[351.5,103.3],mid:[347,103.3],to:[342.9,103.3]},{home:'gloria'},{act:'exit'}];
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;const C=M.cg;if(!C.built)return null;
-  const B=C.bot||(C.bot={i:0,ph:'',t:0,hold:0,pause:0});const dt=1/30;B.t+=dt;a.keys.e=false;a.keys.w=false;a.keys.shift=false;
+  const B=C.bot||(C.bot={i:0,ph:'',t:0,hold:0,pause:0});if(!isFinite(P.yaw)){if(typeof window!=='undefined'&&!window.__cgYaw)window.__cgYaw={i:B.i,ph:B.ph,last:B.lastYawSrc};P.yaw=0}const dt=1/30;B.t+=dt;a.keys.e=false;a.keys.w=false;a.keys.shift=false;
   if(a.CV){if(!M.exitOpen)a.exitCar();return null}
   if(C.talking&&!C.talking.busy){B.talkT=(B.talkT||0)+dt;if(B.talkT>.9){const i=C.talking.opts.findIndex(x=>x.win);talkPick(M,i>=0?i:0);B.talkT=0}return null}
   /* a fresh start (a retry) can land mid-route: skip ahead to the nearest step of the current stage */
@@ -866,6 +866,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   if(M.exitOpen){P.aim=false;const c=M.car;if(c&&hyp(c.pos.x-P.pos.x,c.pos.z-P.pos.z)<3.6){a.useTap=true;return null}if(c)go(a,{x:c.pos.x+2.9,z:c.pos.z+.2});return null}
   const step=ROUTE[B.i];if(!step)return null;
   if(step.act==='gear')return botGear(a,M,B);
+  if(step.act==='exit'){P.aim=false;return null}/* Pastor Dee's last word, then the van */
   /* interruptions, the way a person handles them */
   const fz=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&k.fz>0&&hyp(k.x-P.pos.x,k.z-P.pos.z)<9);
   const ro=C.kids.find(k=>k.state==='free'&&k.free&&k.free.sit);
@@ -875,8 +876,9 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   if(fz&&!step.cross){P.aim=true;return null}
   const line=lineKids(M),tail=line[line.length-1];
   let lag=line.length?trailHead(M)-line[0].s-2.6:0;for(let i=1;i<line.length;i++)lag=Math.max(lag,line[i-1].s-line[i].s-2.2);lag*=2.2;const anyFree=C.kids.some(k=>k.state==='free'&&k.free&&k.free.mode!=='act');
+  if(C.atKerb&&!step.talk&&!step.cross){const k=C.atKerb[0];P.aim=true;if(carsComing(M,k.x,k.z)===0&&hyp(k.x-P.pos.x,k.z-P.pos.z)<9)a.keys.e=true;else if(hyp(k.x-P.pos.x,k.z-P.pos.z)>=9)go(a,{x:k.x,z:k.z});return null}
   if(step.home){const k=C.kids.find(k=>k.id===step.home);if(!k||k.state==='home'||k.state==='homeward'){B.i++;B.t=0;return null}const h=k.home;if(!h){B.i++;return null}
-    const sx=h.x+(B.dir||1)*1.4,sz=h.z+h.fz*.45;if(hyp(sx-P.pos.x,sz-P.pos.z)>.6&&B.t<25){P.aim=false;if(lag<9||hyp(sx-P.pos.x,sz-P.pos.z)>12)go(a,{x:sx,z:sz},false,true);return null}
+    const sx=h.x+(B.dir||1)*1.4,sz=h.z+h.fz*.72;if(hyp(sx-P.pos.x,sz-P.pos.z)>.6&&B.t<25){P.aim=false;if(lag<9||hyp(sx-P.pos.x,sz-P.pos.z)>12)go(a,{x:sx,z:sz},false,true);return null}
     if(B.t>40){B.i++;B.t=0}return null}
   if(step.talk){const g=C.crews[step.id||step.talk];if(!g||g.state==='down'||g.state==='gone'||g.state==='scatter'||M.cs.talked[step.talk]){if(step.back&&B.ph!=='back'&&B.ph!=='done'&&B.went){B.ph='back';B.k=0}
       if(B.ph==='back'){const w=step.back[B.k];if(!w){B.ph='done'}else{if(go(a,{x:w[0],z:w[1]}))B.k++;return null}}B.i++;B.t=0;B.ph='';B.went=false;B.k=0;return null}
@@ -884,7 +886,6 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
     if(go(a,{x:step.at[0],z:step.at[1]})){P.yaw=yawTo(crewCentre(g).x-P.pos.x,crewCentre(g).z-P.pos.z);if(C.clock>=(g.cool||0)&&(B.tap||0)<C.clock){B.tap=C.clock+1;a.useTap=true}}if(step.via)B.went=true;return null}
   if(B.keepSign){const onR=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&onRoadKid(k));P.aim=onR;if(!onR)B.keepSign=false}
   if(step.cross)return botCross(a,M,B,step);
-  if(C.atKerb&&!step.talk){const k=C.atKerb[0];P.aim=true;if(carsComing(M,k.x,k.z)===0&&hyp(k.x-P.pos.x,k.z-P.pos.z)<9)a.keys.e=true;else if(hyp(k.x-P.pos.x,k.z-P.pos.z)>=9)go(a,{x:k.x,z:k.z});return null}
   /* plain walking: wait for stragglers like a person would */
   if(lag>8||anyFree&&lag>5){if(!B.keepSign)P.aim=false;P.yaw=turn(P.yaw,yawTo(tail.x-P.pos.x,tail.z-P.pos.z),.1);return null}
   if(go(a,step,false,o.human)){B.i++;B.t=0}return null}
@@ -904,7 +905,7 @@ function botCross(a,M,B,s){const C=M.cg,P=a.P;const line=lineKids(M);
 /* walk toward a point (the game's own movement: face it, hold W); true when there */
 function go(a,p,run,slow){const P=a.P,dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=hyp(dx,dz);if(d<.45)return true;const U=go.u||(go.u={x:0,z:0,t:0,side:0,sideT:0});
   /* unstick: no progress for half a second (a lamp post, a stoop) -> sidestep for a moment */
-  if(hyp(P.pos.x-U.x,P.pos.z-U.z)>.08){U.x=P.pos.x;U.z=P.pos.z;U.t=0}else U.t+=1/30;if(U.t>.4&&U.sideT<=0){U.sideT=.8;U.side=U.side>0?-1:1;U.t=0}
+  if(hyp(P.pos.x-U.x,P.pos.z-U.z)>.08){U.x=P.pos.x;U.z=P.pos.z;U.t=0}else U.t+=1/30;if(U.t>.4&&U.sideT<=0){U.sideT=.8;U.t=0;const b=yawTo(dx,dz),off=sd=>({x:P.pos.x-Math.sin(b+sd*1.45),z:P.pos.z-Math.cos(b+sd*1.45)});U.side=isRoad(off(1).x,off(1).z)?-1:isRoad(off(-1).x,off(-1).z)?1:(U.side>0?-1:1)}
   let yaw=yawTo(dx,dz);if(U.sideT>0){U.sideT-=1/30;yaw+=U.side*1.45}P.yaw=turn(P.yaw,yaw,.35);a.keys.w=true;a.keys.shift=!!run;if(slow&&d<1.2)a.keys.w=(Math.floor(a.simT*10)%2)===0;return false}
 if(typeof module!=='undefined'&&module.exports)module.exports={TUNE,KIDS,XINGS};
 })();

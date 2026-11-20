@@ -38,7 +38,7 @@ const OUT=path.join(__dirname,'../../docs/screenshots/jobs/crossing');const ONLY
     if(r.exit&&r.state==='go'){const f=await ev(()=>{const H=window.__ht;if(H.M&&!H.M.car){H.M.exitT=(H.M.exitT||0)+1;if(H.M.exitT>8){H.jobs.finish(true);return true}}return false});if(f)console.log('   (no car in a direct start: finished)')}
     if(r.state!=='go'){if(opts.fail&&r.state==='lost'){opts.fail=false;await ev(()=>{const H=window.__ht;H.step(45);H.UIacts['result:retry']();H.step(3)});console.log('=== RETRY from checkpoint');last='';continue}break}}
   await ev(()=>window.__ht.step(40));
-  const res=await ev(()=>{const H=window.__ht,M=H.M;return{exitOpen:M&&M.exitOpen,car:M&&M.car&&[M.car.pos.x,M.car.pos.z,M.car===H.VAN],P:[H.P.pos.x,H.P.pos.z],state:M&&M.state,pay:M&&M.pay?{total:M.pay.total,lines:M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:M&&M.medal,trustR:Math.round(H.prog.trustR)}});
-  console.log('result '+JSON.stringify(res));console.log('nearmiss '+JSON.stringify(await ev(()=>window.__cgNM||null)));if(!ONLY||ONLY==='11-result'){await shot('11-result')}
+  const res=await ev(()=>{const H=window.__ht,M=H.M;return{bot:M&&M.cg&&M.cg.bot,keysw:H.keys.w,yaw:H.P.yaw,spd:H.P.spd,exitOpen:M&&M.exitOpen,car:M&&M.car&&[M.car.pos.x,M.car.pos.z,M.car===H.VAN],P:[H.P.pos.x,H.P.pos.z],state:M&&M.state,pay:M&&M.pay?{total:M.pay.total,lines:M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:M&&M.medal,trustR:Math.round(H.prog.trustR)}});
+  console.log('result '+JSON.stringify(res));console.log('nearmiss '+JSON.stringify(await ev(()=>window.__cgNM||null))+' yawNaN '+JSON.stringify(await ev(()=>window.__cgYaw||null)));if(!ONLY||ONLY==='11-result'){await shot('11-result')}
   console.log('wall '+((Date.now()-T0)/1000).toFixed(0)+'s');const bad=errs.filter(e=>!/favicon/.test(e));console.log(bad.length?'CONSOLE ERRORS:\n'+bad.slice(0,8).join('\n'):'no console errors');
   await b.close()})().catch(e=>{console.error(e);process.exit(1)});
