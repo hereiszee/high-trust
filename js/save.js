@@ -167,7 +167,7 @@ const GADGETS={
 const GADGET_ORDER=['flashlight','nvg'];
 
 const STORES={
-  dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Boxes land on your porch after your next job.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture']],deliver:'pending'},
+  dadazon:{name:'Dadazon',who:'Kitchen desk · Laptop',tag:'Free shipping on everything. Boxes land on your porch after your next job.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['resale','Resale']],deliver:'pending'},
   hardware:{name:"Hank's Hardware",sub:'& Sporting',who:'Maple Street · Since 1962',tag:'Take it home today. Neighbors save 10%.',tabs:[['guns','Guns'],['att','Attachments'],['furn','Furniture'],['sup','Supplies'],['gad','Gadgets']],deliver:'now',discount:{hood:'trust',at:60}},
   mart:{name:'Ramos Corner Mart',who:'Riverside Flats · Open late',tag:'"Your friend with the mustache bought all my beef jerky." Mrs. Ramos',tabs:[['sup','Supplies'],['stick','Stickers']],deliver:'now',discount:{hood:'trustR',at:60}},
   auto:{name:"Dad's Auto",who:'Route 9 · Sal Benedetto, proprietor',tabs:[['perf','Performance'],['prot','Protection'],['util','Utility'],['looks','Looks'],['cars','Vehicles'],['repair','Repair']],deliver:'now',
@@ -519,7 +519,7 @@ function discountFor(store,s){s=S(s);const st=STORES[store];
 function priceOf(kind,id,store,s){const b=basePrice(kind,id,s),d=discountFor(store,s);return{price:Math.round(b*(1-d)),base:b,discount:d}}
 
 /* Full status of a catalogue entry in a store: what the buy button should say. */
-function status(kind,id,store,s){s=S(s);const pr=priceOf(kind,id,store,s),cash=s.cash;
+function status(kind,id,store,s){if(kind==='resale')return HT.Resale.status(id);s=S(s);const pr=priceOf(kind,id,store,s),cash=s.cash;
   const out={kind,id,store,price:pr.price,base:pr.base,discount:pr.discount,state:'buy',reason:null};
   const afford=()=>{if(out.state==='buy'&&cash<out.price){out.state='poor';out.short=out.price-cash}return out};
   if(kind==='gun'){const a=gunAvail(id,s);out.collect=a.collect;
@@ -1030,7 +1030,7 @@ const gunMods=on=>{on=on||{};return{redDot:on.optic==='reddot',extMag:on.mag==='
 function vecFallback(kind,id,veh){if(veh&&veh.gun)return iconSVG(kind,id);if(veh&&HT.Garage){if(veh.stats)return carFull(veh.stats);const u=veh.opts.upgrades||{};
     return svg(carSVG(veh.type,veh.opts.color,u.rims||'steel',{finish:u.paint,tint:u.tint,lightBar:!!u.lightBar,spoiler:u.spoiler,bullBar:u.bullBar,cargo:u.roofRack==='cargo'}),'0 -12 164 112')}
   return iconSVG(kind,id)}
-function thumbHTML(kind,id,veh){const key=kind+':'+id+(veh?':'+hashStr(veh.gun?veh.gun:[veh.type,veh.opts]):'');
+function thumbHTML(kind,id,veh){if(kind==='resale')return`<span class="htm-ti htm-rendered">${HT.Resale.photo(id)}</span>`;const key=kind+':'+id+(veh?':'+hashStr(veh.gun?veh.gun:[veh.type,veh.opts]):'');
   let inner=null;const r=HT.Shop&&HT.Shop.thumbRenderer;
   if(r){if(thumbCache.has(key))inner=thumbCache.get(key);
     else if(!thumbWait.has(key)){try{const out=r(Object.assign({kind,id,key},itemData(kind,id),veh?(veh.gun?{gun:veh.gun}:{vehicle:{type:veh.type,opts:veh.opts}}):{}));
@@ -1203,6 +1203,7 @@ function gunFor(kind,id,target){if(kind!=='att')return null;const a=ATTACHMENTS[
   return{gun:{type:g,attachments:gunMods({[a.slot]:id})}}}
 function shopEntries(store,tab){
   const E=[],G=HT.Garage;
+  if(tab==='resale'){for(const l of HT.Resale.list())E.push({kind:'resale',id:l.id,key:'resale:'+l.id,sec:l.sec||null});return E}
   if(tab==='guns'){for(const id of GUN_ORDER)E.push({kind:'gun',id,sec:GUNS[id].slot==='side'?'Sidearms':'Primaries'})}
   else if(tab==='att'){for(const id in ATTACHMENTS)E.push({kind:'att',id})}
   else if(tab==='furn'){const secs=['Living room','Dining & kitchen','Garage','Backyard','Odds & ends'];
@@ -1224,8 +1225,8 @@ function shopEntries(store,tab){
     if(q.rows.some(r=>r.id==='lights')&&q.rows.length>1)E.push({kind:'rep',id:'lights'});if(q.rows.some(r=>r.id==='tyre')&&q.rows.length>1)E.push({kind:'rep',id:'tyre'})}
   for(const e of E){e.key=e.kind+':'+e.id}
   return E}
-function entryName(kind,id){const d=itemData(kind,id);return d&&d.name||id}
-function entrySub(kind,id){const G=HT.Garage;
+function entryName(kind,id){if(kind==='resale')return(HT.Resale.get(id)||{}).title||id;const d=itemData(kind,id);return d&&d.name||id}
+function entrySub(kind,id){const G=HT.Garage;if(kind==='resale'){const l=HT.Resale.get(id)||{};return esc((l.seller||'')+' · '+(l.where||'Neighbourly Resale')+(l.ago?' · '+l.ago:''))}
   if(kind==='gun'){const g=GUNS[id];return slotName[g.slot]+' · '+AMMO[g.ammo].name}
   if(kind==='att'){const a=ATTACHMENTS[id];return ATT_SLOTS.find(s=>s[0]===a.slot)[1]+' · fits '+a.compat.length+' guns'}
   if(kind==='furn'){const f=FURNITURE[id];return f.room+' · '+f.cells[0]+'×'+f.cells[1]+' m'}
@@ -1243,7 +1244,7 @@ function entrySub(kind,id){const G=HT.Garage;
     return esc(q.car.name)+' · '+Math.round(q.hp)+' / '+q.maxHp+' HP'+(n?' · '+n+' thing'+(n>1?'s':'')+' wrong':'')}
   return''}
 
-function tagHTML(st){
+function tagHTML(st){if(st.kind==='resale')return st.state==='owned'?'<span class="htm-chip s-owned">Messaged</span>':st.state==='locked'?'<span class="htm-chip s-locked">'+esc(st.reason||'Sold')+'</span>':`<span class="htm-price">${st.price?money(st.price):'Free'}</span>`;
   if(st.state==='buy'||st.state==='poor')return`<span class="htm-price${st.state==='poor'?' poor':''}">${st.discount?`<s>${money(st.base)}</s>`:''}${st.price?money(st.price):'Free'}</span>`;
   const lab={owned:st.kind==='car'?'In the driveway':'Owned',equipped:st.kind==='car'?'Driving':st.kind==='gar'||st.kind==='stick'?'Installed':st.kind==='cos'?'On the van':'Equipped',
     pending:'On its way',maxed:st.kind==='furn'?'Have one':st.kind==='rep'?'Like new':'Maxed',locked:'Locked'}[st.state];
@@ -1283,7 +1284,7 @@ function stampHTML(st,store){
   return''}
 
 function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':cur<max*.7?'mid':''}"></i></div></div>`}
-function shopDetail(m,e){
+function shopDetail(m,e){if(e.kind==='resale')return HT.Resale.detail(m,e);
   const s=Save.data,st=status(e.kind,e.id,m.store),d=itemData(e.kind,e.id)||{},armed=m.armed===e.key,G=HT.Garage;
   let kicker='',body='',name=entryName(e.kind,e.id),blurb=d.blurb||'',fx='';
   if(e.kind==='gun'){const g=GUNS[e.id];kicker=slotName[g.slot]+' · '+g.cls+' · '+AMMO[g.ammo].name;
@@ -1426,7 +1427,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
       if(m.sheet){const b=ui.detail.querySelector('[data-act=primary]');if(b)setTimeout(()=>b.focus({preventScroll:true}),30)}};
     m.focusItem=t=>{if(t.closest('.htm-grid'))m.select(t.dataset.key)};
     const curEntry=()=>entries().find(x=>x.key===m.sel);
-    m.primary=(btn)=>{const e=curEntry();if(!e)return;const st=status(e.kind,e.id,store);
+    m.primary=(btn)=>{const e=curEntry();if(!e)return;if(e.kind==='resale'){HT.Resale.act(m,'msg',e.id);return}const st=status(e.kind,e.id,store);
       if(st.state==='buy'){if(m.armed!==e.key){m.armed=e.key;clearTimeout(m.armT);m.armT=setTimeout(()=>{if(m.armed===e.key){m.armed=null;m.alive&&m.renderDetail()}},4000);sfx('arm');m.renderDetail();return}
         clearTimeout(m.armT);m.armed=null;const res=buy(e.kind,e.id,store);
         if(!res.ok){sfx('error');toast(m,res.reason,'bad');m.renderDetail();return}
@@ -1453,6 +1454,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
       if(a==='back'){if(m.armed){m.armed=null;m.renderDetail();sfx('tick');return}if(m.sheet){m.sheetOpen(false);const t=ui.grid.querySelector(`[data-key="${m.sel}"]`);if(t)focusEl(m,t,true);return}m.close();return}
       if(a==='tabprev'||a==='tabnext'){const i=tabs.findIndex(t=>t[0]===m.tab),n=(i+(a==='tabnext'?1:-1)+tabs.length)%tabs.length;sfx('tab');m.setTab(tabs[n][0],a==='tabnext'?1:-1);return}
       if(a==='alt'){const s=ui.detail.querySelector('[data-act=sell]');if(s)s.click();return}
+      if(a==='num'&&m.tab==='resale'&&HT.Resale.chatting(m)){const b=ui.detail.querySelector('[data-act="resale:say"][data-i="'+(d-1)+'"]');if(b)b.click();return}
       if(a==='num'&&d<=tabs.length){sfx('tab');m.setTab(tabs[d-1][0],1)}};
     m.click=(t,ev)=>{const act=t.dataset.act;
       if(t.dataset.key&&!act){m.select(t.dataset.key);if(narrow())m.sheetOpen(true);else if(ev.detail>=2)m.primary(t);return}
@@ -1460,6 +1462,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
       if(act==='tab'){sfx('tab');return m.setTab(t.dataset.tab,1)}
       if(act==='primary')return m.primary(t);
       if(act==='sheetclose')return m.sheetOpen(false);
+      if(act&&act.startsWith('resale:')){const e=curEntry();if(e)HT.Resale.act(m,act.slice(7),e.id,+t.dataset.i);return}
       if(act==='honk'){const e=curEntry();playHorn(hornOf(e.id.split(':')[1]));return}
       if(act==='target'){const e=curEntry(),a=ATTACHMENTS[e.id],s=Save.data;const owned=a.compat.filter(g=>s.owned.guns.includes(g));const pool=owned.length?owned:a.compat;
         m.attTarget=pool[(pool.indexOf(m.attTarget)+1)%pool.length];sfx('toggle');m.renderDetail();return}
@@ -1468,11 +1471,69 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
         m.renderGrid(true);m.renderDetail()}};
     m.offs.push(Save.on('cash',(v,old)=>{countTo(ui.cash,old==null?v:old,v,650);ui.cash.parentNode.classList.remove('bump','drop');void ui.cash.offsetWidth;ui.cash.parentNode.classList.add(old!=null&&v<old?'drop':'bump')}));
     runMenu(m);m.refreshKeys();
+    if(store==='dadazon')HT.Resale.css();
     const t0=tabs.find(t=>t[0]===opts.tab)?opts.tab:tabs[0][0];m.setTab(t0,1);
+    if(t0==='resale'&&opts.select){const el=ui.grid.querySelector('[data-key="resale:'+opts.select+'"]');if(el){m.select('resale:'+opts.select,'force');focusEl(m,el,true)}}
     if(opts.select){const k=opts.select.includes(':')?opts.select:null;if(k)m.select(k,'force')}
     if(narrow())ui.detail.setAttribute('inert','');
     return{close:()=>m.close(),el:ui.el,setTab:id=>m.setTab(id,1),select:k=>m.select(k,'force'),_m:m}}};
 HT.Shop=Shop;
+/* ---- Neighbourly Resale (the laptop's 4th Dadazon tab; SPEC3 4.9, built with Chain Reaction, reused by Porch Light) ----
+   Listings from your neighbours: a few evergreen ones here, more added by jobs. Each listing: {id,title,price,seller,where,ago,blurb,details:[..],
+   photo(ctx,w,h) (canvas drawing), chat:{prompt, options:[text,...], reply(i,listing)->{text,ok,done,note}}, sec}. "Message the seller" opens a
+   little chat in the detail panel: keys 1-3 or a click pick a line, the seller answers (job listings decide what happens).
+   HT.Resale.add(listing) / remove(id) / clear(tag) / get(id) / list() / on('open', fn) / open(id) (select it next time the tab shows) */
+const Resale=(()=>{const L=[],state={},hooks={open:[]};let want=null;const ph={};
+  const joke=(id,title,price,seller,blurb,details,draw,reply)=>({id,title,price,seller,where:'Maple Heights',ago:'',blurb,details,photo:draw,evergreen:true,
+    chat:{prompt:'Message '+seller,options:['Is this still available?','Would you take less?','Can I see it first?'],reply:i=>({text:reply[i%reply.length]})}});
+  const bg=(g,w,h,a,b)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,a);gr.addColorStop(1,b);g.fillStyle=gr;g.fillRect(0,0,w,h)};
+  L.push(joke('treadmill','Treadmill (currently a clothes rack)',25,'DebbieOnElm',"Works great. Haven't checked since 2019. Comes with the shirts on it.",['Folding','Used as a clothes rack','Shirts included'],
+      (g,w,h)=>{bg(g,w,h,'#d9d2c4','#a89f90');g.fillStyle='#333';g.fillRect(w*.2,h*.62,w*.6,h*.08);g.fillRect(w*.7,h*.25,w*.04,h*.4);g.fillStyle='#6a8fc8';g.fillRect(w*.58,h*.22,w*.2,h*.22);g.fillStyle='#c86a6a';g.fillRect(w*.6,h*.3,w*.16,h*.24)},
+      ["Yes. It's available. So available.","Make me an offer. Any offer. Please.","It's in the garage under the shirts. You'll find it."]),
+    joke('flamingo','Inflatable flamingo, possibly haunted',0,'pool_guy_gil','Free to a good home. It moves at night. Not by itself. Probably.',['Inflatable','Pink','Possibly haunted'],
+      (g,w,h)=>{bg(g,w,h,'#8fd0ec','#4aa2c8');g.fillStyle='#ff7ab6';g.beginPath();g.ellipse(w*.5,h*.66,w*.22,h*.13,0,0,6.3);g.fill();g.fillRect(w*.62,h*.25,w*.05,h*.4);g.beginPath();g.ellipse(w*.66,h*.24,w*.07,h*.06,0,0,6.3);g.fill();g.fillStyle='#222';g.fillRect(w*.71,h*.23,w*.04,h*.02)},
+      ["It's available. It's always available. It comes back.","It's free.","Please come get it."]),
+    joke('exbike','Exercise bike. Never exercised.',50,'Ron_K','Like new. My wife says I have to sell it. I say it has sentimental value. She says I never used it. Both of us are right.',['Stationary','Never used','Not a real bike'],
+      (g,w,h)=>{bg(g,w,h,'#e9e4da','#c9c1b2');g.strokeStyle='#2a2a2a';g.lineWidth=w*.03;g.beginPath();g.moveTo(w*.3,h*.8);g.lineTo(w*.45,h*.4);g.lineTo(w*.68,h*.35);g.moveTo(w*.45,h*.45);g.lineTo(w*.6,h*.8);g.stroke();g.fillStyle='#2a2a2a';g.beginPath();g.arc(w*.55,h*.66,h*.13,0,6.3);g.fill();g.fillRect(w*.38,h*.33,w*.14,h*.05)},
+      ["It's still available. It's always been available.","Sure, less. Less is fine.","It's in the bedroom holding up a pile of laundry."]),
+    joke('unicycle','Unicycle (wheel not included)',5,'ClownCollegeDropout',"Seat, post and the will to try. The wheel left in 2018.",['No wheel','Seat in good shape'],
+      (g,w,h)=>{bg(g,w,h,'#dbe7d0','#a9bf96');g.fillStyle='#222';g.fillRect(w*.47,h*.3,w*.05,h*.5);g.fillStyle='#c0392b';g.beginPath();g.ellipse(w*.5,h*.28,w*.12,h*.05,0,0,6.3);g.fill()},
+      ["Yes. Bring your own wheel.","It's five dollars.","I'll throw in the juggling pins."]),
+    joke('gnomes','Lawn gnome collection (17). Will not separate.',90,'GnomeDad',"They're a family. They stay together.",['17 gnomes','One is a pirate'],
+      (g,w,h)=>{bg(g,w,h,'#9fcf8a','#5f9a4a');for(let i=0;i<5;i++){const x=w*(.18+i*.16);g.fillStyle='#3e6fb8';g.fillRect(x-w*.04,h*.55,w*.08,h*.2);g.fillStyle='#f2d0b0';g.beginPath();g.arc(x,h*.5,w*.035,0,6.3);g.fill();g.fillStyle='#d23b3b';g.beginPath();g.moveTo(x-w*.045,h*.48);g.lineTo(x,h*.3);g.lineTo(x+w*.045,h*.48);g.fill();g.fillStyle='#eee';g.fillRect(x-w*.03,h*.52,w*.06,h*.05)}},
+      ["They are available. As a set.","No.","They're watching the driveway. Come anytime."]));
+  const get=id=>L.find(l=>l.id===id)||null;
+  const R={list:()=>L.map((l,i)=>[l,l.order!=null?l.order:i*10]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]),get,
+    add(l){if(!l||!l.id)return;const k=L.findIndex(x=>x.id===l.id);if(k>=0)L[k]=l;else L.push(l);delete ph[l.id];return l},
+    remove(id){const k=L.findIndex(x=>x.id===id);if(k>=0)L.splice(k,1);delete state[id];delete ph[id]},
+    clear(tag){for(const l of L.filter(l=>l.tag&&l.tag===tag))R.remove(l.id)},
+    on(h,fn){(hooks[h]||(hooks[h]=[])).push(fn);return()=>{const a=hooks[h],k=a.indexOf(fn);if(k>=0)a.splice(k,1)}},
+    open(id){want=id},state:id=>state[id]||(state[id]={chat:null,said:[],done:false}),
+    status(id){const l=get(id)||{},st=R.state(id);return{kind:'resale',id,store:'dadazon',price:l.price||0,base:l.price||0,discount:0,state:l.sold?'locked':st.said.length?'owned':'buy',reason:l.sold||null}},
+    photo(id){if(ph[id])return ph[id];const l=get(id);if(!l||!l.photo||typeof document==='undefined')return'';try{const c=document.createElement('canvas');c.width=320;c.height=200;const g=c.getContext('2d');l.photo(g,320,200);
+        g.fillStyle='rgba(0,0,0,.18)';g.fillRect(0,186,320,14);g.fillStyle='#fff';g.font='10px Arial';g.fillText('IMG_'+(1000+id.length*97%8999)+'.JPG',6,196);ph[id]=`<img alt="" src="${c.toDataURL('image/jpeg',.86)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`}catch(e){ph[id]=''}return ph[id]},
+    chatting:m=>{const e=m.sel&&m.sel.startsWith('resale:')?get(m.sel.slice(7)):null;return!!(e&&R.state(e.id).chat==='open')},
+    detail(m,e){const l=get(e.id);if(!l)return'';const st=R.state(l.id);if(want===l.id)want=null;
+      const thread=st.said.map(x=>`<div class="rs-b me">${esc(x.me)}</div><div class="rs-b them"><b>${esc(l.seller)}</b>${esc(x.them)}</div>`).join('');
+      const opts=st.chat==='open'&&l.chat?l.chat.options.map((t,i)=>`<button class="rs-opt" data-nav data-act="resale:say" data-i="${i}"><kbd>${i+1}</kbd> ${esc(t)}</button>`).join(''):'';
+      const btn=l.sold?'':st.done?`<div class="htm-note">${esc(st.note||'Chat closed.')}</div>`:st.chat==='open'?'':`<button class="htm-btn" data-nav data-act="primary"><span>${esc(l.chat&&l.chat.prompt||'Message the seller')}</span></button>`;
+      return`<div class="htm-dscroll"><div class="rs-ph">${R.photo(l.id)}</div><div class="htm-kicker">${esc(l.seller)} · ${esc(l.where||'')}${l.ago?' · '+esc(l.ago):''}</div><h3 class="htm-name">${esc(l.title)}</h3>
+        <div class="rs-price">${l.price?money(l.price):'Free'}</div><p class="htm-blurb">${esc(l.blurb||'')}</p>${l.details&&l.details.length?'<ul class="rs-dt">'+l.details.map(d=>'<li>'+esc(d)+'</li>').join('')+'</ul>':''}
+        ${thread?'<div class="rs-thread">'+thread+'</div>':''}${opts?'<div class="rs-opts">'+opts+'</div>':''}</div><div class="htm-buy"><div class="htm-buyrow">${btn}</div></div>
+        <button class="htm-sheetx" data-act="sheetclose" aria-label="Back to list">✕</button>`},
+    act(m,what,id,i){const l=get(id);if(!l||l.sold)return;const st=R.state(id);
+      if(what==='msg'){if(st.done||!l.chat)return;st.chat='open';sfx('arm');m.renderDetail();const b=m.ui.detail.querySelector('.rs-opt');if(b)focusEl(m,b,true);return}
+      if(what==='say'&&st.chat==='open'){const t=l.chat.options[i];if(t==null)return;let r={};try{r=l.chat.reply(i,l)||{}}catch(err){console.error(err)}
+        st.said.push({me:t,them:r.text||'...'});st.chat=r.again&&!r.done?'open':null;if(r.done){st.done=true;st.note=r.note||null}sfx(r.ok?'buy':'tick');
+        m.renderGrid(true);m.renderDetail();if(r.toast)toast(m,r.toast,r.ok?'good':'bad');if(r.close)setTimeout(()=>{if(m.alive)m.close()},r.close)}},
+    css(){if(typeof document==='undefined'||document.getElementById('rs-css'))return;const st=document.createElement('style');st.id='rs-css';st.textContent=
+      '.htm .rs-ph{width:100%;aspect-ratio:16/10;margin:0 0 10px;border-radius:8px;overflow:hidden;background:#222}.htm .rs-price{font:800 22px/1 var(--display,inherit);margin:4px 0 8px;color:var(--good,#7fd87a)}'+
+      '.htm .rs-dt{margin:6px 0 10px 18px;padding:0;font-size:13px;line-height:1.5}.htm .rs-thread{display:flex;flex-direction:column;gap:6px;margin:8px 0}.htm .rs-b{max-width:88%;padding:7px 10px;border-radius:12px;font-size:13px;line-height:1.35}'+
+      '.htm .rs-b.me{align-self:flex-end;background:#2f6fd6;color:#fff;border-bottom-right-radius:3px}.htm .rs-b.them{align-self:flex-start;background:rgba(255,255,255,.12);border-bottom-left-radius:3px}.htm .rs-b.them b{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:2px}'+
+      '.htm .rs-opts{display:flex;flex-direction:column;gap:6px;margin:6px 0}.htm .rs-opt{display:flex;gap:8px;align-items:flex-start;width:100%;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:inherit;font:600 13px/1.3 inherit;text-align:left;cursor:pointer}'+
+      '.htm .rs-opt:hover,.htm .rs-opt:focus{border-color:#ffcf5a;background:rgba(255,207,90,.14);outline:none}.htm .rs-opt kbd{flex:none;min-width:18px;text-align:center}';document.head.appendChild(st)}};
+  return R})();
+HT.Resale=Resale;
 
 /* =====================================================================
    GUN LOCKER / WORKBENCH

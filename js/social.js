@@ -1,6 +1,6 @@
 /* =====================================================================
    HT.Social: conversations (SPEC3 4.6 a). Built with *Small Talk*; reused by Grand Opening, Crossing Guard, Chain Reaction,
-   Hands Off and Suds Up. The disguise / cover / politeness half (4.6 b) goes in its own section at the end of this file.
+   Hands Off and Suds Up. The disguise / cover / politeness half (4.6 b): section "---- disguise ----" after the engine.
    Loaded on demand by a job file (js/jobs/talk.js injects <script src="js/social.js"> and css/social.css once).
 
    PURE LOGIC (works in Node, see dev/social.test.js)
@@ -128,7 +128,77 @@ const DEFAULT_TELLS={bored:['[{name} taps a foot. Bored.]'],scared:['[{name} fol
 function check(o){o=o||{};const C=convo({mood:o.mood||'bored',rounds:[{options:o.options||[]}],win:o.win!=null?o.win:10,seed:o.seed,name:o.name});
   return{options:C.options(),pick:i=>C.pick(i),convo:C}}
 
-const Social={_ver:1,TABLE,MOODS,REGS,BEST,DRIFT,rng,convo,check};
+/* ---- disguise ---- */
+/* =====================================================================
+   DISGUISE, COVER AND THE POLITENESS BUFFER (SPEC3 4.6 b). Built with *Grand Opening* (js/jobs/pawn.js). Pure logic: Node-testable.
+     HT.Social.DISGUISES                       the three looks: max cover, staff-zone drain, how often the tell slips, politeness multiplier
+     HT.Social.COVER                           the rates (per second while somebody with line of sight is within COVER.range m)
+     const D=HT.Social.cover({id:'press'|'cousin'|'mustache', seed})
+     D.tick(dt, st) -> {dc, events:[{kind,id}]}   st = {seen:[{id,d,staff,watch?}] (observers that see you right now),
+         running, crouch, zone:'public'|'staff'|'restricted', access, carry, slipped, talking, crowd (guests within 2.5 m), loiter}
+         events: 'polite' (a timer starts: "..."), 'cancel' (it stopped: you fixed it), 'excuse' (it ran out: "Excuse me..."), 'blown' (cover 0)
+     D.bump(kind|amount, why)                 'win' +.15, 'lose' -.10, 'recog' -.20, 'excuse' -.30, or a number
+     D.talk(id)                               starting a conversation with someone cancels their timer
+     D.recognise(id)                          seen as somebody else by a person you talked to: -0.2, and their timer starts at once
+     D.swap(id)                               a new disguise (back at the van): cover to its max; the people you talked to remember the old one
+     D.timers {id:{t,T}}  D.watch {id:secs}  D.cover D.max D.min D.started (timers ever started) D.excused D.save() D.load(s)
+   Cover drains only while somebody sees you; nobody watching, nothing changes. A crowd is camouflage: with 2+ guests within 2.5 m
+   drains are halved and the public gain doubled. At most two people run a politeness timer at once (the nearest), and the
+   timers wait while you're in a conversation. Loitering by a staff door (st.loiter) costs -0.05/s. A slipped tell (the mustache
+   on its way off) costs -0.06/s. Someone who said "Excuse me" watches you for 20 s: everything they see drains x1.5. A second
+   "Excuse me" while someone is already watching costs -0.12 instead of -0.3 (the room was already looking).
+   ===================================================================== */
+const DISGUISES={
+  press:   {id:'press',   name:'Local Press',  short:'Press',   max:.9, staff:-.18,polite:1,  slip:[95,140], tell:'lanyard'},
+  cousin:  {id:'cousin',  name:"DJ's Cousin",  short:'Cousin',  max:.85,staff:-.06,polite:1,  slip:[80,120], tell:'cap'},
+  mustache:{id:'mustache',name:'Mustache',     short:'Mustache',max:.7, staff:-.12,polite:1.5,slip:[26,44],  tell:'mustache'}};
+const COVER={range:10,run:-.08,crouch:-.05,staff:-.12,carry:-.04,public:.02,win:.15,lose:-.10,recog:-.2,excuse:-.3,excuse2:-.12,slip:-.06,loiter:-.05,
+  low:.35,cancel:.45,maxPolite:2,polite:[4,8],watchT:20,watchMul:1.5,crowd:2};
+function hashId(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function cover(o){o=o||{};const R0=rng(o.seed||7);let draws=0;const rnd=()=>{draws++;return R0()};
+  const D={id:null,dis:null,cover:1,max:1,min:1,timers:{},watch:{},started:0,excused:0,met:{},blown:false,
+    get draws(){return draws}};
+  D.swap=id=>{const d=DISGUISES[id]||DISGUISES.mustache;D.id=d.id;D.dis=d;D.max=d.max;D.cover=d.max;D.blown=false;D.timers={};return D};
+  D.swap(o.id||'mustache');D.min=D.cover;
+  const set=v=>{D.cover=clamp(v,0,D.max);if(D.cover<D.min)D.min=D.cover;if(D.cover<=0)D.blown=true};
+  D.bump=(k,why)=>{const v=typeof k==='number'?k:COVER[k]||0;set(D.cover+v);return D.cover};
+  /* the person you talked to as somebody else: who you were when you met them */
+  D.meet=id=>{D.met[id]=D.id};
+  D.knows=id=>D.met[id]&&D.met[id]!==D.id;
+  D.talk=id=>{const had=!!D.timers[id];delete D.timers[id];D.meet(id);return had};
+  const startTimer=id=>{const r=COVER.polite,mul=D.dis.polite||1;const T=(r[0]+(r[1]-r[0])*rnd())*mul;D.timers[id]={t:T,T};D.started++;return D.timers[id]};
+  D.recognise=id=>{set(D.cover+COVER.recog);D.met[id]=D.id;const ev={kind:'recog',id};if(!D.timers[id])startTimer(id);return ev};
+  D.rate=st=>{st=st||{};const seen=st.seen||[];if(!seen.length||st.talking&&st.zone==='public')return 0;
+    let r=0;const d=D.dis;
+    if(st.running)r+=COVER.run;if(st.crouch)r+=COVER.crouch;if(st.carry)r+=COVER.carry;if(st.slipped)r+=COVER.slip;if(st.loiter)r+=COVER.loiter;
+    if((st.zone==='staff'||st.zone==='restricted')&&!st.access)r+=d.staff!=null?d.staff:COVER.staff;
+    const crowd=(st.crowd||0)>=COVER.crowd;
+    if(r<0){if(crowd)r*=.5;if(seen.some(s=>D.watch[s.id]>0))r*=COVER.watchMul}
+    else if(st.zone==='public'||!st.zone)r=COVER.public*(crowd?2:1);
+    return r};
+  D.tick=(dt,st)=>{st=st||{};const ev=[],seen=st.seen||[],ids={};for(const s of seen)ids[s.id]=s;
+    for(const k in D.watch){D.watch[k]-=dt;if(D.watch[k]<=0)delete D.watch[k]}
+    const c0=D.cover;set(D.cover+D.rate(st)*dt);
+    /* the politeness buffer: low cover in front of somebody starts their "..." */
+    /* at most COVER.maxPolite people are politely deciding what to do about you at once (the nearest first) */
+    if(D.cover<COVER.low){const near=seen.slice().sort((p,q)=>(p.d||0)-(q.d||0));for(const s of near){if(Object.keys(D.timers).length>=COVER.maxPolite)break;if(D.timers[s.id]||D.watch[s.id]>0||s.noPolite)continue;startTimer(s.id);ev.push({kind:'polite',id:s.id})}}
+    for(const id in D.timers){const tm=D.timers[id];
+      if(!ids[id]||D.cover>COVER.cancel){delete D.timers[id];ev.push({kind:'cancel',id,why:!ids[id]?'gone':'fixed'});continue}
+      if(st.talking)continue;/* nobody interrupts a conversation: the clocks wait */
+      tm.t-=dt;if(tm.t<=0){/* a second 'excuse me' while somebody else is already watching you costs less: the room was already looking */const pile=Object.keys(D.watch).some(k=>k!==id&&D.watch[k]>0);
+        delete D.timers[id];D.excused++;D.watch[id]=COVER.watchT;set(D.cover+(pile?COVER.excuse2:COVER.excuse));ev.push({kind:'excuse',id,pile})}}
+    if(D.cover<=0&&c0>0)ev.push({kind:'blown'});
+    return{dc:D.cover-c0,events:ev,cover:D.cover}};
+  /* the next slip of the tell (seconds); running and eating make a mustache slip sooner */
+  D.nextSlip=()=>{const s=D.dis.slip;return s[0]+(s[1]-s[0])*rnd()};
+  D.save=()=>({id:D.id,cover:Math.round(D.cover*1000)/1000,min:Math.round(D.min*1000)/1000,started:D.started,excused:D.excused,met:Object.assign({},D.met),draws,
+    watch:Object.fromEntries(Object.entries(D.watch).map(([k,v])=>[k,Math.round(v*10)/10]))});
+  D.load=s=>{if(!s)return D;D.swap(s.id||D.id);D.cover=clamp(s.cover!=null?s.cover:D.max,0,D.max);D.min=s.min!=null?s.min:D.cover;D.started=s.started|0;D.excused=s.excused|0;
+    D.met=Object.assign({},s.met||{});D.watch=Object.assign({},s.watch||{});D.timers={};D.blown=D.cover<=0;
+    const n=s.draws|0;while(draws<n)rnd();return D};
+  return D}
+
+const Social={_ver:1,TABLE,MOODS,REGS,BEST,DRIFT,rng,convo,check,DISGUISES,COVER,cover};
 HT.Social=Social;
 if(typeof module!=='undefined'&&module.exports)module.exports=Social;
 if(typeof document==='undefined'||!document.createElement||!document.body)return;
