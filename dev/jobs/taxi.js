@@ -9,7 +9,7 @@ const SHOTS=!!arg('shots'),DIR=path.join(__dirname,'../../docs/screenshots/jobs/
   const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(DIR,{recursive:true});await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(DIR,n+'.jpg'),type:'jpeg',quality:84});console.log('  shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>{});await p.waitForTimeout(300);
   await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);await window.HT.People.preload(['son','daughter','thug_hoodie','thug_brown','thug_beanie']).catch(()=>{})});
-  const o={fail:!!arg('fail'),zip:!!arg('zip'),skipItem:!!arg('skip-item'),max:+arg('max')||13};
+  const o={fail:!!arg('fail'),zip:!!arg('zip'),skipItem:!!arg('skip-item'),lazy:!!arg('lazy'),max:+arg('max')||13};
   const st=await ev(([o,item,carT])=>{const H=window.__ht,a=H.jobs.api;
     if(carT){const c=a.L.cars.find(c=>c.type===carT);if(c){c.pos.set(a.VAN.pos.x+6,0,a.VAN.pos.z);a.syncCar(c);window.__car=c}}
     if(window.__viaRing){const i=H.jobs.index('taxi'),d=H.L.dests[i];H.JOB=i}

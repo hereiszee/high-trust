@@ -16,7 +16,7 @@
      After 1.1 s stuck it tries to go around (±2.9 m), so you have to shuffle to stay in its way.
    ===================================================================== */
 (function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;const SX=()=>window.HT.Stops;
-const T={reverse:1.4,soft:30,v:12.5,turn:1.8,pad:2,hardOrtho:50,hardHome:50,dwell:{pickup:5,drop:4,errand:6,appt:7,bikes:6,home:2},bikesAllow:48,scale:8,
+const T={rattled:9.5,reverse:1.4,soft:30,v:12.5,turn:1.8,pad:2,hardOrtho:50,hardHome:50,dwell:{pickup:5,drop:4,errand:6,appt:7,bikes:6,home:2},bikesAllow:48,scale:8,
   thiefSpeed:12.5,thiefDelay:7,blockNeed:3,swerveAfter:1.1,swerveOff:2.9,noticeD:38,abandonR:70,seatsNeed:5,itemPay:50,stopPay:40,smoothPay:100,videoPay:30};
 const hyp=Math.hypot,pickA=a=>a[Math.floor(Math.random()*a.length)];
 const ITEMS=[{k:1,id:'shin',name:'shin guard',owner:'ava',where:'Linden Park',
@@ -242,6 +242,11 @@ function tick(dt,M,F){const a=A(),L_=M.live,S=L_.S,C=L_.C,K=L_.K,P_=places();
   if(driving)C.update(dt,car,{riders:kids.length,mood:L_.R.mood(kids.filter(r=>r.likes)),offRoad});
   L_.R.update(dt,(w,x,o)=>{if(!L_.Q.busy())say(M,w,x,Object.assign({prio:0,ttl:3},o))});L_.Q.update(dt);K.update(dt,car);
   if(driving&&a.keys.r&&!L_.keys.r)L_.R.next();L_.keys.r=!!a.keys.r;
+  /* honking at the school is a social event */
+  if(driving&&a.keys.h&&!L_.keys.h){const sc=places().school;if(hyp(car.pos.x-sc.x,car.pos.z-sc.z)<30&&kids.concat(L_.K.list.filter(r=>r.state==='boarding')).some(r=>r.id==='maddie')||(L_.busy&&L_.busy.s.id==='school1')){C.v=Math.max(5,C.v-4);
+      sayAll(M,[['Maddie',pickA(["Did you just HONK? At the SCHOOL?","Dad. Everyone LOOKED.","I'm changing schools. I'm changing my name."])]],{prio:2,ttl:4})}
+    else if(L_.enc&&L_.enc.state==='drive')say(M,'Tyler',pickA(["HONK AGAIN! HONK AGAIN!","That's the dad horn. They know what it means."]),{prio:1,ttl:3})}
+  L_.keys.h=!!a.keys.h;
   for(const k of['1','2'])L_.keys['p'+k]=L_.keys[k],L_.keys[k]=!!a.keys[k];
   chatter(dt,M,kids,driving);
   /* the kids are never left alone, and nobody wrecks the van with them in it */
@@ -356,7 +361,7 @@ function encounter(dt,M,F){const a=A(),L_=M.live,E=L_.enc,P_=places(),K=L_.K,car
     if(near<9&&!E.said.kids){E.said.kids=1;say(M,'Kid in the passenger seat',"Not with kids in it, man, are you crazy?",{prio:3,ttl:5})}
     const holding=(cr.blocked&&cr.spd<1.5||cr.revT>0)&&a.CV&&Math.abs(a.CV.spd)<4;
     if(holding&&!E.rec){E.rec=true;say(M,'Maddie',"I'm filming this. For evidence. And also for content.",{prio:3,ttl:10})}
-    if(holding){E.block+=dt;if(cr.revT<=0)E.stuck+=dt;if(E.stuck>T.swerveAfter){E.stuck=0;const bs=cr.lastSide||0,side=Math.abs(bs)>.4?-Math.sign(bs):(Math.random()<.5?1:-1);cr.want=side*T.swerveOff;cr.reverse(T.reverse);say(M,'Kid driving',pickA(["Go around! GO AROUND!","Other side! Other side!","Why is he so good at parking?!","Back up! Back UP!"]),{low:true})}}
+    if(holding){E.block+=dt;if(cr.revT<=0)E.stuck+=dt;if(E.stuck>T.swerveAfter){E.stuck=0;const bs=cr.lastSide||0,side=Math.abs(bs)>.4?-Math.sign(bs):(Math.random()<.5?1:-1);cr.want=side*T.swerveOff;cr.reverse(T.reverse);cr.max=T.rattled;/* rattled: slower after a stand-off */say(M,'Kid driving',pickA(["Go around! GO AROUND!","Other side! Other side!","Why is he so good at parking?!","Back up! Back UP!"]),{low:true})}}
     else{E.block=Math.max(0,E.block-dt*.5);if(!cr.blocked){E.stuck=0;if(cr.spd>6)cr.want*=Math.max(0,1-dt*.5)}}
     if(E.block>=T.blockNeed){E.state='bail';blocked(M)}
     else if(cr.done){return a.endMission(false,"They made the bridge. Rick got the plate. Officer Dana says 'next time, block the road'.","The bikes got away.")}
@@ -498,8 +503,8 @@ function bot(a,t,o){const M=a.M;if(!M||M.state!=='go'||!M.live)return null;const
     /* get ahead of it on its route (never behind the van) and stop in its lane; follow its swerve */
     const cr=E.cr,van={x:a.CV.pos.x,z:a.CV.pos.z};let ps=0,pd=1e9;for(let s_=0;s_<=cr.total;s_+=2){const q=SX().polyAt(cr.pts,s_),d=hyp(q.x-van.x,q.z-van.z);if(d<pd){pd=d;ps=s_}}
     if(!L_.blk||(cr.d>L_.blk.s-3&&!cr.blocked&&cr.spd>3&&cr.revT<=0))L_.blk={s:Math.min(cr.total-6,Math.max(cr.d+38,ps+5))};
-    const sw=cr.want?6:0,q=SX().polyAt(cr.pts,L_.blk.s+sw),rx=Math.cos(q.yaw),rz=-Math.sin(q.yaw);
-    driveTo(a,{x:q.x+rx*cr.want*.95,z:q.z+rz*cr.want*.95},{stop:true,r:1.2,max:15});return null}
+    const wnt=o.lazy?0:cr.want,sw=wnt?6:0,q=SX().polyAt(cr.pts,L_.blk.s+sw),rx=Math.cos(q.yaw),rz=-Math.sin(q.yaw);
+    driveTo(a,{x:q.x+rx*wnt*.95,z:q.z+rz*wnt*.95},{stop:true,r:1.2,max:15});return null}
   /* the forgotten item, then the next stop */
   const it=M.item,S=L_.S;let tgt=null;if(L_.busy){stopKeys();k[' ']=Math.abs(a.CV.spd)>.3;return null}
   if(it&&it.noticed&&!it.done&&!it.lost&&!o.skipItem){const s=S.stops[it.k];tgt={x:s.x,z:s.z}}
