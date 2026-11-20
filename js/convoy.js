@@ -144,7 +144,7 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
       if(hit&&hit.speed>1)ev.hits.push({m,speed:hit.speed,front:hit.front});
       record(m,dt);if(m.st!==st0)ev.changed.push(m)}
     /* contacts between convoy cars (and the lead car, if it's a car): push apart, dent both */
-    const ents=C.cars.filter(m=>m.st!=='park');if(C.lead&&!C.head&&C.lead.car.stats)ents.push(C.lead);
+    const ents=C.cars.filter(m=>m.st!=='park');if(C.lead&&C.lead.car.stats)ents.push(C.lead);
     for(let a=0;a<ents.length;a++)for(let b=a+1;b<ents.length;b++){const A_=ents[a].car,B_=ents[b].car;if(hyp(A_.x-B_.x,A_.z-B_.z)>6)continue;
       const fa=fwd(A_.yaw),ahead=(B_.x-A_.x)*fa[0]+(B_.z-A_.z)*fa[1]>0;const rear=ahead?A_:B_,front=ahead?B_:A_;
       const h1=rear.hp,h2=front.hp;const r=CA.ram(rear,front);if(!r)continue;rear.hp=h1;front.hp=h2;
