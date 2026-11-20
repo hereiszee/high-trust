@@ -58,7 +58,7 @@ const SEAMS=[284.2,303.8],SEAM_Z=[39.6,46.4];
 const BAR={x:384.2,z0:12,z1:18};                        /* Earl's barricade across Oak St, east of 3rd St */
 const PARK={x:390.6,z:16.5,yaw:-Math.PI/2};             /* by the court's north gate */
 const VAN_AFTER={x:367,z:16.5,yaw:-Math.PI/2},VAN_PARK={x:34.5,z:69.2,yaw:Math.PI/2},START_AT={x:47.6,z:67.6};
-const TABLES=[{x:398.4,z:13.2},{x:403.2,z:13.2},{x:408,z:13.2}],BTABLE={x:403.2,z:13.2};
+const TABLES=[{x:401.35,z:13.2},{x:403.2,z:13.2},{x:405.05,z:13.2}],BTABLE={x:403.2,z:13.2};
 
 /* ---------------- dialogue ---------------- */
 const L={
@@ -175,7 +175,7 @@ function textures(){if(TX)return TX;
   const closed=sign([['ROAD CLOSED','bold',70],['BLOCK PARTY','bold',58]],'#fbfbf5','#c2341f');
   const party=sign([['BLOCK PARTY','bold',96],['everybody welcome','italic',44]],'#2f6db5','#fff7e0',768,224);
   const card=sign([['RESERVED','bold',58],['for the brisket','italic',40]],'#fffdf4','#3a2a20',256,160);
-  const slow=sign([['SLOW','bold',120]],'rgba(0,0,0,0)','#f4f1e8',256,128);
+  const slow=canvasTex(512,256,(g,W,Hh)=>{g.clearRect(0,0,W,Hh);g.fillStyle='rgba(244,241,232,.92)';g.font='bold 190px Arial';g.textAlign='center';g.fillText('SLOW',W/2,Hh*.8)});
   /* sauce splats for the cab's back window: drawn into as the sauce hits it */
   const splat=canvasTex(256,128,(g,w,h)=>{g.clearRect(0,0,w,h)});
   /* the probe's readout */
@@ -184,7 +184,7 @@ function textures(){if(TX)return TX;
 
 /* ---------------- the cargo meshes (children of the truck body, so they roll and pitch with it) ---------------- */
 function mats(){const t=textures();if(mats.m&&mats.m.t===t)return mats.m;
-  return mats.m={t,foil:M3({map:t.foil,color:'#f4f6f9',metalness:.35,roughness:.3,emissive:'#2a2d31'}),foilIn:M3({map:t.foil,color:'#d9dde2',metalness:.3,roughness:.4,side:A().THREE.DoubleSide}),
+  return mats.m={t,foil:M3({map:t.foil,color:'#ffffff',metalness:.15,roughness:.28,emissive:'#4a4e54'}),foilIn:M3({map:t.foil,color:'#eef1f4',metalness:.12,roughness:.35,emissive:'#33363b',side:A().THREE.DoubleSide}),
     bark:M3({map:t.bark,roughness:.62}),barkWet:M3({map:t.bark,roughness:.28,color:'#a36a4a'}),slice:M3({map:t.slice,roughness:.5}),fat:M3({color:'#e9d3b0',roughness:.4}),
     quilt:M3({map:t.quilt,roughness:.95,side:A().THREE.DoubleSide}),red:M3({color:'#c4322a',roughness:.45}),white:M3({color:'#f1efe8',roughness:.5}),grey:M3({color:'#8d9298',roughness:.5,metalness:.3}),
     steel:M3({color:'#c4c8cd',metalness:.85,roughness:.25}),steel2:M3({color:'#c4c8cd',metalness:.85,roughness:.28,side:A().THREE.DoubleSide}),steelD:M3({color:'#7d8288',metalness:.8,roughness:.35}),sauce:M3({color:'#5a1a0c',roughness:.18}),
@@ -203,7 +203,7 @@ function pan(w,d,h,parent){const T3=A().THREE,m=mats(),g=new T3.Group();parent&&
 function tent(w,d,h,cover,parent){const T3=A().THREE,m=mats(),L_=d*cover,g0=geo(new T3.PlaneGeometry(w*1.04,L_,8,12)),p=g0.attributes.position;
   for(let i=0;i<p.count;i++){const x=p.getX(i),u=x/(w*1.04)+.5;p.setZ(i,h*(Math.sin(Math.PI*clamp(u,0,1))*.6+.4)+rr(-.007,.007))}
   g0.computeVertexNormals();g0.rotateX(-Math.PI/2);const t=mesh(g0,m.foil,0,0,-(d-L_)/2,parent);
-  const roll=geo(new T3.CylinderGeometry(.024,.028,w*1.02,10,1,true));const r=mesh(roll,m.foilIn,0,h*.55,-d/2+L_,parent);r.rotation.z=Math.PI/2;return t}
+  const roll=geo(new T3.CylinderGeometry(.024,.028,w*1.02,10,1,true));const r=mesh(roll,m.foilIn,0,h*.55,-d/2+L_,parent);r.rotation.z=Math.PI/2;t.userData.roll=r;return t}
 function buildCargo(M,body){const T3=A().THREE,m=mats(),bed=new T3.Group();bed.name='cargoBed';body.add(bed);M.bed=bed;
   /* the moving blanket, bunched at the edges */
   const bl=geo(new T3.PlaneGeometry(1.62,1.7,16,16)),bp=bl.attributes.position;for(let i=0;i<bp.count;i++){const x=bp.getX(i),y=bp.getY(i),e=Math.max(Math.abs(x)/.81,Math.abs(y)/.85);bp.setZ(i,(e>.88?(e-.88)*.9:0)+Math.sin(x*14+y*9)*.006)}
@@ -435,7 +435,7 @@ function hit(M,kind,dmg,o){const a=A(),St=M.S;o=o||{};const v=o.v||0;
   M.jv=(M.jv||0)+sv*.55;
   if(sv>.5){try{const FX=window.HT&&HT.FX;if(FX&&FX.shake)FX.shake(Math.min(.35,sv*.09))}catch(_){}
     try{const Au=window.HT&&HT.Audio,p=M.truck&&M.truck.pos;if(Au&&Au.ready&&Au.impact&&p){Au.impact(kind==='crash'?'metal':'concrete',{x:p.x,y:.6,z:p.z});if(sv>1)Au.impact('metal',{x:p.x,y:1,z:p.z})}}catch(_){}}}
-function hurt(M,d,kind){const St=M.S;if(!(d>0))return;St.integ=Math.max(0,St.integ-d);M.lastHurt=M.elapsed;M.hurtPulse=Math.min(1,(M.hurtPulse||0)+d*.12);if(kind)St.by[kind]=(St.by[kind]||0)+d}
+function hurt(M,d,kind){const St=M.S;if(!(d>0))return;St.integ=Math.max(0,St.integ-d);M.lastHurt=M.elapsed;M.hurtPulse=Math.min(1,(M.hurtPulse||0)+(d>.5?d*.15:0));if(kind)St.by[kind]=(St.by[kind]||0)+d}
 /* a timeline that runs on the job's own clock (no wall-clock timers) */
 function setTimeoutT(M,t,fn){(M.tl||(M.tl=[])).push({at:M.elapsed+t,fn})}
 function tlTick(M){if(!M.tl||!M.tl.length)return;for(let i=0;i<M.tl.length;i++){const q=M.tl[i];if(q.at<=M.elapsed){M.tl.splice(i--,1);try{q.fn()}catch(e){console.warn('[cargo]',e)}}}}
@@ -744,7 +744,7 @@ function sceneTick(M,dt,F){const a=A(),S=M.S,sc=M.sc;sc.t+=dt;sc.st+=dt;const e=
     if(sc.st>.6&&it.g.parent===dv.root){dv.root.remove(it.g);M.partyG.add(it.g);it.g.position.set(M.spot.x,M.spot.y,M.spot.z);it.g.rotation.set(0,Math.PI/2,0);if(M.card)M.card.visible=false}
     if(sc.st>1.4){next('reveal');reveal(M)}crowdTick(M,dt,{x:BTABLE.x,z:BTABLE.z})}
   else if(sc.step==='reveal'){pose(dv,dt);pose(dg,dt);crowdTick(M,dt,{x:BTABLE.x,z:BTABLE.z});if(M.garyFoot){face(M.garyFoot,BTABLE.x,BTABLE.z,dt);pose(M.garyFoot,dt)}
-    if(it.tent){it.tent.rotation.x=Math.min(1.9,(it.tent.rotation.x||0)+dt*2.2);it.tent.position.y=.075+Math.min(.12,sc.st*.1)}
+    if(it.tent&&it.tent.visible){/* the foil comes off: lifted, folded back, set aside */const k=Math.min(1,sc.st/1.1);it.tent.position.y=.075+Math.sin(k*Math.PI)*.12;it.tent.position.z=-.135-k*.35;it.tent.rotation.x=-k*.5;if(k>=1)it.tent.visible=false;if(it.tent.userData.roll)it.tent.userData.roll.visible=k<.3}
     if(sc.st>3&&!talking()&&sc.st>9){next('hustlers');hustlersWalk(M)}}
   else if(sc.step==='hustlers'){pose(dv,dt);crowdTick(M,dt,M.hzFoot&&M.hzFoot[0].d.root.position);let there=true;
     for(const h of M.hzFoot){if(!walkTo(h.d,h.to,1.5,dt))there=false}if(there&&!M.hzSaidFoot){M.hzSaidFoot=1;sayAll(L.hzFoot,true)}
@@ -835,13 +835,13 @@ function hudTick(M,st){const a=A(),S=M.S,e=M.truck;
   if(M.gb){const g=M.g,sc=56,x=clamp(g.lat,-1.15,1.15)*sc,y=clamp(-g.lon,-1.15,1.15)*sc,m=g.mag;M.gb.dot.setAttribute('cx',x.toFixed(1));M.gb.dot.setAttribute('cy',y.toFixed(1));
     M.gb.dot.setAttribute('fill',m<K.latT?'#7dffb0':m<.7?'#ffd36b':'#ff6b5a');
     const pts=g.trail.map(p=>(clamp(p[0],-1.15,1.15)*sc).toFixed(1)+','+(clamp(-p[1],-1.15,1.15)*sc).toFixed(1)).join(' ');if(pts!==M.gb.last){M.gb.last=pts;M.gb.tr.setAttribute('points',pts)}
-    M.gb.g.textContent=m.toFixed(2)+' g';M.gb.s.textContent=S.hard?('Hard brakes: '+S.hard):'No hard brakes';M.gb.box.classList.toggle('hot',m>=.7||(M.hurtPulse||0)>.4)}
+    M.gb.g.textContent=m.toFixed(2)+' g';M.gb.s.textContent=S.hard?('Hard brakes: '+S.hard):'No hard brakes';M.gb.box.classList.toggle('hot',m>=.7||(M.hurtPulse||0)>.6)}
   M.hurtPulse=Math.max(0,(M.hurtPulse||0)-.05);
   if(M.bal&&M.carry){const t=clamp(M.carry.tau,-1,1);M.bal.tray.setAttribute('transform','rotate('+(t*45).toFixed(1)+')');const ang=-Math.PI/2+t*Math.PI/4*1.0;
     M.bal.dot.setAttribute('cx',(Math.cos(ang)*110).toFixed(1));M.bal.dot.setAttribute('cy',(Math.sin(ang)*110).toFixed(1));M.bal.dot.setAttribute('fill',Math.abs(t)<.5?'#7dffb0':Math.abs(t)<.75?'#ffd36b':'#ff6b5a')}
   /* the chase camera a little higher and closer: you can see into the bed */
   if(e&&a.CV===e&&!a.P.fp&&S.ph!=='scene'){const cam=a.camera,gy=a.groundAt(e.pos.x,e.pos.z),tx=e.pos.x,tz=e.pos.z,dx=cam.position.x-tx,dz=cam.position.z-tz,dl=Math.hypot(dx,dz);
-    if(dl>4){const k=Math.max(.6,7.6/dl);cam.position.x=tx+dx*k;cam.position.z=tz+dz*k;cam.position.y=Math.max(cam.position.y,gy+3.55);cam.lookAt(tx,gy+1.05,tz)}}
+    if(dl>4){const k=Math.max(.6,6.9/dl);cam.position.x=tx+dx*k;cam.position.z=tz+dz*k;cam.position.y=Math.max(cam.position.y,gy+3.4);cam.lookAt(tx,gy+1.05,tz)}}
   if(st.vehicleName!=null&&e&&a.CV===e)st.vehicleName="Big Dave's truck";}
 
 /* ================================================================= cleanup: when the job is over, everything this run made goes */
