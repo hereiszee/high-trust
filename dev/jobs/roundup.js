@@ -13,8 +13,14 @@ const NOSHOTS=!!arg('noshots',false),QUIET=!!arg('quiet',false),OUT=path.resolve
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});const ev=(f,a)=>p.evaluate(f,a);fs.mkdirSync(OUT,{recursive:true});
   const stream=()=>p.evaluate(async()=>{const H=window.__ht;try{H.ow.buildAll()}catch(_){}for(let i=0;i<60&&H.assets.stream&&!H.assets.stream.idle();i++){H.draw();await new Promise(r=>setTimeout(r,400))}H.draw();H.draw()});
-  const shot=async(n,cam)=>{if(NOSHOTS)return;await ev(c=>{window.__ruCam=c||null},cam||null);await stream();
-    await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
+  const held={};const setKey=async(k,on)=>{if(!!held[k]===!!on)return;held[k]=!!on;if(on)await p.keyboard.down(k);else await p.keyboard.up(k)};
+  const shot=async(n,cam)=>{if(NOSHOTS)return;for(const k of Object.keys(held))await setKey(k,false);/* hands off the keys while the page runs live */await ev(c=>{window.__ruCam=c||null},cam||null);await stream();
+    /* a title banner letterboxes the HUD for a few real seconds: let it finish (the live frames are short; the job barely moves) */
+    for(let i=0;i<10;i++){await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(500);await ev(()=>{window.__rafOn=false});if(!(await ev(()=>!!document.querySelector('.cine'))))break}
+    if(await ev(()=>!!document.querySelector('.cine')))console.log('  (still letterboxed: '+n+')');
+    /* (harness artifact: the banner adds its letterbox in a requestAnimationFrame, which this paused-frame harness only runs later,
+       after the banner has already ended; in the live game the add runs at once and the end removes it) */
+    await ev(()=>{if(!document.querySelector('.cine'))document.querySelectorAll('.lbx').forEach(e=>e.classList.remove('lbx'))});await ev(()=>window.__ht.draw());
     await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});await ev(()=>{window.__ruCam=null});console.log('  shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
   await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('roundup');const pr=j.test.give(H.jobs.api);if(pr)await Promise.race([pr,new Promise(r=>setTimeout(r,30000))]);try{const sv=H.save;if(sv&&sv.flags){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,3)}}catch(_){}H.enterHub();H.step(2)});
@@ -44,8 +50,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* ---- play: the bot decides, the keyboard acts ---- */
   await ev(()=>{const H=window.__ht,a=H.jobs.api,T=window.__T={log:[],t:0,ev:{}};const r0=a.radio;a.radio=function(w,t,f){T.log.push(['@'+(H.M?H.M.t.toFixed(0):0),'  '+w+': '+t]);return r0.apply(this,arguments)};
     const f0=a.feed;a.feed=function(t,k,s){T.log.push(['@'+(H.M?H.M.t.toFixed(0):0),'  [feed] '+t+(s?' · '+s:'')]);return f0.apply(this,arguments)};
-    T.decide=()=>{const M=H.M;if(!M||M.state!=='go')return{end:M&&M.state};const j=H.jobs.registry.get('roundup');j.test.step(a,T.t,{real:true});
-      const k=H.keys,o={w:!!k.w,a:!!k.a,s:!!k.s,d:!!k.d,e:!!k.e,tap:!!a.useTap,press:M.bot&&M.bot.press||null};for(const x of['w','a','s','d','e'])k[x]=false;a.useTap=false;return o};
+    T.decide=held=>{const M=H.M;if(!M||M.state!=='go')return{end:M&&M.state};const j=H.jobs.registry.get('roundup');j.test.step(a,T.t,{real:true});
+      const k=H.keys,o={w:!!k.w,a:!!k.a,s:!!k.s,d:!!k.d,e:!!k.e,tap:!!a.useTap,press:M.bot&&M.bot.press||null};/* the bot only says what it wants; the page's key state stays what the real keyboard says */for(const x of['w','a','s','d','e'])k[x]=!!(held&&held[x]);a.useTap=false;return o};
     T.step=n=>{for(let i=0;i<n;i++){H.P.hp=Math.max(H.P.hp,60);H.step(1);T.t++;const M=H.M;if(!M)break;const ph=M.ph+'/'+M.stage;if(ph!==T.ph){T.ph=ph;T.log.push(['@'+M.t.toFixed(0),'== '+ph])}
       if(M.light&&M.light.forced&&!T.ev.yellow){T.ev.yellow=M.t.toFixed(1);T.log.push(['@'+M.t.toFixed(0),'   light forced yellow, lead '+M.LEAD.x.toFixed(1)])}
       if(M.light&&M.light.st==='r'&&M.C)for(const m of M.C.cars){if(m.car.x>184.2&&m.car.x<200&&Math.abs(m.car.z-41.5)<3&&m.car.spd<.4&&!(T.ev['red_'+m.id])){T.ev['red_'+m.id]=1;T.log.push(['@'+M.t.toFixed(0),'   '+m.id+' stopped at the red'])}}
@@ -53,11 +59,10 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       if(M.lastRun&&T.ev.lastRun!==M.lastRun){T.ev.lastRun=M.lastRun;T.log.push(['@'+M.t.toFixed(0),'   '+M.lastRun.key+' ran the '+M.lastRun.st])}
       if(M.pursuit&&!M.pursuit.gone){const sh=Math.floor(M.pursuit.shake/20);if(sh!==T.sh){T.sh=sh;T.log.push(['@'+M.t.toFixed(0),'   shake '+Math.round(M.pursuit.shake)+' (blocked '+M.blocks.toFixed(1)+' s, brake checks '+M.brakeChecks+')'])}}
       if(M.state!=='go')break}return H.M&&H.M.state}});
-  const held={};const setKey=async(k,on)=>{if(!!held[k]===!!on)return;held[k]=!!on;if(on)await p.keyboard.down(k);else await p.keyboard.up(k)};
   const keysUsed={};const press=async k=>{keysUsed[k]=(keysUsed[k]||0)+1;await p.keyboard.press(k)};
   const W={};const want=(n,f)=>{W[n]=f};let tested=false;
   await p.mouse.click(640,360).catch(()=>{});/* (asks for pointer lock; every action below is a key either way) */
-  for(let tick=0;tick<9000;tick++){const d=await ev(()=>window.__T.decide());if(d.end)break;
+  for(let tick=0;tick<9000;tick++){const d=await ev(h=>window.__T.decide(h),held);if(d.end)break;
     for(const k of['w','a','s','d'])await setKey(k,d[k]);await setKey('e',d.e);if(d.tap)await press('e');if(d.press)await press(d.press);
     /* the convoy orders, once, while the line is rolling on Route 9 and before the chase */
     if(!tested){const c=await ev(()=>{const M=window.__ht.M;return M&&M.ph==='convoy'&&!M.pursuit&&M.C&&M.C.cars.filter(m=>m.st==='line').length>=2&&M.LEAD.x<236&&M.LEAD.z<46});

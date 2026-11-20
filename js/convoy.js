@@ -135,9 +135,10 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
         /* pace the whole line: the worst stretch between any two rolling cars behind */
         let worst=0;for(let q=1;q<ch.length;q++){const a=ch[q-1],b=ch[q];if(b.st==='wait'||b.st==='park'||b.st==='join'||b.st==='out')break;worst=Math.max(worst,hyp(a.car.x-b.car.x,a.car.z-b.car.z)-(a.len+b.len)/2-gap)}
         if(worst>k.headWaitD)v=0;else if(worst>k.headSlack)v=k.headCruise*.5
-        if(C.holding)v=0;const nr=nearest(pts,c.x,c.z);if(nr&&nr.i>2){m.route=pts=pts.slice(nr.i)}}
+        if(C.holding)v=0;m.onRoute=true}
       else if(m.st==='park'){/* in its bay, engine running: go when the car in front is past the join's end */
-        v=0;pts=m.join;const e=m.join[m.join.length-1];if(!p||p.st==='park'||p.st==='join'){/* wait */}
+        v=0;pts=m.join;const e=m.join[m.join.length-1];if(!p||p.st==='park'){/* wait */}
+        else if(p.st==='join'){/* the one ahead is pulling out too: follow it down the rails once it's a few lengths along (lane gaps keep them apart) */if((p.js||0)>12&&!C.holding)m.st='join'}
         else{/* the car in front must have actually been past the end of the rail (its trail goes through it), and be a gap beyond it */
           const pd=hyp(p.car.x-e.x,p.car.z-e.z),been=p.crumbs.some(q=>hyp(q.x-e.x,q.z-e.z)<4.5),ok=been&&(p===C.lead?pd>gap+3:pd>gap+m.len);if(ok&&!C.holding){m.st='join'}}}
       if(m.st==='join'){/* out of the bay on rails: the join path is authored and checked clear, and a parking lot is no place for an AI to improvise */
@@ -166,7 +167,11 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
       if(pts&&pts.length>2&&m.st!=='park'){const b=bendAhead(pts,1,Math.max(10,c.spd*1.4));if(b>.45)v=Math.min(v,Math.max(k.turnSpeed*(1.25-b*.35),4.5))}
       m.want=v;m.signal=pts?turnAhead(pts,1,16):0;
       if(!pts||pts.length<2){c.spd=Math.max(0,c.spd-k.dadBrake*dt);record(m,dt);continue}
-      slide(c,pts,v,dt);
+      if(m.st==='head'){/* a route is driven by progress along it, not by projection (a route can fold back on itself at a turnaround) */
+        if(m.routeRef!==pts){m.routeRef=pts;m.rs=0}const tot=arcLen(pts);if(c.spd<v)c.spd=Math.min(v,c.spd+(c.stats&&c.stats.accel||9)*dt);else c.spd=Math.max(v,c.spd-k.dadBrake*dt);
+        m.rs=Math.min(tot,m.rs+c.spd*dt);if(m.rs>=tot)c.spd=0;const q=pointAt(pts,m.rs),qa=pointAt(pts,Math.max(0,m.rs-1.8)),qb=pointAt(pts,Math.min(tot,m.rs+1.8));c.x+=(q.x-c.x)*Math.min(1,dt*8);c.z+=(q.z-c.z)*Math.min(1,dt*8);
+        if(hyp(qb.x-qa.x,qb.z-qa.z)>.3){const y0=c.yaw;c.yaw+=wrap(yawTo(qb.x-qa.x,qb.z-qa.z)-c.yaw)*Math.min(1,dt*5);c.steer=clamp(wrap(c.yaw-y0)/Math.max(dt,1e-3)*.45,-1,1)}}
+      else slide(c,pts,v,dt);
       record(m,dt);if(m.st!==st0)ev.changed.push(m)}
     /* contacts between convoy cars (and the lead car, if it's a car): push apart, dent both */
     const ents=C.cars.filter(m=>m.st!=='park');if(C.lead&&C.lead.car.stats)ents.push(C.lead);

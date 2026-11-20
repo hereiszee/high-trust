@@ -30,7 +30,7 @@ const K={pay:1100,par:420,clock:600,perVan:100,hubcaps:250,hubcapFrac:.9,fee:200
   findR:4.2,relayR:2.2,relayNoise:6,sparkNoise:9,crewWalk:2.6,
   shoveClear:4.3,shoveHard:7.5,hitchFollow:6.4,
   lightG:9,lightY:3,lightR:10,yellowAt:22,
-  pursueAt:6,chase:17.5,chaseFar:20,harassGap:1.6,blockD:16,shakeBlock:17,shakeBrake:34,shakeRam:16,shakeDecay:.8,giveUpD:90,
+  pursueAt:6,chase:17.5,chaseFar:20,harassGap:1.6,blockD:16,shakeBlock:13,shakeBrake:34,shakeRam:16,shakeDecay:.8,giveUpD:90,
   peelR:16,wreckFail:2,minVans:3,speedNag:17.5};
 const D2R=Math.PI/180,clamp=(v,a,b)=>v<a?a:v>b?b:v,wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a};
 const fwd=y=>[-Math.sin(y),-Math.cos(y)],rgt=y=>[Math.cos(y),-Math.sin(y)],yawTo=(dx,dz)=>Math.atan2(-dx,-dz),hyp=Math.hypot;
@@ -57,7 +57,7 @@ const FLEET=[
   {id:'pat',fam:'Patels',bay:{x:271.75,z:68.75,yaw:0},col:'#eeeee8',up:{rims:'alloy'},decor:'stickfam',boxed:{x:272.2,z:63.4,yaw:-Math.PI/2,col:'#3a3f47',push:[1,0]},
     home:{x:130,z:47.4,yaw:Math.PI/2,side:1},people:['nb_marcus','nb_teen'],parent:'Mr. Patel',kid:'Patel kid',
     find:"The Patels'. Stick-figure family on the back window. They added the dog. The dog has a little bow."},
-  {id:'kow',fam:'Kowalskis',bay:{x:271.75,z:73.25,yaw:Math.PI},col:'#a7aeb5',up:{roofRack:true,rims:'steel'},decor:'noodles',boxed:{x:272.2,z:78.5,yaw:-Math.PI/2,col:'#6b2a2a',push:[1,0]},
+  {id:'kow',fam:'Kowalskis',bay:{x:271.75,z:73.25,yaw:Math.PI},col:'#a7aeb5',up:{roofRack:'rails',rims:'steel'},decor:'noodles',boxed:{x:272.2,z:78.5,yaw:-Math.PI/2,col:'#6b2a2a',push:[1,0]},
     home:{x:145,z:38.6,yaw:Math.PI/2,side:-1},people:['nb_gran'],parent:'Grandma Kowalski',kid:null,
     find:"Kowalskis'. 'Baby on Board' in the back window, cracked. Their baby is fourteen. The sign stays."},
   {id:'gar',fam:'Garcias',bay:{x:266.75,z:83.75,yaw:0},col:'#9aa3ab',up:{rims:'steel'},decor:'bikerack',boxed:null,
@@ -214,7 +214,6 @@ function atlas(){const R=res();if(R.atlas)return R.atlas;const W=1024,Hh=1024;co
     g.beginPath();g.ellipse(x+430,y+128,36,16,0,0,6.3);g.fill();g.beginPath();g.arc(x+468,y+112,12,0,6.3);g.fill();g.lineWidth=6;g.beginPath();g.moveTo(x+400,y+136);g.lineTo(x+400,y+152);g.moveTo(x+455,y+136);g.lineTo(x+455,y+152);g.moveTo(x+396,y+122);g.lineTo(x+380,y+108);g.stroke();
     g.fillStyle='#ff6fa8';g.beginPath();g.moveTo(x+470,y+98);g.lineTo(x+484,y+90);g.lineTo(x+484,y+106);g.closePath();g.fill()});
   put('magnet',256,128,(g,x,y)=>{g.fillStyle='#151515';rr(g,x+4,y+6,248,116,30);g.fill();g.fillStyle='#f6c21a';g.font='bold 34px Arial';g.textAlign='center';g.fillText('HORNETS',x+150,y+56);g.font='bold 52px Arial';g.fillText('#7',x+150,y+108);bee(g,x+52,y+64,1.1)});
-  put('plate',256,128,(g,x,y)=>{g.fillStyle='#f6f6f0';g.fillRect(x,y,256,128);g.strokeStyle='#22314d';g.lineWidth=6;g.strokeRect(x+4,y+4,248,120);g.fillStyle='#1d2c4f';g.font='bold 22px Arial';g.textAlign='center';g.fillText('MAPLE HEIGHTS',x+128,y+30);g.font='bold 58px Arial';g.fillText('SOCR MOM',x+128,y+96)});
   const c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d');g.clearRect(0,0,W,Hh);for(const r of regs){g.save();r.draw(g,r.x,r.y);g.restore()}
   const T=T3(),t=new T.CanvasTexture(c);if(T.sRGBEncoding)t.encoding=T.sRGBEncoding;t.anisotropy=8;T_(t);
   R.atlas={tex:t,mat:M_(new T.MeshStandardMaterial({map:t,transparent:true,alphaTest:.35,roughness:.45,metalness:0,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,side:T.DoubleSide}))};return R.atlas}
@@ -229,7 +228,6 @@ function vanModel(f){const a=A(),obj=a.makeVehicle('minivan',f.col,Object.assign
   /* the Hornets hang tag on the mirror and the bee sticker low in the windshield's passenger corner: what you're looking for */
   sticker('tag',.075,.15,hl-1.32,1.36,0,g,ry);sticker('hornets',.17,.17,hl-1.05,1.08,.5,g,ry,-.95);
   /* the back: plate and the family's own stickers */
-  sticker('plate',.36,.18,-hl-.005,.66,0,g,-ry);
   const backS=(n,z,y,w)=>sticker(n,w||.42,(w||.42)/4,-hl+.02,y||.58,z,g,-ry);
   if(f.decor==='roofbox'){backS('honor',-.42);backS('honk',.42)}
   else if(f.decor==='boosters'){backS('marathon',.4);const bm=std('#2a2f38',{roughness:.8}),bb=std('#d23b3b',{roughness:.7});
@@ -240,7 +238,7 @@ function vanModel(f){const a=A(),obj=a.makeVehicle('minivan',f.col,Object.assign
     bx(std('#1b1d20',{roughness:.6}),.02,.03,.8,.55,S.h+.07,0,g);bx(std('#1b1d20',{roughness:.6}),.02,.03,.8,-.85,S.h+.07,0,g)}
   else if(f.decor==='bikerack'){backS('okayest',.42,.58,.44);const steel=std('#2a2c2e',{roughness:.5,metalness:.6}),fr=std('#2fa8d8',{roughness:.4,metalness:.3}),T=T3();
     bx(steel,.5,.05,.05,-hl-.22,.55,0,g);bx(steel,.05,.5,.05,-hl-.45,.78,0,g);bx(steel,.05,.05,1.2,-hl-.45,1.0,0,g);
-    const wg=G_(new T.TorusGeometry(.2,.03,8,18));for(const z of[-.38,.38]){const w=mesh(wg,steel,-hl-.52,.82,z,g,0,0,0)}
+    const wg=G_(new T.TorusGeometry(.2,.03,8,18)),tyreM=std('#1b1c1e',{roughness:.9});for(const z of[-.38,.38]){mesh(wg,tyreM,-hl-.52,.82,z,g,0,Math.PI/2,0)}/* wheels upright, the bike hung across the back */
     bx(fr,.04,.04,.76,-hl-.52,1.0,0,g);bx(fr,.04,.3,.04,-hl-.52,.9,-.12,g);for(const s of[-1,1])bx(std(s>0?'#ff5fa8':'#ffe14a'),.01,.3,.01,-hl-.52,.95,-.4+s*.03,g)}
   return{obj,S}}
 /* the line's indicators: amber blinkers on the four corners, driven by HT.Convoy's signal; hazards via the model's own channel */
@@ -345,10 +343,10 @@ J.register(ID,{
   camera(dt){const a=A(),M=a.M,c=typeof window!=='undefined'?window.__ruCam:null;if(!c||!M||M.def.id!==ID||!M.C)return;const cam=a.camera,LD=M.LEAD;let from=null,to=null;
     const ch=M.C.chain().filter(m=>m!==M.C.lead&&m.st!=='out'),tail=ch[ch.length-1];
     if(c.van&&M.vans[c.van]){const v=M.vans[c.van].c,f=fwd(v.yaw),r=rgt(v.yaw),k=c.rear?-1:1,d=c.d||5.2;from={x:v.x+f[0]*d*k+r[0]*(c.side||1.6),y:c.y||1.7,z:v.z+f[1]*d*k+r[1]*(c.side||1.6)};to={x:v.x+f[0]*1.2*k,y:1.0,z:v.z+f[1]*1.2*k}}
-    else if(c.behind&&tail){const t=tail.car,f=fwd(t.yaw),r=rgt(t.yaw);from={x:t.x-f[0]*9+r[0]*3.5,y:4.2,z:t.z-f[1]*9+r[1]*3.5};const mid=ch[Math.floor(ch.length/2)].car;to={x:(mid.x+LD.x)/2,y:1.2,z:(mid.z+LD.z)/2}}
-    else if(c.light){from={x:LIGHT.x+3,y:5.2,z:36.4};to={x:LD.x+14,y:1.4,z:41.8}}
+    else if(c.behind&&tail){/* up and behind the middle of the line, looking down it to you */const mid=ch[Math.floor(ch.length/2)].car,f=fwd(mid.yaw),r=rgt(mid.yaw);from={x:mid.x-f[0]*16+r[0]*5,y:9,z:mid.z-f[1]*16+r[1]*5};to={x:(mid.x+LD.x)/2,y:.8,z:(mid.z+LD.z)/2}}
+    else if(c.light){/* across the junction, looking east up Route 9 at the line and the signal */from={x:LIGHT.x-9,y:4.5,z:44.5};to={x:LIGHT.x+16,y:1.6,z:41.6}}
     else if(c.chase&&M.pursuit){const p=M.pursuit.c,f=fwd(p.yaw),r=rgt(p.yaw);from={x:p.x-f[0]*8-r[0]*3.2,y:3.6,z:p.z-f[1]*8-r[1]*3.2};to={x:p.x+f[0]*12,y:1.2,z:p.z+f[1]*12}}
-    else if(c.family){const id=Object.keys(M.fam).slice(-1)[0],v=id&&M.vans[id];if(v){const s=v.f.home,side=s.side;from={x:s.x+5.5,y:2.6,z:s.z-side*-7.5};to={x:s.x-1,y:1.2,z:s.z+side*.8}}}
+    else if(c.family){const id=Object.keys(M.fam).slice(-1)[0],v=id&&M.vans[id];if(v){const s=v.f.home,side=s.side;from={x:s.x+6.5,y:2.8,z:s.z-side*8.5};to={x:s.x-1,y:1.1,z:s.z+side*1.6}}}
     if(!from)return;cam.position.set(from.x,a.groundAt(from.x,from.z)+from.y,from.z);cam.lookAt(to.x,a.groundAt(to.x,to.z)+to.y,to.z);return true},
   hud(state){const M=A().M;if(!M||M.def.id!==ID||M.state!=='go')return;panelTick(M)},
 
@@ -681,7 +679,7 @@ function routeTarget(M){const a=A(),C=M.C,LD=M.LEAD;if(M.ph==='convoy'&&(!M.purs
 /* ---------------- the light at Route 9 & Maple ---------------- */
 function lightTick(M,dt){const L_=M.light;if(!M.signal)return;const LD=M.LEAD;
   /* the first time the convoy comes west at it, it turns yellow just as you reach it: run it, or stop and keep the line together */
-  if(!L_.forced&&M.ph!=='gate'&&M.ph!=='lot'&&LD.x>LIGHT.x+LIGHT.stop&&LD.x-(LIGHT.x+LIGHT.stop)<K.yellowAt&&Math.abs(LD.z-41.5)<4&&LD.spd>3){L_.forced=true;L_.st='y';L_.t=0;L_.ew=true}
+  if(!L_.forced&&M.ph!=='gate'&&M.ph!=='lot'&&LD.x>LIGHT.x+LIGHT.stop&&LD.x-(LIGHT.x+LIGHT.stop)<K.yellowAt&&Math.abs(LD.z-41.5)<4&&LD.spd>1.2){L_.forced=true;L_.st='y';L_.t=0;L_.ew=true}
   L_.t+=dt;const dur=L_.st==='g'?K.lightG:L_.st==='y'?K.lightY:K.lightR;if(L_.t>=dur){L_.t=0;L_.st=L_.st==='g'?'y':L_.st==='y'?'r':'g'}
   signalSet(M.signal,L_.st);
   /* who crossed on what (yellow you ran, red you didn't) */
@@ -720,15 +718,20 @@ function order(M,k){const a=A(),C=M.C;if(!C||(M.ph!=='convoy'&&M.ph!=='home'))re
       const route=headRoute(M,first.car);C.setLead(first,route);M.headId=first.id;seq(M,[[M.vans[first.id].crew,L.takeLead[0][1]]],true);a.feed('Convoy: '+CREW_NAME[M.vans[first.id].crew]+' leads, you sweep','info')}
     else{const h=C.head,LD=M.LEAD,f=fwd(h.car.yaw),ahead=(LD.x-h.car.x)*f[0]+(LD.z-h.car.z)*f[1],side=Math.abs(-(LD.x-h.car.x)*f[1]+(LD.z-h.car.z)*f[0]);
       if(ahead>4&&ahead<40&&side<6){C.leader(LD);M.headId=null;seq(M,L.backLead,true);a.feed('Convoy: you lead','info')}else{seq(M,L.needAhead,true)}}}}
-function headRoute(M,c){const a=A(),G=a.roads();let tgt=null;
-  if(M.pursuit&&!M.pursuit.gone&&G){/* lose him: keep rolling forward through the grid (never back through our own line), two corners ahead */
-    const f=fwd(c.yaw);let best=null,bd=1e9;G.nodes.forEach((n,i)=>{const dx=n.x-c.x,dz=n.z-c.z,al=dx*f[0]+dz*f[1];if(al<8||!n.e.length)return;const d=Math.hypot(dx,dz)+Math.abs(-dx*f[1]+dz*f[0])*3;if(d<bd){bd=d;best=i}});
-    if(best!=null){let cur=best,prevYaw=c.yaw;M.headTurn=(M.headTurn||0)+1;for(let hop=0;hop<2;hop++){const n=G.nodes[cur];let pick=null,ps=-1e9;for(const e of n.e){const N2=G.nodes[e.to];const y=yawTo(N2.x-n.x,N2.z-n.z),dy=Math.cos(wrap(y-prevYaw));if(dy<-.5)continue;/* no U-turns */
-          const sc=dy+((hop+M.headTurn)%2?(wrap(y-prevYaw)>0?.6:-.2):(wrap(y-prevYaw)<0?.6:-.2))+(N2.x<12||N2.x>440?-3:0);if(sc>ps){ps=sc;pick=e}}if(!pick)break;prevYaw=yawTo(G.nodes[pick.to].x-n.x,G.nodes[pick.to].z-n.z);cur=pick.to}
-      tgt={x:G.nodes[cur].x,z:G.nodes[cur].z}}}
-  if(!tgt){const next=FLEET.filter(f=>M.vans[f.id].st==='convoy'&&!M.delivered[f.id]).sort((p,q)=>hyp(p.home.x-c.x,p.home.z-c.z)-hyp(q.home.x-c.x,q.home.z-c.z))[0];tgt=next?{x:next.home.x+(next.home.side>0?2:2),z:43+next.home.side*1.5}:{x:120,z:41.5}}
-  /* plan from a point ahead of its nose, so the route carries on forward instead of U-turning through its own line */
-  const f=fwd(c.yaw),ah={x:c.x+f[0]*12,z:c.z+f[1]*12},r=G&&G.route(ah,tgt);return r&&r.points&&r.points.length>1?[{x:c.x,z:c.z},...r.points]:[{x:c.x,z:c.z},tgt]}
+function headRoute(M,c){const a=A(),G=a.roads();if(!G)return[{x:c.x,z:c.z},{x:c.x+fwd(c.yaw)[0]*20,z:c.z+fwd(c.yaw)[1]*20}];
+  /* the junction ahead of its nose (never a dead end): every plan starts there, so the lead van keeps rolling forward instead of
+     U-turning through its own line */
+  const f=fwd(c.yaw),ok=n=>n.e.length>=2&&n.x>12&&n.x<440;let best=null,bd=1e9;G.nodes.forEach((n,i)=>{if(!ok(n))return;const dx=n.x-c.x,dz=n.z-c.z,al=dx*f[0]+dz*f[1];if(al<8)return;const d=Math.hypot(dx,dz)+Math.abs(-dx*f[1]+dz*f[0])*3;if(d<bd){bd=d;best=i}});
+  if(best==null)return[{x:c.x,z:c.z},{x:c.x+f[0]*20,z:c.z+f[1]*20}];
+  let tgt=null;
+  if(M.pursuit&&!M.pursuit.gone){/* lose him: two corners on through the grid, alternating turns, no U-turns, no dead ends */
+    let cur=best,prevYaw=c.yaw;M.headTurn=(M.headTurn||0)+1;for(let hop=0;hop<2;hop++){const n=G.nodes[cur];let pick=null,ps=-1e9;for(const e of n.e){const N2=G.nodes[e.to];if(!ok(N2))continue;const y=yawTo(N2.x-n.x,N2.z-n.z),dy=Math.cos(wrap(y-prevYaw));if(dy<-.5)continue;
+        const sc=dy+((hop+M.headTurn)%2?(wrap(y-prevYaw)>0?.6:-.2):(wrap(y-prevYaw)<0?.6:-.2));if(sc>ps){ps=sc;pick=e}}if(!pick)break;prevYaw=yawTo(G.nodes[pick.to].x-n.x,G.nodes[pick.to].z-n.z);cur=pick.to}
+    tgt={x:G.nodes[cur].x,z:G.nodes[cur].z}}
+  else{const next=FLEET.filter(f_=>M.vans[f_.id].st==='convoy'&&!M.delivered[f_.id]).sort((p,q)=>hyp(p.home.x-c.x,p.home.z-c.z)-hyp(q.home.x-c.x,q.home.z-c.z))[0];
+    tgt=next?{x:next.home.x+2,z:43+next.home.side*1.5}:{x:120,z:41.5}}
+  const n0=G.nodes[best],r=G.route({x:n0.x,z:n0.z},tgt);const lane=G.lane?null:null;
+  return r&&r.points&&r.points.length>1?[{x:c.x,z:c.z},...r.points]:[{x:c.x,z:c.z},{x:n0.x,z:n0.z},tgt]}
 function ordersTick(M,dt,F){const a=A(),C=M.C;if(!C)return;
   if(C.head){/* keep the head's route fresh: loop corners while he's chased, driveways after */const h=C.head;M.headT=(M.headT||0)-dt;const end=h.route&&h.route[h.route.length-1];
     if(M.headT<=0||!end||hyp(h.car.x-end.x,h.car.z-end.z)<10){M.headT=9;C.headRoute(headRoute(M,h.car))}}
@@ -845,7 +848,7 @@ function hudTick(M,dt,F,left){const a=A(),C=M.C;const clk=new Date(0);const s=Ma
     if(M.pursuit&&!M.pursuit.gone)F.meters.push({id:'shake',label:'Shake him',v:M.pursuit.shake,max:100,style:'bar',marker:100,sub:C.head?'block his lane':'press 4'});
     else F.meters.push({id:'home',label:'Home',v:Object.keys(M.delivered).length,max:Object.values(M.vans).filter(v=>v.st!=='bay').length||5,style:'pips',icon:'star'})}}
 function panelTick(M){const a=A();if(!M.C||M.ph==='gate'||M.ph==='lot'){if(M.panel){try{a.overlay('roundup-panel',null)}catch(_){}M.panel=null}return}
-  if(!M.panel){const el=document.createElement('div');el.style.cssText='position:absolute;right:16px;top:252px;width:208px;font:600 12px/1.25 system-ui,Arial;color:#eef2f6;pointer-events:none';
+  if(!M.panel){const el=document.createElement('div');el.style.cssText='position:absolute;right:16px;top:244px;width:252px;font:600 12px/1.25 system-ui,Arial;color:#eef2f6;pointer-events:none';
     el.innerHTML='<div style="background:rgba(16,20,26,.72);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 10px 8px"><div style="letter-spacing:.09em;font-size:10.5px;opacity:.7;margin-bottom:6px">CONVOY · <span class="ru-gap"></span></div><div class="ru-rows"></div>'+
       '<div class="ru-ord" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px;pointer-events:auto"></div></div>';
     const ord=el.querySelector('.ru-ord');[['1','Tighten'],['2','Spread'],['3','Hold'],['4','Go round']].forEach(([k,t],i)=>{const b=document.createElement('button');b.type='button';b.dataset.k=k;
@@ -854,10 +857,10 @@ function panelTick(M){const a=A();if(!M.C||M.ph==='gate'||M.ph==='lot'){if(M.pan
     const wrap=document.createElement('div');wrap.style.cssText='pointer-events:none';wrap.appendChild(el);
     M.panel=el;a.overlay('roundup-panel',wrap);if(!res().ov.includes('roundup-panel'))res().ov.push('roundup-panel')}
   const C=M.C,rows=[];const ch=C.chain();
-  const lab={line:'in line',lag:'catching up',wait:'LOST · waiting',hold:'holding',head:'leading',park:'starting',join:'pulling out',out:'wrecked'};
+  const lab={line:'in line',lag:'catching up',wait:'LOST',hold:'holding',head:'leading',park:'waiting',join:'pulling out',out:'wrecked'};
   for(const f of FLEET){const v=M.vans[f.id];if(v.st==='bay'&&!v.m)continue;const st=v.st==='home'?'home':v.st==='peel'?'turning in':v.st==='out'?'wrecked':v.m?lab[v.m.st]||v.m.st:'';const fr=clamp(v.c.hp/v.hpMax,0,1);
-    rows.push('<div style="display:flex;align-items:center;gap:6px;margin:3px 0"><span style="width:9px;height:9px;border-radius:50%;background:'+f.col+';box-shadow:0 0 0 1px rgba(0,0,0,.5)"></span><span style="flex:1;white-space:nowrap;overflow:hidden">'+f.fam+' <span style="opacity:.6">· '+CREW_NAME[v.crew||'rick']+'</span><br><span style="opacity:.7;font-weight:500;color:'+(st.startsWith('LOST')||st==='wrecked'?'#ff8a7a':st==='home'?'#8ef0a8':'#cfd8e3')+'">'+st+'</span></span>'+
-      '<span style="width:34px;height:5px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden"><i style="display:block;height:100%;width:'+Math.round(fr*100)+'%;background:'+(fr>.7?'#7be08f':fr>.4?'#f2c230':'#ff6a5a')+'"></i></span></div>')}
+    rows.push('<div style="display:flex;align-items:center;gap:6px;margin:2px 0;font-size:11.5px"><span style="width:8px;height:8px;border-radius:50%;flex:none;background:'+f.col+';box-shadow:0 0 0 1px rgba(0,0,0,.5)"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+f.fam+' <span style="opacity:.55">'+CREW_NAME[v.crew||'rick']+'</span></span><span style="flex:none;font-weight:500;color:'+(st.startsWith('LOST')||st==='wrecked'?'#ff8a7a':st==='home'?'#8ef0a8':'#cfd8e3')+'">'+st+'</span>'+
+      '<span style="width:26px;flex:none;height:5px;border-radius:3px;background:rgba(255,255,255,.15);overflow:hidden"><i style="display:block;height:100%;width:'+Math.round(fr*100)+'%;background:'+(fr>.7?'#7be08f':fr>.4?'#f2c230':'#ff6a5a')+'"></i></span></div>')}
   const html=rows.join(''),gap=(C.holding?'HOLDING · ':'')+(C.gap==='tight'?'TIGHT':C.gap==='spread'?'SPREAD':'NORMAL')+(C.head?' · '+CREW_NAME[M.vans[C.head.id].crew].toUpperCase()+' LEADS':'');
   if(M.panelHtml!==html){M.panelHtml=html;M.panel.querySelector('.ru-rows').innerHTML=html}const g=M.panel.querySelector('.ru-gap');if(g.textContent!==gap)g.textContent=gap}
 
@@ -940,6 +943,8 @@ function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;if(!M||M.state!=='go'||M.def.id!=
   const parked=C.cars.some(m=>m.st==='park'||m.st==='join');const sp=e.car?e.car.spd:0;
   if(o.fail){if(t%10===0&&a.crash)a.crash(e,30);return null}
   if(M.ph==='wrap'){k.s=sp>.3;return null}
+  /* anybody lost (pulled over with the hazards on)? go back for them first */
+  if(!(M.pursuit&&!M.pursuit.gone)){const lw=C.cars.find(m=>m.st==='wait');if(lw){const d=routeTo(lw.car.x,lw.car.z,8);if(d<14){k.s=sp>.3}else if(B.stuck>75||d>90){B.stuck=0;const f=fwd(lw.car.yaw);e.pos.set(lw.car.x+f[0]*12,0,lw.car.z+f[1]*12);e.yaw=lw.car.yaw;a.owStopCar(e);a.syncCar(e)}return null}}
   if(M.pursuit&&!M.pursuit.gone){if(!C.head){/* hand Rick the lead (once the line has formed), then pull aside */const G0=a.roads(),nn=G0&&G0.nodes[G0.nearestNode(e.pos.x,e.pos.z)],onStraight=!nn||hyp(nn.x-e.pos.x,nn.z-e.pos.z)>22;if(!parked&&onStraight&&C.chain()[1]&&C.chain()[1].st==='line'&&!B.swapAsk){B.swapAsk=true;press('4',()=>order(M,4))}if(!B.swapAsk){const k_=B.lap||0,p_=LOOP[k_%LOOP.length];if(routeTo(p_.x,p_.z,9)<10)B.lap=k_+1;return null}if(parked){k.s=sp>.3;return null}if(C.head){B.aside=60}drive(e.pos.x-10,e.pos.z-3.5,4);return null}
     if(B.aside>0){B.aside--;k.s=sp>.5;return null}
     const lostV=C.cars.find(m=>m.st==='wait');if(lostV){/* go back for him */const d=drive(lostV.car.x,lostV.car.z,8);if(d>30||B.stuck>60){e.pos.set(lostV.car.x+fwd(lostV.car.yaw)[0]*12,0,lostV.car.z+fwd(lostV.car.yaw)[1]*12);a.owStopCar(e);a.syncCar(e)}return null}
