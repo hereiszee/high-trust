@@ -3,7 +3,7 @@
 
    const P = HT.People; P.init({assets, quality:()=>'med'});   // assets = the game's ASSETS (gltf('rb_<key>'))
    P.ready.then(...)                                          // resolves once the GLBs are in and prepared (or rejects -> box fallback)
-   const d = P.make(role, {variant, scale, idle});             // null when unavailable; role: you|gary|rick|dave|doug|thug|boss|wife|son|daughter or a file key
+   const d = P.make(role, {variant, scale, idle});             // null when unavailable; role: you|gary|rick|dave|doug|thug|boss|wife|son|daughter|earl|dee|rosa|benny|neighbour or a file key
    d = {root, body, meshes (invisible hitboxes, userData.head on the head box), head, gunHold (on Bip01_R_Hand), gun, walk, legs:[], arms:[], rb}
    P.pose(d, dt, {moving, speed, aim, mode:'stand'|'crouch'|'down'|'kneel'|'hands'|'sit', pitch})   // sets targets + measures ground speed
    P.update(dt, camera)                                       // advances every live mixer (call once per frame / sim step)

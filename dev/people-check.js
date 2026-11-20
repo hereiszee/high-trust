@@ -13,7 +13,7 @@ if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process
     console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
   console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
-const PP_KEYS=19;
+const PP_KEYS=33;/* 19 + the Riverside cast: 4 job-givers, 10 neighbours */
 const results=[];const ok=(name,pass,info)=>{results.push([name,!!pass,info]);console.log((pass?'  ok   ':'  FAIL ')+name+(info!==undefined?'  · '+(typeof info==='string'?info:JSON.stringify(info)):''))};
 
 /* title -> hub: the HUD title screen starts on Enter (older builds had a #bStart button) */
@@ -157,14 +157,14 @@ function helpers(){
     ok('camera never inside the head (clearance with the body visible)',r.camHead>.28,r.camHead);
     ok('third-person barrel follows the view (within 0.2 rad)',Object.values(r.barrelErr).every(v=>v<.2),Object.assign(r.barrelErr,{yp:[r.yawpitch_rifle,r.yawpitch_pistol]}))}
 
-  if(want('ground')){await p.evaluate(()=>HT.People.preload(HT.People.roles.thug));/* skeleton on the ground: pelvis height and feet, every movement and pose mode, crew / player model / enemies (male, female, scaled) */
+  if(want('ground')){await p.evaluate(()=>HT.People.preload(HT.People.roles.thug.concat(HT.People.giverKeys||[],HT.People.neighbourKeys||[])));/* skeleton on the ground: pelvis height and feet, every movement and pose mode, crew / player model / enemies (male, female, scaled) */
     const r=await p.evaluate(()=>{const H=__ht,D=H.dude,PP=HT.People,P=H.P;H.startMission(3);for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;P.fp=false;H.step(2);
       const V=new THREE.Vector3();const rel=(d,n)=>{const b=d.body.getObjectByName(n);return b?b.getWorldPosition(V).y-d.root.position.y:0};
-      const who=[{role:'you'},{role:'gary'},{role:'dave'},{role:'thug',variant:'thug_hoodie'},{role:'thug',variant:'thug_f_hood'},{role:'boss',crown:1}];
+      const who=[{role:'you'},{role:'gary'},{role:'dave'},{role:'thug',variant:'thug_hoodie'},{role:'thug',variant:'thug_f_hood'},{role:'boss',crown:1},{role:'earl'},{role:'rosa'},{role:'neighbour',variant:'nb_gran'},{role:'neighbour',variant:'nb_kid'},{role:'neighbour',variant:'nb_teen'}];
       const SC=[['idle',{}],['walk',{vel:[0,1]}],['jog',{vel:[0,2.4]}],['run',{vel:[0,4.3]}],['sprint',{vel:[0,6.6]}],['strafeL',{vel:[3,0]}],['strafeR',{vel:[-3,0]}],['back',{vel:[0,-2.2]}],['diag',{vel:[1.6,1.6]}],
         ['aimMove',{vel:[0,3],aim:1,gun:'rifle'}],['crouch',{mode:'crouch',aim:1,gun:'rifle'}],['crouchWalk',{mode:'crouch',vel:[0,2.3]}],['crouchBack',{mode:'crouch',vel:[0,-1.2]}],['kneel',{mode:'kneel'}],['hands',{mode:'hands'}],['down',{mode:'down'}],['dead',{dead:1,steps:600}]];
       const LOW={crouch:1,crouchWalk:1,crouchBack:1,kneel:1,down:1,dead:1};const out=[];const dt=1/30;
-      for(const w of who)for(const[n,o]of SC){const d=D.make(w.role==='boss'?{crown:1}:w.role==='thug'?{variant:w.variant}:D.HOMIES[w.role]);if(o.gun)D.equip(d,o.gun);
+      for(const w of who)for(const[n,o]of SC){const d=D.make(w.role==='boss'?{crown:1}:w.role==='thug'?{variant:w.variant}:w.role==='neighbour'?{role:'neighbour',variant:w.variant}:D.HOMIES[w.role]);if(o.gun)D.equip(d,o.gun);
         d.root.position.set(P.pos.x+2,0,P.pos.z+2);d.root.rotation.y=.7;H.scene.add(d.root);const hip=d.rb.hip*(d.root.scale.x||1);
         let pmin=9,pmax=-9,fmin=9,bodyY=0;const steps=o.steps||120;if(o.dead)PP.die(d);
         for(let k=0;k<steps;k++){const ry=d.root.rotation.y;if(o.vel){d.root.position.x+=(Math.sin(ry)*o.vel[1]+Math.cos(ry)*o.vel[0])*dt;d.root.position.z+=(Math.cos(ry)*o.vel[1]-Math.sin(ry)*o.vel[0])*dt}

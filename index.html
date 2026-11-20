@@ -532,7 +532,7 @@ const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
-  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers: temporary stand-ins (RIVERSIDE JOBS) */
+  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
   const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
@@ -2595,7 +2595,7 @@ function metaExpose(o){Object.defineProperties(o,Object.getOwnPropertyDescriptor
   get home(){return HOME3},get homeReady(){return homeReady},get hubx(){return HUBX},get deco(){return DECO},get mode(){return mode},vanLook,VANK,get running(){return running},get prompt(){return UI.prompt},place(x,z,yaw,pitch){P.pos.set(x,0,z);collide(P.pos,.35);if(yaw!=null)P.yaw=yaw;if(pitch!=null)P.pitch=pitch;return{x:P.pos.x,z:P.pos.z}},get hudScreen(){return HUD.screen},get ui(){return UI}}))}
 
 /* ================= RIVERSIDE JOBS: people and data (SPEC2 B.0-B.5) ================= */
-/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): a clearly temporary stand-in until the owner casts them */
+/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): the cast models (js/people.js earl, dee, rosa, benny), a stand-in for anyone not cast yet */
 Object.assign(HOMIES,{
   earl:{name:'Earl',giver:'earl',shirt:'#3d5a80',pants:'#5b5b5b',hair:'#d8d8d8',cap:'#3d5a80',glasses:1,mustache:1,belly:1,skin:'#8d5a3b'},
   dee:{name:'Pastor Dee',giver:'dee',shirt:'#6a4c93',pants:'#2b2d42',hair:'#1d1d1d',glasses:1,skin:'#a8714c'},

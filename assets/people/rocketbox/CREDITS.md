@@ -23,6 +23,20 @@ Every file in this folder is built from MIT- or CC0-licensed sources. Nothing he
 | wife.glb | Rocketbox `Adults/Female_Adult_01` | Microsoft | MIT | same |
 | son.glb | Rocketbox `Children/Male_Child_01` | Microsoft | MIT | same |
 | daughter.glb | Rocketbox `Children/Female_Child_01` | Microsoft | MIT | same |
+| earl.glb | Rocketbox `Professions/Business_Male_07` (shirt retinted light blue, + procedural cap) | Microsoft | MIT | same |
+| dee.glb | Rocketbox `Professions/Business_Female_01` | Microsoft | MIT | same |
+| rosa.glb | Rocketbox `Professions/Medical_Female_01` (white uniform retinted to teal scrubs) | Microsoft | MIT | same |
+| benny.glb | Rocketbox `Professions/Business_Male_06` (shirt front repainted with pink stripes, + procedural cap and waist apron) | Microsoft | MIT | same |
+| nb_gran.glb | Rocketbox `Professions/Business_Female_02` | Microsoft | MIT | same |
+| nb_pops.glb | Rocketbox `Adults/Male_Adult_05` | Microsoft | MIT | same |
+| nb_office.glb | Rocketbox `Professions/Business_Female_03` | Microsoft | MIT | same |
+| nb_sweater.glb | Rocketbox `Adults/Male_Adult_02` | Microsoft | MIT | same |
+| nb_teen.glb | Rocketbox `Adults/Female_Party_02` | Microsoft | MIT | same |
+| nb_kid.glb | Rocketbox `Children/Male_Child_02` | Microsoft | MIT | same |
+| nb_kenji.glb | Rocketbox `Adults/Male_Adult_09` | Microsoft | MIT | same |
+| nb_marcus.glb | Rocketbox `Adults/Male_Adult_12` | Microsoft | MIT | same |
+| nb_mei.glb | Rocketbox `Adults/Female_Adult_03` | Microsoft | MIT | same |
+| nb_lucia.glb | Rocketbox `Adults/Female_Adult_11` | Microsoft | MIT | same |
 | anims.glb: idle, idle_look, idle_nervous, idle_angry, crouch_idle, sit, sit_breathe, walk, walk_fast, jog, run, sprint, f_idle, f_walk, f_sit | Rocketbox `Assets/Animations` (motion-captured), resampled onto the dad_player skeleton | Microsoft | MIT | same |
 | anims.glb: crouch_walk, pistol_idle, pistol_aim, pistol_aim_up, pistol_aim_down, pistol_fire, pistol_reload, death, hit_chest, hit_head, punch, interact, ual_crouch_idle | "Universal Animation Library" [Standard], retargeted | Quaternius | CC0 1.0 | https://opengameart.org/content/universal-animation-library (https://quaternius.com/packs/universalanimationlibrary.html) |
 | anims.glb: hit_knockback, idle_arms_folded | "Universal Animation Library 2" [Standard], retargeted | Quaternius | CC0 1.0 | https://opengameart.org/content/universal-animation-library-2 |
