@@ -31,7 +31,7 @@ const fwd=y=>[-Math.sin(y),-Math.cos(y)],yawTo=(dx,dz)=>Math.atan2(-dx,-dz),hyp=
 /* ---------------- tuning ---------------- */
 const K={
   gaps:{tight:6,normal:9,spread:14},   /* bumper to bumper, metres */
-  crumb:2,keep:90,                    /* a crumb every 2 m, the last 90 kept (180 m of trail) */
+  crumb:2,keep:160,                   /* a crumb every 2 m, the last 160 kept (320 m of trail) */
   react:.45,                          /* the car in front's speed, as the follower saw it this long ago */
   kp:.85,                             /* m/s of extra speed per metre of gap error */
   max:15.5,lagMax:19,                 /* cruising cap / catching-up cap (m/s) */
@@ -43,8 +43,8 @@ const K={
   stopDec:7,                          /* decel used to brake for a stop line or something in the lane */
   laneW:2.3,look:14,                  /* "something in my lane": within 2.3 m to the side and 14 m ahead */
   headCruise:11,headSlack:16,headWaitD:34, /* a van in the lead: cruise, slow when the line stretches by 16 m, stop past 34 m */
-  bumpMin:2.2,bumpK:2.6,              /* convoy-on-convoy contacts: damage (vn - 2.2) * 2.6 hp to each car */
-  joinSpeed:5,bridgeStraight:30       /* pulling out of a bay on rails; a gap to the car in front shorter than this is driven straight */
+  bumpMin:2.6,bumpK:2.0,              /* convoy-on-convoy contacts: damage (vn - 2.2) * 2.6 hp to each car */
+  joinSpeed:6,bridgeStraight:30       /* pulling out of a bay on rails; a gap to the car in front shorter than this is driven straight */
 };
 
 /* ---------------- polyline helpers ---------------- */
@@ -69,8 +69,19 @@ function bendAhead(pts,from,d){const H=[];let s=0;for(let i=Math.max(1,from);i<p
 function laneGap(me,others,look,w){const f=fwd(me.yaw);let best=null;for(const o of others){if(!o||o===me)continue;const dx=o.x-me.x,dz=o.z-me.z,a=dx*f[0]+dz*f[1];if(a<=0||a>look)continue;
   const side=Math.abs(-dx*f[1]+dz*f[0]);if(side>(o.w||w))continue;const g=a-((me.len||4.4)+(o.len||4.4))/2;
   /* how fast it's moving away along my heading: brake for the closing speed, not its whole presence */
-  const of=o.yaw!=null?fwd(o.yaw):[0,0],va=Math.max(0,(o.spd||0)*(of[0]*f[0]+of[1]*f[1]));if(best==null||g<best.g)best={g,va}}return best}
+  const of=o.yaw!=null?fwd(o.yaw):[0,0],va=Math.max(0,(o.spd||0)*(of[0]*f[0]+of[1]*f[1]));if(best==null||g<best.g)best={g,va,o}}return best}
 
+/* drive in the tracks: speed eases toward v (accel / dad brakes), the car moves by arc length along pts from its own projection on
+   them, and settles onto the line (a car that was knocked off it rejoins within a second); heading follows the path's chord */
+function pointAt(pts,s){let i=0;for(;i<pts.length-1;i++){const L=hyp(pts[i+1].x-pts[i].x,pts[i+1].z-pts[i].z);if(s<=L||i===pts.length-2){const t=L>1e-6?clamp(s/L,0,1):0;return{x:pts[i].x+(pts[i+1].x-pts[i].x)*t,z:pts[i].z+(pts[i+1].z-pts[i].z)*t}}s-=L}return{x:pts[pts.length-1].x,z:pts[pts.length-1].z}}
+function slide(c,pts,v,dt){const S=c.stats||{},acc=S.accel||9,brk=Math.min(S.brake||13,K.dadBrake);
+  if(c.spd<v)c.spd=Math.min(v,c.spd+acc*dt);else c.spd=Math.max(v,c.spd-brk*dt);if(c.spd<0)c.spd=0;
+  const nr=nearest(pts,c.x,c.z,0,Math.min(pts.length-2,6));if(!nr)return;const total=arcLen(pts),s=Math.min(total,nr.s+c.spd*dt);
+  if(nr.s+c.spd*dt>total)c.spd=Math.max(0,(total-nr.s)/Math.max(dt,1e-3));
+  const q=pointAt(pts,s),a=pointAt(pts,Math.max(0,s-1.8)),b=pointAt(pts,Math.min(total,s+1.8));
+  const k=nr.d<.08?1:Math.min(1,dt*2.4);c.x+=(q.x-c.x)*(nr.d<.08?1:1)-(q.x-c.x)*(1-k)*Math.min(1,nr.d/3);c.z+=(q.z-c.z)-(q.z-c.z)*(1-k)*Math.min(1,nr.d/3);
+  if(hyp(b.x-a.x,b.z-a.z)>.3&&c.spd>.05){const y0=c.yaw,want=yawTo(b.x-a.x,b.z-a.z);c.yaw+=wrap(want-c.yaw)*Math.min(1,dt*7);c.steer=clamp(wrap(c.yaw-y0)/Math.max(dt,1e-3)*.45,-1,1)}else c.steer*=.8;
+  const f=fwd(c.yaw);c.vdx=f[0];c.vdz=f[1];c.t=(c.t||0)+dt}
 function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
   const C={K:k,cars:[],lead:null,head:null,gap:o.gap||'normal',holding:false,t:0,ev:null};
   const ent=(obj,id)=>({id,car:obj,crumbs:[{x:obj.x,z:obj.z}],hist:[],ah:{p:null,h:[]},st:'line',lagT:0,signal:0,bridge:null,bridgeT:0,len:obj.len||(obj.stats&&obj.stats.len)||4.4});
@@ -114,7 +125,7 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
     for(const m of C.cars){const c=m.car,st0=m.st;if(m.st==='out'){c.spd=Math.max(0,c.spd-k.dadBrake*dt);continue}
       const i=ch.indexOf(m),p=i>0?ch[i-1]:null;let v=0,pts=null;
       /* yield to everything outside the line, and to the cars ahead in it; never to your own followers (they yield to you) */
-      const others=(ctx.others||[]).concat(i>0?ch.slice(0,i).map(e=>e.car).filter(x=>x!==c):[]).concat(C.cars.filter(e=>e.st==='out'||e.st==='park').map(e=>e.car).filter(x=>x!==c));
+      const others=(ctx.others||[]).concat(i>0?ch.slice(0,i).map(e=>e.car).filter(x=>x!==c):[]).concat(C.cars.filter(e=>e.st==='park').map(e=>e.car).filter(x=>x!==c));/* (a wrecked car rolls to the kerb: not in the lane) */
       if(m.st==='head'){/* in the lead: the route home, at a convoy pace, waiting for the line */
         pts=m.route&&m.route.length>1?m.route:[{x:c.x,z:c.z},{x:c.x+fwd(c.yaw)[0],z:c.z+fwd(c.yaw)[1]}];v=k.headCruise;
         /* pace the whole line: the worst stretch between any two rolling cars behind */
@@ -123,7 +134,8 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
         if(C.holding)v=0;const nr=nearest(pts,c.x,c.z);if(nr&&nr.i>2){m.route=pts=pts.slice(nr.i)}}
       else if(m.st==='park'){/* in its bay, engine running: go when the car in front is past the join's end */
         v=0;pts=m.join;const e=m.join[m.join.length-1];if(!p||p.st==='park'||p.st==='join'){/* wait */}
-        else{const pd=hyp(p.car.x-e.x,p.car.z-e.z),ok=p===C.lead?pd>gap+3:pd>gap+m.len;if(ok&&!C.holding){m.st='join'}}}
+        else{/* the car in front must have actually been past the end of the rail (its trail goes through it), and be a gap beyond it */
+          const pd=hyp(p.car.x-e.x,p.car.z-e.z),been=p.crumbs.some(q=>hyp(q.x-e.x,q.z-e.z)<4.5),ok=been&&(p===C.lead?pd>gap+3:pd>gap+m.len);if(ok&&!C.holding){m.st='join'}}}
       if(m.st==='join'){/* out of the bay on rails: the join path is authored and checked clear, and a parking lot is no place for an AI to improvise */
         const J=m.jp||(m.jp=railPath(m.join));let vj=Math.min(k.joinSpeed,(m.jv||0)+3*dt);const g=laneGap(c,others,k.look,k.laneW);if(g!=null)vj=Math.min(vj,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.4))));
         const left=J.len-(m.js||0);vj=Math.max(0,vj);m.jv=vj;m.js=Math.min(J.len,(m.js||0)+vj*dt);const q=J.at(m.js);const y0=c.yaw;c.x=q.x;c.z=q.z;c.yaw=q.yaw;c.spd=vj;c.steer=clamp(wrap(c.yaw-y0)/Math.max(dt,1e-3)*.4,-1,1);
@@ -145,15 +157,12 @@ function create(o){o=o||{};const k=Object.assign({},K,o.K||{});
       else if(m.st!=='head'&&m.st!=='park'&&m.st!=='join'){v=0}
       /* stop lines (red lights, the job's own holds) and anything in the lane */
       m.lim=v.toFixed(1);if(ctx.stop&&m.st!=='park'){const d=ctx.stop(m);if(d!=null){v=Math.min(v,Math.sqrt(Math.max(0,2*k.stopDec*(d-.6))));m.lim+=' stop'+d.toFixed(1)}}
-      if(m.st!=='park'){const g=laneGap(c,p?others.filter(x=>x!==p.car):others,k.look,k.laneW);if(g!=null){v=Math.min(v,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.2))));m.lim+=' gap'+g.g.toFixed(1)}}
+      if(m.st!=='park'){const g=laneGap(c,p?others.filter(x=>x!==p.car):others,k.look,k.laneW);if(g!=null){v=Math.min(v,g.va+Math.sqrt(Math.max(0,2*k.stopDec*(g.g-1.2))));m.lim+=' gap'+g.g.toFixed(1)+'@'+(g.o.rid||(g.o.x.toFixed(0)+','+g.o.z.toFixed(0)))}}
       /* bends on the trail: crumbs every 2 m hide a corner from HT.CarAI's per-segment check, so slow for it here */
       if(pts&&pts.length>2&&m.st!=='park'){const b=bendAhead(pts,1,Math.max(10,c.spd*1.4));if(b>.45)v=Math.min(v,Math.max(k.turnSpeed*(1.25-b*.35),4.5))}
       m.want=v;m.signal=pts?turnAhead(pts,1,16):0;
-      if(!pts||pts.length<2){c.spd=Math.max(0,c.spd-k.dadBrake*dt);continue}
-      if(!c.ai||c.ai.mode!=='follow')CA.follow(c,pts,{speed:v,turnSpeed:k.turnSpeed});
-      c.ai.pts=pts;c.ai.tr={i:0};c.ai.speed=v;c.ai.turnSpeed=k.turnSpeed;c.ai.done=false;
-      const hit=CA.step(c,dt,{collide:ctx.collide?ctx.collide(m):null,canSnap:ctx.canSnap?()=>ctx.canSnap(m):null});
-      if(hit&&hit.speed>1)ev.hits.push({m,speed:hit.speed,front:hit.front});
+      if(!pts||pts.length<2){c.spd=Math.max(0,c.spd-k.dadBrake*dt);record(m,dt);continue}
+      slide(c,pts,v,dt);
       record(m,dt);if(m.st!==st0)ev.changed.push(m)}
     /* contacts between convoy cars (and the lead car, if it's a car): push apart, dent both */
     const ents=C.cars.filter(m=>m.st!=='park');if(C.lead&&C.lead.car.stats)ents.push(C.lead);

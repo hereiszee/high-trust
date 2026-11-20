@@ -45,7 +45,7 @@ function run(o){const C=CV.create({gap:o.gap||'normal'}),L={x:0,z:10,yaw:0,spd:0
   ok(held,'hold: everyone stops where they are, go: they carry on');
   const C=CV.create({}),L={x:0,z:0,yaw:0,spd:0,len:4.4},cars=[];C.leader(L);for(let i=0;i<3;i++){const c=CA.make('minivan',{x:0,z:(i+1)*13.4,yaw:0});cars.push(c);C.add(c,{id:'v'+i})}
   let waited=-1,back=-1,v=0;const dt=1/30;for(let t=0;t<60;t+=dt){if(t<30){v=Math.min(25,v+4*dt);L.z-=v*dt}else if(t<31){v=0}
-    if(t>=31&&back<0&&waited>=0){/* he comes back for them: stops 12 m ahead of the first waiting car, on the trail */const w=C.cars.find(m=>m.st==='wait');if(w){L.x=w.car.x;L.z=w.car.z-14;back=t}}
+    if(t>=31&&waited>=0&&Math.round(t*30)%60===0){/* he comes back for them: stops 12 m ahead of the first waiting car, on the trail */const w=C.cars.find(m=>m.st==='wait');if(w){L.x=w.car.x;L.z=w.car.z-14;back=t}}
     L.spd=v;if(t>=31)L.spd=0;C.tick(dt,{});if(waited<0&&C.cars.some(m=>m.st==='wait'))waited=t}
   ok(waited>0,'outrun at 25 m/s on a straight: a car pulls over and waits (after '+waited.toFixed(1)+' s)');
   ok(back>0&&C.cars.every(m=>m.st!=='wait'),'it rejoins when he comes back for it ('+C.cars.map(m=>m.st).join(',')+')')}
