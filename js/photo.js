@@ -76,7 +76,8 @@ function warm(){const H=window.__ht,a=A();if(!H||!H.renderer||!a||R.warm)return;
 Photo.end=function(){lower(true);Photo.S=null;if(R.ui){A().overlay('photo',null);R.ui=null}};
 Photo.setZoom=function(i){i=Math.max(0,Math.min(T.zoom.length-1,i|0));if(i===R.zi)return;R.zi=i;refocus(true);blip(660+i*220,.035,.05);if(R.ui)R.ui.vf.set({zoom:T.zoom[i]+'×'});syncPills()};
 Photo.toggleFlash=function(){R.flash=!R.flash;blip(R.flash?1200:700,.03,.05);syncFlash()};
-Photo.raise=function(on){const a=A();if(!a||!Photo.S)return;a.P.aim=!!on};
+/* the phone is a toggle: one right-click (or the touch aim button) raises it and it stays up with nothing held; right-click again, Q or the back arrow lowers it */
+Photo.raise=function(on){if(!Photo.S)return;R.want=!!on;if(!on){R.held=false}};
 /* point the phone at a world point (bots, cutscenes): sets the look and the turn-rate baseline */
 Photo.aimAt=function(x,y,z){const a=A(),P=a.P,e=eye();const dx=x-e.x,dy=y-e.y,dz=z-e.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.max(-1.2,Math.min(1.2,Math.atan2(dy,Math.hypot(dx,dz))));R.py=P.yaw;R.pp=P.pitch};
 Photo.isRaised=()=>R.on;
@@ -105,8 +106,8 @@ function centreDist(){const a=A(),THREE=a.THREE,c=a.camera;if(!_ray.r)_ray.r=new
 function refocus(hard){if(hard||R.fLock){R.fT=0;R.fLock=false;R.lockSnd=false}}
 
 /* ---------------- the phone view (JH.camera) ---------------- */
-J.on('camera',dt=>{const a=A();if(!active()){if(R.on)lower();return}
-  const P=a.P,want=!!P.aim;if(want&&!R.on)raise();else if(!want&&R.on){lower();return}
+J.on('camera',dt=>{const a=A();if(!active()){R.want=false;if(R.on)lower();return}
+  const P=a.P,want=!!R.want;if(want&&!R.on)raise();else if(!want&&R.on){lower();return}
   if(!R.on)return;
   const c=a.camera,e=eye();
   /* slower look at higher zoom (and a steadier hand): scale this frame's mouse delta */
@@ -138,6 +139,13 @@ function liveGrade(dt){const u=R.ui;if(!u)return;setBlur(R.fLock?0:(1-R.fK)*2.2*
     if(top&&bot&&mid){const y0=(1-top.y)/2*h,y1=(1-bot.y)/2*h,hpx=Math.max(26,Math.abs(y1-y0)),wpx=Math.max(26,Math.min(hpx*(s.aspect||.62),fr.px.width*.6)),cx=(mid.x+1)/2*w;
       u.vf.set({bracket:{x:cx-wpx/2,y:Math.min(y0,y1),w:wpx,h:hpx,label:b.label,ok:b.stars>=2},stars:b.stars})}}
   else u.vf.set({bracket:null,stars:b?0:null});
+  /* every subject in the frame gets a small chip (what it is, what it would grade, or "centre it"); the best one has the bracket */
+  {const c=camState(),B=basis(c),pool=u.subs||(u.subs=[]),seen={};let n=0;if(b&&b.stars>0)seen[b.item]=1;for(const sj of Photo.S.subjects()){if(!sj||sj.live===false||(b&&b.stars>0&&sj.id===b.id)||seen[sj.item||sj.id])continue;
+      const m=project(c,B,{x:sj.pos.x,y:sj.pos.y+(sj.mid!=null?sj.mid:(sj.h||1.7)/2),z:sj.pos.z});if(!m||m.x<fr.x0||m.x>fr.x1||m.y<fr.y0||m.y>fr.y1||m.z>60)continue;
+      seen[sj.item||sj.id]=1;const hit=g.hits.find(x=>x.id===sj.id),have=Photo.S.done?Photo.S.done(sj.item||sj.id):0;let el=pool[n];if(!el){el=document.createElement('div');el.className='ph-sub';u.root.appendChild(el);pool.push(el)}n++;
+      const t=(sj.label||'')+' · '+(hit?(hit.stars?'★'.repeat(hit.stars):'too far'):'centre it')+(have?' (have '+'★'.repeat(have)+')':'');if(el.textContent!==t)el.textContent=t;el.classList.toggle('ok',!!(hit&&hit.stars>=2));
+      el.style.left=((m.x+1)/2*w)+'px';el.style.top=((1-m.y)/2*h-18)+'px';el.hidden=false}
+    for(let i=n;i<pool.length;i++)pool[i].hidden=true}
   u.af.classList.toggle('lk',R.fLock);u.af.classList.toggle('hunt',!R.fLock);
   const why=b&&b.stars>0?b.why.filter(x=>x!=='Sharp')[0]||'':'';u.tip.textContent=why;u.tip.classList.toggle('on',!!why)}
 function gradeNow(){_ray.list=solids();const c=camState();return grade(c,Photo.S?Photo.S.subjects():[],{los,zoom:T.zoom[R.zi],turn:R.turn,move:R.move,focus:{locked:R.fLock,dist:R.fDist},dark:Photo.S&&Photo.S.dark?Photo.S.dark():false,cap:Photo.S&&Photo.S.cap?Photo.S.cap():null})}
@@ -259,7 +267,11 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
 .ph .ht-vf .ft{display:none}
 .ph .ph-hint{position:absolute;left:0;right:0;bottom:5px;text-align:center;font:700 10px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45)}
 .ph .ph-hint b{color:#fff;font-weight:700;padding:1px 4px;border-radius:3px;background:rgba(255,255,255,.14);margin:0 4px 0 12px}
-.ht-root.touch .ph .ph-hint,.ht-root.compact .ph .ph-hint{display:none}
+.ht-root.touch .ph .ph-hint,.ht-root.compact .ph .ph-hint,.ht-root.touch .ph .ph-shk{display:none}
+.ph .ph-shk{position:absolute;left:50%;bottom:48px;transform:translateX(calc(-100% - 56px));font:800 14px/1 var(--ht-ui);letter-spacing:.16em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);white-space:nowrap}
+.ph .ph-shk b{background:#ffd60a;color:#111;padding:3px 7px;border-radius:4px}
+.ph .ph-sub{position:absolute;padding:2px 6px;border-radius:3px;background:rgba(10,12,16,.6);border:1px solid rgba(255,214,10,.7);color:#ffd60a;font:800 10px/1.2 var(--ht-ui);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;transform:translate(-50%,-50%);pointer-events:none}
+.ph .ph-sub.ok{border-color:#7fdc6e;color:#7fdc6e}
 .ph .ph-st{display:flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:14px;background:rgba(255,255,255,.1);font:700 12px/1 var(--ht-ui);letter-spacing:.14em;color:#fff;transition:background .2s}
 .ph .ph-st svg{width:16px;height:16px}.ph .ph-st.w1{background:rgba(255,201,74,.85);color:#111}.ph .ph-st.w2{background:rgba(255,138,60,.92);color:#111}.ph .ph-st.w3{background:#ff5a47;color:#fff;animation:ph-hunt .3s infinite alternate}
 .ph .ph-st:empty{display:none}
@@ -274,7 +286,7 @@ function css(){if(document.getElementById('ht-photo-css'))return;const s=documen
  .ph .ph-bot{top:40px;bottom:0;left:auto;right:0;width:calc(var(--sa-r,0px) + 96px);height:auto}
  .ph .ht-vf .zm{display:none}
  .ph .ph-top{padding-right:calc(var(--sa-r,0px) + 14px)}
- .ph .ph-modes,.ph .ph-hint{display:none}
+ .ph .ph-modes,.ph .ph-hint,.ph .ph-shk{display:none}
  .ph .ph-row{left:0;right:0;top:0;bottom:0;height:auto;flex-direction:column-reverse;justify-content:space-around;padding:14px 0}
  .ph .ph-zoom{left:auto;right:calc(var(--sa-r,0px) + 104px);top:50%;transform:translateY(-50%);flex-direction:column}
  .ph .ph-ts{top:48px}}
@@ -289,7 +301,7 @@ function ui(){if(R.ui&&R.ui.root.isConnected)return R.ui;css();const a=A(),H=a.H
     <div class="ph-mid"><span>${SVG.live}</span><span>HDR</span><span class="clk"></span></div><span class="ph-st"></span></div>
     <div class="ph-bot"><div class="ph-zoom">${T.zoom.map((z,i)=>`<button data-z="${i}">${z}${'×'}</button>`).join('')}</div>
     <div class="ph-modes"><span>TIME-LAPSE</span><span>SLO-MO</span><span>VIDEO</span><b>PHOTO</b><span>PORTRAIT</span><span>PANO</span></div>
-    <div class="ph-hint"><b>LMB</b>Shutter<b>Wheel</b>Zoom<b>F</b>Flash<b>RMB</b>Lower</div><div class="ph-row"><button class="ph-th" data-ph="gallery"><img alt=""></button><button class="ph-sh" data-ph="shoot" aria-label="Shutter"><i></i></button><button class="ph-x" data-ph="lower" aria-label="Lower the phone">${SVG.back}</button></div></div>
+    <div class="ph-hint"><b>LMB / Space</b>Shutter<b>Wheel / 1-3</b>Zoom<b>F</b>Flash<b>RMB / Q</b>Lower</div><div class="ph-shk"><b>LMB</b> · SHUTTER</div><div class="ph-row"><button class="ph-th" data-ph="gallery"><img alt=""></button><button class="ph-sh" data-ph="shoot" aria-label="Shutter"><i></i></button><button class="ph-x" data-ph="lower" aria-label="Lower the phone">${SVG.back}</button></div></div>
     <div class="ph-ts"></div><div class="ph-flash"></div><div class="ph-bl"></div>`);
   const q=s=>root.querySelector(s);
   const u={root,vf,af:q('.ph-af'),tip:q('.ph-tip'),ts:q('.ph-ts'),bl:q('.ph-bl'),fl:q('.ph-flash'),sh:q('.ph-sh'),th:q('.ph-th'),thImg:q('.ph-th img'),clk:q('.clk'),stx:q('.ph-st'),flb:q('.ph-fl'),pills:[...root.querySelectorAll('.ph-zoom button')]};
@@ -308,7 +320,22 @@ J.on('hud',st=>{const a=A(),M=a&&a.M;
   if(M.item==='phone'){st.gadgets=(st.gadgets||[]).concat([{id:'phone',label:R.on?'Phone · '+T.zoom[R.zi]+'×':'Phone',key:a.P&&'RMB',on:R.on,icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2.5"/><circle cx="12" cy="18" r="1"/></svg>'}])}});
 /* zoom on the wheel and flash on F while raised (capture phase: the game's wheel would swap guns) */
 addEventListener('wheel',e=>{if(!R.on)return;e.stopImmediatePropagation();Photo.setZoom(R.zi+(e.deltaY<0?1:-1))},{capture:true,passive:true});
-addEventListener('keydown',e=>{if(!R.on||e.repeat)return;const k=e.key.toLowerCase();if(k==='f'){Photo.toggleFlash();e.stopImmediatePropagation()}else if(k==='='||k==='+'){Photo.setZoom(R.zi+1);e.stopImmediatePropagation()}else if(k==='-'||k==='_'){Photo.setZoom(R.zi-1);e.stopImmediatePropagation()}},{capture:true});
+addEventListener('keydown',e=>{if(!R.on||e.repeat||!active())return;const k=e.key.toLowerCase(),stop=()=>{e.stopImmediatePropagation();e.preventDefault()};
+  if(k==='f'){Photo.toggleFlash();stop()}else if(k==='='||k==='+'){Photo.setZoom(R.zi+1);stop()}else if(k==='-'||k==='_'){Photo.setZoom(R.zi-1);stop()}
+  else if(k==='1'||k==='2'||k==='3'){Photo.setZoom(+k-1);stop()}
+  else if(k===' '||k==='enter'||k==='e'){Photo.shoot();stop()}
+  else if(k==='q'){Photo.raise(false);stop()}else if(k==='escape'){Photo.raise(false)}},{capture:true});
+/* the mouse, before the game sees it (capture on window): in a no-gun job the game never calls fire(), so the phone owns its buttons.
+   Right button: toggle (a press longer than 250 ms that was the raise lowers again on release, for people who like holding). Left button: shutter,
+   or raise when it's down. With the pointer unlocked the game still gets the click (it asks for pointer lock first). */
+addEventListener('mousedown',e=>{if(!active())return;const a=A(),cv=window.__ht&&window.__ht.renderer?window.__ht.renderer.domElement:null;if(cv&&e.target!==cv&&!(R.ui&&R.ui.root.contains(e.target)))return;
+  const locked=!!document.pointerLockElement;let used=false;
+  if(e.button===2){if(R.want){R.want=false;R.held=false}else{R.want=true;R.held=true;R.pressT=performance.now()}used=true}
+  else if(e.button===0){if(R.on){Photo.shoot();used=true}else if(locked){R.want=true;used=true}}/* a click that only takes the pointer back never raises the phone */
+  if(used&&locked){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
+addEventListener('mouseup',e=>{if(e.button!==2||!R.held)return;R.held=false;/* a pure toggle: releasing never lowers the phone, however long the press */},{capture:true});
+/* touch: the HUD's aim button toggles the phone, the fire button is the shutter (or raises it) */
+(function hook(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(hook,500);return}a.HUD.on('touch',(k,down)=>{if(!down||!active())return;if(k==='aim')R.want=!R.want;else if(k==='fire'){if(R.on)Photo.shoot();else R.want=true}})})();
 
 /* ---------------- the phone item: LMB raises it, then it is the shutter ---------------- */
 J.item('phone',{name:'Phone',use(M){if(!Photo.S)return;if(!R.on){Photo.raise(true);return}Photo.shoot()}});

@@ -18,6 +18,18 @@
    HT.Tail.poly(points)                  {pts, cum, len, at(s)->{x,z,yaw}, project(x,z,hint)->s}
    HT.Tail.slot / HT.Tail.boxed          formation slots for Brake Check (wave 4): STUBS, see the comment below
    Conventions as index.html: yaw 0 faces -z, forward = (-sin yaw, -cos yaw). Metres, m/s, seconds (all from the dt passed in).
+
+   REUSING THE PIECES (Brake Check, Everybody Waves, Chain Reaction): js/jobs/tail.js is the worked example.
+   - A scripted vehicle: build a lane with HT.Roads (G.lane(nodeIds), plus your own points for lots and driveways), wrap it in poly(), drive it
+     with Rail(path,{max,corner,stops:[{s,t,lat,until(),onHold(),onGo()}],maxAt(s)}) and copy rail.x/z/yaw onto the model and an oriented
+     collider every frame. Check the lane for static colliders before shipping a route: the world has props on some roads (the garden on
+     4th St, the laundromat walls on 2nd St); dev/jobs/tail.js prints "route clear".
+   - Traffic: give each rail a unique priority and pass ctx.ahead=me=>aheadGap(me,others,r) (others = {x,z,yaw,len,pri}); lower priority
+     yields at crossings, nothing deadlocks (6 s blocked -> it noses through), and extend paths past their last junction so cars never stop in one.
+   - Sight: los() takes the tile grid (WORLD.map + WORLD.losblock) and car circles separately; tick() wants los (traffic included: can he
+     see you) and sight (buildings only: can you see him).
+   - Formation slots: slot() returns a point relative to the target (feed it to HT.CarAI.follow as a 1-point path at ~5 Hz, or to a Rail
+     as its want-position); boxed() is the box-in timer. Both are stubs for Brake Check to finish; keep their signatures.
    ===================================================================== */
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
