@@ -3,7 +3,7 @@
    Shots go to docs/screenshots/jobs/arrest/ (jpg, world streamed in first). */
 const {open}=require('../ai-ingame-lib.js'),path=require('path'),fs=require('fs');
 const arg=(k,d)=>{const a=process.argv.find(x=>x.startsWith('--'+k+'='));return a?a.split('=')[1]:process.argv.includes('--'+k)?true:d};
-const FAIL=!!arg('fail',false),SHOTS=!!arg('shots',false),ONLY=arg('only','')?String(arg('only','')).split(','):null,OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/arrest')),MAX=+arg('max',14000);
+const FAIL=!!arg('fail',false),RUSE=arg('ruse',''),WRONG=!!arg('wrong',false),SHOTS=!!arg('shots',false),ONLY=arg('only','')?String(arg('only','')).split(','):null,OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/arrest')),MAX=+arg('max',14000);
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
   /* the open world builds in slices on draw: draw until nothing new has been built for a few draws */
   const stream=()=>ev(async()=>{const H=window.__ht;let last=-1,same=0;for(let k=0;k<120&&same<6;k++){H.draw();await new Promise(r=>setTimeout(r,60));const s=H.ow&&H.ow.stats&&H.ow.stats();const b=s?s.built:0;if(b===last)same++;else{same=0;last=b}}});
@@ -23,17 +23,18 @@ const FAIL=!!arg('fail',false),SHOTS=!!arg('shots',false),ONLY=arg('only','')?St
   if(st.mode!=='mission'){console.log(errs);await b.close();process.exit(1)}
   /* stream the world in around the market before anything is judged */
   await p.evaluate(async()=>{for(let i=0;i<12;i++){window.__ht.step(5);await new Promise(r=>setTimeout(r,120))}});
-  await ev(fail=>{const H=window.__ht,j=H.jobs.registry.get('arrest'),a=H.jobs.api;const T=window.__T={log:[],t:0,last:{}};
+  await ev(fail=>{const H=window.__ht,j=H.jobs.registry.get('arrest'),a=H.jobs.api;const T=window.__T={log:[],t:0,last:{},opts:{}};
     const r0=a.radio;a.radio=function(w,t,f){T.log.push(['@'+(H.M&&H.M.ho?H.M.ho.clock.toFixed(1):0),'  '+w+': '+t]);return r0.apply(this,arguments)};
     const f0=a.feed;a.feed=function(t,k,s){T.log.push(['@'+(H.M&&H.M.ho?H.M.ho.clock.toFixed(1):0),'  [feed] '+t+(s?' · '+s:'')]);return f0.apply(this,arguments)};
-    T.step=()=>{const M=H.M;if(!M||M.state!=='go')return 'end';j.test.step(a,T.t,fail?{fail:true}:{});T.t++;H.step(1);const O=H.M&&H.M.ho;if(!O)return 'end';
+    T.step=()=>{const M=H.M;if(!M||M.state!=='go')return 'end';j.test.step(a,T.t,fail?{fail:true}:T.opts);T.t++;H.step(1);const O=H.M&&H.M.ho;if(!O)return 'end';
       const key=O.stage+'|'+(O.ided?1:0)+'|'+(O.cols&&O.cols[O.skim].ruse?O.cols[O.skim].ruse.kind+':'+O.cols[O.skim].ruse.st:'-')+'|'+(O.drawn?'D':'')+'|'+(O.down?'down':'')+'|'+(O.duf?O.duf.st:'');
       if(key!==T.last.key){T.last.key=key;T.log.push(['@'+O.clock.toFixed(1),'state '+key+' panic '+O.panic.toFixed(0)+' wit '+O.wit+' P '+H.P.pos.x.toFixed(1)+','+H.P.pos.z.toFixed(1)])}
       const sk=O.cols&&O.cols[O.skim];if(sk){const s=Math.floor((sk.seen||0)*2);if(s!==T.last.seen){T.last.seen=s;T.log.push(['@'+O.clock.toFixed(1),'  seen '+(sk.seen||0).toFixed(2)+' tells '+JSON.stringify(sk.tells,(k,v)=>typeof v==='number'?+v.toFixed(2):v)])}}
       return null};
     T.run=(max,until)=>{for(let i=0;i<max;i++){const r=T.step();if(r)return r;let u=null;try{u=until(H.M)}catch(e){}if(u)return u}return 'timeout'}},FAIL);
+  await ev(([r,w])=>{window.__T.opts={ruse:r||undefined,wrong:w}},[RUSE,WRONG]);
   const W=FAIL?[['f1-drawn',`M.ho.drawn&&M.ho.panic>30`]]:[['01-arrive',`M.ho.spawned&&M.ho.clock>2`],['02-rosa',`M.ho.talked&&M.ho.clock>6`],['03-watch',`M.ho.watch.c&&M.ho.watchedAny>2`],['04-notebook',`M.ho.clues.length>=2&&M.ho.watch.c`],
-    ['05-ided',`M.ho.ided&&M.ho.clock>(M.ho.idAt||(M.ho.idAt=M.ho.clock+2))`],['06-ruse',`M.ho.cols[M.ho.skim].ruse&&M.ho.cols[M.ho.skim].ruse.st==='go'&&M.ho.cols[M.ho.skim].ruse.k>=2`],['07-drawn',`M.ho.drawn&&M.ho.ret==='ok'`],
+    ['05-ided',`M.ho.ided&&M.ho.clock>(M.ho.idAt||(M.ho.idAt=M.ho.clock+2))`],['06-ruse',`M.ho.cols[M.ho.skim].ruse&&M.ho.clock>(M.ho.rAt||(M.ho.rAt=M.ho.clock+7))`],['07-drawn',`M.ho.drawn&&M.ho.ret==='ok'`],
     ['08-down',`M.ho.down&&M.ho.clock>(M.ho.dAt||(M.ho.dAt=M.ho.clock+1.2))`],['09-chase',`M.ho.duf.st==='run'&&M.ho.duf.t>2`],['10-twist',`M.ho.tied&&M.ho.clock>(M.ho.tAt||(M.ho.tAt=M.ho.clock+.8))`],['11-win',`M.exitOpen`]];
   for(const[n,cond]of W){if(ONLY&&!W.slice(W.findIndex(w=>w[0]===n)).some(w=>ONLY.some(o=>w[0].startsWith(o))))break;const r=await ev(([c,max])=>window.__T.run(max,new Function('M','return !!('+c+')')),[cond,MAX]);console.log(n,r);await shot(n);if(r!==true&&r!=='timeout'&&r!==1)break;if(r==='timeout')break}
   const r=await ev(max=>window.__T.run(max,M=>M.state!=='go'),MAX);console.log('end',r);await ev(()=>window.__ht.step(40));await shot(FAIL?'f9-fail':'12-result');
