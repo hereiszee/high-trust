@@ -361,9 +361,9 @@ function sayAt(who,text,dur){if(!HUDL)return;const d=document.createElement('div
 
 /* ================= audio: HT.Audio where it has the sound, a few small synths for the rest ================= */
 const AU=()=>window.HT&&HT.Audio;let OUT=null,NB=null;
-let MYC=null;function actx(){/* HT.Audio keeps its context private: a small one of our own, created on first use (after the player's first input) */
-  try{if(!MYC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;MYC=new C()}if(MYC.state==='suspended')MYC.resume().catch(()=>{});return MYC.state==='running'?MYC:null}catch(_){return null}}
-function outN(c){if(!OUT||OUT.context!==c){OUT=c.createGain();OUT.gain.value=.55;OUT.connect(c.destination)}return OUT}
+let MYC=null;function actx(){/* the game's own context (HT.Audio.ctx) so the volume sliders apply; a small one of our own only without HT.Audio */
+  try{const g=AU();if(g&&g.ctx&&g.bus){if(g.ctx.state==='suspended')g.ctx.resume().catch(()=>{});return g.ctx.state==='running'?g.ctx:null}if(!MYC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;MYC=new C()}if(MYC.state==='suspended')MYC.resume().catch(()=>{});return MYC.state==='running'?MYC:null}catch(_){return null}}
+function outN(c){if(!OUT||OUT.context!==c){OUT=c.createGain();OUT.gain.value=.55;const g=AU(),bus=g&&g.ctx===c&&g.bus?g.bus('sfx'):null;OUT.connect(bus||c.destination)}return OUT}
 function tone(f,dur,o){o=o||{};const c=actx();if(!c)return;const t=c.currentTime+(o.at||0),os=c.createOscillator(),g=c.createGain();os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.f2)os.frequency.exponentialRampToValueAtTime(o.f2,t+dur);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.vol||.2,t+.008);g.gain.exponentialRampToValueAtTime(.0008,t+dur);os.connect(g);g.connect(outN(c));os.start(t);os.stop(t+dur+.03)}
 function hiss(dur,o){o=o||{};const c=actx();if(!c)return;if(!NB||NB.sampleRate!==c.sampleRate){NB=c.createBuffer(1,c.sampleRate,c.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
@@ -399,8 +399,7 @@ const HP=()=>window.HT&&HT.People&&HT.People.ok?HT.People:null;
 let CAST=false;
 function ensureCast(){const pp=HP();if(CAST||!pp||!pp.roles)return;CAST=true;const keys=pp.keys||[];
   if(!pp.roles.hank&&!(pp.giverKeys||[]).includes('hank')&&keys.includes('nb_pops'))pp.roles.hank='nb_pops';
-  /* the brief's cast preload asks People for the giver key itself: point 'hank' at his stand-in file (smallest possible shim; see the report) */
-  if(pp.roles.hank==='nb_pops'&&pp.preload&&!pp.preload.__hank){const orig=pp.preload;pp.preload=function(ks){return orig.call(this,(ks||[]).map(k=>k==='hank'?'nb_pops':k))};pp.preload.__hank=true}
+  /* the brief's cast preload resolves 'hank' through People.roles (index.html castKey), so no preload wrapper is needed */
   const want=['nb_pops','nb_kid','nb_teen','nb_gran','nb_sweater','nb_lucia'].filter(k=>keys.includes(k));if(pp.preload&&want.length)try{pp.preload(want).catch(()=>{})}catch(_){}}
 function dude(role,look,o){const a=A(),pp=HP();let d=null;if(pp&&pp.make){try{d=pp.make(role,o||{})}catch(_){d=null}}if(!d)d=a.makeDude(Object.assign({},look||{shirt:'#7a8796',pants:'#2b2f36'},{role}));return d}
 function hankDude(){const a=A(),pp=HP();ensureCast();if(pp&&pp.has&&pp.has('hank'))return dude('hank');const h=a.HOMIES.hank||{};return a.makeDude(Object.assign({},h,{giver:null}))}

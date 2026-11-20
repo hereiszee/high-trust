@@ -677,6 +677,12 @@ HT.Audio={_ver:1,init,setVolume,listener,gun,mech,shellCasing,impact,whizz,foots
   setIndoor(b){S.indoor=!!b},setIntensity(x){MUS.int=clamp(x,0,1)},
   pause(b){if(!ctx||!live)return;b?ctx.suspend():ctx.resume()},
   get ctx(){return ctx},get output(){return N.out},get ready(){return !!ctx},
+  /* job synths (js/jobs/*.js): play through the game's sfx/ui buses so the volume sliders and ducking apply.
+     bus(name) -> the GainNode ('sfx' default, 'ui', 'music'); tone({f,to,type,d,gain,at,bus,attack}) -> a short enveloped oscillator */
+  bus(name){return N[name||'sfx']||N.sfx||null},
+  tone(o){o=o||{};if(!ctx||!N.sfx)return null;const t=ctx.currentTime+(o.at||0),d=o.d||.15,g=ctx.createGain(),os=ctx.createOscillator();os.type=o.type||'sine';os.frequency.setValueAtTime(o.f||440,t);
+    if(o.to)os.frequency.exponentialRampToValueAtTime(Math.max(20,o.to),t+d);const v=o.gain==null?.2:o.gain,a=o.attack||.008;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    os.connect(g);g.connect(N[o.bus||'sfx']||N.sfx);os.start(t);os.stop(t+d+.05);os.onended=()=>{os.disconnect();g.disconnect()};return os},
   get state(){return{ctx:ctx&&ctx.state,voices:VO.length,music:MUS.id,ambience:AMB,cached:CACHE.size}},
   guns:Object.keys(GUNS),_advance(sec){if(ctx)tick(ctx.currentTime+sec)},_maxVoices(n){MAXV=n}};
 })();

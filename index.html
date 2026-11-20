@@ -361,10 +361,198 @@ function applyMood(){const m=mood;renderer.toneMappingExposure=m.exp;sun.color.c
   hemi.intensity=envMap?m.hemi:m.hemi+.6;const tint=lin(m.tint);
   if(ASSETS.skyTex){skyMat.map=ASSETS.skyTex;skyMat.color.copy(tint)}else skyMat.color.copy(lin(m.fb));skyMat.needsUpdate=true;
   let fog;if(skyHorizon){fog=unAces([skyHorizon[0]*tint.r,skyHorizon[1]*tint.g,skyHorizon[2]*tint.b],m.exp)}else{const c=lin(m.fb);fog=unAces([c.r,c.g,c.b],m.exp)}
-  if(!scene.fog)scene.fog=new THREE.Fog(0,m.near,m.far);scene.fog.color.setRGB(fog[0],fog[1],fog[2]);scene.fog.near=m.near;scene.fog.far=m.far;scene.background=null}
+  if(!scene.fog)scene.fog=new THREE.Fog(0,m.near,m.far);scene.fog.color.setRGB(fog[0],fog[1],fog[2]);scene.fog.near=m.near;scene.fog.far=m.far;scene.background=null;nightApply()}
 ASSETS.ready.then(()=>setTimeout(()=>{if(ASSETS.skyImg)sampleHorizon(ASSETS.skyImg);buildEnv();applyMood()},0));/* after the Start button unlocks */
 /* late or sharper sky and light (Stage B): rebuild from the new data */
 ASSETS.onAsset(s=>{if(!ASSETS.done)return;if(/\.hdr$/.test(s)&&ASSETS.hdr&&!ASSETS.hdr.__used){buildEnv();applyMood()}else if(/sky_2k/.test(s)&&!skyHorizon&&ASSETS.skyImg){sampleHorizon(ASSETS.skyImg);applyMood()}});
+/* ---------- NIGHT (SPEC3 4.9 MOODS.night): moonlit sky, lit lamps and windows, headlights, flashlight (F), night-vision goggles (N) ----------
+   setNight(k) blends whatever mood the level has toward MOODS.night (k 0..1; eased over ~1 s in play, immediate otherwise or with now=true).
+   The night is "day for night": exposure drops so the sun-baked light probe reads as moonlit ambience, the grade pass tints the darks blue,
+   and everything that emits light (lamps, windows, headlights, the flashlight) is scaled by NIGHT.gain = day exposure / night exposure.
+   k = 0 restores the exact daytime values, and nothing night-only exists in the scene until the first time it is needed. */
+MOODS.night={exp:.16,tint:'#ffffff',sun:'#a9bcff',si:1.25,hemi:.34,near:12,far:120,fb:'#121a28'};
+const NIGHT={k:0,target:0,t:0,ease:1,applied:false,gain:1,
+  nvg:false,nvgV:0,flash:false,flare:0,sight:1,psight:null,lvl:null,gad:null,
+  /* tuning: light factor for the stealth module, AI view-range scale (SPEC3 4.1: 24 m day, 14 m night) */
+  T:{daySight:24,nightSight:14,litR:6,lit:.9,dark:.4,lampN:6,lampR:70,nvgDrain:1/240,nvgCharge:1/4}};
+const nlerp=(a,b,t)=>a+(b-a)*t;
+const NIGHT_HEMI={sky:new THREE.Color(0xcfe3ff),gnd:new THREE.Color(0x6b5a40),nSky:lin('#6f8cc8'),nGnd:lin('#1d2330')};
+/* the night sky: a gradient dome over the day panorama (faded in with k), crisp star points and a moon billboard */
+const NSKY={dome:null,stars:null,moon:null,horizon:null,moonDir:V3(.78,.36,-.52).normalize()};
+function nightSky(){if(NSKY.dome)return;
+  const c=document.createElement('canvas');c.width=64;c.height=256;const x=c.getContext('2d');
+  /* rows: zenith (top) to nadir; the horizon sits at the middle row. A faint sodium glow from the town on the horizon */
+  const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#02040a');g.addColorStop(.25,'#050a18');g.addColorStop(.4,'#0b1528');g.addColorStop(.47,'#172235');g.addColorStop(.5,'#1f2838');g.addColorStop(.53,'#151c29');g.addColorStop(1,'#0c111a');
+  x.fillStyle=g;x.fillRect(0,0,64,256);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;
+  NSKY.horizon=[...new THREE.Color('#1f2838').convertSRGBToLinear().toArray()];
+  const m=new THREE.MeshBasicMaterial({map:t,side:THREE.BackSide,fog:false,toneMapped:false,depthWrite:false,transparent:true,opacity:0});
+  const d=new THREE.Mesh(skyDome.geometry,m);d.renderOrder=-9;d.frustumCulled=false;skyDome.add(d);NSKY.dome=d;
+  /* stars: two point sets (many faint, few bright), uniform over the upper sky, thinning toward the hazy horizon */
+  const R=Math.random;const mk=(n,size,op)=>{const p=new Float32Array(n*3),col=new Float32Array(n*3);
+    for(let i=0;i<n;i++){let y;do{y=R()}while(y<.06+R()*.12);const a=R()*Math.PI*2,r=Math.sqrt(1-y*y);p[i*3]=Math.cos(a)*r*200;p[i*3+1]=y*200;p[i*3+2]=Math.sin(a)*r*200;
+      const w=.75+R()*.25,tint=R();col[i*3]=w*(tint<.2?1:.86);col[i*3+1]=w*.92;col[i*3+2]=w*(tint>.8?1:.95)}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(p,3));geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const pts=new THREE.Points(geo,new THREE.PointsMaterial({size,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:op,depthWrite:false,fog:false,toneMapped:false}));
+    pts.frustumCulled=false;pts.renderOrder=-8;return pts};
+  const st=new THREE.Group();st.add(mk(900,1.4,.55),mk(140,2.4,.85));st.visible=false;scene.add(st);NSKY.stars=st;
+  /* moon: a soft halo and a mottled disc on one billboard (32 m at 200 m: ~2.3 degrees with the halo, the disc about a third) */
+  const mc=document.createElement('canvas');mc.width=mc.height=256;const y=mc.getContext('2d');
+  const h=y.createRadialGradient(128,128,20,128,128,128);h.addColorStop(0,'rgba(190,210,255,.42)');h.addColorStop(.35,'rgba(150,175,235,.12)');h.addColorStop(1,'rgba(120,150,220,0)');y.fillStyle=h;y.fillRect(0,0,256,256);
+  const dg=y.createRadialGradient(118,116,4,128,128,30);dg.addColorStop(0,'#fbfcff');dg.addColorStop(.85,'#e3e9f4');dg.addColorStop(1,'#c9d2e2');
+  y.beginPath();y.arc(128,128,30,0,Math.PI*2);y.fillStyle=dg;y.fill();
+  y.save();y.clip();for(const[mx,my,mr,a]of[[117,118,9,.16],[136,124,7,.14],[124,138,6,.12],[140,140,4,.1],[112,132,4,.1],[131,110,5,.09]]){y.beginPath();y.arc(mx,my,mr,0,Math.PI*2);y.fillStyle=`rgba(120,130,150,${a})`;y.fill()}y.restore();
+  const mt=new THREE.CanvasTexture(mc);mt.encoding=THREE.sRGBEncoding;
+  const moon=new THREE.Mesh(new THREE.PlaneGeometry(32,32),new THREE.MeshBasicMaterial({map:mt,transparent:true,depthWrite:false,fog:false,toneMapped:false,opacity:0}));
+  moon.renderOrder=-8;moon.visible=false;scene.add(moon);NSKY.moon=moon}
+function nightSkyFollow(){if(!NSKY.dome||!NSKY.stars.visible)return;const c=camera.position;NSKY.stars.position.copy(c);
+  NSKY.moon.position.copy(c).addScaledVector(NSKY.moonDir,200);NSKY.moon.lookAt(c)}
+/* every light-emitting material the night brightens, with its daytime value kept so k = 0 puts it back exactly */
+function nightMats(k,g){
+  const HB=HTM('Buildings');if(HB&&HB.setNight&&(k>0||NIGHT.bApplied)){HB.setNight(k,g);NIGHT.bApplied=k>0}
+  const HW=HTM('World');if(HW&&HW.matFor&&L&&L.ow){const lg=HW.matFor({def:{}},'lampglass');if(lg){if(lg.userData.ei0==null)lg.userData.ei0=lg.emissiveIntensity;lg.emissiveIntensity=nlerp(lg.userData.ei0,1.6*g,k)}}
+  const VM=HTM('Vehicles');if(VM&&VM.night)VM.night(k>.35,nlerp(1,g*1.5,k));
+  /* the first-person gun has its own two lights: keep it readable (the flashlight lifts it a little) */
+  if(typeof vmScene!=='undefined'){for(const l of vmScene.children){if(!l.isLight)continue;if(l.userData.i0==null)l.userData.i0=l.intensity;
+    l.intensity=nlerp(l.userData.i0,l.userData.i0*(NIGHT.flash?.5:.3)*g,k)}}}
+/* called from applyMood (so Riverside's trust blend and level moods compose with the night), every frame while k eases */
+function nightApply(){const k=NIGHT.k;if(!k&&!NIGHT.applied)return;NIGHT.applied=k>0;const N=MOODS.night,m=mood;
+  if(k>0)nightSky();
+  /* Low has no grade pass to cool and deepen the darks, so it takes a little less exposure instead */
+  const lowK=typeof RENDER!=='undefined'&&!RENDER.post?.5:1;NIGHT.post=typeof RENDER!=='undefined'&&RENDER.post;
+  const exp=m.exp*Math.pow(N.exp*lowK/m.exp,k),g=m.exp/exp*Math.pow(lowK,k);NIGHT.gain=g;renderer.toneMappingExposure=exp;/* lights keep their Medium/High look on Low */
+  sun.color.copy(lin(m.sun)).lerp(lin(N.sun),k);sun.intensity=nlerp(m.si,N.si,k);
+  hemi.intensity=nlerp(envMap?m.hemi:m.hemi+.6,N.hemi,k);hemi.color.copy(NIGHT_HEMI.sky).lerp(NIGHT_HEMI.nSky,k);hemi.groundColor.copy(NIGHT_HEMI.gnd).lerp(NIGHT_HEMI.nGnd,k);
+  if(scene.fog){const day=scene.fog.color.clone();const nf=NSKY.horizon||[.014,.021,.04];
+    /* fog lands after tone mapping in r128, so the night fog is the night horizon colour itself; blended in a perceptual (sqrt) space */
+    const r=[day.r,day.g,day.b].map((v,i)=>Math.pow(nlerp(Math.sqrt(v),Math.sqrt(nf[i]),k),2));scene.fog.color.setRGB(r[0],r[1],r[2]);
+    scene.fog.near=nlerp(m.near,N.near,k);scene.fog.far=nlerp(m.far,N.far,k)}
+  if(NSKY.dome){const o=clamp(k*1.25,0,1);NSKY.dome.material.opacity=o;NSKY.dome.visible=k>0;NSKY.stars.visible=NSKY.moon.visible=k>.05;
+    for(const p of NSKY.stars.children)p.material.opacity=(p.material.size>2?.85:.55)*clamp((k-.4)/.6,0,1);NSKY.moon.material.opacity=clamp((k-.25)/.5,0,1)}
+  nightMats(k,g);
+  if(typeof RENDER!=='undefined'&&RENDER.mats&&RENDER.mats.grade)RENDER.mats.grade.uniforms.night.value=k}
+function nightSetK(t){NIGHT.t=clamp(t,0,1);const k=NIGHT.t*NIGHT.t*(3-2*NIGHT.t);if(k===NIGHT.k)return;NIGHT.k=k;applyMood()}
+/* setNight(k[, now]): 0 day .. 1 night. Global and idempotent (a job with night:true calls setNight(1) at start and setNight(0) at the end) */
+function setNight(k,now){k=clamp(+k||0,0,1);NIGHT.target=k;if(now||mode==='title'||!running)nightSetK(k);return NIGHT}
+
+/* ---- lamps near the camera: a small pool of real point lights (never shadow casting) on the nearest lit lamps, faded in and out;
+   every lit lamp also gets a light-pool decal on the ground and a halo sprite (one draw call each), so far lamps read as lit too ---- */
+const NR={ready:false,pts:[],spot:null,list:[],ver:-1,litT:0,litKey:'',pool:null,halo:null,flashDir:null,swayT:0};
+function nightGlowTex(inner,outer){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,inner);g.addColorStop(.35,outer);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+function nightRig(){if(NR.ready)return;NR.ready=true;
+  for(let i=0;i<NIGHT.T.lampN;i++){const l=new THREE.PointLight(0xffd29a,0,18,1.6);l.castShadow=false;l.userData.f=0;l.userData.src=null;scene.add(l);NR.pts.push(l)}
+  /* one spot light: the flashlight on foot, the player's headlights in a car (never both) */
+  const s=new THREE.SpotLight(0xfff1dc,0,25,25*Math.PI/180,.6,1.3);s.castShadow=false;scene.add(s);scene.add(s.target);NR.spot=s;NR.flashDir=V3(0,0,-1);
+  const pm=new THREE.MeshBasicMaterial({map:nightGlowTex('rgba(255,255,255,.55)','rgba(255,255,255,.2)'),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,
+    polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);NR.pool=new THREE.InstancedMesh(pg,pm,640);NR.pool.count=0;NR.pool.frustumCulled=false;NR.pool.renderOrder=2;NR.pool.visible=false;scene.add(NR.pool);
+  const hg=new THREE.BufferGeometry();hg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(640*3),3));hg.setAttribute('color',new THREE.BufferAttribute(new Float32Array(640*3),3));hg.setDrawRange(0,0);
+  NR.halo=new THREE.Points(hg,new THREE.PointsMaterial({size:2.6,map:nightGlowTex('rgba(255,255,255,1)','rgba(255,255,255,.22)'),vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+  NR.halo.frustumCulled=false;NR.halo.visible=false;scene.add(NR.halo)}
+const NIGHT_COL={street:lin('#ffd9a8'),porch:lin('#ffc27a'),garage:lin('#ffd49a'),sign:lin('#fff0d0'),flood:lin('#fff2d8')};
+function nightLamps(){const O=OW();return L&&L.ow&&O&&O.lights?O.lights():[]}
+/* rebuild the decal/halo instances when the lamp set or what is lit changes */
+function nightLampBuild(){const list=NR.list,pool=NR.pool,halo=NR.halo,o=new THREE.Object3D(),c=new THREE.Color();let n=0;
+  const hp=halo.geometry.attributes.position.array,hc=halo.geometry.attributes.color.array;
+  for(const l of list){if(!l.lit||n>=640)continue;const st=l.kind==='street',r=st?12:l.kind==='flood'?9:4.6,y=worldGroundAt(st?l.x:l.x,st?l.z:l.z)+.03;
+    o.position.set(l.x,y,l.z);o.scale.set(r,1,r);o.updateMatrix();pool.setMatrixAt(n,o.matrix);c.copy(NIGHT_COL[l.kind]||NIGHT_COL.porch).multiplyScalar(st?.42:.34);pool.setColorAt(n,c);
+    hp[n*3]=l.x;hp[n*3+1]=st?l.y-.08:l.y+.02;hp[n*3+2]=l.z;const hc0=NIGHT_COL[l.kind]||NIGHT_COL.porch,hk=st?.9:.55;hc[n*3]=hc0.r*hk;hc[n*3+1]=hc0.g*hk;hc[n*3+2]=hc0.b*hk;n++}
+  pool.count=n;pool.instanceMatrix.needsUpdate=true;if(pool.instanceColor)pool.instanceColor.needsUpdate=true;
+  halo.geometry.setDrawRange(0,n);halo.geometry.attributes.position.needsUpdate=true;halo.geometry.attributes.color.needsUpdate=true}
+function nightLampTick(dt){const k=NIGHT.k,g=NIGHT.gain;if(!NR.ready)return;
+  const on=k>0;NR.pool.visible=NR.halo.visible=on&&NR.pool.count>0;
+  if(on){const O=OW(),ver=L&&L.ow&&O&&O.lightsVersion?O.lightsVersion():0;NR.litT-=dt;
+    if(NIGHT.lvl!==L||ver!==NR.ver||NR.litT<=0){NR.litT=1;NR.ver=ver;NIGHT.lvl=L;NR.list=nightLamps();const key=NR.list.map(l=>l.lit?1:0).join('');
+      if(key!==NR.litKey||NR.pool.count===0){NR.litKey=key;nightLampBuild()}}
+    NR.pool.material.opacity=k;NR.halo.material.opacity=k;NR.halo.material.size=2.6+NIGHT.nvgV*1.4}
+  /* pick the nearest lit lamps ahead of the camera (lamps behind count double distance) */
+  const cp=camera.position,fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),want=[];
+  if(on)for(const l of NR.list){if(!l.lit)continue;const dx=l.x-cp.x,dz=l.z-cp.z,d=Math.hypot(dx,dz);if(d>NIGHT.T.lampR)continue;const s=d*((dx*fx+dz*fz)<-4?2:1)*(l.kind==='street'?.8:1.15);want.push([s,l])}
+  want.sort((a,b)=>a[0]-b[0]);const sel=new Set(want.slice(0,NR.pts.length).map(w=>w[1]));
+  const free=[];for(const p of NR.pts){const u=p.userData;if(u.src&&!sel.has(u.src))u.f=Math.max(0,u.f-dt*3);else if(u.src)u.f=Math.min(1,u.f+dt*3);if(u.src&&u.f<=0&&!sel.has(u.src))u.src=null;if(!u.src)free.push(p)}
+  for(const l of sel){if(NR.pts.some(p=>p.userData.src===l))continue;const p=free.pop();if(!p)break;p.userData.src=l;p.userData.f=dt>0?0:1;
+    const st=l.kind==='street';p.position.set(l.x,st?l.y-.35:l.y-.05,l.z);p.distance=st?17:l.kind==='flood'?13:8;p.decay=st?1.5:1.7;p.color.copy(NIGHT_COL[l.kind]||NIGHT_COL.porch);p.userData.i=st?.95:l.kind==='flood'?.8:.36}
+  for(const p of NR.pts){const u=p.userData;p.intensity=u.src?u.i*u.f*k*g:0}}
+/* stealth light factor (SPEC3 4.1): 1 in daylight; at night 0.9 within 6 m of a lit lamp, 0.4 elsewhere (blended by k) */
+function nightLight(x,z){const k=NIGHT.k;if(!k)return 1;const T=NIGHT.T;let near=false;
+  for(const l of NR.list){if(!l.lit)continue;const st=l.kind==='street';if(Math.hypot((st?l.px:l.x)-x,(st?l.pz:l.z)-z)<T.litR||(st&&Math.hypot(l.x-x,l.z-z)<T.litR)){near=true;break}}
+  return nlerp(1,near?T.lit:T.dark,k)}
+
+/* ---- flashlight (F): everyone owns one. Camera in first person, chest/right hand in third, the car's headlights while driving ---- */
+const _nv=V3(),_nv2=V3(),_nv3=V3();
+function nightSpotTick(dt){const s=NR.spot;if(!s)return;const g=NIGHT.gain,k=NIGHT.k;NR.swayT+=dt;
+  const drv=VAN.on&&mode!=='home'&&mode!=='title';
+  if(drv){const e=CV||VAN;const heads=e===CV||e===VAN?(DRV.lights==null?autoLights():DRV.lights):false;
+    if(!heads||!e.obj){s.intensity=0;return}const S=carSize(e),f=_nv.set(-Math.sin(e.yaw),0,-Math.cos(e.yaw));
+    s.position.set(e.pos.x+f.x*(S.l*.5+.1),.85,e.pos.z+f.z*(S.l*.5+.1));s.target.position.set(s.position.x+f.x*24,-.6,s.position.z+f.z*24);
+    s.angle=.46;s.penumbra=.6;s.distance=50;s.decay=1;s.color.setHex(0xfff6ea);s.intensity=5.5*nlerp(1,g,k)*clamp(k*1.6,0,1);s.target.updateMatrixWorld();return}
+  if(!NIGHT.flash||mode==='title'){s.intensity=0;return}
+  /* aim along the view; in third person from the right side of the chest toward the point the crosshair looks at */
+  const cf=_nv.set(0,0,-1).applyQuaternion(camera.quaternion);let o;
+  if(P.fp)o=_nv2.copy(camera.position).addScaledVector(_nv3.set(Math.cos(P.yaw),0,-Math.sin(P.yaw)),.16).add(_nv3.set(0,-.14,0));
+  else{const rt=_nv3.set(Math.cos(P.yaw),0,-Math.sin(P.yaw));o=_nv2.set(P.pos.x,(P.visY||0)+(P.crouch?.95:1.32),P.pos.z).addScaledVector(rt,.24).add(_nv3.set(-Math.sin(P.yaw)*.32,0,-Math.cos(P.yaw)*.32))}
+  const aim=V3().copy(camera.position).addScaledVector(cf,16).sub(o).normalize();
+  /* lag behind fast turns and sway a little with the walk */
+  NR.flashDir.lerp(aim,Math.min(1,dt>0?dt*16:1)).normalize();const t=NR.swayT,mv=P.moving?1:.35;
+  const sw=_nv3.set(Math.sin(t*1.3)*.012+Math.sin(t*7.1)*.014*mv,Math.sin(t*1.7+1)*.01+Math.abs(Math.sin(t*3.55))*.016*mv,0);
+  s.position.copy(o);s.target.position.copy(o).addScaledVector(NR.flashDir,10).add(sw.applyQuaternion(camera.quaternion).multiplyScalar(10));s.target.updateMatrixWorld();
+  s.angle=25*Math.PI/180;s.penumbra=.55;s.distance=25;s.decay=1.2;s.color.setHex(0xfff1dc);s.intensity=4.4*nlerp(1,g,k)}
+
+/* ---- night-vision goggles (N): SV().gadgets.nvg = {owned, equipped, charge 0..1}; missing = not owned (__ht.giveNvg() for tests) ---- */
+function nvgGad(){let s=null;try{s=typeof SV==='function'?SV():null}catch(e){s=null}const g=s&&s.gadgets&&s.gadgets.nvg;return g&&typeof g==='object'?g:NIGHT.gad}
+function nvgUsable(){const g=nvgGad();return!!(g&&g.owned&&g.equipped!==false)}
+function nvgCharge(){const g=nvgGad();if(!g)return 0;const c=+g.charge;return isFinite(c)?clamp(c>1?c/100:c,0,1):1}
+let nvgEl=null;
+function nvgOverlay(v,flare){if(!nvgEl){if(!v)return;const cv0=renderer.domElement;nvgEl=document.createElement('div');nvgEl.id='nvgLow';
+    nvgEl.style.cssText='position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 72% 88% at 50% 50%,rgba(0,0,0,0) 52%,rgba(0,8,0,.88) 100%);'+
+      '-webkit-backdrop-filter:grayscale(1) brightness(2.3) contrast(1.1) sepia(1) hue-rotate(62deg) saturate(2.2);backdrop-filter:grayscale(1) brightness(2.3) contrast(1.1) sepia(1) hue-rotate(62deg) saturate(2.2)';
+    const f=document.createElement('div');f.style.cssText='position:absolute;inset:0;background:#d8ffd0;opacity:0';nvgEl.appendChild(f);cv0.insertAdjacentElement('afterend',nvgEl)}
+  nvgEl.style.display=v>.01?'block':'none';nvgEl.style.opacity=v.toFixed(2);nvgEl.firstChild.style.opacity=(flare*.85).toFixed(2)}
+/* muzzle flashes near the view and headlights pointed at the camera within ~20 m blind the tube for ~0.6 s */
+function nvgBlind(a){if(NIGHT.nvg)NIGHT.flare=Math.max(NIGHT.flare,a)}
+if(window.HT&&window.HT.FX&&FX.muzzleFlash&&!FX.__nightWrap){const mf=FX.muzzleFlash;FX.__nightWrap=true;
+  FX.muzzleFlash=function(pos,dir,o){try{if(NIGHT.nvg&&pos){const c=camera.position,d=c.distanceTo(pos);const f=_nv3.set(0,0,-1).applyQuaternion(camera.quaternion);
+      const ahead=d<1e-3?1:((pos.x-c.x)*f.x+(pos.y-c.y)*f.y+(pos.z-c.z)*f.z)/d;if(o&&o.firstPerson)nvgBlind(.5);else if(d<18&&ahead>.35)nvgBlind(clamp(1.25-d/18,.35,1))}}catch(e){}
+    return mf.apply(this,arguments)}}
+function nvgTick(dt){const g=nvgGad();
+  if(mode==='home'&&g){const c=nvgCharge();if(c<1)g.charge=Math.min(1,c+dt*NIGHT.T.nvgCharge)}
+  if(NIGHT.nvg){if(!nvgUsable()){NIGHT.nvg=false}else if(mode!=='home'){const c=Math.max(0,nvgCharge()-dt*NIGHT.T.nvgDrain);g.charge=c;
+    if(c<=0){NIGHT.nvg=false;nightSfx(false);try{radio('you','Goggles are dead. Like my phone. Like my knees.',true)}catch(e){}}}}
+  if(NIGHT.nvg&&dt>0){/* headlights aimed at the camera */const c=camera.position,O=OW();const cars=[];
+    try{if(O&&O.trafficCars)for(const t of O.trafficCars())if(t.yaw!=null)cars.push(t);if(M&&M.chase&&M.chase.car)cars.push(M.chase.car)}catch(e){}
+    if(NIGHT.k>.35)for(const t of cars){const dx=c.x-t.x,dz=c.z-t.z,d=Math.hypot(dx,dz);if(d>20||d<.5)continue;const fx=-Math.sin(t.yaw),fz=-Math.cos(t.yaw);
+      const facing=(dx*fx+dz*fz)/d,look=-(dx*-Math.sin(P.yaw)+dz*-Math.cos(P.yaw))/d;if(facing>.85&&look>.5)nvgBlind(clamp((facing-.85)/.15,0,1)*clamp(1.3-d/20,.3,1))}}
+  NIGHT.flare=Math.max(0,NIGHT.flare-dt/.6);
+  NIGHT.nvgV=dt>0?clamp(NIGHT.nvgV+(NIGHT.nvg?1:-1)*dt/.18,0,1):(NIGHT.nvg?1:0);
+  const fl=NIGHT.flare*NIGHT.flare*(3-2*NIGHT.flare),v=NIGHT.nvgV;
+  if(typeof RENDER!=='undefined'&&RENDER.post&&RENDER.composer){RENDER.nvg(v,fl);if(nvgEl)nvgOverlay(0,0)}
+  else{try{if(RENDER.nvg)RENDER.nvg(0,0)}catch(e){}nvgOverlay(v,fl)}}
+function nightSfx(on){const A=AU();if(!A||!A.ui)return;try{A.ui('click');if(on==='nvg')A.ui('hover')}catch(e){}}
+/* keys: F flashlight, N goggles. Returns what changed (for tests) */
+function nightToggle(what,on){
+  if(what==='flash'){const v=on==null?!NIGHT.flash:!!on;if(v&&VAN.on&&mode!=='home')return NIGHT.flash;/* headlights instead */if(v!==NIGHT.flash){NIGHT.flash=v;nightRig();nightSfx(true)}return NIGHT.flash}
+  if(what==='nvg'){const v=on==null?!NIGHT.nvg:!!on;if(v&&!nvgUsable()){if(on==null){try{HUD.feed('No night-vision goggles equipped','info')}catch(e){}const A=AU();if(A&&A.ui)try{A.ui('denied')}catch(e){}}return false}
+    if(v&&nvgCharge()<=0){if(on==null){try{radio('you','Goggles are dead. Like my phone. Like my knees.',true)}catch(e){}const A=AU();if(A&&A.ui)try{A.ui('denied')}catch(e){}}return false}
+    if(v!==NIGHT.nvg){NIGHT.nvg=v;nightSfx(v?'nvg':true)}return NIGHT.nvg}}
+/* HUD state (js/hud.js draws state.gadgets): only what the dad owns */
+function nightGadgets(){const out=[];if(nvgUsable())out.push({id:'nvg',label:'NV',key:'N',on:NIGHT.nvg,charge:nvgCharge()});out.push({id:'flash',label:'Light',key:'F',on:NIGHT.flash});return out}
+/* every frame (LOOP) and per headless step: easing, lamps, the spot light, goggles, AI view range */
+function nightTick(dt){
+  if(NIGHT.t!==NIGHT.target){const d=NIGHT.target-NIGHT.t,s=dt>0?dt/NIGHT.ease:1;nightSetK(Math.abs(d)<=s?NIGHT.target:NIGHT.t+Math.sign(d)*s)}
+  if(NIGHT.k>0&&NIGHT.post!==RENDER.post)applyMood();/* quality changed: Low takes its own exposure */
+  if(NIGHT.flash&&VAN.on&&mode!=='home')NIGHT.flash=false;
+  if(NIGHT.k>0||NIGHT.flash)nightRig();
+  if(NR.ready){nightLampTick(dt);nightSpotTick(dt)}
+  nightSkyFollow();nvgTick(dt);
+  const T=NIGHT.T,k=NIGHT.k;NIGHT.sight=nlerp(1,T.nightSight/T.daySight,k);
+  NIGHT.psight=k>0&&(NIGHT.flash||nightLight(P.pos.x,P.pos.z)>=nlerp(1,T.lit,k)-1e-6)?1:null}
+function nightExpose(o){Object.defineProperty(o,'night',{get:()=>NIGHT,configurable:true});
+  Object.assign(o,{setNight:k=>{setNight(k,true);nightTick(0);return NIGHT.k},nvg:on=>{const r=nightToggle('nvg',on==null?!NIGHT.nvg:!!on);nightTick(0);return r},
+    flash:on=>{const r=nightToggle('flash',on==null?!NIGHT.flash:!!on);nightTick(0);return r},
+    giveNvg:(charge=1)=>{let s=null;try{s=SV()}catch(e){}const g={owned:true,equipped:true,charge};if(s){s.gadgets=s.gadgets||{};s.gadgets.nvg=Object.assign(s.gadgets.nvg||{},g)}else NIGHT.gad=g;return nvgGad()},
+    nightLight,nightGadgets})}
+window.NIGHT=NIGHT;window.setNight=setNight;window.nightLight=nightLight;
 
 
 
@@ -404,20 +592,57 @@ const RENDER=(()=>{
       for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 o=vec2(float(x),float(y))*aoTexel*1.5;float zz=zAt(vUv+o);float k=1./(1.+abs(zz-z0)*8./max(z0,.5));s+=texture2D(tAO,vUv+o).r*k;w+=k;}
       float ao=s/w;gl_FragColor=dbg>.5?vec4(vec3(ao),1.):vec4(c.rgb*mix(1.,ao,strength),c.a);}`});
   /* grade: cool shadows / warm highlights, gentle S-curve, vignette, film grain, then sRGB out */
-  const GradeShader={uniforms:Object.assign({tDiffuse:{value:null},time:{value:0},res:{value:new THREE.Vector2(1,1)},vig:{value:.28},grain:{value:.028},contrast:{value:.22},sat:{value:1.06}},FXG?FXG.uniforms:{}),
-    vertexShader:FSV,fragmentShader:`varying vec2 vUv;uniform sampler2D tDiffuse;uniform float time,vig,grain,contrast,sat;uniform vec2 res;
+  /* night (setNight in SKY + ENVIRONMENT): night>0 grades the dark tones toward a desaturated moonlit blue, lamps stay warm.
+     nvg>0 is the night-vision tube: auto-gain from 9 fixed taps, green phosphor, animated noise and scanline grain, tube vignette,
+     a blinding wash (nvgFlare) and a little phosphor lag from the previous frame (tPrev, captured after this pass on Medium/High) */
+  const GradeShader={uniforms:Object.assign({tDiffuse:{value:null},time:{value:0},res:{value:new THREE.Vector2(1,1)},vig:{value:.28},grain:{value:.028},contrast:{value:.22},sat:{value:1.06},
+      night:{value:0},nvg:{value:0},nvgFlare:{value:0},nvgLag:{value:0},tPrev:{value:null}},FXG?FXG.uniforms:{}),
+    /* the goggles' auto-gain reads its 9 taps once per vertex (4 times a frame) where vertex textures exist, else per pixel */
+    defines:renderer.capabilities.vertexTextures?{NV_VTF:1}:{},
+    vertexShader:`varying vec2 vUv;varying float vGain;uniform sampler2D tDiffuse;uniform float nvg;
+    float nvAvg(){float a=0.;for(int j=0;j<3;j++)for(int i=0;i<3;i++)a+=dot(clamp(texture2D(tDiffuse,vec2(.2+.3*float(i),.25+.25*float(j))).rgb,0.,1.),vec3(.2126,.7152,.0722));return a/9.;}
+    void main(){vUv=uv;vGain=1.;
+      #ifdef NV_VTF
+      if(nvg>0.)vGain=clamp(.42/(nvAvg()+.002),3.,90.);
+      #endif
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`varying vec2 vUv;varying float vGain;uniform sampler2D tDiffuse;uniform float time,vig,grain,contrast,sat;uniform vec2 res;
+    uniform float night,nvg,nvgFlare,nvgLag;uniform sampler2D tPrev;
     ${FXG?FXG.glsl:''}
     vec3 toSRGB(vec3 c){return mix(c*12.92,1.055*pow(c,vec3(.41666))-.055,step(.0031308,c));}
+    float nvHash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+    vec3 nvLook(vec3 c,vec2 d){
+      #ifdef NV_VTF
+      float g=vGain;
+      #else
+      float a=0.;for(int j=0;j<3;j++)for(int i=0;i<3;i++)a+=dot(clamp(texture2D(tDiffuse,vec2(.2+.3*float(i),.25+.25*float(j))).rgb,0.,1.),vec3(.2126,.7152,.0722));
+      float g=clamp(.42/(a/9.+.002),3.,90.);
+      #endif
+      float l=dot(c,vec3(.2126,.7152,.0722));
+      float v=1.-exp(-l*g);v=pow(v,.72);
+      v=mix(v,1.,nvgFlare*.92);
+      float n=nvHash(floor(gl_FragCoord.xy*.5)+fract(time*7.31)*vec2(311.,173.));
+      v=clamp(v+(n-.5)*.2*(1.-.55*v)*(1.-nvgFlare),0.,1.);
+      v*=.94+.06*sin(gl_FragCoord.y*2.2+time*7.);
+      vec3 ph=mix(vec3(.26,.92,.30)*v+vec3(0.,.03,.012),vec3(.86,1.,.82),smoothstep(.72,1.,v));
+      return ph*(1.-.9*smoothstep(.42,.92,length(d*vec2(.82,1.))));}
     void main(){vec3 c=clamp(${FXG?'fxSample(tDiffuse,vUv)':'texture2D(tDiffuse,vUv).rgb'},0.,1.);float l=dot(c,vec3(.2126,.7152,.0722));
+      vec3 raw=c;
       c=max(mix(vec3(l),c,sat),0.);
+      if(night>0.){float dk=1.-smoothstep(.015,.3,l);c=mix(c,mix(c,vec3(l)*vec3(.55,.74,1.3),.8),night*dk);}
       c*=mix(vec3(.95,.99,1.07),vec3(1.05,1.,.92),smoothstep(.04,.5,l));
       ${FXG?'c=fxGrade(c,vUv);':''}
       c=toSRGB(clamp(c,0.,1.));
       c=mix(c,c*c*(3.-2.*c),contrast);
-      vec2 d=(vUv-.5)*vec2(res.x/res.y,1.);c*=1.-vig*smoothstep(.25,.95,length(d));
+      vec2 d=(vUv-.5)*vec2(res.x/res.y,1.);
+      if(nvg>0.){vec3 nv=nvLook(raw,d);if(nvgLag>0.)nv=max(nv,texture2D(tPrev,vUv).rgb*nvgLag);c=mix(c,nv,nvg);}
+      c*=1.-vig*smoothstep(.25,.95,length(d));
       float n=fract(sin(dot(floor(vUv*res)+fract(time)*vec2(37.,91.),vec2(12.9898,78.233)))*43758.5453);
       c+=(n-.5)*grain*(1.-l*.5);
       gl_FragColor=vec4(c,1.);}`};
+  /* NVG phosphor lag: copies the graded frame at half resolution while the goggles are on (no render target until first use) */
+  const lagCopy=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{t:{value:null}},vertexShader:FSV,fragmentShader:'varying vec2 vUv;uniform sampler2D t;void main(){gl_FragColor=vec4(texture2D(t,vUv).rgb,1.);}'});
+  let lagPass=null;
   function build(){
     class ScenePass extends THREE.Pass{
     constructor(){super();this.needsSwap=false;this.rt=null;this.aoRT=null;this.w=2;this.h=2;this.ao=0;this.fsq=new THREE.FullScreenQuad(aoMat)}
@@ -445,7 +670,13 @@ const RENDER=(()=>{
     scenePass=new ScenePass();c.addPass(scenePass);
     bloom=new THREE.UnrealBloomPass(new THREE.Vector2(256,256),.38,.5,.9);const bs=bloom.setSize.bind(bloom);bloom.setSize=(w,h)=>bs(Math.max(4,Math.round(w*bloomScale)),Math.max(4,Math.round(h*bloomScale)));c.addPass(bloom);
     grade=new THREE.ShaderPass(GradeShader);c.addPass(grade);
-    if(THREE.FXAAShader){fxaa=new THREE.ShaderPass(THREE.FXAAShader);c.addPass(fxaa)}
+    if(THREE.FXAAShader){fxaa=new THREE.ShaderPass(THREE.FXAAShader);
+      class LagPass extends THREE.Pass{constructor(){super();this.needsSwap=false;this.enabled=false;this.rt=null;this.fsq=new THREE.FullScreenQuad(lagCopy)}
+        render(r,w,read){const W=Math.max(2,read.width>>1),H=Math.max(2,read.height>>1);
+          if(!this.rt){this.rt=new THREE.WebGLRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});grade.uniforms.tPrev.value=this.rt.texture}
+          else if(this.rt.width!==W||this.rt.height!==H)this.rt.setSize(W,H);
+          lagCopy.uniforms.t.value=read.texture;r.setRenderTarget(this.rt);this.fsq.render(r)}}
+      lagPass=new LagPass();c.addPass(lagPass);c.addPass(fxaa)}
     R.composer=c}
   R.resize=()=>{const pr=renderer.getPixelRatio(),w=innerWidth,h=innerHeight;
     if(R.composer){R.composer.setPixelRatio(pr);R.composer.setSize(w,h);grade.uniforms.res.value.set(w*pr,h*pr);if(fxaa)fxaa.uniforms.resolution.value.set(1/(w*pr),1/(h*pr))}};
@@ -486,7 +717,11 @@ const RENDER=(()=>{
     if(R.post&&R.composer){grade.uniforms.time.value=(performance.now()-t0)/1000;renderer.autoClear=true;
       try{R.composer.render()}catch(e){console.warn('post-processing failed, falling back',e);R.post=false}renderer.autoClear=false;if(R.post)return}
     renderer.setRenderTarget(null);renderer.clear();renderer.render(scene,camera);if(vm.visible){renderer.clearDepth();renderer.render(vmScene,vmCam)}};
-  R.mats={aoMat,compMat,get grade(){return grade}};
+  R.mats={aoMat,compMat,get grade(){return grade},get bloom(){return bloom}};
+  /* night vision on the composer (setNight / nvgTick drive it): tube grade, stronger bloom on lights, phosphor lag */
+  R.nvg=(on,flare)=>{if(!grade)return;const u=grade.uniforms;u.nvg.value=on;u.nvgFlare.value=flare||0;
+    if(bloom){if(bloom._s0==null){bloom._s0=bloom.strength;bloom._t0=bloom.threshold}bloom.strength=bloom._s0+on*.75;bloom.threshold=bloom._t0-on*.3}
+    const lag=on>.5&&R.q!=='low';if(lagPass){if(!lag)lagPass.enabled=false;else if(!lagPass.enabled){lagPass.enabled=true;u.nvgLag.value=0}else if(lagPass.rt)u.nvgLag.value=.5}}
   return R})();
 /* ================= STATIC BATCHING ================= */
 /* once per level, on its first frame: house meshes that share a material are merged per 32 m cell
@@ -1493,7 +1728,7 @@ function carRepairTarget(e){if(!e||e===VAN)return null;const w=carWear(e);
     onRepair:f=>{carRepair(e,f.hp-carHp(e),{lamps:f.lamps,tyreSet:f.tyre,tyre:false});e.fixed=true}}}
 function readDrive(){let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}return{thr,st,hb:!!keys[' '],boost:!!keys.shift}}
-const autoLights=()=>mood===MOODS.dusk;
+const autoLights=()=>mood===MOODS.dusk||NIGHT.k>.35;/* night: headlights on by themselves (L still overrides) */
 function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=e.base,I=readDrive(),VM=HTM('Vehicles'),mod=e.obj.userData.mod;
   if(keys.l&&!DRV.lPrev)DRV.lights=!(DRV.lights==null?autoLights():DRV.lights);DRV.lPrev=!!keys.l;
   /* type character: launch torque (pickup) and a rear that steps out on the throttle */
@@ -1511,7 +1746,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
         else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
   e.bump-=dt;syncCar(e);
   const braking=I.hb||(I.thr<0&&e.spd>.5)||(I.thr>0&&e.spd<-.5),heads=DRV.lights==null?autoLights():DRV.lights;
-  if(mod&&VM&&VM.update){try{VM.update(e.obj,{speed:e.spd,steer:e.steer,braking,headlights:heads,dt})}catch(err){}const br=e.obj.userData.bodyRoot;if(br){br.rotation.x*=F.roll;br.rotation.z*=.6+.4*F.roll}}
+  if(mod&&VM&&VM.update){try{VM.update(e.obj,{speed:e.spd,steer:e.steer,braking,headlights:heads,auto:false,dt})}catch(err){}const br=e.obj.userData.bodyRoot;if(br){br.rotation.x*=F.roll;br.rotation.z*=.6+.4*F.roll}}
   else e.obj.rotation.z=clamp(e.steer*e.spd*.0035,-.05,.05);
   P.pos.set(e.pos.x,0,e.pos.z);vm.visible=false;seatCrew(e,dt);
   /* tyres: skid marks and smoke on slides, handbrake turns and launches */
@@ -1595,9 +1830,11 @@ function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock
 /* UI paths start a job through here: if its crew, boss or the core enemy looks have not streamed in yet, hold for at most
    10 s on "Loading the crew…" so nobody shows up as a box stand-in (tests call startMission directly) */
 let castWait=null;
+/* a cast id -> a People model key: its role (People.roles, a string key), the key itself, or null (unknown: skipped, never fetched) */
+function castKey(pm,c){const r=pm.roles&&pm.roles[c];if(typeof r==='string'&&(pm.keys||[]).includes(r))return r;return(pm.keys||[]).includes(c)?c:null}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||c),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
+  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k)):[];
   if(!keys.length){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
   castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
@@ -1716,6 +1953,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k==='1'||k==='2'||k==='3'){const w=P.loadout[SLOT_KEYS[+k-1]];if(w)swap(w)}
   if(k==='q')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);
   if(k==='h'&&VAN.on)honk();
+  if(k==='f')nightToggle('flash');if(k==='n')nightToggle('nvg');/* flashlight, night-vision goggles (SKY + ENVIRONMENT: NIGHT) */
   if(k==='e')useTap=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 addEventListener('wheel',e=>{if(running&&P.weapons.length>1){const i=P.weapons.indexOf(P.cur);swap(P.weapons[(i+(e.deltaY>0?1:-1)+P.weapons.length)%P.weapons.length])}},{passive:true});
@@ -2048,8 +2286,8 @@ function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text
 function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
   while(noiseQ.length&&simT-noiseQ[0].t>.5)noiseQ.shift();
   const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);
-  aiWorld={nav:L.nav,t:simT,diff:M.aiDiff,noises:noiseQ,agents:enemies.filter(e=>e.state==='idle'),
-    threats:[{id:'player',x:P.pos.x,z:P.pos.z,fx,fz,fov:.96,isPlayer:true,crouch:P.crouch&&!(P.pos.y>.6)/* on top of a crate, crouching hides nothing */,moving:P.moving,sprint:!!keys.shift&&P.moving&&!P.aim&&!P.crouch,reloading:P.reloadT>0,busy:!!keys.e,down:false},
+  aiWorld={nav:L.nav,t:simT,diff:M.aiDiff,noises:noiseQ,sight:NIGHT.sight/* night: shorter view range */,agents:enemies.filter(e=>e.state==='idle'),
+    threats:[{id:'player',x:P.pos.x,z:P.pos.z,fx,fz,fov:.96,isPlayer:true,sight:NIGHT.psight/* lit by his flashlight or a lamp: seen as in daylight */,crouch:P.crouch&&!(P.pos.y>.6)/* on top of a crate, crouching hides nothing */,moving:P.moving,sprint:!!keys.shift&&P.moving&&!P.aim&&!P.crouch,reloading:P.reloadT>0,busy:!!keys.e,down:false},
       ...allies.map(a=>({id:a.id,x:a.pos.x,z:a.pos.z,crouch:!!(a.ai&&a.ai.stance==='crouch'),moving:!!(a.ai&&a.ai.intent&&a.ai.intent.speed>.2),down:a.down}))]};
   for(const e of enemies){if(e.state==='surrender'&&!e._vSurr){e._vSurr=1;aiVoice('thug_surrender',e)}
     if(e.state==='idle'&&e._vHp!=null&&e.hp<e._vHp&&simT-(e._vHurtT||-9)>1.2){e._vHurtT=simT;aiVoice('thug_hurt',e)}e._vHp=e.hp}
@@ -2431,7 +2669,7 @@ function hud(dt){
     objective:obj,timer,prompt:UI.prompt,
     speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
-    markers,tags,subtitles:UI.sub,routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
+    markers,tags,subtitles:UI.sub,gadgets:nightGadgets(),routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
   JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
   hurtFlash=Math.max(0,hurtFlash-dt*2);
   $('lock').hidden=!(running&&!locked&&!COARSE&&!lockFailed);
@@ -3862,7 +4100,7 @@ function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORL
   const G=OW()&&OW().roads();let yaw=0,x=s.ring.x,z=s.ring.z;if(G){const r=G.nearestRoad(x,z);if(r){const dx=r.x-x,dz=r.z-z,l=Math.hypot(dx,dz)||1;x-=dx/l*1.2;z-=dz/l*1.2;yaw=Math.atan2(dx,dz)}}
   const q=wmSnap(x,z);(WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
   if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
-function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;
+function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;jrGiverTick(dt);
   if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}
   const G=HTM('WorldGen');if(G&&G.tierOf){const t=G.tierOf(prog.trustR);if(WM.tier!=null&&t>WM.tier){const ln=G.dressing(WORLD,prog.trustR).line;HUD.banner({kind:'alert',kicker:'Riverside trust '+Math.round(prog.trustR)+'%',title:'RIVERSIDE FLATS',sub:ln,dur:3})}WM.tier=t}
   if(!WORLD.bridgeOpen&&!WM.bridgeSaid&&Math.hypot(P.pos.x-282,P.pos.z-43)<14){WM.bridgeSaid=true;HUD.feed('The bridge is closed for inspection.','info');radio('doug',"I've been asking the city about that bridge since 2019.")}}
@@ -3920,6 +4158,8 @@ function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
     const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<6){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
+/* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
+function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}
 /* ---- start options: replay and checkpoint ride along through startMissionWhenReady ---- */
 function jrOpts(o){o=o||{};if(JRS.next){o=Object.assign({},JRS.next,o);JRS.next=null}return o}
 function jrStarted(o){if(!M)return;const m=M.def,j=JR&&JR.get(m.id);M.replay=!!o.replay;M.retried=!!o.checkpoint;M.job=j;M.stage=null;M.clean=M.clean!==false;
@@ -4021,6 +4261,7 @@ function frame(now){
     useTap=false;
   }else if(mode==='title'){P.yaw+=dt*.05}
   if(L)updCamera(dt);
+  nightTick(running?dt:0);
   if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
   {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);RENDER.draw();groundPass(-1);
@@ -4064,10 +4305,10 @@ ASSETS.onAsset(s=>{const k=/people\/rocketbox\/(\w+)\.glb$/.exec(s);const pm=HTM
   const upd=()=>{t=0;const n=ASSETS.stream.pending(),f=ASSETS.stream.failing();const txt=!ASSETS.done||mode==='title'||!n?'':(f&&f===n?'Waiting for the network…':'Streaming details · '+n);
     if(txt!==shown){shown=txt;el.textContent=txt;el.hidden=!txt}};
   ASSETS.stream.onChange(()=>{if(!t)t=setTimeout(upd,250)})}
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);nightTick(0);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
   crash(e,speed,o){e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1,push={x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f};return carCrash(e,speed,push,!o.rear)},setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera);JH.pose(dt);subTick(dt)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);nightTick(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera);JH.pose(dt);subTick(dt)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},
@@ -4076,7 +4317,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   /* movement hooks: jump() presses jump once; move gives the live state; ground(x,z) is the height feet would stand at */
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
-metaExpose(window.__ht);wmExpose(window.__ht);
+metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
