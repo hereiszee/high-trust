@@ -37,8 +37,8 @@ const OUT=path.resolve(__dirname,'../../docs/screenshots/jobs/patrol');
     T.step=()=>{const M=H.M;if(!M||M.state!=='go')return 'end';j.test.step(a,T.t,f?{fail:true}:{});H.P.hp=Math.max(H.P.hp,60);T.t++;H.step(1);return null};
     T.info=()=>{const M=H.M,C=M&&M.pt;if(!C)return{state:M&&M.state};
       return{t:T.t,el:Math.round(M.elapsed),ph:C.phase,clock:Math.round(C.clock),var:(C.variant.river?'river':'maple')+(C.variant.night?'/night':''),chk:C.checked+'/'+C.stops.length,handled:C.handled,wrong:C.wrong,chats:C.chats+'/'+C.goodChats,
-        stops:C.stops.map(s=>(s.i+1)+(s.st==='checked'?'✓':'')+(s.ev?':'+s.ev.k+'['+s.ev.st+']':'')).join(' '),tr:C.trouble?C.trouble.k+':'+C.trouble.st:'-',follow:C.follow?C.follow.kind:'-',talk:!!C.talk,
-        me:Math.round(H.P.pos.x)+','+Math.round(H.P.pos.z),log:C.log.length?C.log[C.log.length-1].text:'',heap:performance.memory?Math.round(performance.memory.usedJSHeapSize/1e6):0}}},FAIL);
+        stops:C.stops.map(s=>(s.i+1)+(s.st==='checked'?'✓':'')+(s.ev?':'+s.ev.k+'['+s.ev.st+']':'')).join(' '),tr:C.trouble?C.trouble.k+':'+C.trouble.st+(C.trouble.p?'@'+Math.round(C.trouble.p.x)+','+Math.round(C.trouble.p.z):''):'-',follow:C.follow?C.follow.kind:'-',talk:!!C.talk,
+        me:Math.round(H.P.pos.x)+','+Math.round(H.P.pos.z)+(H.CV?' CAR':'')+(H.keys.w?' W':'')+' yaw'+H.P.yaw.toFixed(2)+(H.M.pt.bot?' st'+H.M.pt.bot.st:''),log:C.log.length?C.log[C.log.length-1].text:'',heap:performance.memory?Math.round(performance.memory.usedJSHeapSize/1e6):0}}},FAIL);
   const WANT=[['01-start',`C.phase==='walk'&&T.t>30`,null],
     ['02-look',`C.stops.some(s=>s.st==='todo'&&s.look>.5)`,null],
     ['03-knock',`C.talk&&C.talk.s`,null],

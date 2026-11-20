@@ -163,7 +163,7 @@ function buildEvent(M,s){const a=A(),P_=pt(M),e=s.ev,T=T3(),px=-s.fz,pz=s.fx;/* 
   else if(e.k==='light'){const f=addP(M,lampFixture());f.position.set(s.x-s.fx*.3+px*.9,1.9,s.z-s.fz*.3+pz*.9);f.rotation.y=Math.atan2(s.fx,s.fz);e.fix=f;const gl=bulbGlow();gl.position.set(0,-.02,.08);gl.visible=false;f.add(gl);e.glow=gl}
   else if(e.k==='late'){e.kids=[]}}
 function buildTrouble(M,t){const P_=pt(M),s=P_.stops[t.at];if(t.k==='pirate'){t.box={m:addP(M,parcel()),x:s.x+s.fx*.4+(-s.fz)*.6,z:s.z+s.fz*.4+s.fx*.6};t.box.m.position.set(t.box.x,0,t.box.z)}
-  else{const a=A(),x=s.sx+s.fx*3.2+(-s.fz)*4,z=s.sz+s.fz*3.2+s.fx*4;const car=a.makeVehicle('sedan','#6b6f75');if(car){car.position.set(x,0,z);car.rotation.y=Math.atan2(s.fz,-s.fx);addP(M,car);if(car.userData&&car.userData.dispose)R().own.push(car);a.wmCol({x0:x-2.4,x1:x+2.4,z0:z-1.1,z1:z+1.1})}t.car={x,z}}}
+  else{const a=A();/* parked at the kerb by the route, the prowler on the sidewalk side of it */const px_=s.sx+(-s.fz)*3.5,pz_=s.sz+s.fx*3.5;t.spot={x:px_,z:pz_};let x=px_+s.fx*2.3,z=pz_+s.fz*2.3;try{const q=a.wmSnapRoad&&a.wmSnapRoad(x,z);if(q&&Math.hypot(q.x-x,q.z-z)<6){x=q.x;z=q.z}}catch(_){}const car=a.makeVehicle('sedan','#6b6f75');if(car){car.position.set(x,0,z);car.rotation.y=Math.atan2(s.fz,-s.fx);addP(M,car);if(car.userData&&car.userData.dispose)R().own.push(car);a.wmCol({x0:x-2.4,x1:x+2.4,z0:z-1.1,z1:z+1.1})}t.car={x,z}}}
 /* people appear when the models are in (the neighbours stream on demand) */
 function castKeys(M){const P_=pt(M),k=new Set(['nb_kid','nb_teen','thug_hoodie','thug_cap','nb_kenji']);for(const s of P_.stops)k.add(s.role);return[...k]}
 function loadTick(M,dt,F){const P_=pt(M),pp=PP();P_.loadT=(P_.loadT||0)+dt;F.objs.push(['Doug is handing you the clipboard…',false]);const keys=castKeys(M);
@@ -175,7 +175,7 @@ function spawnPeople(M){const a=A(),P_=pt(M);for(const s of P_.stops){const e=s.
     else if(e.k==='van'&&e.van){const d=dude('nb_kenji',{shirt:'#3a6fa0'});const x=e.van.x-s.fx*1.6,z=e.van.z-s.fz*1.6;d.root.position.set(x,0,z);a.wmAdd(d.root);e.man={d,x,z,yaw:0};turnTo(e.man,s.x,s.z,1,99)}
     else if(e.k==='late'){const roles=['nb_kid','nb_teen'];e.kids=roles.map((r,k)=>{const d=dude(r,{shirt:k?'#7fd1ff':'#ffd23f'});const x=s.sx+(-s.fz)*(1.4+k*.8),z=s.sz+s.fx*(1.4+k*.8);d.root.position.set(x,0,z);a.wmAdd(d.root);return{d,x,z,yaw:0}})}}
   const t=P_.trouble;if(t){const s=P_.stops[t.at];const role=t.k==='pirate'?'thug_hoodie':'thug_cap';const d=dude(role,{shirt:'#6b6f75',hood:true});
-    const x=t.k==='pirate'?s.sx+(-s.fz)*16:t.car.x+(-s.fz)*1.4+s.fx*1.2,z=t.k==='pirate'?s.sz+s.fx*16:t.car.z+s.fx*1.4+s.fz*1.2;d.root.position.set(x,0,z);a.wmAdd(d.root);t.p={d,x,z,yaw:0};d.root.visible=false}}
+    const x=t.k==='pirate'?s.sx+(-s.fz)*16:t.spot.x,z=t.k==='pirate'?s.sz+s.fx*16:t.spot.z;d.root.position.set(x,0,z);a.wmAdd(d.root);t.p={d,x,z,yaw:0};d.root.visible=false}}
 
 /* ---------- the notebook ---------- */
 function logLine(M,text){const P_=pt(M);const el=(P_.variant.night?19*60+5:9*60+40)+Math.round(P_.t/6);const hh=Math.floor(el/60),mm=el%60;const ts=((hh+11)%12+1)+':'+String(mm).padStart(2,'0')+(hh>=12?' pm':' am');P_.log.push({ts,text});SFX.pen()}
@@ -270,7 +270,7 @@ function peopleTick(M,dt){const a=A(),P_=pt(M),P=a.P;for(const o of P_.people){i
 function interact(M,F,me){const a=A(),P_=pt(M),P=a.P;if(a.CV||P_.talk)return;
   const t=P_.trouble;if(t&&t.p){const d=Math.hypot(P.pos.x-t.p.x,P.pos.z-t.p.z);
     if(t.st==='surr')F.taps.push({x:t.p.x,z:t.p.z,r:2.4,txt:'Zip-tie him',fn:()=>settleTrouble(M,t,'cuff')});
-    else if((t.st==='run'||t.st==='grab'||t.st==='try'||t.st==='go')&&d<3.4)F.taps.push({x:t.p.x,z:t.p.z,r:3.4,txt:'Have a word',fn:()=>{const L=LINES.ev[t.k];chooser(M,'You',t.k==='pirate'?'He has a parcel that isn\'t his.':'He has his hand on a stranger\'s car door.',LINES.pirateOpts,i=>{a.radio('you',LINES.pirateOpts[i].t,true);settleTrouble(M,t,LINES.pirateOpts[i].ok?'talk':'yell')})}})}
+    else if((t.st==='run'||t.st==='grab'||t.st==='try'||t.st==='go')&&d<4.5)F.taps.push({x:t.p.x,z:t.p.z,r:4.5,txt:'Have a word',fn:()=>{const L=LINES.ev[t.k];chooser(M,'You',t.k==='pirate'?'He has a parcel that isn\'t his.':'He has his hand on a stranger\'s car door.',LINES.pirateOpts,i=>{a.radio('you',LINES.pirateOpts[i].t,true);settleTrouble(M,t,LINES.pirateOpts[i].ok?'talk':'yell')})}})}
   if(P_.follow){/* nothing else while walking someone home, except the trouble */}
   for(const s of P_.stops){const e=s.ev,d=Math.hypot(P.pos.x-s.x,P.pos.z-s.z);
     if(s.st==='todo'&&d<TUNE.knockR+.6&&!s.out)F.taps.push({x:s.x,z:s.z,r:TUNE.knockR+.6,txt:'Knock and wave · '+s.name,fn:()=>knock(M,s)});
@@ -365,7 +365,7 @@ J.register(ID,{
 function field(a,tx0,tz0){const W=a.WORLD,Wd=W.W,H=W.H,dist=new Int32Array(Wd*H).fill(-1),q=[];if(tx0<1||tz0<1||tx0>=Wd-1||tz0>=H-1)return null;const s0=tz0*Wd+tx0;dist[s0]=0;q.push(s0);
   for(let h=0;h<q.length;h++){const i=q[h],x=i%Wd,z=(i/Wd)|0,d=dist[i];if(d>140)continue;for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Z=z+dz;if(X<1||Z<1||X>=Wd-1||Z>=H-1)continue;const j=Z*Wd+X;if(dist[j]>=0||!a.walkable(X,Z)||W.map[Z][X]==='p'||(W.map[Z][X]==='s'&&(W.map[Z-1][X]==='r'||W.map[Z+1][X]==='r'||W.map[Z][X-1]==='p'||W.map[Z][X+1]==='p')))continue;dist[j]=d+1;q.push(j)}}return dist}/* stoops are steps: walk round them */
 function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;o=o||{};if(!M||M.state!=='go'||!M.pt)return null;const P_=M.pt;const B=P_.bot||(P_.bot={st:0,px:0,pz:0});
-  const stop=()=>{k.w=k.shift=false};k.e=false;if(a.CV){stop();if(t%10===0)a.useTap=true;return null}if(P_.phase==='load'){stop();return null}
+  const stop=()=>{k.w=k.shift=false};k.e=false;if(a.CV){stop();if(P_.phase!=='travel'||t%10===0){try{a.exitCar()}catch(_){a.useTap=true}}return null}if(P_.phase==='load'){stop();return null}
   if(P_.talk){stop();if(t%20===0&&P_.talk.ch){const s=P_.talk.s;const i=s?(s.mood==='busy'?0:s.mood==='jokey'?1:2):0;try{P_.talk.ch.pick(i)}catch(_){P_.talk.done(i)}}return null}
   const go=(x,z,r)=>{const d0=Math.hypot(x-P.pos.x,z-P.pos.z);if(d0<(r||.6)){stop();return true}
     /* follow a walking distance field to the target (tiles), a few tiles ahead, like someone who knows the block */let wx=x,wz=z;const W=a.WORLD,tx=v=>Math.floor(v/2),tc=i=>i*2+1;const key=tx(x)+','+tx(z);
@@ -374,16 +374,16 @@ function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;o=o||{};if(!M||M.state!=='go'||!M
       if(cx!==tx(P.pos.x)||cz!==tx(P.pos.z)){wx=tc(cx);wz=tc(cz)}}
     const dx=wx-P.pos.x,dz=wz-P.pos.z,d=Math.hypot(dx,dz)||.01;const want=Math.atan2(-dx,-dz);let dy=want-P.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;P.yaw+=clamp(dy,-.2,.2);P.pitch=-.12;
     k.w=Math.abs(dy)<1.3;k.shift=d0>14&&Math.abs(dy)<.4;if(t%15===0){const mv=Math.hypot(P.pos.x-B.px,P.pos.z-B.pz);if(k.w&&mv<.3)B.st++;else B.st=0;B.px=P.pos.x;B.pz=P.pos.z;if(B.st>=3){/* wedged between stoops or a fence: a person steps back out to the open sidewalk */const fd=B.field;let best=null,bv=1e9;if(fd){const cx=tx(P.pos.x),cz=tx(P.pos.z);for(let r=1;r<=3&&!best;r++)for(let oz=-r;oz<=r;oz++)for(let ox=-r;ox<=r;ox++){const v=fd[(cz+oz)*W.W+cx+ox];if(v>=0&&v+Math.abs(ox)+Math.abs(oz)<bv){bv=v+Math.abs(ox)+Math.abs(oz);best={x:tc(cx+ox),z:tc(cz+oz)}}}}
-        if(best){P.pos.x=best.x;P.pos.z=best.z}else{P.pos.x+=dx/d*1.4;P.pos.z+=dz/d*1.4}a.collide(P.pos,.35);B.st=0}}return false};
+        B.tries=(B.tries||0)+1;if(best&&B.tries%2===1){P.pos.x=best.x;P.pos.z=best.z}else{/* a parked car in the way: step sideways round it */B.sd=-(B.sd||1);P.pos.x+=(-dz/d)*2.4*B.sd+dx/d*.8;P.pos.z+=(dx/d)*2.4*B.sd+dz/d*.8}a.collide(P.pos,.35);B.st=0}}return false};
   const look=(x,z)=>{const c=a.camera.position;const dx=x-c.x,dz=z-c.z;const want=Math.atan2(-dx,-dz);let dy=want-P.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;P.yaw+=clamp(dy,-.25,.25);P.pitch=-.15};
   const tap=()=>{if(t%8===0)a.useTap=true};
   if(o.fail){go(P_.start.x+80,P_.start.z+80,1);return null}
   if(P_.phase==='travel'){/* a player drives over; the script just arrives (the drive itself is the game's, not this job's) */if(t%60===0){const q=a.wmSnap(P_.start.x,P_.start.z);P.pos.set(q.x,0,q.z);a.collide(P.pos,.35)}return null}
-  const tr=P_.trouble;if(tr&&tr.p&&['go','grab','run','try','flee','surr'].includes(tr.st)){if(tr.st==='surr'){if(go(tr.p.x,tr.p.z,1.6))tap();return null}if(Math.hypot(tr.p.x-P.pos.x,tr.p.z-P.pos.z)<3.1){stop();tap();return null}go(tr.p.x,tr.p.z,1.5);return null}
+  const tr=P_.trouble;if(tr&&tr.p&&['go','grab','run','try','flee','surr'].includes(tr.st)){if(tr.st==='surr'){if(go(tr.p.x,tr.p.z,1.6))tap();return null}if(Math.hypot(tr.p.x-P.pos.x,tr.p.z-P.pos.z)<4.2){stop();tap();return null}go(tr.p.x,tr.p.z,1.5);return null}
   if(P_.follow){const s=P_.follow.s,o_=P_.stops[s.ev.home];go(o_.sx,o_.sz,1);return null}
   /* the next stop in route order */const s=P_.stops.find(q=>q.st==='todo'||(q.ev&&q.ev.st!=='done'&&q.ev.st!=='gone'&&q.ev.st!=='follow'));if(!s){if(M.exitOpen&&M.car){if(go(M.car.pos.x+2.4,M.car.pos.z,1.5))tap()}return null}
   const e=s.ev;
-  if(s.st==='todo'&&!(e&&e.st!=='wait')){/* knock at every other porch, look at the rest */if(s.i%2===0){if(Math.hypot(P.pos.x-s.x,P.pos.z-s.z)<TUNE.knockR){stop();tap();return null}go(s.x+s.fx*1.4,s.z+s.fz*1.4,.8);return null}if(go(s.sx,s.sz,1)){look(s.x,s.z)}return null}
+  if(s.st==='todo'&&!(e&&e.st!=='wait')){/* knock at every other porch, look at the rest */if(s.i%2===0){if(Math.hypot(P.pos.x-s.x,P.pos.z-s.z)<TUNE.knockR){stop();tap();return null}go(s.x+s.fx*1.4,s.z+s.fz*1.4,.8);return null}if(Math.hypot(P.pos.x-s.x,P.pos.z-s.z)<7.5||go(s.sx,s.sz,1)){stop();look(s.x,s.z)}return null}
   if(!e||e.st==='done')return null;
   const hold=(x,z)=>{if(go(x,z,1)){k.e=true}};
   if(e.k==='package')return hold(e.m.position.x+s.fx*.6,e.m.position.z+s.fz*.6),null;if(e.k==='sprinkler')return hold(e.tap.x+s.fx*.7,e.tap.z+s.fz*.7),null;if(e.k==='light')return hold(s.dx+s.fx*.9,s.dz+s.fz*.9),null;
