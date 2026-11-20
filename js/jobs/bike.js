@@ -35,6 +35,8 @@ const CAST={you:{name:'You',color:COL.you,voice:{kind:'dad',pitch:1}},tyler:{nam
 (function roles(){const p=PP();if(p&&p.roles){Object.assign(p.roles,{tyler:'son',dez:'nb_kid',linda:'nb_lucia',phil:'nb_pops',walt:'nb_sweater'})}})();
 function preload(){const p=PP();if(p&&p.ok&&p.preload)return p.preload(KEYS.filter(k=>!p.has(k))).catch(()=>{});return Promise.resolve()}
 const has=k=>{const p=PP();return!!(p&&p.ok&&p.has&&p.has(k))};
+/* Dez: an HT.Cast teen (green tee, navy cap) on the boy neighbour base, so he still fits Tyler's tiny bike */
+function dezPerson(){let d=null;try{d=window.HT.Cast?HT.Cast.teen('bike:dez',{look:'kidTall'}):null}catch(e){d=null}if(d){A().wmAdd(d.root);return d}return person('nb_kid',{scale:1.12})}
 function person(key,o){const p=PP();let d=null;try{if(p&&p.ok&&has(key))d=p.make(key,o||{})}catch(e){d=null}if(d)A().wmAdd(d.root);return d}
 
 /* ---------------- the places (metres, from the world: computed once per world) ---------------- */
@@ -308,7 +310,7 @@ function worldDress(){const a=A();if(!a||a.mode!=='hub'||!a.L||!a.L.ow||!a.WORLD
       for(let i=0;i<5;i++){const f=new T.Mesh(new T.SphereGeometry(.07,6,5),new T.MeshStandardMaterial({color:a.lin(fl[(i+(dx>0?2:0))%4]),roughness:.6}));f.position.set(fp.x+dx-.3+i*.15,.8,fp.z+(fp.face?fp.face[1]*.2:0));g.add(f)}}}
   /* the library: a bike stand of returned bikes, and Dez at the counter (Saturdays and every day after school, he says) */
   const e=Pl.earl;if(e){for(let k=0;k<3;k++){const b=R.bike({static:true,size:k===1?'kid':'adult',color:['#e8772e','#f0c419','#24272c'][k]});b.position.set(e.x-2.4+k*.9,0,e.z+2.6);b.rotation.y=Math.PI/2;g.add(b)}
-    if(s.flags&&s.flags.dezLibrary&&has('nb_kid')){try{const d=PP().make('nb_kid',{scale:1.12});d.root.position.set(e.x-1.2,0,e.z+1.4);d.root.rotation.y=Math.PI;g.add(d.root);WD.dez=d}catch(err){}}}
+    if(s.flags&&s.flags.dezLibrary&&has('nb_kid')){try{const d=HT.Cast?HT.Cast.teen('bike:dez',{look:'kidTall'}):PP().make('nb_kid',{scale:1.12});d.root.position.set(e.x-1.2,0,e.z+1.4);d.root.rotation.y=Math.PI;g.add(d.root);WD.dez=d}catch(err){}}}
   a.L.group.add(g);WD.g=g;WD.L=a.L}
 J.on('pose',dt=>{const a=A();if(!a||a.mode!=='hub'){return}try{worldDress()}catch(e){console.warn('[bike] world',e)}if(WD.dez&&WD.dez.root.parent)a.pose(WD.dez,dt,{moving:false,aim:false})});
 /* Tyler waits on the porch as the giver: the son model streams in on demand; swap a box stand-in for him once it lands */
@@ -443,7 +445,7 @@ function tylerTick(dt,M){const a=A(),Pl=places();if(!Pl)return;const want=M.stag
   if(M.ty){M.ty.d.root.visible=want||M.given;M.ty.lp.visible=M.stage==='leads';if(M.ty.d.root.visible&&!M.tyRide)a.pose(M.ty.d,dt,{moving:false,aim:false})}}
 
 /* ---------------- the meet ---------------- */
-function dezMake(M,x,z,yaw){const a=A(),R=RN();const d=person('nb_kid',{scale:1.12});const b=R.bike({size:'kid',color:TYLER.col,streamers:TYLER.streamers,card:true,dent:true,sticker:'dino',fenders:true,grips:'#efe9dc'});a.wmAdd(b);
+function dezMake(M,x,z,yaw){const a=A(),R=RN();const d=dezPerson();const b=R.bike({size:'kid',color:TYLER.col,streamers:TYLER.streamers,card:true,dent:true,sticker:'dino',fenders:true,grips:'#efe9dc'});a.wmAdd(b);
   const D={d,b,x,z,yaw:yaw||0,st:'wait',R:null,t:0,brr:{},look:0};b.position.set(x+.6,0,z);b.rotation.y=(yaw||0)+Math.PI/2;if(d){d.root.position.set(x,0,z);d.root.rotation.y=yaw+Math.PI}M.dez=D;return D}
 function stMeet(dt,M,F){const a=A(),P=a.P,Pl=places();
   const pv=a.CV?a.CV.pos:P.pos,dm=Math.hypot(pv.x-Pl.meet.x,pv.z-Pl.meet.z);
@@ -504,7 +506,7 @@ function talkDown(M,how){const a=A(),D=M.dez;if(M.caught)return;M.caught=true;M.
 
 /* Dez on the bike, on foot, waiting, walking back to the mart */
 function dezTick(dt,M){const a=A(),D=M.dez;if(!D)return;const R=RN();if(!R)return;D.t+=dt;
-  if(!D.d&&has('nb_kid')){D.d=person('nb_kid',{scale:1.12})}
+  if(!D.d&&has('nb_kid')){D.d=dezPerson()}
   if(D.st==='wait'||D.st==='spooked'){if(D.d){D.d.root.position.set(D.x,0,D.z);D.d.root.rotation.y=Math.atan2(D.b.position.x-D.x,D.b.position.z-D.z)*0+Math.PI*.5+Math.PI;a.pose(D.d,dt,{moving:false,aim:false})}R.spin(D.b,dt,{spd:0});return}
   if(D.R&&(D.st==='run'||D.st==='gone'||D.st==='winded'||D.st==='talk')){const r=D.R;D.b.position.set(r.pos.x,a.groundAt?a.groundAt(r.pos.x,r.pos.z):0,r.pos.z);D.b.rotation.y=r.yaw+Math.PI/2;
     R.spin(D.b,dt,{spd:r.spd,steer:r.steer*.5,lean:r.lean,pedal:r.spd>.5&&D.st!=='talk'?1:0});
