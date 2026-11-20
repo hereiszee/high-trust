@@ -220,7 +220,7 @@ function scene(V){const q=[];let cur=null,t=0;const S={V,q,
   return S}
 
 /* =====================================================================
-   TELLS: readable body language on HT.People characters (seated or standing). A thin layer applied after HT.People.update:
+   TELLS: readable body language on HT.People characters (seated or standing). A thin layer applied after HT.People.update (through the HT.Jobs 'pose' hook):
    it restores its own bone offsets before the mixer runs, so nothing accumulates.
      bored      a foot taps, the head lolls back and to the side, the spine slumps
      scared     arms folded tight across the chest, shoulders up, chin down
@@ -230,8 +230,11 @@ function scene(V){const q=[];let cur=null,t=0;const S={V,q,
    ===================================================================== */
 const tells={list:[],installed:false};
 const TB=['Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_Clavicle','Bip01_R_Clavicle','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_L_Forearm','Bip01_R_Forearm','Bip01_L_Hand','Bip01_R_Hand','Bip01_R_Calf','Bip01_R_Foot','Bip01_L_Calf','Bip01_L_Foot'];
-function installTells(){if(tells.installed)return true;const PP=HT.People;if(!PP||!PP.update||!root.THREE)return false;const orig=PP.update;
-  PP.update=function(dt,cam){for(const t of tells.list)restore(t);const r=orig.apply(this,arguments);for(const t of tells.list){try{save(t);apply(t,dt||0)}catch(e){}}return r};tells.installed=true;return true}
+/* runs on the job registry's 'pose' hook (index.html calls JH.pose(dt) right after HT.People.update), so People.update is never wrapped.
+   If People skipped a character this frame (render-cost pass), its bones still hold last frame's tell: put the clean pose back first. */
+function poseTells(dt){for(const t of tells.list){try{if(t.has){for(const n in t.B){const o=t.out&&t.out[n],b=t.B[n];if(o&&b.quaternion.equals(o))b.quaternion.copy(t.saved[n])}}
+    save(t);apply(t,dt||0);t.out=t.out||{};for(const n in t.B)(t.out[n]||(t.out[n]=new THREE.Quaternion())).copy(t.B[n].quaternion)}catch(e){}}}
+function installTells(){if(tells.installed)return true;if(!root.THREE||!HT.Jobs||!HT.Jobs.on)return false;HT.Jobs.on('pose',poseTells);tells.installed=true;return true}
 function bonesOf(d){const out={};if(!d||!d.rb)return out;const b=d.rb.body||d.body;for(const n of TB){const o=b.getObjectByName(n);if(o)out[n]=o}return out}
 function save(t){t.saved=t.saved||{};for(const n in t.B){const q=t.saved[n]||(t.saved[n]=new THREE.Quaternion());q.copy(t.B[n].quaternion)}t.has=true}
 function restore(t){if(!t.has)return;for(const n in t.B){const q=t.saved[n];if(q)t.B[n].quaternion.copy(q)}t.has=false}
