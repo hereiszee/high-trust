@@ -118,9 +118,9 @@ const LN={
 
 /* ---------------- resources: everything this file builds is tracked and disposed when the job ends ---------------- */
 let RES=null;
-function R(){return RES||(RES={geo:[],mat:[],tex:[],cache:{}})}
+function R(){return RES||(RES={geo:[],mat:[],tex:[],own:[],cache:{}})}
 function tg(g){R().geo.push(g);return g}function tm(m){R().mat.push(m);return m}function tt(t){R().tex.push(t);return t}
-function disposeRes(){const r=RES;RES=null;if(!r)return;for(const g of r.geo)try{g.dispose()}catch(_){}for(const m of r.mat)try{m.dispose()}catch(_){}for(const t of r.tex)try{t.dispose()}catch(_){}}
+function disposeRes(r0){const r=r0||RES;if(!r0)RES=null;if(!r)return;for(const g of r.geo)try{g.dispose()}catch(_){}for(const m of r.mat)try{m.dispose()}catch(_){}for(const t of r.tex)try{t.dispose()}catch(_){}for(const o of r.own)try{o.userData.dispose()}catch(_){}}
 function T3(){return A().THREE}
 /* per-model parts (truck load, couch length, window materials): a WeakMap, never userData */
 const PARTS=new WeakMap();const parts=o=>PARTS.get(o)||{};
@@ -187,7 +187,7 @@ function boxMat(k){const c=R().cache,key='bm_'+k;if(c[key])return c[key];const T
 function cardBox(kind,s){const T=T3(),w=.5*(s||1),h=.38*(s||1),d=.42*(s||1);const g=new T.Group();mesh(bx(w,h,d),boxMat(kind),0,h/2,0,g);return g}
 /* the rental truck: a cutaway van front (the game's work van) with a 5.4 m box on the back, roll-up door up, ramp out */
 function truckModel(M){const a=A(),T=T3(),X=TX(),g=new T.Group();
-  const van=a.makeVehicle('workvan','#f4f1ea');if(van){van.position.set(1.15,0,0);g.add(van)}
+  const van=a.makeVehicle('workvan','#f4f1ea');if(van){van.position.set(1.15,0,0);g.add(van);if(van.userData&&van.userData.dispose)R().own.push(van)/* the game's vehicle model frees its own per-instance parts */}
   const box=new T.Group();box.position.set(-1.35,0,0);g.add(box);
   const BL=5.4,BW=2.4,B0=.62,BH=3.3,x1=BL/2,x0=-BL/2;
   const white=M_('#f6f4ef',{roughness:.55}),alu=M_('#c9ccd0',{roughness:.35,metalness:.75}),dark=M_('#1d1f22',{roughness:.8});
@@ -818,9 +818,10 @@ J.on('pose',dt=>{const a=A();if(!a)return;const M=a.M,V=S(M);const mine=!!(M&&M.
 let PORCH=null;
 function porchFamily(dt){const a=A();if(!a)return;let s=null;try{s=a.SV&&a.SV()}catch(_){s=null}
   const want=a.mode==='hub'&&s&&s.world&&(s.world.households||[]).includes('adeyemi')&&a.L&&a.L.ow&&Math.hypot(a.P.pos.x-L_.door.x,a.P.pos.z-L_.door.z)<70;
-  if(!want){if(PORCH){for(const p of PORCH.list)if(p.d.root.parent)p.d.root.parent.remove(p.d.root);PORCH=null}return}
-  if(!PORCH||PORCH.L!==a.L){const pp=PP();if(!pp)return;if(!CAST.slice(1,5).every(k=>pp.has(k))){if(!porchFamily.asked){porchFamily.asked=1;try{pp.preload(CAST)}catch(_){}}return}
-    PORCH={L:a.L,list:[],t:0};const spots=[['mrA',372.45,95.0,0],['mrsA',373.55,95.0,0],['kid',372.75,95.6,'sit'],['granny',373.4,95.3,'sit']];
+  if(!want){if(PORCH){for(const p of PORCH.list)if(p.d.root.parent)p.d.root.parent.remove(p.d.root);if(PORCH.win&&PORCH.win.parent)PORCH.win.parent.remove(PORCH.win);disposeRes(PORCH.res);PORCH=null}return}
+  if(PORCH&&PORCH.L!==a.L){disposeRes(PORCH.res);PORCH=null}
+  if(!PORCH){const pp=PP();if(!pp)return;if(!CAST.slice(1,5).every(k=>pp.has(k))){if(!porchFamily.asked){porchFamily.asked=1;try{pp.preload(CAST)}catch(_){}}return}
+    PORCH={L:a.L,list:[],t:0};/* the lights stay on (the piano in the window): built in a resource set of its own */{const keep=RES;RES=null;try{const w=windowsLit();for(const m of parts(w).mats||[]){m.opacity=1;m.emissiveIntensity=.75}a.L.group.add(w);PORCH.win=w}catch(_){}PORCH.res=RES;RES=keep}const spots=[['mrA',372.45,95.0,0],['mrsA',373.55,95.0,0],['kid',372.75,95.6,'sit'],['granny',373.4,95.3,'sit']];
     for(const[k,x,z,mode]of spots){let d=null;try{d=pp.make(CASTK[k])}catch(_){d=null}if(!d)continue;d.root.position.set(x,stoopY(x,z),z);d.root.rotation.y=0;a.L.group.add(d.root);PORCH.list.push({d,mode})}}
   PORCH.t+=dt;for(const p of PORCH.list){pose(p.d,dt,{mode:p.mode==='sit'?'sit':'stand'});if(p.mode!=='sit'){const dx=a.P.pos.x-p.d.root.position.x,dz=a.P.pos.z-p.d.root.position.z;if(Math.hypot(dx,dz)<14)face(p.d,a.P.pos.x,a.P.pos.z,dt,2)}}
   if(PORCH.t>9){PORCH.t=0;const p=PORCH.list[(Math.random()*PORCH.list.length)|0];if(p&&Math.hypot(a.P.pos.x-p.d.root.position.x,a.P.pos.z-p.d.root.position.z)<16)wave(p.d)}}
