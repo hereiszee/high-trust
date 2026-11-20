@@ -722,7 +722,7 @@ function blitzBot(a,t,o){const M=a.M,P=a.P,k=a.keys;if(!M||M.state!=='go'||!M.bz
         /* a player who keeps snagging on the same thing gives up on it for a while */BT.tgtStuck=(BT.tgtStuck||0)+1;if(BT.tgtStuck>=4&&B.botF){B.botF.skipT=t+600;B.botF=null;B.botT=0;BT.tgtStuck=0}}}return d};
   const stop=()=>{k.w=k.shift=false};if(B.bot&&B.bot.back>1){B.bot.back--;stop();return null}
   if(a.CV){stop();if(t%10===0)a.useTap=true;return null}
-  if(B.phase==='belt'){if(go(S.table.x,S.table.z+1,1.6)<2.2){stop();if(t%6===0)a.useTap=true}return null}
+  if(B.phase==='belt'){/* walk up to the table and press E once the prompt is the belt (like a player reading the prompt) */const pr=a.prompt||(window.__ht&&window.__ht.prompt);if(go(S.table.x,S.table.z+1,.9)<1.4||(pr&&/tool belt/i.test(pr.text||''))){stop();if(t%6===0&&pr&&/tool belt/i.test(pr.text||''))a.useTap=true}return null}
   if(B.phase==='count'){stop();return null}
   if(B.phase==='over'){go(B.hank.x,B.hank.z+.8,1.2);return null}
   if(B.phase==='tally'){stop();return null}

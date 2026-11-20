@@ -3783,13 +3783,17 @@ function wmFrame(dt,J){jrHolsterTick();const m=M.def,F={objs:[],target:null,hold
   {const r=jhPrompt(prompt,pp,dt);prompt=r[0];pp=r[1]}if(!M||M.state!=='go')return;/* JOBS: interact hook */
   /* in and out of cars during a job (the vehicle you came in is the way home) */
   if(!prompt&&!M.noCars){if(VAN.on){if(Math.abs(CV.spd)<4&&M.phase!=='stake'){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}}
-    else{let c=nearCar();if(!c&&M.exitOpen&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2)c=M.car;if(c&&!(c.car&&c.car.hp<=0&&M.world)){prompt=KE+' · '+(M.exitOpen&&c===M.car?'Get in and head out':c===VAN?'Get in the minivan':c===M.car?'Get in':'Borrow '+c.name+"'s "+feel(c).label);if(useTap){useTap=false;enterCar(c);M.car=c;WM.last=c}}}}
+    else{let c=nearCar();if(!c&&M.exitOpen&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2)c=M.car;
+      /* the job's own action beats "Get in": a player a step short of a job tap/hold (and nearer to it than to the car) gets no car prompt, so E never puts them back in the van by surprise */
+      if(c&&!(M.exitOpen&&c===M.car)&&wmJobNear(F,c))c=null;
+      if(c&&!(c.car&&c.car.hp<=0&&M.world)){prompt=KE+' · '+(M.exitOpen&&c===M.car?'Get in and head out':c===VAN?'Get in the minivan':c===M.car?'Get in':'Borrow '+c.name+"'s "+feel(c).label);if(useTap){useTap=false;enterCar(c);M.car=c;WM.last=c}}}}
   if(M.exitOpen){if(!VAN.on||CV!==M.car)wmExitAt(M.car);F.objs.push(['Back to your ride and head out',false]);if(!F.target)F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Van'};
     /* your vehicle is the exit: get in (any car you have taken counts) */
     if(VAN.on&&Math.abs(CV.spd)<2){for(const a of allies)if(a.pos.distanceTo(P.pos)>20&&!a.ride){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(1,2));collide(a.pos,.35)}return endMission(true)}}
   if(L.exitRing)L.exitRing.visible=!!M.exitOpen&&!VAN.on;
   {const pk=VAN.on?null:updPickups(dt,!!prompt);if(pk){prompt=pk[0];pp=pk[1]}}
   setObj(m.title,F.objs);setPrompt(prompt,pp);showMarker(F.target)}
+function wmJobNear(F,c){const dc=Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z);for(const t of F.taps.concat(F.holds)){if(t.x==null)continue;const d=Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(d<(t.r||2.6)+1.5&&d<dc)return true}return false}
 const wmNearest=(list,ok)=>{let b=null,bd=1e9;for(const o of list){if(ok&&!ok(o))continue;const x=o.pos?o.pos.x:o.x,z=o.pos?o.pos.z:o.z,dd=Math.hypot(x-P.pos.x,z-P.pos.z);if(dd<bd){bd=dd;b=o}}return b};
 /* the van and the crew: vehicles' ram/hp stats from HT.Garage (bull bar, armour) */
 function wmRamStats(e){const G=window.HT&&HT.Garage;let s=null;if(e===VAN){const vs=vanStats();if(vs&&vs.ramMult!=null)s=vs}if(!s&&G&&G.apply)try{s=G.apply(G.VEH[e.type]?e.type:'sedan')}catch(_){s=null}
