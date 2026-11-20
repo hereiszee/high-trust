@@ -154,6 +154,76 @@ const MAPS={
    "zzzzzzzzzzzzzz###########zz"]}
 };
 
+/* SPEC3 small sites (section 2 table, 4.0 "New sites"). Stamped like the mission lots, but not overridable by build({missions}).
+   Marker chars never reach def.map: X park, P huddle, k (school bike rack / pawn back room) become site data and their `under` tile.
+   at = top-left tile; under = tile written for a marker. Tile changes against the SPEC3 table are listed in docs (worker report):
+   walnut is the real house at x58-62 (the table's x57-61 is one tile off), parkride moved east of Dad's Auto (the chop shop lot fills the chain-link ring),
+   pawn takes rows z10-18 of the mart block's west end (z16-18 alone has no room for a back room). */
+const NEW_SITES={
+  school:{at:[63,1],wall:'#b5654a',floor:',',under:{X:',',P:'s',k:','},map:[ // Maple Heights Elementary: building x65-78, bike pad x63-64, drop-off lane on z5
+   ",,AAAAAAAAAAAAAAgg",
+   "k,AAAAAAAAAAAAAAgg",
+   ",,AAAAAAAAAAAAAAgg",
+   "sslsssssPsssssslst",
+   "ss,,,X,,,,,,,,,,ss"]},
+  walnut:{at:[57,24],wall:'#d9c7a3',floor:'.',under:{X:',',P:'g'},map:[ // 1418 Walnut Dr: house x60-62, open garage x58-59 (walls are colliders), driveway x57
+   "Pggggt",
+   ",..hhh",
+   "X.Ihhh",
+   ",I.hhh",
+   "gggggg"]},
+  storage:{at:[104,66],wall:'#a9b0b3',floor:',',under:{X:',',P:','},map:[ // Discount Storage Unlimited: rows A/B/C of roll-up units, office, gate on Industrial Way (north side: the chop shop's fence)
+   "z,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,z",
+   "z,##########################,,,z",
+   "z,##########################,,,z",
+   "z,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,z",
+   "z,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,z",
+   "z,,,########################,,,z",
+   "z,,,########################,,,z",
+   ",P,,,,,,,,,,,,,,,,,,,,,,,,,,,,,z",
+   ",,X,,,,,,,,,,,,,,,,,,,,,,,,,,,,z",
+   "z##.###,####################,,,z",
+   "z#....#,####################,,,z",
+   "z######zzzzzzzzzzzzzzzzzzzzzzzzz"]},
+  parkride:{at:[129,27],wall:'#9aa0a6',floor:',',under:{X:',',P:','},map:[ // Route 9 Park & Ride: 24 bays, gate on the west into Dad's Auto lot
+   "zzzzzzzzzzz",
+   "z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z",
+   ",,P,,,,,,,z",
+   ",X,,,,,,,,z",
+   "z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z","z,,,,,,,,,z",
+   "zzzzzzzzzzz"]},
+  pawn:{at:[176,10],wall:'#b9a98f',floor:'.',under:{k:'.'},park:[179,20],huddle:[177,19],map:[ // Cash-4-Yer-Stuff: back lot, back office (k), staff door, shop floor, front doors on Main St
+   ",,,,,,",
+   ",,,,,,",
+   "######",
+   "#kkkk#",
+   "#kkkk#",
+   "##.###",
+   "#....#",
+   "#....#",
+   "##..##"]},
+  millshop:{at:[208,52],wall:'#8a8f93',floor:'.',under:{X:',',P:','},map:[ // Mill St Auto Recovery: office, shop bay on Mill St, tow yard, gate on Dock St
+   "#####..####",
+   "#...#.....#",
+   "#...#....c#",
+   "##.##...###",
+   "z,,,,P,,,,z",
+   "z,,,,,,,,,z",
+   "z,,,,X,,,,z",
+   "z,,,,,,,,,z",
+   "zzzz,,,zzzz"]},
+  market:{box:[175,19,203,23],wall:'#888',floor:',',park:[189,25],huddle:[187,23]},     // Main St, Saturday mornings: props only
+  roof:{box:[208,24,219,29],wall:'#cfd8cf',floor:',',park:[221,27],huddle:[219,27]}};    // the Community Center (places.center) roof, ladder on the east wall
+const NEW_META={school:{place:'Maple Heights Elementary, Oak St',hood:'maple'},walnut:{place:'1418 Walnut Dr',hood:'maple'},
+  storage:{place:'Discount Storage Unlimited, Industrial Way',hood:'route9'},parkride:{place:'Route 9 Park & Ride',hood:'route9'},
+  pawn:{place:'Cash-4-Yer-Stuff, Main St',hood:'river'},millshop:{place:'Mill St Auto Recovery',hood:'river'},
+  market:{place:"Riverside Farmers' Market, Main St",hood:'river'},roof:{place:'Community Center roof',hood:'river'}};
+const NEW_AFTER={pawn:'RAMOS BAKERY',millshop:'UNDER NEW MANAGEMENT · CALL SAL · HONEST TOWING'};
+const ROOF_Y=7;
+/* bus stops (Earl's Shortcuts perk): sidewalk tiles beside Riverside intersections; face = direction of the road from the stop */
+const BUS_STOPS=[['bus1',160,19,[0,1],'Bus stop · Main St & River Rd'],['bus2',201,23,[0,-1],'Bus stop · Main St & 4th St'],
+  ['bus3',176,47,[0,1],'Bus stop · Mill St & 2nd St'],['bus4',209,65,[0,-1],'Bus stop · Dock St & 4th St']];
+
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,rnd){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const pt=(x,z,extra)=>Object.assign({tx:x,tz:z,x:tc(x),z:tc(z)},extra||{});
@@ -190,7 +260,7 @@ function generate(maps){
   rect(104,24,128,39,',');
   B('A',105,30,116,36,{id:'auto',sign:"DAD'S AUTO · SINCE 1987 · WE FIX IT RIGHT",face:'n',col:'#c7c2b5'});
   const colX=[[160,170],[176,186],[192,202],[208,218]],rowZ=[[10,18],[24,32],[38,46],[52,60]];
-  const special=new Set(['0,0','1,0','2,0','3,0','0,1','1,1','3,1','2,2','3,2']);
+  const special=new Set(['0,0','1,0','2,0','3,0','0,1','1,1','3,1','2,2','3,2','3,3']);   /* 3,3 = Mill St Auto Recovery (SPEC3) */
   colX.forEach(([x0,x1],ci)=>rowZ.forEach(([z0,z1],ri)=>{if(special.has(ci+','+ri))return;
     rect(x0,z0,x1,z0+2,'r');rect(x0,z1-2,x1,z1,'r');rect(x0,z0+4,x1,z0+4,'z');
     for(let x=x0+1;x<=x1;x+=3){if(g[z0-1][x]==='s')set(x,z0-1,'p');if(g[z1+1][x]==='s')set(x,z1+1,'p')}}));
@@ -220,6 +290,20 @@ function generate(maps){
   rect(160,24,186,32,',');stamp('dee',160,24);
   rect(192,38,218,46,'g');stamp('rosa',192,38);
   stamp('duke',192,66);
+  /* SPEC3 small sites */
+  for(const id in NEW_SITES){const ns=NEW_SITES[id];
+    if(ns.map){const[x0,z0]=ns.at,marks={};
+      for(let z=0;z<ns.map.length;z++)for(let x=0;x<ns.map[z].length;x++){let c=ns.map[z][x];const X=x0+x,Z=z0+z;
+        if(c==='P'){sites[id]={...(sites[id]||{}),huddle:{x:X,z:Z}};c=ns.under.P}
+        else if(c==='X'){sites[id]={...(sites[id]||{}),park:{x:X,z:Z}};c=ns.under.X}
+        else if(ns.under[c]){(marks[c]||(marks[c]=[])).push({x:X,z:Z});c=ns.under[c]}
+        set(X,Z,c)}
+      sites[id]={...(sites[id]||{}),id,x0,z0,x1:x0+ns.map[0].length-1,z1:z0+ns.map.length-1,marks,isNew:true}}
+    else{const[x0,z0,x1,z1]=ns.box;sites[id]={id,x0,z0,x1,z1,marks:{},isNew:true}}
+    if(ns.park)sites[id].park={x:ns.park[0],z:ns.park[1]};if(ns.huddle)sites[id].huddle={x:ns.huddle[0],z:ns.huddle[1]}}
+  B('A',65,1,78,3,{id:'school',sign:'MAPLE HEIGHTS ELEMENTARY',face:'s',col:'#b5654a',custom:true});
+  B('A',104,2,111,6,{id:'ortho',sign:'BRACE YOURSELF ORTHODONTICS',face:'s',col:'#e6eef0'});
+  {const c=buildings.find(b=>b.id==='center');c.roofY=ROOF_Y;c.parapet=.9}
   for(let x=0;x<W;x++){if(g[0][x]!=='~')g[0][x]='t';if(g[H-1][x]!=='~')g[H-1][x]='t'}for(let z=0;z<H;z++){g[z][0]='t';g[z][W-1]='t'}
   for(const r of roads){for(let i=r.a+3;i<r.b-1;i+=8){
     if(r.o==='h'){for(const z of[r.k-1,r.k+3])if(g[z]&&g[z][i]==='s')set(i,z,'l')}else{for(const x of[r.k-1,r.k+3])if(g[i]&&g[i][x]==='s')set(x,i,'l')}}}
@@ -278,6 +362,41 @@ function groundAt(g,x,z,floor){const c=g[z][x];if(COLCH.includes(c))return c;if(
 const yawOf=(dx,dz)=>Math.atan2(-dx,-dz);   // game convention: forward = (-sin yaw, -cos yaw)
 function hoodOfTile(t){return t<=HOODS.maple.tx1?'maple':t<=HOODS.route9.tx1?'route9':'river'}
 
+/* SPEC3 site data the jobs need (metres unless a field says tiles). solids: extra static colliders {x0,z0,x1,z1,ph,h?,k} that js/openworld.js adds */
+function siteExtras(id,S,marks,g,buildings){const T=TILE,box=(x0,z0,x1,z1)=>({x0:x0*T,z0:z0*T,x1:(x1+1)*T,z1:(z1+1)*T,tx0:x0,tz0:z0,tx1:x1,tz1:z1});const o={solids:[]};
+  if(id==='school'){const k=marks.k[0];o.building=box(65,1,78,3);o.door={x:144,z:8,face:[0,1]};
+    o.rack={x:tc(k.x),z:tc(k.z),tx:k.x,tz:k.z,yaw:0,len:5.2,pad:box(63,1,64,3),slots:[0,1,2,3,4,5].map(i=>({x:tc(k.x),z:2.8+i*.95,yaw:Math.PI/2}))};
+    o.crossing={x0:142.6,x1:145.4,z0:10,z1:18,a:{x:144,z:9},b:{x:144,z:19}};o.guard={x:146.6,z:19.2,yaw:0};
+    o.loop={lane:box(65,5,78,5),enter:{x:tc(78),z:tc(5),yaw:Math.PI/2},stop:{x:144,z:tc(5),yaw:Math.PI/2},exit:{x:tc(65),z:tc(5),yaw:Math.PI/2}};
+    o.flag={x:tc(79)+.4,z:4.6};o.solids.push({x0:158.5,z0:6.0,x1:161.5,z1:6.9,ph:1.55,h:1.55,k:'sign'},{x0:159.25,z0:2.65,x1:159.55,z1:2.95,ph:8,k:'pole'})}
+  else if(id==='walnut'){o.address='1418 Walnut Dr';o.house=box(60,25,62,27);o.garage={...box(58,25,59,27),door:{x:116,z:53,face:[-1,0],w:3.4},roofY:2.9};o.driveway=box(57,25,57,27);
+    o.saleSign={x:125.2,z:49,yaw:0};o.solids.push({x0:116,z0:50,x1:120,z1:50.3,ph:2.9,k:'wall'},{x0:116,z0:55.7,x1:120,z1:56,ph:2.9,k:'wall'})}
+  else if(id==='storage'){const U=[];const row=(r,tx0,n,z,face,first)=>{for(let i=0;i<n;i++){const x0=tx0+2*i,cx=x0*T+2;U.push({n:first+i,row:r,x:cx,z,face,w:4,tx0:x0,tx1:x0+1,front:{x:cx,z:z+face[1]*1.2}})}};
+    row('A',106,13,138,[0,1],1);row('B',108,12,142,[0,-1],14);row('B',108,12,146,[0,1],26);row('C',112,10,150,[0,-1],38);
+    o.units=U;o.unit47=U.find(u=>u.n===47);o.office={...box(105,75,110,77),inside:box(106,76,109,76),door:{x:tc(107),z:tc(75)},laptop:{x:tc(109),z:tc(76)}};
+    o.gate={tiles:[[104,73],[104,74]],x:208,z:148,w:4,keypad:{x:207.2,z:145.6}};o.board={x:tc(109),z:149.8,face:[0,-1]};
+    o.dock={x0:264,z0:142,x1:265.6,z1:146,h:1.2,face:[1,0]};o.solids.push({x0:264,z0:142,x1:265.6,z1:146,ph:1.2,h:1.2,k:'dock'});
+    o.solids.push({x0:269.1,z0:139.8,x1:269.5,z1:140.2,ph:7,k:'lamp'},{x0:269.1,z0:151.8,x1:269.5,z1:152.2,ph:7,k:'lamp'});
+    o.cameras=[{x:209.6,z:133.6,y:3.4,yaw:yawOf(1,1)},{x:270.4,z:133.6,y:3.4,yaw:yawOf(-1,1)},{x:270.4,z:153.4,y:3.4,yaw:yawOf(-1,-1)},{x:221.6,z:150.2,y:3.6,yaw:yawOf(0,-1)}]}
+  else if(id==='parkride'){const bays=[];[[58.25,0],[68.75,Math.PI],[73.25,0],[83.75,Math.PI]].forEach(([z,yaw],r)=>{for(let k=0;k<6;k++)bays.push({i:bays.length,row:r,x:264.25+2.5*k,z,yaw,w:2.5,d:4.5})});
+    o.bays=bays;o.lot={x0:260,z0:56,x1:278,z1:86};o.gate={tiles:[[129,31],[129,32]],x:259,z:64,w:4,barrier:{x:259.4,z:61.9}};o.booth={x:261.6,z:58.3};
+    o.solids.push({x0:260.6,z0:57,x1:262.6,z1:59.6,ph:2.6,k:'booth'})}
+  else if(id==='pawn'){o.backroom=box(177,13,180,14);o.floor=box(177,16,180,17);o.staffDoor={x:tc(178),z:tc(15)};o.door={x:358,z:38,face:[0,1],w:4};
+    o.desk={x:tc(180),z:tc(13)};o.sign={x:358,z:38.06,y:3.05,face:[0,1],w:9};o.backLot=box(176,10,181,11);
+    o.solids.push({x0:358.4,z0:32.2,x1:361.75,z1:32.9,ph:1.1,h:1.1,k:'counter'},{x0:354,z0:32.4,x1:354.6,z1:35.6,ph:2,k:'shelf'},
+      {x0:359.8,z0:26,x1:361.9,z1:26.7,ph:.8,h:.8,k:'table'},{x0:361.25,z0:27.1,x1:361.85,z1:27.75,ph:.8,h:.8,k:'safe'})}
+  else if(id==='millshop'){o.office=box(209,53,211,54);o.shop=box(213,53,217,54);o.yard=box(209,56,217,59);o.door={x:428,z:104,face:[0,-1],w:4};o.officeDoor={x:tc(210),z:tc(55)};
+    o.gate={tiles:[[212,60],[213,60],[214,60]],x:427,z:121,w:6};o.sign={x:427,z:103.94,y:3.05,face:[0,-1],w:9};
+    o.trucks=[{x:421.5,z:113.4,yaw:-Math.PI/2},{x:432.5,z:113.4,yaw:Math.PI/2},{x:421.5,z:118.6,yaw:-Math.PI/2},{x:432.5,z:118.6,yaw:Math.PI/2}];
+    o.dogBed={x:432.2,z:108.9};o.vault={x:437,z:116,face:[1,0]}}
+  else if(id==='market'){const st=[];for(const[z,yaw]of[[tc(20),yawOf(0,1)],[tc(22),yawOf(0,-1)]])for(const x of[177,180,183,186,192,195,198,201])st.push({x:tc(x),z,yaw});
+    o.stalls=st;o.closures=[{x:351,z:43,yaw:Math.PI/2,w:6},{x:407,z:43,yaw:Math.PI/2,w:6}];o.street=box(175,20,203,22)}
+  else if(id==='roof'){const b=buildings.find(q=>q.id==='center');o.building=box(b.x0,b.z0,b.x1,b.z1);o.roofY=ROOF_Y;o.parapet=b.parapet;
+    o.roof={x0:b.x0*T+.35,z0:b.z0*T+.35,x1:(b.x1+1)*T-.35,z1:(b.z1+1)*T-.35,y:ROOF_Y};
+    o.ladder={x:(b.x1+1)*T+.15,z:tc(27),tx:b.x1+1,tz:27,yaw:Math.PI/2,h:ROOF_Y+b.parapet,bottom:{x:tc(b.x1+1),z:tc(27)},top:{x:(b.x1+1)*T-1.2,y:ROOF_Y,z:tc(27)}};
+    o.overlook={x:(b.x0+b.x1+1)*T/2,z:b.z0*T+.8,y:ROOF_Y,yaw:0}}
+  return o}
+
 /* graffiti tags (SPEC2 A.7): 48 street faces in Riverside, deterministic */
 function genTags(g,seed){const rnd=mulberry32(seed),cand=[];
   for(let z=1;z<H-1;z++)for(let x=152;x<W-1;x++){const c=g[z][x];if(!'rxAz'.includes(c))continue;
@@ -301,8 +420,8 @@ function build(opts){opts=opts||{};
   const rnd=mulberry32(1987);
   /* sites: rectangles, rings, entity lists */
   const sites={};
-  for(const id in G.sites){const s=G.sites[id],m=maps[id];
-    const S={id,...SITE_META[id],wall:m.wall,after:SITE_AFTER[id],x0:s.x0,z0:s.z0,x1:s.x1,z1:s.z1,
+  for(const id in G.sites){const s=G.sites[id],m=maps[id]||NEW_SITES[id];
+    const S={id,...(SITE_META[id]||NEW_META[id]),wall:m.wall,after:SITE_AFTER[id]||NEW_AFTER[id]||null,x0:s.x0,z0:s.z0,x1:s.x1,z1:s.z1,
       box:{x0:s.x0*TILE,z0:s.z0*TILE,x1:(s.x1+1)*TILE,z1:(s.z1+1)*TILE},win:{x0:s.x0-6,z0:s.z0-6,x1:s.x1+6,z1:s.z1+6},
       park:pt(s.park.x,s.park.z),huddle:pt(s.huddle.x,s.huddle.z),ring:{x:tc(s.park.x),z:tc(s.park.z),r:4},
       spawns:[],items:[],bonus:[],stashes:[],ammo:[],waveSpawns:[],grill:null,bounce:null,getaway:null,beds:[]};
@@ -312,11 +431,18 @@ function build(opts){opts=opts||{};
       else if(c==='T')S.stashes.push(pt(x,z));else if(c==='a')S.ammo.push(pt(x,z));else if(c==='S')S.waveSpawns.push(pt(x,z));
       else if(c==='Q'){S.grill=pt(x,z);S.bounce={x:tc(x),z:tc(z)+9}}else if(c==='&')S.grill=pt(x,z,{shed:true});else if(c==='v')S.getaway=pt(x,z)}
     sites[id]=S}
+  for(const id in NEW_SITES)Object.assign(sites[id],siteExtras(id,sites[id],G.sites[id].marks,g,G.buildings));
   /* garden beds: horizontal runs of 'o' */
   const beds=runs(g,'o','h').map((r,i)=>({id:'bed'+i,...r,x:(tc(r.x0)+tc(r.x1))/2,z:tc(r.z0),tiles:r.x1-r.x0+1}));
   sites.rosa.beds=beds.filter(b=>b.x0>=sites.rosa.x0&&b.x1<=sites.rosa.x1&&b.z0>=sites.rosa.z0&&b.z0<=sites.rosa.z1).map(b=>b.id);
   /* places, doors, starts */
   const places={};for(const k in PLACES){const p=PLACES[k];places[k]={...p,tx:p.x,tz:p.z,x:tc(p.x),z:tc(p.z)}}
+  /* SPEC3: the orthodontist (a business pin on the Fill-Er-Up lot), Riverside bus stops (Earl's perk), each new site's door / giver spot */
+  places.ortho={x:tc(108),z:tc(8),tx:108,tz:8,yaw:-Math.PI/2,label:'Brace Yourself Orthodontics',hood:'route9',pin:true,door:pt(107,7)};
+  for(const[id,x,z,f,label]of BUS_STOPS)places[id]={x:tc(x),z:tc(z),tx:x,tz:z,yaw:yawOf(f[0],f[1]),label,hood:'river',pin:true,bus:true,face:f};
+  for(const[id,x,z,label]of[['school',71,4,'Maple Heights Elementary'],['walnut',61,24,'1418 Walnut Dr'],['storage',107,74,'Discount Storage Unlimited'],
+    ['parkride',131,31,'Route 9 Park & Ride'],['pawn',178,19,'Cash-4-Yer-Stuff'],['millshop',213,51,'Mill St Auto Recovery'],['market',185,19,"Riverside Farmers' Market"],['roof',219,27,'Community Center roof']])
+    places[id]={x:tc(x),z:tc(z),tx:x,tz:z,label,hood:hoodOfTile(x),site:id};
   const find=ch=>{for(let z=0;z<H;z++)for(let x=0;x<W;x++)if(g[z][x]===ch)return pt(x,z);return null};
   const doors={home:find('H'),store:find('R'),auto:find('U')};
   const markers=['1','2','3','4'].map((c,i)=>({i,...find(c)}));
@@ -366,6 +492,18 @@ function build(opts){opts=opts||{};
   const chalk=shuffle(nearPorch,rs).slice(0,30).map((s,i)=>({id:'chalk'+i,...s,design:Math.floor(rs()*6),yaw:Math.floor(rs()*4)*Math.PI/2,appearAt:50}));
   const trashPool=shuffle(rivSidewalk.filter(s=>!nearPorch.includes(s)),rs);
   const trash=trashPool.slice(0,24).map((s,i)=>({id:'trash'+i,kind:'bag',...s,clearAt:20})).concat(trashPool.slice(24,30).map((s,i)=>({id:'cart'+i,kind:'cart',...s,yaw:rs()*6.28,clearAt:20})));
+  /* SPEC3 2.22 Porch Light: Maple house fronts (the tile in front of each neighbour's door) next to the Riverside 'p' porches */
+  const housePorches=[];houses.forEach((h,i)=>{if(h.home||(h.z1===3&&h.x0<=25&&h.x1>=25&&g[4][25]==='R'))return;const n=h.face==='s'?1:-1,tz=n>0?h.z1+1:h.z0-1,c=Math.floor((h.x0+h.x1)/2);
+    for(const tx of[c,c+1,c-1])if(g[tz]&&!SOLID.includes(g[tz][tx])){housePorches.push(pt(tx,tz,{id:'hp'+housePorches.length,house:i,face:[0,n],yaw:yawOf(0,n),hood:hoodOfTile(tx),kind:'house'}));break}});
+  const porchesAll=[...housePorches,...porches.map(p=>({...p,id:'rp'+p.order,hood:'river',kind:'row'}))];
+  /* SPEC3 2.18 potholes: 8 on Route 9's lanes, 6 in Riverside (3 on Main St), on asphalt road tiles away from intersections. Deterministic. */
+  const potholes=[];{const rp=mulberry32(918),onRoad=(x,z)=>g[z][x]===','&&G.roads.some(r=>r.o==='h'?z>=r.k&&z<=r.k+2&&x>=r.a&&x<=r.b:x>=r.k&&x<=r.k+2&&z>=r.a&&z<=r.b);
+    const inter=(x,z)=>{let h=0,v=0;for(const r of G.roads){if(r.o==='h'&&z>=r.k-1&&z<=r.k+3&&x>=r.a&&x<=r.b)h=1;if(r.o==='v'&&x>=r.k-1&&x<=r.k+3&&z>=r.a&&z<=r.b)v=1}return h&&v};
+    const pick=(cands,n,gap,hood)=>{let k=0;for(const c of shuffle(cands,rp)){if(k>=n)break;if(potholes.some(p=>Math.abs(p.tx-c[0])+Math.abs(p.tz-c[1])<gap))continue;
+      potholes.push({id:'ph'+potholes.length,tx:c[0],tz:c[1],x:+(tc(c[0])+(rp()-.5)*.9).toFixed(2),z:+(tc(c[1])+(rp()-.5)*.9).toFixed(2),r:+(.5+rp()*.3).toFixed(2),hood});k++}};
+    const R9c=[],MAIN=[],RIV=[];for(let z=1;z<H-1;z++)for(let x=1;x<W-1;x++){if(!onRoad(x,z)||inter(x,z))continue;
+      if(z>=20&&z<=22&&x>=104&&x<=139)R9c.push([x,z]);else if(x>=158){if(z>=20&&z<=22&&x<=200)MAIN.push([x,z]);else RIV.push([x,z])}}
+    pick(R9c,8,4,'route9');pick(MAIN,3,8,'river');pick(RIV,3,12,'river')}
   /* chunks */
   const chunks=[];for(let cz=0;cz<CH;cz++)for(let cx=0;cx<CW;cx++){const x0=cx*CHUNK,z0=cz*CHUNK,x1=Math.min(W,x0+CHUNK)-1,z1=Math.min(H,z0+CHUNK)-1;
     chunks.push({i:chunks.length,cx,cz,x0,z0,x1,z1,box:{x0:x0*TILE,z0:z0*TILE,x1:(x1+1)*TILE,z1:(z1+1)*TILE},
@@ -386,7 +524,8 @@ function build(opts){opts=opts||{};
     solid:SOLID,losblock:LOSBLOCK,hoods:HOODS,bridgeOpen,bridgeUnlockJob:BRIDGE_UNLOCK_JOB,barricade,bridge,
     sites,places,doors,markers,start:pt(15,9),vanStart:pt(19,7,{yaw:-Math.PI/2}),buildings:G.buildings,
     trees,lamps,crates,tables,pumps,parked,porches,houses,rowUnits,walls,warehouses,chainlink,hedges,rails,water,court,beds,
-    tags,chalk,trash,tiers:TIERS,flags:FLAGS,chunks};
+    tags,chalk,trash,tiers:TIERS,flags:FLAGS,chunks,
+    potholes,housePorches,porchesAll,newSites:Object.keys(NEW_SITES),roofY:ROOF_Y};
   LAST=def;return def}
 
 /* ---------- queries ---------- */
@@ -418,7 +557,7 @@ function neighbourSlots(def,t,x,z,n,r){def=def||LAST;const k=tierOf(t),lim=TIERS
   return def.porches.filter(p=>p.order<lim).map(p=>({p,d:Math.hypot(p.x-x,p.z-z)})).filter(o=>o.d<=r).sort((a,b)=>a.d-b.d).slice(0,n).map(o=>o.p)}
 
 HT.World={build,regionAt,regionAtTile,site,siteAt,chunkIndex,chunkAt,chunksNear,isSolid,openBridge,dressing,neighbourSlots,tierOf,genTags:(def,seed)=>genTags(def.map.map(r=>r.split('')),seed),
-  get last(){return LAST},TILE,W,H,CHUNK,SOLID,LOSBLOCK,HOODS,TIERS,FLAGS,PLACES,MAPS,tc,tx,mulberry32};
+  get last(){return LAST},TILE,W,H,CHUNK,SOLID,LOSBLOCK,HOODS,TIERS,FLAGS,PLACES,MAPS,NEW_SITES,BUS_STOPS,ROOF_Y,tc,tx,mulberry32};
 HT.WorldGen=HT.World;   /* js/world.js (the dressing module) also claims HT.World; the game reads the generator as HT.WorldGen */
 if(typeof module!=='undefined'&&module.exports)module.exports=HT.World;
 })(typeof window!=='undefined'?window:globalThis);

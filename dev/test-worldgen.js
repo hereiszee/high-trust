@@ -12,7 +12,7 @@ test('deterministic: two builds are identical',()=>{const a=Wd.build({bridgeOpen
 test('reference hash of the open-bridge map is stable',()=>{let h=2166136261;for(const ch of open.map.join('\n')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}assert.strictEqual(h.toString(16),REF_HASH)});
 test('old HUB coordinates kept: home door, store, markers',()=>{assert.strictEqual(open.map[10][19],'H');assert.strictEqual(open.map[4][25],'R');assert.deepStrictEqual([open.doors.home.x,open.doors.home.z],[39,21]);
   assert.deepStrictEqual(open.markers.map(m=>[m.tx,m.tz]),[[13,10],[37,24],[20,32],[44,18]])});
-test('every site has park, huddle, ring, box and window',()=>{assert.deepStrictEqual(Object.keys(open.sites).sort(),['dave','dee','doug','duke','earl','gary','rick','rosa']);
+test('every site has park, huddle, ring, box and window',()=>{assert.deepStrictEqual(Object.keys(open.sites).sort(),['dave','dee','doug','duke','earl','gary','market','millshop','parkride','pawn','rick','roof','rosa','school','storage','walnut']);   /* + SPEC3 sites (dev/sites.test.js) */
   for(const s of Object.values(open.sites)){assert(s.park&&s.huddle&&s.ring&&s.box&&s.win,s.id);assert.strictEqual(s.ring.r,4)}});
 test('site entity counts',()=>{const c=id=>{const s=open.sites[id];return[s.spawns.length,s.items.length,s.bonus.length,s.stashes.length,s.ammo.length,s.waveSpawns.length]};
   assert.deepStrictEqual(c('gary'),[10,4,0,0,2,0]);assert.deepStrictEqual(c('rick'),[8,0,0,3,2,0]);assert.deepStrictEqual(c('dave'),[0,0,0,0,0,6]);assert.deepStrictEqual(c('doug'),[13,0,0,0,2,0]);
@@ -37,8 +37,8 @@ test('chunks: 8x3, cover the grid, every object in exactly one chunk',()=>{asser
   for(const key of['lamps','houses','rowUnits','walls','chainlink','tags','porches','parked'])assert.strictEqual(open.chunks.reduce((s,c)=>s+c[key].length,0),open[key].length,key);
   for(const t of open.trees){const c=open.chunks[Wd.chunkIndex(t.tx,t.tz)];assert(c.trees.includes(t))}
   assert.strictEqual(Wd.chunkAt(0,0),0);assert.strictEqual(Wd.chunkAt(463,159),23);assert.deepStrictEqual(Wd.chunksNear(10,10,1,open),[0])});
-test('counts match SPEC2 A.4',()=>{assert.strictEqual(open.trees.length,1125);assert.strictEqual(open.lamps.length,251);assert.strictEqual(open.houses.length,77);
-  assert.strictEqual(open.walls.length,210);assert.strictEqual(open.porches.length,56);assert.strictEqual(open.tags.length,48)});
+test('counts match SPEC2 A.4 (after SPEC3: school replaced 3 houses, Mill St Auto Recovery replaced block 3,3)',()=>{assert.strictEqual(open.trees.length,1099);assert.strictEqual(open.lamps.length,251);assert.strictEqual(open.houses.length,74);
+  assert.strictEqual(open.walls.length,245);assert.strictEqual(open.porches.length,48);assert.strictEqual(open.tags.length,48)});
 test('house door rule keeps SPEC.md home facing north',()=>{const home=open.houses.find(h=>h.home);assert(home);assert.strictEqual(home.face,'n');assert.deepStrictEqual([home.x0,home.z0,home.x1,home.z1],[17,11,21,13])});
 test('ground chars are all colour chars',()=>{for(const r of open.ground)for(const ch of r)assert(',.gsb=~'.includes(ch),ch)});
 test('tags: 48 distinct Riverside faces, spaced, valid clearAt',()=>{const ids=new Set();for(const t of open.tags){assert(t.tx>=152);assert('rxAz'.includes(open.map[t.tz][t.tx]));assert([20,35,50,70].includes(t.clearAt));ids.add(t.tx+','+t.tz)}
