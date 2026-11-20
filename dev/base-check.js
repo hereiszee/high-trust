@@ -123,7 +123,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await press('e');j=await js();ok(j.on,'E climbs into the jet');
     /* a tiny autopilot that only presses keys: heading by roll (A/D), climb by pitch (arrows), speed by throttle (W/S, Shift) */
     const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();if(o.until&&o.until(j))break;
-        const tx=o.to[0],tz=o.to[1];const want=Math.atan2(-(tx-j.x),-(tz-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
+        const TT=typeof o.to==='function'?o.to(j):o.to,tx=TT[0],tz=TT[1];/* o.to may be a function (a look-ahead point) */const want=Math.atan2(-(tx-j.x),-(tz-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
         const bankW=Math.max(-1,Math.min(1,-he*1.8));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);
         const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
         await key('ArrowUp',j.pitch<pw-.03);await key('ArrowDown',j.pitch>pw+.05);
@@ -152,9 +152,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     if(!j.on){say('  (back to the jet for the landing)');await ev(()=>{const P=window.__ht.P;P.pos.set(256,0,215.6)});await step(4);await press('e')}
     else{await fly({to:[520,d.runway.z],alt:90,spd:70,max:500,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
       await fly({to:[600,d.runway.z],alt:60,spd:60,max:200,until:q=>q.x>560});
-      await fly({to:[300,d.runway.z],alt:60,spd:60,max:400,until:q=>q.x<480&&Math.abs(q.hdg-Math.PI/2)<.3});
+      await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:60,spd:60,max:400,until:q=>q.x<470&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<6});
       await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
-      await fly({to:[d.runway.end.x,d.runway.z],alt:q=>Math.max(0,(q.x-262)*.09),spd:46,max:700,until:q=>!q.air});
+      await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-262)*.09),spd:46,max:700,until:q=>!q.air});
       await key('s',true);for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}await release();
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
     await press('e');s=await st();ok(!s.car,'E gets out on the ground');
