@@ -34,7 +34,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   for(const id of LIST){for(const how of['win','fail']){
       const r=await p.evaluate(async([id,how])=>{const H=window.__ht;if(H.mode!=='hub'){H.enterHub();H.step(3)}const lk=window.__unlock(id);if(lk)return{err:'locked '+lk};
         const pm=window.HT&&HT.People;if(pm&&pm.preload)await Promise.race([pm.preload(H.jobs.castKeys(id)).catch(()=>{}),new Promise(r=>setTimeout(r,20000))]);
-        const before=window.__snap();H.jobs.start(id);if(H.jobs.castWait)await H.jobs.castWait;H.step(3);if(!H.M||H.M.def.id!==id)return{err:'did not start',mode:H.mode};
+        H.enterHub();H.step(5);const before=window.__snap();/* after the unlock: the hub loadout follows progress (Gary done = shotgun), so compare with this */H.jobs.start(id);if(H.jobs.castWait)await H.jobs.castWait;H.step(3);if(!H.M||H.M.def.id!==id)return{err:'did not start',mode:H.mode};
         const j=H.jobs.registry.get(id),a=H.jobs.api;let t=0;for(;t<14000&&H.M&&H.M.state==='go';t++){if(j.test&&j.test.step)j.test.step(a,t,how==='fail'?{fail:true}:{});H.P.hp=Math.max(H.P.hp,60);H.step(1)}
         if(H.M&&H.M.state==='go')H.jobs.finish(how==='win');for(const k of['w','a','s','d','e','shift'])H.keys[k]=false;H.mouse=false;
         const end=H.M&&H.M.state;H.step(60);await new Promise(r=>setTimeout(r,1500));/* the card shows on a timer */
@@ -45,7 +45,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
         if(H.UIacts&&H.UIacts['result:go'])H.UIacts['result:go']();/* the finale card, if it popped */H.step(60);
         return{end,t,before,card:card_,after:window.__snap()}},[id,how]);
       if(r.err){ok(false,id+' '+how+': '+JSON.stringify(r));continue}
-      const d=cmp(r.after,base);const lis=r.after.listeners!==lastBase.listeners?'listeners '+lastBase.listeners+' -> '+r.after.listeners:'';
+      const d=cmp(r.after,r.before);const lis=r.after.listeners!==lastBase.listeners?'listeners '+lastBase.listeners+' -> '+r.after.listeners:'';
       ok(!d.length,id+' '+how+' ('+r.end+' after '+r.t+' frames) back in free roam'+(d.length?': '+d.join('; '):'')+(lis?' · '+lis:'')+' · scene '+lastBase.sceneN+'->'+r.after.sceneN);
       const c=r.card;if(c){const words=c.lines.concat(c.stats,[c.head]).join(' | ');
         ok(c.total!=null&&c.sum===c.total,id+' '+how+' card: lines add up ('+c.sum+' = '+c.total+') · '+c.lines.join(', '));
