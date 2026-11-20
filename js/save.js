@@ -1514,7 +1514,7 @@ const Resale=(()=>{const L=[],state={},hooks={open:[]};let want=null;const ph={}
     chatting:m=>{const e=m.sel&&m.sel.startsWith('resale:')?get(m.sel.slice(7)):null;return!!(e&&R.state(e.id).chat==='open')},
     detail(m,e){const l=get(e.id);if(!l)return'';const st=R.state(l.id);if(want===l.id)want=null;
       const thread=st.said.map(x=>`<div class="rs-b me">${esc(x.me)}</div><div class="rs-b them"><b>${esc(l.seller)}</b>${esc(x.them)}</div>`).join('');
-      const opts=st.chat==='open'&&l.chat?l.chat.options.map((t,i)=>`<button class="htm-btn rs-opt" data-nav data-act="resale:say" data-i="${i}"><kbd>${i+1}</kbd> ${esc(t)}</button>`).join(''):'';
+      const opts=st.chat==='open'&&l.chat?l.chat.options.map((t,i)=>`<button class="rs-opt" data-nav data-act="resale:say" data-i="${i}"><kbd>${i+1}</kbd> ${esc(t)}</button>`).join(''):'';
       const btn=l.sold?'':st.done?`<div class="htm-note">${esc(st.note||'Chat closed.')}</div>`:st.chat==='open'?'':`<button class="htm-btn" data-nav data-act="primary"><span>${esc(l.chat&&l.chat.prompt||'Message the seller')}</span></button>`;
       return`<div class="htm-dscroll"><div class="rs-ph">${R.photo(l.id)}</div><div class="htm-kicker">${esc(l.seller)} · ${esc(l.where||'')}${l.ago?' · '+esc(l.ago):''}</div><h3 class="htm-name">${esc(l.title)}</h3>
         <div class="rs-price">${l.price?money(l.price):'Free'}</div><p class="htm-blurb">${esc(l.blurb||'')}</p>${l.details&&l.details.length?'<ul class="rs-dt">'+l.details.map(d=>'<li>'+esc(d)+'</li>').join('')+'</ul>':''}
@@ -1529,7 +1529,8 @@ const Resale=(()=>{const L=[],state={},hooks={open:[]};let want=null;const ph={}
       '.htm .rs-ph{width:100%;aspect-ratio:16/10;margin:0 0 10px;border-radius:8px;overflow:hidden;background:#222}.htm .rs-price{font:800 22px/1 var(--display,inherit);margin:4px 0 8px;color:var(--good,#7fd87a)}'+
       '.htm .rs-dt{margin:6px 0 10px 18px;padding:0;font-size:13px;line-height:1.5}.htm .rs-thread{display:flex;flex-direction:column;gap:6px;margin:8px 0}.htm .rs-b{max-width:88%;padding:7px 10px;border-radius:12px;font-size:13px;line-height:1.35}'+
       '.htm .rs-b.me{align-self:flex-end;background:#2f6fd6;color:#fff;border-bottom-right-radius:3px}.htm .rs-b.them{align-self:flex-start;background:rgba(255,255,255,.12);border-bottom-left-radius:3px}.htm .rs-b.them b{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:2px}'+
-      '.htm .rs-opts{display:flex;flex-direction:column;gap:6px;margin:6px 0}.htm .rs-opt{text-align:left;justify-content:flex-start}.htm .rs-opt kbd{margin-right:6px}';document.head.appendChild(st)}};
+      '.htm .rs-opts{display:flex;flex-direction:column;gap:6px;margin:6px 0}.htm .rs-opt{display:flex;gap:8px;align-items:flex-start;width:100%;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:inherit;font:600 13px/1.3 inherit;text-align:left;cursor:pointer}'+
+      '.htm .rs-opt:hover,.htm .rs-opt:focus{border-color:#ffcf5a;background:rgba(255,207,90,.14);outline:none}.htm .rs-opt kbd{flex:none;min-width:18px;text-align:center}';document.head.appendChild(st)}};
   return R})();
 HT.Resale=Resale;
 

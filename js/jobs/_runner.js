@@ -258,7 +258,7 @@ function nav(a,win,o){o=o||{};const L=a.L,g=L.g,x0=win.x0,z0=win.z0,w=win.x1-win
   return N}
 
 /* ---------------------------------------------------------------- the runner */
-function make(a,o){o=o||{};const N=o.nav,rnd=rng(o.seed||7);const sp=Object.assign(o.mode==='bike'?{road:8.2,walk:7.4,grass:5.8,turn:3.1,accel:5.5}:{road:6.2,walk:6.2,grass:5.6,turn:6,accel:9},o.speed||{});
+function make(a,o){o=o||{};const N=o.nav,rnd=rng(o.seed||7);const sp=Object.assign(o.mode==='bike'?{road:8.9,walk:7.8,grass:6.0,turn:3.7,accel:7,turnK:.32}:{road:6.2,walk:6.2,grass:5.6,turn:6,accel:9},o.speed||{});
   const R={mode:o.mode||'bike',pos:{x:o.x,z:o.z},yaw:o.yaw||0,spd:0,lean:0,steer:0,stamina:o.stamina!=null?o.stamina:100,state:'run',path:null,pi:0,goal:null,
     t:0,repathT:0,stuckT:0,last:{x:o.x,z:o.z},home:o.home||null,goals:0,doubles:0,cutoffs:0,hop:0,carT:0,narrowT:0,log:[],tired:0};
   const tileK=()=>N.k(R.pos.x,R.pos.z);
@@ -277,14 +277,16 @@ function make(a,o){o=o||{};const N=o.nav,rnd=rng(o.seed||7);const sp=Object.assi
     if(!p||p.pts.length<2)return false;R.path=p.pts;R.pi=1;R.goal=g;R.goals++;R.repathT=0;return true}
   R.goHome=(x,z)=>{if(x!=null)R.home={x,z};if(!R.home)return false;const p=N.path(R.pos.x,R.pos.z,R.home.x,R.home.z,{budget:20000});if(!p)return false;R.path=p.pts;R.pi=1;R.state='homing';return true};
   R.stop=()=>{R.state='stopped';R.path=null};
+  R.walkTo=(x,z,cap)=>{R.cap=cap||1.6;R.stamina=100;R.tired=0;return R.goHome(x,z)};
   R.update=(dt,pu)=>{R.t+=dt;const st=R.state;if(st==='stopped'||st==='home'||st==='winded'){R.spd=Math.max(0,R.spd-dt*6);R.lean*=.9;return R.state}
     const d=pu?Math.hypot(pu.x-R.pos.x,pu.z-R.pos.z):99;
     /* stamina: drains while you're on him, recovers when you're not */
-    if(st==='run'){const drain=d<8?(pu&&pu.car?2.2:4.6):d<16?2.4:d<30?.9:-2.2;R.stamina=clamp(R.stamina-drain*dt*(o.drain||1),0,100);if(R.stamina<14)R.tired+=dt}
+    if(st==='run'){const DR=o.drainAt||[3.2,1.8,.6,-2.5],near=d<6&&!(pu&&pu.car);R.burst=near;const drain=(d<8?(pu&&pu.car?DR[1]:DR[0]):d<16?DR[1]:d<30?DR[2]:DR[3])+(near?.8:0);
+      R.stamina=clamp(R.stamina-drain*dt*(o.drain||1),0,100);if(R.stamina<14)R.tired+=dt}
     R.repathT+=dt;const end=!R.path||R.pi>=R.path.length;
     /* cut off: he's heading straight at you -> turn round */
-    let cut=false;if(st==='run'&&pu&&R.path&&R.pi<R.path.length&&d<11){const w=R.path[R.pi],hx=w.x-R.pos.x,hz=w.z-R.pos.z,hl=Math.hypot(hx,hz)||1,px=pu.x-R.pos.x,pz=pu.z-R.pos.z;if((hx*px+hz*pz)/(hl*d)>.6&&d<hl+3){cut=true;R.cutoffs++}}
-    if(st==='run'&&(end||cut||R.repathT>(d<14?2.2:5)))repath(pu);
+    let cut=false;R.cutT=(R.cutT||0)-dt;if(st==='run'&&pu&&R.path&&R.pi<R.path.length&&d<11&&R.cutT<=0){const w=R.path[R.pi],hx=w.x-R.pos.x,hz=w.z-R.pos.z,hl=Math.hypot(hx,hz)||1,px=pu.x-R.pos.x,pz=pu.z-R.pos.z;if((hx*px+hz*pz)/(hl*d)>.6&&d<hl+3){cut=true;R.cutoffs++;R.cutT=1.5}}
+    if(st==='run'&&(end||cut||R.repathT>(d<14?(o.repathClose||3):5)))repath(pu);
     if(st==='homing'&&end){R.state='home';return R.state}
     if(!R.path||R.pi>=R.path.length){R.spd=Math.max(0,R.spd-dt*4);return R.state}
     /* steer toward the next point (look ahead past points within reach) */
@@ -292,7 +294,7 @@ function make(a,o){o=o||{};const N=o.nav,rnd=rng(o.seed||7);const sp=Object.assi
     if(R.pi===R.path.length-1&&Math.hypot(w.x-R.pos.x,w.z-R.pos.z)<.8){R.pi++;return R.state}
     const want=Math.atan2(-(w.x-R.pos.x),-(w.z-R.pos.z)),err=wrap(want-R.yaw),tr=sp.turn*dt;const turn=clamp(err,-tr,tr);R.yaw=wrap(R.yaw+turn);R.steer=clamp(err,-.6,.6);
     const k=tileK(),ch=k>=0?(a.L.g[N.z0+Math.floor(k/N.w)]||[])[N.x0+k%N.w]:',';let top=ch===','?sp.road:ch==='g'||ch==='o'?sp.grass:sp.walk;
-    top*=(.5+.5*R.stamina/100);if(R.state==='homing')top*=.85;top*=clamp(1-Math.abs(err)*.55,.4,1);if(R.tired>0&&R.stamina<14)top=Math.min(top,3.2+Math.sin(R.t*3)*.5);
+    const tk=o.tireK!=null?o.tireK:.36;top*=(1-tk)+tk*R.stamina/100;if(R.burst&&R.stamina>14)top*=1.1;if(R.state==='homing')top*=.85;if(R.cap)top=Math.min(top,R.cap);top*=clamp(1-Math.abs(err)*(sp.turnK||.55),.5,1);if(R.tired>0&&R.stamina<14)top=Math.min(top,3.2+Math.sin(R.t*3)*.5);
     R.spd+=clamp(top-R.spd,-sp.accel*1.6*dt,sp.accel*dt);
     const fx=-Math.sin(R.yaw),fz=-Math.cos(R.yaw),p0={x:R.pos.x,z:R.pos.z},p={x:R.pos.x+fx*R.spd*dt,z:R.pos.z+fz*R.spd*dt};a.collide(p,R.mode==='bike'?.38:.33);
     /* a bike can't climb a curb sideways: if the move would put him on a blocked tile, slide along */
