@@ -28,6 +28,8 @@
  *   }
  * HT.Vehicles.update(v, {speed, steer, braking, headlights, dt})
  *     speed m/s (+ forward), steer -1..1 (+ = left), braking bool, headlights bool (omit to keep setLights state), dt seconds.
+ *     auto:false keeps the night auto-headlights off for this call (the player's car decides for itself).
+ * HT.Vehicles.night(auto, gain): at night driven cars light up by themselves; gain scales lamp brightness against the night exposure.
  * HT.Vehicles.stats(v) -> {triangles, drawCalls, tris, calls};  HT.Vehicles.warm(types, lod) pre-builds cached geometry.
  * Draw calls per car: paint, multi (body trim/lamps/interior), glass, wheels, contact shadow (+1 for upgrades, +1 two-tone/finish).
  */
@@ -864,7 +866,8 @@ function api(root,type,opts){const ud=root.userData;
   ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
     disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
     const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
-    for(const k in ud)delete ud[k];Object.assign(ud,nu);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);applyLights(root,false)};
+    const own={};for(const k in ud)if(!(k in nu)&&typeof ud[k]!=='function')own[k]=ud[k];/* keep flags the game set on userData (mod, fxAttach) */
+    for(const k in ud)delete ud[k];Object.assign(ud,nu,own);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);applyLights(root,false)};
   ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.material.userData.U.uPaint.value.copy(c);
     if(ud.body[0]){ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)}};
   ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};
@@ -872,9 +875,12 @@ function api(root,type,opts){const ud=root.userData;
   ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;for(const m of new Set(ud.body)){m.roughness=lerp(m.userData.r0??(m.userData.r0=m.roughness),.8,f);m.clearcoat=lerp(1,.15,f)}};
   ud.dispose=()=>{disposeOwn(ud)};}
 function disposeOwn(ud){for(const g of ud._own||[])g.dispose();for(const m of ud._mats||[])if(m&&m.dispose)m.dispose()}
-function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head,c=d.material.userData.U.uCh.value;
-  c[CH.head]=hl?3.2:0;c[CH.tail]=hl?1.4:.08;c[CH.brake]=braking?5:(hl?1.2:.1);c[CH.drl]=1.6;c[CH.amber]=.25;c[CH.rev]=s.rev?2.5:0;
-  c[CH.bar]=d.lights.bar.length?(s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3)):0}
+/* night (index.html setNight): headlights come on by themselves on cars being driven, and lamp channels are scaled
+   against the darker night exposure so a lit lamp reads as bright as in daylight (1 / false = the daytime look) */
+let NIGHT_AUTO=false,LAMP_GAIN=1;
+function applyLights(v,braking){const d=v.userData,s=d._s,hl=!!s.head,c=d.material.userData.U.uCh.value,g=LAMP_GAIN;
+  c[CH.head]=hl?3.2*g:0;c[CH.tail]=(hl?1.4:.08)*g;c[CH.brake]=(braking?5:(hl?1.2:.1))*g;c[CH.drl]=1.6*g;c[CH.amber]=.25*g;c[CH.rev]=s.rev?2.5*g:0;
+  c[CH.bar]=d.lights.bar.length?(s.flash>0?(Math.sin(s.t*24)>0?6:.2):(hl?4:.3))*g:0}
 
 function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math.min(.1,Math.max(0,o.dt??1/60)),sp=o.speed||0,st=clamp(o.steer||0,-1,1),s=d._s;
   const da=-sp*dt/d.wheelRadius;for(const w of d.wheels)w.rotation.z=(w.rotation.z+da)%(Math.PI*2);
@@ -882,11 +888,13 @@ function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math
   if(dt>0){const acc=clamp((sp-s.last)/dt,-15,15);s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
     const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
     s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);if(!d.lod){d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch}}
-  if(o.headlights!=null)s.head=!!o.headlights;s.rev=sp<-.3;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking);
+  if(o.headlights!=null)s.head=!!o.headlights||(NIGHT_AUTO&&o.auto!==false);s.rev=sp<-.3;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking);
   const U=d.material.userData.U;U.uSpin.value=d.wheels[0].rotation.z;U.uSteer.value=d.steer[0].rotation.y}
 
 const stats=v=>{const d=v.userData;if(d&&d.stats)return d.stats;let t=0,c=0;v.traverse(o=>{if(o.isMesh){c++;t+=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3}});return{triangles:t,drawCalls:c,tris:t,calls:c}};
-HT.Vehicles={_kit:t=>kit(t),init(o={}){ASSETS=o.assets||null;return this},make,update,types:Object.keys(TYPES),TYPES:Object.keys(TYPES),stats,
+HT.Vehicles={_kit:t=>kit(t),init(o={}){ASSETS=o.assets||null;return this},make,update,
+  /* night(auto, gain): auto = driven cars switch their headlights on (update() with auto:false opts out); gain scales the lamp channels */
+  night(auto,gain){NIGHT_AUTO=!!auto;LAMP_GAIN=gain>0?gain:1},types:Object.keys(TYPES),TYPES:Object.keys(TYPES),stats,
   /* pre-build the cached geometry for some or all types (spreads the one-off cost); lod 1 = traffic/parked */
   warm(types=Object.keys(TYPES),lod=0){shared();atlas();for(const t of types)lod?kitLod(t):kit(t)}};
 })();

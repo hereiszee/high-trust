@@ -283,7 +283,7 @@ function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:
     const w=h.x1-h.x0,d=h.z1-h.z0;let grp=null;
     try{if(BUm)grp=h.store?BUm.shop({kind:'hardware',w,d,seed:h.seed,facing:h.facing}):BUm.house({w,d,seed:h.seed,style:['ranch','colonial','craftsman','cape'][h.seed%4],facing:h.facing,home:!!h.home})}catch(e){console.warn('house failed',e);grp=null}
     if(!grp)grp=W_.fallbackHouse(B,{w,d,seed:h.seed,facing:h.facing,cx,cz});
-    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
+    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
     if(grp)grp.userData._owCol=h.src.col;try{W_.yard(B,h)}catch(e){}yield}
   for(const s of ws.fenceSegs||[]){const mx=(s[0]+s[2])/2,mz=(s[1]+s[3])/2;if(mx>=box.x0&&mx<box.x1&&mz>=box.z0&&mz<box.z1)W_.fence(B,s[0],s[1],s[2],s[3])}
   /* rowhouses, warehouses, commercial buildings */
@@ -970,7 +970,18 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     /* dynamic collider so the player's car and the dad bump into it */
     if(!t.col){t.col={x0:0,z0:0,x1:0,z1:0,ph:1.5,k:'traffic'};lvl.colliders.push(t.col)}const a=Math.abs(fx),b=Math.abs(fz),hx=a*2.2+b*.95,hz=b*2.2+a*.95;Object.assign(t.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz});
     if(Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off){T.g.remove(t.v);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);T.cars.splice(i,1)}}};
-OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type})):[];
+OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type,yaw:t.c.yaw})):[];
+/* night lighting (index.html setNight): every street lamp head and house/shop lantern in world metres, with whether it is lit.
+   Riverside lamps follow the trust dressing (broken until their block reaches brokenUntil); lanterns are known once their chunk is built. */
+function owPorch(ws,grp,cx,cz){const ls=grp.userData.lights;if(!ls||!ls.length)return;const m=ws.porch||(ws.porch=new Map());
+  for(const l of ls){const x=cx+l.x,z=cz+l.z,k=Math.round(x*4)+','+Math.round(z*4);if(!m.has(k)){m.set(k,{kind:l.kind||'porch',x,z,y:l.y,color:l.color,lit:true});ws.lightsV=(ws.lightsV||0)+1}}}
+OW.lights=()=>{const ws=WS;if(!ws)return[];
+  if(!ws.nl){ws.nl=[];for(const l of ws.def.lamps){const p=lampSpot(l),d=lampDir(ws,l),a=Math.atan2(d[0],d[1]);
+    ws.nl.push({kind:'street',x:p.x+Math.sin(a)*1.98,z:p.z+Math.cos(a)*1.98,y:7.55,px:p.x,pz:p.z,river:l.hood==='river',until:l.brokenUntil||0,lit:!(l.hood==='river'&&l.brokenUntil>0)})}}
+  for(const l of ws.nl)if(l.river&&l.until>0)l.lit=OW.blockTrust(l.px,l.pz)>=l.until;
+  return ws.porch?ws.nl.concat([...ws.porch.values()]):ws.nl};
+/* bumps when a newly built chunk adds lanterns, so a caller can rebuild what it derived from OW.lights() */
+OW.lightsVersion=()=>WS?(WS.lightsV||0):0;
 Object.defineProperty(OW,'state',{get:()=>WS});
 HT.OpenWorld=OW;
 })();
