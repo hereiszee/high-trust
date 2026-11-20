@@ -866,7 +866,7 @@ function api(root,type,opts){const ud=root.userData;
   ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,lamps=ud.lamps,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
     disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
     const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
-    const own={};for(const k in ud)if(!(k in nu)&&typeof ud[k]!=='function')own[k]=ud[k];/* keep flags the game set on userData (mod, fxAttach) */
+    const own={};for(const k in ud){const v=ud[k];if(!(k in nu)&&(typeof v==='boolean'||typeof v==='number'||typeof v==='string'))own[k]=v}/* keep only the plain flags the game set on userData (mod, fxAttach): never old geometry/material references */
     for(const k in ud)delete ud[k];Object.assign(ud,nu,own);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);if(lamps)ud.setLamps(lamps);applyLights(root,false)};
   ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.material.userData.U.uPaint.value.copy(c);
     if(ud.body[0]){ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)}};
