@@ -55,7 +55,7 @@ function lay(){if(LAY)return LAY;const a=A(),W=a&&a.WORLD,s=W&&W.sites&&W.sites.
     truck:{x:110.9,z:gz0-2.4,yaw:0},                                  /* moving truck at the kerb, nose north, rear doors by the driveway */
     plate:{x:110.9,y:.56,z:gz0-2.4+2.72},
     lk:{door:{x:gx0-.9,z:dz-.1},n:{x:113.3,z:47.3},s:{x:113.2,z:61.2},side:{x:113.4,z:52.6}},
-    cab:{x:108.95,z:gz0-3.9},exD:{x:111.45,z:56.15},exB:{x:111.55,z:57.7},buyerFrom:{x:112.4,z:73},buyerVia:{x:112.4,z:58.6},
+    cab:{x:108.95,z:gz0-3.9},exD:{x:111.45,z:56.15},exB:{x:111.5,z:57.0},buyerFrom:{x:112.4,z:73},buyerVia:{x:112.4,z:58.6},
     inA:{x:gx0+1.9,z:dz-.4},inB:{x:gx0+2.0,z:dz-1.4},rear:{x:110.95,z:gz0-2.4+3.45},apron:{x:gx0-.4,z:dz+.3},
     crates:{x:gx0+2.7,z:dz+.9},bike:{x:gx0+1.3,z:gz1-.95},sold:{x:gx0+1.6,z:gz0+.9},
     bushes:{x:102.95,z:56.35},bushHide:{x:101.25,z:56.4},
@@ -63,7 +63,7 @@ function lay(){if(LAY)return LAY;const a=A(),W=a&&a.WORLD,s=W&&W.sites&&W.sites.
     car:{x:107.45,z:60.6,yaw:0},seat:{x:107.07,y:1.17,z:60.85},carDoor:{x:105.6,z:60.7},
     fence:{x0:116.4,x1:126.2,z:56.85},fenceSpot:{x:119.4,z:57.45},
     bins:{x:115.05,z:49.6},binHide:{x:115.72,z:49.35},
-    barb:{x:121.6,z:66.7},meet:{x:124.6,z:64.95},podium:{x:126.9,z:65.35},ring:{x:118.5,z:71.2},
+    barb:{x:121.6,z:66.7},meet:{x:118.0,z:64.95},podium:{x:120.45,z:65.55},ring:{x:118.5,z:71.2},
     lot:{x0:113.9,z0:47.9,x1:127.4,z1:56.6},barbYard:{x0:115.6,z0:56.85,x1:127,z1:58.2},barbLawn:{x0:115,z0:64,x1:127,z1:68}};
   return LAY}
 
@@ -164,15 +164,19 @@ function phoneProp(){const a=A(),THREE=a.THREE,g=new THREE.Group();mesh(new THRE
 function iced(){const a=A(),THREE=a.THREE,g=new THREE.Group();mesh(new THREE.CylinderGeometry(.04,.034,.13,12),M_('#f4fbfb',{transparent:true,opacity:.35,roughness:.05}),0,0,0,g);mesh(new THREE.CylinderGeometry(.036,.031,.09,12),M_('#8a4a1a',{emissive:a.lin('#2a1000'),roughness:.2}),0,-.015,0,g);return g}
 
 /* ---------------- actors ---------------- */
-const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',nb1:'nb_office',nb2:'nb_mei',lookout:'thug_cap',driver:'thug_jacket',loaderA:'thug_track',loaderB:'thug_beanie',buyer:'nb_marcus'};
+/* four new models on demand (Barb, Phil, Gil, the kid); the crew and the buyer reuse the street-crew set that is already loaded */
+const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',lookout:'nb_kid',driver:'thug_hoodie',loaderA:'thug_track',loaderB:'thug_beanie',buyer:'thug_red'};
 const LOOKS={barb:{shirt:'#5a6f8f',pants:'#3a3a48'},phil:{shirt:'#7a8a5a',pants:'#4a4a3a'},gil:{shirt:'#8a8a9a',pants:'#3a3a3a'},nb1:{shirt:'#c76a5a',pants:'#2a2a3a'},nb2:{shirt:'#8a5ab8',pants:'#3a3a48'},
   lookout:{shirt:'#3a4a6a',pants:'#2a2a2a',hood:1},driver:{shirt:'#4a3a2a',pants:'#2a2a2a'},loaderA:{shirt:'#2f5d4a',pants:'#3a3a3a'},loaderB:{shirt:'#5a3a3a',pants:'#2a2a2a'},buyer:{shirt:'#3a5a8a',pants:'#2a2a3a'}};
 function PP(){return window.HT&&HT.People}
 function preload(){const p=PP();if(!p||!p.ok||!p.preload)return Promise.resolve(false);const keys=Object.values(CAST).filter(k=>!p.has||!p.has(k));return keys.length?p.preload(keys).catch(()=>false):Promise.resolve(true)}
-function makeActor(id){const a=A(),p=PP();let d=null;try{if(p&&p.ok&&(!p.has||p.has(CAST[id])))d=p.make(CAST[id],{scale:id==='lookout'?.93:undefined})}catch(e){d=null}
+function makeActor(id){const a=A(),p=PP();let d=null;try{if(p&&p.ok&&(!p.has||p.has(CAST[id])))d=p.make(CAST[id],{scale:id==='lookout'?1.16:undefined})}catch(e){d=null}
   if(!d)d=a.makeDude(Object.assign({role:CAST[id]},LOOKS[id]));
-  if(id==='lookout'&&d.root&&!d.rb)d.root.scale.setScalar(.93);a.wmAdd(d.root);
-  const o={id,d,x:0,z:0,yaw:0,face:null,path:null,speed:1.3,wait:0,moving:false,look:null,sus:0,tag:null};return o}
+  if(id==='lookout'&&d.root&&!d.rb)d.root.scale.setScalar(.9);a.wmAdd(d.root);
+  const o={id,d,x:0,z:0,yaw:0,face:null,path:null,speed:1.3,wait:0,moving:false,look:null,sus:0,tag:null,box:!d.rb};return o}
+/* a stand-in box character becomes the real one as soon as its model has streamed in (props in hand move across) */
+function upgrade(o){const a=A(),p=PP();if(!o.box||!p||!p.ok||(p.has&&!p.has(CAST[o.id])))return;let d=null;try{d=p.make(CAST[o.id],{scale:o.id==='lookout'?1.16:undefined})}catch(e){d=null}if(!d)return;
+  const old=o.d;const held=old.gunHold?[...old.gunHold.children]:[];d.root.visible=old.root.visible;if(old.root.parent)old.root.parent.remove(old.root);a.wmAdd(d.root);if(d.gunHold)for(const h of held)d.gunHold.add(h);o.d=d;o.box=false}
 function put(o,x,z,yaw){o.x=x;o.z=z;if(yaw!=null)o.yaw=yaw;o.d.root.position.set(x,0,z);o.d.root.rotation.y=o.yaw+Math.PI}
 const yawTo=(o,p)=>Math.atan2(-(p.x-o.x),-(p.z-o.z));
 function walkTo(o,pts,speed,then){o.path=(Array.isArray(pts)?pts:[pts]).map(p=>({x:p.x,z:p.z}));o.speed=speed||T.walk;o.then=then||null}
@@ -212,7 +216,7 @@ const LN={
   good3:["(whispering) Nice.","(whispering) Barb's going to frame that.","(whispering) That's a bylaw."],
   twist:[['barb',"He's sixteen. From Riverside. ...Does he mow? Gil's lawn has been a crime scene since April."],['Gil',"Hey."],
     ['barb',"Summer job. Eight dollars a lawn and all the lemonade he can drink. I'll draft it tonight."]],
-  meeting0:[['barb',"This emergency meeting of the Maple Heights Homeowners Association is now in session. Phil, put down the iced tea."],['Phil',"It's a hot day, Barb."]],
+  meeting0:[['barb',"This emergency meeting of the Maple Heights Homeowners Association is now in session. Phil, put down the iced tea."],['Phil',"It's a hot day, Barb."],['barb',"Quorum is three. Me, Phil and Gil. Linda's chair is here in spirit. Linda is at the mailbox, yelling at the mailman."]],
   motion:[['barb',"Motion to ask them to leave. Motion carries. Unanimously. Even Gil."]],
   next:[['barb',"They left at six a.m. They even raked. I'm listing it Monday. Pinnacle Homes can eat my dust."]]};
 
@@ -234,10 +238,10 @@ J.register('hoa',{
     a.wmSetWindow(a.wmWindow(113,58,34));
     try{a.equip(a.P.dude,null)}catch(e){}
     buildSet(M);
-    M.loadT=0;preload().then(()=>{M.loaded=true});
+    M.loadT0=performance.now();preload().then(()=>{M.loaded=true});
     if(!PH())M.waitPhoto=true},
   upd(dt,M,F){const a=A(),L_=lay(),P=a.P;
-    if(M.ph==='load'){M.loadT+=dt;F.objs.push(['Barb is waiting on her front walk',false]);if((M.loaded&&PH())||M.loadT>10){spawnCast(M);M.ph=M.retry||M.resumeStake?'stake0':'intro';if(M.ph==='intro')intro(M)}return}
+    if(M.ph==='load'){F.objs.push(['Barb is waiting on her front walk',false]);M.loadG=(M.loadG||0)+dt;if((M.loaded&&PH())||performance.now()-M.loadT0>15000||M.loadG>8){spawnCast(M);M.ph=M.retry||M.resumeStake?'stake0':'intro';if(M.ph==='intro')intro(M)}return}
     phoneHold(M);sayTick(M,dt);actors(M,dt);fxTick(M,dt);
     if(M.ph==='intro'){F.target={x:L_.barb.x,z:L_.barb.z,label:'Barb'};F.objs.push(['Talk to Barb',false]);
       if(Math.hypot(P.pos.x-L_.barb.x,P.pos.z-L_.barb.z)<3.2)F.taps.push({x:L_.barb.x,z:L_.barb.z,r:3.2,txt:'Take the checklist',fn:()=>takeChecklist(M)});return}
@@ -256,8 +260,8 @@ J.register('hoa',{
     album(M);return out},
   medal(M){const b=M.board,n2=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=2).length,n3=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=3).length;return n3>=6?3:n2>=6?2:1},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV();if(!s)return;s.flags=s.flags||{};s.flags.hoaWalnut=true;if(M.flags.summer)s.flags.lookoutMows=true},
-  camera(dt){const M=A().M;if(!M||!M.seat)return;return seatCam(dt)},
-  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;hudExtras(M,st)},
+  camera(dt){const M=A().M;if(!M)return;if(M.mt&&M.mt.st==='talk')return meetCam(dt,M);if(!M.seat)return;return seatCam(dt)},
+  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;/* js/hud.js findRoute can loop forever on some routes (Float32 distances re-push in its Dijkstra): no minimap route for this job until that is fixed; the marker still shows */st.routeTo=null;if(M.mt&&M.mt.st==='talk')st.crosshair=Object.assign({},st.crosshair,{hidden:true});hudExtras(M,st)},
   test:{give(a){const H=window.__ht;if(!H)return;const i=H.jobs.index('gary');if(i>=0)H.prog.done[i]=true;const s=a.SV();if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,'gary').done=true;if(H.mode==='hub'&&!H.M){H.enterHub();H.step(2)}},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ph:'stake',board:{},susMax:0,flashes:0,shots:0,item:'phone'})}
@@ -297,8 +301,8 @@ function buildSet(M){const a=A(),L_=lay(),THREE=a.THREE;M.occ=[];
 function spawnCast(M){const a=A(),L_=lay();M.A={};
   for(const id of Object.keys(CAST))M.A[id]=makeActor(id);
   const C=M.A;put(C.barb,L_.barb.x,L_.barb.z,Math.PI*.15);C.barb.face=Math.PI*.15;
-  put(C.phil,L_.phil.x,L_.phil.z,0);C.phil.mode='sit';C.phil.face=0;
-  for(const k of['gil','nb1','nb2']){C[k].d.root.visible=false}
+  put(C.phil,L_.phil.x+.55,L_.phil.z-.35,0);C.phil.face=-.5;
+  C.gil.d.root.visible=false;
   put(C.lookout,L_.lk.door.x,L_.lk.door.z,Math.PI/2);put(C.driver,L_.cab.x,L_.cab.z,Math.PI);C.driver.face=Math.PI*.9;
   put(C.loaderA,L_.inA.x,L_.inA.z,Math.PI/2);put(C.loaderB,L_.inB.x,L_.inB.z,Math.PI/2);put(C.buyer,L_.buyerFrom.x,L_.buyerFrom.z,0);C.buyer.d.root.visible=false;
   /* held props: Barb's clipboard, the driver's phone, Phil's iced tea */
@@ -365,7 +369,7 @@ function schedule(M,dt){const a=A(),L_=lay(),C=M.A,t=M.st;
   const dr=C.driver,by=C.buyer;
   M.ex.forEach((e,i)=>{const t0=T.ex[i];if(e.st==='wait'&&t>=t0-T.exWalk){e.st='in';by.d.root.visible=true;put(by,L_.buyerFrom.x,L_.buyerFrom.z,0);walkTo(by,[L_.buyerVia,L_.exB],1.3,()=>{by.face=0;e.by=true});
       walkTo(dr,[{x:L_.cab.x,z:L_.cab.z+4.6},L_.exD],1.15,()=>{dr.face=Math.PI;e.dr=true})}
-    if(e.st==='in'&&e.by&&e.dr){e.st='hand';e.t=0;if(i===0||Math.random()<.5)sayActor(M,'driver',pick(["Same as last time.","It's all there. Count it in the car.","Pleasure doing business. Don't tell the HOA."]))}
+    if(e.st==='in'&&e.by&&e.dr){e.st='hand';e.t=0;const pp=PP();if(pp&&pp.interact)try{pp.interact(dr.d);pp.interact(by.d)}catch(_){}if(i===0||Math.random()<.5)sayActor(M,'driver',pick(["Same as last time.","It's all there. Count it in the car.","Pleasure doing business. Don't tell the HOA."]))}
     if(e.st==='hand'){e.t+=dt;const hx=(L_.exD.x+L_.exB.x)/2,hz=(L_.exD.z+L_.exB.z)/2;C.envelope.visible=true;C.envelope.position.set(hx+Math.sin(e.t*3)*.03,1.02,hz);C.envelope.rotation.y=Math.sin(e.t)*.3;
       if(e.t>=T.exHold){e.st='out';C.envelope.visible=false;walkTo(by,[L_.buyerVia,L_.buyerFrom],1.35,()=>{by.d.root.visible=false;e.st='done'});walkTo(dr,[{x:L_.cab.x,z:L_.cab.z+4.6},L_.cab],1.15,()=>{dr.face=Math.PI*.9})}}});
   /* chatter: the driver on the phone, the loaders about Mrs. Patel's leaf blower (when you're close enough to hear) */
@@ -413,11 +417,17 @@ function vantages(M,F){const a=A(),L_=lay(),P=a.P;
   for(const[k,p,r]of[['bush',L_.bushHide,1.6],['fence',L_.fenceSpot,1.8],['bins',L_.binHide,1.4]])if(!M.flags[k+'0']&&near(P,p,r)){M.flags[k+'0']=true;say(M,'you',LN[k+'0'])}}
 function enterBuick(M){const a=A(),L_=lay(),P=a.P;M.seat=true;M.seatYaw=P.yaw;P.yaw=0;P.pitch=-.05;P.crouch=false;if(P.dude)P.dude.root.visible=false;
   if(!M.flags.car0){M.flags.car0=true;say(M,'you',LN.car0)}a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
-function leaveCar(M){const a=A(),L_=lay(),P=a.P;M.seat=false;P.pos.set(L_.carDoor.x,0,L_.carDoor.z);a.collide(P.pos,.35);if(P.dude)P.dude.root.visible=true;a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
+function leaveCar(M){const a=A(),L_=lay(),P=a.P;M.seat=false;if(M.buick)M.buick.visible=true;carFrame(M,false);P.pos.set(L_.carDoor.x,0,L_.carDoor.z);a.collide(P.pos,.35);if(P.dude)P.dude.root.visible=true;a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
 function seatCam(dt){const a=A(),M=a.M,L_=lay(),P=a.P,c=a.camera;for(const k of['w','a','s','d',' ','shift'])a.keys[k]=false;
-  P.pos.set(L_.carDoor.x,0,L_.carDoor.z);if(P.dude)P.dude.root.visible=false;
+  P.pos.set(L_.carDoor.x,0,L_.carDoor.z);if(P.dude)P.dude.root.visible=false;if(M.buick)M.buick.visible=false;carFrame(M,!(PH()&&HT.Photo.isRaised()));
   if(PH()&&HT.Photo.isRaised())return;/* the phone places the camera */
   c.position.set(L_.seat.x,L_.seat.y,L_.seat.z);c.rotation.set(P.pitch,P.yaw,0);c.fov+=(62-c.fov)*Math.min(1,dt*6);c.updateProjectionMatrix();return true}
+/* the meeting: a wide shot of Barb's lawn from the street, drifting slowly in */
+function meetCam(dt,M){const a=A(),L_=lay(),c=a.camera,k=Math.min(1,M.mt.t/16),m=L_.meet;
+  c.position.set(m.x+1.4-k*.5,3.0-k*.35,m.z+6.6-k*1.2);c.lookAt(m.x+.3,.95,m.z+.2);c.fov+=(44-c.fov)*Math.min(1,dt*4);c.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true}
+/* inside the Buick: the windshield frame, the dash, the fuzzy dice, a butterscotch air freshener (DOM, so it never reaches a photo) */
+function carFrame(M,on){const a=A();if(!on){if(M.cf){a.overlay('hoaCar',null);M.cf=null}return}if(M.cf)return;const e=document.createElement('div');e.className='hoa-car';
+  e.innerHTML='<i class="pl l"></i><i class="pl r"></i><i class="rf"></i><i class="ds"></i><i class="wh"></i><i class="mr"></i><i class="dc"><b></b><b></b></i><i class="af">BUTTERSCOTCH</i>';css();a.overlay('hoaCar',e);M.cf=e}
 /* a door, a footstep, a car door: anyone close turns to look */
 function noise(M,p,r){const C=M.A;if(!C)return;for(const k of['lookout','driver','loaderA','loaderB']){const o=C[k];const d=Math.hypot(o.x-p.x,o.z-p.z);if(d<r){o.lookT=1.6;o.look=yawTo(o,p);if(k==='lookout')bump(M,d<r*.5?.12:.06,k)}}}
 
@@ -455,7 +465,7 @@ function detect(M,dt){const a=A(),P=a.P,C=M.A,e=eyeP(M),Ph=PH();
     const k2=film?Math.max(ctx.film,ctx.k):(M.habitT>0?0:ctx.k);if(k2<=0){o.seeing=0;continue}
     const f=T.fill*band*o.cover*fall*stance*k2*(d<6?1.5:1)*SUS_RATE[kind];o.seeing=f;if(film)filming=true;
     if(f>best){best=f;who=k;line=film?(ctx.why==='porch'?'philFilm':'film'):ctx.why}}
-  if(best>0){const cap=filming||!ctx.cap?1:ctx.cap;if(M.sus<cap)M.sus=Math.min(cap,M.sus+best*dt);M.unseen=0;M.seen=who;M.susMax=Math.max(M.susMax,M.sus);M.lastLine.why=line}
+  if(best>0){const cap=filming||!ctx.cap?1:ctx.cap;if(M.sus<cap)M.sus=Math.min(cap,M.sus+Math.min(best,.55)*dt);/* they need a beat to process a dad on their lawn */M.unseen=0;M.seen=who;M.susMax=Math.max(M.susMax,M.sus);M.lastLine.why=line}
   else{M.unseen+=dt;if(M.unseen>T.grace){const floor=M.floorT>0?.3:0;M.sus=Math.max(floor,M.sus-T.decay*dt)}}
   if(M.floorT>0)M.floorT-=dt;
   /* habituation: an innocent-looking dad who has been stared at for a while (in a car, on a porch, on a sidewalk) gets let off */
@@ -502,7 +512,7 @@ function startMeeting(M,resumed){const a=A(),L_=lay(),C=M.A;if(!resumed)a.CP.mar
   /* the board sits down on Barb's lawn */
   const seats=M.chairs.map(c=>({x:c.position.x,z:c.position.z+.04,yaw:c.rotation.y}));
   const sit=(o,i)=>{o.d.root.visible=true;put(o,seats[i].x,seats[i].z,seats[i].yaw);o.mode='sit';o.face=o.yaw;o.path=null};
-  sit(C.phil,0);sit(C.gil,1);sit(C.nb1,2);sit(C.nb2,3);put(C.barb,L_.meet.x,L_.meet.z-.55,Math.PI);C.barb.face=Math.PI;C.barb.path=null;
+  sit(C.phil,1);sit(C.gil,2);put(C.barb,L_.meet.x,L_.meet.z-.55,Math.PI);C.barb.face=Math.PI;C.barb.path=null;
   M.mt={st:resumed?'walk':'walk',t:0};
   say(M,'barb',"Emergency meeting. My lawn. Now. Bring the phone.")}
 function meeting(dt,M,F){const a=A(),L_=lay(),P=a.P,mt=M.mt;mt.t+=dt;
@@ -536,6 +546,18 @@ function css(){if(document.getElementById('hoa-css'))return;const s=document.cre
 .hoa-in{background:#c9a36a;background-image:radial-gradient(rgba(0,0,0,.08) 1px,transparent 1.5px);background-size:7px 7px;border:8px solid #6b4a2a;border-radius:6px;padding:12px 14px 6px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
 .hoa-k{font:700 12px/1 var(--ht-ui,system-ui);letter-spacing:.16em;text-transform:uppercase;color:#3a2a14}
 .hoa-in h3{margin:5px 0 0;font:400 22px/1.1 var(--ht-display,Georgia);color:#1a1208;letter-spacing:.02em}
+.hoa-car{position:absolute;inset:0;pointer-events:none}
+.hoa-car i{position:absolute;display:block}
+.hoa-car .pl{top:-5%;bottom:18%;width:16vw;background:linear-gradient(90deg,#1b1a18,#2b2925);box-shadow:0 0 30px rgba(0,0,0,.6)}
+.hoa-car .pl.l{left:-10vw;transform:skewX(14deg)}.hoa-car .pl.r{right:-10vw;transform:skewX(-14deg)}
+.hoa-car .rf{left:0;right:0;top:0;height:9vh;background:linear-gradient(#24221f,#3a362f);border-bottom-left-radius:50% 30%;border-bottom-right-radius:50% 30%}
+.hoa-car .ds{left:-2%;right:-2%;bottom:0;height:22vh;background:linear-gradient(#6b5d48,#4a4032 30%,#3a3328);border-top-left-radius:45% 40%;border-top-right-radius:45% 40%;box-shadow:0 -6px 14px rgba(0,0,0,.35)}
+.hoa-car .wh{left:9vw;bottom:-14vh;width:34vh;height:34vh;border-radius:50%;border:4.2vh solid #1d1c1a;box-shadow:inset 0 0 0 1vh #2c2a26}
+.hoa-car .mr{left:calc(50% - 9vh);top:7vh;width:18vh;height:5vh;border-radius:1.2vh;background:linear-gradient(#8fa3b3,#55636e);border:.6vh solid #1d1c1a}
+.hoa-car .dc{left:calc(50% - 2vh);top:12vh;width:0;height:7vh;border-left:2px solid #222}
+.hoa-car .dc b{position:absolute;top:7vh;width:3.4vh;height:3.4vh;background:#f2f2f2;border-radius:.6vh;box-shadow:inset 0 0 0 .5vh #ff5aa8}
+.hoa-car .dc b:first-child{left:-3.4vh;transform:rotate(-12deg)}.hoa-car .dc b:last-child{left:-.2vh;top:8vh;transform:rotate(18deg)}
+.hoa-car .af{right:22vw;top:11vh;padding:2.4vh .6vh;background:#e9b23a;color:#5a3a0a;font:800 1.1vh/1 var(--ht-ui,system-ui);letter-spacing:.12em;writing-mode:vertical-rl;border-radius:40% 40% 20% 20%}
 .ht-result .hoa-res{margin:10px 0 4px}.ht-result .hoa-res .ph-board{margin:8px 0 0;gap:8px}.ht-result .hoa-res .hk{font:700 12px/1 var(--ht-ui,system-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--fg2,#aaa)}
 .ht-root.compact~.hoa-card,.hoa-card{max-height:80vh}
 @media (max-width:640px){.hoa-card{left:16px;right:16px;width:auto;top:auto;bottom:calc(var(--sa-b,0px) + 210px);transform:translate(0,30px)}.hoa-card.on{transform:none}}`;document.head.appendChild(s)}
@@ -553,16 +575,18 @@ function sayTick(M,dt){const a=A();M.sayT-=dt;if(M.sayT>0)return;const n=M.say.s
 function phoneHold(M){const a=A(),P=a.P;if(!P.dude)return;if(!M.phoneProp){M.phoneProp=phoneProp();M.phoneProp.rotation.set(-1.25,0,0);M.phoneProp.position.set(0,-.02,.06)}
   const want=M.state==='go'&&M.item==='phone'&&(M.ph==='stake'||M.ph==='intro');if(want&&P.dude.gunHold&&M.phoneProp.parent!==P.dude.gunHold){try{a.equip(P.dude,null)}catch(e){}P.dude.gunHold.add(M.phoneProp)}
   if(!want&&M.phoneProp.parent)M.phoneProp.parent.remove(M.phoneProp)}
-function actors(M,dt){const C=M.A;if(!C)return;for(const k in C){const o=C[k];if(o&&o.d)actorUpd(o,dt)}
+function actors(M,dt){const C=M.A;if(!C)return;M.upT=(M.upT||0)-dt;const up=M.upT<=0;if(up)M.upT=1;for(const k in C){const o=C[k];if(o&&o.d){if(up&&o.box)upgrade(o);actorUpd(o,dt)}}
   /* the driver keeps his phone at his ear while he waits */}
 /* HUD: tags over anyone who is looking, the meter colours, vantage labels */
-function hudExtras(M,st){const a=A(),C=M.A;if(!C||M.ph!=='stake')return;st.tags=st.tags||[];
+function hudExtras(M,st){const a=A(),C=M.A;if(st.weapon)st.weapon=Object.assign({},st.weapon,{holstered:true});if(!C||M.ph!=='stake')return;st.tags=st.tags||[];
   for(const k of['lookout','driver','loaderA','loaderB','buyer']){const o=C[k];if(!o.d.root.visible)continue;const s=o.seeing>0&&M.sus>.15;if(!s&&!(k==='lookout'&&o.inv))continue;
     const pr=a.project(o.x,2.15,o.z);if(pr.behind)continue;st.tags.push({id:o,text:o.inv||M.sus>=T.inv?'?!':'?',kind:M.sus>=T.inv?'boss':'surr',screen:pr})}
   st.markers=st.markers||[];const P=a.P;
   for(const p of M.pins){const d=Math.hypot(P.pos.x-p.p.x,P.pos.z-p.p.z);if(d<3.5&&d>.8&&!M.seat)st.markers.push({id:'v_'+p.k,kind:'obj',label:p.lab,x:p.p.x,z:p.p.z,dist:d,screen:a.project(p.p.x,1.9,p.p.z),edge:false,always:false})}
   /* minimap: the crew as dots, red when they're looking at you */
   st.enemies=(st.enemies||[]).concat(['lookout','driver','loaderA','loaderB'].map(k=>({id:C[k],x:C[k].x,z:C[k].z,alert:C[k].seeing>0,seen:C[k].seeing>0,dead:!C[k].d.root.visible})))}
+/* warm the cast while Barb's job is on offer in the hub (neighbour models load on demand; the stakeout needs ten of them) */
+let PRE=false;J.on('hud',()=>{if(PRE)return;const a=A();if(!a||a.mode!=='hub')return;const s=a.SV&&a.SV();if(!(s&&s.jobs&&s.jobs.gary&&s.jobs.gary.done))return;const p=PP();if(!p||!p.ok)return;PRE=true;preload()});
 /* the result card: the photos the HOA saw (or what you had when it went wrong) */
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='hoa'){return}
   if(M.state==='go'){return}
@@ -581,7 +605,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
   const goTo=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.25)return true;const s=Math.min(d,(sp||2.6)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);return false};
   const route=(pts,sp)=>{B.ri=B.ri||0;while(B.ri<pts.length&&goTo(pts[B.ri],sp))B.ri++;return B.ri>=pts.length};
   if(M.ph==='intro'){B.i=(B.i||0)+1;if(B.i<60)return null;if(!goTo({x:L_.barb.x-.2,z:L_.barb.z+1.6}))return null;if(M.say.length>1)return null;a.useTap=true;return null}
-  if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(M.seat){a.useTap=true;return null}if(B.mr==null){B.mr=1;B.ri=0}if(route([{x:105.6,z:67.7},{x:L_.podium.x,z:67.7},{x:L_.podium.x,z:L_.podium.z+.3}]))a.useTap=true;return null}
+  if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(M.seat){a.useTap=true;return null}if(B.mr==null){B.mr=1;B.ri=0}if(route([{x:105.6,z:67.7},{x:L_.podium.x,z:67.7},{x:L_.podium.x,z:L_.podium.z+.2}]))a.useTap=true;return null}
     if(mt.st==='free'){B.f=(B.f||0)+1;if(B.f<45)return null;const e=M.car;if(B.f===45)B.ri=0;if(route([{x:L_.podium.x,z:67.7},{x:e.pos.x+.5,z:67.7},{x:e.pos.x+.5,z:e.pos.z-1.6}],3))a.useTap=true;return null}return null}
   if(M.ph!=='stake')return null;
   const shoot=(sub,zi)=>{const s=subjects(M).find(s=>s.id===sub||s.item===sub);if(!s)return false;
@@ -592,9 +616,10 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
   const lower=()=>{if(Ph.isRaised())P.aim=false};
   const have=(id,n)=>M.board[id]&&M.board[id].stars>=(n||2);
   if(!o.fail&&(M.sus>(B.step==='face3'?.8:.5)||B.cool>0)&&B.step!=='toPorch'&&B.step!=='toCar'){/* somebody's looking: phone down, wait it out */B.cool=M.sus>(B.step==='face3'?.8:.5)?(B.cool>0?B.cool:150):M.sus>.4?Math.max(0,(B.cool||0)-1):(B.cool>30?30:(B.cool||0)-1);lower();P.crouch=B.step==='bushes';return null}
-  if(o.fail){/* up the driveway, phone out, right at the lookout */P.crouch=false;if(!B.fs){if(!route([{x:107,z:68},{x:107,z:56},{x:L_.apron.x-1,z:L_.apron.z+1.5}],2.2))return null;B.fs=1}
+  if(o.fail){/* up the driveway, phone out, right at the lookout */P.crouch=false;if(!B.fs){if(!route([{x:105.8,z:67.7},{x:105.8,z:55},{x:L_.apron.x-1,z:L_.apron.z+1.5}],2.2))return null;B.fs=1}
     const lk=M.A.lookout;if(!Ph.isRaised())P.aim=true;else Ph.aimAt(lk.x,1.4,lk.z);if(t%40===0)Ph.shoot();return null}
   B.step=B.step||'toPorch';const st=M.st,lk=M.A.lookout;
+  if(B.step!=='inCar')a.keys.e=false;
   switch(B.step){
     case'toPorch':/* west along Elm St, north up the far sidewalk of Walnut, onto Phil's porch */
       lower();P.crouch=false;if(route([{x:112.5,z:70.4},{x:105.8,z:70.4},{x:105.8,z:48.6},{x:L_.porch.x,z:L_.porch.z-.1}]))B.step='phil',B.ri=0;return null;

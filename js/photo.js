@@ -69,7 +69,10 @@ const A=()=>J.api;
 /* ---------------- runtime ---------------- */
 const R={on:false,zi:0,fov:0,fK:0,fLock:false,fDist:0,fT:0,cool:0,flash:true,last:null,py:null,pp:null,turn:0,ui:null,blur:-1,lastPos:null,move:0,grade:null,gT:0,tid:0,wasAim:false,lockSnd:false,frame:null,fW:0};
 /* begin/end a session (one job at a time) */
-Photo.begin=function(o){Photo.S=Object.assign({job:null,subjects:()=>[],occluders:()=>[],onShot:null,stamp:null,flash:true,dark:null,canShoot:null,label:''},o||{});R.flash=Photo.S.flash!==false;R.zi=0;R.cool=0;R.last=null;R.on=false;return Photo.S};
+Photo.begin=function(o){Photo.S=Object.assign({job:null,subjects:()=>[],occluders:()=>[],onShot:null,stamp:null,flash:true,dark:null,canShoot:null,label:''},o||{});R.flash=Photo.S.flash!==false;R.zi=0;R.cool=0;R.last=null;R.on=false;setTimeout(warm,0);return Photo.S};
+/* compile the scene's programs for the thumbnail target once, at the start of a session, so the first shutter doesn't hitch */
+function warm(){const H=window.__ht,a=A();if(!H||!H.renderer||!a||R.warm)return;R.warm=true;try{const THREE=a.THREE;if(!R.rt){R.rt=new THREE.WebGLRenderTarget(T.thumbW*2,T.thumbH*2,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});R.rt.texture.encoding=THREE.LinearEncoding;R.px=new Uint8Array(T.thumbW*2*T.thumbH*2*4);R.id=new ImageData(T.thumbW*2,T.thumbH*2);R.cv2=document.createElement('canvas');R.cv2.width=T.thumbW*2;R.cv2.height=T.thumbH*2}
+  H.renderer.setRenderTarget(R.rt);H.renderer.compile(a.scene,a.camera);H.renderer.setRenderTarget(null)}catch(e){console.warn('[photo] warm',e)}}
 Photo.end=function(){lower(true);Photo.S=null;if(R.ui){A().overlay('photo',null);R.ui=null}};
 Photo.setZoom=function(i){i=Math.max(0,Math.min(T.zoom.length-1,i|0));if(i===R.zi)return;R.zi=i;refocus(true);blip(660+i*220,.035,.05);if(R.ui)R.ui.vf.set({zoom:T.zoom[i]+'×'});syncPills()};
 Photo.toggleFlash=function(){R.flash=!R.flash;blip(R.flash?1200:700,.03,.05);syncFlash()};
@@ -151,12 +154,27 @@ Photo.shoot=function(){const a=A(),S=Photo.S;if(!S||!R.on||R.cool>0)return null;
   if(S.onShot)try{S.onShot(shot)}catch(e){console.warn('[photo] onShot',e)}
   return shot};
 /* the real frame: render once (the game's own draw, post included), copy the viewfinder box out of the canvas in the same task */
-function capture(stamp){const H=window.__ht;if(!H||!H.renderer)return null;try{
-  const blurWas=R.blur;setBlur(0);H.draw();const src=H.renderer.domElement,fr=frame(),k=src.width/innerWidth;
-  let sx=fr.px.left*k,sy=fr.px.top*k,sw=fr.px.width*k,sh=fr.px.height*k;const want=T.thumbW/T.thumbH;if(sw/sh>want){const nw=sh*want;sx+=(sw-nw)/2;sw=nw}else{const nh=sw/want;sy+=(sh-nh)/2;sh=nh}
-  const c=document.createElement('canvas');c.width=T.thumbW;c.height=T.thumbH;const x=c.getContext('2d');x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
+/* the real frame: render the scene once into a small target from the phone's camera (post skipped; ACES + sRGB done here),
+   cropped to the 16:9 viewfinder, with the date stamp burned in. Falls back to copying the game's own canvas. */
+function capture(stamp){const H=window.__ht,a=A();if(!H||!H.renderer)return null;const W=T.thumbW*2,Hh=T.thumbH*2;
+  const c=document.createElement('canvas');c.width=T.thumbW;c.height=T.thumbH;const x=c.getContext('2d');
+  try{const THREE=a.THREE,rd=H.renderer,cam=a.camera;
+    if(!R.rt){R.rt=new THREE.WebGLRenderTarget(W,Hh,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat});R.rt.texture.encoding=THREE.LinearEncoding;/* same programs the game's post pass already compiled: no first-shot hitch */R.px=new Uint8Array(W*Hh*4);R.id=new ImageData(W,Hh);
+      R.cv2=document.createElement('canvas');R.cv2.width=W;R.cv2.height=Hh}
+    const fov=cam.fov,asp=cam.aspect,tm=rd.toneMapping;cam.fov=T.vfov[R.zi];cam.aspect=W/Hh;cam.updateProjectionMatrix();
+    const vis=a.P&&a.P.dude?a.P.dude.root.visible:true;if(a.P&&a.P.dude)a.P.dude.root.visible=false;
+    rd.setRenderTarget(R.rt);rd.clear();rd.render(a.scene,cam);rd.setRenderTarget(null);rd.readRenderTargetPixels(R.rt,0,0,W,Hh,R.px);
+    cam.fov=fov;cam.aspect=asp;cam.updateProjectionMatrix();if(a.P&&a.P.dude)a.P.dude.root.visible=vis;
+    /* linear 8-bit out of the target: ACES (fitted) + sRGB encode here; flip rows */
+    const L=R.lut||(R.lut=(()=>{const t=new Uint8ClampedArray(256),ex=rd.toneMappingExposure||1;for(let i=0;i<256;i++){let v=i/255;v*=ex*1.1;
+      v=(v*(2.51*v+.03))/(v*(2.43*v+.59)+.14);v=Math.max(0,Math.min(1,v));v=v<=.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-.055;t[i]=Math.round(v*255)}return t})());
+    const d=R.id.data,px=R.px,noTM=true;
+    for(let y=0;y<Hh;y++){const so=(Hh-1-y)*W*4,dO=y*W*4;for(let k=0;k<W*4;k+=4){d[dO+k]=noTM?L[px[so+k]]:px[so+k];d[dO+k+1]=noTM?L[px[so+k+1]]:px[so+k+1];d[dO+k+2]=noTM?L[px[so+k+2]]:px[so+k+2];d[dO+k+3]=255}}
+    R.cv2.getContext('2d').putImageData(R.id,0,0);x.imageSmoothingQuality='high';x.drawImage(R.cv2,0,0,c.width,c.height)}
+  catch(e){try{H.draw();const src=H.renderer.domElement,fr=frame(),k=src.width/innerWidth;let sx=fr.px.left*k,sy=fr.px.top*k,sw=fr.px.width*k,sh=fr.px.height*k;
+      const want=T.thumbW/T.thumbH;if(sw/sh>want){const nw=sh*want;sx+=(sw-nw)/2;sw=nw}else{const nh=sw/want;sy+=(sh-nh)/2;sh=nh}x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height)}catch(e2){console.warn('[photo] capture failed',e2);return null}}
   if(stamp){x.font='700 13px "Courier New",monospace';x.textAlign='right';x.textBaseline='bottom';x.shadowColor='rgba(255,120,20,.85)';x.shadowBlur=4;x.fillStyle='#ffb347';x.fillText(stamp,c.width-8,c.height-6);x.shadowBlur=0}
-  R.blur=-1;setBlur(blurWas>0?blurWas:0);return c.toDataURL('image/jpeg',T.jpgQ)}catch(e){console.warn('[photo] capture failed',e);return null}}
+  return c.toDataURL('image/jpeg',T.jpgQ)}
 /* flash: a burst of light anyone looking your way can see (the job decides what that costs) */
 function shutterFx(flash){const u=R.ui;if(!u)return;u.vf.set({flash:true});setTimeout(()=>{if(R.ui)R.ui.vf.set({flash:false})},60);
   u.bl.classList.remove('go');void u.bl.offsetWidth;u.bl.classList.add('go');u.sh.classList.remove('go');void u.sh.offsetWidth;u.sh.classList.add('go');
