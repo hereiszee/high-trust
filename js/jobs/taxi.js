@@ -463,6 +463,7 @@ const XCSS=`.stx-blk,.stx-choice{background:rgba(14,20,30,.78);border-radius:12p
 .stx-choice b{font:700 18px/1.1 var(--ht-ui);letter-spacing:.03em;text-transform:uppercase}.stx-choice i{font-style:normal;font-size:13px;color:rgba(255,255,255,.75)}
 .stx-rec{align-self:center;font:700 12px/1 var(--ht-ui);letter-spacing:.16em;background:rgba(14,20,30,.62);padding:6px 9px;border-radius:6px}
 .stx-rec b{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff3b30;margin-right:4px;animation:stxPulse 1s infinite}
+@media (max-width:640px){.stx-rec{align-self:flex-start}}
 .stx-hint{font:600 12px/1.3 var(--ht-body);color:rgba(255,255,255,.8);background:rgba(14,20,30,.5);padding:6px 9px;border-radius:8px}`;
 function hud(dt,M,F){const a=A(),L_=M.live,S=L_.S,C=L_.C,t=M.elapsed,cur=S.cur();
   if(!L_.panel){if(!document.getElementById('stx-taxi-css')){const s=document.createElement('style');s.id='stx-taxi-css';s.textContent=XCSS;document.head.appendChild(s)}
@@ -470,12 +471,15 @@ function hud(dt,M,F){const a=A(),L_=M.live,S=L_.S,C=L_.C,t=M.elapsed,cur=S.cur()
   const p=L_.panel;p.show(true);p.tick(dt);
   const hot=cur&&cur.hard&&cur.at==null&&M.st.phase!=='bikes'&&S.left(cur,t)<20;
   p.clockSet(S.clockStr(t),cur?(cur.hard&&cur.at==null&&M.st.phase!=='bikes'?'Hard stop '+S.due({target:cur.target+cur.hard}):'Next due '+S.due(cur)):'Saturday',hot);
-  const rows=S.stops.map((s,k)=>{const st=s.done?'done':s===cur&&M.st.phase!=='bikes'?'cur':'';let time=s.done?(s.onTime?'✓ '+S.clockStr(s.at):'late '+Math.round(s.late)+'s'):(s.hard?S.due(s)+'!':S.due(s));
+  const sh=t=>S.clockStr(t).replace(/ (AM|PM)$/,'');/* "10:58": the clock above already says AM */
+  const rows=S.stops.map((s,k)=>{const st=s.done?'done':s===cur&&M.st.phase!=='bikes'?'cur':'';
+    const time=s.done?(s.onTime?'✓ '+sh(s.at):'late '+Math.round(s.late)+'s'):sh(s.target)+(s.hard?'!':'');
     return{name:s.name,sub:s.sub,time,state:st,cls:s.done?(s.onTime?'ok':'late'):(s===cur&&t>s.target+S.soft?'late':''),stars:s.done?s.stars:0}});
-  if(M.st.phase==='bikes')rows.splice(4,0,{name:'BIKE THIEVES',sub:'Block the red pickup · Route 9',time:'NOW',state:'alert'});
+  if(M.st.phase==='bikes')rows.splice(4,0,{name:'Bike thieves',sub:'Block the red pickup · Route 9',time:'NOW',state:'alert'});
   const it=M.item;if(it&&it.noticed&&!it.done&&!it.lost)rows.splice(Math.min(rows.length-1,S.i+(M.st.phase==='bikes'?1:0)),0,{name:'The '+it.name,sub:'Back to '+it.where+' · optional',time:'+$'+T.itemPay,state:'alert'});
-  {let seen=0;for(const r of rows){if(r.state==='done')continue;if(seen++>=3)r.far=true}}
-  p.list("Jen's list",S.onTime()+'/6 on time',rows);
+  {let seen=0;for(const r of rows){if(r.state==='done')continue;seen++;if(seen>3)r.far=true;if(seen>2)r.far2=true}}
+  const nd=S.stops.filter(s=>s.done).length;
+  p.list("Jen's list",S.onTime()+'/6 on time',rows,nd?nd+' done · '+S.onTime()+' on time':'');
   p.rideSet(C.v,C.word(),C.avg(),90);
   const kids=inCar(M).filter(r=>r.likes),s=L_.R.cur();const moods=kids.map(r=>r.likes===s.id?'😀':r.hates===s.id?'😖':'😐').join('');
   const touch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);p.radioSet(s,L_.R.i,moods,touch);

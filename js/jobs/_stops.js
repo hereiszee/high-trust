@@ -286,9 +286,9 @@ const CSS=`
 .stx-note{position:relative;background:linear-gradient(176deg,#fff7a8,#fbe97c 60%,#f3dc66);color:#3a3320;border-radius:2px 2px 10px 2px;padding:12px 14px 10px;transform:rotate(-1.2deg);
   box-shadow:0 10px 22px rgba(0,0,0,.35),inset 0 -18px 24px -18px rgba(150,110,0,.35);font-family:var(--ht-body,"Barlow",sans-serif)}
 .stx-note:before{content:"";position:absolute;left:50%;top:-9px;width:64px;height:18px;margin-left:-32px;background:rgba(255,255,255,.55);transform:rotate(2deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.stx-note h4{margin:0 0 4px;font:800 13px/1 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:#7a5a00;display:flex;justify-content:space-between}
-.stx-note h4 i{font-style:normal;color:#b0352a}
-.stx-row{display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:baseline;padding:2px 0;border-bottom:1px dashed rgba(90,70,10,.25);font:600 13.5px/1.12 var(--ht-body)}
+.stx-note h4{margin:0 0 4px;font:800 12.5px/1 var(--ht-ui);letter-spacing:.12em;text-transform:uppercase;color:#7a5a00;display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
+.stx-note h4 i{font-style:normal;color:#b0352a;letter-spacing:.06em}
+.stx-row{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:6px;align-items:baseline;padding:2px 0;border-bottom:1px dashed rgba(90,70,10,.25);font:600 13.5px/1.12 var(--ht-body)}
 .stx-row:last-child{border-bottom:0}
 .stx-row .bx{width:12px;height:12px;border:2px solid #5a4a20;border-radius:2px;position:relative;top:1px}
 .stx-row.done .bx:after{content:"";position:absolute;left:2px;top:-4px;width:5px;height:10px;border:solid #2f8f4a;border-width:0 3px 3px 0;transform:rotate(40deg)}
@@ -296,10 +296,13 @@ const CSS=`
 .stx-row.done .nm{text-decoration:line-through;text-decoration-color:rgba(58,51,32,.5)}
 .stx-row.cur{color:#1d1a10}.stx-row.cur .nm{font-weight:800}.stx-row.cur .sub,.stx-row.alert .sub{display:block}
 .stx-row.cur .bx{border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,.18)}
-.stx-row .tm{font:700 13px/1 var(--ht-ui);letter-spacing:.04em;white-space:nowrap}
+.stx-row .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stx-row .tm{font:700 13px/1 var(--ht-ui);letter-spacing:.02em;white-space:nowrap;text-align:right}
 .stx-row .tm.late{color:#c0392b}.stx-row .tm.ok{color:#2f7a3f}
 .stx-row .sub{display:none;font:500 11.5px/1.15 var(--ht-body);color:rgba(58,51,32,.75);margin-top:1px}
-.stx-row .st{color:#d18b00;letter-spacing:-1px;font-size:9px;vertical-align:1px}
+.stx-row .st{display:inline-block;color:#8a5a00;background:rgba(209,139,0,.18);border-radius:3px;padding:1px 3px;margin-right:4px;font:800 10.5px/1 var(--ht-ui)}
+.stx-row.sum{grid-template-columns:14px minmax(0,1fr) auto;color:rgba(58,51,32,.6);font-size:12.5px}.stx-row.sum .nm{text-decoration:none}
+.stx-note.c1 .stx-row.done:not(.sum){display:none}.stx-note:not(.c1) .stx-row.sum{display:none}.stx-note.c2 .stx-row.far2{display:none}.stx-note.c2 .stx-row .sub{display:none!important}
 .stx-row.alert{color:#b0352a}.stx-row.alert .bx{border-color:#b0352a;background:rgba(176,53,42,.15)}
 .stx-top{position:absolute;left:50%;top:92px;transform:translateX(-50%);display:flex;gap:8px;align-items:stretch}
 .stx-ride{width:190px;background:rgba(14,20,30,.62);border-radius:10px;padding:6px 10px 7px;display:grid;grid-template-columns:30px 1fr;gap:3px 8px;align-items:center;backdrop-filter:blur(4px)}
@@ -329,10 +332,10 @@ const CSS=`
 .stx-slot:empty{display:none}
 @media (max-width:640px){
   .stx-side{right:10px;top:150px;width:172px;gap:5px}.stx-clock b{font-size:28px}.stx-clock span{display:none}
-  .stx-note{padding:8px 9px 6px;transform:none}.stx-note h4{font-size:11px}.stx-row{font-size:12.5px}.stx-row .sub,.stx-row.cur .sub,.stx-row.alert .sub{display:none}.stx-row.done,.stx-row.far{display:none}
+  .stx-note{padding:8px 9px 6px;transform:none}.stx-note h4{font-size:11px}.stx-row{font-size:12.5px}.stx-row .sub,.stx-row.cur .sub,.stx-row.alert .sub{display:none}.stx-row.done:not(.sum),.stx-row.far,.stx-row.far2{display:none}.stx-note .stx-row.sum{display:grid!important}
   .stx-top{top:298px;bottom:auto;left:auto;right:10px;transform:none;flex-direction:column;width:172px;gap:5px}.stx-ride,.stx-radio{width:auto}.stx-radio .tx span{display:none}
-  .stx-mid{top:auto;bottom:345px;width:94vw}.stx-mid>*{max-width:94vw}.stx-toast{bottom:360px;min-width:250px}.stx-toast .t{font-size:20px}}
-@media (max-height:520px) and (orientation:landscape){.stx-side{top:96px;width:190px}.stx-row .sub{display:none}.stx-row.done{display:none}.stx-top{top:auto;bottom:120px;left:auto;right:12px;transform:none;flex-direction:column;width:190px}.stx-ride,.stx-radio{width:auto}.stx-mid{top:30%}}
+  .stx-mid{top:auto;bottom:345px;width:94vw}.stx-mid>*{max-width:94vw}.stx-toast{bottom:305px;min-width:250px}.stx-toast .t{font-size:20px}}
+@media (max-height:520px) and (orientation:landscape){.stx-side{top:96px;width:190px}.stx-row .sub{display:none}.stx-row.done:not(.sum){display:none}.stx-note .stx-row.sum{display:grid}.stx-top{top:auto;bottom:120px;left:auto;right:12px;transform:none;flex-direction:column;width:190px}.stx-ride,.stx-radio{width:auto}.stx-mid{top:30%}}
 @media (max-height:520px) and (orientation:landscape){.stx-side{top:120px}}`;
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
 function face(v){/* a little passenger face: smile to green-faced */const m=v>=75?'M10 21 Q17 27 24 21':v>=55?'M10 22 L24 22':'M10 24 Q17 18 24 24',c=v>=55?'#ffd36a':v>=35?'#ffb347':'#9bd36a';
@@ -348,11 +351,16 @@ function panel(o={}){if(!document.getElementById('stx-css')){const s=el('style')
   const set=(k,e,html)=>{if(P.last[k]!==html){P.last[k]=html;e.innerHTML=html}};
   P.clockSet=(t,sub,hot)=>{const m=/^(.*) (AM|PM)$/.exec(t);set('clock',clock,'<b>'+(m?m[1]+'<small>'+m[2]+'</small>':t)+'</b><span>'+sub+'</span>');clock.classList.toggle('hot',!!hot)};
   /* rows: [{name, sub, time, state:'done'|'cur'|'todo'|'alert', late:bool, stars:n}] */
-  P.list=(title,flag,rows)=>set('note',note,'<h4>'+title+(flag?'<i>'+flag+'</i>':'')+'</h4>'+rows.map(r=>`<div class="stx-row ${r.state||''}${r.far?' far':''}"><div class="bx"></div><div><span class="nm">${r.name}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div><div class="tm ${r.cls||''}">${r.stars?'<span class="st">'+'★'.repeat(r.stars)+'</span> ':''}${r.time||''}</div></div>`).join(''));
+  P.list=(title,flag,rows,sum)=>set('note',note,'<h4><span>'+title+'</span>'+(flag?'<i>'+flag+'</i>':'')+'</h4>'+(sum?`<div class="stx-row done sum"><div class="bx"></div><div><span class="nm">${sum}</span></div><div class="tm"></div></div>`:'')+rows.map(r=>`<div class="stx-row ${r.state||''}${r.far?' far':''}${r.far2?' far2':''}"><div class="bx"></div><div><span class="nm">${r.name}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div><div class="tm ${r.cls||''}">${r.stars?'<span class="st">'+r.stars+'★</span>':''}${r.time||''}</div></div>`).join(''));
   P.rideSet=(v,word,avg,goal)=>{const html=face(v)+`<div class="lb">Ride <b>${word}</b></div><div class="stx-bar${v<55?' bad':''}"><i style="width:${Math.round(v)}%"></i>${goal?`<em style="left:${goal}%"></em>`:''}</div>`;set('ride',ride,html);if(avg!=null)ride.title='Average '+Math.round(avg)};
   P.radioSet=(s,k,moods,touch)=>{set('radio',rad,`<div class="dial" style="--r:${-60+k*30}deg"></div><div class="tx"><b>${s.name}</b><span>${s.sub}</span></div><div class="moods">${moods}</div>${touch?'':'<span class="key">R</span>'}`)};
   let toastT=0;P.toastShow=(k,t,s,stars,dur)=>{toast.innerHTML=`<div class="k">${k}</div><div class="t">${t}</div>${stars!=null?`<div class="stars">${'★'.repeat(stars)}<u>${'★'.repeat(Math.max(0,5-stars))}</u></div>`:''}<div class="s">${s||''}</div>`;toast.classList.add('on');toastT=dur||4.2};
-  P.tick=dt=>{if(toastT>0){toastT-=dt;if(toastT<=0)toast.classList.remove('on')}};
+  P.tick=dt=>{if(toastT>0){toastT-=dt;if(toastT<=0)toast.classList.remove('on')}P.fitT=(P.fitT||0)-dt;if(P.fitT<=0){P.fitT=.25;P.fit()}};
+  /* keep the note clear of the speedometer and vehicle health (the HUD's drive cluster): full list -> done rows folded into one line -> current + next only */
+  P.fit=()=>{if(!P.shown||!root.parentNode)return;const d=document.querySelector('.ht-drv');let lim=innerHeight-16;
+    if(d){const r=d.getBoundingClientRect(),cs=getComputedStyle(d),sr=side.getBoundingClientRect();if(r.height>0&&cs.display!=='none'&&cs.visibility!=='hidden'&&+cs.opacity!==0&&r.left<sr.right&&r.right>sr.left)lim=Math.min(lim,r.top-12)}
+    {const r=top.getBoundingClientRect(),sr=side.getBoundingClientRect();if(r.height>0&&r.top>sr.top&&r.left<sr.right&&r.right>sr.left)lim=Math.min(lim,r.top-8)}
+    for(const c of[[],['c1'],['c1','c2']]){note.classList.remove('c1','c2');c.forEach(k=>note.classList.add(k));if(note.getBoundingClientRect().bottom<=lim)break}P.mode=note.classList.contains('c2')?2:note.classList.contains('c1')?1:0};
   return P}
 
 HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,gps,lane,pursue,streets,drive,laneRoute,lot,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
