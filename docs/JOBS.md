@@ -96,6 +96,7 @@ Each hook calls the **running job's** handler first, then every **system** handl
 
 
 Getters: `P M L VAN CV WORLD mode enemies allies npcs keys simT useTap(settable) stage`. Objects: `THREE scene camera MISSIONS HOMIES WEAPONS CP JH HUD`.
+Car damage: `carHp(car) carHpMax(car) carFrac(car) carDamage(car,amt,cause) carRepair(car,amt,o) crash(car,speed,{angle,rear})` (docs/car-damage.md). `holster(true|false)`: put the dad's gun away (no gun in hand, no aim pose, firing blocked); `def.noGuns` holsters automatically.
 Functions: `radio(who,text,front) banner(t,sub,dur) feed(text,kind,sub) addTrust(v,hood) spawnEnemy(x,z,boss) spawnAlly(id,x,z) surrender(e) equip(dude,gun) makeDude(look) makeVehicle(type,color) makeVanBox(color) wmAdd(obj,solid) wmCol(box) wmCarry(kind,mesh,it) wmDrop() wmSign(lines,x,z,yaw,o) wmSnap(x,z) wmSnapRoad(x,z) wmWindow(cx,cz,r) wmSetWindow(w) wmNearest(list,ok) wmCuff(e) box(w,h,d,col,x,y,z,parent) mat(col) lin(col) rand pick clamp V3 tileC tx walkable groundAt collide carSize syncCar owStopCar enterCar exitCar nearCar puff snd rebuildTargets project endMission(ok,why,title) spotted(why) CarAI() roads() setNight(k) SV() save() overlay(id,el)`.
 
 Everything you add to the scene goes through `wmAdd` (it is removed when the job ends). Enemies: `e.script={kind:'to',x,z,speed,then}` drives a character without the combat AI (`'home'`, `'flee'` also exist); `e.noLeash=true` lets it leave the site window.
@@ -124,7 +125,7 @@ Save v3 helpers (`js/save.js`, `HT.Save`): `jobRec(s,id) recordRun(...) album(s,
 
 It starts a new game, waits for the job files, unlocks your job (`unlock.done` + `test.give(api)`), takes it from its giver (home interactable or world giver), accepts the brief, drives the van into the ring, then calls your `test.step(api, frame, opts)` every frame until the job ends, and checks: won, paid, `SAVE.jobs[id]`, the calendar pin, zero console errors. Flags: `--retry` (first a run with `opts.fail=true` that must lose; then the fail card must offer retry/restart; retry from the stage and win; gold capped), `--replay` (the fridge calendar → Replay → half pay, same day, households unchanged), `--shots` (jpgs in `docs/screenshots/jobs/<id>/`), `--no-giver` (start directly). Your bot may teleport (`api.P.pos.set`), press E (`api.useTap=true`) or hold it (`api.keys.e=true`). Also write `dev/jobs/<id>.js` for anything job-specific (SPEC3 section 5).
 
-`node dev/jobs-registry.test.js` (Node, no browser): registration, MISSIONS/CATALOG entries, hook dispatch order and error isolation, gating, a 404'd file is skipped, the [CP] save/load round trip of every job file that registers in Node, save v2→v3 migration.
+`node dev/jobs-registry.test.js` (Node, no browser): registration, MISSIONS/CATALOG entries, hook dispatch order and error isolation, gating, a 404'd file is skipped, the [CP] save/load round trip of every job file that registers in Node (`test.sample()` returns a mid-job `M`; set `test.cpNode:false` if your `load()` needs the game, and make sure `--retry` passes instead), save v2→v3 migration.
 
 `window.__ht.jobs`: `ready list() index(id) start(id,{replay,checkpoint}) lock(id) CP JRS calendar() calEntries() replay(id) spotted() homeUse(id) openBrief(id) finish(ok) registry api`.
 

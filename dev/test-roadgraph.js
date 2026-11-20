@@ -1,12 +1,12 @@
 const assert=require('assert'),{test,suite,done,load}=require('./harness');const HT=load(),Wd=HT.World,R=HT.Roads;
 suite('roadgraph');
 const def=Wd.build({bridgeOpen:true}),G=R.build(def),defC=Wd.build({bridgeOpen:false}),GC=R.build(defC);
-const onRoad=(d,x,z)=>',=Vl'.includes(d.map[Math.floor(z/2)][Math.floor(x/2)]);
-test('60 nodes / 81 edges with the bridge open, connected',()=>{assert.strictEqual(G.nodes.length,60);assert.strictEqual(G.edges.length,81);assert.strictEqual(G.components().count,1)});
-test('bridge closed: Route 9 edge gone, Riverside is a separate component',()=>{assert.strictEqual(GC.edges.length,80);const c=GC.components();assert.strictEqual(c.count,2);
+const onRoad=(d,x,z)=>',=VlD'.includes(d.map[Math.floor(z/2)][Math.floor(x/2)]);
+test('60 nodes / 82 edges (Oak St runs through the minivan spot) with the bridge open, connected',()=>{assert.strictEqual(G.nodes.length,60);assert.strictEqual(G.edges.length,82);assert.strictEqual(G.components().count,1)});
+test('bridge closed: Route 9 edge gone, Riverside is a separate component',()=>{assert.strictEqual(GC.edges.length,81);const c=GC.components();assert.strictEqual(c.count,2);
   const m=GC.nearestNode(40,40),r=GC.nearestNode(400,80);assert.notStrictEqual(c.of[m],c.of[r]);assert.strictEqual(GC.path(m,r),null)});
 test('every edge is axis-aligned and its centreline is drivable',()=>{for(const e of G.edges){const a=G.nodes[e.a],b=G.nodes[e.b];assert(a.tx===b.tx||a.tz===b.tz);
-  const n=Math.max(Math.abs(a.tx-b.tx),Math.abs(a.tz-b.tz));for(let i=0;i<=n;i++){const x=a.tx+Math.sign(b.tx-a.tx)*i,z=a.tz+Math.sign(b.tz-a.tz)*i;assert(',=Vl'.includes(def.map[z][x]),x+','+z)}}});
+  const n=Math.max(Math.abs(a.tx-b.tx),Math.abs(a.tz-b.tz));for(let i=0;i<=n;i++){const x=a.tx+Math.sign(b.tx-a.tx)*i,z=a.tz+Math.sign(b.tz-a.tz)*i;assert(',=VlD'.includes(def.map[z][x]),x+','+z)}}});
 test('no dead-end stubs shorter than 4 tiles',()=>{for(const n of G.nodes)if(n.e.length===1)assert(n.e[0].d>=4)});
 test('shortest path is valid and optimal-ish (no repeated nodes, consecutive nodes share an edge)',()=>{const a=G.nearestNode(def.vanStart.x,def.vanStart.z),b=G.nearestNode(def.sites.duke.ring.x,def.sites.duke.ring.z);
   const p=G.path(a,b);assert(p&&p.length>2);assert.strictEqual(new Set(p).size,p.length);for(let i=1;i<p.length;i++)assert(G.edge(p[i-1],p[i]));

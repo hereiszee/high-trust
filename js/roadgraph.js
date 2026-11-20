@@ -12,7 +12,7 @@
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
 const TILE=2,tc=i=>i*TILE+TILE/2,tx=m=>Math.floor(m/TILE);
-const LANE=1.5,ARC=4.5,DRIVE=',=Vl';
+const LANE=1.5,ARC=4.5,DRIVE=',=VlD';/* D: the minivan's spot on Oak St is road too */
 
 function build(def){
   const g=def.map,roads=def.roads;
