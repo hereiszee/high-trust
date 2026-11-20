@@ -4,7 +4,7 @@
   ok   drove through the gate (203,182)
   ok   region is the base
   ok   Fort Sensible pin is open for fast travel after the visit
-  perf base gate (driving) {"calls":494,"tris":441542,"drawMs":3797,"stepMs":3.54}
+  perf base gate (driving) {"calls":489,"tris":441266,"drawMs":4585.4,"stepMs":2.54}
 == range
   ok   out of the car by the range
   on foot at 128,189
@@ -13,9 +13,9 @@
   ok   E talks to Sgt. Pruitt
   ok   E again starts the timed course
   shot range-course.jpg
-  ok   course finished: score 774, medal 2, 44 shots
+  ok   course finished: score 677, medal 2, 56 shots
   shot range-result.jpg
-  ok   best saved per gun: {"pistol":[{"score":774,"time":20.7,"acc":0.3,"medal":2,"day":1,"rental":false}]}
+  ok   best saved per gun: {"pistol":[{"score":677,"time":24.7,"acc":0.21,"medal":2,"day":1,"rental":false}]}
   ok   Enter closes the results card
   ok   E closes it too
   rack prompt: {"key":"E","text":"Swap the rental · Weekend Nailer","hold":false,"progress":0}
@@ -26,7 +26,7 @@
   ok   leaving the range returns the rental (pistol) and holsters
   ok   the gun stays holstered elsewhere on the post
   ok   no heat from range shooting
-  perf range {"calls":478,"tris":630415,"drawMs":168.4,"stepMs":2.06}
+  perf range {"calls":474,"tris":619285,"drawMs":169.9,"stepMs":2}
 == tank
   ok   walked to the motor pool
   ok   the tank is parked in the motor pool
@@ -44,7 +44,7 @@
   ok   drove through the cones and hay bales (13 knocked over)
   ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
   shot tank-flattened.jpg
-  perf tank driving {"calls":435,"tris":327564,"drawMs":14.8,"stepMs":2.72}
+  perf tank driving {"calls":433,"tris":327346,"drawMs":18.5,"stepMs":2.39}
   ok   jobs refuse the tank: "You can't bring that to the bake sale."
   ok   E gets out
 == jet
@@ -55,16 +55,17 @@
   shot jet-takeoff.jpg
   ok   took off (100 mph at x 167)
   ok   G raises the gear
-  perf jet climbing out {"calls":45,"tris":30037,"drawMs":23.5,"stepMs":3.33}
+  perf jet climbing out {"calls":45,"tris":30053,"drawMs":23.3,"stepMs":2.19}
   shot jet-cockpit.jpg
   shot jet-maple.jpg
-  perf jet over Maple Heights {"calls":45,"tris":30063,"drawMs":8.6,"stepMs":2.77}
+  perf jet over Maple Heights (inbound, looking at the houses) {"calls":195,"tris":326471,"drawMs":18.7,"stepMs":7.8}
+  shot jet-family.jpg
   ok   buzzed the house: the family came out (3 waving)
   ok   sonic boom over the neighborhood
   shot jet-bridge.jpg
   ok   flew under the High Bridge (still flying)
   ok   G lowers the gear for landing
-  ok   landed on runway 27 (118,239)
+  ok   landed on runway 27 (121,240)
   ok   E gets out on the ground
   ok   holding E ejects: parachute at 123 m
   shot jet-parachute.jpg
@@ -88,4 +89,4 @@
   ok   the list fills in: 7/7
   shot eggs-pause.jpg
 no console errors
-all ok · 457 s
+all ok · 414 s

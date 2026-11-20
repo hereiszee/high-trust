@@ -201,10 +201,12 @@ function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;per
 function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Achievement · Buzzed your own house','trust')}
   say(pick(['Linda']),pick(LINES.buzz),true);family(a)}
 /* the family on the front lawn, waving, for half a minute (HT.People's family models; never restyled) */
-function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const h=a.L.start;if(!PP||!PP.ok||!h)return;
+function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const st=a.L.start;if(!PP||!PP.ok||!st)return;
+  /* on the front lawn, beside the driveway, in front of the door (falls back to the dad's start) */
+  const dr=a.WORLD&&a.WORLD.doors&&a.WORLD.doors.home,h=dr?{x:dr.x-3.6,z:dr.z-0.6}:st;
   const spots=[[0,-2.6],[1.3,-3.2],[-1.3,-3.2]];['wife','son','daughter'].forEach((r,i)=>{let d=null;try{d=PP.make(r)}catch(_){d=null}if(!d)return;d.root.position.set(h.x+spots[i][0],0,h.z+spots[i][1]);d.root.rotation.y=Math.PI;a.L.group.add(d.root);S.fam.push({d,ph:i*1.3})});
   /* not loaded yet (they stream in): load them, then they come out */
-  if(!S.fam.length&&!S.famWait&&PP.preload){S.famWait=1;try{PP.preload(['wife','son','daughter']).then(()=>{S.famWait=0;if(a.L&&a.L.start===h)family(a)},()=>{S.famWait=0})}catch(_){S.famWait=0}}
+  if(!S.fam.length&&!S.famWait&&PP.preload){S.famWait=1;try{PP.preload(['wife','son','daughter']).then(()=>{S.famWait=0;if(a.L&&a.L.start===st)family(a)},()=>{S.famWait=0})}catch(_){S.famWait=0}}
   S.famT=30}
 function familyTick(a,dt){if(!S.fam.length)return;S.famT-=dt;for(const f of S.fam){try{a.pose(f.d,dt,{})}catch(_){}const b=f.d.rb&&f.d.rb.bones;if(b){const ua=b.Bip01_R_UpperArm,fa=b.Bip01_R_Forearm;const t=performance.now()/1000+f.ph;if(ua){ua.rotation.z-=1.9;ua.rotation.x+=Math.sin(t*7)*.35}if(fa)fa.rotation.z-=.6}
     /* look at the jet */if(F.on){const dx=F.pos.x-f.d.root.position.x,dz=F.pos.z-f.d.root.position.z;f.d.root.rotation.y=Math.atan2(dx,dz)}}
@@ -290,7 +292,7 @@ function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.na
 
 /* ================= the High Bridge set piece (north of the map, across the river valley) ================= */
 function bridgePiece(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(bridgePiece,0);return}
-  O.addSetpiece({id:'highbridge',box:()=>({x0:HB.x0-10,z0:HB.z-12,x1:HB.x1+10,z1:HB.z+12,y1:HB.deck+6}),build(ws,u){const K2=B()&&B().kit;if(!K2)return;const T=T3(),P=K2.painter();
+  O.addSetpiece({id:'highbridge',r:90,/* on the ground it shows within 90 m (flying: everything to the flight radius) */box:()=>({x0:HB.x0-10,z0:HB.z-12,x1:HB.x1+10,z1:HB.z+12,y1:HB.deck+6}),build(ws,u){const K2=B()&&B().kit;if(!K2)return;const T=T3(),P=K2.painter();
     /* the ground under each pier: ask the backdrop terrain (always built) */
     const meshes=[];for(const q of ws.units)if(q.sp&&q.sp.id==='backdrop'&&q.group)q.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)meshes.push(m)});
     const rc=new T.Raycaster();const gy=x=>{rc.set(V(x,120,HB.z),V(0,-1,0));rc.far=200;const h=rc.intersectObjects(meshes,false)[0];return h?h.point.y:-1};
@@ -341,7 +343,7 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
       <circle cx="0" cy="0" r="7"/><line x1="-20" y1="0" x2="-7" y2="0"/><line x1="7" y1="0" x2="20" y2="0"/><line x1="0" y1="-7" x2="0" y2="-16"/>
       <rect x="-330" y="-18" width="92" height="36" rx="3"/><rect x="238" y="-18" width="92" height="36" rx="3"/></g>
       <g fill="#7dff9a" font-size="22" text-anchor="middle" style="filter:drop-shadow(0 0 2px rgba(0,0,0,.7))"><text id="jspd" x="-284" y="8"></text><text id="jalt" x="284" y="8"></text><text x="-284" y="-26" font-size="13">MPH</text><text x="284" y="-26" font-size="13">FT</text>
-      <text id="jhdg" x="0" y="-250"></text><text x="0" y="-228" font-size="12">HDG</text><text id="jcall" x="0" y="-206" font-size="13">${CALL}</text>
+      <text id="jhdg" x="0" y="-200"></text><text x="0" y="-182" font-size="12">HDG</text><text id="jcall" x="0" y="-164" font-size="13">${CALL}</text>
       <text id="jthr" x="-284" y="44" font-size="14"></text><text id="jgear" x="-284" y="64" font-size="14"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
     document.body.appendChild(HUDEL);for(const id of['jhl','jspd','jalt','jhdg','jthr','jgear','jwarn','jvs'])HE[id]=HUDEL.querySelector('#'+id)}
   if(HUDEL)HUDEL.style.display=on?'block':'none';

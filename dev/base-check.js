@@ -141,9 +141,14 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     /* the circuit: north over Maple Heights, low and fast over the house (the family comes out), a sonic boom */
     await fly({to:[250,120],alt:80,max:300,until:q=>Math.hypot(q.x-250,q.z-120)<60});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
-    await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:78,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
+    await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:78,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<220});
+    await shot('jet-maple');await perf('jet over Maple Heights (inbound, looking at the houses)');
+    await fly({to:[home.x,home.z],alt:34,spd:78,max:300,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
     await fly({to:[home.x+260,home.z+40],alt:45,spd:100,ab:true,max:120});
-    await shot('jet-maple');await perf('jet over Maple Heights');
+    if(SHOTS){/* the lawn, from the street: a fixed camera on the family (the bot's jet is already past) */
+      await ev(()=>{const H=window.__ht,c=H.camera,d=HT.Jobs.api.WORLD.doors.home;for(const el of document.body.querySelectorAll('body > *'))if(el!==H.renderer.domElement&&el.style&&!el.contains(H.renderer.domElement))el.style.visibility='hidden';
+        H.draw();const put=()=>{c.position.set(d.x-7,1.8,d.z-9.5);c.lookAt(d.x-3.6,1.1,d.z-1.5);c.updateMatrixWorld()};put();for(let i=0;i<4;i++){H.ow.update(c);if(HT.World.update)HT.World.update(H.L,c.position)}put();H.render.draw()});
+      await p.screenshot({path:path.join(OUT,'jet-family.jpg'),type:'jpeg',quality:82});say('  shot jet-family.jpg');await ev(()=>{for(const el of document.body.querySelectorAll('body > *'))if(el.style)el.style.visibility=''})}
     j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz&&famMax===3,'buzzed the house: the family came out ('+famMax+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
     /* the High Bridge: north along the river, under the deck */
     const HB=await ev(()=>HT.Jet.HB);
