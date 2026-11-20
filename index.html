@@ -547,7 +547,7 @@ const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
-  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers: temporary stand-ins (RIVERSIDE JOBS) */
+  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
   const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
@@ -1152,6 +1152,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+  owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
    Until that role exists the porches stay empty. */
@@ -1590,7 +1591,7 @@ function openBrief(i){const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.
 let castWait=null;
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).map(c=>DAD[c]||(typeof GIVER_STAND_IN!=='undefined'&&GIVER_STAND_IN[c]?GIVER_STAND_IN[c].base:c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
+  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||c),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
   if(!keys.length){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
   castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
@@ -2275,6 +2276,7 @@ function updCamera(dt){
 
 /* ================= MISSION LOGIC ================= */
 function updMission(dt){
+  if(L.ow)owNeighbours(dt);
   if(!M||M.state!=='go')return;const m=M.def;let prompt=null,promptP=null,objs=[],target=null;M.elapsed+=dt;
   if(M.world&&wmMission(dt))return;/* WORLD MISSIONS: site extras + the Riverside jobs */
   let near=null,nd=2.4;for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
@@ -2333,6 +2335,9 @@ function updMission(dt){
   {const pk=updPickups(dt,!!prompt);if(pk){prompt=pk[0];promptP=pk[1]}}
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
+/* Riverside neighbours on the porches (more as trust rises), in free roam and during world jobs; anyone near gunfire goes indoors */
+function owNeighbours(dt){const O=OW();if(!O||!O.neighbours||!L||!L.ow)return;const sh=[];if(simT-P.lastShotT<.4)sh.push({x:P.pos.x,z:P.pos.z});for(const e of enemies)if(e.state==='idle'&&e.alert&&e.target)sh.push({x:e.pos.x,z:e.pos.z});
+  O.neighbours(dt,{player:P.pos,camera,trust:prog.trustR||0,river:O.regionAt(P.pos.x,P.pos.z)==='river',shots:sh})}
 function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
@@ -3252,7 +3257,7 @@ function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=perform
   if(FR.inc&&FR.inc.kind==='porch'&&FR.inc.members[0]&&FR.inc.members[0].state==='cuffed')FR.lastPorch=FR.inc.porch;
   FR.stats.ms+=performance.now()-t0;FR.stats.frames++;return prompt?[prompt,pp]:null}
 /* ================= RIVERSIDE JOBS: people and data (SPEC2 B.0-B.5) ================= */
-/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): a clearly temporary stand-in until the owner casts them */
+/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): the cast models (js/people.js earl, dee, rosa, benny), a stand-in for anyone not cast yet */
 Object.assign(HOMIES,{
   earl:{name:'Earl',giver:'earl',shirt:'#3d5a80',pants:'#5b5b5b',hair:'#d8d8d8',cap:'#3d5a80',glasses:1,mustache:1,belly:1,skin:'#8d5a3b'},
   dee:{name:'Pastor Dee',giver:'dee',shirt:'#6a4c93',pants:'#2b2d42',hair:'#1d1d1d',glasses:1,skin:'#a8714c'},
@@ -3261,9 +3266,10 @@ Object.assign(HOMIES,{
   sal:{name:'Sal',giver:'sal',shirt:'#4a5a6a',pants:'#3a3a3a',hair:'#b8b8b8',vest:1,mustache:1,skin:'#e0b48f'}});
 /* STAND-IN: base character + outfit tint until real models are cast (see the casting list in docs). One function so the swap is one edit. */
 const GIVER_STAND_IN={earl:{base:'boss',tint:'#4f6f9a'},benny:{base:'boss',tint:'#f2d6e2'},sal:{base:'boss',tint:'#7a8796'},dee:{base:'wife',tint:'#8a6ab8'},rosa:{base:'wife',tint:'#6cc0b5'}};
+/* the cast models (js/people.js roles earl, dee, rosa, benny) when People has them; the stand-in below otherwise (Sal: not cast yet) */
+function giverKey(id){const pp=HTM('People');return pp&&pp.giverKeys&&pp.giverKeys.includes(id)?id:GIVER_STAND_IN[id]?GIVER_STAND_IN[id].base:null}
 function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=people();let d=null;
-  /* the cast model for this role when HT.People has it (preloaded on demand); the stand-in below only as a fallback */
-  if(pp&&pp.has&&pp.has(id)){try{const c=pp.make(id,{});if(c)return c}catch(e){}}
+  if(pp&&pp.giverKeys&&pp.giverKeys.includes(id)){if(pp.has(id)){try{d=pp.make(id,{})}catch(e){d=null}if(d){d.giver=id;return d}}else if(pp.preload)pp.preload([id]).catch(()=>{})}
   if(pp&&s){try{d=pp.make(s.base,{})}catch(e){d=null}}
   if(!d)return makeDude(Object.assign({},h,{giver:null}));
   const tint=new THREE.Color(s.tint),hide=[];
@@ -3811,7 +3817,7 @@ function wmHubGivers(){const out=[],lines=[];
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
     if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
-    const sb=GIVER_STAND_IN[m.giver];if(sb&&pm&&pm.preload&&!pm.has(sb.base)&&!n.dude.rb)pm.preload([sb.base]).then(()=>{if(!npcs.includes(n)||!pm.has(sb.base))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
+    const gk=giverKey(m.giver);if(gk&&pm&&pm.preload&&!pm.has(gk)&&!(n.dude.rb&&n.dude.rb.key===gk))pm.preload([gk]).then(()=>{if(!npcs.includes(n)||!pm.has(gk))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
     n.prefer=m.hood==='river'&&!prog.done[4];
     if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
