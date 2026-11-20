@@ -203,6 +203,15 @@ function garageProps(M){const a=A(),T=a.THREE,G=places().garage,g=new T.Group();
   const roll=new T.Mesh(new T.CylinderGeometry(.22,.22,dz1-dz0,14),new T.MeshStandardMaterial({color:a.lin('#b9c0c5'),metalness:.5,roughness:.4}));roll.rotation.x=Math.PI/2;roll.position.set(G.x0+.3,H-.3,G.door.z);g.add(roll);
   const fl=new T.Mesh(new T.BoxGeometry(G.x1-G.x0-.2,.04,G.z1-G.z0-.2),new T.MeshStandardMaterial({color:a.lin('#8e8a82'),roughness:.95}));fl.position.set((G.x0+G.x1)/2,.02,(G.z0+G.z1)/2);fl.receiveShadow=true;g.add(fl);
   const lt=new T.Mesh(new T.BoxGeometry(1.2,.05,.12),new T.MeshBasicMaterial({color:a.lin('#f4f6ff')}));lt.position.set((G.x0+G.x1)/2,H-.08,(G.z0+G.z1)/2);g.add(lt);
+  /* outside: white corner and eave trim, the unit number over the door, a caged work light, an oil-stained apron */
+  const trim=new T.MeshStandardMaterial({color:a.lin('#e9e6de'),roughness:.6});const TR=(w,h,d,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),trim);m.position.set(x,y,z);g.add(m)};
+  for(const[x,z]of[[G.x0,G.z0],[G.x0,G.z1],[G.x1,G.z0],[G.x1,G.z1]])TR(.1,H,.1,x,H/2,z);TR(.08,.12,G.z1-G.z0+.1,G.x0-.03,H-.02,(G.z0+G.z1)/2);TR(G.x1-G.x0,.12,.08,(G.x0+G.x1)/2,H-.02,G.z0-.03);TR(G.x1-G.x0,.12,.08,(G.x0+G.x1)/2,H-.02,G.z1+.03);
+  for(const z of[dz0,dz1])TR(.12,H-.55,.12,G.x0-.02,(H-.55)/2,z);
+  const nt=texOf('unit17',128,64,(x,w,h)=>{x.fillStyle='#f4f1e6';x.fillRect(0,0,w,h);x.fillStyle='#22262b';x.font='900 46px Arial';x.textAlign='center';x.fillText('17',w/2,48)});
+  const num=new T.Mesh(new T.PlaneGeometry(.5,.25),new T.MeshStandardMaterial({map:nt,roughness:.6}));num.position.set(G.x0-.09,H-.28,G.door.z-1.6);num.rotation.y=-Math.PI/2;g.add(num);
+  const lamp=new T.Mesh(new T.BoxGeometry(.18,.14,.24),new T.MeshStandardMaterial({color:a.lin('#2a2d31'),roughness:.5,metalness:.5}));lamp.position.set(G.x0-.16,H-.12,G.door.z+1.7);g.add(lamp);
+  const bulb=new T.Mesh(new T.BoxGeometry(.06,.08,.18),new T.MeshBasicMaterial({color:a.lin('#fff3c4')}));bulb.position.set(G.x0-.26,H-.17,G.door.z+1.7);g.add(bulb);
+  const st=new T.Mesh(new T.CircleGeometry(.9,20),new T.MeshBasicMaterial({color:a.lin('#2b2724'),transparent:true,opacity:.35,depthWrite:false}));st.rotation.x=-Math.PI/2;st.scale.set(1,.6,1);st.position.set(G.x0-1.4,.015,G.door.z+.4);g.add(st);
   /* the bench along the back wall with the bolt cutters on it */
   const wood=new T.MeshStandardMaterial({color:a.lin('#8a6440'),roughness:.8});const bench=new T.Mesh(new T.BoxGeometry(.7,.06,3.2),wood);bench.position.set(G.x1-.5,.9,G.door.z);g.add(bench);
   for(const dz of[-1.4,1.4]){const l=new T.Mesh(new T.BoxGeometry(.06,.9,.06),wood);l.position.set(G.x1-.5,.45,G.door.z+dz);g.add(l)}a.wmCol({x0:G.x1-.85,z0:G.door.z-1.6,x1:G.x1-.12,z1:G.door.z+1.6,h:.95});
@@ -222,25 +231,28 @@ function garageProps(M){const a=A(),T=a.THREE,G=places().garage,g=new T.Group();
 function talk(M,o){const S=S_(),a=A();if(M.talk)endTalk(M);
   if(!S||!S.view||typeof document==='undefined'){/* no engine: radio the lines, take the first option */for(const[w,t]of o.lines||[])a.radio(CAST[w]?CAST[w].name:w,t);if(o.rounds)for(const r of o.rounds){const op=r.options[0];if(op.then)op.then()}o.done&&o.done([]);return}
   const V=S.view({cast:CAST,cls:'bk-talk'}).mount(),Q=S.scene(V);const T={V,Q,o,pos:{x:a.P.pos.x,z:a.P.pos.z},picks:[],face:o.face||null,npc:o.npc||null,eyeY:o.eyeY,side:o.side};M.talk=T;
-  if(M.ui)M.ui.card.classList.remove('on');
+  if(M.ui)M.ui.card.classList.remove('on');if(!o.look)M.look=null;else{M.look=o.look}
+  if(o.stepUp&&T.face){/* walk up to them: about 1.8 m away, on your side */const f=T.face;let dx=T.pos.x-f.x,dz=T.pos.z-f.z;const l=Math.hypot(dx,dz)||1;if(l>2.2){const q={x:f.x+dx/l*1.8,z:f.z+dz/l*1.8};a.collide(q,.35);T.pos=q}}
   if(T.npc&&T.npc.root){/* they turn to you */const r=T.npc.root;r.rotation.y=Math.atan2(a.P.pos.x-r.position.x,a.P.pos.z-r.position.z)}
   for(const[w,t,op]of o.lines||[])Q.say(w,t,op||{});
   const round=i=>{const r=o.rounds&&o.rounds[i];if(!r){Q.run(()=>{try{o.done&&o.done(T.picks)}catch(e){console.warn(e)}});Q.run(()=>endTalk(M));return}
     Q.choose(done=>{V.prompt(r.who||o.who,r.tell||'');V.choices(r.options.map(op=>({text:op.text,reg:op.reg,tag:op.tag})),{time:0,onPick:k=>{const op=r.options[k];T.picks.push(op);Q.say('you',op.text);
       for(const[w,t]of op.reply||[])Q.say(w,t);if(op.then)Q.run(()=>op.then(op));done();round(i+1)}})})};
   round(0);return T}
-function endTalk(M){const T=M.talk;if(!T)return;try{T.V.unmount()}catch(e){}M.talk=null}
+function endTalk(M){const T=M.talk;if(!T)return;try{T.V.unmount()}catch(e){}if(T.o&&T.o.look&&M.look===T.o.look)M.look=null;M.talk=null}
 /* the dad stays put while somebody talks (no walking off mid-sentence), facing them */
 function talkTick(M,dt){const T=M.talk,a=A();if(!T)return;T.Q.update(dt);if(!M.talk)return;if(!a.CV){a.P.pos.x=T.pos.x;a.P.pos.z=T.pos.z;if(T.face){a.P.yaw=Math.atan2(-(T.face.x-a.P.pos.x),-(T.face.z-a.P.pos.z))}}}
 
 /* the job's camera: a slow push-in on a clue you're looking at, an over-the-shoulder two-shot while somebody talks */
 function camShot(M,dt){const a=A(),c=a.camera,P=a.P;let eye=null,at=null;
-  if(M.look&&M.look.t>0){M.look.t-=dt;const L=M.look,k=1-Math.max(0,L.t)/L.T;eye={x:L.from.x+(L.at.x-L.from.x)*.18*k,y:L.from.y-.15*k,z:L.from.z+(L.at.z-L.from.z)*.18*k};at=L.at}
+  if(M.look&&M.look.t>0){M.look.t-=dt;const L=M.look,k=1-Math.max(0,L.t)/L.T;eye={x:L.from.x+(L.at.x-L.from.x)*.15*k,y:L.from.y-.12*k,z:L.from.z+(L.at.z-L.from.z)*.15*k};at=L.at;hideDad(M,true)}
   else if(M.talk&&M.talk.face&&!a.CV){const T=M.talk,f=T.face,px=P.pos.x,pz=P.pos.z;let dx=f.x-px,dz=f.z-pz;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const rx=-dz,rz=dx;T.camT=(T.camT||0)+dt;
     const back=1.75-Math.min(.35,T.camT*.04),side=T.side||.62;eye={x:px-dx*back+rx*side,y:(T.eyeY||1.72),z:pz-dz*back+rz*side};at={x:f.x-rx*.12,y:f.y!=null?f.y:1.4,z:f.z-rz*.12}}
-  if(!eye)return undefined;c.position.set(eye.x,eye.y,eye.z);c.lookAt(at.x,at.y,at.z);return true}
-function lookAt(M,p,t){const a=A(),P=a.P;let dx=P.pos.x-p.x,dz=P.pos.z-p.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
-  M.look={t:t||2.4,T:t||2.4,at:{x:p.x,y:p.y||.08,z:p.z},from:{x:p.x+dx*1.25+dz*.35,y:1.05,z:p.z+dz*1.25-dx*.35}}}
+  if(!eye){hideDad(M,false);return undefined}c.position.set(eye.x,eye.y,eye.z);c.lookAt(at.x,at.y,at.z);return true}
+/* a close-up is about the thing, not the back of your jacket: the dad steps out of shot */
+function hideDad(M,on){const a=A(),d=a.P&&a.P.dude;if(!d)return;if(on){if(!M._hid)M._hid={v:d.root.visible};d.root.visible=false}else if(M._hid){if(!a.CV)d.root.visible=M._hid.v;M._hid=null}}/* (updPlayer shows him every frame: re-hide every frame) */
+function lookAt(M,p,t,o){const a=A(),P=a.P;o=o||{};let dx=P.pos.x-p.x,dz=P.pos.z-p.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;const back=o.back||1.05,side=o.side!=null?o.side:.45;
+  M.look={t:t||2.4,T:t||2.4,at:{x:p.x,y:p.y||.06,z:p.z},from:{x:p.x+dx*back+dz*side,y:o.h||1.45,z:p.z+dz*back-dx*side}}}
 /* radio, paced: the game's subtitle queue holds four lines */
 const SAYQ=[];let sayT=0;
 function say(who,t,front){const a=A();if(front){SAYQ.length=0;sayT=Math.max(2.2,t.length*.055);a.radio(CAST[who]?CAST[who].name:who,t,true)}else SAYQ.push([who,t])}
@@ -253,25 +265,26 @@ function music(id,k){const Au=AU();if(!Au)return;try{Au.music(id);if(k!=null&&Au
 /* ---------------- the laptop (Dadazon's Resale tab, opened from the porch) ---------------- */
 function listings(M){const R=RS();if(!R)return;R.clear('bike');const ago=['2 h ago','5 h ago','yesterday','3 days ago'];
   const wrong=(M_,txt)=>()=>{const m=A().M;if(m&&m.def&&m.def.id==='bike'){m.wrong++;m.elapsed+=TUNE.wrongBike;m.wrongNote=1}return{text:txt,done:true,note:'Not Tyler\'s. That cost you '+TUNE.wrongBike+' s.',toast:'Not it · +'+TUNE.wrongBike+' s'}};
-  R.add({id:'b_tyler',tag:'bike',pin:1,title:'RED BIKE. FAST. CARD IN SPOKES NOT INCLUDED.',price:40,seller:'bikez4cheap',where:'Riverside Flats',ago:ago[0],
+  /* mixed in with the evergreen listings (order 0,10,20,30,40): nothing points at the right one but its photo */
+  R.add({id:'b_tyler',tag:'bike',order:35,title:'RED BIKE. FAST. CARD IN SPOKES NOT INCLUDED.',price:40,seller:'bikez4cheap',where:'Riverside Flats',ago:ago[0],
     blurb:'kids bike 20in. red. fast. NO TEXTS chat only. pick up riverside',details:['20-inch','"Some wear"','Pick up: Riverside'],photo:drawListing(TYLER),
     chat:{prompt:'Message bikez4cheap',options:['Hi! Is the red bike still available? It\'s for my son.','hello fellow teen. is the bike still available. lol','Where\'d you get this bike?'],
       reply:i=>{const m=A().M;if(m&&m.def&&m.def.id==='bike'){m.msg=['real','joke','tough'][i];m.meetSet=true}
         return{text:['ya its available. 40 cash. ramos corner mart, riverside. 20 min','lmao ok. 40. ramos corner mart in riverside. dont be weird','..its mine. 40 or no deal. ramos corner mart. come alone lol'][i],
           done:true,ok:true,note:'Meet set: Ramos Corner Mart, Riverside. Bring $40.',toast:'Meet set · Ramos Corner Mart',close:1600}}}});
-  R.add({id:'b_unicorn',tag:'bike',title:'Kids bike, red, STREAMERS!! Like new',price:55,seller:'MomOf3onBirch',where:'Maple Heights',ago:ago[1],blurb:'My daughter outgrew it. Barely used. Streamers included, unicorn included.',
+  R.add({id:'b_unicorn',tag:'bike',order:5,title:'Kids bike, red, STREAMERS!! Like new',price:55,seller:'MomOf3onBirch',where:'Maple Heights',ago:ago[1],blurb:'My daughter outgrew it. Barely used. Streamers included, unicorn included.',
     details:['20-inch','Streamers','Like new'],photo:drawListing({col:'#d22a33',streamers:['#ff7ab6','#f4f1ea'],sticker:'uni',fender:true}),
     chat:{prompt:'Message MomOf3onBirch',options:['Is it still available?','Any dents on it?','Where did you get it?'],reply:wrong(M,'Still here! No dents, it\'s practically new. And it has a unicorn on it, so... probably not your son\'s? Unless?')}});
-  R.add({id:'b_dent',tag:'bike',title:'Red 20 inch, has character',price:30,seller:'garage_sale_greg',where:'Maple Heights',ago:ago[2],blurb:'Dent is from my nephew. Sticker is from my nephew. Streamers were eaten by my nephew.',
+  R.add({id:'b_dent',tag:'bike',order:45,title:'Red 20 inch, has character',price:30,seller:'garage_sale_greg',where:'Maple Heights',ago:ago[2],blurb:'Dent is from my nephew. Sticker is from my nephew. Streamers were eaten by my nephew.',
     details:['20-inch','Dent','No streamers (see nephew)'],photo:drawListing({col:'#c22a2a',dent:true,sticker:'dino',bell:true}),
     chat:{prompt:'Message garage_sale_greg',options:['Is it still available?','Did it ever have streamers?','Where did you get it?'],reply:wrong(M,'Streamers? The nephew ate them in 2023. This bike has been in my garage since the Bush administration. The second one.')}});
-  R.add({id:'b_cruiser',tag:'bike',title:'Red cruiser, ridden once (to the end of the driveway)',price:120,seller:'TedOnOak',where:'Maple Heights',ago:ago[3],blurb:'Bought it to get in shape. Got in a different shape.',
+  R.add({id:'b_cruiser',tag:'bike',order:15,title:'Red cruiser, ridden once (to the end of the driveway)',price:120,seller:'TedOnOak',where:'Maple Heights',ago:ago[3],blurb:'Bought it to get in shape. Got in a different shape.',
     details:['26-inch','Adult size','Basket'],photo:drawListing({col:'#b81f2a',big:true,bell:true,fender:true}),
     chat:{prompt:'Message TedOnOak',options:['Is it still available?','Is this a kid\'s bike?','Where did you get it?'],reply:wrong(M,'It\'s an adult bike, sir. Is your son... tall?')}})}
 function openLaptop(M){const a=A();if(!window.HT||!HT.Shop||!HT.Shop.open)return false;M.laptopOpen=true;M.laptopUsed=true;
   const close=()=>{M.laptopOpen=false;const H=window.__ht;if(!a.openShop&&H)H.running=true;/* a click on the game takes the pointer again, as after any menu */};
-  const opt={kind:'dadazon',tab:'resale',select:'b_tyler'};
-  if(typeof a.openShop==='function'){const ok=a.openShop('dadazon',{tab:'resale',select:'b_tyler',onClose:close});if(ok)return true}
+  const opt={kind:'dadazon',tab:'resale'};
+  if(typeof a.openShop==='function'){const ok=a.openShop('dadazon',{tab:'resale',onClose:close});if(ok)return true}
   /* fallback until the framework offers api.openShop: pause the loop like openMenu() does and release the pointer */
   const H=window.__ht;if(H)H.running=false;try{if(document.exitPointerLock)document.exitPointerLock()}catch(e){}
   HT.Shop.open(Object.assign(opt,{onClose:close}));return true}
@@ -346,7 +359,7 @@ J.register('bike',{
   load(M,s){if(!s)return;Object.assign(M,{found:(s.found||[]).slice(),lite:Object.assign({},s.lite||{}),wrong:s.wrong|0,owrong:s.owrong|0,nb:Object.assign({linda:0,phil:0,walt:0},s.nb||{}),msg:s.msg,meetSet:!!s.meetSet,
     caught:s.caught||null,caughtHow:s.caughtHow||null,carNear:!!s.carNear,lost:!!s.lost,usedCar:!!s.usedCar,usedBike:!!s.usedBike,tagged:s.tagged|0,_tags:(s.tags||[]).slice(),bikeIn:!!s.bikeIn,laptopUsed:!!s.laptopUsed});
     if(M.ui)boardPaint(M);M.resumed=true},
-  payout(M,ok){if(!ok)return[];const out=[];out.push(['Tyler\'s bike, unscratched',M.carNear?0:100]);
+  payout(M,ok){if(!ok)return[];const out=[];if(!M.carNear)out.push(['Tyler\'s bike, unscratched',100]);
     out.push([M.owrong?'Every bike home (a few wrong guesses)':'Every bike home',M.owrong?100:200]);
     if(M.caught)out.push(['Dez: talked down, not tied down',0]);if(M.wrong)out.push(['Wrong listings messaged ×'+M.wrong,0]);return out},
   medal:M=>!M.caught?1:M.caughtHow==='foot'&&!M.usedCar&&!M.usedBike?3:2,
@@ -375,7 +388,7 @@ function stRack(dt,M,F){const a=A(),P=a.P,Pl=places();const left=['lock','wrappe
   let near=null,nd=1e9;for(const id of left){const p=M.cluePts[id],d=Math.hypot(p.x-P.pos.x,p.z-P.pos.z);if(d<nd){nd=d;near=id}}
   if(near)F.target={x:M.cluePts[near].x,z:M.cluePts[near].z,label:'Clue'};
   for(const id of left){const p=M.cluePts[id];F.taps.push({x:p.x,z:p.z,r:TUNE.clueR,txt:{lock:'Look at the cut lock',wrapper:'Look at the wrapper',tracks:'Look at the tracks'}[id],fn:()=>{
-    clueAdd(M,id);lookAt(M,M.cluePts[id],2.6);cardShow(M,id,null,{t:4.5});sparkOff(M,id);
+    clueAdd(M,id);lookAt(M,M.cluePts[id],3.2);cardShow(M,id,null,{t:5});sparkOff(M,id);
     const lines={lock:[['you',"Cut clean through. Eight-year-olds don't carry bolt cutters. A grown-up did this."]],wrapper:[['you',"Choco-Lumps. Ramos Corner Mart price sticker. That's over the bridge."]],tracks:[['you',"Two fat tyres side by side. A cargo bike. A heavy one. Somebody hauled a load off this pad."]]}[id];sayAll(lines,true)}})}
   if(!left.length){a.CP.mark('leads');music('hub');sayAll([['tyler',"(on the phone) Did you find it? Is it there?"],['you',"Not yet, buddy. But somebody saw something. I'm going to knock on some doors."],
     ['tyler',"Mrs. Linda sees EVERYTHING. And I've got the laptop on the porch. People sell stuff on Resale. Mom says I'm not allowed to buy anything."]]);M.boardT=12}}
@@ -414,9 +427,9 @@ function stLeads(dt,M,F){const a=A(),P=a.P,Pl=places();const ids=['linda','phil'
     if(!M.nb[p.id]&&d<TUNE.appear&&!(M.nbD&&M.nbD[p.id])){const dd=person(NB[p.id].key);if(dd){(M.nbD||(M.nbD={}))[p.id]=dd;dd.root.position.set(p.x,0,p.z);dd.root.rotation.y=p.face>0?0:Math.PI}}
     const dd=M.nbD&&M.nbD[p.id];if(dd)a.pose(dd,dt,{moving:false,aim:false});
     if(!M.nb[p.id]&&!M.talk&&dd)F.taps.push({x:p.talk.x,z:p.talk.z,r:TUNE.doorR,txt:'Knock: talk to '+CAST[p.id].name,fn:()=>knock(M,p)})});
-  if(!M.talk&&!M.laptopOpen)F.taps.push({x:Pl.laptop.x,z:Pl.laptop.z,r:2.4,txt:'Look at the laptop with Tyler (Resale tab)',fn:()=>{sayAll([['tyler',"Mom says I can't touch the Resale tab. So you do it. Find my bike, Dad. It's the one with the streamers."]],true);openLaptop(M)}})}
+  if(!M.talk&&!M.laptopOpen)F.taps.push({x:Pl.laptop.x,z:Pl.laptop.z,r:2.4,txt:'Look at the laptop with Tyler (Resale tab)',fn:()=>{sayAll([['tyler',M.found.length>4?"Mom says I can't touch the Resale tab. So you do it. Look at the photos, Dad. Use what the neighbours said.":"It's red and it's got streamers. But LOTS of bikes are red. Maybe ask the neighbours what they saw first?"]],true);openLaptop(M)}})}
 function knock(M,p){const a=A(),n=NB[p.id];const Au=AU();if(Au)try{Au.tone({f:180,type:'triangle',d:.08,gain:.25});Au.tone({f:170,type:'triangle',d:.08,gain:.25,at:.16})}catch(e){}
-  const T=talk(M,{who:p.id,face:{x:p.x,z:p.z,y:1.45},npc:M.nbD&&M.nbD[p.id],lines:n.intro,rounds:[{who:p.id,tell:n.tell,options:n.options.map(op=>Object.assign({},op,{then:()=>{M.nb[p.id]=op.good?2:1;
+  const T=talk(M,{who:p.id,stepUp:true,face:{x:p.x,z:p.z,y:1.45},npc:M.nbD&&M.nbD[p.id],lines:n.intro,rounds:[{who:p.id,tell:n.tell,options:n.options.map(op=>Object.assign({},op,{then:()=>{M.nb[p.id]=op.good?2:1;
       if(!op.good){M.elapsed+=TUNE.slowTalk;a.feed('That took a while','info','+'+TUNE.slowTalk+' s')}
       clueAdd(M,p.id,!op.good);if(p.id==='phil')cardShow(M,'phil',drawDoorbell,{kicker:'Phil\'s doorbell camera',title:'Tue 3:12 pm · not a squirrel'});else cardShow(M,p.id,null)}}))}],
     done:()=>{const d=M.nbD&&M.nbD[p.id];if(d)d.root.rotation.y+=0;}});if(T)T.who=p.id}
@@ -472,7 +485,7 @@ function stChase(dt,M,F){const a=A(),P=a.P,Pl=places();if(!M.dez){/* retry from 
   else if(D.st==='gone'){F.objs.push(['Lost him. Follow the brrrrr of the spoke card (the pings on the minimap)',false]);if(D.ping)F.target={x:D.ping.x,z:D.ping.z,label:'brrrrr?'}}
   if(D.R&&D.st!=='hidden'){const dd=Math.hypot(me.x-R.pos.x,me.z-R.pos.z);const Au=AU();if(Au&&dd<60&&R.spd>1.2){D.brr=D.brr||{};RN().brrr(R.spd*(1-dd/80),dt,D.brr)}}}
 function talkDown(M,how){const a=A(),D=M.dez;if(M.caught)return;M.caught=true;M.caughtHow=how;D.st='talk';D.R.stop();clueAdd(M,'dez');
-  const fx=Math.cos(D.R.yaw),fz=-Math.sin(D.R.yaw);talk(M,{who:'dez',face:{x:D.R.pos.x+fx*.7,z:D.R.pos.z+fz*.7,y:1.25},npc:D.d,lines:[['dez',"(hands on knees) Man. You ride like... a dad. Like a really determined dad."]],rounds:[
+  const fx=Math.cos(D.R.yaw),fz=-Math.sin(D.R.yaw);talk(M,{who:'dez',stepUp:true,face:{x:D.R.pos.x+fx*.7,z:D.R.pos.z+fz*.7,y:1.25},npc:D.d,lines:[['dez',"(hands on knees) Man. You ride like... a dad. Like a really determined dad."]],rounds:[
     {who:'dez',tell:'[Dez is scared and trying very hard not to look it.]',options:[
       {reg:'real',text:"Nobody's in trouble yet. That's my son's bike. He's eight. He named it.",good:true,reply:[['dez',"(looks at the bike) ...It's got a NAME? Aw, man."]]},
       {reg:'joke',text:"I'm forty-three. I haven't sprinted since a Blockbuster closed. You owe me a knee.",reply:[['dez',"(almost laughs) ...You were really slow, though."]]},
@@ -541,7 +554,8 @@ function stBikes(dt,M,F){const a=A(),P=a.P,Pl=places();if(!M.loot)garageProps(M)
   if(!left.length&&!M.bikesDone){M.bikesDone=true;a.CP.mark('home');sayAll([['earl',"(phone) That's every one of them. Truck's on the way. Go give your boy his bike."],['you',"On it."]],true)}}
 function ident(M,l){const a=A(),L=LOOT.find(x=>x.id===l.id);const others=Object.keys(OWNERS).filter(k=>k!==L.owner);const k0=(l.id.charCodeAt(0)+M.owrong)%others.length;
   const ch=[L.owner,others[k0],others[(k0+3)%others.length]];const rot=l.id.length%3;for(let i=0;i<rot;i++)ch.push(ch.shift());
-  talk(M,{who:'you',face:{x:l.b.position.x,z:l.b.position.z,y:.7},eyeY:1.55,side:.5,lines:[['you','Tag: "'+L.tag+'". '+L.look2+'.']],rounds:[{who:'you',tell:'[Whose bike is this? Match it to Earl\'s list on your board.]',
+  lookAt(M,{x:l.b.position.x,z:l.b.position.z,y:.6},999,{back:1.9,side:.9,h:1.35});const lk=M.look;
+  talk(M,{who:'you',look:lk,lines:[['you','Tag: "'+L.tag+'". '+L.look2+'.']],rounds:[{who:'you',tell:'[Whose bike is this? Match it to Earl\'s list on your board.]',
     options:ch.map(k=>({reg:'real',tag:'Owner',text:OWNERS[k],reply:k===L.owner?[['you',pick(["That's "+OWNERS[k]+"'s. Obviously.","Yep. "+OWNERS[k]+". Going home.","Bingo. "+OWNERS[k]+"."])]]:[['you',pick(["No... no, that doesn't add up.","Hm. Wrong. Let me look again.","Nope. That's not it."])]],
       then:()=>{if(k===L.owner)tagDone(M,l);else{M.owrong++;M.elapsed+=TUNE.wrongOwner;a.feed('Wrong owner','bad','+'+TUNE.wrongOwner+' s')}}}))}]})}
 function tagDone(M,l,quiet){if(l.done)return;l.done=true;M.tagged++;boardPaint(M);if(l.tagMesh&&l.tagMesh.material)l.tagMesh.material.color.set(A().lin('#9fe58a'));if(!quiet){A().feed('Tagged: '+LOOT.find(x=>x.id===l.id).name,'trust','going home');A().addTrust(.5,'river')}}
@@ -608,6 +622,12 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.found)return nul
       tp(Pl.laptop.x+.5,Pl.laptop.z-1);a.useTap=true;return null}
   if(st==='meet'){if(a.CV){a.exitCar()}const D=M.dez;if(!D){tp(Pl.meet.x-30,Pl.meet.z+4);return null}walk({x:D.x-1,z:D.z},4);return null}
   if(st==='chase'){const D=M.dez;if(!D||!D.R)return null;if(o.fail){/* let him go */tp(Pl.meet.x-60,Pl.meet.z+2);return null}
+    if(o.ride&&D.st==='run'&&M.loaner){/* Earl's loaner: get on, then W and A/D after him */const K=a.keys;if(a.CV!==M.loaner){if(a.CV)a.exitCar();tp(M.loaner.pos.x+1,M.loaner.pos.z);a.enterCar(M.loaner);return null}
+      const c=a.CV,R=D.R;B.pt=(B.pt||0)-1;if(B.pt<=0||!B.path){B.pt=12;const pth=M.nav&&M.nav.path(c.pos.x,c.pos.z,R.pos.x,R.pos.z);B.path=pth?pth.pts:[{x:R.pos.x,z:R.pos.z}];B.pi=1}
+      let w=B.path[Math.min(B.pi,B.path.length-1)]||R.pos;while(B.pi<B.path.length-1&&Math.hypot(w.x-c.pos.x,w.z-c.pos.z)<2){B.pi++;w=B.path[B.pi]}
+      const want=Math.atan2(-(w.x-c.pos.x),-(w.z-c.pos.z));let e=want-c.yaw;while(e>Math.PI)e-=6.283;while(e<-Math.PI)e+=6.283;K.w=true;K.a=e>.06;K.d=e<-.06;K.shift=Math.abs(e)<.3;
+      if(c.spd<1&&(B.stk=(B.stk||0)+1)>45){B.stk=0;c.pos.x+=Math.sin(c.yaw)*1.5;c.pos.z+=Math.cos(c.yaw)*1.5;c.yaw=want;if(c.car){c.car.x=c.pos.x;c.car.z=c.pos.z;c.car.yaw=want}}return null}
+    if(o.ride){const K=a.keys;K.w=K.a=K.d=K.shift=false;if(a.CV){a.exitCar();return null}}
     if(D.st==='winded'){walk(D.R.pos,6);a.useTap=true;return null}if(D.st==='gone'){walk(D.ping||D.R.pos,7.2);return null}walk(D.R.pos,7.4);return null}
   if(st==='garage'){const G=Pl.garage;if(!M.adults.length){walk(G.front,7);return null}
     if(o.fail){/* stands across the street watching, too far to stop anyone */tp(G.front.x-14,G.front.z-10);return null}

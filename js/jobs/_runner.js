@@ -230,7 +230,7 @@ function release(d){if(!d)return;unride(d);riders.delete(d);d._rideRig=null}
 /* ---------------------------------------------------------------- chase nav: a tile grid with costs and a narrow flag */
 const COST={',':1,s:1.08,l:1.08,p:1.1,g:1.45,'.':1.2,o:2.2,S:1.3,v:1.1,V:1.1,P:1.1,d:1.2,k:1.2,i:1.2};
 function nav(a,win,o){o=o||{};const L=a.L,g=L.g,x0=win.x0,z0=win.z0,w=win.x1-win.x0+1,h=win.z1-win.z0+1,n=w*h;const pass=new Uint8Array(n),cost=new Float32Array(n),narrow=new Uint8Array(n);const TL=2;
-  const cg=L.cgrid,cols=L.colliders;const blockedAt=(x,z,r)=>{const list=cg?cg({x,z},r):cols;for(const c of list){if(c.off||c.ob)continue;if(c.h!=null&&c.h<.35)continue;if(x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1)return true}return false};
+  const cg=L.cgrid,cols=L.colliders;const blockedAt=(x,z,r)=>{const list=cg?cg({x,z},r):cols;for(const c of list){if(c.off)continue;if(c.h!=null&&c.h<.35)continue;if(x+r>c.x0&&x-r<c.x1&&z+r>c.z0&&z-r<c.z1)return true}return false};
   for(let j=0;j<h;j++)for(let i=0;i<w;i++){const X=x0+i,Z=z0+j,k=j*w+i;if(!a.walkable(X,Z))continue;const cx=X*TL+1,cz=Z*TL+1;if(blockedAt(cx,cz,o.r||.45))continue;
     pass[k]=1;const ch=g[Z]&&g[Z][X];cost[k]=COST[ch]||1.3}
   for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i;if(!pass[k])continue;let free=0;for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const ii=i+dx,jj=j+dz;if(ii>=0&&jj>=0&&ii<w&&jj<h&&pass[jj*w+ii])free++}
@@ -311,6 +311,7 @@ function glue(){const a=A();if(!a||typeof a.carFeel!=='function'||glue.done)retu
 function bikeStats(s){if(!s)return s;s.maxSpeed=FEEL.max;s.boostMax=FEEL.boostMax;s.accel=FEEL.acc;s.boostAccel=FEEL.boostAcc;s.brake=FEEL.brake;s.hbrake=FEEL.hbrake;s.turn=FEEL.turn;s.grip=FEEL.grip;s.steerResp=FEEL.steerResp;
   s.turnFade=.15;s.coast=2.2;s.revMax=1.6;s.revAccel=2.5;s.len=1.25;s.wid=.62;s.mass=.15;s.ramMult=.1;return s}
 function playerBike(a,x,z,yaw,o){glue();o=o||{};const b=bike(Object.assign({size:'adult',color:'#2f6f8f',accent:'#f4f1e6',bell:true,basket:true,fenders:true,whitewall:true,saddle:'#6b4a32',grips:'#6b4a32'},o));
+  b.userData.mod=true;b.userData.type='bike';b.userData.color=o.color||'#2f6f8f';/* registerCar takes game vehicle models (userData.mod); a bike has no wheels list, so HT.Vehicles.update leaves it alone */
   b.position.set(x,0,z);b.rotation.y=yaw+Math.PI/2;const e=a.registerCar(b,x,z);if(!e)return null;e.type='bike';e.name=o.owner||'Earl';e.owner=o.ownerKind||'job';e.yaw=yaw;e.home={x,z,yaw};e.bike=true;e._roof=[9];
   a.syncCar(e);return e}
 /* every frame while you ride: narrow body, wheels and crank, lean, the rider pose (in the pose hook) */

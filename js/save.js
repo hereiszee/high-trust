@@ -1502,7 +1502,7 @@ const Resale=(()=>{const L=[],state={},hooks={open:[]};let want=null;const ph={}
       (g,w,h)=>{bg(g,w,h,'#9fcf8a','#5f9a4a');for(let i=0;i<5;i++){const x=w*(.18+i*.16);g.fillStyle='#3e6fb8';g.fillRect(x-w*.04,h*.55,w*.08,h*.2);g.fillStyle='#f2d0b0';g.beginPath();g.arc(x,h*.5,w*.035,0,6.3);g.fill();g.fillStyle='#d23b3b';g.beginPath();g.moveTo(x-w*.045,h*.48);g.lineTo(x,h*.3);g.lineTo(x+w*.045,h*.48);g.fill();g.fillStyle='#eee';g.fillRect(x-w*.03,h*.52,w*.06,h*.05)}},
       ["They are available. As a set.","No.","They're watching the driveway. Come anytime."]));
   const get=id=>L.find(l=>l.id===id)||null;
-  const R={list:()=>L.slice().sort((a,b)=>(b.pin|0)-(a.pin|0)),get,
+  const R={list:()=>L.map((l,i)=>[l,l.order!=null?l.order:i*10]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]),get,
     add(l){if(!l||!l.id)return;const k=L.findIndex(x=>x.id===l.id);if(k>=0)L[k]=l;else L.push(l);delete ph[l.id];return l},
     remove(id){const k=L.findIndex(x=>x.id===id);if(k>=0)L.splice(k,1);delete state[id];delete ph[id]},
     clear(tag){for(const l of L.filter(l=>l.tag&&l.tag===tag))R.remove(l.id)},
