@@ -7,7 +7,7 @@ Every mission in High Trust goes through one registry, `HT.Jobs` (`js/jobs/_regi
 ## 1. Quick start
 
 1. `js/jobs/<id>.js` already exists as a one-line stub for every SPEC3 id (`taxi blitz talk mower overwatch sabotage hoa tail tow cargo crossing pawn cones moving arrest brake roundup bike heist patrol porch carwash finale`, and helpers `_stops _race _escort _props _runner`). Replace the whole file. Start from `js/jobs/_template.js`.
-2. `js/jobs/porch.js` (*Porch Light*) is the worked example: a home giver, two stages with a checkpoint, a delivery truck, a carried prop, unarmed runners, payout lines, medals and a scripted test player.
+2. `js/jobs/porch.js` (*Porch Light*) is the worked example, read top to bottom: a home giver (the laptop) with an unlock gate and a repeat rule (`unlock.when`), a seeded run whose seed and street ride in the [CP] snapshot (`save`/`load`), two stages with a checkpoint, a delivery truck, a carried prop you then sit in (`HT.People.force` for the seated pose), unarmed runners on `e.script`, a proportionate "a word first" choice strip (`HUD.kit.choices`, keys 1-3, auto-timeout), a car pirate, payout lines, medals, a result card filled from `J.on('hud')`, resources freed from `J.on('pose')`, and a scripted test player. Its real-input test is `dev/jobs/porch-input.js`; its timeline and screenshots `dev/jobs/porch.js`.
 3. Run `node dev/jobs-check.js <id> --retry --replay` until it says `all ok`. Then `node dev/jobs-registry.test.js`.
 
 Job files are loaded **after Stage A**, in idle time, one by one, in the order of `HT.Jobs.FILES` (helpers `_*.js` first). A file that is missing or empty registers nothing and is skipped. `await __ht.jobs.ready` resolves when all are in. A job that registers while the hub is up gets its giver and destination ring immediately.
@@ -156,7 +156,7 @@ A job worker owns `js/jobs/<id>.js`, `dev/jobs/<id>.js` and `docs/screenshots/jo
 | 4 | *Chain Reaction* | `js/jobs/bike.js`, `js/jobs/_runner.js` | `js/save.js` (laptop Resale tab) |
 | 4 | *Good Fences* + [ROLES] | `js/jobs/heist.js`, `js/crewplan.js`, `css/plan.css` | — |
 | 5 | *Watch Your Step* | `js/jobs/patrol.js` | — |
-| 5 | *Porch Light* | `js/jobs/porch.js` (exists as the wave-0 smoke test; wave 5 deepens it: Riverside porches, car pirates, `done.hoa` gate, every 2nd day) | — |
+| 5 | *Porch Light* | `js/jobs/porch.js` (the wave-0 smoke test, deepened in wave 5: Maple and Riverside streets, porch and car pirates, a word first, `done.hoa` gate, every 2nd day) | — |
 | 5 | *Suds Up* | `js/jobs/carwash.js` | — |
 | 5 | *Everybody Waves* | `js/jobs/finale.js` | — |
 

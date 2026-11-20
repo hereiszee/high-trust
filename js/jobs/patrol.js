@@ -17,7 +17,9 @@
 const ID='patrol';
 const TUNE={stops:[7,9],evChance:.42,evMin:2,evMax:4,window:270,windowNight:290,passFrac:.7,lookR:11,lookT:1.1,lookCos:.86,knockR:2.4,
   pay:60,perEv:20,trustKnock:.1,trustEv:.6,trustRun:5,trustWeek:12,pirateLost:42,dogR:2.6,signRuns:3};
-const NAMES=['Mrs. Ito','Mr. Ken','Barb','Mr. Patel','Grandma Lou','Kenji','Lucia','Mr. Ferreira','Denise','Mr. Okoro','The Hendersons','Mrs. Alvarez','Phil','Mr. Ruiz','Carol','Mrs. Novak'];
+/* residents' names: made up for the Watch, never a named story character (RESERVED is checked, so a name added to the pool by mistake is skipped) */
+const NAMES=['Mr. Ruiz','Mrs. Bergstrom','Mr. Mbeki','Mrs. Tanaka','Mr. Ostrowski','Mrs. Whitfield','The Abernathys','Mr. Sorensen','Ms. Quill','Mrs. Nakamura','Mr. Varga','The Fitzgeralds','Mrs. Haddad','Mr. Moreau','Mrs. Lindgren','Mr. Pruitt'];
+const RESERVED=/Ferreira|Adeyemi|Patel|Okafor|Lindqvist|Ramos|Hollis|Alvarez|Kim\b|Ito\b|Barb|Phil\b|Ken\b|Gary|Rick|Dave|Doug|Earl|Rosa|Benny|Dee\b|Duke|Hank|Jen\b|Tyler|Maddie|Sal\b|Malik|Henderson|Novak|Okoro|Denise|Carol|Dube|Petrakis|Benitez|Delgado|Kenji|Lucia|Lou\b/;
 const NBROLES=['nb_gran','nb_pops','nb_office','nb_sweater','nb_kenji','nb_marcus','nb_mei','nb_lucia'];
 const MOODS=['chatty','busy','jokey'];
 const LINES={
@@ -28,14 +30,14 @@ const LINES={
   chat:{first:["Oh! Is it Thursday already? Hi, Watch!","Oh, hello! Are you the Watch? You're the Watch!","Hi! Is everything okay? It's okay? Okay. Hi!"],
     second:["Back again! You're good at this.","The Watch! Twice in one month. I feel safe. And watched.","Oh, it's you. Good. Hi."],
     friend:["{me}! Come up, I made lemonade. Too much lemonade.","There's my favourite Watch dad. Don't tell the other one.","{me}! You want a cookie for the road? You want a cookie for the road."],
-    tip:["Waffles got out again, didn't he. That dog has a plan.","Somebody's van has been on the street since nine. Probably fine.","The kids are chalking again. It's very good this time.","Mr. Ken left his garage open. Again."],
+    tip:["Waffles got out again, didn't he. That dog has a plan.","Somebody's van has been on the street since nine. Probably fine.","The kids are chalking again. It's very good this time.","Somebody up the street left their garage open. Again."],
     opts:[{t:"Just making the rounds. Lovely evening.",r:'real'},{t:"Watch tip: lock it, light it, love it.",r:'joke'},{t:"Honestly I just like walking. My knee says otherwise.",r:'over'}],
     good:["Ha! Same time next week?","You're sweet. Doug's lucky.","I'll wave from the window!"],meh:["...Okay! Bye, Watch.","Mm-hm. Well. Carry on.","Right. Yes. Good."]},
   ev:{package:{find:"Parcel on the step. In plain view. Tempting fate.",fix:"Tucked it inside the screen door.",note:"Parcel on the step at {h}. Tucked it in. It says FRAGILE and also SNACKS."},
     sprinkler:{find:"Sprinkler's watering the sidewalk. The sidewalk is thriving.",fix:"Turned it off at the tap.",note:"Sprinkler flooding the walk at {h}. Off at the tap. Left a note: YOUR LAWN IS THE OTHER WAY :)"},
     dog:{find:"A dog with a tag. 'WAFFLES. If found, I live at {o}.' Hi, Waffles.",take:"Come on, Waffles. Home.",fix:"Waffles is home.",owner:"WAFFLES! You absolute menace. Thank you, Watch!",note:"Waffles (dog, very good) found by {h}. Walked him home to {o}. He walked me, technically."},
     chalk:{find:"Chalk. Across the whole sidewalk. There's a dragon.",note:"Chalk at {h}. A dragon, a sun and a very long hopscotch. Admired it. Rated it. 10/10."},
-    van:{find:"Unfamiliar van. Engine off. Guy in coveralls.",note:"Unfamiliar van at {h}. Asked. It's a plumber. Mrs. Ito's water heater. Everyone is fine."},
+    van:{find:"Unfamiliar van. Engine off. Guy in coveralls.",note:"Unfamiliar van at {h}. Asked. It's a plumber. Somebody's water heater gave up. Everyone is fine."},
     bins:{find:"Bins blown into the road. Somebody's recycling is touring the neighbourhood.",fix:"Bins back on the kerb.",note:"Bins in the road by {h}. Stood them back up. Somebody drinks a lot of sparkling water."},
     light:{find:"Porch light's out. A dark porch is an invitation. A rude one.",fix:"Light's back on. It was loose. Most things are.",note:"Porch light out at {h}. Tightened the bulb. Let there be porch."},
     late:{find:"Two kids, out past the streetlights. 'We're going home! Slowly!'",take:"Come on, you two. I'll walk you to your corner.",fix:"Home. Their mom says thank you. And 'INSIDE. NOW.'",note:"Two kids out late near {h}. Walked them to {o}. They told me about Minecraft the whole way."},
@@ -43,7 +45,7 @@ const LINES={
       note:"Porch pirate at {h}. {how}. Parcel back on the step."},
     prowler:{find:"Somebody trying car door handles. One by one.",talk:"Evening! That's not your car. Or that one.",back:"I was... checking they were locked. For safety. ...I'm going.",caught:"Okay! I'm sitting! I'm sitting.",note:"Somebody trying car doors near {h}. {how}."}},
   chalkOpts:[{t:"That's a great dragon.",ok:true,a:"It's a DOG! ...It's a dragon-dog. Thanks!"},{t:"Move it to the driveway, buddy, cars come through here.",ok:true,a:"Okay! Driveway chalk is better chalk anyway."},{t:"I'll hose that off later.",ok:false,a:"...You're the worst Watch."}],
-  vanOpts:[{t:"Wave. Ask what he's working on.",ok:true,a:"Water heater at the Ito place. Thirty years old. It's a miracle it's not a geyser."},{t:"Write down the plate. Casually.",ok:true,a:"(He watches you write. He waves. You wave.)",doug:"Plate logged. Doug will be so proud."},{t:"Call it in.",ok:false,a:"(Twenty minutes later: a very polite officer, a very confused plumber.)"}],
+  vanOpts:[{t:"Wave. Ask what he's working on.",ok:true,a:"Water heater at the yellow house. Thirty years old. It's a miracle it's not a geyser."},{t:"Write down the plate. Casually.",ok:true,a:"(He watches you write. He waves. You wave.)",doug:"Plate logged. Doug will be so proud."},{t:"Call it in.",ok:false,a:"(Twenty minutes later: a very polite officer, a very confused plumber.)"}],
   pirateOpts:[{t:"That's not yours, friend. Put it back.",ok:true},{t:"I know your aunt.",ok:true},{t:"Freeze, dirtbag!",ok:false}],
   rating:["Doug: 'You walked. That counts.'","Doug: 'Solid. Doug-solid.'","Doug: 'Textbook. There's no textbook.'","Doug: 'I'm putting you on the laminated card.'","Doug: 'I'm getting you a vest. A real one. With pockets.'"],
   noGuns:"The Watch doesn't carry. The Watch waves."};
@@ -132,8 +134,8 @@ function porchList(W,river){const L=[];if(river){for(const p of W.porches||[])L.
 function build(seed,variant){const a=A(),W=a.WORLD,Rn=rng(seed),c=centre(variant.river);const all=porchList(W,variant.river);
   const n=TUNE.stops[0]+Math.min(TUNE.stops[1]-TUNE.stops[0],Math.floor(variant.n/2));/* greedy nearest walk from the start, with a little shuffle so routes differ */
   const out=[];let cx=c.x,cz=c.z;const pool=all.filter(p=>Math.hypot(p.x-c.x,p.z-c.z)<120);/* a walk, not a doorstep crawl: each next porch 15-35 m on, round the block */while(out.length<n&&pool.length){const last=out[out.length-1];const sc=p=>{const d=Math.hypot(p.x-cx,p.z-cz);/* stay on the same street side when you can: crossing the block means walking round it */const other=last&&(p.face[0]!==last.face[0]||p.face[1]!==last.face[1]||Math.abs(last.face[1]?p.z-last.z:p.x-last.x)>4);return Math.abs(d-(variant.river?16:24))+Rn()*9+(other?(variant.river?28:8):0)+(out.length&&Math.hypot(p.x-c.x,p.z-c.z)<10?30:0)};pool.sort((p,q)=>sc(p)-sc(q));const p=pool.shift();out.push(p);cx=p.x;cz=p.z;for(let i=pool.length-1;i>=0;i--)if(Math.hypot(pool[i].x-p.x,pool[i].z-p.z)<9)pool.splice(i,1)}
-  const stops=out.map((p,i)=>{const fx=p.face[0],fz=p.face[1];const rel=plan().rel[p.id]||0;const h=hash(p.id+':'+(variant.river?'r':'m'));
-    return{i,id:p.id,x:p.x,z:p.z,fx,fz,sx:p.x+fx*2.6,sz:p.z+fz*2.6,dx:p.x-fx*.5,dz:p.z-fz*.5,st:'todo',look:0,ev:null,name:NAMES[h%NAMES.length],role:NBROLES[(h>>>4)%NBROLES.length],mood:MOODS[(h>>>8)%3],rel}});
+  const used=new Set(),pool_=NAMES.filter(n=>!RESERVED.test(n));const stops=out.map((p,i)=>{const fx=p.face[0],fz=p.face[1];const rel=plan().rel[p.id]||0;const h=hash(p.id+':'+(variant.river?'r':'m'));/* the same house keeps its resident; two houses on one route never share a name */let ni=h%pool_.length;while(used.has(ni))ni=(ni+1)%pool_.length;used.add(ni);
+    return{i,id:p.id,x:p.x,z:p.z,fx,fz,sx:p.x+fx*2.6,sz:p.z+fz*2.6,dx:p.x-fx*.5,dz:p.z-fz*.5,st:'todo',look:0,ev:null,name:pool_[ni],role:NBROLES[(h>>>4)%NBROLES.length],mood:MOODS[(h>>>8)%3],rel}});
   /* events: some of the porches, seeded; trouble only after the first patrol */
   const kinds=variant.night?['package','dog','van','bins','light','late']:['package','sprinkler','dog','chalk','van','bins'];for(let i=kinds.length-1;i>0;i--){const j=Math.floor(Rn()*(i+1));[kinds[i],kinds[j]]=[kinds[j],kinds[i]]}
   const nE=clamp(Math.round(stops.length*TUNE.evChance),TUNE.evMin,TUNE.evMax);const slots=stops.map((s,i)=>i).filter(i=>i>0);for(let i=slots.length-1;i>0;i--){const j=Math.floor(Rn()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]]}
