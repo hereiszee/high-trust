@@ -26,7 +26,7 @@ const D2R=Math.PI/180;
 /* the lot: grass at the river end of Dock St, in line with River Rd; gate on the north side */
 const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:310.9,g1:318.9,desk:{x:309.6,z:131.3},ring:{x:322,z:127}};
 const SLOTS=[{x:313.4,z:136.7},{x:317.1,z:136.7},{x:313.4,z:143.5},{x:317.1,z:143.5},{x:313.4,z:150.3}];/* front bumper points; cars face north */
-const SAL={x:221,z:55},SAL_RING={x:232,z:52},SAL_BAY={x:224,z:51};
+const SAL={x:221,z:55},SAL_RING={x:233,z:44.5},SAL_BAY={x:224,z:51};
 const OWNERS=[
   {id:'kim',name:'Mrs. Kim',who:'neighbour',v:0,type:'sedan',color:'#9db7cf',street:'Oak St',at:[340,16.5],
     hi:"That's my car! On a CHAIN!",good:[['Mrs. Kim',"My car! And it's been washed? Who washed it?"],['you',"Long story."]],
