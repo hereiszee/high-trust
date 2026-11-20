@@ -1154,7 +1154,9 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
     if(!u.built){if(d<R+40&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue}
     if(!u.ready){u.group.visible=false;continue}
     if(u.mg){const far=d>(ws.fly&&ws.fly.blod||ws.BLOD);if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
-    let vis=u.sp&&u.sp.always?true:d<(u.r&&!ws.fly?Math.min(u.r,R):R);   /* flying (OW.flight): everything to R, the small-radius units too */   /* u.r: a unit drawn only within r metres (SPEC3 sites and their dressing) */if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
+    let vis=u.sp&&u.sp.always?true:d<(u.r&&!ws.fly?Math.min(u.r,R):R);   /* flying (OW.flight): everything to R, the small-radius units too */
+    /* the old southern tree line hides the Fort Sensible strip (rows 80+) from street level in town: skip its units beyond 60 m */
+    if(vis&&!ws.fly&&u.box.z0>=158&&cz<156&&camera.position.y<25&&d>60)vis=false;   /* u.r: a unit drawn only within r metres (SPEC3 sites and their dressing) */if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
     u.visible=vis;u.group.visible=vis;
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}
