@@ -699,7 +699,7 @@ function init(M,F){const a=A(),Soc=SOC();if(!Soc){F.objs.push(['Dee is finding t
 function queueTick(M,dt){M.qT-=dt;if(M.qT>0||!M.queue.length)return;const l=M.queue.shift();radio(l[0],l[1]);M.qT=Math.min(4.2,1.6+l[1].length*.035)}
 
 /* ---------------- the disguise's tell slipping, G to fix ---------------- */
-function slipTick(M,dt,seen){const a=A(),k=a.keys,D=M.D;const g=!!k.g||M.fixTap;M.fixTap=false;const edge=g&&!M.gWas;M.gWas=!!k.g;
+function slipTick(M,dt,seen){const a=A(),k=a.keys,D=M.D;const edge=!!M.fixTap||(!!k.g&&!M.gWas);M.fixTap=false;M.gWas=!!k.g;
   if(edge){if(M.slip||M.ph==='fix'){M.slip=false;M.slipT=D.nextSlip();M.fixes=(M.fixes||0)+1;try{PPL().interact(a.P.dude)}catch(_){}tone({f:520,to:640,type:'triangle',d:.08,gain:.04,bus:'ui'});
       if(seen.length)D.bump(K.fixPen);radio('you',pickN(L.fixed,M.fixes),true);if(M.ph==='fix'){M.ph='walk';M.queue.push(L.coverTut);M.hint=''}}}
   if(M.ph==='fix'){M.slip=true}else if(!M.slip){M.slipT-=dt*((a.keys.shift&&a.P.moving)?2.2:1);if(M.slipT<=0){M.slip=true;M.slipN=(M.slipN||0)+1;tone({f:300,to:200,type:'sine',d:.12,gain:.03,bus:'ui'})}}
@@ -761,6 +761,8 @@ J.item('pawn_cam',{name:'Camera',use(M){camUse(M)}});
 /* the shutter is the left mouse button. index.html only calls fire() (and so the held item) while a gun may be drawn, and this job has
    def.noGuns: listen for the click ourselves (under pointer lock, the way a real player clicks), and for the touch fire button */
 if(typeof window!=='undefined'&&window.addEventListener&&typeof document!=='undefined'){
+  /* G fixes the disguise: catch the key press itself (a tap shorter than a frame never shows up in the held-key state) */
+  window.addEventListener('keydown',e=>{if(e.repeat||(e.key||'').toLowerCase()!=='g')return;const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||a.mode!=='mission'||M.state!=='go')return;M.fixTap=true},true);
   window.addEventListener('mousedown',e=>{if(e.button!==0||!document.pointerLockElement)return;const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||a.mode!=='mission')return;camUse(M)},true);
   let TB=false;J.on('hud',()=>{if(TB)return;const a=A();if(!a||!a.HUD||!a.HUD.on)return;TB=true;a.HUD.on('touch',(act,down)=>{if(act!=='fire'||!down)return;const M=A().M;if(M&&M.def.id==='pawn')camUse(M)})})}
 function camUse(M){if(!M||M.def.id!=='pawn'||M.state!=='go')return;if(M.useF===M.frame)return;M.useF=M.frame;const V=M.V;
