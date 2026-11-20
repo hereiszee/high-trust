@@ -1363,7 +1363,8 @@ function owMinimap(){const def=WORLD;
     under:Object.assign({},def.under,{p:'s','|':'s','=':',','!':',',b:',',G:',',U:',',o:'g','&':'g',r:'g',x:'g',A:'g',z:'g'}),
     legend:{r:'building',x:'building',A:'building',z:'hedge',o:'hedge','~':'water','=':'road','|':'walk','!':def.bridgeOpen?'road':'wall',G:'prop','&':'prop',b:'parking',p:'walk'}});
   owPins()}
-function owRegions(){const def=WORLD,v=owW();if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,trust:null},
+function owRegions(){const def=WORLD,v=owW(),tz=def.hoods.base?def.hoods.base.tz0*TILE:def.H*TILE;if(HUD.minimap.setRegions)HUD.minimap.setRegions([{name:'Maple Heights',x0:0,x1:100*TILE,z1:tz,trust:prog.trust},{name:'Route 9',x0:100*TILE,x1:142*TILE,z1:tz,trust:null},
+  ...(def.hoods.base?[{name:'Fort Sensible',x0:0,x1:142*TILE,z0:tz,trust:null}]:[]),/* Fort Sensible strip (js/base.js) */
   {name:v.visited.river?'Riverside Flats · '+owTierName(prog.trustR):'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
 function owPins(){const def=WORLD,v=owW(),pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}

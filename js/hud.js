@@ -684,8 +684,9 @@ function drawMap(st){
   c.imageSmoothingEnabled=MAP.z<4;
   if(MM.fog){c.globalAlpha=.1;c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);c.globalAlpha=1;c.drawImage(MM.rev,x0,y0,MM.base.width*sc,MM.base.height*sc)}else c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);
   /* regions (open world): name + trust bar above each, unvisited ones dimmed */
-  for(const r of MM.regions||[]){const[ax,ay]=MAP.w2s(r.x0,0),[bx,by]=MAP.w2s(r.x1,MM.H*MM.tile);
-    if(r.dim){c.fillStyle='rgba(13,17,22,.55)';c.fillRect(ax,ay,bx-ax,by-ay)}
+  for(const r0 of MM.regions||[]){/* z0/z1 (optional): a region that covers part of the height (Fort Sensible); its label sits under it */
+    const[ax,ay0]=MAP.w2s(r0.x0,r0.z0||0),[bx,by]=MAP.w2s(r0.x1,r0.z1!=null?r0.z1:MM.H*MM.tile),r=r0,ay=r.z0?by+34:ay0;
+    if(r.dim){c.fillStyle='rgba(13,17,22,.55)';c.fillRect(ax,ay0,bx-ax,by-ay0)}
     const cxr=(ax+bx)/2,w=Math.min(150,bx-ax-16);c.textAlign='center';c.textBaseline='bottom';c.font='800 13px "Barlow Condensed",sans-serif';c.fillStyle='rgba(0,0,0,.6)';c.fillText(r.name.toUpperCase(),cxr+1,ay-15);c.fillStyle='#fff';c.fillText(r.name.toUpperCase(),cxr,ay-16);
     if(r.trust!=null){c.fillStyle='rgba(255,255,255,.14)';c.fillRect(cxr-w/2,ay-12,w,5);c.fillStyle=r.trust>=70?'#7fdc6e':r.trust>=35?'#ffc94a':'#ff8a6b';c.fillRect(cxr-w/2,ay-12,w*Math.max(0,Math.min(1,r.trust/100)),5);
       c.font='700 11px "Barlow Condensed",sans-serif';c.textAlign='left';c.fillStyle='rgba(255,255,255,.75)';c.fillText('TRUST '+Math.round(r.trust)+'%',cxr+w/2+6,ay-6)}}
