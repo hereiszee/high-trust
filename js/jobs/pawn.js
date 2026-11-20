@@ -311,14 +311,14 @@ function buildParty(M){const a=A(),T3=a.THREE,V=M.vis,root=V.g=new T3.Group();ro
     for(let x=346.4;x<373;x+=2.3){const y=gy(x,z);P(G.box,m.white,x,y+.9,z,1.9,.2,.04);for(const k of[-1,1])for(const s of[-1,1])P(G.box,m.white,x+k*.82,y+.45,z+s*.18,.05,.94,.05,s*-.2,0,0);
       const bm=new T3.Mesh(G.box,sm);bm.scale.set(1.9,.2,.045);bm.position.set(x,y+.9,z+.004);root.add(bm)}
     for(const x of[345.2,373.6]){const y=gy(x,z);P(G.cyl,m.orange,x,y+.35,z,.03,.7,.03);P(G.cone,m.orange,x,y+.36,z,.17,.7,.17);P(G.box,m.orange,x,y+.02,z,.36,.04,.36)}
-    const poles=[345.7,359.4,373.0];for(const x of poles){const y=gy(x,z+.15);P(G.cyl8,m.steel,x,y+1.3,z+.15,.03,2.6,.03)}
+    const poles=[345.7,359.4,373.0];for(const x of poles){const y=gy(x,z+.15);P(G.cyl8,m.steel,x,y+1.6,z+.15,.03,3.2,.03)}
     const tri=[],cols=['#c3261f','#f2c230','#f4f1ea','#2f6fb5'];let ci=0;
-    for(let s=0;s<2;s++){const x0=poles[s],x1=poles[s+1],n=12;for(let i=0;i<n;i++){const u0=(i+.15)/n,u1=(i+.85)/n,um=(u0+u1)/2;const sag=u=>2.5-.55*Math.sin(Math.PI*u),X=u=>x0+(x1-x0)*u;
+    for(let s=0;s<2;s++){const x0=poles[s],x1=poles[s+1],n=12;for(let i=0;i<n;i++){const u0=(i+.15)/n,u1=(i+.85)/n,um=(u0+u1)/2;const sag=u=>3.15-.45*Math.sin(Math.PI*u),X=u=>x0+(x1-x0)*u;
       const c=a.lin(cols[ci++%4]);tri.push([X(u0),sag(u0),X(u1),sag(u1),X(um),sag(um)-.32,c])}}
     const pos=[],col=[],zz=z+.15,yb=gy(352,zz);for(const t of tri){pos.push(t[0],yb+t[1],zz,t[2],yb+t[3],zz,t[4],yb+t[5],zz);for(let k=0;k<3;k++)col.push(t[6].r,t[6].g,t[6].b)}
     const bg=own(M,new T3.BufferGeometry());bg.setAttribute('position',new T3.Float32BufferAttribute(pos,3));bg.setAttribute('color',new T3.Float32BufferAttribute(col,3));bg.computeVertexNormals();
     const bn=new T3.Mesh(bg,own(M,new T3.MeshStandardMaterial({vertexColors:true,side:T3.DoubleSide,roughness:.8})));root.add(bn);
-    const lp=[];for(let s=0;s<2;s++){const x0=poles[s],x1=poles[s+1];for(let i=0;i<24;i++){const u=i/24,v=(i+1)/24;lp.push(x0+(x1-x0)*u,yb+2.5-.55*Math.sin(Math.PI*u),zz,x0+(x1-x0)*v,yb+2.5-.55*Math.sin(Math.PI*v),zz)}}
+    const lp=[];for(let s=0;s<2;s++){const x0=poles[s],x1=poles[s+1];for(let i=0;i<24;i++){const u=i/24,v=(i+1)/24;lp.push(x0+(x1-x0)*u,yb+3.15-.45*Math.sin(Math.PI*u),zz,x0+(x1-x0)*v,yb+3.15-.45*Math.sin(Math.PI*v),zz)}}
     const lg=own(M,new T3.BufferGeometry());lg.setAttribute('position',new T3.Float32BufferAttribute(lp,3));root.add(new T3.LineSegments(lg,own(M,new T3.LineBasicMaterial({color:0x333333}))))}
   /* -- feather flags -- */
   {const ft=sign(M,['GRAND OPENING'],{w:128,h:512,bg:'#c3261f',fg:'#ffd23f',edge:'#ffd23f',size:30,shadow:false});
@@ -455,7 +455,7 @@ function watchers(M){const P=A().P,out=[];if(!M.pp)return out;for(const id in M.
    ===================================================================== */
 const CSS=`
 .pw-ov{position:absolute;inset:0;pointer-events:none;z-index:6;font-family:var(--ht-ui,system-ui,sans-serif)}
-body.soc-on .pw-ov{opacity:0}
+body.soc-on .pw-ov,body.soc-on .ht-tc{opacity:0}
 .pw-pin{position:absolute;left:0;top:0;transform:translate(-50%,-100%);white-space:nowrap;display:flex;align-items:center;gap:6px;padding:4px 9px 4px 6px;border-radius:999px;
   background:rgba(14,16,22,.78);color:#f4f1ea;font:700 12px/1 var(--ht-ui,system-ui);letter-spacing:.02em;box-shadow:0 2px 10px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);transition:opacity .25s}
 .pw-pin i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font:900 11px/1 var(--ht-ui,system-ui);font-style:normal;background:#f2c230;color:#1b1c20}
@@ -471,7 +471,7 @@ body.soc-on .pw-ov{opacity:0}
 .pw-dots span{font:900 20px/1 var(--ht-ui,system-ui);letter-spacing:2px;color:#1b1c20;margin-top:-8px}
 .pw-dots u{position:absolute;left:6px;right:6px;bottom:4px;height:3px;border-radius:2px;background:#e0d6c2;overflow:hidden}.pw-dots u i{display:block;height:100%;background:#e8611a;transform-origin:left}
 .pw-dots.watch{background:#ffe2d6}.pw-dots.watch span{color:#b8231e}
-.pw-hint{position:absolute;left:50%;top:22%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;background:rgba(14,16,22,.82);color:#fff;font:700 15px/1.2 var(--ht-ui,system-ui);box-shadow:0 4px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .3s}
+.pw-hint{position:absolute;left:50%;top:31%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;background:rgba(14,16,22,.82);color:#fff;font:700 15px/1.2 var(--ht-ui,system-ui);box-shadow:0 4px 18px rgba(0,0,0,.35);opacity:0;transition:opacity .3s}
 .pw-hint.on{opacity:1}.pw-hint kbd{display:inline-block;min-width:22px;padding:2px 6px;margin:0 3px;border-radius:5px;background:#f2c230;color:#1b1c20;font:900 13px/1.1 var(--ht-ui,system-ui);text-align:center}
 .pw-vf-meter{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);width:min(360px,70vw);height:14px;border-radius:7px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);overflow:hidden}
 .pw-vf-meter .z{position:absolute;top:0;bottom:0;background:rgba(127,209,138,.55)}.pw-vf-meter .n{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;background:#fff;box-shadow:0 0 6px #fff}
@@ -710,7 +710,7 @@ function slipTick(M,dt,seen){const a=A(),k=a.keys,D=M.D;const edge=!!M.fixTap||(
 function coverTick(M,dt){const a=A(),P=a.P,D=M.D;if(!D||!M.pp)return[];const x=P.pos.x,z=P.pos.z;
   const seen=watchers(M);const zone=inBack(x,z)||(x>355.9&&x<358.1&&z>30.2&&z<32.1)?'staff':'public';M.zone=zone;
   const crowd=Object.values(M.pp).filter(p=>p.c.kind==='guest'&&hyp(p.pos.x-x,p.pos.z-z)<K.crowdR).length;
-  const loitering=zone==='public'&&nearStaffDoor(x,z)&&!M.got;M.loiterT=loitering?(M.loiterT||0)+dt:0;
+  const loitering=zone==='public'&&nearStaffDoor(x,z)&&!M.haveIt;M.loiterT=loitering?(M.loiterT||0)+dt:0;
   const running=!!(a.keys.shift&&P.moving)&&!a.CV,st={seen,running,crouch:!!P.crouch&&!a.CV,zone,access:!!(M.deniseOk||M.vip),carry:!!M.book,slipped:!!M.slip&&M.ph!=='fix',talking:!!M.chat,crowd,loiter:M.loiterT>K.loiterT};
   if(a.CV||M.ph==='van'||M.ph==='fix'&&!seen.length){M.cov=st;return seen}
   const r=D.tick(dt,st);M.cov=st;
@@ -750,7 +750,7 @@ function pageShot(M){const a=A(),P=a.P;if(M.pages>=K.pages)return false;if(hyp(P
   if(M.cov&&M.cov.seen.length)M.D.bump(-.06);
   if(M.pages>=K.pages){M.queue.push(L.havePages);gotIt(M)}else M.hint='Page '+M.pages+' of '+K.pages+'. <kbd>Click</kbd> for the next one';return true}
 function takeBook(M){if(M.book)return;M.book=true;M.D.bump(K.book);if(M.vis.ledger)M.vis.ledger.visible=false;tone({f:160,to:120,type:'triangle',d:.12,gain:.06});carryBook(M,true);M.queue.push(L.haveBook);gotIt(M)}
-function gotIt(M){if(M.got)return;M.got=true;M.hint='';music('tension',.35)}
+function gotIt(M){if(M.haveIt)return;M.haveIt=true;M.hint='';music('tension',.35)}
 function carryBook(M,on){const a=A(),T3=a.THREE,V=M.vis,d=a.P.dude;if(V.carry&&V.carry.parent)V.carry.parent.remove(V.carry);V.carry=null;if(!on||!d)return;const h=d.gunHold||(d.rb&&d.rb.body.getObjectByName('Bip01_R_Hand'));if(!h)return;
   const b=new T3.Mesh(V.G.box,matC(M,'#1f5a3a',{roughness:.6}));b.scale.set(.05,.34,.26);b.position.set(0,-.05,-.08);h.add(b);V.carry=b}
 
@@ -788,7 +788,7 @@ J.register('pawn',{
     endLine:"Pastor Dee doesn't hand the ledger to anyone. She spends the week at nine kitchen tables. Cash-4-Yer-Stuff closes on Friday, and by the end of the month the storefront smells like bread: Ramos Bakery, with a line out the door at eight."},
 
   start(M,o){M.vis={own:[]};M.queue=[];M.qT=1.2;M.said={};M.t=0;M.frame=0;M.seed=(o&&o.checkpoint?7331:1234)+((M.replay?1:0)*17);
-    M.ph='van';M.talked={};M.pages=0;M.book=false;M.got=false;M.ticket=false;M.raffled=false;M.prize=false;M.archFixed=false;M.balloonLine=false;M.vip=false;M.deniseOk=false;
+    M.ph='van';M.talked={};M.pages=0;M.book=false;M.haveIt=false;M.ticket=false;M.raffled=false;M.prize=false;M.archFixed=false;M.balloonLine=false;M.vip=false;M.deniseOk=false;
     M.ladderO={};M.ladderOn=false;M.songCd=0;M.canapeCd=0;M.songs=0;M.canapes=0;M.slip=false;M.slipT=K.slipFirst;M.slipK=0;M.hint='';M.watchAt={};M.ev=null;M.photo=null;M.chat=null;
     M.D=null;M.dsave=null;M.ready=false;M.item='pawn_cam';LIVE.M=M;
     try{const O=H().ow;if(O&&O.traffic)O.traffic(0,{player:A().P.pos,car:null,camera:A().camera,off:true})}catch(_){}/* the lane is closed for the party */
@@ -815,7 +815,7 @@ J.register('pawn',{
     /* ---- stages ---- */
     const inB=inBack(P.pos.x,P.pos.z);
     if(M.stage==='party'&&inB&&M.D&&M.ph!=='van'){a.CP.mark('office');M.queue.unshift(L.inBack);music('tension',.25)}
-    if(M.stage==='office'&&M.got&&!inB&&P.pos.z>30.6){a.CP.mark('exit');if(!M.raffled)startRaffle(M,false);else M.queue.push(L.outside);music('tension',.45)}
+    if(M.stage==='office'&&M.haveIt&&!inB&&P.pos.z>30.6){a.CP.mark('exit');if(!M.raffled)startRaffle(M,false);else M.queue.push(L.outside);music('tension',.45)}
     if(M.stage==='exit'&&!M.exitOpen&&P.pos.z>38.6&&!inShop(P.pos.x,P.pos.z)){M.exitOpen=true;M.queue.push(L.outside)}
     objectives(M,F,dt);pins(M);
     /* leash: the party is the job */
@@ -828,11 +828,11 @@ J.register('pawn',{
     M.score=Math.round((D?D.min:0)*100)},
 
   save(M){const D=M.D;return{ph:M.ph==='van'?'van':'mingle',dis:D?D.save():(M.dsave||null),talked:Object.assign({},M.talked),
-    f:{bl:!!M.balloonLine,vip:!!M.vip,dn:!!M.deniseOk,tk:!!M.ticket,rf:!!M.raffled,pz:!!M.prize,af:!!M.archFixed,sg:M.songs|0,cn:M.canapes|0,pg:M.pages|0,bk:!!M.book,got:!!M.got,ft:!!(M.said&&M.said.firstTalk),fx:M.fixes|0},
+    f:{bl:!!M.balloonLine,vip:!!M.vip,dn:!!M.deniseOk,tk:!!M.ticket,rf:!!M.raffled,pz:!!M.prize,af:!!M.archFixed,sg:M.songs|0,cn:M.canapes|0,pg:M.pages|0,bk:!!M.book,got:!!M.haveIt,ft:!!(M.said&&M.said.firstTalk),fx:M.fixes|0},
     t:Math.round((M.t||0)*10)/10}},
   load(M,s){if(!s)return;M.ph=s.ph==='van'||!s.dis?'van':'mingle';M.dsave=s.dis||null;M.talked=Object.assign({},s.talked||{});const f=s.f||{};
-    M.balloonLine=!!f.bl;M.vip=!!f.vip;M.deniseOk=!!f.dn;M.ticket=!!f.tk;M.raffled=!!f.rf;M.prize=!!f.pz;M.archFixed=!!f.af;M.songs=f.sg|0;M.canapes=f.cn|0;M.pages=f.pg|0;M.book=!!f.bk;M.got=!!f.got;M.fixes=f.fx|0;
-    if(f.ft)M.said.firstTalk=1;M.t=s.t||0;M.queue=[];if(M.ph!=='van')M.queue.push(['dee',M.got?"Okay. Deep breath. You've got it. Now walk out like you came for the hot dogs.":"Okay. Deep breath. Fix your face. Try the back office again."]);
+    M.balloonLine=!!f.bl;M.vip=!!f.vip;M.deniseOk=!!f.dn;M.ticket=!!f.tk;M.raffled=!!f.rf;M.prize=!!f.pz;M.archFixed=!!f.af;M.songs=f.sg|0;M.canapes=f.cn|0;M.pages=f.pg|0;M.book=!!f.bk;M.haveIt=!!f.got;M.fixes=f.fx|0;
+    if(f.ft)M.said.firstTalk=1;M.t=s.t||0;M.queue=[];if(M.ph!=='van')M.queue.push(['dee',M.haveIt?"Okay. Deep breath. You've got it. Now walk out like you came for the hot dogs.":"Okay. Deep breath. Fix your face. Try the back office again."]);
     if(M.D)M.D=null;M.ready=false},
   payout(M,ok){if(!ok)return[];const out=[],D=M.D;
     if(D&&D.min>=K.neverMin)out.push(['Never questioned · cover never under 40%',K.pay.never]);
@@ -844,7 +844,7 @@ J.register('pawn',{
     try{if(Sv&&Sv.storefront)Sv.storefront(null,'pawn','bakery')}catch(_){}try{a.save()}catch(_){}},
   camera(dt){const a=A(),M=a.M;if(!M||M.def.id!=='pawn'||M.state!=='go')return undefined;return camHook(M,dt)||undefined},
   hud(st){const M=A().M;if(!M||M.def.id!=='pawn')return;const D=M.D;
-    st.weapon={name:D?LOOK[D.id].item:'Phone',type:'camera',mag:Math.max(0,K.pages-M.pages),reserve:0,magSize:K.pages,reloading:0,holstered:false,firemode:M.stage==='office'?'Ledger page':'Shutter'};st.weapons=[];
+    st.weapon={name:D?LOOK[D.id].item:'Phone',type:'camera',mag:Math.max(1,K.pages-M.pages),reserve:0,magSize:K.pages,reloading:0,holstered:false,firemode:M.stage==='office'?'Ledger page':'Shutter'};st.weapons=[];
     if(D&&M.ph!=='van')st.gadgets=[{id:'pawnfix',label:M.slip?'Fix it!':'Disguise',key:'G',on:!!M.slip}];
     if(M.photo&&M.photo.st==='aim'&&st.crosshair)st.crosshair=Object.assign({},st.crosshair,{hidden:true})},
   pose(dt){const a=A(),M=a.M;if(!M||M.def.id!=='pawn')return;
@@ -865,7 +865,7 @@ function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
       F.taps.push({x:r.x,z:r.z,r:2.2,txt:'Open the back: pick a disguise',fn:()=>pickOpen(M)})}return}
   if(M.ph==='fix'){F.objs.push(['Press G to straighten your '+(D.id==='mustache'?'mustache':D.id==='press'?'lanyard':'cap'),false]);M.hint=LOOK[D.id].slipLine+' Press <kbd>G</kbd> to fix it.';return}
   /* the van: change disguise (party stage only) */
-  if(M.stage==='party'&&!M.got){const r=vanRear(M);if(r&&!a.CV)F.taps.push({x:r.x,z:r.z,r:2,txt:'Change disguise ('+LOOK[D.id].label+' now)',fn:()=>pickOpen(M)})}
+  if(M.stage==='party'&&!M.haveIt){const r=vanRear(M);if(r&&!a.CV)F.taps.push({x:r.x,z:r.z,r:2,txt:'Change disguise ('+LOOK[D.id].label+' now)',fn:()=>pickOpen(M)})}
   /* talk to anybody close */
   if(M.pp&&!M.chat&&!(M.photo&&M.photo.st==='aim'))for(const id in M.pp){const p=M.pp[id];const d=hyp(p.pos.x-P.pos.x,p.pos.z-P.pos.z),tr=id==='dj'?3.2:K.talkR;if(d>tr)continue;
     const kind=p.mode==='visit'?'visit':CHAT[id]?id:'small';if(p.mode==='event'&&!['dj','kev'].includes(id)&&M.ev&&M.ev.kind==='raffle')continue;
@@ -890,7 +890,7 @@ function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
     if(!ok){F.objs.push(['· Help Marco with the balloon arch',M.archFixed]);F.objs.push(["· Vince's photo op with the giant scissors",M.vip]);F.objs.push(['· Request a song from DJ Layaway',M.songs>0]);F.objs.push(['· Pigs in blankets (the snack table)',M.canapes>0])}
     F.objs.push(['Optional: a raffle ticket from Kev',M.ticket]);
     if(!M.photo&&!M.ladderOn||M.archFixed&&!M.photo)F.target={x:S.staffDoor.x,z:S.staffDoor.z+1.4,label:'STAFF ONLY'}}
-  else if(M.stage==='office'){F.objs.push(['Get the ledger: photograph 3 pages (click) or take the book (E)',M.got]);if(!M.got)F.target={x:S.desk.x,z:S.desk.z,label:'The ledger'};
+  else if(M.stage==='office'){F.objs.push(['Get the ledger: photograph 3 pages (click) or take the book (E)',M.haveIt]);if(!M.haveIt)F.target={x:S.desk.x,z:S.desk.z,label:'The ledger'};
     else{F.objs.push(['Leave the office',false]);F.target={x:S.staffDoor.x,z:S.staffDoor.z+1.2,label:'Out'}}
     F.objs.push(['Ledger: '+M.pages+'/3 pages'+(M.book?' + the book':''),M.pages>=3||M.book])}
   else if(M.stage==='exit'&&!M.exitOpen){F.objs.push([M.ev&&M.ev.kind==='raffle'?'Walk out the front door while everybody watches the raffle':'Walk out the front door',false]);F.target={x:S.door.x,z:S.door.z+2.2,label:'Front door'}}
@@ -899,7 +899,7 @@ function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
   if(M.D&&M.D.cover<.35&&M.cov&&M.cov.seen.length)F.objs.push(['Cover is low: walk away, mingle in a crowd, or make small talk',false,'warn'])}
 function nearest(M,ok){const P=A().P;let b=null,bd=1e9;for(const id in M.pp){const p=M.pp[id];if(ok&&!ok(p))continue;const d=hyp(p.pos.x-P.pos.x,p.pos.z-P.pos.z);if(d<bd){bd=d;b=p}}return b}
 function vanRear(M){const c=M.car||A().VAN;if(!c||!c.pos)return null;let l=4.8;try{l=A().carSize(c).l||l}catch(_){}return{x:c.pos.x+Math.sin(c.yaw)*(l/2+.7),z:c.pos.z+Math.cos(c.yaw)*(l/2+.7)}}
-function pins(M){if(!M.pp||M.ph==='van'||M.ph==='fix'||M.stage!=='party'||M.chat)return;const ok=M.deniseOk||M.vip,y=gy(358,40);
+function pins(M){if(!M.pp||M.ph==='van'||M.ph==='fix'||M.stage!=='party'||M.chat||M.photo&&M.photo.st==='aim')return;const ok=M.deniseOk||M.vip,y=gy(358,40);
   const pin=(id,p,label,o)=>ovPin(M,id,p.x,(p.y||0)+y,p.z,label,o);
   pin('dj',{x:S.dj.x,y:2.45,z:S.dj.z},'DJ Layaway',{icon:'♪',sub:M.songs?'played the song':'song requests',done:M.songs>0&&M.songCd>0});
   if(!ok){pin('marco',{x:S.ladder.x,y:2.55,z:S.ladder.z},'Balloon arch',{icon:'○',sub:M.archFixed?'fixed':'help Marco',done:M.archFixed});
@@ -921,8 +921,9 @@ function ladderDone(M){M.archFixed=true;M.ladderOn=false;M.balloonLine=true;M.D.
 
 /* ---------------- cameras: the two-shot in a conversation, the viewfinder for Vince ---------------- */
 function camHook(M,dt){const a=A(),cam=a.camera,P=a.P,T3=a.THREE;
-  if(M.photo&&M.photo.st==='aim'){const v=M.pp.vince;const y0=gy(P.pos.x,P.pos.z);const eye=new T3.Vector3(P.pos.x,y0+1.62,P.pos.z),tg=new T3.Vector3(v.pos.x,gy(v.pos.x,v.pos.z)+1.35,v.pos.z);
+  if(M.photo&&M.photo.st==='aim'){const v=M.pp.vince;const y0=gy(P.pos.x,P.pos.z);const tg=new T3.Vector3(v.pos.x,gy(v.pos.x,v.pos.z)+1.35,v.pos.z),dx=tg.x-P.pos.x,dz=tg.z-P.pos.z,l=hyp(dx,dz)||1,eye=new T3.Vector3(P.pos.x+dx/l*.45,y0+1.62,P.pos.z+dz/l*.45);if(P.dude&&P.dude.root){P.dude.root.visible=false;M.hidDad=true}
     cam.position.copy(eye);cam.lookAt(tg);if(M.fov0==null)M.fov0=cam.fov;if(cam.fov!==38){cam.fov=38;cam.updateProjectionMatrix()}return true}
+  if(M.hidDad&&P.dude&&P.dude.root){P.dude.root.visible=true;M.hidDad=false}
   if(M.fov0!=null){cam.fov=M.fov0;cam.updateProjectionMatrix();M.fov0=null}
   if(M.chat&&M.chat.kind!=='pick'&&M.chat.p&&M.chat.p.d){const p=M.chat.p,dx=p.pos.x-P.pos.x,dz=p.pos.z-P.pos.z,l=hyp(dx,dz)||1,fx=dx/l,fz=dz/l,rx=-fz,rz=fx;const y0=gy(P.pos.x,P.pos.z);
     const want=new T3.Vector3(P.pos.x-fx*1.35+rx*.62,y0+1.78,P.pos.z-fz*1.35+rz*.62),look=new T3.Vector3(p.pos.x,gy(p.pos.x,p.pos.z)+1.5,p.pos.z);
@@ -999,7 +1000,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.def.id!=='pawn')r
     if(B.step===3){if(M.deniseOk){B.step=4;return null}talk('denise');return null}
     if(B.step===4){tp(357,32.6);B.w=4;B.step=5;return null}
     if(B.step===5){tp(357,29.2);B.w=6;return null}}
-  if(M.stage==='office'){if(!M.got||M.pages<K.pages||!M.book){if(hyp(P.pos.x-S.desk.x,P.pos.z-S.desk.z)>.6){tp(S.desk.x,S.desk.z);face(S.ledger.x,S.ledger.z);B.w=4;return null}
+  if(M.stage==='office'){if(!M.haveIt||M.pages<K.pages||!M.book){if(hyp(P.pos.x-S.desk.x,P.pos.z-S.desk.z)>.6){tp(S.desk.x,S.desk.z);face(S.ledger.x,S.ledger.z);B.w=4;return null}
       if(M.pages<K.pages){if((M.steady||0)<=0){camUse(M);B.w=3}return null}if(!M.book){a.useTap=true;B.w=6;return null}}
     tp(357,32.4);B.w=4;return null}
   if(M.stage==='exit'){if(!M.exitOpen){if(P.pos.z<35.5){tp(358,35.6);B.w=3;return null}tp(358,39.6);B.w=6;return null}
