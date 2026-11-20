@@ -1335,12 +1335,14 @@
     ATL = buildAtlas(); INTL = buildInteriors(); MAT = makeMaterials();
     return HT.Buildings;
   }
-  /* 0 = day, 1 = night: drives porch lights, sign glow and lit interiors */
-  function setNight(k) {
-    NIGHT = clamp(k, 0, 1); if (!MAT) return;
-    MAT.glow.color.setRGB(lerp(1.4, 6, NIGHT), lerp(1.1, 4.6, NIGHT), lerp(.75, 2.8, NIGHT));
-    MAT.interior.color.setScalar(lerp(.5, .9, NIGHT));
-    for (const m of SIGNS) m.emissiveIntensity = lerp(.25, 1.1, NIGHT);
+  /* 0 = day, 1 = night: drives porch lights, sign glow and lit interiors. k = 0 is exactly the material set's daytime look.
+     gain (default 1) scales the tone-mapped parts (interiors, signs) against a darker night exposure; the glow is unlit HDR. */
+  function setNight(k, gain) {
+    NIGHT = clamp(k, 0, 1); if (!MAT) return; const g = gain > 0 ? gain : 1;
+    MAT.glow.color.setRGB(lerp(2, 6, NIGHT), lerp(1.6, 4.6, NIGHT), lerp(1.05, 2.8, NIGHT));
+    /* lamps on inside: a warm room light */
+    MAT.interior.color.setRGB(lerp(.5, 5.5 * g, NIGHT), lerp(.5, 4.1 * g, NIGHT), lerp(.5, 2.4 * g, NIGHT));
+    for (const m of SIGNS) m.emissiveIntensity = lerp(.25, 1.1 * g, NIGHT);
   }
   function stats(g) { let tris = 0, draws = 0; g.traverse(o => { if (o.isMesh) { draws++; tris += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3; } }); return { draws, tris }; }
   HT.Buildings = { init, house, shop, shell, setNight, stats, get materials() { return MAT; }, STYLES };
