@@ -1167,12 +1167,22 @@ OW.buildAll=()=>{const ws=WS;if(!ws)return 0;let n=0;if(ws.active){stepUnit(ws.a
 OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const W_=HW();if(W_&&W_.quality)for(const u of ws.units)if(u.B)W_.quality(q,u.B);ws.R=q==='low'?160:q==='high'?240:200;ws.DETAIL=q==='low'?50:q==='high'?110:65;ws.BLOD=q==='low'?45:q==='high'?110:60;ws.MID=q==='low'?80:q==='high'?160:110;ws.TUFT=q==='high'?60:36;for(const u of ws.units){u.near=null;u.tnear=null;u.mnear=null;u.far=null}};
 
 /* ================= cache reuse, bridge, regions ================= */
-OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;
-  for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch'))lvl.group.remove(o);   /* index.html's static batcher merges parked cars once per level: keep its meshes */
+OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;const gone=[];
+  for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch')){lvl.group.remove(o);gone.push(o)}   /* index.html's static batcher merges parked cars once per level: keep its meshes */
+  disposeDropped(gone,lvl.group);
   if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
   if(ws.traffic){for(const t of ws.traffic.cars)ws.traffic.g.remove(t.v);ws.traffic.cars.length=0}
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};
+/* the cached world level is reused for every hub visit and world job: what the last visit added (hub signs and labels, giver rings,
+   job props, van parts) is dropped here, so free its GPU geometry, materials and canvas/image textures too, or every job run leaks them.
+   Anything still used by the scene is kept; a disposed shared asset simply re-uploads if it is shown again. Render-target textures are never touched. */
+function disposeDropped(gone,from){if(!gone.length)return;let root=from;while(root.parent)root=root.parent;
+  const live=new Set(),mats=o=>o.material?(Array.isArray(o.material)?o.material:[o.material]):[],texs=m=>{const out=[];for(const k in m){const v=m[k];if(v&&v.isTexture)out.push(v)}return out};
+  root.traverse(o=>{if(o.geometry)live.add(o.geometry);for(const m of mats(o)){live.add(m);for(const t of texs(m))live.add(t)}});
+  const freeTex=t=>{const im=t.image;if(live.has(t)||t.isDepthTexture||!im)return;if(!(im.getContext||im.nodeName||typeof im.close==='function'||im.data))return;live.add(t);t.dispose()};
+  for(const g of gone)g.traverse(o=>{if(o.geometry&&!live.has(o.geometry)){live.add(o.geometry);o.geometry.dispose()}
+    for(const m of mats(o)){if(live.has(m))continue;live.add(m);for(const t of texs(m))freeTex(t);m.dispose()}})}
 OW.openBridge=()=>{const ws=WS;if(!ws)return false;const def=ws.def,G=HT.WorldGen;const was=def.bridgeOpen;if(G&&G.openBridge)G.openBridge(def);
   for(const b of def.barricade){ws.lvl.g[b.tz][b.tx]=',';ws.G[b.tz][b.tx]=','}
   for(const c of ws.barricadeCols){c.x0=c.x1=-1e4;c.z0=c.z1=-1e4;c.off=true}

@@ -780,7 +780,14 @@ function snd(kind,vol=1){const A=AU();if(A){try{A.legacy(kind,vol)}catch(e){}ret
 /* ================= CHARACTERS ================= */
 const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 /* realistic skinned people when js/people.js and its GLBs are in; the box dudes below stay as the fallback */
-function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
+function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});
+  if(m.ok&&!m._htReg&&typeof m.make==='function'){const mk=m.make.bind(m);m.make=(...a)=>{const d=mk(...a);if(d&&d.root)DUDE_REG.push(d.root);return d};m._htReg=true}/* every skinned person, wherever it is made (jobs, neighbours, givers) */
+  return m.ok?m:null}
+/* skinned people made so far that may still need their bone texture released (see dudeSweep, run by clearChars) */
+const DUDE_REG=[];
+function dudeSweep(){const keep=[];for(const r of DUDE_REG){let a=r;while(a.parent)a=a.parent;if(a===scene){keep.push(r);continue}
+    dudeFree(r)}/* out of the scene: release it and stop holding on to it (one that comes back is simply re-textured by three.js) */
+  DUDE_REG.length=0;DUDE_REG.push(...keep)}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
   if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
@@ -1248,14 +1255,20 @@ function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<sm
 /* ================= SPAWNING ================= */
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
 function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
-function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs])scene.remove(e.dude.root);enemies=[];allies=[];npcs=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
+/* every enemy spawned since the last clear, including ones a job takes out of enemies[] (tow's peaceful attendants): all of them leave the scene at clearChars,
+   or each failed or retried run leaves their models behind */
+let spawnedEnemies=[];
+/* a skinned character's bone texture (one GPU texture per skeleton, made on its first render) is only freed by hand: release it when the character leaves
+   the scene for good (three.js rebuilds it if the same character is ever drawn again) */
+function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}})}
+function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};
   const d=makeDude(look);equip(d,gun,{gold:boss});
   const hp=boss?420:shotgunner?90:75;
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false};
-  d.root.position.copy(e.pos);enemies.push(e);addChar(e);
+  d.root.position.copy(e.pos);enemies.push(e);spawnedEnemies.push(e);addChar(e);
   e.id='e'+(eidSeq++);e.maxHp=e.maxhp;e.role=AI.roleFor(gun,boss);e.dmgMul=(M&&M.i===0?.8:1)*(boss?1.4:1);if(M&&M.squads&&L.nav)(sq||squadFor(x,z)).add(e);
   if(boss){const tag=document.createElement('div');tag.className='tag down';tag.textContent='THE PORCH PIRATE KING';$('tags').appendChild(tag);e.tag=tag}
   return e;
@@ -3137,7 +3150,7 @@ function frMake(crew,x,z,gun,kind){gun=gun||pickW(crew.guns);
   const e={kind:'enemy',dude:d,pos:V3(x,0,z),yaw:rand(0,6.28),hp,maxhp:hp,state:'idle',boss:false,gun,alert:false,last:null,target:null,thinkT:rand(0,.3),fireT:rand(.5,1.5),burst:0,strafe:1,strafeT:rand(1,2),step:null,stepT:0,triedSurr:false,
     fr:crew,hostile:false,drawn:false,born:simT,spawnSeen:seen0};
   e.id='e'+(eidSeq++);e.maxHp=hp;e.role=AI.roleFor(gun,false);e.dmgMul=.75;collide(e.pos,.35);d.root.position.copy(e.pos);enemies.push(e);addChar(e);FR.members.push(e);return e}
-function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
+function frRemove(e){const i=enemies.indexOf(e);if(i>=0)enemies.splice(i,1);const j=FR.members.indexOf(e);if(j>=0)FR.members.splice(j,1);scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag){e.tag.remove();e.tag=null}
   if(e.group){const g=e.group;g.members=g.members.filter(m=>m!==e);if(!g.members.length)frDropGroup(g)}if(e.squad){const s=e.squad;s.members=s.members.filter(m=>m!==e);s.releaseFire(e)}FR.dirtyTargets=true}
 function frDropGroup(g){const i=FR.groups.indexOf(g);if(i>=0)FR.groups.splice(i,1);if(g.spot){g.spot.group=null;g.spot.freeAt=simT+40}}
 const frOut=e=>e.state==='dead'||e.state==='cuffed'||e.state==='surrender';
