@@ -6,7 +6,7 @@
  *   const car = HT.CarAI.make('sedan', {x,z,yaw});
  *   HT.CarAI.drive(car, {thr,st,boost,hb,sport}, dt, collide)   the player's VAN model (index.html updVan), upgrade-aware
  *   HT.CarAI.follow(car, points, opts) / flee(car, G, opts) / wander(car, G, opts)   attach an AI controller
- *   HT.CarAI.step(car, dt, ctx)                  run the controller (ctx: {van, G, collide, rnd})
+ *   HT.CarAI.step(car, dt, ctx)                  run the controller (ctx: {van, G, collide, rnd, speedCap(x,z,car)->m/s|null})
  *   HT.CarAI.ram(van, car, opts)                 circle-pair contact: separation, speed exchange, damage, PIT
  *   HT.CarAI.impact(van, speed, front, inMission) wall/prop damage; HT.CarAI.state(van) -> {stage, speedMul}
  *   HT.CarAI.simulateChase(opts)                 headless chase used by tests and dev/world.html
@@ -196,6 +196,7 @@ function step(c,dt,ctx){ctx=ctx||{};const ai=c.ai;if(!ai||c.dead)return null;let
   if(ai.mode==='follow'){const p=track(c,ai.pts,Math.max(3.5,c.spd*.5+2));
     let ts=ai.speed;const ca=cornerAhead(ai.pts,p.i,c.x,c.z,14);if(ca<12)ts=Math.min(ts,ai.turnSpeed);
     if(ctx.van&&Math.hypot(ctx.van.x-c.x,ctx.van.z-c.z)>ai.waitDist)ts=0;
+    if(ctx.speedCap){const k=ctx.speedCap(c.x,c.z,c);if(k!=null&&k<ts)ts=Math.max(0,k)}/* [CONES] per-position speed cap (cones, a roadblock ahead) */
     if(ctx.blocked&&ctx.blocked(c))ts=0;ai.blocked=ts===0;
     if(p.end&&Math.hypot(p.x-c.x,p.z-c.z)<2.5){ts=0;ai.done=true}
     hit=aiMove(c,p.x,p.z,ts,dt,ctx.collide);return hit}
@@ -208,6 +209,7 @@ function step(c,dt,ctx){ctx=ctx||{};const ai=c.ai;if(!ai||c.dead)return null;let
   const n=G.nodes[ai.next];const p=track(c,ai.pts,Math.max(5,c.spd*.5+3));
   if(Math.hypot(n.x-c.x,n.z-c.z)<5||p.end){ai.prev=ai.cur;ai.cur=ai.next;pickNext(c,ctx.van)}
   let ts=ai.max;const ca=cornerAhead(ai.pts,ai.tr.i,c.x,c.z,16);if(ca<12)ts=Math.min(ts,ai.turnSpeed);
+  if(ctx.speedCap){const k=ctx.speedCap(c.x,c.z,c);if(k!=null&&k<ts)ts=Math.max(0,k)}
   if(ai.mode==='flee'&&ctx.van){const d=Math.hypot(ctx.van.x-c.x,ctx.van.z-c.z);
     ts*=d>80?.65:d>50?.8:d<20?1.05:1;              // rubber band (SPEC2 B.7, tuned in dev/test-carai.js: d>80 x.65, d>50 x.8, d<20 x1.05)
     if(d>ai.escapeDist){ai.escapeT+=dt;if(ai.escapeT>=ai.escapeTime)ai.escaped=true}else ai.escapeT=0}
