@@ -78,14 +78,15 @@ On the apron by Hangar 2; E climbs in. Controls (taught on screen the first time
 
 Flight model: thrust, drag (top speed ~190 mph, ~250 with the afterburner), gravity along the climb, coordinated turns from bank,
 a stall below ~74 mph (the nose drops, the tower nags), take-off past ~94 mph with the nose up. A landing needs the gear down, a
-sink rate under ~1400 fpm, wings roughly level. Anything else is a comic crash: a puff, a "boing", and the dad ejects; the jet is
+sink rate under ~1400 fpm, wings roughly level. With the gear down and the throttle back, the last few metres settle onto the
+wheels (an arcade flare, so the jet doesn't float the length of the runway); S at idle brakes hard enough to stop on 258 m. Anything else is a comic crash: a puff, a "boing", and the dad ejects; the jet is
 back on the apron ("it's a rental"). The parachute drifts you back toward the post (W A S D steer). The HUD shows speed (mph),
 altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the callsign and STALL / PULL UP / GEAR warnings.
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
   neighbours' lines.
-* **Buzzing your house**: under ~160 ft within 80 m of home: Linda and the kids come out on the lawn and wave (the family's own
-  People models, untouched).
+* **Buzzing your house**: under ~200 ft within 90 m of home: Linda and the kids come out on the lawn and wave (the family's own
+  People models, untouched; they stream in when you climb into the jet, and if they aren't loaded yet they come out as soon as they are).
 * **Under the bridge**: the Route 9 bridge sits on the water, so nothing flies under it. North of town the river valley now has
   **the High Bridge**, an old rail viaduct 15 m up (built from the backdrop's own terrain heights). Flying under it is an achievement.
 * Boundary: past 1.5 km the tower calls you back; past 2.2 km a gentle hand turns you home.
@@ -117,4 +118,12 @@ press, hold and click is a Playwright event.
 
 ## Weaknesses
 
-See the end of `docs/screenshots/base/evidence.txt` and the notes in the worker report.
+* The bot aims by setting the view the way a mouse would (`P.yaw`/`P.pitch`): headless Chromium refuses pointer lock, so raw
+  mouse movement is not exercised. Every key press, hold and click is a real Playwright event.
+* The flight model is arcade on purpose (turns at ~2.6× real g so a 460 m town is flyable). The base-check autopilot needs long
+  straight finals (runway 27 from 700 m out, the river run from 700 m south of town) to be reliable.
+* The first flight builds the far-terrain ring and the roof lids: one slower frame (~35 ms headless) on the climb out.
+* Headless numbers are software-rendered; draw-call and triangle counts are the comparable figures, milliseconds are not.
+* The family can take a moment to come out on the very first buzz of a session if their models haven't finished streaming.
+* The Route 9 bridge sits on the water, so the "under the bridge" achievement is the new High Bridge north of town.
+* `riverside-ingame` job 0 fails the same way on `origin/main` (not caused by the base).
