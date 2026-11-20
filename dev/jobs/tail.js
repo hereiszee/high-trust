@@ -23,7 +23,12 @@ const FAILAT=arg('failat',''),SHOTS=!!arg('shots',false),FR=+arg('frames',14000)
       const want=d0<12?Math.max(1.5,d0*.4):13;k.a=dd>.05;k.d=dd<-.05;k.w=e.spd<want;k.s=e.spd>want+2;H.step(1)}for(const x of['w','a','s','d'])k[x]=false;return{mode:H.mode,id:H.M&&H.M.def.id}})
   :await ev(()=>{const H=window.__ht,i=H.jobs.index('tail'),d=H.L.dests[i],V=H.VAN;if(H.CV)H.exitVehicle();V.pos.set(d.x,0,d.z+3);V.yaw=0;V.spd=0;H.syncVan&&H.syncVan();H.P.pos.set(d.x+2.5,0,d.z+3);H.enterVan();H.step(2);
     V.pos.set(d.x,0,d.z);if(V.car){V.car.x=d.x;V.car.z=d.z;V.car.yaw=0}H.syncVan&&H.syncVan();for(let k=0;k<60&&H.mode!=='mission';k++)H.step(1);return{mode:H.mode,id:H.M&&H.M.def.id}});
-  console.log('start',JSON.stringify(st));if(st.mode!=='mission'){console.log(errs);await b.close();process.exit(1)}
+  console.log('start',JSON.stringify(st));
+  /* the route must be drivable: no static collider (props, fences, crates) within a car's half-width of his lane */
+  const clear=await ev(()=>{const H=window.__ht,M=H.M,L=H.L;if(!M||!M.P)return{err:'no route'};const bad=[];const job=new Set([...(M.covers||[]),...(M.oncoming||[]),M.tg].filter(Boolean).map(v=>v.col));
+    for(let s=0;s<M.P.len;s+=1){const q=M.P.pt(s),r=.95;for(const c of L.colliders){if(job.has(c)||c.k==='traffic'||c.x1-c.x0>60||c.z1-c.z0>60)continue;if(q.x+r>c.x0&&q.x-r<c.x1&&q.z+r>c.z0&&q.z-r<c.z1){bad.push([Math.round(s),Math.round(q.x),Math.round(q.z),c.k||'?']);break}}}
+    return{len:Math.round(M.P.len),blocked:bad.length,first:bad.slice(0,8)}});
+  console.log('route clear',JSON.stringify(clear));if(st.mode!=='mission'){console.log(errs);await b.close();process.exit(1)}
   /* staged screenshot cameras (a dev-only system camera hook): window.__CAM={pos:[x,y,z],look:[x,y,z]} */
   await ev(()=>{const H=window.__ht;window.HT.Jobs.on('camera',()=>{const C=window.__CAM;if(!C)return undefined;const c=H.camera;
     if(C.follow){/* behind and above the dad's car, looking at the sedan: shows the gap and whatever is in it */const e=H.CV,t=H.M&&H.M.tg&&H.M.tg.rail;if(!e||!t)return undefined;const dx=t.x-e.pos.x,dz=t.z-e.pos.z,l=Math.hypot(dx,dz)||1;

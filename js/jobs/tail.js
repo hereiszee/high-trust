@@ -32,12 +32,14 @@ const START={x:210,z:18};                                  /* the dad parks in t
 const PUMP={x:227.2,z:28.3,yaw:-Math.PI/2};               /* the grey sedan at pump 4, nose east */
 const EXIT=[[227.2,28.3],[232,28.6],[236.4,31],[239.4,35.4],[241.5,40.4],[245,43.7],[252,44.5]];
 /* the route: Route 9 east, over the bridge, then a figure-eight tour of Riverside that ends on 4th St at Dock St */
-const RT=[[203,43],[315,43],[347,43],[379,43],[411,43],[411,71],[411,99],[411,127],[379,127],[347,127],[315,127],[315,99],[315,71],[347,71],[379,71],
-  [379,43],[379,15],[411,15],[443,15],[443,43],[443,71],[443,99],[411,99],[379,99],[347,99],[347,71],[347,43],[379,43],[411,43],[411,71],[411,99],[411,127]];
-const DROP=[[409.5,128],[408.6,130.4],[406.4,132.6],[404.8,134.8],[403.6,137.3],[401.8,139.3],[399.6,139.9]];/* into the old lot through the gate */
-const STOPS=[4,10,16,21,24];                             /* full stops at these route nodes (he's a careful driver: it's suspicious) */
-const LIGHT_NODE=27;                                      /* the red light: 3rd & Main, eastbound, his second time through */
-const FIG8_NODE=15;                                       /* where the loop crosses itself */
+/* (4th St between Ash and Mill runs through the community garden's props and 2nd St between Ash and Main through the laundromat's
+   walls: the route never uses either; dev/jobs/tail.js checks the whole lane for static colliders) */
+const RT=[[203,43],[315,43],[347,43],[379,43],[411,43],[443,43],[443,71],[443,99],[443,127],[411,127],[379,127],[347,127],[315,127],[315,99],[315,71],[347,71],[379,71],
+  [379,43],[379,15],[411,15],[443,15],[443,43],[443,71],[443,99],[411,99],[379,99],[347,99],[315,99],[315,71],[315,43],[347,43],[379,43],[379,71],[379,99],[379,127],[411,127]];
+const DROP=[[397,128.6],[400.6,129.4],[403.2,131.6],[404,134.6],[403.2,137.6],[401.4,139.4],[399.6,139.9]];/* east along Dock, then right through the gate */
+const STOPS=[5,8,12,18,23];                              /* full stops at these route nodes (he's a careful driver: it's suspicious) */
+const LIGHT_NODE=31;                                      /* the red light: 3rd & Main, eastbound, his second time through */
+const FIG8_NODE=17;                                       /* where the loop crosses itself */
 const TRUCK={x:393,z:135.5,yaw:Math.PI/2};               /* the box truck, nose west, its back (and the plate) toward Dock St east */
 const SEDAN_PARK={x:399.6,z:139.9};
 const WATCH=[{x:429,z:126.4,label:'Watch spot · Dock St'},{x:442.6,z:138,label:'Watch spot · 5th St'}];
@@ -210,8 +212,8 @@ function dropRail(M,v){const a=A();if(v.obj.parent)v.obj.parent.remove(v.obj);v.
 
 /* the route as road-graph nodes and a right-lane polyline */
 function buildRoute(M){const a=A(),Tl=TL(),G=a.roads();if(!G||!Tl)return false;const ids=RT.map(([x,z])=>G.nearestNode(x,z));M.ids=ids;
-  const lane=G.lane(ids);let k=0;while(k<lane.length-1&&lane[k].x<254)k++;
-  const pts=EXIT.map(([x,z])=>({x,z})).concat(lane.slice(k),DROP.map(([x,z])=>({x,z})));const P=Tl.poly(pts);M.P=P;
+  const lane=G.lane(ids);let k=0;while(k<lane.length-1&&lane[k].x<254)k++;let e=lane.length;while(e>k+2&&lane[e-1].z>120&&lane[e-1].x>394)e--;
+  const pts=EXIT.map(([x,z])=>({x,z})).concat(lane.slice(k,e),DROP.map(([x,z])=>({x,z})));const P=Tl.poly(pts);M.P=P;
   /* where each route node sits along the poly (searched forward from the last one, so loops resolve in order) */
   let hint=0;M.nodeS=ids.map((id,i)=>{const n=G.nodes[id];if(i===0)return 0;const r=P.project(n.x,n.z,hint+60,90);hint=r.s;return r.s});
   M.turns=ids.map((id,i)=>{if(i===0||i===ids.length-1)return null;const A_=G.nodes[ids[i-1]],B=G.nodes[id],C=G.nodes[ids[i+1]];const y1=yawTo(B.x-A_.x,B.z-A_.z),y2=yawTo(C.x-B.x,C.z-B.z),d=wrap(y2-y1);
@@ -245,7 +247,7 @@ J.register('tail',{
     /* stops along the way */
     const st=[];for(const k of STOPS)st.push({s:M.nodeS[k]-6.6,t:K.stopT,kind:'stop',node:k});
     st.push({s:M.nodeS[LIGHT_NODE]-6.8,t:K.lightT,kind:'light',node:LIGHT_NODE,onHold:()=>{M.lightHold=true},onGo:()=>{M.lightHold=false;M.lightDone=true}});
-    if(!(o&&o.checkpoint))carsHome(M);const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[24]+14,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
+    if(!(o&&o.checkpoint))carsHome(M);const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[27]+12,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
     M.tg.rail.stops=st.sort((p,q)=>p.s-q.s);M.tg.rail.max=K.r9Max;
     M.truck=truckModel();M.truck.position.set(TRUCK.x,a.groundAt(TRUCK.x,TRUCK.z),TRUCK.z);M.truck.rotation.y=TRUCK.yaw;a.wmAdd(M.truck,true);doorSet(M.truck,0);
     {const S=7.6,W=2.4,s=Math.abs(Math.sin(TRUCK.yaw)),c=Math.abs(Math.cos(TRUCK.yaw));a.wmCol({x0:TRUCK.x-(s*S/2+c*W/2),x1:TRUCK.x+(s*S/2+c*W/2),z0:TRUCK.z-(c*S/2+s*W/2),z1:TRUCK.z+(c*S/2+s*W/2)})}
@@ -424,8 +426,8 @@ function neighbourCars(){const a=A();return(a.L&&a.L.cars||[]).filter(e=>e&&e.ob
    brought it back by now. Cars within 12 m of the route go home (never the car you're sitting in) */
 function carsHome(M){const a=A();for(const e of neighbourCars()){if(e===a.VAN||e===a.CV||!e.home)continue;const h=e.home;if(Math.hypot(e.pos.x-h.x,e.pos.z-h.z)<1.5&&Math.abs(wrap(e.yaw-h.yaw))<.2)continue;
     if(M.P.project(h.x,h.z).d>12)continue;e.pos.set(h.x,0,h.z);e.yaw=h.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}}}
-function swapSpot(M){let best=null;for(const e of neighbourCars()){if(e===A().VAN)continue;const r=M.P.project(e.pos.x,e.pos.z,700,260);if(r.d>9||r.s<480||r.s>900)continue;if(!best||r.s>best.s)best={car:e,s:r.s}}
-  if(!best)return null;let s=best.s+30;for(let k=0;k<6;k++){if(M.nodeS.every(n=>Math.abs(n-s)>11))break;s+=6}return{car:best.car,stopS:s}}
+function swapSpot(M){let best=null;for(const e of neighbourCars()){if(e===A().VAN)continue;const r=M.P.project(e.pos.x,e.pos.z,700,260);if(r.d>9||r.s<420||r.s>M.lotS-150)continue;if(!best||r.s>best.s)best={car:e,s:r.s}}
+  if(!best)return null;/* just round the next corner after the car: out of his mirror while you swap */const nx=M.nodeS.find(n=>n>best.s+8);let s=nx!=null?nx+12:best.s+30;for(let k=0;k<6;k++){if(M.nodeS.every(n=>Math.abs(n-s)>11))break;s+=4}return{car:best.car,stopS:s}}
 /* he waits a little longer while you're parked beside the swap car (never more than 10 s extra) */
 function pullUntil(M){const p=playerCar(),c=M.swapCar;if(M.swaps||!c||!p.e)return true;return!(Math.hypot(c.pos.x-p.x,c.pos.z-p.z)<9&&M.t-(M.pullAt||0)<K.pullT+10)}
 function pullHold(M){if(M.swaps>0){say(M,"He's stopped. Phone call. Stay back. Look at a mailbox.",{chatter:true});return}
@@ -661,7 +663,7 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     const g=TL().aheadGap({x:c.x,z:c.z,yaw:c.yaw,len:4.6},obstacles(M,null).filter(q=>q.pri<3),18);B.g=g;B.want=want;if(g!=null)want=Math.min(want,Math.max(0,(g-4)*.8));
     steerTo(c,look.x,look.z,want);unstick(e,c,want,[look,M.P.at(B.ps+10)]);return null}
   if(M.ph==='drop'||M.ph==='wrap'){const e=a.CV;if(!e){off();return null}const c=e.car||e;
-    if(!B.parked){const WP=[[409.6,112],[409.6,121],[411.5,126.6],[416,128.4],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
+    if(!B.parked){const WP=[[384,128.5],[396,128.5],[408,128.5],[418,128.5],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
       const w=WP[B.dw],dw=Math.hypot(w[0]-c.x,w[1]-c.z),lastW=B.dw===WP.length-1;if(dw<(lastW?1.6:3)){if(lastW){off();k.s=c.spd>.2;if(Math.abs(c.spd)<.3)B.parked=true;return null}B.dw++;return null}
       steerTo(c,w[0],w[1],lastW?Math.max(1.5,dw*.6):B.dw>=2?6:9);unstick(e,c,6,[{x:w[0],z:w[1]}]);return null}off();k.s=c.spd>.2;k.w=c.spd<-.2;
     if(M.ph==='wrap'){P.aim=false;return null}
