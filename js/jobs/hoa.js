@@ -435,7 +435,7 @@ function context(M){const a=A(),P=a.P,L_=lay(),p={x:P.pos.x,z:P.pos.z};const mov
   if(M.onPorch)return{k:.08,film:.45,why:'porch',cap:.32};
   if(inBox(p,L_.lot))return{k:1.5,film:1.6,why:'lawn'};
   if(inBox(p,L_.barbYard)||inBox(p,L_.barbLawn))return{k:.55,film:1.1,why:'barb',cap:.7};
-  const c=tileAt(p.x,p.z);if(c==='s'||c===','||c==='l'||c==='p'){const lo=M.loiter>T.loiter;return{k:moving?0:lo?.22:.06,film:moving?.55:1,why:lo?'loiter':'street',cap:lo?.5:.3}}
+  const c=tileAt(p.x,p.z);if(c==='s'||c===','||c==='l'||c==='p'){const lo=M.loiter>T.loiter;return{k:moving?0:lo?.22:.06,film:moving?.5:.7,why:lo?'loiter':'street',cap:lo?.5:.3}}
   return{k:.8,film:1.2,why:'yard'}}
 function bump(M,v,who){M.sus=Math.min(1,M.sus+v);M.unseen=0;M.susMax=Math.max(M.susMax,M.sus);M.seen=who||M.seen}
 function detect(M,dt){const a=A(),P=a.P,C=M.A,e=eyeP(M),Ph=PH();
@@ -581,15 +581,17 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
   const goTo=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.25)return true;const s=Math.min(d,(sp||2.6)/30);P.pos.x+=dx/d*s;P.pos.z+=dz/d*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);return false};
   const route=(pts,sp)=>{B.ri=B.ri||0;while(B.ri<pts.length&&goTo(pts[B.ri],sp))B.ri++;return B.ri>=pts.length};
   if(M.ph==='intro'){B.i=(B.i||0)+1;if(B.i<60)return null;if(!goTo({x:L_.barb.x-.2,z:L_.barb.z+1.6}))return null;if(M.say.length>1)return null;a.useTap=true;return null}
-  if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(goTo({x:L_.podium.x,z:L_.podium.z+.3}))a.useTap=true;return null}
-    if(mt.st==='free'){B.f=(B.f||0)+1;if(B.f<45)return null;const e=M.car;if(goTo({x:e.pos.x+2.4,z:e.pos.z},4))a.useTap=true;return null}return null}
+  if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(M.seat){a.useTap=true;return null}if(B.mr==null){B.mr=1;B.ri=0}if(route([{x:105.6,z:67.7},{x:L_.podium.x,z:67.7},{x:L_.podium.x,z:L_.podium.z+.3}]))a.useTap=true;return null}
+    if(mt.st==='free'){B.f=(B.f||0)+1;if(B.f<45)return null;const e=M.car;if(B.f===45)B.ri=0;if(route([{x:L_.podium.x,z:67.7},{x:e.pos.x+.5,z:67.7},{x:e.pos.x+.5,z:e.pos.z-1.6}],3))a.useTap=true;return null}return null}
   if(M.ph!=='stake')return null;
   const shoot=(sub,zi)=>{const s=subjects(M).find(s=>s.id===sub||s.item===sub);if(!s)return false;
-    if(sub!=='money'&&['lookout','driver','loaderA','loaderB','buyer'].some(k=>M.A[k].seeing>.05)){lower();return false}/* not while somebody's looking this way */if(!Ph.isRaised()){P.aim=true;return false}if(Ph.zoom!==Ph.T.zoom[zi])Ph.setZoom(zi);
-    Ph.aimAt(s.pos.x,s.pos.y+(s.mid!=null?s.mid:s.h/2),s.pos.z);if(!Ph.focus.locked)return false;B.hold=(B.hold||0)+1;if(B.hold<10)return false;B.hold=0;const r=Ph.shoot();if(r&&r.flash)Ph.toggleFlash();return!!r};
+    if(sub!=='money'&&sub!=='face'&&['lookout','driver','loaderA','loaderB','buyer'].some(k=>M.A[k].seeing>.05)){lower();return false}/* not while somebody's looking this way */if(!Ph.isRaised()){P.aim=true;return false}if(Ph.zoom!==Ph.T.zoom[zi])Ph.setZoom(zi);
+    Ph.aimAt(s.pos.x,s.pos.y+(s.mid!=null?s.mid:s.h/2),s.pos.z);if(!Ph.focus.locked)return false;B.hold=(B.hold||0)+1;if(B.hold<(sub==='face'?3:10))return false;B.hold=0;
+    /* only press the shutter when the screen says it's worth it (the live grade beats what's on the board) */
+    const pv=Ph.preview(),h=pv&&pv.hits.find(h=>h.item===s.item),cur=M.board[s.item]?M.board[s.item].stars:0;if(!h||h.stars<=cur){B.miss=(B.miss||0)+1;if(B.miss%45!==0)return false}const r=Ph.shoot();if(r&&r.flash)Ph.toggleFlash();return!!r};
   const lower=()=>{if(Ph.isRaised())P.aim=false};
   const have=(id,n)=>M.board[id]&&M.board[id].stars>=(n||2);
-  if(!o.fail&&(M.sus>.45||B.cool>0)&&B.step!=='toPorch'&&B.step!=='toCar'){/* somebody's looking: phone down, wait it out */B.cool=M.sus>.25?20:(B.cool||0)-1;lower();P.crouch=B.step==='bushes';return null}
+  if(!o.fail&&(M.sus>(B.step==='face3'?.8:.5)||B.cool>0)&&B.step!=='toPorch'&&B.step!=='toCar'){/* somebody's looking: phone down, wait it out */B.cool=M.sus>(B.step==='face3'?.8:.5)?(B.cool>0?B.cool:150):M.sus>.4?Math.max(0,(B.cool||0)-1):(B.cool>30?30:(B.cool||0)-1);lower();P.crouch=B.step==='bushes';return null}
   if(o.fail){/* up the driveway, phone out, right at the lookout */P.crouch=false;if(!B.fs){if(!route([{x:107,z:68},{x:107,z:56},{x:L_.apron.x-1,z:L_.apron.z+1.5}],2.2))return null;B.fs=1}
     const lk=M.A.lookout;if(!Ph.isRaised())P.aim=true;else Ph.aimAt(lk.x,1.4,lk.z);if(t%40===0)Ph.shoot();return null}
   B.step=B.step||'toPorch';const st=M.st,lk=M.A.lookout;
@@ -605,8 +607,14 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
     case'inCar':if(!M.seat){a.keys.e=true;return null}a.keys.e=false;B.step='carShots';return null;
     case'carShots':{const want=['plate','sold','money','face','crate'].find(id=>!have(id,2)&&(id!=='money'||M.ex.some(e=>e.st==='hand'))&&(id!=='face'||(Math.abs(lk.face-Math.PI*.82)<.01&&!lk.path&&!lk.inv&&Math.hypot(lk.x-L_.lk.s.x,lk.z-L_.lk.s.z)<.8))&&(id!=='crate'||subjects(M).some(s=>s.id.startsWith('crateloader')&&s.pos.z>52)));
       B.want=want||'-';
-      if(!want){lower();const n2=ITEMS.filter(it=>have(it.id)).length;if(n2>=6||(n2>=5&&st>215)){B.step='leave';return null}return null}
+      if(!want){lower();const n2=ITEMS.filter(it=>have(it.id)).length;if(n2>=6&&!have('face',3)&&st<190&&!o.safe){B.step='face3';return null}if(n2>=6||(n2>=5&&st>215)){B.step='leave';return null}return null}
       shoot(want==='crate'?subjects(M).find(s=>s.id.startsWith('crateloader')&&s.pos.z>52).id:want,want==='money'||want==='sold'?2:want==='face'?1:2);return null}
-    case'leave':lower();if(M.seat){a.useTap=true;return null}B.w2=(B.w2||0)+1;if(B.w2<20)return null;a.useTap=true;return null}
+    case'face3':{/* the twist needs a 3-star face: out of the Buick, across to the far kerb south of him, wait for his pause, 4x */
+      if(M.seat){lower();a.useTap=true;return null}if(have('face',3)||st>222){B.step='leave';return null}
+      const coming=(lk.path&&lk.z>53&&lk.path[lk.path.length-1].z>60)||(!lk.path&&Math.hypot(lk.x-L_.lk.s.x,lk.z-L_.lk.s.z)<.8);
+      if(!coming){lower();P.crouch=true;goTo({x:104.9,z:62.2},1.4);B.want='face3 hide';return null}
+      if(!(!lk.path&&Math.hypot(lk.x-L_.lk.s.x,lk.z-L_.lk.s.z)<.8)){lower();P.crouch=false;goTo({x:104.5,z:65.2},1.4);B.want='face3 ready';return null}if(!goTo({x:106.4,z:64.8},2.2))return null;P.crouch=false;
+      const paused=Math.abs(lk.face-Math.PI*.82)<.01&&!lk.path&&!lk.inv&&Math.hypot(lk.x-L_.lk.s.x,lk.z-L_.lk.s.z)<.8;if(paused){const pv=Ph.preview(),h=pv&&pv.hits.find(h=>h.item==='face');B.want='face3 '+(h?h.stars+' '+h.why.join('/'):'-')+' f'+Ph.focus.locked+' k'+(Ph.focus.k||0).toFixed(1)+' d'+(Ph.focus.dist||0).toFixed(1)+' r'+Ph.isRaised()+' z'+Ph.zoom;shoot('face',2)}else{B.want='face3 wait';lower()}return null}
+    case'leave':lower();if(M.seat){a.useTap=true;return null}if(!goTo({x:105.2,z:65}))return null;B.w2=(B.w2||0)+1;if(B.w2<20)return null;a.useTap=true;return null}
   return null}
 })();

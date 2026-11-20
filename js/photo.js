@@ -20,7 +20,7 @@
    ===================================================================== */
 (function(root){'use strict';const HT=root.HT=root.HT||{};
 const T={zoom:[1,2,4],vfov:[48,24,12],size:[.12,.22,.35],frame:.7,blur:1.2,run:3.4,cool:.4,face:70,plate:60,
-  hunt:[.32,.46,.62],dof:[.6,.38,.24],zoomT:.16,refocus:.3,sens:.85,thumbW:256,thumbH:144,jpgQ:.6,flashR:24};
+  hunt:[.28,.38,.46],dof:[.6,.38,.24],zoomT:.16,refocus:.3,sens:.85,thumbW:256,thumbH:144,jpgQ:.6,flashR:24};
 const D2R=Math.PI/180;
 /* ---------------- pure grading ---------------- */
 function basis(c){const cy=Math.cos(c.yaw),sy=Math.sin(c.yaw),cp=Math.cos(c.pitch),sp=Math.sin(c.pitch);
