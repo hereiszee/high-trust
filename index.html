@@ -4148,7 +4148,11 @@ const WM_AFTER={gary:['INDUSTRIAL WAY CLIMBING GYM','Formerly a chop shop · Rop
   rosa:['RIVERSIDE COMMUNITY GARDEN','Plant Day every Saturday · Forty families'],duke:['SECOND GEAR AUTO SCHOOL','Pastor Dee\'s youth program · Ask for Sal']};
 function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORLD.sites[m.id];if(!s||!WM_AFTER[m.id])return;
   const G=OW()&&OW().roads();let yaw=0,x=s.ring.x,z=s.ring.z;if(G){const r=G.nearestRoad(x,z);if(r){const dx=r.x-x,dz=r.z-z,l=Math.hypot(dx,dz)||1;x-=dx/l*1.2;z-=dz/l*1.2;yaw=Math.atan2(dx,dz)}}
-  const q=wmSnap(x,z);(WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
+  let q=wmSnap(x,z);if(G){/* never on the carriageway (Block Party's ring is on the road, so the nudge above had no direction): the nearest walkable tile off it, facing the road */
+    const onRd=(a,b)=>{const r=G.nearestRoad(a,b);return r&&r.dist<3.4};if(onRd(q.x,q.z)){const gx=tx(q.x),gz=tx(q.z);let f=null;
+      for(let r=1;r<8&&!f;r++)for(let dz=-r;dz<=r&&!f;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;const X=gx+dx,Z=gz+dz;if(walkable(X,Z)&&!WM_NAVMAP[L.g[Z][X]]&&!onRd(tileC(X),tileC(Z))){f={x:tileC(X),z:tileC(Z)};break}}
+      if(f){q=f;const r=G.nearestRoad(f.x,f.z);if(r)yaw=Math.atan2(r.x-f.x,r.z-f.z)}}}
+  (WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
   if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
 function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;jrGiverTick(dt);
   if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}
