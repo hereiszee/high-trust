@@ -323,6 +323,8 @@ function resultCard(M){if(M.resDone||typeof document==='undefined')return;const 
   set(by('time'),'Chats',String(P_.chats),P_.goodChats?P_.goodChats+' went well':'');set(by('trust'),'Rating',st+'/5',LINES.rating[st-1].replace(/^Doug: /,''));
   const L=document.createElement('div');L.style.cssText='margin:8px 0 2px;padding:8px 10px;background:#fffbe6;color:#1d2a4a;border-radius:6px;font:600 13px/1.45 "Comic Sans MS",sans-serif;max-height:132px;overflow:hidden';
   L.innerHTML=P_.log.slice(-5).map(l=>'<div><b style="font:800 11px var(--ht-ui,sans-serif);color:#6b7a99">'+l.ts+'</b> '+l.text.replace(/</g,'&lt;')+'</div>').join('');const pay=r.querySelector('.ht-payout');r.insertBefore(L,pay||r.querySelector('.ht-btns'))}
+/* the result card is drawn while the game is paused, when only the HUD hook runs: fill it from there */
+J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!==ID||!M.pt||M.state==='go'||a.mode!=='mission')return;resultCard(M)});
 /* lifecycle and the free-roam watch sign */
 let WAS=false,SIGN=null;
 J.on('pose',dt=>{const a=A();if(!a)return;const M=a.M,mine=!!(M&&M.def&&M.def.id===ID&&M.pt&&a.mode==='mission');

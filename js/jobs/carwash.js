@@ -880,6 +880,8 @@ function persistTick(dt){const a=A();if(!a)return;const s=SV();const near=a.mode
           const tex=canvasTex(512,128,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#2f6f8f';c.textAlign='center';c.font='900 54px '+uiFont();c.fillText('RIVERSIDE',w/2,56);c.font='800 40px '+uiFont();c.fillStyle='#c0392b';c.fillText('YOUTH CENTER',w/2,104)});
           for(const sd of[-1,1]){const p=plane(2.6,.65,tex,0,1.25,sd*1.02,null,sd<0?Math.PI:0,{tr:true});van.add(p)}}}
       if(pl.raised>=TUNE.goals[1]){const b=bannerModel();b.position.set(330,5.4,31.85);a.L.group.add(b);objs.push(b)}}catch(e){console.warn('carwash persist',e)}PERS={L:a.L,raised:pl.raised,objs,res:RES};RES=keep}}
+/* the result card is drawn while the game is paused, when only the HUD hook runs: fill it from there */
+J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!==ID||!M.cw||M.state==='go'||a.mode!=='mission')return;resultCard(M)});
 /* lifecycle: the HUD layer, the hose sound and the resources go when the job ends (won, failed, quit, retried, replayed) */
 let WAS=false;
 J.on('pose',dt=>{const a=A();if(!a)return;const M=a.M,mine=!!(M&&M.def&&M.def.id===ID&&M.cw&&a.mode==='mission');
