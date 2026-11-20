@@ -31,7 +31,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await ev(()=>{const H=window.__ht;H.HUD.emit&&H.HUD.emit('touch','aim',true);H.step(2)});s=await st();const tUp=s.up;
   await ev(()=>{const H=window.__ht;H.HUD.emit&&H.HUD.emit('touch','aim',true);H.step(2)});s=await st();ok(tUp&&!s.up,'touch AIM button toggles it up and down');
   /* the wave: walk the line to the Main St kerb with the scripted player, then one real E press */
-  const k=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing'),a=H.jobs.api,C=H.M.cg;let t=0;for(;t<2400&&!(C.atKerb&&C.atKerb.length&&C.signOn);t++){j.test.step(a,t,{});H.step(1);if(C.waveT>0)break}
+  const k=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing'),a=H.jobs.api,C=H.M.cg;let t=0;for(;t<2400&&!(C.atKerb&&C.atKerb.length&&C.cs!==0&&H.P.pos.z>40.5);t++){j.test.step(a,t,{});H.step(1)}/* stop the scripted player as soon as the line waits at the kerb, before it waves */
+    H.jobs.api.useTap=false;H.M.cg.signOn=true;
     /* stop the scripted player at the kerb: put the line back on the near side, sign up, nothing waved */
     for(const id in C.trail.runs){C.trail.runs[id].ok=0}C.waveT=0;for(let i=0;i<30;i++)H.step(1);return{t,atKerb:C.atKerb?C.atKerb.map(k=>k.id):null}});
   ok(k.atKerb&&k.atKerb.length,'the line waits at the Main St kerb '+JSON.stringify(k));

@@ -948,7 +948,8 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   const line=lineKids(M),tail=line[line.length-1];
   let lag=line.length?trailHead(M)-line[0].s-2.6:0;for(let i=1;i<line.length;i++)lag=Math.max(lag,line[i-1].s-line[i].s-2.2);lag*=2.2;const anyFree=C.kids.some(k=>k.state==='free'&&k.free&&k.free.mode!=='act');
   /* a kid stopped at a kerb we never meant to cross (a step into the road around a lamp): walk back to them, the trail shortcuts the detour */
-  const farKerb=C.atKerb&&C.atKerb.find(k=>hyp(k.x-P.pos.x,k.z-P.pos.z)>9);
+  /* a kid waiting at a kerb that isn't this step's crossing: go to them first */
+  const farKerb=C.atKerb&&C.atKerb.find(k=>step.cross?hyp(k.x-step.from[0],k.z-step.from[1])>5:hyp(k.x-P.pos.x,k.z-P.pos.z)>9);
   if(C.atKerb&&!step.talk&&(!step.cross||farKerb&&B.ph!=='over'&&B.ph!=='clear')){const k=farKerb||C.atKerb[0];if(step.cross&&farKerb)B.ph='';const dk=hyp(k.x-P.pos.x,k.z-P.pos.z);
     if(dk>1.6){setSign(M,false);B.kw=0;go(a,{x:k.x,z:k.z});return null}
     /* still waiting with you right there: it's a real crossing they missed. Sign up, wave when it's clear */
