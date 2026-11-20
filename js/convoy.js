@@ -7,20 +7,24 @@
    C.leader(obj)                     obj = {x,z,yaw,spd,len} read live every tick (keep the same object and move it): the player's car
    const m = C.add(car, {id, join, name})   car = an HT.CarAI car (x,z,yaw,spd,stats,hp). join: a polyline [{x,z}] it drives first
                                      (out of a parking bay to the gate); it waits at its bay until its predecessor is past the join's end.
-   const ev = C.tick(dt, ctx)        ctx = {collide(m)->fn(p,r), canSnap(m)->bool, stop(m)->metres to a line it must stop at | null,
+   const ev = C.tick(dt, ctx)        ctx = {stop(m)->metres to a line it must stop at | null,
                                      others:[{x,z,yaw,spd,len,w}] (the player's car when it isn't leading, a pursuer, cross traffic),
                                      bridge(m,{x,z})->[{x,z}] (a road route when the trail is gone), rnd}
-        -> {bumps:[{a,b,vn,dmg}], hits:[{m,speed,front}], changed:[m]}   (bumps between convoy cars; hits on walls; state changes)
+        -> {bumps:[{a,b,vn,dmg}], changed:[m]}   (bumps between convoy cars, the lead car included; state changes)
    C.order(kind)                     'tight' 'normal' 'spread' (the gap), 'hold' / 'go' (everyone stops where they are / carries on)
    C.setLead(m, route)               m takes the lead along route (the player drops back to sweep); C.leader(obj) again ends it
    C.chain()                         [lead entity, ...cars in line]; m.st: 'park' 'join' 'line' 'lag' 'wait' 'hold' 'head' 'out'
    C.save() / C.load(s)              JSON-safe ([CP]): order, gap, states, poses, hp (trails are rebuilt)
 
-   Each car (leader included) drops a breadcrumb every 2 m. A follower drives the crumbs of the car in front of it, from the one
-   nearest to it up to that car's bumper, and sets its speed from the gap along that trail: the car in front's speed as it was a
-   moment ago (dad reaction time, 0.45 s) plus a pull toward the wanted gap. Followers brake like dads (13 m/s², not the 24 a
-   minivan can), so a tight gap and a hard stop ends in a bump. More than 40 m behind for 8 s and a car pulls over with its hazards
-   on and waits for you to come back for it (the job decides what "lost" costs).
+   Each car (leader included) drops a breadcrumb every 2 m. A follower drives *in the tracks*: it slides by arc length along the
+   trail in front of it (the head's trail while it and the car ahead are on it, so corner cuts never add up; else the car in front's
+   own crumbs; else a straight line or a road route to it), so it never cuts a corner, wedges or circles in a junction. Its speed:
+   the car in front's speed as it was a moment ago (dad reaction time, 0.45 s) plus a pull toward the wanted gap, measured along the
+   trail as the follower saw it then. It slows for bends, stop lines and anything in its lane (never for its own followers), and
+   brakes like a dad (13 m/s², not the 24 a minivan can), so a tight gap and a hard stop ends in a bump. More than 40 m behind for
+   8 s and a car pulls over with its hazards on and waits for you (or the car it follows) to come back for it.
+   Pulling out of a parking bay is a separate rail (m.join): authored and collider-checked by the job; a car waits in its bay until
+   the car in front has actually been past the rail's end.
    Conventions as index.html: yaw 0 faces -z, forward = (-sin yaw, -cos yaw). Metres, m/s, seconds (all from the dt passed in).
    ===================================================================== */
 (function(root){'use strict';

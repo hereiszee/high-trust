@@ -37,7 +37,7 @@ const fwd=y=>[-Math.sin(y),-Math.cos(y)],rgt=y=>[Math.cos(y),-Math.sin(y)],yawTo
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ---------------- places (metres; the Park & Ride is WORLD.sites.parkride: lot x260-278 z56-86, gate x259 z62-66) ---------------- */
-const RING={x:256.4,z:62.8};                              /* the start ring: up the gap east of Dad's Auto's sale cars from Route 9 (the van is then parked at the barrier) */
+const RING={x:256.4,z:56.6};                              /* the start ring: up the gap east of Dad's Auto's sale cars from Route 9 (the van is then parked at the barrier) */
 const VAN_AT={x:252.6,z:64,yaw:-Math.PI/2};
 const GATE={x:259,z:64},OUT={x:253.5,z:63.4};           /* the convoy forms on the trail just outside the gate */
 const BOOTH_E={x:259.9,z:58.6};                          /* the booth window, from outside (the booth itself is x260.6-262.6 z57-59.6) */
@@ -669,7 +669,9 @@ function convoyTick(M,dt,F){const a=A(),C=M.C,P=a.P;M.F=F;timersTick(M,dt);crewT
   if(!F.target)F.target=routeTarget(M)}
 function vanCollide(M){const a=A(),cols=[];for(const id in M.vans)cols.push(M.vans[id].col);if(M.pursuit)cols.push(M.pursuit.col);for(const x of M.cross)if(x.col)cols.push(x.col);
   return(p,r)=>{const sv=cols.map(c=>[c.x0,c.z0,c.x1,c.z1,c.ob]);for(const c of cols){c.x0=c.z0=-1e4;c.x1=c.z1=-1e4+1;c.ob=null}try{a.collide(p,r)}finally{cols.forEach((c,i)=>{const s=sv[i];c.x0=s[0];c.z0=s[1];c.x1=s[2];c.z1=s[3];c.ob=s[4]})}}}
-function damageVan(M,v,amt,why){if(!v||!(amt>0)||v.st==='home')return;const c=v.c;c.hp=Math.max(0,c.hp-amt);M.cond[v.f.id]=c.hp/v.hpMax;
+function damageVan(M,v,amt,why){if(!v||!(amt>0)||v.st==='home')return;const c=v.c;
+  /* our own bumps dent, they never wreck: only the thief (or a wall at speed) can finish a van off */
+  if(why==='bump'){amt*=.6;c.hp=Math.max(Math.min(c.hp,v.hpMax*.2),c.hp-amt)}else c.hp=Math.max(0,c.hp-amt);M.cond[v.f.id]=c.hp/v.hpMax;
   if(c.hp<=0&&!M.wrecked[v.f.id]){M.wrecked[v.f.id]=true;v.st='out';if(v.m){v.m.st='out'}v.haz=true;v.kerb=2.8;/* it coasts to the kerb, out of the lane */const l=L.wrecked(v.crew);say(M,l[0],l[1],true);A().feed(v.f.fam+"' van is wrecked",'bad')}}
 function routeTarget(M){const a=A(),C=M.C,LD=M.LEAD;if(M.ph==='convoy'&&(!M.pursuit||M.pursuit.gone)&&!M.shook){return LD.x>200?{x:R9.x-30,z:R9.z,label:'Route 9 west'}:{x:LIGHT.x,z:LIGHT.z,label:'Maple Heights'}}
   if(M.pursuit&&!M.pursuit.gone){if(C.head){const tail=tailOf(C);return tail?{x:tail.car.x,z:tail.car.z,label:'Your vans: get behind them'}:null}
@@ -824,6 +826,7 @@ function chatterTick(M,dt){const a=A(),C=M.C,LD=M.LEAD;if(!C)return;
 
 /* ---------------- wrap: Marcy at the last driveway ---------------- */
 function wrapBegin(M){if(M.wrapT>=0)return;const a=A();M.wrapT=0;M.ph='wrap';seq(M,L.marcy,true);music('victory');sfx.cheer();
+  if(!M.alarm){try{a.addTrust(K.trustGhost,'maple')}catch(_){}a.feed('Nobody saw us','trust','+'+K.trustGhost+' trust')}
   const last=FLEET.filter(f=>M.delivered[f.id]).sort((p,q)=>p.home.x-q.home.x)[0]||FLEET[0];const s=last.home;M.marcy=person('nb_office',null,s.x-3.5,s.side<0?s.z-2.8:s.z+2.8,0)}
 function wrapTick(M,dt,F){M.wrapT+=dt;if(M.marcy){faceTo(M.marcy,A().P.pos.x,A().P.pos.z,dt);pose(M.marcy,dt)}F.objs.push(['Every van home. Bring it in.',true]);if(M.wrapT>7.5)A().endMission(true)}
 
