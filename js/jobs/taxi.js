@@ -261,7 +261,7 @@ function tick(dt,M,F){const a=A(),L_=M.live,S=L_.S,C=L_.C,K=L_.K,P_=places();
   const cur=S.cur();if(cur&&cur.hard&&M.st.phase!=='bikes'&&cur.at==null&&S.left(cur,t)<=0){
     if(cur.id==='ortho')return a.endMission(false,"Dr. Feld charges for eleven-ish. Jen is going to see that bill.","Late for the orthodontist.");
     if(cur.id==='home')return a.endMission(false,"Jen got home first. She's reading the list back to you. Out loud.","Jen beat you home.")}
-  if(cur&&cur.id==='home')jenCar(dt,M,cur);
+  {const hs=S.stops[5];if(cur===hs||M.st.phase==='done')jenCar(dt,M,hs)}
   hud(dt,M,F);
   /* the GPS line to the marker (the hub's GPS is off during jobs) */
   L_.t.route-=dt;if(L_.t.route<=0&&F.target&&a.HUD&&a.HUD.minimap&&a.HUD.minimap.route){L_.t.route=1.4;try{const pts=SX().drive(a,{x:a.P.pos.x,z:a.P.pos.z},F.target);a.HUD.minimap.route(pts)}catch(_){}}}
@@ -424,15 +424,15 @@ function arriveSchool2(M,b){const a=A(),L_=M.live,K=L_.K,E=L_.enc,P_=places(),ca
   const g=K.get('guard');
   if(M.st.choice==='ride'){let n=0;const th=[K.get('thief0'),K.get('thief1')].filter(r=>r&&r.state==='seat');
     th.forEach((r,i)=>K.alight(r,{x:g.x+(i?.8:-.8),z:g.z+.9},car,()=>{if(++n>=th.length){sayAll(M,[['Mr. Alvarez',"Marcus Delgado. I walked you across this street for six years."],['Kid driving',"...Hi, Mr. Alvarez."],
-      ['Mr. Alvarez',"You two are helping me with this crosswalk every Saturday until June. Bring a vest."],['Maddie',"That was actually kind of nice, Dad."]],{prio:3});a.addTrust(5);a.feed('A ride instead of zip-ties','trust','+5 trust');jenText(M,()=>{b.done=true})}}));if(!th.length)jenText(M,()=>{b.done=true})}
-  else{sayAll(M,[['Mr. Alvarez',"Officer Dana's on her way. I'll keep an eye on them. I've got a stop sign and I'm not afraid to use it."]],{prio:3});jenText(M,()=>{b.done=true})}}
+      ['Mr. Alvarez',"You two are helping me with this crosswalk every Saturday until June. Bring a vest."],['Maddie',"That was actually kind of nice, Dad."]],{prio:3});a.addTrust(5);a.feed('A ride instead of zip-ties','trust','+5 trust');b.done=true;jenText(M)}}));if(!th.length){b.done=true;jenText(M)}}
+  else{sayAll(M,[['Mr. Alvarez',"Officer Dana's on her way. I'll keep an eye on them. I've got a stop sign and I'm not afraid to use it."]],{prio:3});setTimeout0(M,2.5,()=>{b.done=true});jenText(M)}}
 function jenText(M,then){const S=M.live.S,late=S.stops.filter(s=>s.done&&!s.onTime).length;
-  sayAll(M,[['Jen (text)',"Why is Rick's truck full of bikes in the school parking lot"],['you',late?"Long story. Mostly on time.":"Long story. Everyone's on time."],['Jen (text)',"...Okay. I love you. Who has the trombone."]].concat(M.item&&M.item.id==='trombone'?[]:[['Maddie',"I have the trombone. I always have the trombone."]]),{prio:3,then})}
+  sayAll(M,[['Jen (text)',"Why is Rick's truck full of bikes in the school parking lot"],['you',late?"Long story. Mostly on time.":"Long story. Everyone's on time."],['Jen (text)',"...Okay. I love you. Who has the trombone."]].concat(M.item&&M.item.id==='trombone'?[]:[['Maddie',"I have the trombone. I always have the trombone."]]),{prio:3,ttl:120,then})}
 /* the last leg: Jen's car comes up Oak St on the hard deadline */
-function jenCar(dt,M,s){const a=A(),L_=M.live,S=L_.S,P_=places();const rem=S.left(s,M.elapsed),lead=32;if(rem>lead||s.at!=null&&!L_.jen)return;
+function jenCar(dt,M,s){const a=A(),L_=M.live,S=L_.S,P_=places();const rem=S.left(s,M.elapsed),lead=32;if(rem>lead&&s.at==null&&!L_.jen)return;
   if(!L_.jen){const obj=a.makeVehicle('sedan','#6d7f93')||a.makeVanBox('#6d7f93');a.wmAdd(obj);const pts=[{x:P_.home.x+150,z:P_.home.z-3.2},{x:P_.home.x+12,z:P_.home.z-3.2},{x:P_.home.x+6,z:P_.home.z-.4}];
-    L_.jen={obj,pts,len:SX().polyLen(pts),col:null};sayAll(M,[['Jen (text)',"Leaving work now. Ten minutes."],['Tyler',"That's Mom's car! I can see Mom's car! Dad, GO!"]],{prio:3})}
-  const J_=L_.jen;if(s.at!=null){J_.arr=(J_.arr||0)+dt}const k=s.at!=null?Math.min(1,J_.k+dt/8):Math.max(0,1-rem/lead);J_.k=k;const p=SX().polyAt(J_.pts,J_.len*k);J_.obj.position.set(p.x,a.groundAt(p.x,p.z),p.z);J_.obj.rotation.set(0,p.yaw+Math.PI/2,0);
+    L_.jen={obj,pts,len:SX().polyLen(pts),col:null};if(s.at==null)sayAll(M,[['Jen (text)',"Leaving work now. Ten minutes."],['Tyler',"That's Mom's car! I can see Mom's car! Dad, GO!"]],{prio:3});if(s.at!=null)L_.jen.k=.55}
+  const J_=L_.jen;if(s.at!=null){J_.arr=(J_.arr||0)+dt}const k=s.at!=null?Math.min(1,(J_.k||0)+dt/8):Math.max(0,1-rem/lead);J_.k=k;const p=SX().polyAt(J_.pts,J_.len*k);J_.obj.position.set(p.x,a.groundAt(p.x,p.z),p.z);J_.obj.rotation.set(0,p.yaw+Math.PI/2,0);
   try{const VM=HT.Vehicles;J_.obj.userData.mod&&VM&&VM.update&&VM.update(J_.obj,{speed:k<1?10:0,steer:0,braking:k>=1,headlights:false,dt})}catch(_){}}
 function finale(M){const a=A(),L_=M.live,K=L_.K,it=M.item;if(it&&!it.done)it.lost=true;M.st.phase='done';
   const lines=[['Jen',"Everybody alive? Everybody fed? Who's sticky?"],['Tyler',L_.C.n.brake?"Dad braked like Grandpa.":"Dad drove like a bus driver. A good one."],['Jen',L_.C.n.brake?"Grandpa hit a mailbox.":"Who are you and what have you done with my husband."]];

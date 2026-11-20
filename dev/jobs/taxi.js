@@ -20,6 +20,8 @@ const SHOTS=!!arg('shots'),DIR=path.join(__dirname,'../../docs/screenshots/jobs/
   /* fix the item text when forced */
   if(arg('item'))await ev(()=>{const M=window.__ht.jobs.api.M;const all={shin:1,card:2,retainer:3,trombone:4};});
   await shot('01-start');
+  if(arg('retry')){const f=await ev(()=>{const H=window.__ht,a=H.jobs.api,j=H.jobs.registry.get('taxi');let t=0;for(;t<15000&&a.M.state==='go';t++){j.test.step(a,t,{fail:true});H.step(1)}return{state:a.M.state,t:Math.round(a.M.elapsed)}});console.log('fail run',JSON.stringify(f));
+    await ev(()=>window.__ht.step(45));await ev(()=>{const H=window.__ht;H.UIacts['result:retry']();H.step(3);window.__T.f=0;for(const k in window.__T)if(/^s\d$/.test(k))delete window.__T[k]});console.log('retried',await ev(()=>Math.round(window.__ht.jobs.api.M.elapsed)))}
   const seen=new Set();let last='';
   for(let chunk=0;chunk<1000;chunk++){
     const r=await ev(()=>{const H=window.__ht,a=H.jobs.api,M=a.M,j=H.jobs.registry.get('taxi'),T=window.__T;const ev=[];
