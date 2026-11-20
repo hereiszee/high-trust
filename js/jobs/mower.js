@@ -22,7 +22,7 @@ const LAPS=3,LINE_X=92,BUMP_VN=2.8,BUMPS_DQ=3,YELLOW_V=2.4,LEAVE_T=3.5,CHASE_MAX
    the gnome garden up the west side, then round the oak at the north-west back onto the start straight. */
 const LINE=[[80,106.4],[86,105.4],[92,105.3],[100,105.2],[105,105.0],[109,105.0],[113.2,106.0],[116.2,108.4],[117.3,111.5],[117.3,113.6],[115.4,116.4],[115.6,118.2],[118.2,120.2],[118.0,122.8],[116.8,125.2],[114.4,126.7],[110,127.0],[104,127.1],[96,127.2],[88,127.2],[83,126.9],[79.6,125.4],[78.4,122.6],[78.4,119.0],[77.6,116.9],[75.6,115.9],[73.7,116.7],[72.8,118.8],[72.8,123.6],[71.9,125.9],[70.2,126.8],[68.4,126.2],[67.0,124.2],[66.6,121],[66.6,113],[66.9,110.6],[68.6,108.9],[71,108.8],[74,109.2],[77,108.0]];
 const WALLS=[[75.6,119.0,128.4],[70.4,113.0,123.4]];/* hay walls: x, z0, z1 (the Stripes) */
-const BLOCKS=[[117.6,115.9,120.6,117.1],[113.5,119.6,116.0,120.8]];/* the hay-bale chicane */
+const BLOCKS=[[118.4,115.9,120.6,117.0],[113.5,119.6,115.2,120.7]];/* the hay-bale chicane */
 const GRID=[[89.6,104.7],[87.2,106.3],[84.8,104.7],[82.4,106.3],[80.0,104.9],[77.6,106.6]];
 const PIT={x:98.6,z:109.8,r:3.4},PODIUM={x:86,z:111},PADDOCK=[{x:96.4,z:113.2},{x:99.2,z:113.4},{x:102,z:113.6}];
 const QGATES=[{id:'g1',x:100,z:105.2},{id:'g2',x:117.3,z:113},{id:'g3',x:100,z:127.1},{id:'g4',x:66.6,z:117}];
@@ -158,7 +158,7 @@ function gantry(){const a=A(),T=a.THREE,g=new T.Group();const pole=std('pole',{c
   const tex=canvasTex('banner',1024,160,(c,W,H)=>{c.fillStyle='#1f5a2e';c.fillRect(0,0,W,H);for(let i=0;i<W;i+=40){c.fillStyle=(i/40)%2?'#f4f1e6':'#16181a';c.fillRect(i,0,40,20);c.fillStyle=(i/40)%2?'#16181a':'#f4f1e6';c.fillRect(i,H-20,40,20)}
     c.fillStyle='#ffd34a';c.font='800 70px Barlow Condensed, Arial Narrow, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('MAPLE HEIGHTS RIDE-ON GRAND PRIX',W/2,H/2+2);
     c.fillStyle='#f4f1e6';c.font='700 22px Barlow Condensed, Arial Narrow, sans-serif';c.fillText('FOR CHARITY  ·  BLADES UP  ·  NO GOATS',W/2,H-36)});
-  const bn=new T.Mesh(new T.PlaneGeometry(4.2,.66),new T.MeshStandardMaterial({map:tex,side:T.DoubleSide,roughness:.85}));bn.position.set(LINE_X,3.0,105.6);bn.rotation.y=Math.PI/2;g.add(bn);
+  for(const sd of[1,-1]){const bn=new T.Mesh(new T.PlaneGeometry(4.2,.66),new T.MeshStandardMaterial({map:tex,roughness:.85}));bn.position.set(LINE_X+sd*.012,3.0,105.6);bn.rotation.y=sd>0?Math.PI/2:-Math.PI/2;g.add(bn)}
   const bar=new T.Mesh(new T.BoxGeometry(.08,.08,4.2),pole);bar.position.set(LINE_X,3.36,105.6);g.add(bar);
   /* lights: 3 red + 1 green on the pole */
   const box=new T.Mesh(new T.BoxGeometry(.18,.9,.2),dark);box.position.set(LINE_X-.12,2.2,103.6);g.add(box);const lamps=[];
@@ -220,17 +220,17 @@ function sprinklerUpd(S,dt){S.ang+=S.dir*dt*1.1;if(S.ang>S.s.ph+1.4||S.ang<S.s.p
 /* ---------------------------------------------------------------- lawn stripes: every mower lays down a mown strip (light when
    mown one way, dark the other, like a real striped lawn) on grass tiles. One InstancedMesh ring buffer per level. */
 const STRIPE_N=3200,STRIPE_W=1.04,STRIPE_STEP=.55;
-const STR={mesh:null,L:null,i:0,n:0};
+const STR={mesh:null,L:null,i:0,n:0};HT.Mower=Object.assign(HT.Mower||{},{stripes:STR});/* (dev: the stripe buffer) */
 function grassAt(x,z){const a=A(),W=a.WORLD;if(!W||!W.map)return false;const tx=Math.floor(x/2),tz=Math.floor(z/2),row=W.map[tz];if(!row)return false;let c=row[tx];if(W.under&&W.under[c])c=W.under[c];return c==='g'}
 function stripeMesh(){const a=A(),T=a.THREE,L=a.L;if(!L)return null;if(STR.mesh&&STR.L===L&&STR.mesh.parent)return STR.mesh;
-  const g=new T.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);const m=new T.MeshStandardMaterial({color:0xffffff,roughness:.95,transparent:true,opacity:.42,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
-  const im=new T.InstancedMesh(g,m,STRIPE_N);im.count=0;im.frustumCulled=false;im.renderOrder=1;im.receiveShadow=true;const c=new T.Color(1,1,1);for(let i=0;i<STRIPE_N;i++)im.setColorAt(i,c);
+  const g=new T.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);const m=new T.MeshStandardMaterial({color:0xffffff,roughness:.95,transparent:true,opacity:.3,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+  const im=new T.InstancedMesh(g,m,STRIPE_N);im.frustumCulled=false;im.renderOrder=1;im.receiveShadow=true;const c=new T.Color(1,1,1);for(let i=0;i<STRIPE_N;i++)im.setColorAt(i,c);im.count=0;/* (colours first: setColorAt sizes the buffer from count) */
   (L.group||a.scene).add(im);STR.mesh=im;STR.L=L;STR.i=0;STR.n=0;return im}
 function stripeLay(m,x,z,yaw,w){if(!grassAt(x,z))return false;const im=stripeMesh();if(!im)return false;const a=A(),T=a.THREE;
   /* shade from the direction of travel: the grass leans the way the deck pushed it */
   const fx=-Math.sin(yaw),fz=-Math.cos(yaw),k=(fx*.55+fz*.83),light=k>0;
-  const col=light?(C.sL||(C.sL=lin('#c9f08a'))):(C.sD||(C.sD=lin('#2f5a1c')));
-  im.setMatrixAt(STR.i,M4s(x,(a.groundAt?a.groundAt(x,z):0)+.035,z,0,yaw,0,w||STRIPE_W,1,STRIPE_STEP*1.25));im.setColorAt(STR.i,col);
+  const col=light?(C.sL||(C.sL=lin('#9fd25a'))):(C.sD||(C.sD=lin('#3f6e26')));
+  im.setMatrixAt(STR.i,M4s(x,(a.groundAt?a.groundAt(x,z):0)+.035,z,0,yaw,0,w||STRIPE_W,1,STRIPE_STEP*1.7));im.setColorAt(STR.i,col);
   STR.i=(STR.i+1)%STRIPE_N;STR.n=Math.min(STRIPE_N,STR.n+1);im.count=STR.n;im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;return true}
 /* call per mower per frame: lays a stripe each STRIPE_STEP metres under the deck; returns true while it is cutting grass */
 function mowTick(m,x,z,yaw,spd){const fx=-Math.sin(yaw),fz=-Math.cos(yaw),dx=x+fx*.06,dz=z+fz*.06;if(m.lx==null){m.lx=dx;m.lz=dz;return false}
@@ -316,11 +316,12 @@ function tint(d,hex,k){if(!d||!d.root)return d;const a=A(),t=new a.THREE.Color(h
 const PP=()=>window.HT&&HT.People&&HT.People.ok?HT.People:null;
 function has(role){const p=PP();try{return!!(p&&p.has&&p.has(role))}catch(e){return false}}
 /* rival riders: the named dads where the game has them, else the street-crew bodies in team colours (the neighbour pool when it lands) */
-const LOOK={dave:{h:'dave'},marcus:{role:'thug_jacket',tint:'#2f6fb5',shirt:'#2f6fb5'},phil:{role:'thug_cap',tint:'#d8cfa8',shirt:'#e9e3cf'},gil:{role:'thug_brown',tint:'#6f8a3a',shirt:'#7b8f3a'},walt:{role:'thug_beanie',tint:'#a08a5a',shirt:'#d9a521'},
-  barb:{role:'wife',tint:'#a35ab5',shirt:'#a35ab5'},gary:{h:'gary'},fan:{role:'son'},fan2:{role:'daughter'}};
+const LOOK={dave:{h:'dave'},marcus:{nb:'nb_marcus',role:'thug_jacket',tint:'#2f6fb5',shirt:'#2f6fb5'},phil:{nb:'nb_kenji',role:'thug_cap',tint:'#d8cfa8',shirt:'#e9e3cf'},gil:{nb:'nb_sweater',role:'thug_brown',tint:'#6f8a3a',shirt:'#7b8f3a'},walt:{nb:'nb_pops',role:'thug_beanie',tint:'#a08a5a',shirt:'#d9a521'},
+  barb:{nb:'nb_office',role:'wife',tint:'#a35ab5',shirt:'#a35ab5'},gary:{h:'gary'},fan:{role:'son'},fan2:{role:'daughter'}};
 function dude(id,variant){const a=A(),L_=LOOK[id]||{};let d=null;
   try{if(L_.h&&a.HOMIES[L_.h])d=a.makeDude(a.HOMIES[L_.h]);
-    else{const role=has('neighbour')&&id!=='barb'&&!/fan/.test(id)?'neighbour':L_.role;d=a.makeDude({role,variant:variant||id,shirt:L_.shirt||'#5a7a9a',pants:'#3a3a40',skin:'#d9a07a',hat:null});if(L_.tint)tint(d,L_.tint,role==='neighbour'?.2:.38)}}catch(e){d=null}
+    else if(L_.nb&&has(L_.nb))d=a.makeDude({role:L_.nb});/* the named neighbours (Riverside cast pool) */
+    else{d=a.makeDude({role:L_.role,variant:variant||id,shirt:L_.shirt||'#5a7a9a',pants:'#3a3a40',skin:'#d9a07a',hat:null});if(L_.tint)tint(d,L_.tint,.38);if(d)d.stand=true}}catch(e){d=null}
   if(!d)return null;d.meshes&&d.meshes.forEach(m=>{m.userData.ent=null});a.wmAdd(d.root);return d}
 function poseD(d,dt,o){try{const pp=window.HT&&HT.People;if(d&&d.rb&&pp&&pp.pose)pp.pose(d,dt||1/30,o)}catch(e){}}
 function seatDude(d,obj,car,dt){if(!d)return;const a=A(),f={x:-Math.sin(car.yaw),z:-Math.cos(car.yaw)},sc=d.root.scale.y||1,gy=a.groundAt?a.groundAt(car.x,car.z):0;
@@ -361,7 +362,8 @@ function buildField(M){const a=A(),CA=a.CarAI(),G=window.HT.Garage;
   for(const r of M.field)r.home=r.home||0}
 function parkField(M){/* sitting on their mowers in the infield, watching qualifying */
   const spots=[[81.2,113.1],[83.6,113.1],[88.8,113.0],[91.3,113.0],[93.8,113.0]];M.field.forEach((r,k)=>{const c=r.car,[x,z]=spots[k];c.x=x;c.z=z;c.yaw=-Math.PI/2+.0;c.spd=0;r.parked=true;syncAI(r,0)})}
-function syncAI(r,dt,braking){const a=A(),c=r.car,o=r.obj;o.position.set(c.x,a.groundAt?a.groundAt(c.x,c.z):0,c.z);o.rotation.set(0,c.yaw+Math.PI/2,0);
+function syncAI(r,dt,braking){const a=A(),c=r.car,o=r.obj;
+  if(r.rider&&r.rider.stand&&LOOK[r.id].nb&&has(LOOK[r.id].nb)){/* the real neighbour streamed in: swap the stand-in */const old=r.rider;if(old.root.parent)old.root.parent.remove(old.root);r.rider=dude(r.id)}o.position.set(c.x,a.groundAt?a.groundAt(c.x,c.z):0,c.z);o.rotation.set(0,c.yaw+Math.PI/2,0);
   try{const VM=window.HT.Vehicles;if(VM&&VM.update&&dt)VM.update(o,{speed:c.spd,steer:c.steer||0,braking:!!braking,dt})}catch(e){}
   if(o.userData.cape){const cp=o.userData.cape;cp.rotation.z=0;cp.rotation.x=-Math.min(1.1,Math.abs(c.spd)*.1)-Math.sin((r.t=(r.t||0)+dt*(3+Math.abs(c.spd)))*1.0)*.08*Math.min(1,Math.abs(c.spd)/3)}
   seatDude(r.rider,o,c,dt||1/30)}
@@ -501,7 +503,7 @@ function propsTick(M,dt){const a=A(),movers=[];const add=(c,id)=>movers.push({x:
   /* Gary waves the right flag; Barb and the fans */
   const flag=M.yellow?'#ffd31a':M.dq&&M.phase==='finish'?'#16181a':M.phase==='race'&&meRacer(M).lap===LAPS-1?'#f4f1e6':'#2fbf4a';if(M.flagMat&&M.flagHex!==flag){M.flagHex=flag;M.flagMat.color.copy(lin(flag))}
   if(M.flagObj){M.flagObj.rotation.z=Math.sin(a.simT*(M.phase==='race'?7:2))*.5}
-  if(!M.barb&&has('wife'))M.barb=dude('barb');if(!M.fans.length&&has('son')&&has('daughter'))M.fans=[{d:dude('fan'),x:90.4,z:101.6},{d:dude('fan2'),x:93.4,z:101.3}];
+  if(!M.barb&&(has('nb_office')||has('wife')))M.barb=dude('barb');if(!M.fans.length&&has('son')&&has('daughter'))M.fans=[{d:dude('fan'),x:90.4,z:101.6},{d:dude('fan2'),x:93.4,z:101.3}];
   standDude(M.gary,93.2,108.3,0,dt,{});standDude(M.barb,95.8,102.4,Math.PI,dt,{y:.46});(M.fans||[]).forEach((f,k)=>standDude(f.d,f.x,f.z,Math.PI,dt,{}));
   dogTick(M,dt)}
 /* Biscuit: runs across the east straight twice in the race (and once in qualifying if you're slow) */
@@ -531,7 +533,7 @@ const DEF={giver:'dave',hood:'maple',title:'The Grass Is Greener',role:'Big Dave
   radio:[],endLine:"Linden Park smells like cut grass and lemonade. Riverside and Maple Heights shared a podium. Gil says this one doesn't count as an Incident."};
 function setupWorld(M,o){const a=A();M.noCars=true;M.noGuns=DEF.noGuns;M.bumpCd={};M.bumps=0;M.cuffedN=0;M.escN=0;M.helped=false;M.choice=null;M.dq=false;
   a.wmSetWindow(a.wmWindow(92,116,19));buildCourse(M);buildField(M);parkField(M);
-  M.gary=dude('gary');M.barb=null;M.fans=[];try{const pp=PP();if(pp&&pp.preload)pp.preload(['wife','son','daughter']).catch(()=>{})}catch(e){}
+  M.gary=dude('gary');M.barb=null;M.fans=[];try{const pp=PP();if(pp&&pp.preload)pp.preload(['wife','son','daughter','nb_marcus','nb_kenji','nb_sweater','nb_pops','nb_office']).catch(()=>{})}catch(e){}
   /* Barb's stage (two bales) and megaphone, Gary's flag */
   const T=a.THREE;hayBales([{x:95.8,y:.23,z:102.4,yaw:0}]);const mg=new T.Mesh(merge([[new T.CylinderGeometry(.05,.13,.3,14,1,true),M4(0,0,0,0,0,Math.PI/2),'#f4f1e6'],[new T.CylinderGeometry(.03,.03,.12,8),M4(-.18,-.06,0),'#d6281c']]),VC());mg.position.set(95.8,1.95,102.85);mg.rotation.y=Math.PI/2;a.wmAdd(mg);
   M.flagMat=new T.MeshStandardMaterial({color:lin('#2fbf4a'),side:T.DoubleSide,roughness:.8});const fg=new T.Group(),pole=new T.Mesh(new T.CylinderGeometry(.012,.012,1.2,6),std('leg',{}));pole.position.y=.6;fg.add(pole);
@@ -616,7 +618,7 @@ function raceFrame(dt,M,F){const a=A(),P=a.P,R=M.R,me=meRacer(M);R.update(dt);co
     F.objs.push(['Catch the hustlers · run into them, then zip-tie them',false]);F.meters.push({id:'hus',label:'Hustlers',v:M.cuffedN,max:2,style:'pips',sub:M.escN?M.escN+' got away':''});
     const tgt=sur[0]||run.sort((p,q)=>Math.hypot(p.e.pos.x-P.pos.x,p.e.pos.z-P.pos.z)-Math.hypot(q.e.pos.x-P.pos.x,q.e.pos.z-P.pos.z))[0];if(tgt)F.target={x:tgt.e.pos.x,z:tgt.e.pos.z,label:tgt.e.state==='surrender'?'Zip-tie':'Hustler'};
     F.widgets.push({id:'yel',kind:'timer',label:'Yellow flag',v:Math.max(0,CHASE_MAX-M.chaseT),hot:M.chaseT>CHASE_MAX-10})}
-  if(M.phase==='back'){F.objs.push(['Back on your mower: the field is waiting under the yellow',false]);F.target={x:M.ride.pos.x,z:M.ride.pos.z,label:'Your mower'};
+  if(M.phase==='back'){M.backT=(M.backT||0)+dt;F.objs.push(['Back on your mower: the field is waiting under the yellow',false]);F.target={x:M.ride.pos.x,z:M.ride.pos.z,label:'Your mower'};
     F.taps.push({x:M.ride.pos.x,z:M.ride.pos.z,r:2.6,txt:'Get on your mower',fn:()=>{mount(M);M.yellow=false;M.phase='race';const mr=M.field.find(r=>r.id==='marcus');if(mr){mr.held=false;mr.skill=1.0}barb(SAY.barb.green,true);music('combat',.75);cheer(.8)}})}
   if(M.phase==='race'||M.phase==='finish'){if(a.CV!==M.ride&&M.phase==='race'){F.taps.push({x:M.ride.pos.x,z:M.ride.pos.z,r:2.6,txt:'Get on your mower',fn:()=>mount(M)});F.target={x:M.ride.pos.x,z:M.ride.pos.z,label:'Your mower'}}
     if(M.phase==='race')F.objs.push(['Lap '+lap+' of '+LAPS+' · '+ord(pos)+' place',false])}
@@ -673,20 +675,21 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return n
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};const keysOff=()=>{k.w=k.a=k.s=k.d=k.shift=false;k.e=false};
   const steer=(c,tx,tz,vmax)=>{const dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz);let err=Math.atan2(-dx,-dz)-c.yaw;err=Math.atan2(Math.sin(err),Math.cos(err));const duty=Math.min(1,Math.abs(err)*2.2);
     k.a=err>0&&(t%5)/5<duty;k.d=err<0&&(t%5)/5<duty;const want=Math.min(vmax,1+d*1.1);k.w=c.spd<want;k.s=c.spd>want+1.2;k.shift=want>9;return d};
-  const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz),s=Math.min(d,(sp||6.5)/30);P.pos.x+=dx/(d||1)*s;P.pos.z+=dz/(d||1)*s;P.yaw=Math.atan2(-dx,-dz);a.collide(P.pos,.35,0);return d};
+  const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz),s=Math.min(d,(sp||6.5)/30),x0=P.pos.x,z0=P.pos.z;P.pos.x+=dx/(d||1)*s;P.pos.z+=dz/(d||1)*s;P.yaw=Math.atan2(-dx,-dz);
+    /* a person steps round a crate: if the straight line is blocked, slide sideways for a moment */if((M._side||0)>0){M._side--;P.pos.x+=-dz/(d||1)*s*.9;P.pos.z+=dx/(d||1)*s*.9}a.collide(P.pos,.35,0);if(s>.05&&Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3)M._side=12;return d};
   switch(M.phase){
   case 'pick':{keysOff();if(a.CV)a.exitCar();const id=o.fail?'zero':(M.mode==='tt'?'estate':'reliable'),e=M.choices[id];if(walk(e.pos.x+1.7,e.pos.z)<.3)a.useTap=true;return null}
   case 'toLine':{if(o.fail&&!a.CV){keysOff();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
-    if(a.CV!==ride){keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}const c=ride.car;
+    if(a.CV!==ride){keysOff();if(walk(ride.pos.x,ride.pos.z)<1.2||Math.hypot(P.pos.x-ride.pos.x,P.pos.z-ride.pos.z)<2.2)a.useTap=true;return null}const c=ride.car;
     if(o.fail){/* gives up: off the mower and out of the gate on foot */if(a.CV)a.exitCar();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
     const W=[[99.6,108.6],[90,108.4],[82.8,107.6],[80.5,106.6]];M._bw=M._bw||0;while(M._bw<W.length-1&&Math.hypot(W[M._bw][0]-c.x,W[M._bw][1]-c.z)<2)M._bw++;steer(c,W[M._bw][0],W[M._bw][1],5.5);return null}
   case 'qdone':case 'count':case 'podium':keysOff();return null;
   case 'fix':{keysOff();const mr=M.field.find(r=>r.id==='marcus');if(walk(mr.car.x+1.3,mr.car.z)<.3)k.e=true;return null}
   case 'chase':{keysOff();const sur=M.hustlers.find(h=>h.e.state==='surrender');if(sur){if(walk(sur.e.pos.x+.8,sur.e.pos.z)<.3)a.useTap=true;return null}
     const run=M.hustlers.filter(h=>h.state==='run').sort((p,q)=>Math.hypot(p.e.pos.x-P.pos.x,p.e.pos.z-P.pos.z)-Math.hypot(q.e.pos.x-P.pos.x,q.e.pos.z-P.pos.z))[0];if(run)walk(run.e.pos.x,run.e.pos.z,6.4);return null}
-  case 'back':{keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}}
+  case 'back':{keysOff();if(walk(ride.pos.x,ride.pos.z)<1.2||Math.hypot(P.pos.x-ride.pos.x,P.pos.z-ride.pos.z)<2.2)a.useTap=true;return null}}
   /* racing: the same line the AI drives, the throttle and steering as key presses */
-  if(a.CV!==ride){keysOff();if(walk(ride.pos.x+1.7,ride.pos.z)<.3)a.useTap=true;return null}
+  if(a.CV!==ride){keysOff();if(walk(ride.pos.x,ride.pos.z)<1.2||Math.hypot(P.pos.x-ride.pos.x,P.pos.z-ride.pos.z)<2.2)a.useTap=true;return null}
   const me=meRacer(M),c=ride.car;
   if(M.phase==='race'&&M.sabot&&M.choice==null&&!o.keep){const dS=((M.pitS-me.s)%M.T.len+M.T.len)%M.T.len;if(dS<26||Math.hypot(c.x-PIT.x,c.z-PIT.z)<6){steer(c,PIT.x,PIT.z,Math.max(1.2,Math.hypot(c.x-PIT.x,c.z-PIT.z)*.9));if(Math.hypot(c.x-PIT.x,c.z-PIT.z)<2){k.w=false;k.s=c.spd>.4}return null}}
   if(M.phase==='finish'){k.w=false;k.shift=false;k.s=c.spd>.5;k.a=k.d=false;return null}

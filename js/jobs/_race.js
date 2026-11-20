@@ -99,7 +99,8 @@ function make(T,o){o=o||{};const laps=o.laps||3,line=o.line||0,ev=[];
     if(block&&bd<2.6&&Math.abs(r.lane-(block.lat||0))<1)v=Math.min(v,block.car.spd);
     r.target=v;const thr=clamp((v-spd)*1.6,-1,1);
     /* stuck: back out, swing toward the line */
-    if(Math.abs(spd)<.6&&v>2)r.stuckT+=dt;else r.stuckT=Math.max(0,r.stuckT-dt);
+    /* stuck against the course (not just queued behind another mower, which only needs patience) */
+    if(Math.abs(spd)<.6&&v>2&&!(block&&bd<3.2))r.stuckT+=dt;else r.stuckT=Math.max(0,r.stuckT-dt);
     if(r.stuckT>1.4){r.revT=.9;r.stuckT=0}
     if(r.revT>0){r.revT-=dt;return{thr:-1,st:-clamp(err*2,-1,1),boost:false,hb:false}}
     return{thr,st:clamp(err*2.4,-1,1),boost:v>S.maxSpeed+.05,hb:false}};
