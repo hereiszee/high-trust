@@ -257,7 +257,7 @@ function buildParty(M){const a=A(),T3=a.THREE,V=M.vis,root=V.g=new T3.Group();ro
   const leg=(x,z,y0,h,r)=>P(G.cyl8,m.steel,x,y0+h/2,z,r||.018,h,r||.018);
   const table=(cx,cz,w,d,h,cloth,yaw)=>{const y=gy(cx,cz);P(G.box,cloth,cx,y+h-.02,cz,w,.04,d);P(G.box,cloth,cx,y+h/2-.01,cz,w+.02,h-.04,d+.02);};
   /* -- the shop front: a long vinyl banner over the windows -- */
-  {const tx=sign(M,['★  GRAND OPENING  ★  NO QUESTIONS ASKED  ★'],{w:1024,h:64,size:40,bg:'#ffd23f',fg:'#b8231e',edge:'#b8231e',shadow:false});root.add(planeMesh(M,tx,11.1,.5,358,2.78,38.12,0))}
+  {const tx=sign(M,['★  GRAND OPENING  ★  NO QUESTIONS ASKED  ★'],{w:1024,h:64,size:40,bg:'#ffd23f',fg:'#b8231e',edge:'#b8231e',shadow:false});root.add(planeMesh(M,tx,11.1,.42,358,2.58,38.12,0))}
   /* -- the cut ribbon: two brass stanchions, the halves hanging, a big bow on the west post -- */
   for(const s of S.ribbon){const y=gy(s.x,s.z);P(G.cyl,m.brass,s.x,y+.02,s.z,.17,.04,.17);P(G.cyl8,m.brass,s.x,y+.52,s.z,.028,1,.028);P(G.sph,m.brass,s.x,y+1.05,s.z,.05,.05,.05);
     const dir=s.x<358?1:-1;P(G.box,m.red,s.x+dir*.12,y+.74,s.z,.035,.62,.11,0,0,dir*.42);P(G.box,m.red,s.x+dir*.32,y+.37,s.z+.02,.035,.36,.11,.25,0,dir*.08)}
@@ -758,7 +758,12 @@ function carryBook(M,on){const a=A(),T3=a.THREE,V=M.vis,d=a.P.dude;if(V.carry&&V
    THE JOB
    ===================================================================== */
 J.item('pawn_cam',{name:'Camera',use(M){camUse(M)}});
-function camUse(M){if(!M||M.def.id!=='pawn'||M.state!=='go')return;const V=M.V;
+/* the shutter is the left mouse button. index.html only calls fire() (and so the held item) while a gun may be drawn, and this job has
+   def.noGuns: listen for the click ourselves (under pointer lock, the way a real player clicks), and for the touch fire button */
+if(typeof window!=='undefined'&&window.addEventListener&&typeof document!=='undefined'){
+  window.addEventListener('mousedown',e=>{if(e.button!==0||!document.pointerLockElement)return;const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||a.mode!=='mission')return;camUse(M)},true);
+  let TB=false;J.on('hud',()=>{if(TB)return;const a=A();if(!a||!a.HUD||!a.HUD.on)return;TB=true;a.HUD.on('touch',(act,down)=>{if(act!=='fire'||!down)return;const M=A().M;if(M&&M.def.id==='pawn')camUse(M)})})}
+function camUse(M){if(!M||M.def.id!=='pawn'||M.state!=='go')return;if(M.useF===M.frame)return;M.useF=M.frame;const V=M.V;
   if(M.chat&&V&&V.choice){V.confirm();return}if(M.chat&&V){V.skip();return}
   if(M.photo&&M.photo.st==='aim'){snap(M);return}
   if(M.stage==='office'&&pageShot(M))return;
@@ -853,7 +858,7 @@ const CAM_SVG='<svg class="pw-cam" viewBox="0 0 120 60" width="120" height="60">
 
 /* ---------------- objectives, the marker, the pins ---------------- */
 function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
-  if(M.ph==='van'){const r=vanRear(M);F.objs.push(['Get a disguise from the back of the van (E)',false]);if(r){F.target={x:r.x,z:r.z,label:'Disguises'};
+  if(M.ph==='van'){const r=vanRear(M);F.objs.push([a.CV?'Get out (E) and open the back of the van: your disguises':'Open the back of the van (E): pick a disguise',false]);if(r){F.target={x:r.x,z:r.z,label:'Disguises'};
       F.taps.push({x:r.x,z:r.z,r:2.2,txt:'Open the back: pick a disguise',fn:()=>pickOpen(M)})}return}
   if(M.ph==='fix'){F.objs.push(['Press G to straighten your '+(D.id==='mustache'?'mustache':D.id==='press'?'lanyard':'cap'),false]);M.hint=LOOK[D.id].slipLine+' Press <kbd>G</kbd> to fix it.';return}
   /* the van: change disguise (party stage only) */
@@ -980,7 +985,9 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.def.id!=='pawn')r
   if(M.ph==='fix'){k.g=true;B.w=8;return null}
   if(!M.pp)return null;
   if(o&&o.fail){/* stand in the staff doorway, under Denise's nose */tp(357,31.25);face(357,28);P.crouch=false;return null}
-  const talk=(id)=>{const p=M.pp[id];tp(p.pos.x+(id==='denise'?1.3:0),p.pos.z+(id==='denise'?.2:1.35));face(p.pos.x,p.pos.z);a.useTap=true;B.w=10};
+  if(M.slip&&!M.chat){k.g=true;B.w=3;return null}
+  /* walk up to someone: stand in front of them (where they're looking), so they're the closest person */
+  const talk=(id)=>{const p=M.pp[id];const fx=Math.sin(p.yaw),fz=Math.cos(p.yaw);tp(p.pos.x+fx*1.0,p.pos.z+fz*1.0);face(p.pos.x,p.pos.z);a.useTap=true;B.w=10};
   if(M.stage==='party'){
     if(B.step===0){if(M.talked.gloria){B.step=1;return null}talk('gloria');return null}
     if(B.step===1){if(M.archFixed){k.e=false;B.step=2;return null}if(!M.ladderOn){talk('marco');return null}tp(S.ladder.x+.25,S.ladder.z+.85);k.e=true;return null}
