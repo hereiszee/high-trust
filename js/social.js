@@ -65,15 +65,20 @@ function convo(spec){spec=spec||{};
       /* sometimes an off-mood slot becomes a compliment or a bad-cop line: there is always one right register on the table */
       if((spec.swap||0)>0&&rnd()<spec.swap){const cand=regs.map((r,k)=>k).filter(k=>regs[k]!==best);const k=cand[Math.floor(rnd()*cand.length)];if(k!=null)regs[k]=rnd()<.6?'comp':'tough'}
       out=[];for(const reg of regs){let l=choose(deck.filter(l=>l.reg===reg&&avail(l)&&!out.includes(l)));
+        /* out of fresh material: dads repeat themselves (it barely works and everybody notices) */
+        if(!l&&spec.repeat!==false){const old=deck.filter(l=>l.reg===reg&&!l.custom&&!l.needs&&!l.flag&&st.used.includes(l.id)&&!out.some(o=>o.id===l.id+'!'));const o=old[Math.floor(rnd()*old.length)];if(o)l=again(o)}
         if(!l&&reg!==regs[0])l=choose(deck.filter(l=>C.regs.includes(l.reg)&&avail(l)&&!out.includes(l)));if(l)out.push(l)}
       /* specials (follow-ups the NPC asked for) ride along in the slot of their register */
       for(const l of deck.filter(l=>l.reg==='special'&&avail(l)))if(out.length<4)out.push(l)}
     C._lines=out;st.offer=out.map(l=>l.id);return out};
-  C.line=id=>(spec.deck||[]).find(l=>l.id===id)||(C._lines||[]).find(l=>l.id===id)||null;
+  const again=l=>Object.assign({},l,{id:l.id+'!',base:l.id,again:true,once:false,opens:null,note:null,set:null,events:null,fx:null,land:0,bonus:null,
+    reply:AGAIN[(st.round+l.id.length)%AGAIN.length],tag:((REGS[l.reg]||{}).label||'')+' (again)'});
+  C.line=id=>{if(/!$/.test(id)){const b=(spec.deck||[]).find(l=>l.id===id.slice(0,-1));return b?again(b):null}return(spec.deck||[]).find(l=>l.id===id)||(C._lines||[]).find(l=>l.id===id)||null};
   function score(reg,mood,l){const row=C.table[mood]||C.table.bored;let [dr,da]=row[reg]||row.real||[0,0];let hit;
     if(l&&l.sure){dr=Math.max(dr,l.sure===true?15:l.sure);da=0}
-    else if(reg==='joke'&&mood!=='bored'&&mood!=='friendly'&&l&&l.land&&rnd()<l.land){dr=12;da=0;hit='land'}
+    else if(reg==='joke'&&mood!=='bored'&&mood!=='friendly'&&l&&l.land&&rnd()<l.land*(st.awkward>=50?1:.4)){dr=12;da=0;hit='land'}/* a bad joke breaks real tension more often than it fixes a calm room */
     if(l&&l.bonus){dr+=l.bonus[0]||0;da+=l.bonus[1]||0}
+    if(l&&l.again){dr=Math.min(dr,2);da=Math.max(da,0)+6}
     if(!hit)hit=dr>=HIT_AT?'hit':dr<=0?'miss':'meh';return{dr,da,hit}}
   function moveMood(l,reg,hit){let to=l&&l.to;if(to&&!Array.isArray(to)&&typeof to==='object')to=to[hit]||to[hit==='land'?'hit':hit==='meh'?'hit':'miss']||null;
     let pool=to?arr(to):(DRIFT[hit==='miss'?'miss':'hit'][reg]||[st.mood]);
@@ -117,6 +122,7 @@ function convo(spec){spec=spec||{};
   C.load=s=>{Object.assign(st,JSON.parse(JSON.stringify(s)));st.offer=null;reseed();return C};
   C.open=open;
   return C}
+const AGAIN=["You said that one already.","...Is this a loop? Am I in a loop?","My uncle also tells the same three stories.","Yeah. You mentioned.","(mouthing along) ...yeah, I know how it ends."];
 const DEFAULT_TELLS={bored:['[{name} taps a foot. Bored.]'],scared:['[{name} folds his arms tight. Scared.]'],defensive:['[{name} looks away. Defensive.]'],friendly:['[{name} leans in. Friendly.]']};
 /* one round (doorsteps, talk-downs): same table, no memory */
 function check(o){o=o||{};const C=convo({mood:o.mood||'bored',rounds:[{options:o.options||[]}],win:o.win!=null?o.win:10,seed:o.seed,name:o.name});

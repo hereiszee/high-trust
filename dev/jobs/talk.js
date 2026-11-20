@@ -34,23 +34,20 @@ const POLICY=arg('policy','mixed'),TOUCH=!!arg('touch',false),OUT=path.resolve(_
       if(V2&&V2.typing&&V2.typing.t!==T.lastSay&&V2.typing.i>0){T.lastSay=V2.typing.t;T.log.push([(M2.spk||'?'),V2.typing.t,M2.cv?M2.cv.st.mood+' r'+M2.cv.st.rapport+' a'+M2.cv.st.awkward:''])}
       return null};
     T.run=(max,until)=>{for(let i=0;i<max;i++){const r=T.step();if(r)return r;const u=until();if(u)return u}return 'timeout'}},POLICY);
-  const until=async(name,fn,max=6000)=>{const r=await ev(([src,max])=>{const f=eval('(M,H)=>'+src);const H=window.__ht;return window.__T.run(max,()=>{const M=H.M;return M&&f(M,H)?'hit':null})},[fn,max]);
-    if(r==='hit')await shot(name);else console.log('  (no '+name+': '+r+')');return r};
-  await until('01-walkup',`M.ph==='walk'&&H.jobs.api.simT>0&&(M.bot&&M.bot.walk>30)`);
-  await until('02-intro-gary',`M.V&&M.V.typing&&M.spk==='gary'&&M.V.typing.i>40`);
-  await until('03-intro-dave',`M.V&&M.V.typing&&M.spk==='dave'&&M.V.typing.done===false&&M.V.typing.i>30`);
-  await until('04-first-choice',`M.V&&M.V.choice&&M.V.choice.t<M.V.choice.T-.8`);
-  await until('05-dad-speaks',`M.V&&M.V.typing&&M.spk==='you'&&M.V.typing.i>30&&M.cv.st.lines>=1`);
-  await until('06-tre-replies',`M.V&&M.V.typing&&M.spk==='tre'&&M.V.typing.i>20&&M.cv.st.lines>=1`);
-  if(POLICY!=='good')await until('07-bad-cop',`M.shot==='dadTough'&&M.V.typing&&M.V.typing.i>20`,4000);
-  if(POLICY==='mixed'){await until('08-reset',`M.V&&M.V.typing&&M.resets>=1&&M.spk==='dave'&&M.V.typing.i>20`,8000);
-    await until('09-tell-bored',`M.V&&M.V.choice&&M.cv.st.mood==='bored'&&M.V.choice.t<M.V.choice.T-1`,8000);
-    await until('10-tell-defensive',`M.V&&M.V.choice&&M.cv.st.mood==='defensive'&&M.V.choice.t<M.V.choice.T-1`,8000)}
-  if(POLICY!=='bad'){await until('11-burger',`M.daveWalk&&M.daveWalk.t>1`,9000);
-    await until('12-cheese',`M.V&&M.V.typing&&M.plate&&M.plate.visible&&M.spk==='dave'&&M.V.typing.i>20`,3000);
-    await until('13-spill',`M.beats.spill&&M.V&&M.V.typing&&M.spk==='tre'&&M.V.typing.i>40`,9000);
-    await until('14-notes',`M.V&&M.V.el&&!M.V.el.querySelector('.soc-notes').hidden`,9000);
-    await until('15-free',`M.ph==='free'`,4000)}
+  /* every moment we want a picture of; the first frame each one becomes true gets its shot */
+  const WANT=[['01-walkup',`M.ph==='walk'&&(M.bot&&M.bot.walk>30)`],['02-intro-gary',`M.V&&M.V.typing&&M.spk==='gary'&&M.V.typing.i>40&&M.cv.st.lines===0`],
+    ['03-intro-dave',`M.V&&M.V.typing&&M.spk==='dave'&&M.V.typing.i>30&&M.cv.st.lines===0`],['04-first-choice',`M.V&&M.V.choice&&M.V.choice.t<M.V.choice.T-.8`],
+    ['05-dad-speaks',`M.V&&M.V.typing&&M.spk==='you'&&M.V.typing.i>30&&M.cv.st.lines>=1`],['06-tre-replies',`M.V&&M.V.typing&&M.spk==='tre'&&M.V.typing.i>20&&M.cv.st.lines>=1`],
+    ['07-bad-cop',`M.shot==='dadTough'&&M.V.typing&&M.V.typing.i>20`],['08-reset',`M.V&&M.V.typing&&M.resets>=1&&M.spk==='dave'&&M.V.typing.i>20`],
+    ['09-tell-bored',`M.V&&M.V.choice&&M.cv.st.mood==='bored'&&M.V.choice.t<M.V.choice.T-1`],['10-tell-defensive',`M.V&&M.V.choice&&M.cv.st.mood==='defensive'&&M.V.choice.t<M.V.choice.T-1`],
+    ['10b-tell-friendly',`M.V&&M.V.choice&&M.cv.st.mood==='friendly'&&M.V.choice.t<M.V.choice.T-1`],['10c-silence',`M.V&&M.V.typing&&M.spk==='you'&&M.V.typing.t[0]==='('&&M.V.typing.done===false&&M.V.typing.i>8`],
+    ['11-burger',`M.daveWalk&&M.daveWalk.t>1.2&&!M.plate.visible`],['12-cheese',`M.V&&M.V.typing&&M.plate&&M.plate.visible&&M.spk==='dave'&&M.V.typing.i>20`],
+    ['12b-untied',`M.cv&&M.cv.st.flags.untied&&M.V&&M.V.typing&&M.spk==='tre'&&M.V.typing.i>20`],
+    ['13-spill',`M.beats.spill&&M.V&&M.V.typing&&M.spk==='tre'&&M.V.typing.i>40`],['13b-wholesaler',`M.beats.w95&&M.V&&M.V.typing&&M.spk==='tre'&&/Wholesaler/.test(M.V.typing.t)&&M.V.typing.i>60`],
+    ['14-notes',`M.V&&M.V.el&&!M.V.el.querySelector('.soc-notes').hidden&&M.V.typing&&M.V.typing.i>10`],['15-free',`M.ph==='free'`]];
+  await ev(w=>{window.__T.want=w.map(([n,src])=>({n,f:eval('(M,H)=>'+src)}))},WANT);
+  for(let guard=0;guard<40;guard++){const r=await ev(()=>{const T=window.__T,H=window.__ht;return T.run(14000,()=>{const M=H.M;if(!M)return null;for(const w of T.want){if(w.done)continue;let ok=false;try{ok=w.f(M,H)}catch(e){}if(ok){w.done=true;return w.n}}return null})});
+    if(r==='end'||r==='timeout')break;await shot(r)}
   const end=await ev(()=>window.__T.run(12000,()=>null));await ev(()=>window.__ht.step(40));
   const res=await ev(()=>{const H=window.__ht,M=H.M;return{state:M&&M.state,medal:M&&M.medal,pay:M&&M.pay&&M.pay.lines.map(l=>l.label+':'+l.amount),total:M&&M.pay&&M.pay.total,elapsed:M&&Math.round(M.elapsed),
     lines:M&&M.cv&&M.cv.st.lines,rapport:M&&M.cv&&M.cv.st.rapport,resets:M&&M.resets,notes:M&&M.notes,picks:M&&M.bot&&M.bot.picks,stp:M&&M.cv&&M.cv.st.picks}});

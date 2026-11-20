@@ -29,7 +29,7 @@ const COL={tre:'#ffb86b',you:'#6fb8ff',dave:'#ff8a7a',gary:'#9fe58a'};
 const CAST={you:{name:'You',color:COL.you,voice:{kind:'dad',pitch:1}},tre:{name:'Tre',color:COL.tre,voice:{kind:'thug',pitch:1.32,vol:.3}},
   dave:{name:'Big Dave',color:COL.dave,voice:{kind:'dad',pitch:.78,vol:.36}},gary:{name:'Gary',color:COL.gary,voice:{kind:'dad',pitch:1.14,vol:.3}}};
 const TELLS={bored:{tells:['[Tre taps his foot and studies the sky. Bored.]','[Tre picks at his hoodie string. Bored.]','[Tre is counting the bricks on Dave\'s chimney. Bored.]']},
-  scared:{tells:['[Tre folds his arms tight and shrinks into the chair. Scared.]','[Tre hugs himself and stares at the table. Scared.]','[Tre\'s shoulders are up around his ears. Scared.]']},
+  scared:{tells:['[Tre hunches over and shrinks into the chair. Scared.]','[Tre stares at the table, shoulders up around his ears. Scared.]','[Tre won\'t lift his head. Scared.]']},
   defensive:{tells:['[Tre looks away. Defensive.]','[Tre turns his shoulder to you. Defensive.]','[Tre is very interested in the mailbox. Defensive.]']},
   friendly:{tells:['[Tre leans in. Friendly.]','[Tre is almost smiling. Friendly.]','[Tre nods along. Friendly.]']}};
 
@@ -150,11 +150,15 @@ function patioTable(){const a=A(),THREE=a.THREE,g=new THREE.Group(),tx=tex(),al=
   mesh(new THREE.TorusGeometry(.5,.018,8,40),al,0,.74,0,g,Math.PI/2);
   for(let i=0;i<4;i++){const ang=i*Math.PI/2+Math.PI/4,l=mesh(new THREE.CylinderGeometry(.018,.018,.76,8),al,Math.cos(ang)*.34,.37,Math.sin(ang)*.34,g);l.rotation.set(Math.sin(ang)*.12,0,-Math.cos(ang)*.12)}
   mesh(new THREE.TorusGeometry(.3,.012,6,32),al,0,.2,0,g,Math.PI/2);
-  /* the umbrella: pole, eight-panel canopy, valance */
-  mesh(new THREE.CylinderGeometry(.022,.022,2.25,10),M_('#d9d4c6',{roughness:.4,metalness:.3}),0,1.12,0,g);
-  const can=mesh(new THREE.ConeGeometry(1.25,.42,8,1,true),M_('#ffffff',{map:tx.canopy,side:THREE.DoubleSide,roughness:.85}),0,2.15,0,g);can.castShadow=true;
-  const val=mesh(new THREE.CylinderGeometry(1.25,1.25,.12,8,1,true),M_('#2f7d55',{side:THREE.DoubleSide,roughness:.85}),0,1.89,0,g);
-  mesh(new THREE.SphereGeometry(.04,10,8),M_('#d9d4c6'),0,2.38,0,g);
+  /* a cantilever umbrella: the post stands behind the table (house side), the arm reaches over, the canopy hangs */
+  const um=new THREE.Group();g.add(um);um.position.set(.35,0,-1.25);const pm=M_('#d9d4c6',{roughness:.4,metalness:.35});
+  mesh(new THREE.CylinderGeometry(.34,.38,.08,20),M_('#5b5f63',{roughness:.8}),0,.04,0,um);
+  mesh(new THREE.CylinderGeometry(.035,.04,2.55,12),pm,0,1.3,0,um);
+  const arm=mesh(new THREE.CylinderGeometry(.025,.025,1.5,10),pm,-.17,2.5,.62,um);arm.rotation.set(Math.PI/2-.18,0,.22);
+  mesh(new THREE.CylinderGeometry(.012,.012,.35,8),pm,-.35,2.25,1.25,um);
+  const can=mesh(new THREE.ConeGeometry(1.35,.38,8,1,true),M_('#ffffff',{map:tx.canopy,side:THREE.DoubleSide,roughness:.85}),-.35,2.2,1.25,um);
+  mesh(new THREE.CylinderGeometry(1.35,1.35,.12,8,1,true),M_('#2f7d55',{side:THREE.DoubleSide,roughness:.85}),-.35,1.95,1.25,um);
+  mesh(new THREE.SphereGeometry(.045,10,8),pm,-.35,2.4,1.25,um);
   /* a pitcher of lemonade and two glasses */
   const glass=M_('#f4fbfb',{transparent:true,opacity:.28,roughness:.05,depthWrite:false}),lem=M_('#ffe15a',{emissive:A().lin('#5a4a00'),roughness:.25});
   mesh(new THREE.CylinderGeometry(.06,.055,.2,14),glass,.12,.86,-.22,g);mesh(new THREE.CylinderGeometry(.056,.052,.15,14),lem,.12,.835,-.22,g);
@@ -333,7 +337,7 @@ function sitDown(M,resume){const a=A(),L_=lay(),Soc=S_();if(M.seated)return;
 
 /* ---------------- one round: read him, pick a line ---------------- */
 function round(M){const a=A(),C=M.cv,V=M.V,S=M.S;if(!C||M.state!=='go')return;
-  const opts=C.options().map(l=>({kind:'line',line:l,reg:l.reg==='special'?'special':l.reg,tag:l.tag,text:'"'+l.text+'"'}));
+  const opts=C.options().map(l=>({kind:'line',line:l,reg:l.reg==='special'?'special':l.reg,tag:l.tag,text:'"'+l.text+'"',cls:l.again?'again':''}));
   if(!M.grillUsed)opts.push({kind:'grill',reg:'grill',text:'"Dave? How are those burgers coming?"',hint:grillHint(M)});
   if(M.ph==='after')opts.push({kind:'wrap',reg:'go',text:'"That\'s everything we need. Thanks, Tre."',hint:'Ends the talk'});
   const list=opts.slice(0,5);
@@ -457,7 +461,7 @@ function shots(){const L_=lay(),t=L_.table,tr=L_.tre,dd=L_.dad,gr=L_.grill,dv=L_
     dadTough:{eye:{x:dd.x-.35,y:.95,z:dd.z+.95},at:{x:dd.x,y:1.22,z:dd.z},drift:{x:.08,y:0,z:-.1},fov:32,dur:5},
     dave:{eye:{x:gr.x-1.9,y:1.12,z:gr.z+1.0},at:{x:dv.x,y:1.2,z:dv.z},drift:{x:.2,y:.05,z:-.2},fov:40,dur:8},
     daveTable:{eye:{x:t.x+.9,y:1.55,z:t.z+3.3},at:{x:t.x+.2,y:1.05,z:t.z-.3},drift:{x:-.3,y:0,z:-.3},fov:48,dur:8},
-    gary:{eye:{x:gy.x+1.35,y:1.5,z:gy.z+1.85},at:{x:gy.x,y:1.45,z:gy.z},drift:{x:-.15,y:0,z:-.2},fov:34,dur:8}}}
+    gary:{eye:{x:gy.x-.9,y:1.55,z:gy.z+2.1},at:{x:gy.x+.1,y:1.4,z:gy.z},drift:{x:-.15,y:0,z:-.2},fov:34,dur:8}}}
 function camFor(who){return who==='tre'?'tre':who==='you'?'dad':who==='dave'?'dave':who==='gary'?'gary':'wide'}
 function cut(M,name){if(!M.D)return;const s=shots()[name]||shots().wide;if(M.shot===name&&M.D.t<4)return;M.shot=name;M.D.cut(s)}
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -478,7 +482,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph)return null;c
   if(B.think-->0)return null;B.think=null;
   const list=V.choice.list,C=M.cv,mood=C.st.mood,best=C.best();let k=-1;
   const idx=f=>list.findIndex(f);
-  if(o.fail){k=idx(c=>c.reg==='tough');if(k<0){const row=window.HT.Social.TABLE[mood];let lo=1e9;list.forEach((c,i)=>{if(c.kind!=='line')return;const r=row[c.line.reg==='special'?'over':c.line.reg];const v=r?r[0]-r[1]:0;if(v<lo){lo=v;k=i}})}}
+  if(o.fail){k=idx(c=>c.reg==='tough');if(k<0){const row=window.HT.Social.TABLE[mood];let lo=1e9;list.forEach((c,i)=>{if(c.kind!=='line')return;const l=c.line;if(l.custom||l.sure||l.reg==='special')return;const r=row[l.reg];const v=(r?r[0]-r[1]:0)+(l.land?l.land*30:0)-(l.again?12:0);if(v<lo){lo=v;k=i}})}if(k<0)k=idx(c=>c.kind==='line'&&!c.line.custom&&!c.line.sure)}
   else{const ready=M.cook>=T.ready&&M.cook<T.burnt;
     if(M.full)k=idx(c=>c.kind==='wrap');
     if(k<0&&ready)k=idx(c=>c.kind==='grill');

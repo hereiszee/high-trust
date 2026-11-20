@@ -65,6 +65,7 @@ body.soc-on .ht-sub,body.soc-on .ht-pr,body.soc-on .ht-touch,body.soc-on .ht-wm,
 .soc-ch.reg-joke{--rc:#ffc94a}.soc-ch.reg-real{--rc:#6fb8ff}.soc-ch.reg-over{--rc:#d99bff}.soc-ch.reg-comp{--rc:#7fdc6e}.soc-ch.reg-tough{--rc:#ff5a47}
 .soc-ch.reg-grill{--rc:#ff9a52}.soc-ch.reg-go{--rc:#9fe58a}.soc-ch.reg-special{--rc:#ffdd85}
 .soc-ch.reg-special{border-color:rgba(255,221,133,.5)}
+.soc-ch.again .t{color:var(--fg2);font-style:italic}
 @keyframes soc-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .soc-timer{height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden;visibility:hidden;opacity:0;transition:opacity var(--d2)}
 .soc.choosing .soc-timer{opacity:1}
