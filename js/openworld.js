@@ -998,17 +998,21 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
   for(const s of(o.shots||[]))OW.neighbourCower(s.x,s.z,s.r||35);
   N.quiet+=dt;N.t-=dt;
   /* re-plan once a second: which porch anchors should be occupied */
-  if(N.t<=0){N.t=1;const slots=o.river===false||o.off?[]:G.neighbourSlots(ws.def,t,p.x,p.z,NB_CAP,NB_R);const want=new Set(slots);
+  if(N.t<=0){N.t=1;/* per block: a porch is eligible by its own block's trust tier (OW.blockTrust), so the blocks near the church / fixed sites fill first */
+    const lim=k=>(G.TIERS&&G.TIERS[k]?G.TIERS[k].neighbours:null);
+    let slots=o.river===false||o.off?[]:G.neighbourSlots(ws.def,OW.blockTrust?100:t,p.x,p.z,NB_CAP*3,NB_R);
+    if(OW.blockTrust&&slots.length){const cap=k=>{const v=lim(k);return v!=null?v:[0,4,10,18,28,28][k]};slots=slots.filter(sl=>sl.order<cap(G.tierOf(OW.blockTrust(sl.x,sl.z))))}
+    slots=slots.slice(0,NB_CAP);const want=new Set(slots);
     /* load only as many models as there are porches to fill (shuffled once, so different saves see different faces first) */
     if(!N.order){N.order=PP.neighbourKeys.slice();for(let i=N.order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[N.order[i],N.order[j]]=[N.order[j],N.order[i]]}}
     const need=Math.min(N.order.length,slots.length+2);if(need>N.want){N.want=need;PP.preload(N.order.slice(0,need).concat(G.tierOf(t)>=3?['nb_kid']:[])).catch(()=>{})}
     const seen=(x,z)=>{_b.min.set(x-.6,0,z-.6);_b.max.set(x+.6,2,z+.6);return o.camera&&ws.frustum.intersectsBox(_b)&&Math.hypot(x-o.camera.position.x,z-o.camera.position.z)<60};
     for(let i=N.list.length-1;i>=0;i--){const n=N.list[i];if(!want.has(n.slot)&&!(n.d&&seen(n.d.root.position.x,n.d.root.position.z))){nbDrop(N,n);N.list.splice(i,1)}}
     const tier=G.tierOf(t);
-    for(const sl of slots){if(N.list.some(n=>n.slot===sl))continue;if(N.list.length>=NB_CAP)break;
+    for(const sl of slots){const btier=OW.blockTrust?G.tierOf(OW.blockTrust(sl.x,sl.z)):tier;if(N.list.some(n=>n.slot===sl))continue;if(N.list.length>=NB_CAP)break;
       /* porch anchors face the street: stand a little toward it, facing it */
       const fx=sl.face[0],fz=sl.face[1],sx=fz,sz=-fx,k=sl.order;
-      const kidNow=tier>=3&&!N.list.some(q=>q.kind==='bike'||q.kind==='chalk');/* one kid out front at the high tiers: chalk or a bike */
+      const kidNow=btier>=3&&!N.list.some(q=>q.kind==='bike'||q.kind==='chalk');/* one kid out front at the high tiers: chalk or a bike */
       const kind=kidNow?(k%2?'bike':'chalk'):k%3===0?'sit':k%3===1?'sidewalk':'stand';
       const off=kind==='sit'?.2:kind==='stand'?1.4:2.2,side=kind==='sit'?0:(k%2?1:-1)*(1.2+(k*7)%3*.2);/* beside the stoop steps */
       /* stay off the road: the farthest candidate out front that is on a sidewalk tile (rowhouse stoops sit right on the street) */
