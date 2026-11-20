@@ -97,6 +97,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
     for(const m of(Array.isArray(o.material)?o.material:[o.material])){if(m.userData.rbPrep)continue;m.userData.rbPrep=1;m.envMapIntensity=.85;
       for(const t of[m.map,m.normalMap,m.roughnessMap,m.metalnessMap])if(t){t.anisotropy=low?1:4;if(low)capTexture(t,t===m.map?512:256)}
       if(low&&m.normalMap&&!/head/.test(m.name)){m.normalMap=null;m.needsUpdate=true}}});
+  /* one draw for body+head: merge the two skinned primitives with a side-by-side texture atlas */
+  try{atlasBodyHead(s)}catch(e){console.warn('people: atlas skipped for',key,e)}
   /* Coach Rick reads too young: salt-and-pepper hair */
   if(key==='dad_rick')s.traverse(o=>{if(o.isMesh&&o.material&&/opacity|hair/i.test(o.material.name)&&o.material.map)greyHair(o.material.map,.72)});
   if(HIDE[key])s.traverse(o=>{if(o.isMesh&&o.material&&HIDE[key].test(o.material.name)){o.visible=false;o.castShadow=false}});
@@ -113,6 +115,41 @@ function greyHair(t,k){const im=t.image;if(!im||!im.width)return;try{const c=doc
     const d=x.getImageData(0,0,c.width,c.height),a=d.data;for(let i=0;i<a.length;i+=4){const l=(a[i]*.3+a[i+1]*.59+a[i+2]*.11);
       /* grey strands: lift and desaturate, keep some dark for pepper */const n=((i>>2)*2654435761>>>0)%100<55;const g=n?Math.min(255,l*1.9+70):l*1.15+18;
       a[i]+=(g-a[i])*k;a[i+1]+=(g-a[i+1])*k;a[i+2]+=(g*1.02-a[i+2])*k}x.putImageData(d,0,0);t.image=c;t.needsUpdate=true}catch(e){}}
+function atlasBodyHead(s){let body=null,head=null;s.traverse(o=>{if(!o.isSkinnedMesh||Array.isArray(o.material))return;const n=o.material.name||'';if(/_body$/.test(n))body=o;else if(/_head$/.test(n))head=o});
+  if(!body||!head||body.skeleton!==head.skeleton&&body.skeleton.bones.length!==head.skeleton.bones.length||body.parent!==head.parent)return;
+  const gb=body.geometry,gh=head.geometry;const names=['position','normal','uv','skinIndex','skinWeight'];for(const n of names)if(!gb.attributes[n]||!gh.attributes[n])return;
+  if(gh.morphAttributes&&Object.keys(gh.morphAttributes).length)return;
+  const mb=body.material,mh=head.material;
+  const slot=(tb,th,fill)=>{if(!tb&&!th)return null;const H=Math.max(...[tb,th].filter(Boolean).map(t=>t.image&&t.image.height||0),64);const c=document.createElement('canvas');c.width=H*2;c.height=H;const x=c.getContext('2d');
+    for(const[t,ox]of[[tb,0],[th,H]]){if(t&&t.image)x.drawImage(t.image,ox,0,H,H);else{x.fillStyle=fill;x.fillRect(ox,0,H,H)}}
+    const ref=tb||th;const tx=new T.CanvasTexture(c);tx.flipY=ref.flipY;tx.encoding=ref.encoding;tx.wrapS=tx.wrapT=T.ClampToEdgeWrapping;tx.anisotropy=ref.anisotropy;return tx};
+  const m=mb.clone();m.name=mb.name.replace(/_body$/,'_bodyhead');
+  m.map=slot(mb.map,mh.map,'#ffffff');m.normalMap=slot(mb.normalMap,mh.normalMap,'rgb(128,128,255)');
+  const mr=slot(mb.roughnessMap,mh.roughnessMap,'rgb(255,230,0)');m.roughnessMap=mr;if(mb.metalnessMap||mh.metalnessMap)m.metalnessMap=mr;
+  /* geometry: concatenate, head UVs into the right half */
+  const out=new T.BufferGeometry();const nb=gb.attributes.position.count;
+  /* optimised GLBs quantise attributes (normalised ints): work in floats, keep joint indices integer */
+  /* r128 getX returns the raw integer, so denormalise by hand (glTF: int8/127, uint8/255, int16/32767, uint16/65535) */
+  const NORM={Int8Array:127,Uint8Array:255,Int16Array:32767,Uint16Array:65535};
+  const deq=(at,int)=>{const n=at.count*at.itemSize,o=int?new Uint16Array(n):new Float32Array(n),g=[at.getX,at.getY,at.getZ,at.getW];
+    const k0=(!int&&at.normalized&&NORM[at.array.constructor.name])||1;
+    for(let i=0;i<at.count;i++)for(let k=0;k<at.itemSize;k++){const v=g[k].call(at,i)/k0;o[i*at.itemSize+k]=int?v:(at.normalized&&k0>1&&at.array.constructor.name[0]==='I'?Math.max(-1,v):v)}return o};
+  for(const n of names){const a=gb.attributes[n],b=gh.attributes[n],int=n==='skinIndex';const A=deq(a,int),Bv=deq(b,int);const arr=int?new Uint16Array(A.length+Bv.length):new Float32Array(A.length+Bv.length);arr.set(A,0);arr.set(Bv,A.length);
+    if(n==='uv'){for(let i=0;i<a.count;i++)arr[i*2]=arr[i*2]*.5;for(let i=a.count;i<a.count+b.count;i++)arr[i*2]=arr[i*2]*.5+.5}
+    out.setAttribute(n,new T.BufferAttribute(arr,a.itemSize,false))}
+  const ib=gb.index?gb.index.array:[...Array(nb).keys()],ih=gh.index?gh.index.array:[...Array(gh.attributes.position.count).keys()];
+  const idx=new Uint32Array(ib.length+ih.length);idx.set(ib,0);for(let i=0;i<ih.length;i++)idx[ib.length+i]=ih[i]+nb;out.setIndex(new T.BufferAttribute(idx,1));
+  /* optional vertex colours: keep them (white where one side has none), else make sure the material does not ask for them */
+  if(gb.attributes.color||gh.attributes.color){const isz=(gb.attributes.color||gh.attributes.color).itemSize;const side=(g)=>{const at=g.attributes.color,n=g.attributes.position.count;if(!at)return new Float32Array(n*isz).fill(1);
+      const v=deq(at,false);if(at.itemSize===isz)return v;const o=new Float32Array(n*isz).fill(1);for(let i=0;i<n;i++)for(let k=0;k<Math.min(isz,at.itemSize);k++)o[i*isz+k]=v[i*at.itemSize+k];return o};
+    const A=side(gb),Bc=side(gh),arr=new Float32Array(A.length+Bc.length);arr.set(A,0);arr.set(Bc,A.length);out.setAttribute('color',new T.BufferAttribute(arr,isz))}
+  else if(m.vertexColors){m.vertexColors=false;m.needsUpdate=true}
+  if(gb.morphAttributes&&gb.morphAttributes.position){out.morphAttributes={};for(const k in gb.morphAttributes){out.morphAttributes[k]=gb.morphAttributes[k].map(a=>{const arr=new Float32Array((nb+gh.attributes.position.count)*a.itemSize);arr.set(deq(a,false),0);return new T.BufferAttribute(arr,a.itemSize)})}out.morphTargetsRelative=gb.morphTargetsRelative}
+  const sm=new T.SkinnedMesh(out,m);sm.name=body.name;sm.castShadow=true;sm.receiveShadow=true;sm.frustumCulled=true;
+  if(gb.morphAttributes&&gb.morphAttributes.position){sm.morphTargetInfluences=(body.morphTargetInfluences||[]).slice();sm.morphTargetDictionary=Object.assign({},body.morphTargetDictionary||{});m.morphTargets=true}
+  out.computeBoundingSphere();out.boundingSphere.center.set(0,.85,0);out.boundingSphere.radius=Math.max(out.boundingSphere.radius,1.45);out.userData.rbBounds=1;
+  sm.position.copy(body.position);sm.quaternion.copy(body.quaternion);sm.scale.copy(body.scale);
+  body.parent.add(sm);sm.bind(body.skeleton,body.bindMatrix);body.parent.remove(body);head.parent.remove(head)}
 const capped=new WeakSet();
 function capTexture(t,max){const im=t.image;if(!im||!im.width||im.width<=max||capped.has(t))return;capped.add(t);
   try{const c=document.createElement('canvas');const k=max/Math.max(im.width,im.height);c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);t.image=c;t.needsUpdate=true}catch(e){}}
@@ -153,23 +190,72 @@ function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._s
     /* arched across (edges curl down), gently pitched down */const ey=base+.004+Math.cos(ang)*.014-t*bl*.12-(u*u)*.034*(.3+t);pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
   for(let r=0;r<rows;r++)for(let c=0;c<seg;c++){const a=r*(seg+1)+c,b=a+1,d=a+seg+1,e=d+1;idx.push(a,d,b,b,d,e)}
   const brG=new T.BufferGeometry();brG.setAttribute('position',new T.Float32BufferAttribute(pos,3));brG.setAttribute('uv',new T.Float32BufferAttribute(uv,2));brG.setIndex(idx);brG.computeVertexNormals();
-  const brMat=fab.clone();brMat.side=T.DoubleSide;const brim=new T.Mesh(brG,brMat);brim.castShadow=true;g.add(brim);
+  fab.side=T.DoubleSide;const brim=new T.Mesh(brG,fab);brim.castShadow=true;g.add(brim);
   /* under-brim and the band inside the crown edge */
-  const btn=new T.Mesh(new T.SphereGeometry(.011,8,6),fab);btn.position.set(0,top+.003,cz);btn.scale.y=.5;g.add(btn);
-  return g}
+  const btn=new T.Mesh(new T.SphereGeometry(.011,8,6),fab);btn.position.set(0,top+.003,cz);btn.scale.y=.5;btn.castShadow=true;g.add(btn);
+  mergeStatic(g);return g}
 function makeCrown(s,head){const bb=skull(s,head)||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
   const g=new T.Group();g.name='rb_crown';g.applyMatrix4(CAP2HEAD);
   const gold=new T.MeshStandardMaterial({color:new T.Color(1,.72,.22),metalness:1,roughness:.28,envMapIntensity:1.4});
   const r=Math.max((bb.max.z-bb.min.z),(bb.max.y-bb.min.y))/2*.82,cz=(bb.max.y+bb.min.y)/2,y=bb.max.x-.045;
   const band=new T.Mesh(new T.CylinderGeometry(r,r*.97,.05,24,1,true),gold);band.position.set(0,y,cz);band.material.side=T.DoubleSide;g.add(band);
   for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const sp=new T.Mesh(new T.ConeGeometry(.016,.05,4),gold);sp.position.set(Math.sin(a)*r,y+.045,cz+Math.cos(a)*r);g.add(sp);
-    const gem=new T.Mesh(new T.SphereGeometry(.009,6,4),new T.MeshStandardMaterial({color:i%2?0x9a1030:0x1a4ad0,roughness:.15,metalness:.1}));gem.position.set(Math.sin(a)*r*1.04,y,cz+Math.cos(a)*r*1.04);g.add(gem)}
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true});g.rotation.x+=0;return g}
+    /* gems ride on the gold material via vertex colours so the whole crown is one draw */
+    const gg=new T.SphereGeometry(.009,6,4);const gc=new T.Color(i%2?0x9a1030:0x1a4ad0).convertSRGBToLinear(),ca=new Float32Array(gg.attributes.position.count*3);for(let v=0;v<ca.length;v+=3){ca[v]=gc.r*3;ca[v+1]=gc.g*3;ca[v+2]=gc.b*3}gg.setAttribute('color',new T.BufferAttribute(ca,3));
+    const gem=new T.Mesh(gg,gold);gem.position.set(Math.sin(a)*r*1.04,y,cz+Math.cos(a)*r*1.04);g.add(gem)}
+  /* gold parts: white vertex colour (the material colour stays the gold) */
+  g.traverse(o=>{if(o.isMesh&&!o.geometry.attributes.color)o.geometry.setAttribute('color',new T.BufferAttribute(new Float32Array(o.geometry.attributes.position.count*3).fill(1),3))});gold.vertexColors=true;
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});mergeStatic(g);return g}
 function makeChain(){/* gold rope chain over the shirt, hangs from the neck onto the chest (Spine2 space: x up, y forward, z left) */
   const gold=new T.MeshStandardMaterial({color:new T.Color(1,.74,.25),metalness:1,roughness:.3,envMapIntensity:1.4});
   const pts=[];for(let i=0;i<=24;i++){const a=i/24*Math.PI*2;const fy=Math.cos(a);pts.push(new T.Vector3(.2-(fy>0?fy*fy*.11:0),.04+Math.max(0,fy)*.1+Math.min(0,fy)*.06,Math.sin(a)*.085))}
   const curve=new T.CatmullRomCurve3(pts,true);const m=new T.Mesh(new T.TubeGeometry(curve,48,.0075,6,true),gold);m.name='rb_chain';m.castShadow=true;
-  const pend=new T.Mesh(new T.CylinderGeometry(.03,.03,.008,16),gold);pend.rotation.x=Math.PI/2;pend.position.set(.085,.155,0);const g=new T.Group();g.add(m);g.add(pend);return g}
+  const pend=new T.Mesh(new T.CylinderGeometry(.03,.03,.008,16),gold);pend.rotation.x=Math.PI/2;pend.position.set(.085,.155,0);const g=new T.Group();g.add(m);g.add(pend);mergeStatic(g);return g}
+
+/* ---------- draw-call batching ----------
+   mergeStatic(root, dyn): every mesh under root is merged, per material, into the frame of its nearest "moving" ancestor
+   (root itself or a node in dyn). Looks are identical (same materials, same triangles); originals with children keep their
+   place with an empty geometry so muzzle/eject markers and moving parts stay where they were. */
+const EMPTY=new T.BufferGeometry();
+function attrSig(g){return Object.keys(g.attributes).sort().map(k=>{const a=g.attributes[k];return k+a.itemSize+a.array.constructor.name+(a.normalized?'n':'')}).join(',')}
+function mergeStatic(root,dyn){dyn=dyn||new Set();root.updateMatrixWorld(true);const groups=new Map();const inv=new T.Matrix4(),M=new T.Matrix4();
+  root.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||o===root||dyn.has(o)||Array.isArray(o.material)||!o.geometry||!o.geometry.attributes.position||o.geometry.morphAttributes&&Object.keys(o.geometry.morphAttributes).length)return;
+    let vis=true;for(let q=o;q&&q!==root;q=q.parent)if(!q.visible)vis=false;if(!vis||(o.userData&&o.userData.hitbox))return;
+    let a=o.parent;while(a&&a!==root&&!dyn.has(a))a=a.parent;if(!a)return;
+    const k=a.uuid+'|'+o.material.uuid+'|'+attrSig(o.geometry)+'|'+o.castShadow;let g=groups.get(k);if(!g)groups.set(k,g={anchor:a,mat:o.material,list:[],cast:o.castShadow,recv:o.receiveShadow});g.list.push(o)});
+  let removed=0;
+  for(const g of groups.values()){if(g.list.length<2)continue;inv.copy(g.anchor.matrixWorld).invert();const parts=[];
+    for(const o of g.list){M.multiplyMatrices(inv,o.matrixWorld);const gg=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(M);parts.push(gg)}
+    const out=new T.BufferGeometry();for(const name of Object.keys(parts[0].attributes)){const a0=parts[0].attributes[name];let n=0;for(const q of parts)n+=q.attributes[name].array.length;
+      const arr=new a0.array.constructor(n);let off=0;for(const q of parts){arr.set(q.attributes[name].array,off);off+=q.attributes[name].array.length}out.setAttribute(name,new T.BufferAttribute(arr,a0.itemSize,a0.normalized))}
+    out.computeBoundingSphere();const m=new T.Mesh(out,g.mat);m.name='rb_merged';m.castShadow=g.cast;m.receiveShadow=g.recv;g.anchor.add(m);
+    for(const o of g.list){if(o.children.length){o.geometry=EMPTY;o.castShadow=false}else o.parent.remove(o);removed++}}
+  return removed}
+/* in third person only the pump moves (People's pump stroke); muzzle/eject are markers */
+const GUN_DYN=/^(pump|muzzle|eject)$/;
+/* barrel axis in gun space: from the grip origin toward the muzzle marker when the model has one (else +Z) */
+function gunAxis(gun){if(gun.userData.rbAxis)return gun.userData.rbAxis;let ax=new T.Vector3(0,0,1);const mz=gun.getObjectByName('muzzle');
+  if(mz){gun.updateMatrixWorld(true);const p=mz.getWorldPosition(new T.Vector3()).applyMatrix4(new T.Matrix4().copy(gun.matrixWorld).invert());p.y=0;if(p.lengthSq()>1e-4)ax=p.normalize()}
+  return gun.userData.rbAxis=ax}
+function batchGun(gun){if(!gun||gun.userData.rbBatched)return;gun.userData.rbBatched=true;gunAxis(gun);const dyn=new Set();
+  gun.traverse(o=>{if(o!==gun&&GUN_DYN.test(o.name))dyn.add(o)});
+  try{mergeStatic(gun,dyn);buildGunLod(gun)}catch(e){console.warn('people: gun batching skipped',e)}}
+/* far stand-in: the whole gun as one mesh, material colours baked into vertex colours (textures are invisible at that range) */
+const lodMats={};
+function buildGunLod(gun){gun.updateMatrixWorld(true);const inv=new T.Matrix4().copy(gun.matrixWorld).invert(),M=new T.Matrix4(),col=new T.Color();const parts=[],detail=[];let rs=0,ms=0,n=0;
+  gun.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||Array.isArray(o.material)||!o.geometry.attributes.position||!o.geometry.attributes.position.count)return;let vis=true;for(let q=o;q&&q!==gun;q=q.parent)if(!q.visible)vis=false;if(!vis)return;
+    detail.push(o);M.multiplyMatrices(inv,o.matrixWorld);const g0=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();const g=new T.BufferGeometry();
+    g.setAttribute('position',g0.attributes.position.clone());if(g0.attributes.normal)g.setAttribute('normal',g0.attributes.normal.clone());else g.computeVertexNormals();g.applyMatrix4(M);
+    const m=o.material,c=m.color||col.set(1,1,1);const cnt=g.attributes.position.count,ca=new Float32Array(cnt*3),vc=m.vertexColors&&g0.attributes.color;
+    for(let i=0;i<cnt;i++){const k=vc?[vc.getX(i),vc.getY(i),vc.getZ(i)]:[1,1,1];ca[i*3]=c.r*k[0];ca[i*3+1]=c.g*k[1];ca[i*3+2]=c.b*k[2]}
+    g.setAttribute('color',new T.BufferAttribute(ca,3));parts.push(g);rs+=(m.roughness!=null?m.roughness:.6)*cnt;ms+=(m.metalness||0)*cnt;n+=cnt});
+  if(parts.length<2)return;let tot=0;for(const g of parts)tot+=g.attributes.position.count;const out=new T.BufferGeometry();
+  for(const name of['position','normal','color']){const arr=new Float32Array(tot*3);let off=0;for(const g of parts){arr.set(g.attributes[name].array,off);off+=g.attributes[name].array.length}out.setAttribute(name,new T.BufferAttribute(arr,3))}
+  out.computeBoundingSphere();const r=Math.round(rs/n*10)/10,mt=Math.round(ms/n*10)/10,key=r+'|'+mt;
+  const mat=lodMats[key]||(lodMats[key]=new T.MeshStandardMaterial({vertexColors:true,roughness:r,metalness:mt}));
+  const lod=new T.Mesh(out,mat);lod.name='rb_gunlod';lod.visible=false;lod.castShadow=false;gun.add(lod);gun.userData.rbLod={lod,detail,on:false}}
+function gunLod(d,on){const L=d.gun&&d.gun.userData.rbLod;if(!L||L.on===on)return;L.on=on;L.lod.visible=on;for(const o of L.detail)o.visible=!on}
+P.batchGun=batchGun;P.mergeStatic=mergeStatic;
 
 /* ---------- instances ---------- */
 /* crews: a shuffle bag over the variants that are loaded, so the spread stays even and no two spawned in a row look alike */
@@ -216,7 +302,7 @@ P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
     rb.lx=x;rb.lz=z;if(!inp.moving){const k=1-Math.exp(-dt*14);rb.vx-=rb.vx*k;rb.vz-=rb.vz*k}}
   if(inp.mode==='down'&&!rb.dead)rb.downed=true;else if(inp.mode!=='down'&&rb.downed){rb.downed=false;rb.getUp=.6}};
 const PISTOL_STYLE={pistol:1,revolver:1,nailer:1,sawedoff:1};const _ry=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI);
-P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;rb.gunType=type||null;const gh=d.gunHold;const G=HT.Guns;
+P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;if(d.gun)batchGun(d.gun);rb.shadowBand=-1;rb.gunType=type||null;const gh=d.gunHold;const G=HT.Guns;
   rb.style=type?(PISTOL_STYLE[type]?'pistol':'rifle'):null;gh.scale.set(1,1,1);
   /* realistic guns (js/guns.js): calibrated hand fit; makeGun wraps those models turned to +Z, so turn back */
   if(type&&d.gun&&d.gun.userData&&d.gun.userData.gun&&G&&G.handAttach){try{const a=G.handAttach(type);gh.position.copy(a.position);gh.quaternion.copy(a.quaternion);if(d.gun.userData.muzzle!=='-z')gh.quaternion.multiply(_ry);rb.style=a.clipStyle||rb.style;rb.gh={p:gh.position.clone(),q:gh.quaternion.clone()};return}catch(e){}}
@@ -393,7 +479,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
   /* closed loop: measure where the barrel really points and turn the arms (pitch) and upper torso (yaw) by the error,
      so every base clip (crouch, kneel-ish idles, strafes, hip yaw) ends with the gun on the view / at low ready */
   const gw=gun&&d.gun&&!full?Math.max(rb.aimW,longGun?rb.holdW:0):0;
-  if(gw>.3&&d.gunHold&&d.gunHold.visible){d.gunHold.updateWorldMatrix(true,false);d.gun.getWorldQuaternion(_q);const bd=_a.set(0,0,1).applyQuaternion(_q);
+  if(gw>.3&&d.gunHold&&d.gunHold.visible){d.gunHold.updateWorldMatrix(true,false);d.gun.getWorldQuaternion(_q);const bd=_a.copy(gunAxis(d.gun)).applyQuaternion(_q);
     const ry=d.root.rotation.y,fx=Math.sin(ry),fz=Math.cos(ry);const fwdC=bd.x*fx+bd.z*fz,sideC=bd.x*fz-bd.z*fx;
     const wantP=rb.aimW>=rb.holdW?Math.max(-1.1,Math.min(1.1,inp.pitch||0)):-.42;
     const curP=Math.atan2(bd.y,Math.hypot(fwdC,sideC)),curY=Math.atan2(sideC,fwdC);
@@ -417,7 +503,7 @@ function step(d,dt){const rb=d.rb,inp=rb.in;
       for(const[n,o]of[['Bip01_L_Toe0',0],['Bip01_R_Toe0',0],['Bip01_L_Foot',.06],['Bip01_R_Foot',.06]]){const b=B[n];if(b)lo=Math.min(lo,(b.getWorldPosition(_v).y-ry)/sc-o)}
       /* crouch clips hover the feet a little: plant them (only crouch, never in the air) */
       const plant=inp.mode==='crouch'&&!inp.air&&lo>.02?Math.min(.25,(lo-.012)*.9):0;
-      if(lo<-.005)d.body.position.y-=lo;else if(plant){rb.plant=(rb.plant||0)+(plant-(rb.plant||0))*Math.min(1,dt*10);d.body.position.y-=rb.plant}
+      if(lo<-.005)d.body.position.y-=lo;else if(plant){rb.plant=Math.min(lo-.006,(rb.plant||0)+(plant-(rb.plant||0))*Math.min(1,dt*10));d.body.position.y-=rb.plant}
       if(!plant)rb.plant=0;rb.lift=lo<-.005?-lo:0}}
   if(rb.dead){rb.deadT+=dt;d.body.position.y=0;if(rb.deadT>12)fadeBody(d,1-Math.min(1,(rb.deadT-12)/1.5))}}
 /* bodies fade out where they lie (no sinking through the floor): per-body material copies, made once at the start of the fade */
@@ -458,6 +544,11 @@ P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.pos
     /* far or hidden characters animate at a lower rate */
     let every=1;if(cp){const dist=Math.hypot(d.root.position.x-cp.x,d.root.position.z-cp.z);every=dist<22?1:dist<45?2:dist<80?4:8}if(!d.root.visible)every=Math.max(every,6);
     if(rb.dead&&rb.deadT>3)every=Math.max(every,rb.deadT>12?2:10);
+    /* shadows by distance: body within 25 m, head/hair/accessories/gun within 12 m, none when hidden or long dead */
+    {const dist=cp?Math.hypot(d.root.position.x-cp.x,d.root.position.z-cp.z):0;const band=!d.root.visible||(rb.dead&&rb.deadT>3)?2:dist<12?0:dist<25?1:2;
+      gunLod(d,dist>8&&!(rb.cyc));
+      if(band!==rb.shadowBand){rb.shadowBand=band;const body=rb.bodyMesh||(rb.bodyMesh=rb.skinned.reduce((a,b)=>(!a||b.geometry.attributes.position.count>a.geometry.attributes.position.count)?b:a,null));
+        d.root.traverse(o=>{if(!o.isMesh||(o.userData&&o.userData.hitbox))return;o.castShadow=band===0||(band===1&&o===body)})}}
     if(++rb.skip<every){P.stats.skipped++;continue}rb.skip=0;const t=Math.min(rb.acc,.25);rb.acc=0;step(d,t);P.stats.updates++}};
 P.quality=q=>{qualityFn=()=>q};
 HT.People=P;
