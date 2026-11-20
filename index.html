@@ -548,7 +548,7 @@ const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});return m.ok?m:null}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
-  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers: temporary stand-ins (RIVERSIDE JOBS) */
+  if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
   const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
@@ -1092,7 +1092,7 @@ const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the side
 function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
 function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
-const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart'};
+const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop'};
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
   if(def._lvl&&!def._lvl.assetsDone&&ASSETS.done){const old=def._lvl;scene.remove(old.group);old.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});def._lvl=null}
@@ -1100,7 +1100,7 @@ function owLevel(def){const O=OW();
   const g=def.map.map(r=>r.split('')),group=new THREE.Group();scene.add(group);
   const lvl={def,W:def.W,H:def.H,g,group,colliders:[],solids:[],items:[],stashes:[],spawns:[],markers:def.markers.map(m=>({i:m.i,x:m.x,z:m.z})),start:V3(def.start.x,0,def.start.z),exit:null,ammo:[],boss:null,grill:null,waveSpawns:[],
     vanStart:{x:def.vanStart.x,z:def.vanStart.z},sites:def.sites,places:def.places,doors:def.doors};
-  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
+  lvl.dests=MISSIONS.map(m=>{const s=def.sites[m.site||m.id];return s?{x:s.ring.x,z:s.ring.z,site:m.id}:null});if(typeof wmDests==='function')wmDests(lvl);
   O.build(def,lvl,{ASSETS,makeVehicle:(t,c)=>makeVehicle(t,c),regCar:typeof regCar==='function'?regCar:null,trustR:()=>prog.trustR,riverDone:owRiverDone,player:()=>P.pos,
     onSolids:()=>{if(mode==='hub')rebuildTargets()},quality:()=>RENDER.q,sun,fogFar:()=>scene.fog?scene.fog.far:200});
   if(def.bridgeOpen)O.openBridge();
@@ -1115,7 +1115,8 @@ function owRegions(){const def=WORLD,v=owW();if(HUD.minimap.setRegions)HUD.minim
   {name:v.visited.river?'Riverside Flats · '+owTierName(prog.trustR):'Riverside Flats',x0:152*TILE,x1:def.W*TILE,trust:v.visited.river?prog.trustR:null,dim:!v.visited.river}])}
 function owPins(){const def=WORLD,v=owW(),pins=[];
   for(const id in OW_PIN_KIND){const p=def.places[id];if(!p)continue;const open=v.pins.includes(id);if(p.hood==='river'&&!open)continue;pins.push({id,kind:OW_PIN_KIND[id],label:p.label,x:p.x,z:p.z,fast:open,place:id})}
-  MISSIONS.forEach((m,i)=>{const s=def.sites[m.id];if(s)pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
+  {const sv=SV();if(sv&&sv.perks&&sv.perks.earl)for(const id of['bus1','bus2','bus3','bus4']){const p=def.places[id];if(p)pins.push({id,kind:'travel',label:p.label||'Bus stop',x:p.x,z:p.z,fast:true,place:id})}}/* Earl's Shortcuts perk (SPEC3 3.2) */
+  MISSIONS.forEach((m,i)=>{const s=def.sites[m.site||m.id];if(s&&(!m.reg||prog.done[i]))pins.push({id:'site_'+m.id,kind:'site',label:m.place,x:s.ring.x,z:s.ring.z,fast:!!prog.done[i],place:'site:'+m.id})});
   HUD.minimap.setPins(pins);owRegions()}
 /* teleports: a car's speed also lives in its physics state (e.car) */
 function owStopCar(e){e.spd=0;e.steer=0;const c=e.car;if(c){c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;c.spd=0;c.steer=0;if('vdx'in c){c.vdx=0;c.vdz=0}}}
@@ -1153,6 +1154,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
+  owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
    Until that role exists the porches stay empty. */
@@ -1595,7 +1597,7 @@ function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock
 let castWait=null;
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).map(c=>DAD[c]||(typeof GIVER_STAND_IN!=='undefined'&&GIVER_STAND_IN[c]?GIVER_STAND_IN[c].base:c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
+  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||c),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>!pm.has(k)):[];
   if(!keys.length){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
   castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
@@ -2040,7 +2042,7 @@ function aiStart(m){M.squads=null;M.dir=null;aiWorld=null;noiseQ.length=0;if(!L.
 function squadFor(x,z){const r=L.nav.roomAt(x,z),key=L.nav.rooms[r]&&L.nav.rooms[r].indoor?r:'out';
   let s=M.squads.get(key);if(!s){s=AI.squad(L.nav,{diff:M.aiDiff,pool:M.pool,barker:M.barker,name:String(key)});M.squads.set(key,s)}return s}
 /* a shot: everyone in earshot hears it, anyone the round passes near gets their head down */
-function aiShot(from,to,id,r){if(mode==='hub'){frNoise(from,to,id,r);return}if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;{const n={x:from.x,z:from.z,r,t:simT,kind:'gun',id};noiseQ.push(n);JH.noise(n)}AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
+function aiShot(from,to,id,r){if(mode==='hub'){frNoise(from,to,id,r);JH.noise({x:from.x,z:from.z,r,t:simT,kind:'gun',id});return}if(mode!=='mission'||!L||!L.nav||!M||!M.squads)return;{const n={x:from.x,z:from.z,r,t:simT,kind:'gun',id};noiseQ.push(n);JH.noise(n)}AI.shotFired(from.x,from.z,to.x,to.z,enemies,simT)}
 function aiLog(who,b){aiStats.barks.push({t:+simT.toFixed(2),who,ev:b.event,text:b.text});if(aiStats.barks.length>300)aiStats.barks.shift()}
 /* per frame, before the enemy loop: what the AI can know about the dad and the crew */
 function aiTick(dt){if(mode!=='mission'||!M||!M.squads||!L||!L.nav){aiWorld=null;return}
@@ -2282,6 +2284,7 @@ function updCamera(dt){
 
 /* ================= MISSION LOGIC ================= */
 function updMission(dt){
+  if(L.ow)owNeighbours(dt);
   if(!M||M.state!=='go')return;const m=M.def;let prompt=null,promptP=null,objs=[],target=null;M.elapsed+=dt;
   if(M.world&&wmMission(dt))return;/* WORLD MISSIONS: site extras + the Riverside jobs */
   let near=null,nd=2.4;for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
@@ -2341,6 +2344,9 @@ function updMission(dt){
   {const pk=updPickups(dt,!!prompt);if(pk){prompt=pk[0];promptP=pk[1]}}
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
+/* Riverside neighbours on the porches (more as trust rises), in free roam and during world jobs; anyone near gunfire goes indoors */
+function owNeighbours(dt){const O=OW();if(!O||!O.neighbours||!L||!L.ow)return;const sh=[];if(simT-P.lastShotT<.4)sh.push({x:P.pos.x,z:P.pos.z});for(const e of enemies)if(e.state==='idle'&&e.alert&&e.target)sh.push({x:e.pos.x,z:e.pos.z});
+  O.neighbours(dt,{player:P.pos,camera,trust:prog.trustR||0,river:O.regionAt(P.pos.x,P.pos.z)==='river',shots:sh})}
 function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
@@ -2388,6 +2394,7 @@ function hudEvents(){
     if(P.hp<UI.hp-.5){let src=null,bd=1e9;for(const e of enemies){if(e.state!=='idle'||!e.alert)continue;const dd=e.pos.distanceTo(P.pos)*(e.target===P?.5:1);if(dd<bd){bd=dd;src=e}}
       HUD.damage(src?{x:src.pos.x,z:src.pos.z}:{angle:0},UI.hp-P.hp)}}
   UI.hp=P.hp}
+function subTick(dt){subT-=dt;if(subT<=0){if(subQ.length){const[n,t]=subQ.shift();UI.sub={speaker:n,text:t};subT=Math.max(2.4,t.length*.055)}else UI.sub=null}}/* also run by __ht.step so radio lines advance headlessly */
 function hud(dt){
   if(mode==='title'){$('lock').hidden=true;vm.visible=false;return}/* no first-person gun behind the title */
   if(ENG&&ENG.g&&!running)ENG.g.gain.value=0;if((AC&&!volNode)||(!volSet&&AU()))setVolume();
@@ -2398,7 +2405,7 @@ function hud(dt){
     if(sm.length){ray.set(camera.position,camFwd());ray.near=0;ray.far=90;const h=ray.intersectObjects([...sm,...L.solids],false)[0];nf=!!(h&&h.object.userData.ent)}}
   hudEvents();
   /* subtitles: one line at a time, long enough to read */
-  subT-=dt;if(subT<=0){if(subQ.length){const[n,t]=subQ.shift();UI.sub={speaker:n,text:t};subT=Math.max(2.4,t.length*.055)}else UI.sub=null}
+  subTick(dt);
   /* objective (the stash countdown moves into the objective timer) */
   let obj=frObj(UI.obj),timer=null;
   if(obj){const st=mis&&M&&M.def.type==='stash'&&M.smashed<3&&M.state==='go';if(st)timer=Math.max(0,M.t);
@@ -3263,7 +3270,7 @@ function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=perform
   if(FR.inc&&FR.inc.kind==='porch'&&FR.inc.members[0]&&FR.inc.members[0].state==='cuffed')FR.lastPorch=FR.inc.porch;
   FR.stats.ms+=performance.now()-t0;FR.stats.frames++;return prompt?[prompt,pp]:null}
 /* ================= RIVERSIDE JOBS: people and data (SPEC2 B.0-B.5) ================= */
-/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): a clearly temporary stand-in until the owner casts them */
+/* Riverside givers and Rosa. giver:id routes makeDude() to giverModel(id): the cast models (js/people.js earl, dee, rosa, benny), a stand-in for anyone not cast yet */
 Object.assign(HOMIES,{
   earl:{name:'Earl',giver:'earl',shirt:'#3d5a80',pants:'#5b5b5b',hair:'#d8d8d8',cap:'#3d5a80',glasses:1,mustache:1,belly:1,skin:'#8d5a3b'},
   dee:{name:'Pastor Dee',giver:'dee',shirt:'#6a4c93',pants:'#2b2d42',hair:'#1d1d1d',glasses:1,skin:'#a8714c'},
@@ -3272,9 +3279,10 @@ Object.assign(HOMIES,{
   sal:{name:'Sal',giver:'sal',shirt:'#4a5a6a',pants:'#3a3a3a',hair:'#b8b8b8',vest:1,mustache:1,skin:'#e0b48f'}});
 /* STAND-IN: base character + outfit tint until real models are cast (see the casting list in docs). One function so the swap is one edit. */
 const GIVER_STAND_IN={earl:{base:'boss',tint:'#4f6f9a'},benny:{base:'boss',tint:'#f2d6e2'},sal:{base:'boss',tint:'#7a8796'},dee:{base:'wife',tint:'#8a6ab8'},rosa:{base:'wife',tint:'#6cc0b5'}};
+/* the cast models (js/people.js roles earl, dee, rosa, benny) when People has them; the stand-in below otherwise (Sal: not cast yet) */
+function giverKey(id){const pp=HTM('People');return pp&&pp.giverKeys&&pp.giverKeys.includes(id)?id:GIVER_STAND_IN[id]?GIVER_STAND_IN[id].base:null}
 function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=people();let d=null;
-  /* the cast model for this role when HT.People has it (preloaded on demand); the stand-in below only as a fallback */
-  if(pp&&pp.has&&pp.has(id)){try{const c=pp.make(id,{});if(c)return c}catch(e){}}
+  if(pp&&pp.giverKeys&&pp.giverKeys.includes(id)){if(pp.has(id)){try{d=pp.make(id,{})}catch(e){d=null}if(d){d.giver=id;return d}}else if(pp.preload)pp.preload([id]).catch(()=>{})}
   if(pp&&s){try{d=pp.make(s.base,{})}catch(e){d=null}}
   if(!d)return makeDude(Object.assign({},h,{giver:null}));
   const tint=new THREE.Color(s.tint),hide=[];
@@ -3351,7 +3359,7 @@ const WM={objs:[],navCache:new Map(),finaleSeen:false,last:null,beat:false};
 function missionInWorld(i){const m=MISSIONS[i];if(!m||!WORLD||!OW())return false;if(m.hood==='river'||m.reg)return true;return CFG.inWorld!==false&&m.inWorld!==false&&!!WORLD.sites[m.id]}
 function wmDests(lvl){/* rings for jobs whose start is not the site's own park spot: Dee's stakeout spot, Benny's depot */
   const P_=WORLD.places,tc_=t=>t*TILE+TILE/2;const ON_STREET={earl:[166,63],rosa:[200,35],duke:[192,63],benny:[217,21]};/* the Riverside lots are fenced: their rings sit on the street at the gate */
-  MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id}})}
+  MISSIONS.forEach((m,i)=>{if(m.id==='dee')lvl.dests[i]={x:P_.stake.x,z:P_.stake.z,site:'dee'};else if(ON_STREET[m.id])lvl.dests[i]={x:tc_(ON_STREET[m.id][0]),z:tc_(ON_STREET[m.id][1]),site:m.id};else if(m.reg)lvl.dests[i]=jrDest(m)})}
 function wmAdd(o,solid){L.group.add(o);WM.objs.push(o);if(solid)o.traverse(m=>{if(m.isMesh){L.solids.push(m);(WM.solids||(WM.solids=[])).push(m)}});return o}
 function wmClear(){for(const o of WM.objs)if(o.parent)o.parent.remove(o);WM.objs=[];if(WM.solids&&L){const s=new Set(WM.solids);L.solids=L.solids.filter(m=>!s.has(m))}WM.solids=[];
   if(L&&WM.cols){const s=new Set(WM.cols);L.colliders=L.colliders.filter(c=>!s.has(c));L._hc=null}WM.cols=[];
@@ -3537,7 +3545,7 @@ function wmOnScreen(x,z){const p=project(x,1,z);return !p.behind&&p.x>-60&&p.x<i
 
 /* ================= CHASE (SPEC2 B.7): a getaway car on the road graph; rubber band, ram/PIT both ways, crew and passenger fire ================= */
 function chaseCollide(ch){return(p,r)=>{const s={x0:ch.col.x0,z0:ch.col.z0,x1:ch.col.x1,z1:ch.col.z1};Object.assign(ch.col,VAN_OFF);collide(p,r);Object.assign(ch.col,s)}}
-function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)return null;
+function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)return null;/* a chase is balanced for a healthy van: the crew tops it up before the off */try{if(VAN&&carFrac(VAN)<1)carRepair(VAN,carHpMax(VAN)-carHp(VAN),{fresh:false})}catch(e){}
   const car=o.car||CA.make(o.type||'sedan',{x:o.x,z:o.z,yaw:o.yaw||0});if(o.hp){car.stats=Object.assign({},car.stats,{hp:o.hp});car.hp=o.hp}
   let obj=o.obj;if(!obj){obj=makeVehicle(o.type||'sedan',o.color||'#1c1c22')||makeVanBox(o.color||'#1c1c22');wmAdd(obj,true)}
   const ch={car,obj,col:o.col||wmCol({x0:0,z0:0,x1:0,z1:0}),label:o.label||'Getaway car',t:0,state:o.exit?'exit':'run',max:o.max||26,fireT:1.2,passenger:o.passenger||null,
@@ -3825,7 +3833,7 @@ function wmHubGivers(){const out=[],lines=[];
   out.push(...jrGivers());/* JOBS: registered jobs' givers */
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
     if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
-    const sb=GIVER_STAND_IN[m.giver];if(sb&&pm&&pm.preload&&!pm.has(sb.base)&&!n.dude.rb)pm.preload([sb.base]).then(()=>{if(!npcs.includes(n)||!pm.has(sb.base))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
+    const gk=giverKey(m.giver);if(gk&&pm&&pm.preload&&!pm.has(gk)&&!(n.dude.rb&&n.dude.rb.key===gk))pm.preload([gk]).then(()=>{if(!npcs.includes(n)||!pm.has(gk))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
     n.prefer=m.hood==='river'&&!prog.done[4];
     if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
@@ -3882,7 +3890,8 @@ const JH={
       if(M.noGuns){mouseDown=false;P.fireT=Math.max(P.fireT,.5);if(simT-(JRS.ngT||-9)>4){JRS.ngT=simT;radio('you',typeof M.noGuns==='string'?M.noGuns:pick(["Not here. Not with people watching.","Hands where everyone can see them. Mine too."]),true)}return true}}
     return!!(JR&&JR.hooks.fire())},
   hud:st=>{if(mode==='mission'&&M&&JRS.hudF&&JRS.hudF.M===M){if(JRS.hudF.meters.length)st.meters=JRS.hudF.meters.slice(0,3);if(JRS.hudF.widgets.length)st.widgets=JRS.hudF.widgets}if(JR)JR.hooks.hud(st)},
-  home:id=>!!(JR&&JR.hooks.home(id))};
+  home:id=>!!(JR&&JR.hooks.home(id)),
+  pose:dt=>{if(JR)JR.hooks.pose(dt)}};
 /* the job object a mission runs through: built-ins use their WJ entry (or the classic updMission branches), registered files their callbacks */
 function jobWJ(id){const j=JR&&JR.get(id);if(j&&!j.builtin){if(!j.wj)j.wj={start:o=>{if(j.start)j.start(M,o)},upd:(dt,F)=>{if(j.upd)j.upd(dt,M,F)}};return j.wj}return WJ[id]}
 /* E prompts from the interact hook: a string, or {txt, fn} (press E) / {txt, hold:secs, fn, o} (hold E; o keeps the progress) */
@@ -4014,7 +4023,7 @@ function frame(now){
   if(L)updCamera(dt);
   if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
-  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}groundPass(1);RENDER.draw();groundPass(-1);
+  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);RENDER.draw();groundPass(-1);
   requestAnimationFrame(frame);
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
@@ -4058,7 +4067,7 @@ ASSETS.onAsset(s=>{const k=/people\/rocketbox\/(\w+)\.glb$/.exec(s);const pm=HTM
 window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
   crash(e,speed,o){e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1,push={x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f};return carCrash(e,speed,push,!o.rear)},setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
-  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}},
+  step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera);JH.pose(dt);subTick(dt)}},
   /* combat hooks for scripted tests */
   WEAPONS,AMMO,NPC_GUNS,FX,get simT(){return simT},get pickups(){return L&&L.pickups||[]},
   give(id,o={}){if(!WEAPONS[id])return false;takeGun(id,o.mag,o.extra==null?WEAPONS[id].reserve:o.extra);return true},
