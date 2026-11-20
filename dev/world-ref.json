@@ -1,4 +1,4 @@
 {
- "hash": "f7850293",
- "note": "FNV-1a of HT.World.build({bridgeOpen:true}).map.join(newline). Regenerate only for an intentional world change."
+ "hash": "293fb492",
+ "note": "FNV-1a of HT.World.build({bridgeOpen:true}).map.join(newline). Regenerate only for an intentional world change. 293fb492: Fort Sensible strip (rows 80-127, docs/base.md)."
 }

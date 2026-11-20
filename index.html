@@ -88,6 +88,8 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/home.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/jobs/_registry.js"></script>
+<script src="js/base.js"></script><!-- Fort Sensible: the post, the range, the tank, the jet, easter eggs (docs/base.md) -->
+<script src="js/range.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -1340,7 +1342,7 @@ const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the side
 function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
 function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
-const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop'};
+const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop',base:'range'};/* base: Fort Sensible (js/base.js) */
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
   if(def._lvl&&!def._lvl.assetsDone&&ASSETS.done){const old=def._lvl;scene.remove(old.group);old.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});def._lvl=null}
@@ -1388,7 +1390,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
     try{FX.ambient({leaves:true,pollen:reg!=='route9',density:reg==='river'?1.3:reg==='route9'?.6:1})}catch(e){}
     {const w=owW();if(reg==='river'&&!w.visited.river){w.visited.river=true;for(const id of['center','mart'])if(!w.pins.includes(id))w.pins.push(id);owPins();if(typeof metaSave==='function')metaSave()}
     w.visited[reg]=true}
-    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+owTierName(prog.trustR)+' · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
+    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+owTierName(prog.trustR)+' · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":reg==='base'?'Public range open · Days ending in Y':'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
       HUD.banner({kind:'alert',kicker:'Now entering',title:def.hoods[reg].name.toUpperCase(),sub,dur:2.6})}}
   /* GPS: the accepted job's site, else the next giver */
   let tgt=null;if(JOB!==null&&L.dests[JOB])tgt=L.dests[JOB];else{const n=npcs[0];if(n)tgt={x:n.pos.x,z:n.pos.z}}
@@ -2116,6 +2118,7 @@ function fire(){
     let end=hit?hit.point:camera.position.clone().addScaledVector(dir,w.range);
     if(!P.fp){const d2=end.clone().sub(shoulder),L2=d2.length();ray.set(shoulder,d2.normalize());ray.near=0;ray.far=Math.max(0,L2-.05);const blk=ray.intersectObjects(L.solids,false)[0];if(blk){hit=blk;end=blk.point}}
     FX.tracer(mz,end,{trail:w.pellets>1?0:undefined,color:id==='beanbag'?'#ff7a1a':undefined});if(k===w.pellets-1)aiShot(shoulder,end,'player',26);
+    if(hit&&!hit.object.userData.ent&&hit.object.userData.onShot){let own=false;try{own=hit.object.userData.onShot(hit,id,w,dir)===true}catch(err){console.warn(err)}if(own)hit=null}/* range targets (js/range.js) */
     if(hit){const e=hit.object.userData.ent;
       if(e){FX.impact(hit.point,dir.clone().negate(),'cloth',{big:w.dmg>50,color:[.35,.45,.6]})}
       else if(id==='nailer')FX.impact(hit.point,(FX.ready&&hit.face)?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):dir.clone().negate(),'nail');
@@ -2615,14 +2618,16 @@ function updHub(dt){
   if(VAN.on){const e=CV;
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
-      if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
+      if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)&&e.noJobs){/* the tank and the jet (js/tank.js, js/jet.js): jobs say no */prompt=e.noJobs;if(DRV.quipT<=0){DRV.quipT=8;radio(speaker()||'you',e.noJobs)}}
+      else if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
         else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMissionWhenReady(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
   }else{const e=nearCar();if(e&&carHp(e)<=0){/* broken down: tow it instead of driving it */const own=e===VAN,c=metaCash()||0,fee=own?TOW_FEE:TOW_FEE_HOME;
       prompt=prompt||KE+' · '+(own?"Call Dad's Auto · tow ":'Have it towed home to '+e.name+' · ')+(c>=fee?money(fee):'on Sal\'s tab');if(useTap&&!prompt.includes('Talk')){useTap=false;towCar(e)}}
     else if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
   DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
-  hubObj();setPrompt(mp||(frp&&frp[0])||prompt,!mp&&frp?frp[1]:0);showMarker(target);
+  let bpp=0;if(!mp&&!(frp&&frp[0])){const r=roamPrompt(prompt,0,dt);prompt=r[0];bpp=r[1]}/* Fort Sensible: the range, the tank, the jet, easter eggs */
+  hubObj();setPrompt(mp||(frp&&frp[0])||prompt,!mp&&frp?frp[1]:bpp);showMarker(target);
 }
 
 /* ================= HUD ================= */
@@ -3271,9 +3276,10 @@ const frNearestCrew=(x,z)=>{let b=null,bd=1e9;for(const c of FR_CREWS){const r=c
 function tz(z){return Math.floor(z/TILE)}
 
 /* ---------- drawing and holstering ---------- */
-function frDraw(id){if(!frInRiver()||!frOn()){if(simT-FR.quipT>6){FR.quipT=simT;frSay(frOn()?FR_LINES.maple:FR_LINES.calm,'you',true)}return}
-  if(FR.cap<=0&&frTier()>=5){if(simT-FR.quipT>6){FR.quipT=simT;frSay(FR_LINES.topTier,speaker()||'you',true)}return}
-  id=id&&P.weapons.includes(id)?id:P.cur;FR.drawn=true;FR.calmT=0;FR.drawT=simT;swap(id,true);if(P.dude)equip(P.dude,id);
+function frDraw(id){const bOk=baseArmOk();/* Fort Sensible's training areas (js/base.js): the gun may come out there, never any heat */
+  if(!bOk&&(!frInRiver()||!frOn())){if(simT-FR.quipT>6){FR.quipT=simT;frSay(baseLine()||(frOn()?FR_LINES.maple:FR_LINES.calm),'you',true)}return}
+  if(!bOk&&FR.cap<=0&&frTier()>=5){if(simT-FR.quipT>6){FR.quipT=simT;frSay(FR_LINES.topTier,speaker()||'you',true)}return}
+  id=id&&P.weapons.includes(id)?id:P.cur;FR.drawn=true;FR.base=bOk;FR.calmT=0;FR.drawT=simT;swap(id,true);if(P.dude)equip(P.dude,id);
   /* drawing on a loitering group up close gets noticed */
   for(const g of FR.groups){if(g.members.some(e=>e.hostile))continue;const dd=Math.hypot(g.x-P.pos.x,g.z-P.pos.z);if(dd<14&&frLos(P.pos.x,P.pos.z,g.x,g.z))g.notice=Math.max(g.notice,.2)}}
 function frHolster(say){if(!FR||!FR.drawn)return;FR.drawn=false;P.aim=false;mouseDown=false;if(P.dude)equip(P.dude,null);vm.visible=false;if(P.rl){P.rl=null;P.reloadT=0}if(say)frSay(say===true?FR_LINES.holster:say,'you',true)}
@@ -3282,6 +3288,20 @@ function frKey(k){if(!FR||VAN.on||mode!=='hub')return false;const gunKey=k==='1'
   if(k==='h'){if(FR.drawn){frHolster(true);return true}return false}
   if(!gunKey)return false;if(FR.drawn)return false;
   const id=k==='q'?P.cur:P.loadout[SLOT_KEYS[+k-1]];if(!id)return true;frDraw(id);return true}
+
+/* ---------- Fort Sensible (js/base.js, js/range.js, js/tank.js, js/jet.js, js/eggs.js · docs/base.md) ----------
+   HT.Base.armOk(x,z): the base's training areas, where the gun may come out (no heat, no crews). HT.Roam: the free-roam surface those files use.
+   HT.Base.interact(prompt) (from updHub): E prompts on the base, same shapes as the jobs' interact hook. */
+function baseArmOk(x,z){try{return !!(window.HT&&HT.Base&&HT.Base.armOk&&HT.Base.armOk(x==null?P.pos.x:x,z==null?P.pos.z:z))}catch(_){return false}}
+function baseLine(k){try{return window.HT&&HT.Base&&HT.Base.line?HT.Base.line(k||'draw',P.pos.x,P.pos.z):null}catch(_){return null}}
+window.HT.Roam={draw:id=>{frInit();frDraw(id)},holster:say=>{if(FR)frHolster(say)},get drawn(){return !!(FR&&FR.drawn)},get mouseDown(){return mouseDown},set mouseDown(v){mouseDown=!!v},
+  setLoadout:(lo,cur)=>setLoadout(lo,cur),armedNow:()=>armedNow(),setObj:(t,l)=>setObj(t,l),hurtPlayer:(d,src)=>{},owPins:()=>owPins(),owMinimap:()=>owMinimap(),owW:()=>owW(),
+  fastTravel:id=>owFastTravel({place:id,fast:true}),get OWS(){return OWS},get CFG(){return CFG},get RENDER(){return RENDER},carImpact:(e,sp,push,front)=>carImpact(e,sp,push,front),carShot:(o,d)=>carShot(o,d),
+  get BORROW(){return BORROW},settleBorrow:j=>settleBorrow(j),requestLock:()=>{try{requestLock()}catch(_){}},get locked(){return document.pointerLockElement===renderer.domElement},
+  get cam(){return{dist:camDist,lookT:camLookT}},set camDist(v){camDist=v},sunFollow:(x,z,fx,fz)=>sunFollow(x,z,fx,fz),setMood:()=>applyMood(),get mood(){return mood},nightK:()=>typeof NIGHT!=='undefined'&&NIGHT?NIGHT.k||0:0};
+function roamPrompt(prompt,pp,dt){let r=null;try{r=window.HT&&HT.Base&&HT.Base.interact?HT.Base.interact(prompt,dt):null}catch(e){console.warn('[base] interact',e)}if(!r)return[prompt,pp];if(typeof r==='string')return[r,pp];
+  if(r.hold){const o=r.o||(JRS.holdO&&JRS.holdO.k===r.txt?JRS.holdO:(JRS.holdO={k:r.txt,prog:0}));if(keys.e){o.prog=(o.prog||0)+dt/r.hold;if(o.prog>=1){o.prog=0;try{r.fn&&r.fn()}catch(e){console.warn(e)}}}else o.prog=Math.max(0,(o.prog||0)-dt);return['Hold '+KE+' · '+r.txt,o.prog]}
+  if(useTap&&r.fn){useTap=false;try{r.fn()}catch(e){console.warn(e)}}return[(r.key||KE)+' · '+r.txt,pp]}
 
 /* ---------- spawning: ambient groups (never in sight, never on a job lot) and heat reinforcements ---------- */
 function frAmbient(){const tier=frTier(),T=FR_TIER[tier];if(!T.groups)return;const spots=frSpots();let amb=FR.members.filter(e=>!e.hostile).length;
@@ -3482,12 +3502,13 @@ function frMusic(){const A=AU();if(!A)return;const h=FR.heat,want=h>=1||FR.hosti
 function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=performance.now();
   if(!FR.drawn&&P.dude&&P.dude.gun&&!VAN.on)equip(P.dude,null);
   if(!FR.drawn&&mouseDown&&!VAN.on){mouseDown=false;frDraw(P.cur)}
-  if(!frOn()){if(FR.members.length||FR.drawn||FR.heat)frReset();return null}
+  if(FR.drawn&&FR.base){if(VAN.on)frHolster();else if(!baseArmOk())frHolster(baseLine('left')||FR_LINES.holster[0])}/* Fort Sensible: out of the training areas, the gun goes away */
+  if(!frOn()){if(FR.members.length||(FR.drawn&&!FR.base)||FR.heat)frReset();return null}
   const inR=frInRiver();FR.diff=FR.diff||Object.assign({},AI.MISSION_DIFF[0]||AI.DIFFICULTY.normal);
   while(FR.noise.length&&simT-FR.noise[0].t>.5)FR.noise.shift();
   FR.alive=frAlive();FR.hostile=frHostiles();
   /* holster: car, leaving Riverside, 20 s of calm; the dad's gun stays out of sight while holstered */
-  if(FR.drawn){if(VAN.on)frHolster();else if(!inR)frHolster(FR_LINES.leftRiver);
+  if(FR.drawn&&!FR.base){if(VAN.on)frHolster();else if(!inR)frHolster(FR_LINES.leftRiver);
     else{const calm=simT-FR.shotT>FR_TUNE.calmHolster&&simT-(FR.drawT||0)>FR_TUNE.calmHolster&&FR.heat<1&&!FR.hostile.some(e=>e.alert&&e.pos.distanceTo(P.pos)<40)&&!P.aim;if(calm)frHolster()}}
   if(inR&&FR.regionWas!=='river'){FR.incT=Math.max(FR.incT,20)}FR.regionWas=inR?'river':'other';
   /* the fight: nav window follows the dad while anyone is hostile */
