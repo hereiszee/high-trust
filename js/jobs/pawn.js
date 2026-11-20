@@ -840,7 +840,7 @@ J.register('pawn',{
     if(M.prize)out.push(['Raffle prize · one leaf blower (pulls left)',0]);
     return out},
   medal(M){const D=M.D;const clean=D&&D.started===0;if(clean&&D.id==='mustache'&&M.elapsed<K.gold)return 3;return clean?2:1},
-  end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV(),Sv=window.HT&&HT.Save;if(!s)return;s.flags=s.flags||{};s.flags.pawnNames=9;s.flags.deeVisits=true;if(M.prize)s.flags.leafBlower=true;
+  end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV(),Sv=window.HT&&HT.Save;if(!s)return;s.flags=s.flags||{};s.flags.pawnNames=9;s.flags.ledgerKids=9;/* Crossing Guard: +1 Riverside trust per kid named in the ledger */s.flags.deeVisits=true;if(M.prize)s.flags.leafBlower=true;
     try{if(Sv&&Sv.storefront)Sv.storefront(null,'pawn','bakery')}catch(_){}try{a.save()}catch(_){}},
   camera(dt){const a=A(),M=a.M;if(!M||M.def.id!=='pawn'||M.state!=='go')return undefined;return camHook(M,dt)||undefined},
   hud(st){const M=A().M;if(!M||M.def.id!=='pawn')return;const D=M.D;
