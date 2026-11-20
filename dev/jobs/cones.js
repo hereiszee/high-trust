@@ -24,5 +24,5 @@ t('two cars + a lit flare = airtight',[car(198.6,110),car(203.4,110),saw(206.6,1
 t('two cars but a 3.4 m gap by the fence',[car(197,110),car(201.4,110)],'gap',r=>r.top.pass.x>203.7);
 t('sign alone does not stop them',[sign(203,110)],'gap');
 t('an airtight wall behind a cone taper still decides',[cone(203,124),cone(206,124),car(198.6,110),car(203.4,110),saw(206.6,110),flare(200,112)],'airtight',r=>r.groups.length===2&&r.first===r.groups[1]);
-t('a parked car outside the zone is ignored',[car(203,60),car(203,150)],'clear');
+t('a parked car outside the zone is ignored',[car(203,40),car(203,150)],'clear');
 console.log(fails?fails+' FAILED':'all ok');process.exit(fails?1:0);
