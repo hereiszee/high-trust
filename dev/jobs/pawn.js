@@ -100,10 +100,10 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     const cancelled=await ev(w=>!window.__ht.M.D.timers[w],who);ok(ch===who&&cancelled,'walking up and talking to '+who+' cancels their "…"');await answer();await talkDone()}
   await step(60);
   /* ---- 6. Vince's photo op (a real click when he smiles) ---- */
-  const vf=await front('vince',1.3);await walk([{x:362,z:42.6},{x:vf.x,z:42.6},vf]);const vq=await at('vince');await face(vq.x,vq.z);await press('e',6);await answer(0);await talkDone();
+  await waitFor(()=>{const v=window.__ht.M.pp.vince;return v.mode==='home'},null,400);const vf=await front('vince',1.3);await walk([{x:362,z:42.6},{x:vf.x,z:42.6},vf]);const vq=await at('vince');await face(vq.x,vq.z);await press('e',6);console.log('     vince chat: '+await ev(()=>{const M=window.__ht.M,P=window.__ht.P;return(M.chat?M.chat.kind+':'+M.chat.p.id:'none')+' d='+Math.hypot(M.pp.vince.pos.x-P.pos.x,M.pp.vince.pos.z-P.pos.z).toFixed(2)+' mode='+M.pp.vince.mode}));await answer(0);await talkDone();
   const pst=await ev(()=>window.__ht.M.photo&&window.__ht.M.photo.st);ok(pst==='walk','Vince sends you to the photo spot');
   await walk([{x:358,z:42.35,r:.4}]);await face(358,39.3);const aim=await waitFor(()=>window.__ht.M.photo&&window.__ht.M.photo.st==='aim',null,200);ok(aim,'standing on the spot raises the viewfinder');
-  let shotOk=false;for(let i=0;i<120&&!shotOk;i++){const q=await ev(()=>{const ph=window.__ht.M.photo;return ph&&ph.q});if(q>.68&&q<.82){await shot('09-photo-op');await p.mouse.down();await p.mouse.up();await step(2);shotOk=true}else await step(1)}
+  let shotOk=false;for(let i=0;i<120&&!shotOk;i++){const q=await ev(()=>{const ph=window.__ht.M.photo;return ph&&ph.q});if(q>.68&&q<.82){await shot('09-photo-op');await p.mouse.down();await step(2);await p.mouse.up();await step(2);shotOk=true}else await step(1)}
   const vip=await waitFor(()=>window.__ht.M.vip,null,60);ok(vip,'a left click (under pointer lock) takes the photo: VIP');await skipLines(2);await step(90);
   /* ---- 7. a raffle ticket ---- */
   const kf=await front('kev',1.25);await walk([{x:kf.x,z:42.4},kf]);await face((await at('kev')).x,(await at('kev')).z);await press('e',6);await answer(0);await talkDone();ok(await ev(()=>window.__ht.M.ticket),'Kev sells a raffle ticket (#407)');
@@ -114,7 +114,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* ---- 9. the office ---- */
   await walk([{x:357,z:32.4},{x:357,z:29.6},{x:359.4,z:28.2},{x:360.35,z:27.45,r:.35}]);const sg2=await ev(()=>window.__ht.M.stage);ok(sg2==='office','into the back office: stage '+sg2);
   await face(361.05,26.35);await ev(()=>{window.__ht.P.pitch=-.55});await step(30);await shot('11-the-ledger',[358.2,2.2,29.4,361,.9,26.4]);
-  for(let i=0;i<3;i++){await step(i?40:4);await p.mouse.down();await p.mouse.up();await step(2)}const pg=await waitFor(()=>window.__ht.M.pages>=3,null,120);ok(pg,'three clicks photograph three pages');
+  console.log('     lock before the ledger clicks: '+await ev(()=>!!document.pointerLockElement));if(!await ev(()=>!!document.pointerLockElement)){await p.mouse.click(640,360);await step(2)}
+  for(let i=0;i<3;i++){await step(i?52:4);await p.mouse.down();await step(2);await p.mouse.up();await step(2)}const pg=await waitFor(()=>window.__ht.M.pages>=3,null,120);ok(pg,'three clicks photograph three pages');
   await press('e',6);const bk=await ev(()=>window.__ht.M.book);ok(bk,'E takes the whole book');
   /* ---- 10. out the front during the raffle ---- */
   await walk([{x:357,z:29.6},{x:357,z:32.6},{x:358,z:34.4}]);const ex=await ev(()=>({stage:window.__ht.M.stage,raffle:!!(window.__ht.M.ev&&window.__ht.M.ev.kind==='raffle')}));ok(ex.stage==='exit'&&ex.raffle,'leaving the office with the goods starts the raffle: '+JSON.stringify(ex));
