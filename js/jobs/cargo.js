@@ -32,7 +32,7 @@ const K={
   crashA:3,crashB:2.4,        /* a collision at v */
   wallV:.32,wallK:7,wallMax:3,slideRate:4,landV:.9,landK:3.5,   /* a pan hitting a wall or another item faster than wallV m/s; landing from a hop */
   /* loaded pedals: accel/brake build up while held (m/s^2) */
-  accMin:1.3,accMax:5.4,thrRamp:2.2,brkMin:2.6,brkMax:15,brkRamp:.9,steerResp:3.1,turn:1.5,
+  accMin:1.3,accMax:5.4,thrRamp:2.2,brkMin:2.6,brkMax:15,brkRamp:.9,steerResp:4.2,turn:1.62,
   /* temperature (F) */
   temp0:165,cool:.075,coolTorn:.05,warmT:150,coldT:140,
   /* payout */
@@ -97,6 +97,7 @@ const L={
   hzQuit:[['Hustler',"Forget it! It's probably dry anyway!"],['dave',"IT IS NOT DRY."]],
   garyOffer:[['gary',"I can block them at the bridge. I'll pretend I'm lost. I'm very good at being lost."]],
   garyGo:[['you',"Gary. Get lost."],['gary',"On it. Being lost. Very lost now."]],
+  garyBrights:[['gary',"I flashed my brights at them. They think I'm a cop."],['Hustler',"Is that a cop? That's a cop. Go, go, go!"],['gary',"I'm not a cop. I just have a cop's haircut."]],
   garyBlock:[['gary',"Excuse me! Is the river that way? I'm looking for the river."],['Hustler',"You're ON the river, man! MOVE!"],['gary',"Go, go. I'll keep them busy. I'm asking about parking now."]],
   barricade:[['earl',"Block party, son. Residents and brisket only."],['earl',"Pull up by the gate. Slow. There's kids."]],
   park:["Here. Right here. Easy... easy...","By the gate. Nice and slow."],
@@ -121,6 +122,7 @@ const NAME={dave:'dave',doug:'doug',gary:'gary',you:'you',rosa:'rosa',benny:'ben
 const R={own:[],objs:[],ovs:[],style:null,emit:[],active:false,cam:null};
 const own=x=>{R.own.push(x);return x};
 function disposeRun(){const a=A();for(const id of R.ovs){try{a.overlay(id,null)}catch(_){}}R.ovs.length=0;
+  if(R.kit){try{R.kit.close&&R.kit.close()}catch(_){}R.kit=null}
   for(const e of R.emit){try{e.remove()}catch(_){}}R.emit.length=0;
   for(const o of R.objs){try{if(o.parent)o.parent.remove(o);if(o.userData&&o.userData.dispose)o.userData.dispose()}catch(_){}}R.objs.length=0;
   for(const x of R.own){try{x.dispose()}catch(_){}}R.own.length=0;
@@ -368,15 +370,21 @@ function quip(M,kind,list,who,cd,front){const c=M.cd;if((c[kind]||0)>0||(who==='
 
 /* ================================================================= the truck */
 function mkTruck(M){const a=A(),obj=a.makeVehicle('pickup','#8f2a1e',{rims:'stock'})||a.makeVanBox('#8f2a1e');a.wmAdd(obj);R.objs.push(obj);
-  const e={type:'pickup',obj,pos:a.V3(TRUCK0.x,0,TRUCK0.z),yaw:TRUCK0.yaw,spd:0,steer:0,col:a.wmCol({x0:0,z0:0,x1:0,z1:0}),bump:0,stats:null,owner:'dave',name:'Big Dave',color:'#8f2a1e',home:null,dmg:0,odo:0,tile:null,meshes:null};
-  const h=H();e.hp=h.carHpMax?h.carHpMax(e):110;e.noTow=true;noTow();a.syncCar(e);M.truck=e;
+  const e={type:truckFeel(),obj,pos:a.V3(TRUCK0.x,0,TRUCK0.z),yaw:TRUCK0.yaw,spd:0,steer:0,col:a.wmCol({x0:0,z0:0,x1:0,z1:0}),bump:0,stats:null,owner:'dave',name:'Big Dave',color:'#8f2a1e',home:null,dmg:0,odo:0,tile:null,meshes:null};
+  const h=H();e.hp=h.carHpMax?h.carHpMax(e):110;a.syncCar(e);M.truck=e;
   const body=obj.userData.bodyRoot||obj;M.body=body;M.bodyY=body.position.y;buildCargo(M,body);return e}
-/* HT.Tow (js/tow.js) gives every pickup a stock hitch; Dave's truck carries a brisket, not a tow rig: vehicles flagged noTow are skipped */
-function noTow(){const T=window.HT&&HT.Tow;if(!T||!T.can||T.can._cargo)return;const can=T.can;T.can=e=>e&&e.noTow?false:can(e);T.can._cargo=true}
+/* Dave's loaded truck is its own vehicle type: a pickup's handling without the launch torque (no tyre smoke on a gentle start), its own name.
+   (Being its own type also keeps HT.Tow's stock pickup hitch off it: it carries a brisket, not a tow rig.) */
+function truckFeel(){const a=A();if(!a.carFeel||!a.CAR_FEEL)return 'pickup';if(!a.CAR_FEEL.brisket)a.carFeel('brisket',Object.assign({},a.CAR_FEEL.pickup,{label:"Dave's truck",torque:0,rear:1,cam:[9.4,1.6]}),(a.SEATS&&a.SEATS.pickup||[]).slice(0,2));return 'brisket'}
 const truckHp=e=>{const h=H();return h.carHp?h.carHp(e):(e.hp||100)};
 /* in the driver's seat: the loaded wheel (slower, gentler) */
 function mount(M){const a=A(),e=M.truck;if(!e)return;if(a.CV&&a.CV!==e)a.exitCar();if(a.CV!==e)a.enterCar(e);if(a.CV!==e)return false;
-  for(const S of[e.stats,e.base])if(S){S.steerResp=K.steerResp;S.turn=K.turn}M.pv=null;M.pT=0;M.pB=0;return true}
+  for(const S of[e.stats,e.base])if(S){S.steerResp=K.steerResp;S.turn=K.turn}M.pv=null;M.pT=0;M.pB=0;
+  /* the crew's ride rating: HT.Stops' passenger comfort (js/jobs/_stops.js), which also cues Doug's reactions */
+  const St=window.HT&&HT.Stops;if(St&&St.comfort&&!M.ride){M.ride=St.comfort({on:(k,sev)=>crewReact(M,k,sev)});if(M.S.ride)M.ride.load(M.S.ride)}return true}
+const CREW={brake:["I'm wearing the coleslaw!","Brakes! BRAKES! Okay. Okay.","My face hit the cooler. The cooler is fine."],corner:["Whoa, whoa, I'm leaning! The brisket's leaning!","Corner! I'm hugging the cooler!"],
+  kerb:["We hit something! Was it a kerb? It felt like a kerb.","My teeth just clicked."],bump:["Bump! I caught the bread!","Ooh. That one went right up my spine."],speed:["We're going fast! Are we going fast? It feels fast back here."]};
+function crewReact(M,k,sev){const l=CREW[k];if(l)quip(M,'crew_'+k,l,'doug',12,false)}
 function truckDown(M){const a=A();if(a.CV===M.truck)a.exitCar()}
 
 /* ---------------- the vehicle hook: loaded pedals, g-forces, hazards, the cargo ---------------- */
@@ -406,12 +414,13 @@ function vehicleTick(M,e,dt){const c=e.car;if(!c||dt<=0)return;const S=e.stats||
   /* hard braking: the "never braked hard" bonus */
   if(gb>K.hardT){M.hardT+=dt;if(M.hardT>.12&&!M.hardOn){M.hardOn=true;St.hard++;if(M.hz&&M.hz.check)M.hz.check.hard=true}}else if(gb<.3){M.hardT=0;M.hardOn=false}
   hazards(M,e,c,dt);
+  if(M.ride)try{M.ride.update(dt,e,{riders:2,offRoad:M.gh.some(h=>h!=null&&h>-.06)})}catch(_){}
   cargoStep(M,dt,g.flon,g.flat)}
 /* potholes, speed bumps, the bridge joint, kerbs: per wheel, from where it was last frame to where it is now */
-function wheels(c){const f=fwd(c.yaw),r=rgt(c.yaw),out=[];for(const ax of[1.85,-1.7])for(const s of[-.8,.8])out.push([c.x+f[0]*ax+r[0]*s,c.z+f[1]*ax+r[1]*s,ax>0?0:1,s<0?0:1]);return out}
+function wheels(c,tr){const f=fwd(c.yaw),r=rgt(c.yaw),out=[],w=tr||.8;for(const ax of[1.85,-1.7])for(const s of[-w,w])out.push([c.x+f[0]*ax+r[0]*s,c.z+f[1]*ax+r[1]*s,ax>0?0:1,s<0?0:1]);return out}
 function hazards(M,e,c,dt){const a=A(),v=Math.abs(c.spd),W_=wheels(c),prev=M.wp;M.wp=W_;if(!prev)return;const cd=M.hcd;
   for(const k in cd)cd[k]-=dt;
-  const pots=(a.WORLD&&a.WORLD.potholes)||[];
+  const pots=(a.WORLD&&a.WORLD.potholes)||[],KW=wheels(c,.62);
   for(let i=0;i<4;i++){const[x,z,axl,side]=W_[i],[px,pz]=prev[i];
     for(const p of pots){if(Math.abs(p.x-x)>3||Math.abs(p.z-z)>3)continue;if(Math.hypot(p.x-x,p.z-z)<p.r+.12&&!((cd[p.id+i]||0)>0)&&v>.6){cd[p.id+i]=.6;
         hit(M,'pot',K.potA+K.potB*v,{sv:Math.min(2.6,.6+.14*v),side,axl,v,id:p.id})}}
@@ -420,9 +429,9 @@ function hazards(M,e,c,dt){const a=A(),v=Math.abs(c.spd),W_=wheels(c),prev=M.wp;
     for(const sx of SEAMS){if((px-sx)*(x-sx)<=0&&px!==x&&z>SEAM_Z[0]&&z<SEAM_Z[1]){const fx=Math.abs(-Math.sin(c.yaw)),th=Math.acos(clamp(fx,0,1)),fa=th>.26?.3:1-.7*th/.26;
         hit(M,'seam',Math.max(0,v-K.seamSafe)*K.seamK*fa,{sv:Math.min(1.8,.2+.1*v*fa),axl,v,angle:th,fa})}}
     /* kerbs: the ground under a wheel steps up or down */
-    const gy=a.groundAt(x,z);if(M.gh[i]!=null&&Math.abs(gy-M.gh[i])>.07&&v>.8&&!((cd.kerb||0)>0)){cd.kerb=.3;if(M.dbg)M.dbg.push('kerb w'+i+' '+x.toFixed(2)+','+z.toFixed(2)+' '+M.gh[i].toFixed(2)+'>'+gy.toFixed(2)+' lp'+M.lp.toFixed(2));hit(M,'kerb',K.kerbA+K.kerbB*v,{sv:Math.min(2.2,.4+.13*v),v})}M.gh[i]=gy}}
+    const kp=KW[i],gy=a.groundAt(kp[0],kp[1]);if(M.gh[i]!=null&&Math.abs(gy-M.gh[i])>.07&&v>.8&&!((cd.kerb||0)>0)){cd.kerb=.3;if(M.dbg)M.dbg.push('kerb want'+(M._want||0).toFixed(1)+' c'+M._corner+' w'+i+' '+x.toFixed(2)+','+z.toFixed(2)+' '+M.gh[i].toFixed(2)+'>'+gy.toFixed(2)+' lp'+M.lp.toFixed(2));hit(M,'kerb',K.kerbA+K.kerbB*v,{sv:Math.min(2.2,.4+.13*v),v})}M.gh[i]=gy}}
 /* an event: integrity, the cargo hops, the body jolts, a line */
-function hit(M,kind,dmg,o){const a=A(),St=M.S;o=o||{};const v=o.v||0;
+function hit(M,kind,dmg,o){const a=A(),St=M.S;o=o||{};const v=o.v||0;if(M.dbg&&kind!=='bump'&&kind!=='seam')M.dbg.push(kind+' '+(o.id||'')+' -'+dmg.toFixed(1)+' lp'+M.lp.toFixed(2)+' want'+(M._lat!=null?M._lat.toFixed(2):'-'));
   if(kind==='bump'){M.bumpN=(M.bumpN||0)+1;if(dmg<.6){if(o.axl===1&&!M.cd.bumpGood)quip(M,'bumpGood',L.bumpGood,'dave',14)}else if(o.axl===1)quip(M,'bump',L.bump,'dave',4)}
   else if(kind==='pot')quip(M,'pot',L.pot,'dave',5);
   else if(kind==='seam'){if(o.axl===1&&!M.seamSaid){M.seamSaid=1;if(dmg<1.2)quip(M,'seam',L.seamGood,'dave',8);else quip(M,'seam',L.seamBad,'dave',8)}}
@@ -493,6 +502,9 @@ function mkHustlers(M){const a=A(),rc=railCar(M,'hatch','#97b83b','the hatchback
   rc.d=person(null,{look:{shirt:'#2b2b2b',pants:'#3b4a63',cap:'#c23b2e'}},0,0,0);rc.d2=person(null,{look:{shirt:'#d9d2c0',pants:'#2b2b2b'}},0,0,0);
   try{const ud=rc.e.obj.userData;if(ud.setDamage)ud.setDamage(.28)}catch(_){}
   M.hz=rc;railStep(rc,M.route,1/30);const Au=window.HT&&HT.Audio;if(Au&&Au.ready)try{Au.music('tension',{intensity:.55})}catch(_){}return rc}
+/* a corner (heading change) within d metres either side of s; a parked car in the lane near s */
+function cornerNear(M,s,d){const R_=M.route;if(!R_)return false;const a=routeAt(R_,s-d),b=routeAt(R_,s+d);return Math.abs(a.dx*b.dz-a.dz*b.dx)>.3||a.dx*b.dx+a.dz*b.dz<.9}
+function obstNear(M,s){for(const o of M.obst||[])if(s>o.s0-6&&s<o.s1+6)return true;return false}
 /* the lane beside you: left of you, unless you're already over there */
 const laneBeside=M=>M.lp<-1.4?clamp(M.lp+3,-3.6,.9):clamp(M.lp-3,-3.6,.9);
 /* parked cars sitting in the right lane: rail cars swing out around them */
@@ -500,9 +512,11 @@ function obstacleLat(M,s,lat){for(const o of M.obst)if(s>o.s0&&s<o.s1&&lat>-2.2)
 function garyTick(M,dt){const rc=M.gy;if(!rc||rc.gone)return;const vP=M.vP;rc.t+=dt;
   if(rc.st==='follow'){const sT=M.sP-15;rc.vT=clamp(vP+clamp((sT-rc.s)*.7,-6,9),0,17);if(rc.s>M.sP-9)rc.vT=Math.min(rc.vT,Math.max(0,vP-2));rc.latT=obstacleLat(M,rc.s+6,0);
     if(M.hz&&!M.hz.gone&&Math.abs(M.hz.lat-rc.latT)<2.2&&M.hz.s>rc.s)rc.vT=Math.min(rc.vT,M.hz.s-rc.s>9?rc.vT:Math.max(0,M.hz.v-1))}
-  else if(rc.st==='block'){const hz=M.hz;/* get in front of the hatchback in its lane, then get very, very lost */
-    if(!hz||hz.gone){rc.st='follow'}else{const ahead=rc.s>hz.s+6.5;rc.latT=ahead?hz.lat:0;const sT=hz.s+8;rc.vT=ahead?Math.max(0,hz.v-2.5):clamp(Math.max(vP,hz.v)+5,0,18);
-      if(ahead&&rc.v<.6&&hz.v<.6&&!rc.said){rc.said=1;sayAll(L.garyBlock,false);hz.st='blocked'}}}
+  else if(rc.st==='block'){const hz=M.hz;/* the hatchback has pulled over to argue; once you're clear, Gary stops right in front of it and gets very, very lost */
+    if(!hz||hz.gone){rc.st='follow'}else{const clear=hz.s<M.sP-14,ahead=rc.s>hz.s+5.5;
+      if(!clear){const sT=Math.min(hz.s-8,M.sP-16);rc.vT=clamp(vP+clamp((sT-rc.s)*.7,-6,6),0,14);rc.latT=obstacleLat(M,rc.s+6,0)}
+      else{rc.latT=ahead?hz.lat:0;rc.vT=ahead?0:clamp((hz.s+7.5-rc.s)*1.1,2,12);if(!ahead)rc.s=Math.min(rc.s,M.sP-8)}
+      if(ahead&&rc.v<.5&&!rc.said){rc.said=1;sayAll(L.garyBlock,false);hz.st='blocked'}}}
   else if(rc.st==='parked'){rc.vT=0}
   if(M.S.ph==='party'&&M.barS!=null)rc.s=Math.min(rc.s,M.barS-7);
   railStep(rc,M.route,dt,{dec:rc.st==='block'?6:9});
@@ -525,13 +539,17 @@ function hzTick(M,dt){const hz=M.hz;if(!hz||hz.gone)return;const a=A(),vP=M.vP;h
   case 'check':{/* the brake check: they stop dead in front of you */hz.vT=0;hz.check.peak=Math.max(hz.check.peak,-M.g.lon);
     if(hz.t>1&&hz.v<.4||hz.t>3.6){const C=hz.check,smooth=!C.hard&&!C.contact;if(smooth)hz.frust++;hz.st='recover';hz.t=0;
       if(smooth)quip(M,'hzOk',L.hzSmooth,'dave',2,true);else quip(M,'hzBad',L.hzHard,C.contact?'doug':'dave',2,true);M.S.checks=(M.S.checks||0)+1;if(smooth)M.S.checksOk=(M.S.checksOk||0)+1}break}
-  case 'recover':{hz.latT=side;hz.vT=Math.max(0,vP-3.5);if(hz.s<M.sP-3&&hz.t>1.5){if(hz.frust>=K.hzFrust){hz.st='quit';hz.t=0;sayAll(L.hzQuit,true)}else{hz.st='along';hz.t=0;hz.n++}}
-    if(hz.t>8){hz.st='along';hz.t=0;hz.n++}break}
-  case 'drop':{/* Gary's coming: they drop back to try and come round */hz.latT=side;hz.vT=clamp(vP+clamp((M.sP-14-hz.s)*.7,-7,2),0,18);if(gary&&gary.s>hz.s+6.5)hz.vT=Math.min(hz.vT,Math.max(0,gary.v-1.5));break}
+  case 'recover':{/* over to the other lane; they let you by (or, if you've stopped, they drive on and set up again) */hz.latT=side;hz.vT=hz.s>M.sP&&vP<1.5&&hz.t>3?6:Math.max(0,vP-3.5);
+    if(hz.s<M.sP-3&&hz.t>1.5){if(hz.frust>=K.hzFrust){hz.st='quit';hz.t=0;sayAll(L.hzQuit,true)}else{hz.st='along';hz.t=0;hz.n++}}
+    else if(hz.frust>=K.hzFrust&&hz.t>2){hz.st='quit';hz.t=0;sayAll(L.hzQuit,true)}else if(hz.t>7&&hz.s>M.sP+12){hz.st='cut';hz.t=0}break}
+  case 'drop':{/* Gary's on the radio: they pull over to the other lane, stop, and argue about what to do (on a straight bit, clear of parked cars) */hz.latT=-3.4;const bad=cornerNear(M,hz.s,14)||obstNear(M,hz.s);hz.vT=bad?4:0;if(!bad&&hz.s>M.sP-8&&hz.s<M.sP+6)hz.vT=Math.min(hz.vT,Math.max(0,vP-2));if(hz.t>1.2&&!hz.said2){hz.said2=1;sayAll([['Hustler',"Why'd you stop?"],['Hustler 2',"Why'd YOU stop?"]],false)}break}
   case 'blocked':case 'stopped':hz.vT=0;break;
-  case 'quit':{hz.latT=-3;hz.vT=Math.max(0,vP-6);break}}
+  case 'flee':{hz.latT=side;hz.vT=hz.s>M.sP+6?14:Math.max(vP+3,6);break}
+  case 'quit':{hz.latT=-3;hz.vT=hz.s>M.sP+2?14:Math.max(0,vP-6);break}}
+  /* ahead of you while you've slowed right down: they never just sit there (a rail car can't back up) */
+  if(hz.s>M.sP+3&&vP<1.5&&!['check','blocked','stopped'].includes(hz.st)){hz.slowA=(hz.slowA||0)+dt;if(hz.slowA>1.5)hz.vT=Math.max(hz.vT,5)}else hz.slowA=0;
   /* never into the side of you, never into the back of you */
-  if(hz.st!=='check'&&hz.st!=='cut'){const over=Math.abs(hz.latT-M.lp)<2.2;if(over&&hz.s<M.sP+6&&hz.s>M.sP-7)hz.latT=side}
+  if(hz.st!=='check'&&hz.st!=='cut'&&hz.st!=='drop'&&hz.st!=='blocked'){const over=Math.abs(hz.latT-M.lp)<2.2;if(over&&hz.s<M.sP+6&&hz.s>M.sP-7)hz.latT=side}
   if(hz.s<M.sP&&Math.abs(hz.lat-M.lp)<2.2)hz.s=Math.min(hz.s,M.sP-6.2);
   if(gary&&Math.abs(gary.lat-hz.lat)<2.2&&hz.s<gary.s)hz.s=Math.min(hz.s,gary.s-6.5);
   if(M.S.ph==='party'&&M.barS!=null)hz.s=Math.min(hz.s,M.barS-9);
@@ -539,9 +557,12 @@ function hzTick(M,dt){const hz=M.hz;if(!hz||hz.gone)return;const a=A(),vP=M.vP;h
   /* a touch: paint and brisket */
   const tr=M.truck;if(tr){const dx=hz.e.pos.x-tr.pos.x,dz=hz.e.pos.z-tr.pos.z,d=Math.hypot(dx,dz),f=fwd(tr.yaw),along=Math.abs(dx*f[0]+dz*f[1]),side_=Math.abs(-dx*f[1]+dz*f[0]);
     if(along<4.9&&side_<1.95&&!((M.hcd.touch||0)>0)){M.hcd.touch=1;if(hz.check)hz.check.contact=true;const rv=Math.abs(hz.v-M.vP);hit(M,'touch',1.5+rv*1.6,{sv:.6+rv*.15,v:rv});const h=H();if(h.carDamage&&tr)try{h.carDamage(tr,2+rv*2,'ram')}catch(_){}}}
+  if((hz.st==='flee'||hz.st==='quit')&&hz.s-M.sP>40&&!onScreen(hz.e.pos)){railHide(hz);for(const d of[hz.d,hz.d2])if(d)d.root.visible=false;M.S.hzDone=1}
   if((hz.st==='quit'||hz.st==='blocked'||hz.st==='stopped')&&M.sP-hz.s>45&&!onScreen(hz.e.pos)){railHide(hz);for(const d of[hz.d,hz.d2])if(d)d.root.visible=false;M.S.hzDone=1}}
 function honk(rc){try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready&&Au.vehicle){/* a short beep from their position via an impact-free voice: the horn voice needs an engine, so use a ui click as a stand-in when absent */}}catch(_){}}
-function callGary(M){const gy=M.gy,hz=M.hz;if(!gy||gy.gone||!hz||hz.gone||M.S.garyUsed)return;M.S.garyUsed=1;sayAll(L.garyGo,true);gy.st='block';gy.t=0;if(hz.st!=='quit')hz.st='drop';hz.t=0}
+function callGary(M){const gy=M.gy,hz=M.hz;if(!gy||gy.gone||!hz||hz.gone||M.S.garyUsed)return;M.S.garyUsed=1;sayAll(L.garyGo,true);gy.t=0;hz.t=0;
+  /* behind you: Gary gets in front of them and gets lost. Ahead of you or beside you: Gary flashes his brights, and they think he's a cop */
+  if(hz.s<M.sP-3){gy.st='block';if(hz.st!=='quit')hz.st='drop'}else{gy.st='follow';hz.st='flee';M.S.garyHow='brights';setTimeoutT(M,2.2,()=>sayAll(L.garyBrights,false))}}
 const garyCanBlock=M=>!!(M.gy&&!M.gy.gone&&M.hz&&!M.hz.gone&&!M.S.garyUsed&&['along','pass','cut','check','recover','catch'].includes(M.hz.st)&&M.gy.s>M.sP-70);
 
 /* ================================================================= the route and what's on it */
@@ -576,7 +597,7 @@ J.register('cargo',{
 
   start(M,o){const a=A();disposeRun();TX=null;mats.m=null;R.active=true;SEED=7919;TALK.q.length=0;TALK.t=0;
     M.S=freshState();M.g={lon:0,lat:0,flon:0,flat:0,mag:0,peak:0,trail:[]};M.acc={lat:0,brk:0,acc:0};M.cd={dave:0};M.hcd={};M.gy=null;M.hz=null;M.gh=[null,null,null,null];
-    M.wp=null;M.pv=null;M.pT=0;M.pB=0;M.hardT=0;M.hardOn=false;M.sP=0;M.lp=0;M.vP=0;M.tl=[];M.outT=0;M.slowT=0;M.calm=0;M.dougT=18;M.jy=0;M.jv=0;M.noCars=true;M.sc=null;M.carry=null;M.crowd=null;
+    M.wp=null;M.pv=null;M.pT=0;M.pB=0;M.hardT=0;M.hardOn=false;M.sP=0;M.lp=0;M.vP=0;M.tl=[];M.outT=0;M.slowT=0;M.calm=0;M.dougT=18;M.jy=0;M.jv=0;M.noCars=true;M.sc=null;M.carry=null;M.crowd=null;M.ride=null;
     preloadCast();
     if(a.CV&&a.CV!==a.VAN&&a.CV!==M.car)a.exitCar();
     mkTruck(M);M.car=M.truck;buildStreet(M);buildBarricade(M);hideRings();
@@ -597,7 +618,7 @@ J.register('cargo',{
     /* failures */
     if(S.integ<=0&&S.ph!=='scene')return a.endMission(false,L.fail,'Pulled pork');
     if(e&&truckHp(e)<=0&&S.ph!=='load')return a.endMission(false,L.failTruck,'Wrecked');
-    if(!inT&&a.P.dude&&a.P.dude.gun)a.equip(a.P.dude,null);
+    if(a.holster){if(!M.holster)a.holster(true)}else if(!inT&&a.P.dude&&a.P.dude.gun)a.equip(a.P.dude,null);
     if(S.ph==='load'||S.ph==='board'){loadTick(M,dt,F);return}
     if(S.ph==='scene'){sceneTick(M,dt,F);return}
     /* driving: the temperature, the crew's lines, the stages */
@@ -613,10 +634,10 @@ J.register('cargo',{
   save(M){const S=M.S||{},r1=x=>Math.round((x||0)*10)/10,r2=x=>Math.round((x||0)*100)/100;
     const items=M.items?M.items.map(it=>[it.id,r2(it.u),r2(it.w),it.tipped?1:0]):(S.items||null);
     return{ph:S.ph||'load',integ:r1(S.integ),temp:r1(S.temp),sauce:Math.round(S.sauce||0),hard:S.hard|0,garyUsed:S.garyUsed?1:0,garyOffered:S.garyOffered?1:0,hzSaid:S.hzSaid?1:0,alongSaid:S.alongSaid?1:0,
-      hzDone:S.hzDone?1:0,checks:S.checks|0,checksOk:S.checksOk|0,spills:S.spills|0,items}},
+      hzDone:S.hzDone?1:0,checks:S.checks|0,checksOk:S.checksOk|0,spills:S.spills|0,items,ride:M.ride?M.ride.save():(S.ride||null)}},
   load(M,s){if(!s)return;const S=M.S||(M.S=freshState());
     for(const k of['integ','temp','sauce','hard','garyUsed','garyOffered','hzSaid','alongSaid','hzDone','checks','checksOk','spills'])if(s[k]!=null)S[k]=s[k];
-    S.ph=s.ph||'load';S.items=s.items||null;
+    S.ph=s.ph||'load';S.items=s.items||null;S.ride=s.ride||null;if(M.ride&&s.ride)M.ride.load(s.ride);
     const a=A();if(!M.truck||!a||!a.THREE)return;/* (Node: state only) */
     if(s.items&&M.items)for(const[id,u,w,tp]of s.items){const it=M.items.find(x=>x.id===id);if(!it)continue;it.u=u;it.w=w;it.tipped=tp?1:0;it.vu=it.vw=it.vy=it.y=0;if(id==='flat'){putFlat(M,true)}placeItem(it)}
     if(S.ph!=='load'&&S.ph!=='board'){putFlat(M,true);if(a.CV!==M.truck)mount(M);M.dave&&seat(M.dave,M.truck,SEAT.sh,1/30)}
@@ -637,6 +658,7 @@ J.register('cargo',{
       /* the Riverside cast the party needs: load it now so the scripted run finds it cached */
       preloadCast()},
     step:(a,t,o)=>bot(a,t,o),
+    res:()=>({own:R.own.length,objs:R.objs.length,emit:R.emit.length,active:R.active}),/* (dev: what this run holds) */
     sample:()=>({S:Object.assign(freshState(),{ph:'bridge',integ:91.4,temp:158.2,sauce:88,hard:1,garyOffered:1,hzSaid:1,items:[['flat',-1.7,.27,0],['pickles',-2.3,-.06,1]]})})}
 });
 
@@ -738,7 +760,7 @@ function sceneTick(M,dt,F){const a=A(),S=M.S,sc=M.sc;sc.t+=dt;sc.st+=dt;const e=
     if(walkTo(dv,tg,1.5,dt)&&sc.st>1.2){face(dv,e.pos.x,e.pos.z,1);next('grab')}crowdTick(M,dt,dv.root.position)}
   else if(sc.step==='grab'){if(sc.st>.5&&it.g.parent!==dv.root){it.inBed=false;it.on='dave';if(it.g.parent)it.g.parent.remove(it.g);dv.root.add(it.g);it.g.position.set(0,1.02,.42);it.g.rotation.set(0,Math.PI/2,0);
       a.radio('dave',"Everybody stand back. Nobody make any sudden moves.",true)}pose(dv,dt);if(sc.st>1.4){next('walk');sc.wp=0}crowdTick(M,dt,dv.root.position)}
-  else if(sc.step==='walk'){const W=[{x:e.pos.x-1.6,z:e.pos.z-2.1},{x:BTABLE.x-.15,z:BTABLE.z+.78}];if(walkTo(dv,W[sc.wp],1.75,dt)){if(sc.wp<W.length-1)sc.wp++;else next('place')}
+  else if(sc.step==='walk'){const W=[{x:e.pos.x-1.6,z:e.pos.z-2.1},{x:BTABLE.x-.15,z:BTABLE.z+.78}];if(walkTo(dv,W[sc.wp],2.05,dt)){if(sc.wp<W.length-1)sc.wp++;else next('place')}
     walkTo(dg,{x:dv.root.position.x-1.1,z:dv.root.position.z+.9},1.5,dt);crowdTick(M,dt,dv.root.position)}
   else if(sc.step==='place'){face(dv,BTABLE.x,BTABLE.z-1,dt);pose(dv,dt);pose(dg,dt);
     if(sc.st>.6&&it.g.parent===dv.root){dv.root.remove(it.g);M.partyG.add(it.g);it.g.position.set(M.spot.x,M.spot.y,M.spot.z);it.g.rotation.set(0,Math.PI/2,0);if(M.card)M.card.visible=false}
@@ -766,8 +788,8 @@ function hustlersWalk(M){const a=A();M.hzFoot=[{d:person(null,{look:{shirt:'#2b2
 function choice(M){const a=A(),HD=a.HUD;M.sc.pick=null;
   const opts=[{text:'Hand them a plate.',reg:'real'},{text:'"Residents and brisket only, fellas."',reg:'joke'}];
   const kit=HD&&HD.kit&&HD.kit.choices?HD.kit.choices({speaker:'Big Dave',color:'#ffb36b',prompt:"The two guys from the hatchback are hovering by the table. Dave looks at you.",tell:"They're looking at the brisket the way Doug looks at the brisket.",options:opts,onPick:i=>onPick(M,i)}):null;
-  M.sc.kit=kit;if(kit){a.overlay('cargo-choice',kit.el);R.ovs.push('cargo-choice')}else onPick(M,0)}
-function onPick(M,i){const a=A(),S=M.S;if(S.plate!=null)return;S.plate=i;try{a.overlay('cargo-choice',null)}catch(_){}M.sc.step='after';M.sc.st=0;
+  M.sc.kit=kit;if(kit){a.overlay('cargo-choice',kit.el);R.ovs.push('cargo-choice');R.kit=kit}else onPick(M,0)}
+function onPick(M,i){const a=A(),S=M.S;if(S.plate!=null)return;S.plate=i;try{a.overlay('cargo-choice',null)}catch(_){}try{const k=M.sc.kit;M.sc.kit=null;if(k&&k.close)k.close()}catch(_){}M.sc.step='after';M.sc.st=0;
   if(i===0){sayAll(L.plate,true);a.addTrust(3,'river');try{const FX=window.HT&&HT.FX;if(FX&&FX.trustPop)FX.trustPop(a.V3(BTABLE.x-2,2.3,BTABLE.z+2.2),'+3 TRUST',{sub:'Fed the hustlers',color:'#7dffb0'})}catch(_){}
     /* paper plates in their hands */const T3=a.THREE;for(const h of M.hzFoot){const p=mesh(geo(new T3.CylinderGeometry(.11,.09,.015,16)),M3({color:'#f4f1e8',roughness:.7}),0,1.02,.36,h.d.root);mesh(rbox(.12,.03,.07,.01,2),mats().bark,0,1.04,.36,h.d.root)}}
   else{sayAll(L.shoo,true);for(const h of M.hzFoot)h.to2={x:h.d.root.position.x-4,z:h.d.root.position.z+.6}}}
@@ -835,7 +857,7 @@ function hudTick(M,st){const a=A(),S=M.S,e=M.truck;
   if(M.gb){const g=M.g,sc=56,x=clamp(g.lat,-1.15,1.15)*sc,y=clamp(-g.lon,-1.15,1.15)*sc,m=g.mag;M.gb.dot.setAttribute('cx',x.toFixed(1));M.gb.dot.setAttribute('cy',y.toFixed(1));
     M.gb.dot.setAttribute('fill',m<K.latT?'#7dffb0':m<.7?'#ffd36b':'#ff6b5a');
     const pts=g.trail.map(p=>(clamp(p[0],-1.15,1.15)*sc).toFixed(1)+','+(clamp(-p[1],-1.15,1.15)*sc).toFixed(1)).join(' ');if(pts!==M.gb.last){M.gb.last=pts;M.gb.tr.setAttribute('points',pts)}
-    M.gb.g.textContent=m.toFixed(2)+' g';M.gb.s.textContent=S.hard?('Hard brakes: '+S.hard):'No hard brakes';M.gb.box.classList.toggle('hot',m>=.7||(M.hurtPulse||0)>.6)}
+    M.gb.g.textContent=m.toFixed(2)+' g';M.gb.s.textContent=(M.ride?'Crew: '+M.ride.word()+' · ':'')+(S.hard?('Hard brakes: '+S.hard):'No hard brakes');M.gb.box.classList.toggle('hot',m>=.7||(M.hurtPulse||0)>.6)}
   M.hurtPulse=Math.max(0,(M.hurtPulse||0)-.05);
   if(M.bal&&M.carry){const t=clamp(M.carry.tau,-1,1);M.bal.tray.setAttribute('transform','rotate('+(t*45).toFixed(1)+')');const ang=-Math.PI/2+t*Math.PI/4*1.0;
     M.bal.dot.setAttribute('cx',(Math.cos(ang)*110).toFixed(1));M.bal.dot.setAttribute('cy',(Math.sin(ang)*110).toFixed(1));M.bal.dot.setAttribute('fill',Math.abs(t)<.5?'#7dffb0':Math.abs(t)<.75?'#ffd36b':'#ff6b5a')}
@@ -868,24 +890,27 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.S)return null;
   if(o.fail&&S.ph==='bridge'&&e.pos.x>282){/* the lunatic */k.w=true;k.shift=true;k.a=Math.floor(t/18)%2===0;k.d=!k.a;k.s=t%40<12;k.w=!k.s;return null}
   /* where to be across the lane: dodge the potholes ahead (or straddle them) */
   const pr=routeProj(M.route,c.x,c.z,M.sP),near=ahead(M,20);let latT=-.3;
+  const hz=M.hz;let want=S.ph==='party'?7:10.2;const brakeD=(vT,d)=>Math.sqrt(vT*vT+2*1.9*Math.max(0,d));M._corner=99;
   const hitsAt=L_=>near.some(h=>h.kind==='pot'&&h.s-pr.s<12&&h.s-pr.s>-2.5&&(Math.abs(h.lat-(L_-.8))<h.r+.2||Math.abs(h.lat-(L_+.8))<h.r+.2));
-  if(hitsAt(latT)){let best=latT,bd=1e9;for(let L_=-3.6;L_<=.6;L_+=.15){if(hitsAt(L_))continue;const cost=Math.abs(L_-latT)+(L_<-1.8?.8:0);if(cost<bd){bd=cost;best=L_}}latT=best}
+  const pots=near.filter(h=>h.kind==='pot'&&h.s-pr.s>-2.8).sort((p,q)=>p.s-q.s),hitP=(h,L_)=>Math.abs(h.lat-(L_-.8))<h.r+.2||Math.abs(h.lat-(L_+.8))<h.r+.2;
+  if(pots.length&&pots[0].s-pr.s<16){const h0=pots[0],h1=pots[1]&&pots[1].s-h0.s<8?pots[1]:null;if(M._ph!==h0.id){M._ph=h0.id;let best=latT,bd=1e9;
+      for(let L_=-3.5;L_<=.6;L_+=.05){if(hitP(h0,L_))continue;const cost=Math.abs(L_-pr.lat)+(h1&&hitP(h1,L_)?.9:0)+(L_<-1.8?.35:0);if(cost<bd){bd=cost;best=L_}}M._pl=best}latT=M._pl}
   /* a pickup swings wide on a right turn (the back wheels cut the corner), and goes round cars parked in the lane */
-  for(let ds=-5;ds<17;ds+=1.5){const p0=routeAt(M.route,pr.s+ds),p1=routeAt(M.route,pr.s+ds+6),cr=p0.dx*p1.dz-p0.dz*p1.dx;const beside=M.hz&&!M.hz.gone&&Math.abs(M.hz.s-pr.s)<7&&M.hz.lat<pr.lat;if(cr>.35){if(!beside)latT=Math.min(latT,-1.5);break}if(cr<-.35){latT=Math.max(latT,.1);break}}
-  for(const ob of M.obst)if(pr.s>ob.s0-6&&pr.s<ob.s1+1)latT=-3;
-  M._lat=M._lat==null?latT:M._lat+(latT-M._lat)*.1;
+  for(let ds=-5;ds<17;ds+=1.5){const p0=routeAt(M.route,pr.s+ds),p1=routeAt(M.route,pr.s+ds+6),cr=p0.dx*p1.dz-p0.dz*p1.dx;const beside=M.hz&&!M.hz.gone&&M.hz.s-pr.s<16&&M.hz.s-pr.s>-7;if(cr>.35){if(!beside)latT=Math.min(latT,-1.5);break}if(cr<-.35){latT=Math.min(latT,-.7);break}}
+  for(const ob of M.obst)if(pr.s>ob.s0-6&&pr.s<ob.s1+1){const busy=hz&&!hz.gone&&hz.lat<-1.8&&hz.s>pr.s-8&&hz.s<ob.s1+8;if(busy)want=Math.min(want,brakeD(0,ob.s0+3-pr.s));else latT=-3}
+  M._lat=M._lat==null?latT:M._lat+(latT-M._lat)*(pots.length&&pots[0].s-pr.s<16?.25:.1);
   /* the bridge joint at an angle: a small swing across the lane just before it */
   for(const s of M.seamS){const ds=s-pr.s;if(ds>0&&ds<7)M._lat+=((ds<3.5?-.9:.5)-M._lat)*.08}
   /* the speed for what's ahead: corners, bumps, the joint, the hatchback, the parking spot */
-  let want=S.ph==='party'?7:10.2;const brakeD=(vT,d)=>Math.sqrt(vT*vT+2*2.4*Math.max(0,d));
-  for(let ds=0;ds<28;ds+=1.5){const p0=routeAt(M.route,pr.s+ds),p1=routeAt(M.route,pr.s+ds+9),turn=Math.abs(wrap(Math.atan2(p1.dx,p1.dz)-Math.atan2(p0.dx,p0.dz)));if(turn>.45){want=Math.min(want,brakeD(M.hz&&!M.hz.gone&&Math.abs(M.hz.s-pr.s)<7?2.6:3.4,ds-1));break}}
+  {const q=routeAt(M.route,pr.s+3),he=Math.abs(wrap(Math.atan2(-q.dx,-q.dz)-c.yaw));if(he>.22)want=Math.min(want,2.8+(.6-Math.min(.6,he))*3)}
+  for(let ds=0;ds<28;ds+=1.5){const p0=routeAt(M.route,pr.s+ds),p1=routeAt(M.route,pr.s+ds+9),turn=Math.abs(wrap(Math.atan2(p1.dx,p1.dz)-Math.atan2(p0.dx,p0.dz)));if(turn>.45){M._corner=ds;M._cdir=p0.dx*p1.dz-p0.dz*p1.dx>0?1:-1;want=Math.min(want,brakeD(2.7,ds-1));break}if(ds>=26.5)M._corner=99}
   for(const h of near){const d=h.s-pr.s;if(h.kind==='bump')want=Math.min(want,brakeD(3.0,d-3.5));if(h.kind==='seam')want=Math.min(want,brakeD(3.6,d-2))}
-  for(const h of near)if(h.kind==='pot'&&h.s-pr.s<14&&hitsAt(M._lat))want=Math.min(want,brakeD(3.5,h.s-pr.s-2));
-  const hz=M.hz;if(hz&&!hz.gone&&hz.s>pr.s&&Math.abs(hz.lat-pr.lat)<2.4){const gap=hz.s-pr.s-5;want=Math.min(want,Math.max(0,Math.min(hz.v+gap*.35,brakeD(Math.max(0,hz.v-1),gap-4))))}
+  for(const h of near)if(h.kind==='pot'&&h.s-pr.s<18)want=Math.min(want,brakeD(hitP(h,pr.lat)?2.6:3.6,h.s-pr.s-3));
+  if(hz&&!hz.gone&&hz.s>pr.s&&Math.abs(hz.lat-pr.lat)<2.15){const gap=hz.s-pr.s-5;want=Math.min(want,Math.max(0,Math.min(hz.v+gap*.35,brakeD(Math.max(0,hz.v-1),gap-4))))}
   if(S.ph==='party'){const d=Math.hypot(PARK.x-c.x,PARK.z-c.z);if(M.sP>M.barS-40)want=Math.min(want,brakeD(0,d-1.2)*.9);if(M.barOpen<.6&&M.sP>M.barS-14)want=0}
-  if(!o.fail&&garyCanBlock(M)&&(S.checks>=1||hz.n>=3))a.useTap=true;
+  if(!o.fail&&o.gary!=='none'&&garyCanBlock(M)&&(o.gary==='block'?(hz.s<pr.s-5&&hz.st!=='catch'):(S.checks>=1&&hz.st==='along')))a.useTap=true;
   /* steering: look ahead along the lane, duty-cycled taps */
-  const look=routeAt(M.route,pr.s+Math.max(4.5,v*.75+2.5)),rx=-look.dz,rz=look.dx,tx=look.x+rx*M._lat,tz=look.z+rz*M._lat;
+  const look=routeAt(M.route,pr.s+(M._corner<7?(M._cdir>0?2.6:4.8):Math.max(3.4,v*.65+2))),rx=-look.dz,rz=look.dx,tx=look.x+rx*M._lat,tz=look.z+rz*M._lat;
   let err=wrap(Math.atan2(-(tx-c.x),-(tz-c.z))-c.yaw);const duty=Math.min(1,Math.abs(err)*2.4);k.a=err>.02&&(t%4)/4<duty;k.d=err<-.02&&(t%4)/4<duty;
   /* pedals: hold the gas to build up, coast, tap the brake */
   M._want=want;k.shift=false;k[' ']=false;k.w=v<want-.35;k.s=false;if(v>want+.3){k.s=v>want+2.2?t%3===0:t%5===0}
