@@ -86,7 +86,7 @@ function canvasTex(w,h,draw){const T=T3(),c=document.createElement('canvas');c.w
 
 /* ================= props ================= */
 /* front-garden picket fence (local X along the fence, +Z toward the street), planter of flowers behind it, one loose picket */
-const LOOSE_I=5;
+const LOOSE_I=5,CAT_Y=2.3;
 function fenceModel(){const T=T3(),root=new T.Group(),paint=mat('#efe9dc',{r:.78}),worn=mat('#d8d0bf',{r:.85}),wood=mat('#6b4a2e',{r:.9}),soil=mat('#3a2a1c',{r:1}),stem=mat('#4f7a35',{r:.85});
   const b=parts();
   for(const s of[-1,1]){b.box(.085,.95,.085,paint,s*.9,.475,0);b.box(.11,.035,.11,paint,s*.9,.965,0);b.box(.06,.06,.06,paint,s*.9,1.005,0,0,Math.PI/4,0)}
@@ -187,16 +187,19 @@ function boardModel(){const T=T3(),root=new T.Group(),wood=mat('#7a5a3a',{r:.85}
     const p=new T.Mesh(new T.PlaneGeometry(.54,.72),face);p.position.set(0,.47,s*.017);if(s<0)p.rotation.y=Math.PI;g.add(p);g.position.z=s*.13}return root}
 /* the painted-over patch for a tag: fresh off-white roller paint, slightly mismatched, soft edges */
 let PATCH_TEX=null;
-function patchTex(){if(PATCH_TEX)return PATCH_TEX;PATCH_TEX=canvasTex(256,128,(g,w,h)=>{const grd=g.createLinearGradient(0,0,w,0);grd.addColorStop(0,'#e7e0cf');grd.addColorStop(1,'#ded6c4');g.fillStyle=grd;g.fillRect(6,6,w-12,h-12);
+function patchTex(){if(PATCH_TEX)return PATCH_TEX;PATCH_TEX=canvasTex(256,128,(g,w,h)=>{const grd=g.createLinearGradient(0,0,w,0);grd.addColorStop(0,'#f4f1ea');grd.addColorStop(1,'#e6e2da');g.fillStyle=grd;g.fillRect(6,6,w-12,h-12);
   for(let k=0;k<28;k++){g.fillStyle='rgba(255,255,255,'+(.05+Math.random()*.07)+')';g.fillRect(6+k*8.6,6,5,h-12)}for(let k=0;k<14;k++){g.fillStyle='rgba(150,135,110,.06)';g.fillRect(6,8+Math.random()*(h-16),w-12,2)}
   const id=g.getImageData(0,0,w,h),d=id.data;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const e=Math.min(x,y,w-1-x,h-1-y);const a=clamp((e-2)/9,0,1)*(.92+Math.random()*.08);d[(y*w+x)*4+3]*=a}g.putImageData(id,0,0)});return PATCH_TEX}
-function patchMesh(t){const T=T3(),m=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshStandardMaterial({map:patchTex(),transparent:true,roughness:.95,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8,side:T.DoubleSide}));
+/* buff paint close to the wall it's on (brick red on the rowhouses, stucco beige on the shops, grey on the warehouses): "almost matching" */
+const PATCH_COL={r:'#9b5a48',A:'#d3c8b4',x:'#a7aaa5',z:'#c2bcae'};
+function patchMat(kind){const k='patch|'+kind;if(MC[k])return MC[k];const T=T3();return MC[k]=new T.MeshStandardMaterial({map:patchTex(),color:new T.Color(PATCH_COL[kind]||'#d3c8b4').convertSRGBToLinear().multiplyScalar(1.12),transparent:true,roughness:.95,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8,side:T.DoubleSide})}
+function patchMesh(t){const T=T3(),m=new T.Mesh(new T.PlaneGeometry(1,1),patchMat(t.kind));
   const fx=t.face[0],fz=t.face[1],off=(t.kind==='z'?.04:0)+.025;m.position.set(t.x+fx*off,t.y,t.z+fz*off);m.rotation.y=Math.atan2(fx,fz);m.renderOrder=4;m.userData.w=t.w*1.18+.1;m.userData.h=t.h*1.25+.08;m.scale.set(m.userData.w,m.userData.h,1);return m}
 /* a relit lamp head: warm lens and a soft halo where the tilted head of a broken world lamp sits */
 let HALO_TEX=null;
 function haloTex(){return HALO_TEX||(HALO_TEX=canvasTex(128,128,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(255,236,190,.95)');r.addColorStop(.25,'rgba(255,214,140,.45)');r.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=r;g.fillRect(0,0,w,h)}))}
 function lampGlow(p){const T=T3(),g=new T.Group();const lens=new T.Mesh(new T.CircleGeometry(.5,14),glowMat('#ffe7b0',3));lens.scale.set(.25,.52,1);lens.rotation.x=Math.PI/2;g.add(lens);
-  const sp=new T.Sprite(new T.SpriteMaterial({map:haloTex(),color:0xffffff,transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));sp.scale.set(2.2,2.2,1);sp.position.y=-.15;g.add(sp);
+  const sp=new T.Sprite(new T.SpriteMaterial({map:haloTex(),color:0xffffff,transparent:true,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}));sp.scale.set(1.5,1.5,1);sp.position.y=-.12;sp.material.opacity=.8;g.add(sp);
   g.position.set(p.x,p.y-.02,p.z);g.rotation.y=p.ang;return g}
 
 /* ================= world lookups ================= */
@@ -421,7 +424,7 @@ function buildFix(M,f){const a=A(),T=T3();let m=null;
   else if(f.kind==='cart'){m=cartModel();m.position.set(f.x,0,f.z);m.rotation.set(0,f.yaw,(f.id.length%2?.0:.0))}
   else if(f.kind==='tag'){m=patchMesh(f.tag);m.scale.set(.001,m.userData.h,1);m.visible=false}
   else if(f.kind==='lamp'){m=lampGlow(f.head);m.visible=false}
-  else if(f.kind==='cat'){m=new T.Group();const br=branchModel(1.5);m.add(br);const cat=catModel();cat.position.set(1.0,.07,0);cat.rotation.y=-Math.PI/2+.4;m.add(cat);m.position.set(f.x,2.75,f.z);m.rotation.y=f.ang;m.userData.cat=cat;
+  else if(f.kind==='cat'){m=new T.Group();const br=branchModel(1.5);m.add(br);const cat=catModel();cat.position.set(1.0,.07,0);cat.rotation.y=-Math.PI/2+.4;m.add(cat);m.position.set(f.x,CAT_Y,f.z);m.rotation.y=f.ang;m.userData.cat=cat;
     const yaw=f.ang;f.cx=f.x+Math.cos(yaw)*1.0;f.cz=f.z-Math.sin(yaw)*1.0;f.sx=f.x+Math.cos(yaw)*1.6;f.sz=f.z-Math.sin(yaw)*1.6}
   else if(f.kind==='bike'){m=bikeModel(f.col);m.position.set(f.x,0,f.z);m.rotation.y=f.yaw+Math.PI/2;bikeState(m,0)}
   if(m){a.wmAdd(m);f.mesh=m}
@@ -442,7 +445,7 @@ function award(M,f,base,label,o){const a=A(),B=bz(M);o=o||{};
   const was=B.lastMultShown||1;B.lastKind=f.kind;B.comboT=TUNE.combo;B.bestMult=Math.max(B.bestMult,B.mult);
   let pts=Math.round(base*B.mult);let extra=0;if(B.helper&&B.helperState==='help'&&Math.hypot(B.helper.x-a.P.pos.x,B.helper.z-a.P.pos.z)<9){extra=TUNE.helperPts}
   pts+=extra+(o.bonus||0);B.score+=pts;B.fixed++;B.byKind[f.kind]=(B.byKind[f.kind]||0)+1;B.bkPts=B.bkPts||{};B.bkPts[f.kind]=(B.bkPts[f.kind]||0)+pts;
-  const y=f.kind==='lamp'?(f.head?f.head.y-1:5):f.kind==='cat'?3.2:f.kind==='tag'?f.tag.y+.8:1.6;const px=f.kind==='cat'?f.cx:f.x,pz=f.kind==='cat'?f.cz:f.z;
+  const y=f.kind==='lamp'?(f.head?f.head.y-1:5):f.kind==='cat'?2.9:f.kind==='tag'?f.tag.y+.8:1.6;const px=f.kind==='cat'?f.cx:f.x,pz=f.kind==='cat'?f.cz:f.z;
   popAt(px,y,pz,'+'+pts,(label||KIND[f.kind].done)+(B.mult>1?' · ×'+B.mult:'')+(extra?' · ladder +'+extra:'')+(o.sub?' · '+o.sub:''),KIND[f.kind].col);
   if(HUDL){HUDL.score.classList.remove('bump');void HUDL.score.offsetWidth;HUDL.score.classList.add('bump')}
   if(B.mult>was&&B.mult>=2){SFX.combo(B.mult);if(HUDL){HUDL.combo.classList.remove('pop');void HUDL.combo.offsetWidth;HUDL.combo.classList.add('pop')}}
@@ -451,7 +454,7 @@ function award(M,f,base,label,o){const a=A(),B=bz(M);o=o||{};
   /* trust: small steps, capped per run and per game week */
   const s=SV(),pl=plan(s),wk=weekOf(s);if(pl.week.w!==wk){pl.week={w:wk,g:0}}const room=Math.min(TUNE.trustRun-B.trustRun,TUNE.trustWeek-pl.week.g);
   if(room>0){const v=Math.min(TUNE.trustFix,room);a.addTrust(v,'river');B.trustRun+=v;pl.week.g=+(pl.week.g+v).toFixed(2)}
-  try{const F=window.HT.FX;if(F&&F.trustPop)F.trustPop(new(T3().Vector3)(px,y-.3,pz),'',{})}catch(_){}
+  try{const F=window.HT.FX;if(F&&F.trustPop)F.trustPop(new(T3().Vector3)(px,y-.3,pz),' ',{})}catch(_){}
   neighbourReact(M,f);B.events.push({k:f.kind,p:pts,t:TUNE.time-B.clock})}
 /* a neighbour comes out on the nearest porch, waves, says something */
 function neighbourReact(M,f){const a=A(),B=bz(M),W=a.WORLD;if(B.neighT>0&&f.kind!=='cat'&&f.kind!=='bike')return;B.neighT=2.2;
@@ -479,7 +482,7 @@ function animFix(M,dt){const a=A(),B=bz(M),X=B.fixing,f=X.f,P=a.P,K=KIND[f.kind]
     if(f.kind==='picket'){if(ti)ti.rotation.x=-Math.abs(Math.sin(X.t*14))*.9;if(X.beat<=0){X.beat=.2;SFX.hammer(new(T3().Vector3)(f.x,.7,f.z))}fenceState(f.mesh,k*.85)}
     else if(f.kind==='tag'){if(ti){ti.rotation.z=Math.sin(X.t*16)*.6;ti.position.y=Math.sin(X.t*8)*.08}if(X.beat<=0){X.beat=.26;SFX.brush()}const m=f.mesh;m.visible=true;
       const w=m.userData.w*Math.max(.02,k);m.scale.set(w,m.userData.h,1);const fx=f.tag.face[0],fz=f.tag.face[1],off=(f.tag.kind==='z'?.04:0)+.025;const sh=(m.userData.w-w)/2;m.position.set(f.tag.x+fx*off+fz*sh,f.tag.y,f.tag.z+fz*off-fx*sh)}
-    else if(f.kind==='lamp'||f.kind==='cat'){const p=X.pole,top=f.kind==='lamp'?{x:f.head.x,y:f.head.y-.25,z:f.head.z}:{x:f.cx,y:2.9,z:f.cz};const hx=X.lock.x,hz=X.lock.z,hy=1.3;
+    else if(f.kind==='lamp'||f.kind==='cat'){const p=X.pole,top=f.kind==='lamp'?{x:f.head.x,y:f.head.y-.25,z:f.head.z}:{x:f.cx,y:CAT_Y+.15,z:f.cz};const hx=X.lock.x,hz=X.lock.z,hy=1.3;
       const ext=f.kind==='lamp'?clamp(k/.45,0,1):clamp(k/.3,0,1);p.visible=true;const ex=hx+(top.x-hx)*ext,ey=hy+(top.y-hy)*ext,ez=hz+(top.z-hz)*ext;const L=Math.hypot(ex-hx,ey-hy,ez-hz)||.01;
       p.position.set(hx,hy,hz);p.scale.set(1,L,1);p.quaternion.setFromUnitVectors(new(T3().Vector3)(0,1,0),new(T3().Vector3)((ex-hx)/L,(ey-hy)/L,(ez-hz)/L));if(B.toolMesh)B.toolMesh.visible=false;
       if(X.beat<=0){X.beat=.28;SFX.squeak()}
@@ -501,7 +504,7 @@ function finishFix(M){const a=A(),B=bz(M),X=B.fixing,f=X.f;B.fixing=null;f.busy=
   else if(f.kind==='bike'){bikeState(f.mesh,1);a.radio('you',LINES.kidGo,true);award(M,f,KIND.bike.pts);f.ride={t:0};SFX.cheer(new V(f.x,1,f.z),true)}
   else if(f.kind==='cat'){const helped=B.helper&&B.helperState==='help';const scratch=!helped&&Math.random()<.55;B.scratch=scratch;
     a.radio('you',scratch?pick(LINES.scratch):LINES.noScratch,true);SFX.meow();award(M,f,KIND.cat.pts,'Cat',{bonus:scratch?0:Math.round(KIND.cat.pts*.5),sub:scratch?'scratched':'no scratch +50%'});
-    const cat=f.mesh.userData.cat;f.mesh.remove(cat);a.wmAdd(cat);cat.position.set(f.cx,2.85,f.cz);f.catRun={t:0,from:{x:f.cx,z:f.cz},to:{x:a.P.pos.x+(Math.random()-.5)*4,z:a.P.pos.z+(Math.random()-.5)*4},cat}}
+    const cat=f.mesh.userData.cat;f.mesh.remove(cat);a.wmAdd(cat);cat.position.set(f.cx,CAT_Y+.07,f.cz);f.catRun={t:0,from:{x:f.cx,z:f.cz},to:{x:a.P.pos.x+(Math.random()-.5)*4,z:a.P.pos.z+(Math.random()-.5)*4},cat}}
   B.comboHold=false}
 function deliverCart(M,f,viaCar){const a=A(),B=bz(M),S=spots(a.WORLD);f.x=S.corral.x;f.z=S.corral.z;const k=B.delivered=(B.delivered||0)+1;const m=f.mesh;if(m.parent)m.parent.remove(m);a.wmAdd(m);m.visible=true;
   m.position.set(S.corral.x+1.0-((k-1)%6)*.34,0,S.corral.z);m.rotation.set(0,-Math.PI/2,0);f.done=true;f.haul=false;f.inCar=false;SFX.cart();award(M,f,KIND.cart.pts,viaCar?'Cart · by car':'Cart')}
@@ -541,7 +544,7 @@ function upd(dt,M,F){const a=A(),B=bz(M),P=a.P,S=spots(a.WORLD);if(!B)return;
       const kd=dude(role,{shirt:'#ff8ec0',pants:'#2b4a6b'});const kx=f.x+Math.cos(f.yaw)*.9,kz=f.z-Math.sin(f.yaw)*.9;kd.root.position.set(kx,0,kz);if(!kd.rb)kd.root.scale.setScalar(.72);a.wmAdd(kd.root);faceTo(kd,f.x,f.z);f.kid={d:kd,x:kx,z:kz}}if(f.ride&&f.kid){f.ride.t+=dt;const r=f.ride.t;if(r>.6&&r<5){const d=f.kid.d,m=f.mesh,ang=f.yaw;const sp=Math.min(4,(r-.6)*3);const vx=Math.sin(ang+Math.PI/2)*sp*dt,vz=Math.cos(ang+Math.PI/2)*sp*dt;
         m.position.x+=vx;m.position.z+=vz;m.rotation.z=0;d.root.position.set(m.position.x,.18,m.position.z);d.root.rotation.y=Math.atan2(vx,vz);npcPose(d,dt,{mode:'sit'})}else if(r>=5){f.mesh.visible=false;f.kid.d.root.visible=false;f.ride=null}else npcPose(f.kid.d,dt,{})}
     else if(f.kid&&!f.done)npcPose(f.kid.d,dt,{});
-    if(f.catRun){const c=f.catRun;c.t+=dt;if(c.t<.6){const k=c.t/.6;c.cat.position.set(c.from.x+(c.to.x-c.from.x)*k*.4,2.85*(1-k)+Math.sin(k*Math.PI)*.4,c.from.z+(c.to.z-c.from.z)*k*.4)}
+    if(f.catRun){const c=f.catRun;c.t+=dt;if(c.t<.6){const k=c.t/.6;c.cat.position.set(c.from.x+(c.to.x-c.from.x)*k*.4,(CAT_Y+.07)*(1-k)+Math.sin(k*Math.PI)*.4,c.from.z+(c.to.z-c.from.z)*k*.4)}
       else if(c.t<3){const k=(c.t-.6);c.cat.position.x+=(c.to.x-c.from.x)*.25*dt*2;c.cat.position.z+=(c.to.z-c.from.z)*.25*dt*2;c.cat.position.y=Math.abs(Math.sin(k*12))*.05;c.cat.rotation.y=Math.atan2(c.to.x-c.from.x,c.to.z-c.from.z)}
       else{c.cat.visible=false;f.catRun=null}}}
   if(HUDL){for(const s of HUDL.said){s.t-=dt;const w=s.who,x=w.d?w.d.root.position.x:w.x,z=w.d?w.d.root.position.z:w.z,y=w.y||2.15;const p=a.project(x,y,z);if(p.behind||s.t<=0)s.d.style.display='none';else{s.d.style.display='';s.d.style.left=p.x+'px';s.d.style.top=p.y+'px'}if(s.t<=0)s.d.remove()}HUDL.said=HUDL.said.filter(s=>s.t>0)}
@@ -624,7 +627,7 @@ function hud(M,F){if(!HUDL)return;const a=A(),B=bz(M),P=a.P,H=HUDL;const live=B.
   const carts=B.carLoad.length;hudShow(H.cart,'cart',carts>0);if(carts)hudText(H.cart,'cartT','Carts in the car · '+carts+' · drive to Ramos’ corral');
   /* markers: undone fixables within 40 m, on screen */
   let k=0;if(B.phase==='go'&&!B.haul){const px=P.pos.x,pz=P.pos.z;const list=B.fix.filter(f=>!f.done&&!f.inCar&&!f.haul&&Math.hypot(f.x-px,f.z-pz)<TUNE.hudR).sort((p,q)=>Math.hypot(p.x-px,p.z-pz)-Math.hypot(q.x-px,q.z-pz)).slice(0,14);
-    for(const f of list){const y=f.kind==='lamp'?6.2:f.kind==='cat'?3.6:f.kind==='tag'?f.tag.y+.9:f.kind==='cart'?1.5:1.4;const x=f.kind==='cat'?f.cx:f.x,z=f.kind==='cat'?f.cz:f.z;const p=a.project(x,y,z);if(p.behind||p.x<-40||p.y<-40||p.x>innerWidth+40||p.y>innerHeight+40)continue;
+    for(const f of list){const y=f.kind==='lamp'?6.2:f.kind==='cat'?3.0:f.kind==='tag'?f.tag.y+.9:f.kind==='cart'?1.5:1.4;const x=f.kind==='cat'?f.cx:f.x,z=f.kind==='cat'?f.cz:f.z;const p=a.project(x,y,z);if(p.behind||p.x<-40||p.y<-40||p.x>innerWidth+40||p.y>innerHeight+40)continue;
       let el=H.pool[k];if(!el){el=document.createElement('div');el.className='mk';el.innerHTML='<span class="ic"></span><span class="pts"></span><span class="d"></span>';H.mks.appendChild(el);H.pool[k]=el}k++;
       const K=KIND[f.kind];if(el._k!==f.kind){el._k=f.kind;el.style.setProperty('--c',K.col);el.querySelector('.ic').innerHTML=kindIcon(f.kind);el.querySelector('.pts').textContent=K.pts+(f.kind==='cat'?'+':'')}
       el.style.display='';el.style.transform='translate('+p.x.toFixed(0)+'px,'+p.y.toFixed(0)+'px)';el.classList.toggle('cur',B.cur===f);const d=Math.round(Math.hypot(x-px,z-pz));el.querySelector('.d').textContent=B.cur===f?K.name:d+' m'}}
@@ -646,7 +649,7 @@ J.item('toolbelt',{name:'Tool belt',use(M){USE=true}});
 
 /* ================= persistent fixes in free roam (painted-over tags, relit lamps) ================= */
 const PL={grp:null,key:'',t:0};
-function persistTick(){const a=A();if(!a||!a.L||!a.L.ow||!a.WORLD||a.mode==='home'||a.mode==='title')return;PL.t-=1/30;if(PL.t>0)return;PL.t=1;
+function persistTick(){const a=A();if(!a||!a.L||!a.L.ow||!a.WORLD||a.mode==='home'||a.mode==='title')return;const now=performance.now();if(now-PL.t<700)return;PL.t=now;
   const s=SV();if(!s)return;const W=a.WORLD,tags=scrubbed(s),lamps=plan(s).lamps;const O=window.HT.OpenWorld;if(!O||!O.blockTrust)return;
   const live=a.mode==='mission'&&a.M&&a.M.def&&a.M.def.id===ID&&a.M.state==='go';
   const want=[];for(const id of tags){const t=W.tags.find(t=>t.id===id);if(t&&bt(t.x,t.z)<t.clearAt)want.push('t'+id)}for(const k of lamps){const l=W.lamps.find(l=>l.tx+','+l.tz===k);if(l&&bt(l.x,l.z)<l.brokenUntil)want.push('l'+k)}
