@@ -259,12 +259,12 @@ function view(o){o=o||{};const cast=o.cast||{};const host=o.host||document.query
       else{T.hold-=dt;if(T.hold<=0)T.done=true}}
     const c=V.choice;if(c&&c.T){c.t-=dt;const f=Math.max(0,c.t/c.T);tmi.style.transform='scaleX('+f+')';tm.classList.toggle('low',c.t<3.5);if(c.t<=0){V.choice=null;el.classList.remove('choosing');ch.innerHTML='';c.op.onTimeout&&c.op.onTimeout()}}};
   /* keys: 1-4 pick, W/S or arrows move, E/Enter/Space confirm or skip. Captured before the game's own handler (no weapon swaps). */
-  const kd=e=>{if(!V.mounted||e.repeat)return;const k=e.key.toLowerCase();let used=true;
+  const kd=e=>{if(V.mounted&&!el.isConnected){V.unmount();return}/* the panel was removed from outside: drop the keys too */if(!V.mounted||e.repeat)return;const k=e.key.toLowerCase();let used=true;
     if(/^[1-4]$/.test(k)){if(V.choice)V.choose(+k-1);else used=!!V.typing}
     else if(k==='arrowup'||k==='w'||k==='arrowleft'||k==='a')V.move(-1);else if(k==='arrowdown'||k==='s'||k==='arrowright'||k==='d')V.move(1);
     else if(k==='e'||k==='enter'||k===' ')V.confirm();else if(BLOCK.includes(k))used=true;else used=false;
     if(used){e.stopImmediatePropagation();e.preventDefault()}};
-  const wh=e=>{if(V.mounted)e.stopImmediatePropagation()};
+  const wh=e=>{if(V.mounted&&!el.isConnected){V.unmount();return}if(V.mounted)e.stopImmediatePropagation()};
   function keysOn(){addEventListener('keydown',kd,true);addEventListener('wheel',wh,{capture:true,passive:true})}function keysOff(){removeEventListener('keydown',kd,true);removeEventListener('wheel',wh,{capture:true})}
   el.addEventListener('pointerdown',e=>{if(e.target.closest('.soc-ch'))return;if(V.typing){V.skip();e.preventDefault()}});
   return V}

@@ -302,7 +302,8 @@ function sizzleOff(){if(SZ){try{SZ.s.stop();SZ.g.disconnect()}catch(e){}SZ=null}
 /* a job that ends any way takes its sounds and tells with it */
 J.on('hud',()=>{const a=A();if(SZ&&(!a.M||a.M.state!=='go'||a.M.def.id!=='talk'))sizzleOff();const Soc=S_();
   if(Soc&&Soc.tells&&Soc.tells.list.length&&(!a.M||a.M.def.id!=='talk'||a.M.state!=='go')){Soc.tells.clear();const M=a.M;if(M&&M.V)M.V.unmount()}
-  if((!a.M||a.M.state!=='go')&&document.body.classList.contains('soc-on')){const v=document.querySelector('.soc');if(v)v.remove();document.body.classList.remove('soc-on')}});
+  if((!a.M||a.M.state!=='go')&&document.body.classList.contains('soc-on')){/* unmount, don't just remove the element: unmount also takes its key listeners (they ate WASD/E in free roam after a lost run) */
+    const M=a.M;if(M&&M.V&&M.V.unmount)try{M.V.unmount()}catch(_){}const v=document.querySelector('.soc');if(v)v.remove();document.body.classList.remove('soc-on')}});
 
 /* ---------------- actors per frame: Tre and Dad sit, Dave grills (and walks a burger over), Gary hovers ---------------- */
 function actorsUpd(M,dt){const L_=lay(),PP=window.HT&&HT.People;
