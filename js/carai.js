@@ -26,6 +26,9 @@ const VEH={
  sedan:  {name:'Sedan',          seats:5,len:4.6,wid:1.9,hp:100,max:30,boostMax:38,acc:12, boostAcc:15, brake:27,hbrake:21,coast:3.5,revMax:8,revAcc:8,steerResp:8.5,turn:1.75,turnFade:.75,grip:10.5,  ram:.9, mass:.9, cargo:0,price:null},
  hatch:  {name:'Hatchback',      seats:4,len:3.9,wid:1.8,hp:80, max:27.5,boostMax:34,acc:13.5, boostAcc:16, brake:28,hbrake:22,coast:3.5,revMax:8,revAcc:8,steerResp:10,  turn:2.05,turnFade:.75,grip:11.5,  ram:.8, mass:.8, cargo:0,price:null},
 };
+/* the ride-on mower (The Grass Is Greener, SPEC3 2.13): slow but twitchy. Not enumerable, so the car lists (garage, CAR_FEEL parity test,
+   traffic) skip it; VEH.mower and apply('mower') work. Its index.html handling row is registered by js/jobs/mower.js. */
+Object.defineProperty(VEH,'mower',{enumerable:false,value:{name:'Ride-On Mower',  seats:1,len:2.0,wid:1.18,hp:60, max:9,   boostMax:11,acc:5.2, boostAcc:6.4, brake:13, hbrake:11,coast:4,  revMax:3,revAcc:4,  steerResp:11, turn:2.4, turnFade:.3, grip:7,     ram:.55,mass:.45,cargo:0,price:null}});
 const ENGINE=[{m:0,b:0,a:1},{m:2,b:2,a:1.18},{m:4,b:5,a:1.37},{m:6,b:8,a:1.62}],
       TYRES=[{g:1,s:1,t:1},{g:1.25,s:1.2,t:1.05},{g:1.55,s:1.45,t:1.10}],
       BRAKES=[{b:1,h:1},{b:1.25,h:1.15},{b:1.5,h:1.35}],
