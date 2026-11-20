@@ -24,7 +24,7 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v,pick=a=>a[Math.floor(Math.random()*a.length)]
 const hyp=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 
 /* ---------------- tuning ---------------- */
-const TUNE={clueR:1.8,doorR:2.6,appear:16,spotFoot:8.5,spotWary:13,spotCar:22,lostD:72,lostT:7,farD:115,catchD:3.4,carNear:4.2,wrongBike:20,wrongOwner:10,slowTalk:12,
+const TUNE={clueR:1.8,doorR:2.6,appear:16,spotFoot:8.5,spotWary:13,spotCar:22,lostD:78,lostGrace:20,startT:2.2,lostT:7,farD:115,catchD:3.4,carNear:4.2,wrongBike:20,wrongOwner:10,slowTalk:12,
   dezClear:30,famClear:25,drain:1,vicRun:75,fightR:26};
 const KEYS=['son','nb_kid','nb_lucia','nb_pops','nb_sweater'];
 const COL={you:'#6fb8ff',tyler:'#ffcf5a',linda:'#f39ac0',phil:'#9fe58a',walt:'#c9b48a',dez:'#ff9a5c',vic:'#ff6b5b',earl:'#7fc8ff'};
@@ -48,7 +48,7 @@ function places(){const a=A(),W=a&&a.WORLD;if(!W)return null;if(PL&&PL.W===W)ret
   const gar={x0:448,z0:104,x1:454,z1:112};
   PL={W,school:sch,rack,ring:sch.ring,home:hp,tyler:{x:hp.x+2.3,z:hp.z+hp.face*.9,yaw:hp.yaw},laptop:{x:hp.x+2.3,z:hp.z+hp.face*.9},
     nb:nb.map((p,k)=>Object.assign(p,{id:['linda','phil','walt'][k],talk:{x:p.x+.2,z:p.z+p.face*1.9}})),
-    mart:{x:(mart.x0+mart.x1+1),z:mf,door:{x:(mart.x0+mart.x1+1),z:mf+.4}},meet:{x:(mart.x1+1)*2+3.2,z:mf+1.2},loaner:{x:mart.x0*2-1.4,z:mf+.9,yaw:Math.PI/2},
+    mart:{x:(mart.x0+mart.x1+1),z:mf,door:{x:(mart.x0+mart.x1+1),z:mf+.4}},meet:{x:(mart.x1+1)*2+3.2,z:mf+1.2},loaner:{x:mart.x0*2-1.4,z:mf+1.5,yaw:-Math.PI/2},
     van:{x:(mart.x0+mart.x1+1)-2,z:mf+5.2},
     garage:Object.assign(gar,{door:{x:gar.x0,z:(gar.z0+gar.z1)/2},front:{x:gar.x0-3.2,z:(gar.z0+gar.z1)/2},inside:{x:gar.x0+3.2,z:(gar.z0+gar.z1)/2}}),
     earl:W.places.g_earl,win:{x0:152,z0:1,x1:230,z1:78}};
@@ -468,9 +468,10 @@ function stChase(dt,M,F){const a=A(),P=a.P,Pl=places();if(!M.dez){/* retry from 
   const R=D.R,cv=a.CV,me=cv?cv.pos:P.pos,onBike=!!(cv&&cv.type==='bike'),inCar=!!cv&&!onBike;M.chaseT+=dt;if(inCar)M.usedCar=true;if(onBike)M.usedBike=true;
   if(M.loanerMark)M.loanerMark.g.visible=!onBike&&M.chaseT<20;
   const d=Math.hypot(me.x-R.pos.x,me.z-R.pos.z);
-  if(D.st==='run'){const s=R.update(dt,{x:me.x,z:me.z,car:inCar,spd:cv?Math.abs(cv.spd):P.spd||0});
+  if(D.st==='run'&&M.chaseT<TUNE.startT){/* the fumble: he swings a leg over a bike two sizes too small */if(!M.fumble){M.fumble=1;say('you',"Hey! Wait!",false)}}
+  else if(D.st==='run'){const s=R.update(dt,{x:me.x,z:me.z,car:inCar,spd:cv?Math.abs(cv.spd):P.spd||0});
     if(s==='winded'){D.st='winded';sayAll([['dez',"(wheezing) Okay! OKAY. I'm done. My legs are spaghetti."],['dez',"Don't— don't grab me, man. I'll talk."]],true)}
-    if(d>TUNE.lostD)M.lostT+=dt;else M.lostT=Math.max(0,M.lostT-dt*2);if(M.lostT>TUNE.lostT||d>TUNE.farD){D.st='gone';M.lost=true;R.state='run';R.goHome(Pl.garage.front.x,Pl.garage.front.z);
+    if(d>TUNE.lostD&&M.chaseT>TUNE.lostGrace)M.lostT+=dt;else M.lostT=Math.max(0,M.lostT-dt*2);if(M.lostT>TUNE.lostT||d>TUNE.farD&&M.chaseT>TUNE.lostGrace){D.st='gone';M.lost=true;R.state='run';R.goHome(Pl.garage.front.x,Pl.garage.front.z);
       sayAll([['you',"Where'd he— he's gone."],['tyler',"(on the phone) Dad! The card! Listen for the brrrrrr! You can hear it from like a MILE away!"],['you',"...Tyler, you're a genius."]],true)}}
   else if(D.st==='gone'){const s=R.update(dt,{x:me.x,z:me.z,car:inCar});D.pingT=(D.pingT||0)-dt;if(D.pingT<=0){D.pingT=5;D.ping={x:R.pos.x,z:R.pos.z}}
     if(s==='home'){D.st='hidden';D.home=true;M.dezGone=true;a.CP.mark('garage');sayAll([['you',"The brrrr stopped. Right by that lock-up garage on 5th."],['you',"Okay. Grown-ups only from here."]],true)}}

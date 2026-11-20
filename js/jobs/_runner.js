@@ -162,7 +162,7 @@ function bike(o){o=o||{};const t=T(),S=SIZES[o.size]||SIZES.adult,R=S.R,k=S.sc,c
   root.userData.streamers=strm;root.userData.geoShared=[];
   const grips=o.static?gripsB:gripsB.map(p=>p.clone().applyMatrix4(inv));
   Object.assign(root.userData,{R,lean:leanG,saddle:V(seatC.x-.04*k,S.seat+.05,0),grips,bb,crankL,spin:{w:0,c:0,steer:0,lean:0},len:S.wb+2*R,isBike:true,
-    size3:{l:S.wb+2*R,w:.62,h:S.bars+.1}});
+    size3:{l:S.wb+2*R+.5,w:.62,h:S.bars+.1}});
   root.userData.size=root.userData.size3;/* the game's carSize() reads userData.size {l,w,h} */
   root.userData.kind=o.size||'adult';
   root.traverse(m=>{if(m.isMesh){m.castShadow=true}});

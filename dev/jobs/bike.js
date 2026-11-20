@@ -83,11 +83,15 @@ async function inputTest(p,ev,live,cam,camOff,shot){
   const face=async(x,z)=>{for(let i=0;i<12;i++){const e=await ev(([x,z])=>{const P=window.__ht.P;const want=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));let d=want-P.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;return d},[x,z]);
       if(Math.abs(e)<.05)return true;const px=Math.round(clampN(-e/(.00032*sensOf()),-300,300));MX+=px;await p.mouse.move(MX,360,{steps:3});await step(1)}return false};let MX=640;
   let SENS=null;const sensOf=()=>SENS||100;SENS=await ev(()=>{try{return JSON.parse(localStorage.getItem('ht-cfg')||'{}').sens||null}catch(e){return null}})||await ev(()=>window.__ht.HUD&&window.__ht.HUD.settings&&window.__ht.HUD.settings.sens||100);
-  const walkTo=async(x,z,r,max)=>{for(let i=0;i<(max||80);i++){await face(x,z);const d=await ev(([x,z])=>{const P=window.__ht.P;return Math.hypot(x-P.pos.x,z-P.pos.z)},[x,z]);if(d<(r||1.2))return true;
-      await p.keyboard.down('w');await step(Math.max(2,Math.min(12,Math.round(d*3))));await p.keyboard.up('w');await step(1)}return false};
+  /* walk with W/A/S/D relative to the camera (headless pointer lock re-centres the cursor after every move, so mouse look nets to zero here) */
+  const KEYS4=['w','a','s','d'];const walkTo=async(x,z,r,max)=>{for(let i=0;i<(max||80)*3;i++){const q=await ev(([x,z])=>{const P=window.__ht.P;const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz);
+      const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);return{d,f:(dx*fx+dz*fz)/(d||1),r:(dx*rx+dz*rz)/(d||1)}},[x,z]);
+      if(q.d<(r||1.2)){for(const k of KEYS4)await p.keyboard.up(k);return true}
+      const want={w:q.f>.38,s:q.f<-.38,d:q.r>.38,a:q.r<-.38};for(const k of KEYS4){if(want[k])await p.keyboard.down(k);else await p.keyboard.up(k)}await step(Math.max(1,Math.min(6,Math.round(q.d*2))))}
+    for(const k of KEYS4)await p.keyboard.up(k);return false};
   /* 1. the rack: walk to each glowing spot and press E */
   for(let k=0;k<3;k++){const c=await ev(()=>{const M=window.__ht.M;const id=['lock','wrapper','tracks'].find(i=>!M.found.includes(i));return id?Object.assign({id},M.cluePts[id]):null});if(!c)break;
-    const got=await walkTo(c.x,c.z,1.2);await p.keyboard.press('e');await step(3);const f=await ev(()=>window.__ht.M.found.slice());ok(got&&f.includes(c.id),'rack: walked to the '+c.id+' with W and the mouse, E inspected it ('+f.join(',')+')')}
+    const got=await walkTo(c.x,c.z,1.3);await p.keyboard.press('e');await step(3);const f=await ev(()=>window.__ht.M.found.slice());ok(got&&f.includes(c.id),'rack: walked to the '+c.id+' with W/A/S/D under pointer lock, E inspected it ('+f.join(',')+')')}
   const s1=await ev(()=>window.__ht.M.stage);ok(s1==='leads','the rack done: on to asking around ('+s1+')');
   /* 2. Linda's door: walk up, E to knock, E skips lines, 1 picks */
   const L=await ev(()=>{const H=window.__ht;const M=H.M;/* the marker target the job set this frame */const F=H.jobs.JRS&&H.jobs.JRS.hudF;return F&&F.target?{x:F.target.x,z:F.target.z,label:F.target.label}:null});
@@ -110,12 +114,19 @@ async function inputTest(p,ev,live,cam,camOff,shot){
   const mt=await ev(()=>{const H=window.__ht,W=H.WORLD,m=W.buildings.find(b=>b.id==='mart');const mf=(m.z1+1)*2;return{x:(m.x1+1)*2+3.2,z:mf+1.2,lx:m.x0*2-1.4,lz:mf+.9}});
   await ev(([x,z])=>{const H=window.__ht;H.P.pos.set(x-30,0,z+3);H.step(30)},[mt.x,mt.z]);
   await walkTo(mt.x,mt.z,6,60);await step(10);const s4=await ev(()=>window.__ht.M.stage);ok(s4==='chase','meet: walking up with W spooked him: chase ('+s4+')');
-  await walkTo(mt.lx,mt.lz+1.2,1.4,50);await p.keyboard.press('e');await step(4);const onb=await ev(()=>{const c=window.__ht.CV;return c?c.type:null});ok(onb==='bike','E: on Earl\'s loaner ('+onb+')');
+  const lo=await ev(()=>{const e=window.__ht.M.loaner;return e?{x:e.pos.x,z:e.pos.z,yaw:e.yaw}:null});
+  if(lo){/* beside it on the open (street) side */await walkTo(lo.x,lo.z+1,.5,60)}
+  const pr=await ev(()=>{const P=window.__ht.P;return[P.pos.x.toFixed(1),P.pos.z.toFixed(1),window.__ht.M.stage,window.__ht.M.dez&&window.__ht.M.dez.st]});console.log('     at the loaner: '+JSON.stringify({lo,prompt:pr}));
+  await p.keyboard.press('e');await step(4);const onb=await ev(()=>{const c=window.__ht.CV;return c?c.type:null});ok(onb==='bike','E: on Earl\'s loaner ('+onb+')');
   await p.keyboard.press('h');await step(2);
-  let caught=false;for(let i=0;i<260&&!caught;i++){const s=await ev(()=>{const H=window.__ht,M=H.M,D=M.dez,c=H.CV;if(!D||!D.R)return{st:'none'};const R=D.R;const e=c||H.P;const want=Math.atan2(-(R.pos.x-e.pos.x),-(R.pos.z-e.pos.z));let d=want-(c?c.yaw:H.P.yaw);while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
-      return{st:D.st,d:Math.hypot(R.pos.x-e.pos.x,R.pos.z-e.pos.z),err:d,talk:!!M.talk}});
+  let caught=false,stuck=0;for(let i=0;i<700&&!caught;i++){const s=await ev(()=>{const H=window.__ht,M=H.M,D=M.dez,c=H.CV;if(!D||!D.R)return{st:'none'};const R=D.R;const e=c||H.P;window.__pt=(window.__pt||0)-1;if(window.__pt<=0||!window.__pp){window.__pt=3;const q=M.nav&&M.nav.path(e.pos.x,e.pos.z,R.pos.x,R.pos.z);window.__pp=q?q.pts:[R.pos];window.__pi=1}
+      let w=window.__pp[Math.min(window.__pi,window.__pp.length-1)]||R.pos;while(window.__pi<window.__pp.length-1&&Math.hypot(w.x-e.pos.x,w.z-e.pos.z)<2.2){window.__pi++;w=window.__pp[window.__pi]}
+      const want=Math.atan2(-(w.x-e.pos.x),-(w.z-e.pos.z));let d=want-(c?c.yaw:H.P.yaw);while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
+      return{st:D.st,d:Math.hypot(R.pos.x-e.pos.x,R.pos.z-e.pos.z),err:d,talk:!!M.talk,sta:Math.round(R.stamina),spd:c?+c.spd.toFixed(1):-1,x:Math.round(e.pos.x),z:Math.round(e.pos.z)}});
+    if(i%40===0)console.log('     chase '+JSON.stringify(s));
     if(s.st==='winded'){if(await ev(()=>!!window.__ht.CV)){await p.keyboard.press('e');await step(3)}await walkTo(...(await ev(()=>{const R=window.__ht.M.dez.R;return[R.pos.x,R.pos.z]})),2.6,20);await p.keyboard.press('e');await step(4);caught=await ev(()=>!!window.__ht.M.caught);break}
-    if(s.st==='gone'||s.st==='hidden')break;const k=s.err>.08?'a':s.err<-.08?'d':null;await p.keyboard.down('w');if(k)await p.keyboard.down(k);await step(6);if(k)await p.keyboard.up(k);await p.keyboard.up('w')}
+    if(s.st==='gone'||s.st==='hidden')break;if(s.spd>=0&&Math.abs(s.spd)<.6){stuck++;if(stuck>9){/* wedged: back up, turning away, like a person would */stuck=0;const k2=s.err>0?'d':'a';await p.keyboard.down('s');await p.keyboard.down(k2);await step(24);await p.keyboard.up(k2);await p.keyboard.up('s');await ev(()=>{window.__pt=0});continue}}else stuck=0;
+    const k=s.err>.08?'a':s.err<-.08?'d':null;await p.keyboard.down('w');if(k)await p.keyboard.down(k);await step(Math.abs(s.err)>.6?3:5);if(k)await p.keyboard.up(k);await p.keyboard.up('w')}
   ok(caught,'chase: W and A/D on the bike kept up until he was winded, E talked to him');
   if(caught){for(let i=0;i<120;i++){const s=await ev(()=>{const M=window.__ht.M;return{talk:!!M.talk,choice:!!(M.talk&&M.talk.V.choice)}});if(!s.talk)break;await p.keyboard.press(s.choice?'1':'e');await step(6)}
     const s5=await ev(()=>window.__ht.M.stage);ok(s5==='garage','talked down with 1 / E: on to the garage ('+s5+')')}
