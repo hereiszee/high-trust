@@ -28,7 +28,7 @@ const ID='roundup';
 /* ---------------- tuning ---------------- */
 const K={pay:1100,par:420,clock:600,perVan:100,hubcaps:250,hubcapFrac:.9,fee:200,trustVan:3,trustGhost:5,trustAlumni:2,
   findR:4.2,relayR:2.2,relayNoise:6,sparkNoise:9,crewWalk:2.6,
-  shoveClear:4.3,shoveHard:7.5,hitchFollow:6.4,
+  shoveClear:4.3,crewLate:8,stallHint:30,stallFix:75,shoveHard:7.5,hitchFollow:6.4,
   lightG:9,lightY:3,lightR:10,yellowAt:22,
   pursueAt:6,chase:17.5,chaseFar:20,harassGap:1.6,blockD:16,shakeBlock:13,shakeBrake:34,shakeRam:16,shakeDecay:.8,giveUpD:90,
   peelR:16,wreckFail:2,minVans:3,speedNag:17.5};
@@ -251,6 +251,8 @@ function lightCar(type,color){const VM=window.HT&&HT.Vehicles;if(!VM||!VM.make)r
 /* ---------------- people ---------------- */
 function person(key,look,x,z,ry){const a=A(),PP=window.HT&&HT.People;let d=null;if(PP&&PP.ok&&PP.has&&PP.has(key)){try{d=PP.make(key,{})}catch(_){d=null}}
   if(!d)return null;d.root.position.set(x,a.groundAt(x,z),z);d.root.rotation.y=ry||0;a.wmAdd(d.root);return d}
+/* an unseen driver: the model never arrived, so the van still moves (no stand-in on screen); swapped for the real person if he loads later */
+function ghostDrv(who){const a=A(),g=new(T3().Group)();g.visible=false;a.wmAdd(g);return{root:g,ghost:who}}
 const ready=key=>{const PP=window.HT&&HT.People;return!!(PP&&PP.ok&&PP.has&&PP.has(key))};
 function pose(d,dt,o){const PP=window.HT&&HT.People;if(d&&d.rb&&PP&&PP.pose)try{PP.pose(d,dt,o||{moving:false,aim:false,mode:'stand'})}catch(_){}}
 function wave(d){const PP=window.HT&&HT.People;if(d&&d.rb&&PP&&PP.interact)try{PP.interact(d)}catch(_){}}
@@ -540,8 +542,22 @@ function lotTick(M,dt,F){const a=A(),P=a.P;M.F=F;if(!M.alarm&&a.allies.some(x=>C
     else if(ready>=Math.min(5,Math.max(K.minVans,nf))&&(ns>=5||ready>=5)){formUpObjective(M,F)}
     else if(nearest&&nf){const fp=vanFront(nearest);F.target={x:fp.x,z:fp.z,label:nearest.f.fam+"' van"}}
     else{const row=FLEET.map(f=>M.vans[f.id]).find(v=>!M.found[v.f.id]);if(row){const fp=vanFront(row);F.target={x:fp.x+(row.c.x>268?-3:3),z:fp.z,label:'Walk the rows'}}}}
+  lotWatch(M,dt,F,nf,ns,nb,ready);
   if(ready>=1&&(ns>=5||ready>=K.minVans)&&a.CV&&a.CV.pos.x<257.5&&(ns>=5&&readyIds(M).length===ns||M.leaveOk))convoyBegin(M);
   else if(a.CV&&a.CV.pos.x<255&&ready<5&&!M.leaveOk){if(once(M,'leaveShort'))seq(M,L.leaveShort,true);if(a.CV.pos.x<246&&ready>=K.minVans){M.leaveOk=true}}}
+/* soft-lock watch: what step the lot is on (M.prog.step), a hint after 30 s without progress, and a recovery after 75 s */
+function lotWatch(M,dt,F,nf,ns,nb,ready){const a=A(),pr=M.prog||(M.prog={t:0,sig:'',step:''});
+  const walk=FLEET.map(f=>M.vans[f.id]).find(v=>v.walk),blk=Object.keys(M.blk).find(id=>!M.blk[id].done&&M.found[id]&&M.started[id]);
+  const step=M.relay?'relay:'+M.relay.v.f.id:M.alarm&&M.guards.some(g=>!['dead','cuffed','surrender'].includes(g.e.state))?'alarm':walk?'crew:'+walk.walk.who+'>'+walk.f.id:blk?'shove:'+blk:nf<5?'find':ns<nf?'hood':ready>=Math.min(5,Math.max(K.minVans,nf))?'leave':'wait';
+  const sig=[nf,ns,ready,Object.values(M.blk).filter(k=>k.done).length,!!M.alarm,step].join('|');
+  if(sig!==pr.sig){pr.sig=sig;pr.t=0;pr.step=step;pr.hint=false}else pr.t+=dt;
+  if(pr.t>K.stallHint){const H={find:'Look for the yellow hang tag and the bee sticker on the windscreen. The marker points at the next row.',hood:'Walk to the front bumper of a Hornets van: the ring is by the hood. E, then 1, 2, 3.',relay:'Match the wire colours to the terminals with 1, 2, 3. Walk away to close the panel.',
+      shove:'Get in your van (E), nose into the hatchback and keep pushing until it rolls clear of the van.',crew:'Your crew are walking to the vans. Give them a moment, or keep going.',alarm:'Deal with the guards: tie them up (F) from behind, or fight. The vans go once the lot is quiet.',
+      leave:'Get in your van (E) and drive out the gate: the vans follow.',wait:'Start the rest of the vans, or drive out the gate with what you have.'};
+    F.objs.push(['Hint: '+(H[step.split(':')[0]]||H.wait),false,'warn']);if(!pr.hint){pr.hint=true;sfx.tick&&sfx.tick(true)}}
+  M.lotT=(M.lotT||0)+dt;if((pr.t>60||M.lotT>300)&&!pr.dumped){pr.dumped=true;M.loseWhy={why:'lot-stall',step,stall:Math.round(pr.t),lotT:Math.round(M.lotT),sig};try{console.warn('roundup: lot stalled',JSON.stringify(M.loseWhy))}catch(_){}}
+  if(pr.t>K.stallFix&&step.startsWith('shove:')){const k=M.blk[blk],p=k.f.boxed.push;k.c.x=k.x0+p[0]*5.4;k.c.z=k.z0+p[1]*5.4;k.c.spd=0;k.hooked=false;k.done=true;M.cleared[blk]=true;syncBlk(k);pr.t=0;
+    say(M,'rick',"Leave it. Dave and I put the hatchback in neutral and rolled it. Bit of a back strain. Worth it.",true);a.feed(k.f.fam+"' van is clear",'info')}}
 function formUpObjective(M,F){const a=A();if(once(M,'formup'))seq(M,L.formUp,true);
   if(!a.CV){F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Your van'};F.objs.push(['Get in your van (E) and lead them out the gate',false])}
   else{F.target={x:OUT.x-6,z:OUT.z,label:'Out the gate'};F.objs.push(['Drive out the gate · the vans fall in behind you',false])}}
@@ -596,7 +612,8 @@ function crewAssign(M,v){const a=A();const taken=new Set(Object.values(M.vans).m
     /* out of the squad (the AI and the van seats stop using him) */const arr=a.allies,i=arr.indexOf(al);if(i>=0)arr.splice(i,1);if(al.tag){al.tag.remove();al.tag=null}try{a.wmAdd(al.dude.root)}catch(_){}}
   al.ride=false;al.dude.root.visible=true;v.walk={who:id,d:al.dude,ally:al,from:null};a.rebuildTargets()}
 function crewTick(M,dt){const a=A();for(const id in M.vans){const v=M.vans[id],w=v.walk;if(!w)continue;
-    if(!w.d){if(w.who==='earl'){if(!ready('earl'))continue;w.d=person('earl',null,w.from.x,w.from.z,0);if(!w.d)continue;if(once(M,'earl'))say(M,'earl',"Bus was early. It's never early. Who needs a driver?",true)}
+    if(!w.d){w.wt=(w.wt||0)+dt;if(w.wt>K.crewLate){v.drv=ghostDrv(w.who);v.walk=null;if(M.prog)M.prog.t=0;say(M,'rick',w.who==='earl'?"Earl came round the back way. He's in the Garcias' seat, mirrors set, ready.":CREW_NAME[w.who]+"'s in. Didn't even see him go.",true);sfx.click();continue}
+      if(w.who==='earl'){if(!ready('earl')){w.rq=(w.rq||0)-dt;if(w.rq<=0){w.rq=2.5;const PP=window.HT&&HT.People;try{PP&&PP.preload&&PP.preload(['earl']).catch(()=>{})}catch(_){}}continue}w.d=person('earl',null,w.from.x,w.from.z,0);if(!w.d)continue;if(once(M,'earl'))say(M,'earl',"Bus was early. It's never early. Who needs a driver?",true)}
       else{const look=a.HOMIES[w.who];if(!look)continue;w.d=a.makeDude(look);w.d.root.position.set(w.from.x,0,w.from.z);a.wmAdd(w.d.root)}}
     /* round the parked cars, not through them: the west column, then along the van's aisle to its nose, then in */
     if(!w.path){const fp=vanFront(v),r=w.d.root.position,az=fp.z;w.path=[];if(hyp(r.x-fp.x,r.z-fp.z)>7){if(r.x<259.6)w.path.push({x:260.2,z:64});if(Math.abs(r.z-az)>2.2)w.path.push({x:261.3,z:clamp(r.z,61,82)},{x:261.3,z:az})}w.path.push(fp)}
@@ -838,6 +855,7 @@ function vansVisual(M,dt){M.blinkT=(M.blinkT||0)+dt;const on=(M.blinkT*1.6)%1<.5
   for(const id in M.vans){const v=M.vans[id];if(v.kerb>0){const r=rgt(v.c.yaw),d=Math.min(v.kerb,1.4*dt);v.c.x+=r[0]*d;v.c.z+=r[1]*d;v.kerb-=d;try{A().collide(v.c,1)}catch(_){}}const m=v.m;v.brake=!!(m&&m.want!=null&&m.want<v.c.spd-.4)||v.st==='bay';syncVan(v,dt);
     const sig=m&&(v.st==='convoy')?m.signal:v.st==='peel'?(v.f.home.side<0?-1:1):0;if(v.blink){for(const b of v.blink.L)b.visible=on&&sig>0;for(const b of v.blink.R)b.visible=on&&sig<0}
     const haz=v.haz||(m&&(m.st==='wait'||m.st==='hold'))||v.st==='out';if(haz!==v.hazOn){v.hazOn=haz;try{v.obj.userData.setHazard&&v.obj.userData.setHazard(haz)}catch(_){}}
+    if(v.drv&&v.drv.ghost==='earl'&&ready('earl')){const d=person('earl',null,v.c.x,v.c.z,0);if(d){try{A().wmRemove?A().wmRemove(v.drv.root):v.drv.root.parent&&v.drv.root.parent.remove(v.drv.root)}catch(_){}v.drv=d}}
     if(v.drv)seat(v.drv,v.c,dt)}}
 
 /* ---------------- HUD: meters, the clock, the convoy panel ---------------- */
@@ -876,7 +894,7 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
   const drivers=CREW.slice();for(const f of FLEET){if(!M.started[f.id])continue;const v=M.vans[f.id];const who=drivers.shift();v.crew=who;
     if(who==='earl'){const d=ready('earl')?person('earl',null,v.c.x,v.c.z,0):null;if(d)v.drv=d;else v.walk={who:'earl',d:null,from:vanDoor(v)}}
     else{const al=a.allies.find(x=>x.id===who);if(al){const i=a.allies.indexOf(al);a.allies.splice(i,1);if(al.tag){al.tag.remove();al.tag=null}al.ride=false;al.dude.root.visible=true;try{a.wmAdd(al.dude.root)}catch(_){}v.drv=al.dude}
-      else{const look=a.HOMIES[who];if(look){const d=a.makeDude(look);a.wmAdd(d.root);v.drv=d}}}}
+      else{const look=a.HOMIES[who];if(look){const d=a.makeDude(look);a.wmAdd(d.root);v.drv=d}else v.drv=ghostDrv(who)}}}
   for(const f of FLEET)if(M.delivered[f.id]){const v=M.vans[f.id];v.st='home';v.c.x=f.home.x-1.2;v.c.z=f.home.z;v.c.yaw=f.home.yaw;v.c.hp=(M.cond[f.id]||1)*v.hpMax;famSpawn(M,f);if(v.drv){v.drvOut={d:v.drv,t:9};v.drv=null}}
   for(const f of FLEET)if(M.wrecked[f.id]){M.vans[f.id].st='out';M.vans[f.id].haz=true}
   if(M.ph==='convoy'||M.ph==='home'){M.noGuns=L.noGuns;if(M.S){try{M.S.release()}catch(_){}}if(M.viz){try{M.viz.dispose()}catch(_){}M.viz=null}if(M.shud){try{M.shud.dispose()}catch(_){}M.shud=null}try{a.overlay('roundup-stealth',null)}catch(_){}
