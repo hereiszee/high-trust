@@ -97,3 +97,16 @@ body.soc-on .ht-sub,body.soc-on .ht-pr,body.soc-on .ht-touch,body.soc-on .ht-wm,
 }
 @media (max-width:460px){.soc-choices{grid-template-columns:1fr}.soc-m.grill{display:none}}
 @media (prefers-reduced-motion:reduce){.soc,.soc *{animation:none!important;transition:none!important}}
+/* short landscape screens (phones on their side): compact strip, Tre stays visible above it */
+@media (max-height:520px){
+  .soc-lb{height:34px}.soc-meters{height:34px;min-height:0;gap:12px;padding:0 10px}
+  .soc-m.rap,.soc-m.awk{width:clamp(90px,15vw,150px)}.soc-m.count,.soc-m.grill .l span{display:none}.soc-m.grill{width:80px;min-width:0}
+  .soc-m .l{margin-bottom:2px;font-size:9px}.soc-m.pips .l span{font-size:var(--t-s)}
+  .soc-strip{bottom:calc(38px + var(--sa-b));gap:5px;width:calc(100vw - 20px - var(--sa-l) - var(--sa-r))}
+  .soc-line{padding:6px 12px 7px;min-height:0}.soc-who{font-size:var(--t-2xs);margin-bottom:1px}.soc-txt{font-size:14px;line-height:1.3}
+  .soc-line.prompt .soc-tell{font-size:13px}
+  .soc-choices{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:5px}
+  .soc-ch{padding:6px 8px 7px 30px;gap:2px;min-height:0}.soc-ch .k{left:7px;top:7px;width:17px;height:17px;font-size:var(--t-xs)}
+  .soc-ch .t{font-size:12.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.soc-ch .h{display:none}
+  .soc-notes{top:40px;width:min(260px,45vw);padding:8px 10px 10px 30px}.soc-notes ol{font-size:12px;line-height:20px}
+}
