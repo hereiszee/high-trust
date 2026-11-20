@@ -2593,7 +2593,7 @@ function updHub(dt){
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
     if(JOB===null&&!target)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
     if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
-  for(const r of destRings)if(r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
+  for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
@@ -3101,7 +3101,7 @@ function frInit(){if(FR)return FR;
 const frOn=()=>CFG.streetTrouble!=='calm';
 const frInRiver=(x,z)=>{const O=OW();return !!(L&&L.ow&&O&&O.regionAt(x==null?P.pos.x:x,z==null?P.pos.z:z)==='river')};
 function frArmed(){return !!(FR&&FR.drawn&&mode==='hub'&&!VAN.on)}
-function armedNow(){return mode==='mission'||frArmed()}
+function armedNow(){return(mode==='mission'&&!(M&&(M.holster||M.noGuns)))||frArmed()}/* M.holster: a job put the gun away (JOBS api.holster) */
 const frTurfAt=(x,z)=>{const t=tx(x),u=tx(z);for(const c of FR_CREWS){const r=c.turf;if(t>=r.x0&&t<=r.x1&&u>=r.z0&&u<=r.z1)return c}return null};
 /* mission lots (with a margin) never host free-roam spawns */
 function frInSite(x,z,m=4){if(!WORLD||!WORLD.sites)return false;const t=tx(x),u=tx(z);for(const id in WORLD.sites){const s=WORLD.sites[id];if(t>=s.x0-m&&t<=s.x1+m&&u>=s.z0-m&&u<=s.z1+m)return true}return false}
@@ -3749,7 +3749,8 @@ function wmMedic(a,dt){const t=a.medic;if(!t||!t.down){a.medic=null;return false
   t.downT-=dt*2;faceTo(a,t.pos.x,t.pos.z,dt);a.dude.root.rotation.y=a.yaw;pose(a.dude,dt,{mode:'kneel'});return true}
 function wmCuff(e){cue('interact',P.dude);e.state='cuffed';confiscate(e);if(e.tag){e.tag.remove();e.tag=null}M.cuffs++;prog.cuffed++;addTrust(4);snd('cuff');radio('you',pick(LINES.cuff),true);if(e.boss||e.driver)M.bossDone='cuffed';if(e.onCuff)e.onCuff(e)}
 /* the frame for the Riverside jobs: the job fills objectives, holds (hold E), taps (press E) and the marker; this does the rest */
-function wmFrame(dt,J){const m=M.def,F={objs:[],target:null,holds:[],taps:[],prompt:null,promptP:null,meters:[],widgets:[],M};JRS.hudF=F;
+function jrHolsterTick(){if(!M||!P.dude)return;const off=!!(M.holster||M.noGuns);if(off&&P.dude.gun){equip(P.dude,null);M._hol=true}else if(!off&&M._hol&&P.cur){equip(P.dude,P.cur);M._hol=false}}/* only puts back what it put away */
+function wmFrame(dt,J){jrHolsterTick();const m=M.def,F={objs:[],target:null,holds:[],taps:[],prompt:null,promptP:null,meters:[],widgets:[],M};JRS.hudF=F;
   let near=null,nd=2.4;if(!VAN.on)for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
   J.upd(dt,F);if(!M||M.state!=='go')return;
   const atRide=M.exitOpen&&!VAN.on&&M.car&&Math.hypot(M.car.pos.x-P.pos.x,M.car.pos.z-P.pos.z)<4.2;/* heading out beats picking things up */
@@ -4164,7 +4165,7 @@ function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')re
 function jrOpts(o){o=o||{};if(JRS.next){o=Object.assign({},JRS.next,o);JRS.next=null}return o}
 function jrStarted(o){if(!M)return;const m=M.def,j=JR&&JR.get(m.id);M.replay=!!o.replay;M.retried=!!o.checkpoint;M.job=j;M.stage=null;M.clean=M.clean!==false;
   if(!o.checkpoint)JRS.cp={id:m.id,i:M.i,snaps:[]};
-  if(m.noGuns)M.noGuns=m.noGuns;
+  if(m.noGuns){M.noGuns=m.noGuns;M.holster=true;equip(P.dude,null)}
   if(m.night&&typeof setNight==='function'){setNight(1);JRS.night=true}
   if(M.replay){const sg=WM.afterSigns&&WM.afterSigns[m.id];if(sg)sg.visible=false;/* the site as it was before the job (4.8) */}
   if(!j||j.builtin)return;
@@ -4240,7 +4241,12 @@ if(JR){MISSIONS.forEach(m=>{const w=WJ[m.id];JR.wrap(m.id,m,w?{start:(M_,o)=>w.s
     get keys(){return keys},get simT(){return simT},get useTap(){return useTap},set useTap(v){useTap=v},THREE,scene,camera,MISSIONS,HOMIES,WEAPONS,CP,JH,
     radio,banner,feed:(t,k,s)=>HUD.feed(t,k,s),addTrust,spawnEnemy,spawnAlly,surrender,equip,makeDude,makeVehicle,makeVanBox,wmAdd,wmCol,wmCarry,wmDrop,wmSign,wmSnap,wmSnapRoad,wmWindow,wmSetWindow,wmNearest,wmCuff,
     box,mat,lin,rand,pick,clamp,V3,tileC,tx,walkable,groundAt,collide,carSize,syncCar,owStopCar,enterCar,exitCar,nearCar,puff,snd,rebuildTargets,project,
-    endMission,spotted:jobSpotted,CarAI:()=>HTM('CarAI'),roads:()=>OW()&&OW().roads(),setNight:k=>{if(typeof setNight==='function')setNight(k)},SV,save:()=>metaSave(),
+    endMission,spotted:jobSpotted,carHp,carHpMax,carFrac,carDamage,carRepair,crash:(e,speed,o)=>{e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1;return carCrash(e,speed,{x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f},!o.rear)},
+    /* holster(true): the gun goes away (no first-person or third-person gun, no aim pose, firing blocked); holster(false) brings it back */
+    /* a new vehicle type: its handling row (CAR_FEEL: label, seats, max, acc, turn, cam...) on top of the minivan's, and its seats [fwd,hip,right,turn] */
+    carFeel:(type,row,seats)=>{if(!type)return null;CAR_FEEL[type]=Object.assign({},CAR_FEEL[type]||CAR_FEEL.minivan,row||{});if(seats&&seats.length)SEATS[type]=seats;return CAR_FEEL[type]},CAR_FEEL,SEATS,
+    registerCar:(obj,x,z)=>registerCar(obj,x,z),/* a borrowable car in the current level (free roam): returns its entry */
+    holster:on=>{if(!M)return;M.holster=!!on;if(on){M.noGuns=M.noGuns||true;equip(P.dude,null)}else{if(M.noGuns===true)M.noGuns=false;equip(P.dude,P.cur)}},CarAI:()=>HTM('CarAI'),roads:()=>OW()&&OW().roads(),setNight:k=>{if(typeof setNight==='function')setNight(k)},SV,save:()=>metaSave(),
     HUD,overlay:(id,el)=>HUD.overlay&&HUD.overlay(id,el),get stage(){return M&&M.stage}}}
 
 /* ================= LOOP ================= */

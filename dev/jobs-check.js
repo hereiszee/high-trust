@@ -40,6 +40,11 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     T.res=()=>({acts:Object.keys(H.UIacts||{}),pay:H.M&&H.M.pay?{total:H.M.pay.total,rerun:H.M.pay.rerun,lines:H.M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:H.M&&H.M.medal,replay:!!(H.M&&H.M.replay),retried:!!(H.M&&H.M.retried)});
     T.rec=id=>{const s=T.SV();return s?{job:s.jobs&&s.jobs[id],cal:(s.calendar&&s.calendar.entries||[]).find(e=>e.id===id)||null,day:s.day,cash:s.cash,hh:(s.world&&s.world.households||[]).length}:null}});
   const lk=await ev(id=>window.__J.unlock(id),ID);ok(lk===null,'unlocked (lock='+lk+')');
+  /* the job start waits for its cast (crew, giver, thugs) to stream in; synchronous stepping never resolves that wait, so load it first */
+  const cast=await p.evaluate(async id=>{const H=window.__ht,pm=window.HT&&HT.People,m=H.MISSIONS[H.jobs.index(id)];if(!pm||!pm.ok||!pm.preload)return'no People';
+    const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'},keys=pm.keys||[],role=c=>{const r=pm.roles&&pm.roles[c];return typeof r==='string'&&keys.includes(r)?r:keys.includes(c)?c:null};
+    const want=[...new Set([...(m.crew||[]),m.giver].map(c=>DAD[c]||role(c)).concat(['thug_hoodie','thug_track','thug_beanie','thug_red']).filter(Boolean))].filter(k=>!pm.has(k));
+    await Promise.race([pm.preload(want).catch(()=>{}),new Promise(r=>setTimeout(r,20000))]);return want.join(',')||'already loaded'},ID);console.log('     cast: '+cast);
   /* rebuild the hub so world givers for the newly unlocked job spawn */
   await ev(()=>{const H=window.__ht;if(H.mode==='hub'){H.enterHub();H.step(2)}});
   /* ---- the giver -> brief -> drive ---- */
