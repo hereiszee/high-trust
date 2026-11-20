@@ -122,6 +122,8 @@ function R(){return RES||(RES={geo:[],mat:[],tex:[],cache:{}})}
 function tg(g){R().geo.push(g);return g}function tm(m){R().mat.push(m);return m}function tt(t){R().tex.push(t);return t}
 function disposeRes(){const r=RES;RES=null;if(!r)return;for(const g of r.geo)try{g.dispose()}catch(_){}for(const m of r.mat)try{m.dispose()}catch(_){}for(const t of r.tex)try{t.dispose()}catch(_){}}
 function T3(){return A().THREE}
+/* per-model parts (truck load, couch length, window materials): a WeakMap, never userData */
+const PARTS=new WeakMap();const parts=o=>PARTS.get(o)||{};
 function M_(col,o){const a=A(),T=T3();return tm(new T.MeshStandardMaterial(Object.assign({color:a.lin(col),roughness:.75,metalness:0},o||{})))}
 function canvasTex(w,h,fn){const T=T3(),c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);if(T.sRGBEncoding)t.encoding=T.sRGBEncoding;t.anisotropy=4;return tt(t)}
 function mesh(geo,mat,x,y,z,parent,rx,ry,rz){const T=T3(),m=new T.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;m.receiveShadow=true;if(parent)parent.add(m);return m}
@@ -182,7 +184,7 @@ function TX(){const c=R().cache;if(c.tx)return c.tx;const X={};
 const BOXK=['kitchen','kitchen','kitchen2','misc','books','kitchen','pillows','plain','kitchen'];
 function boxMat(k){const c=R().cache,key='bm_'+k;if(c[key])return c[key];const T=T3(),t=TX()[k]||TX().plain;const side=c.bmSide||(c.bmSide=tm(new T.MeshStandardMaterial({map:TX().plain,roughness:.92})));
   const face=tm(new T.MeshStandardMaterial({map:t,roughness:.92}));return c[key]=[side,side,face,side,face,face]}
-function cardBox(kind,s){const T=T3(),w=.5*(s||1),h=.38*(s||1),d=.42*(s||1);const g=new T.Group();const m=mesh(bx(w,h,d),boxMat(kind),0,h/2,0,g);m.userData.h=h;g.userData.kind=kind;g.userData.h=h;return g}
+function cardBox(kind,s){const T=T3(),w=.5*(s||1),h=.38*(s||1),d=.42*(s||1);const g=new T.Group();mesh(bx(w,h,d),boxMat(kind),0,h/2,0,g);return g}
 /* the rental truck: a cutaway van front (the game's work van) with a 5.4 m box on the back, roll-up door up, ramp out */
 function truckModel(M){const a=A(),T=T3(),X=TX(),g=new T.Group();
   const van=a.makeVehicle('workvan','#f4f1ea');if(van){van.position.set(1.15,0,0);g.add(van)}
@@ -216,7 +218,7 @@ function truckModel(M){const a=A(),T=T3(),X=TX(),g=new T.Group();
   mesh(bx(rampL,.05,1.15),tm(new T.MeshStandardMaterial({map:X.ramp,roughness:.4,metalness:.6})),-rampL/2,0,0,ramp);for(const s of[-1,1])mesh(bx(rampL,.12,.04),alu,-rampL/2,.05,s*.58,ramp);
   /* the welcome sign Ms. Okafor taped to the side */
   const wel=mesh(new T.PlaneGeometry(1.5,.47),tm(new T.MeshStandardMaterial({map:X.welcome,roughness:.7})),x1-1.4,1.55,-(BW/2+.02),box,0,Math.PI,0);tg(wel.geometry);wel.rotation.z=.04;
-  g.userData={stacks,couch,piano,roll};
+  PARTS.set(g,{stacks,couch,piano,roll});
   return g}
 /* a mustard-teal three-seater with turned legs */
 function couchModel(){const T=T3(),g=new T.Group(),X=TX();const fab=tm(new T.MeshStandardMaterial({map:X.fabric,roughness:.95,color:0xffffff})),dk=M_('#1f4f4c',{roughness:.95}),leg=M_('#4a2e1a',{roughness:.5});
@@ -226,7 +228,7 @@ function couchModel(){const T=T3(),g=new T.Group(),X=TX();const fab=tm(new T.Mes
   mesh(rbox(L,.5,.16,.05),dk,0,.55,-D/2+.06,g);
   for(const s of[-1,1])mesh(rbox(.18,.5,D,.07),fab,s*(L/2+.02),.5,0,g);
   for(const sx of[-1,1])for(const sz of[-1,1])mesh(cyl(.035,.025,.16,8),leg,sx*(L/2-.08),.08,sz*(D/2-.08),g);
-  g.userData.len=L+.36;return g}
+  return g}
 /* an upright piano on a moving dolly, wrapped in a blanket on one side */
 function pianoModel(){const T=T3(),g=new T.Group(),X=TX();const wood=tm(new T.MeshStandardMaterial({map:X.wood,roughness:.35,metalness:.05,color:0xffffff})),blk=M_('#0e0c0b',{roughness:.3});
   const W=1.5,H=1.28,D=.6,y0=.12;
@@ -243,18 +245,18 @@ function pianoModel(){const T=T3(),g=new T.Group(),X=TX();const wood=tm(new T.Me
   mesh(bx(W+.1,.06,D+.06),M_('#6b4a2a',{roughness:.8}),0,.09,0,g);for(const sx of[-1,1])for(const sz of[-1,1])mesh(cyl(.05,.05,.04,10),blk,sx*(W/2-.05),.05,sz*(D/2-.05),g,Math.PI/2);
   const bl=mesh(bx(.04,H*.9,D*.9),tm(new T.MeshStandardMaterial({map:X.blanket,roughness:1})),W/2+.03,y0+H*.48,-D*.1,g);
   for(const yy of[.4,.95])mesh(bx(W+.12,.04,D*.62),M_('#e8b020',{roughness:.6}),0,y0+yy,-D*.15,g);/* straps */
-  g.userData.w=W;g.userData.d=D;return g}
+  return g}
 /* the propped-open front door: a dark doorway, the door swung in, a box labelled KITCHEN as the doorstop */
 function doorway(){const T=T3(),g=new T.Group();const d=mesh(new T.PlaneGeometry(.98,2.4),M_('#120d0a',{roughness:1}),0,1.05+1.2,94.0+.012-94.0,g);tg(d.geometry);
   const leaf=new T.Group();leaf.position.set(-.47,1.05,-.02);g.add(leaf);mesh(bx(.94,2.38,.05),M_('#2b4a6b',{roughness:.5}),.47,1.19,0,leaf);leaf.rotation.y=-1.25;
   mesh(cyl(.03,.03,.04,10),M_('#c8a050',{metalness:.9,roughness:.25}),.84,1.05,.05,leaf,Math.PI/2);
-  const k=cardBox('kitchen',.75);k.position.set(.18,1.03,-.2);k.rotation.y=.4;g.add(k);g.userData.glow=d;return g}
+  const k=cardBox('kitchen',.75);k.position.set(.18,1.03,-.2);k.rotation.y=.4;g.add(k);return g}
 /* lit windows at the end: room panels just proud of the glass (ground floor + both upper windows), warm emissive */
 function windowsLit(){const T=T3(),X=TX(),g=new T.Group();const W=[[370.48,1.75+.9,1.0,1.8,0],[370.04,4.6+.85,.95,1.7,1],[372.46,4.6+.85,.95,1.7,2]];const mats=[];
   for(const[x,y,w,h,k]of W){const m=tm(new T.MeshStandardMaterial({map:X.room[k],emissive:A().lin('#ffffff'),emissiveMap:X.room[k],emissiveIntensity:0,roughness:.6,transparent:true,opacity:0}));mats.push(m);
     const p=mesh(new T.PlaneGeometry(w*.92,h*.94),m,x,y,94.035,g);tg(p.geometry);p.castShadow=false}
   /* porch light pool on the stoop */
-  g.userData.mats=mats;return g}
+  PARTS.set(g,{mats});return g}
 
 /* ---------------- people ---------------- */
 function actor(key,look){const a=A(),pp=PP();let d=null;if(pp)try{d=pp.make(key)}catch(_){d=null}if(!d)d=a.makeDude(look||{shirt:'#7a8796',pants:'#2b2f36'});a.wmAdd(d.root);return d}
@@ -338,11 +340,11 @@ J.register('moving',{
     else if(M.stage==='piano'&&!V.pianoDone){V.pct=Math.max(V.pct,K.pianoAt);startPiano(M,true)}},
 
   payout(M,ok){const V=S(M);if(!ok||!V)return[];const out=[];
-    out.push(['Boxes you carried ×'+V.you,0]);if(V.you>=K.silver)out.push(['Helping hands',200]);
-    if(V.couchDone)out.push([V.scuffs?'Couch: '+V.scuffs+' scuff'+(V.scuffs>1?'s':'')+' ("it adds character")':'Not a scuff on the couch',V.scuffs?0:100]);
-    out.push([V.china==='broken'?"Grandma's china: one gravy boat, deceased":"Grandma's china: intact",0]);
+    if(V.you>=K.silver)out.push(['Helping hands · '+V.you+' boxes',200]);
+    if(V.couchDone&&!V.scuffs)out.push(['Not a scuff on the couch',100]);
     if(V.andre==='back')out.push(['Andre carried the last box',0]);
-    if(V.talked)out.push(['Talked down ×'+V.talked,0]);
+    else if(V.china==='broken')out.push(["Grandma's china: one gravy boat, deceased",0]);
+    else if(V.you<K.silver)out.push(['Boxes you carried ×'+V.you,0]);
     return out},
   medal(M){const V=S(M);if(!V)return 1;return M.elapsed<K.gold?3:V.you>=K.silver?2:1},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV(),Sv=window.HT&&HT.Save;if(!s)return;s.flags=s.flags||{};s.flags.adeyemis=true;if(S(M)&&S(M).andre==='back')s.flags.andre=true;
@@ -448,7 +450,7 @@ function panel(M,make){const a=A(),V=S(M);if(!V)return;let el=V.panelEl;
 function crewTick(M,dt){const a=A(),V=S(M);let dirty=false;
   for(const id in V.crew){const c=V.crew[id],al=c.a;if(!al||!a.allies.includes(al))continue;
     if(al.down){if(c.box)dropCrewBox(M,c);continue}
-    if(V.orders[id]!=='lift'){if(id==='gary'&&V.orders[id]==='T')garyWatch(M,c,dt);continue}
+    if(V.orders[id]!=='lift'){if(id==='gary'&&V.orders[id]==='T'&&V.ph!=='end'&&V.ph!=='last')garyWatch(M,c,dt);continue}
     const R_=al.role;if(!R_||R_.kind!=='lift')continue;const d=Math.hypot(al.pos.x-R_.x,al.pos.z-R_.z);
     if(V.ph==='piano'){/* everybody on the piano: the job places them */continue}
     if(c.st==='toStack'){if(d<1.1&&!V.frozenHard){c.t+=dt;if(c.t>K.moverHand){c.t=0;c.st='toDoor';c.box=cardBox(pick(BOXK));A().wmAdd(c.box);R_.x=L_.foot.x+rand(-.6,.6);R_.z=L_.foot.z+.5;R_.speed=K.crewLoad;dirty=true;
@@ -510,7 +512,7 @@ function kidTick(M,dt){const V=S(M),k=V.kid;if(!k)return;const d=k.d;k.moving=0;
 function okaforTick(M,dt){const V=S(M),o=V.okafor;if(!o)return;const d=o.d;if(V.ph==='end')return;d.root.position.set(L_.okafor.x,0,L_.okafor.z);
   const h=V.hostiles.find(h=>h.e.state==='idle'&&h.tm);face(d,h?h.e.pos.x:L_.stack.x,h?h.e.pos.z:L_.stack.z,dt,3);V.okT=(V.okT||6)-dt;if(V.okT<=0){V.okT=rand(8,14);wave(d)}}
 /* the truck empties as the bar fills */
-function truckLoad(M){const V=S(M),u=V.truck&&V.truck.userData;if(!u)return;const n=u.stacks.length,keep=Math.ceil(n*(1-V.pct/100));u.stacks.forEach((b,i)=>b.visible=i<keep);
+function truckLoad(M){const V=S(M),u=V.truck&&parts(V.truck);if(!u)return;const n=u.stacks.length,keep=Math.ceil(n*(1-V.pct/100));u.stacks.forEach((b,i)=>b.visible=i<keep);
   const pb=V.palBoxes;if(pb){const show=V.pct>=99?0:pb.length;pb.forEach((b,i)=>b.visible=i<show)}}
 
 /* ================= you: carrying ================= */
@@ -618,7 +620,7 @@ function calmTick(M,dt){const a=A(),V=S(M);if(V.ph==='end'||V.ph==='last')return
 /* ================= the couch (two-person carry, drives like a slow car) ================= */
 function startCouch(M,resume){const a=A(),V=S(M);V.ph='couch';if(!resume)a.CP.mark('couch');
   const T=T3(),c=couchModel();c.traverse(m=>{if(m.isMesh)m.castShadow=true});a.wmAdd(c);
-  const u=V.truck.userData;if(u&&u.couch)u.couch.visible=false;
+  const u=parts(V.truck);if(u&&u.couch)u.couch.visible=false;
   V.couch={mesh:c,x:L_.truck.x+.0,z:L_.rampEnd+1.6,yaw:Math.PI,held:false,partner:null,t:0,lift:0,inT:0,sp:0,set:false};c.position.set(V.couch.x,0,V.couch.z);c.rotation.y=Math.PI/2;
   if(!resume)sayLater(M,.3,LN.couch);music('tension',.5)}
 function couchEnds(C){const fx=-Math.sin(C.yaw),fz=-Math.cos(C.yaw),h=1.62;return{front:{x:C.x+fx*h,z:C.z+fz*h},back:{x:C.x-fx*h,z:C.z-fz*h},fx,fz}}
@@ -664,11 +666,11 @@ function setCouchDown(M,why){const a=A(),V=S(M),C=V.couch;if(!C)return;C.held=fa
 function couchIn(M){const a=A(),V=S(M),C=V.couch;if(!C)return;say(M,'you',"Tilt... tilt... TILT—",true);sayLater(M,1.3,[['Mrs. Adeyemi',V.scuffs?"It's in! It's... it has character now.":"It's in! Not a scratch!"]]);
   if(C.mesh.parent)C.mesh.parent.remove(C.mesh);if(C.col){C.col.x0=C.col.x1=C.col.z0=C.col.z1=-1e4}
   if(C.partner&&C.partner.kind==='crew'){const c=C.partner.c;setRole(M,c.a.id,'lift')}V.couch=null;V.couchDone=true;V.ph='move';V.pct=Math.min(99,V.pct+K.couchPct);snd('cheer');music('tension',.5)}
-function couchGone(M){const V=S(M),u=V.truck&&V.truck.userData;if(u&&u.couch)u.couch.visible=false}
+function couchGone(M){const V=S(M),u=V.truck&&parts(V.truck);if(u&&u.couch)u.couch.visible=false}
 
 /* ================= the piano (a whole event) ================= */
 function startPiano(M,resume){const a=A(),V=S(M);V.ph='piano';if(!resume)a.CP.mark('piano');if(V.carry){const c=V.carry;a.wmDrop();V.carry=null;deliver(M,'you',c.mesh,null)}
-  const p=pianoModel();a.wmAdd(p);const u=V.truck.userData;if(u&&u.piano)u.piano.visible=false;
+  const p=pianoModel();a.wmAdd(p);const u=parts(V.truck);if(u&&u.piano)u.piano.visible=false;
   /* the route: down the ramp, the kerb (STEP), the sidewalk, the stoop (two heaves) */
   const route=[{x:L_.truck.x,z:L_.rampEnd+.6,y:0},{x:376.6,z:92.6,y:0,step:'kerb'},{x:375.2,z:97.9,y:0},{x:373,z:98.1,y:0,step:'stoop1'},{x:373,z:96.3,y:.51,step:'stoop2'},{x:373,z:94.9,y:1.02},{x:373,z:94.0,y:1.05}];
   V.piano={mesh:p,route,k:0,s:0,x:route[0].x,z:route[0].z,y:route[0].y,on:false,wait:null,callT:0,bonk:0,clean:0,heave:0,t:0,roll:resume?1:0};
@@ -726,7 +728,7 @@ function pianoIn(M){const a=A(),V=S(M),Pn=V.piano;if(Pn.mesh.parent)Pn.mesh.pare
   /* the watchers leave */let any=false;for(const h of V.hostiles)if(h.tm&&h.tm.st==='watch'&&h.e.state==='idle'){any=true;h.tm.st='leave';h.tm.t=0;const sp=L_.spawns[h.from]||L_.spawns.N;h.e.script={kind:'to',x:sp.x,z:sp.z,speed:2.4,then:()=>vanish(M,h)};if(h.e.tag){h.e.tag.remove();h.e.tag=null}}
   if(any)sayLater(M,2.4,[['Hostile',pick(LN.watchEnd)]]);
   V.ph='move';V.waveI=WAVES.length;chord(false,true);music('hub',.3)}
-function pianoGone(M){const V=S(M),u=V.truck&&V.truck.userData;if(u&&u.piano)u.piano.visible=false;V.waveI=Math.max(V.waveI,WAVES.length)}
+function pianoGone(M){const V=S(M),u=V.truck&&parts(V.truck);if(u&&u.piano)u.piano.visible=false;V.waveI=Math.max(V.waveI,WAVES.length)}
 
 /* ================= the last box, the lights ================= */
 function startLast(M){const a=A(),V=S(M);V.lastBox=true;V.ph='last';V.endT=0;if(V.carry){const c=V.carry;a.wmDrop();V.carry=null;if(c.mesh.parent)c.mesh.parent.remove(c.mesh);V.you++}
@@ -746,7 +748,7 @@ function endTick(M,dt,F){const a=A(),V=S(M),Ls=V.last,P=a.P;if(!Ls)return;Ls.t+=
   if(Ls.st==='carry'){F.target={x:L_.foot.x,z:L_.foot.z,label:'Stoop'};F.objs.push(['Carry the last box to the stoop',false]);const lp=V.lastP;if(lp){const dx=P.pos.x-lp.x,dz=P.pos.z-lp.z,l=Math.hypot(dx,dz),cap=K.carrySpd*dt;if(l>cap&&l<3){P.pos.x=lp.x+dx/l*cap;P.pos.z=lp.z+dz/l*cap;a.collide(P.pos,.35)}}V.lastP={x:P.pos.x,z:P.pos.z};
     F.taps.push({x:L_.foot.x,z:L_.foot.z,r:2.4,txt:'Set the last box on the stoop',fn:()=>{a.wmDrop();V.carry=null;V.you++;addStoop(M,Ls.box);lightsOn(M)}});return}
   if(Ls.st==='kid'){const k=V.kid;Ls.box.visible=false;if(Ls.t>2.5)lightsOn(M);return}
-  if(Ls.st==='lights'){/* fade the windows in, the family on the stoop, the block's trust visibly up */const k=Math.min(1,Ls.t/2.5);for(const m of V.windows.userData.mats){m.opacity=k;m.emissiveIntensity=.9*k}
+  if(Ls.st==='lights'){/* fade the windows in, the family on the stoop, the block's trust visibly up */const k=Math.min(1,Ls.t/2.5);for(const m of parts(V.windows).mats||[]){m.opacity=k;m.emissiveIntensity=.9*k}
     familyPorch(M,dt);
     if(Ls.t>3.5&&!M.exitOpen){M.exitOpen=true;a.radio('you',"That's everybody moved in. Back to the van, crew.",false)}
     F.objs.push(['The Adeyemis are home',true])}}

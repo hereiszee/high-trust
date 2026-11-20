@@ -6,8 +6,11 @@ const {open}=require('../ai-ingame-lib.js'),path=require('path'),fs=require('fs'
 const arg=(k,d)=>{const a=process.argv.find(x=>x.startsWith('--'+k+'='));return a?a.split('=')[1]:process.argv.includes('--'+k)?true:d};
 const DBG=!!arg('dbg',false),SHOTS=!!arg('shots',false),FAIL=!!arg('fail',false),FR=+arg('frames',13000),EVERY=+arg('every',300),TOUCH=!!arg('touch',false),QUIET=!!arg('quiet',false),OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/moving'));
 (async()=>{const {b,p,errs}=await open(TOUCH?{viewport:{width:844,height:390}}:{});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async(n,prep)=>{if(!SHOTS)return;if(prep)await ev(prep);await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
-    await ev(()=>{const H=window.__ht;H.ow&&H.ow.buildAll&&H.ow.buildAll();H.ow&&H.ow.update&&H.ow.update(H.camera);H.draw()});await p.screenshot({path:path.join(OUT,(TOUCH?'touch-':'')+n+'.jpg'),type:'jpeg',quality:84});console.log('  shot '+n)};
+  const frame=o=>ev(o=>{const H=window.__ht,P=H.P;window.__sv={x:P.pos.x,z:P.pos.z,yaw:P.yaw,pitch:P.pitch,rx:P.dude.root.position.x,rz:P.dude.root.position.z,ry:P.dude.root.rotation.y,vis:P.dude.root.visible};
+      if(o.at){P.pos.set(o.at[0],0,o.at[1]);P.dude.root.visible=o.body!==false}const lx=o.look?o.look[0]:o.at[2],lz=o.look?o.look[1]:o.at[3];if(lx!=null){P.yaw=Math.atan2(-(lx-P.pos.x),-(lz-P.pos.z))}if(o.pitch!=null)P.pitch=o.pitch;if(o.fp!=null)P.fp=o.fp},o);
+  const unframe=()=>ev(()=>{const H=window.__ht,P=H.P,s=window.__sv;if(!s)return;P.pos.x=s.x;P.pos.z=s.z;P.yaw=s.yaw;P.pitch=s.pitch;P.dude.root.position.x=s.rx;P.dude.root.position.z=s.rz;P.dude.root.rotation.y=s.ry;P.dude.root.visible=s.vis;P.fp=false;window.__sv=null});
+  const shot=async(n,prep)=>{if(!SHOTS||(typeof SKIP!=='undefined'&&SKIP.has(n)&&!arg('all',false)))return;if(prep&&typeof prep==='object'){await frame(prep);prep=null}if(prep)await ev(prep);await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
+    await ev(()=>{const H=window.__ht;H.ow&&H.ow.buildAll&&H.ow.buildAll();H.ow&&H.ow.update&&H.ow.update(H.camera);H.draw()});await p.screenshot({path:path.join(OUT,(TOUCH?'touch-':'')+n+'.jpg'),type:'jpeg',quality:84});await unframe();console.log('  shot '+n)};const SKIP=new Set(['00-brief','result']);
   await ev(d=>{window.__DBG=d},DBG);
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
   if(SHOTS)await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}});
@@ -37,14 +40,20 @@ const DBG=!!arg('dbg',false),SHOTS=!!arg('shots',false),FAIL=!!arg('fail',false)
     const VIEWS=[['v-corner',384,101,.75,-.18],['v-stoop',376.5,101.5,.45,-.12],['v-truck-rear',372,96,-.75,-.12],['v-3rd-north',379,60,Math.PI,-.06],['v-side',383,88,1.4,-.1]];
     for(const[n,x,z,y,pi]of VIEWS)await shot(n,new Function('const H=window.__ht;H.P.pos.set('+x+',0,'+z+');H.P.yaw='+y+';H.P.pitch='+pi+';H.step(1)'));
     await b.close();process.exit(0)}
-  const WANT=[['01-arrive',`V.t>6`],['02-carry',`V.carry&&Math.hypot(H.P.pos.x-374.5,H.P.pos.z-95)<4`],['03-trouble',`V.hostiles.some(h=>h.tm&&h.tm.st==='mischief'&&h.e.state==='idle')`],
-    ['04-corner-fight',`V.hostiles.some(h=>!h.tm&&h.e.state==='idle'&&h.e.alert)&&V.t>20`],['05-zip-tie',`V.hostiles.some(h=>h.e.state==='surrender')`],
-    ['06-couch',`V.couch&&V.couch.held&&V.couch.t>3`],['07-piano',`V.piano&&V.piano.on&&V.piano.k>=2`],['08-piano-step',`V.piano&&V.piano.wait&&V.piano.wait.ready`],['09-lights',`V.last&&V.last.st==='lights'&&V.last.t>3`]];
+  const WANT=[['01-arrive',`V.t>14`,`({at:[386,98.5,375,88],pitch:-.08})`],
+    ['02-carry',`V.carry&&V.you>=2&&Math.hypot(H.P.pos.x-375.6,H.P.pos.z-94)<2.2`,`({at:[P.pos.x+3.2,P.pos.z+3.4,P.pos.x,P.pos.z],pitch:-.16})`],
+    ['03-trouble',`V.hostiles.some(h=>h.tm&&h.tm.st==='mischief'&&h.e.state==='idle')&&V.frozen`,`({at:[382.5,96,377,89],pitch:-.1})`],
+    ['04-corner-fight',`V.hostiles.some(h=>!h.tm&&h.e.state==='idle'&&h.e.ai&&h.e.ai.mode==='combat'&&Object.values(V.crew).some(c=>Math.hypot(c.a.pos.x-h.e.pos.x,c.a.pos.z-h.e.pos.z)<22))`,`(()=>{const h=V.hostiles.find(h=>!h.tm&&h.e.state==='idle'&&h.e.ai&&h.e.ai.mode==='combat'&&Object.values(V.crew).some(c=>Math.hypot(c.a.pos.x-h.e.pos.x,c.a.pos.z-h.e.pos.z)<22)),e=h.e.pos,c=Object.values(V.crew).map(c=>c.a).sort((p,q)=>Math.hypot(p.pos.x-e.x,p.pos.z-e.z)-Math.hypot(q.pos.x-e.x,q.pos.z-e.z))[0].pos,dx=e.x-c.x,dz=e.z-c.z,l=Math.hypot(dx,dz)||1;return{at:[c.x-dx/l*2.4+dz/l*1.3,c.z-dz/l*2.4-dx/l*1.3,e.x,e.z],pitch:-.05}})()`],
+    ['05-zip-tie',`V.hostiles.some(h=>h.e.state==='surrender'&&Math.hypot(h.e.pos.x-H.P.pos.x,h.e.pos.z-H.P.pos.z)<2.6)`,`(()=>{const e=V.hostiles.find(h=>h.e.state==='surrender').e.pos;return{at:[e.x+2.8,e.z+3.2,e.x,e.z],pitch:-.2}})()`],
+    ['06-couch',`V.couch&&V.couch.held&&V.couch.t>4&&V.couch.z>93`,`(()=>{const C=V.couch;return{at:[C.x+3.6,C.z+3.4,C.x,C.z],pitch:-.22}})()`],
+    ['07-piano',`V.piano&&V.piano.on&&V.piano.k>=1&&!V.piano.wait`,`(()=>{const Q=V.piano;return{at:[Q.x+3.4,Q.z+2.6,Q.x,Q.z],pitch:-.2}})()`],
+    ['08-piano-step',`V.piano&&V.piano.wait&&V.piano.wait.ready&&V.piano.k>=3`,`(()=>{const Q=V.piano;return{at:[Q.x+3.6,Q.z+3.4,Q.x,Q.z-.4],pitch:-.16}})()`],
+    ['09-lights',`V.last&&V.last.st==='lights'&&V.last.t>3`,`({at:[380.5,104,371.5,93.5],pitch:.02})`]];
   const taken={};let last=0;
   for(let f=0;f<FR;f+=30){const r=await ev(()=>{let s=null;for(let i=0;i<30&&!s;i++)s=window.__T.step();return s});
     const inf=await ev(()=>window.__T.info());
     if(!QUIET&&(f-last>=EVERY||r==='end')){last=f;const i=inf;console.log(i.el+'s '+i.stage+'/'+i.ph+' bar '+i.pct+' calm '+i.calm+(i.frozen?' FROZEN':'')+' w'+i.wave+' you '+i.you+(i.carry?'['+i.carry+']':'')+' me '+i.me+' cuffs '+i.cuffs+' kills '+i.kills+' talked '+i.talked+'\n     crew '+i.crew+'\n     hos '+i.hos+(i.cv?'\n     couch '+JSON.stringify(i.cv):'')+(i.pn?'\n     piano '+JSON.stringify(i.pn):'')+(i.rk?'\n     rick '+i.rk:'')+(i.prompt?'\n     prompt '+JSON.stringify(i.prompt):''))}
-    if(SHOTS)for(const[n,c]of WANT){if(taken[n])continue;const ok=await ev(c=>{const H=window.__ht,M=H.M,V=M&&M.mv;if(!V||M.state!=='go')return false;try{return !!eval(c)}catch(e){return false}},c);if(ok){taken[n]=1;await shot(n)}}
+    if(SHOTS)for(const[n,c,fr]of WANT){if(taken[n])continue;const ok=await ev(c=>{const H=window.__ht,M=H.M,V=M&&M.mv;if(!V||M.state!=='go')return false;try{return !!eval(c)}catch(e){return false}},c);if(ok){taken[n]=1;const o=fr?await ev(f=>{const H=window.__ht,M=H.M,V=M.mv,P=H.P;return eval(f)},fr):null;await shot(n,o)}}
     if(r==='end')break}
   {const i=await ev(()=>window.__T.info());const st=await ev(()=>window.__ht.M&&window.__ht.M.state);if(st==='go')console.log('LAST',JSON.stringify(i))}
   const fin=await ev(()=>{const H=window.__ht;H.step(40);return{state:H.M&&H.M.state,el:H.M&&Math.round(H.M.elapsed),medal:H.M&&H.M.medal,pay:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.label+':'+l.amount):null,acts:Object.keys(H.UIacts||{})}});
