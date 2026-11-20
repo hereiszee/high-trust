@@ -94,7 +94,7 @@ async function session(main,app){const {b,p,errs}=await open(TOUCH?{viewport:{wi
   r=await until('M.hide',1500);if(r.ok)await shot('14-job-hidden',[264,2.2,145,262,1,149.6]);
   r=await until("M.loaded>=12||M.stage0==='getaway'",6000);ok(r.ok,'loaded everything: '+JSON.stringify(await st()));
   r=await until("M.stage0==='getaway'&&H.CV",900);ok(r.ok,'in Ron\'s truck: the getaway');await step(30);await shot('15-getaway-drive');
-  r=await until("M.state!=='go'",4000);s=await st();ok(s.state==='won','the truck made it to Gary\'s: won');await step(40);await p.waitForTimeout(1200);await shot('16-result-quiet');
+  r=await until("M.state!=='go'",4000);s=await st();ok(s.state==='won','the truck made it to Gary\'s: won');await step(40);
   const res=await ev(()=>{const r=document.querySelector('.ht-result');return r?{h2:r.querySelector('h2').textContent,stats:[...r.querySelectorAll('.ht-stats b')].map(x=>x.textContent),lf:r.querySelectorAll('.htp-lf li').length}:null});
   ok(res&&res.lf===12&&res.stats.includes('Recovered'),'result card: headline, job stats and the Lost & Found list '+JSON.stringify(res));
   /* ---- afterwards: free roam, the things on their owners' porches ---- */
