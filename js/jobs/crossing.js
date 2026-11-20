@@ -880,7 +880,10 @@ J.register('crossing',{
     obj:'Walk eleven kids home from the church. Stop traffic with the sign, wave them across, and steer them around the trouble on 2nd St. No guns.',
     crew:[],weapons:[],noGuns:"Not with the kids here. The sign's my whole personality today.",
     from:{place:'g_dee'},start:{x:315,z:29},
-    unlock:{done:['dee']},pay:700,par:420,winTrust:3,
+    /* Dee's strand: Grand Opening (pawn) first, so she offers one job at a time and the ledger kids are in the line.
+       Anyone who already started or finished Crossing Guard keeps it. */
+    unlock:{done:['dee'],when:p=>{const has=typeof p.done==='function'?p.done:id=>!!(p.done&&(p.done.has?p.done.has(id):p.done[id]));
+      const r=p.save&&p.save.jobs&&p.save.jobs.crossing;return has('pawn')||!!(r&&(r.done||r.runs>0))}},pay:700,par:420,winTrust:3,
     stages:STAGES,stageLabels:LABELS,failPolicy:'soft',
     medals:['Finished','No detour','No detour and no call-in'],order:28,
     radio:[['dee',"I'm on the church steps with eleven kids and two juice boxes. Hurry."]],
@@ -910,7 +913,9 @@ J.register('crossing',{
   end(M,ok){if(!ok)return;const a=A(),s=a.SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'crossing')}catch(_){}s.flags=s.flags||{};s.flags.crossingGuard=s.flags.ferreira?'ferreira':'volunteer';s.flags.crossingKids=11;
       /* Grand Opening's ledger: each named kid who's in this line and got home is worth one more */const led=s.flags.ledgerKids;const n=Array.isArray(led)?led.length:typeof led==='number'?led:0;if(n){a.addTrust(Math.min(9,n),'river');a.feed('The ledger kids are home','trust','+'+Math.min(9,n)+' Riverside trust')}}},
-  test:{give(a){preloadCast();const H=G();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(15,'river')},
+  test:{give(a){preloadCast();const H=G();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(15,'river');
+      /* the unlock needs Grand Opening done too */const s=a.SV&&a.SV(),i=a.MISSIONS?a.MISSIONS.findIndex(m=>m.id==='pawn'):-1;if(i>=0&&H.prog)H.prog.done[i]=true;
+      if(s&&window.HT.Save&&HT.Save.jobRec)try{HT.Save.jobRec(s,'pawn').done=true}catch(_){}},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({cs:{st:'corner',home:['priya','wen'],talked:{A:1,B:0},rick:0,detour:0,kevin:'home',hand:0,honks:1,frozen:2,xings:[{id:'main',t:6.2,clean:1,cars:2},{id:'ash',t:7.9,clean:0,cars:1}],gathered:1,waves:2,flares:1,talks:1,signUps:4,nearMiss:0,poiSaid:{},
       trail:[[319,68],[319.2,72],[323,74.8],[330,74.8],[336,74.8]]}})}
