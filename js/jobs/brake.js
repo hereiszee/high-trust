@@ -10,7 +10,7 @@
    zip-ties, the ATM cash box goes back, and Rick's post-game talk.
    No guns (a driving play). No ramming civilians: oncoming traffic, a Sunday driver and the neighbours' parked cars. A real hit on
    a civilian is a yellow card and the play is dead (retry from the snap, with the whistle). Bumping the hatchback is a flag on the
-   play: -1 trust and van health each; five flags and Coach benches you. He escapes if he gets 220 m clear for 15 s.
+   play: -1 trust and van health each; five flags and Coach benches you. He escapes if he gets 170 m clear for 12 s.
 
    Stages ([CP]): huddle (pick the play) -> chase (the snap) -> collar (stopped: hands up, zip-ties, the cash box, hands in).
    Files: js/jobs/brake.js (this), js/tail.js (HT.Tail.slot / boxed, the shared formation helpers; Rail and poly for the cars).
@@ -29,7 +29,7 @@ const K={pay:800,par:120,clean:250,noCiv:100,quick:100,quickT:120,goldT:90,ranDo
   slotD:7.6,nineLat:-3.05,                          /* slot geometry: centre to centre along the lane; his nine is the next lane over */
   tol12:[-2.2,4.6],tol6:[-4.6,2.2],tol9:2.7,tolLat:1.3,tolYaw:.5,  /* in-slot windows (m along, m across, rad) */
   formT:1.2,boxT:3,vmax:8,squeezeDec:1.5,squeezeV:5.2,stopDec:2.3,breakT:1.6,
-  escD:220,escT:15,flagMax:5,hitV:3,kissV:.9,bumpV:1.6,
+  escD:170,escT:12,flagMax:5,hitV:3,kissV:.9,bumpV:1.6,
   crewMax:21,crewAcc:6.2,crewDec:9,laneV:2.1,
   checkCd:24,feintCd:17,leanCd:14,passCd:15,surgeCd:11,oncCd:14,sundayMax:1};
 const D=Math.PI/180,wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a};
@@ -310,7 +310,7 @@ function huddleTick(M,dt,F){const a=A(),e=a.CV,you=e||{pos:a.P.pos};
       say(M,"Panel's off! Cash box is out! Here they come!")}}
   if(M.thIn>=2&&M.crew.rick.inCar&&M.crew.dave.inCar&&M.snapT>3.2)snapNow(M,false)}
 function choice(M){const a=A(),HD=a.HUD;if(!HD||!HD.kit||!HD.kit.choices||typeof document==='undefined'){M.kit={close(){}};return}
-  const opts=[{text:'1 · SANDWICH: you get in FRONT of him (pass him first). Rick on his left, Dave behind.',reg:'real'},{text:'2 · FENCE: you ride ALONGSIDE him, on his left. Rick in front, Dave behind.',reg:'real'}];
+  const opts=[{text:'SANDWICH: you get in FRONT of him (pass him first). Rick on his left, Dave behind.'},{text:'FENCE: you ride ALONGSIDE him, on his left. Rick in front, Dave behind.'}];
   const kit=HD.kit.choices({speaker:'Coach Rick',color:'#ff8a7a',prompt:"Pick the play. Press 1 or 2.",tell:"He's holding the playbook upside down. He knows it by heart.",options:opts,onPick:i=>pickPlay(M,i===1?'fence':'sandwich')});
   M.kit=kit||{close(){}};if(kit){a.overlay('brake-choice',kit.el);res().ov['brake-choice']=1;res().kit=kit}}
 function pickPlay(M,id){const a=A();if(M.play||M!==a.M)return;M.play=id;const pl=PLAYS[id];
@@ -568,10 +568,10 @@ function ghostTick(M){const g=M.ghost;if(!g)return;const show=M.ph==='chase'&&M.
   g.userData.m.opacity=on?.75:.95}
 /* the playbook: Rick's chalkboard, top right, with the three slots filling (DOM written on change only) */
 function playbook(M,init){if(typeof document==='undefined')return;const a=A();
-  if(init){const el=document.createElement('div');el.className='brake-pb';el.style.cssText='position:fixed;right:18px;top:120px;width:176px;padding:10px 10px 8px;border-radius:12px;background:linear-gradient(160deg,#25402f,#1a3024);'+
+  if(init){const root=document.createElement('div');root.style.cssText='position:absolute;inset:0;pointer-events:none';const el=document.createElement('div');root.appendChild(el);el.className='brake-pb';el.style.cssText='position:absolute;right:18px;top:118px;width:176px;height:auto;box-sizing:border-box;padding:10px 10px 8px;border-radius:12px;background:linear-gradient(160deg,#25402f,#1a3024);'+
       'box-shadow:0 6px 24px rgba(0,0,0,.45),inset 0 0 0 3px #6b4a2a,inset 0 0 0 6px #4b321b;font:600 11px/1.25 system-ui,Segoe UI,Arial,sans-serif;color:#eef3e6;pointer-events:none;letter-spacing:.02em;opacity:0;transition:opacity .4s';
     el.innerHTML='<div class="t" style="font:800 11px system-ui,Arial;letter-spacing:.14em;text-transform:uppercase;opacity:.85;display:flex;justify-content:space-between"><span>Playbook</span><span class="pn"></span></div><svg viewBox="0 0 156 150" width="156" height="150" style="display:block;margin-top:4px"></svg><div class="c" style="min-height:28px;font-weight:600;opacity:.95"></div>';
-    M.pb={el,svg:el.querySelector('svg'),pn:el.querySelector('.pn'),c:el.querySelector('.c'),key:''};a.overlay('brake-pb',el);res().ov['brake-pb']=1;return}
+    M.pb={el,svg:el.querySelector('svg'),pn:el.querySelector('.pn'),c:el.querySelector('.c'),key:''};a.overlay('brake-pb',root);res().ov['brake-pb']=1;return}
   const B=M.pb;if(!B)return;const vis=!!M.play&&(M.ph==='snap'||M.ph==='chase')&&!M.vf;B.el.style.opacity=vis?'1':'0';if(!vis)return;
   const pl=PLAYS[M.play],sq=M.boxPh==='squeeze',st=M.boxPh==='stop',bt=sq?M.box.t/K.boxT:st?1:M.formT/K.formT;
   const key=[M.play,M.held.you,M.held.rick,M.held.dave,M.boxPh,Math.round(bt*20),M.ai.mode||'',M.oncWarn].join('|');if(key===B.key)return;B.key=key;B.pn.textContent=pl.name;
@@ -595,7 +595,7 @@ function botDrive(a,M){const e=a.CV,k=a.keys,tg=M.tg,pr=M.pr||pOnRoute(M),sl=slo
   if(!M.botOut){const Tl=TL();M.botIn=M.botIn||Tl.poly(BOT_IN.map(([x,z])=>({x,z})));const r=M.botIn.project(e.pos.x,e.pos.z);if(r.s>M.botIn.len-2||e.pos.z>41.5)M.botOut=true;else{const q=M.botIn.at(r.s+6);
       let d=wrap(Math.atan2(-(q.x-e.pos.x),-(q.z-e.pos.z))-e.yaw);const sp=e.car?e.car.spd:0;k.a=d>.04;k.d=d<-.04;k.w=sp<9;k.s=sp>11;return}}
   let sT=tg.s+sl.ds,latT=slotLat(tg,sl);const spd=e.car?e.car.spd:e.spd||0;
-  if(sl===SLOT.twelve&&pr.s<tg.s+5.5){latT=pr.s>tg.s-28?K.nineLat:0}
+  if(sl===SLOT.twelve&&pr.s<tg.s+5.5){latT=pr.s>tg.s-60?K.nineLat:0}
   if(sl===SLOT.nine&&pr.s<tg.s-26&&pr.lat>-1.5)latT=0;
   const onc=M.civs.find(o=>!o.gone&&o.v<0&&o.s>pr.s-2&&o.s<pr.s+(pr.lat<-1.4?80:100)&&o.lat<-1.4);
   if(onc&&(latT<-1.4||pr.lat<-1.4)){const gapT=(onc.s-pr.s)/Math.max(4,spd-onc.v);/* seconds until we meet */
