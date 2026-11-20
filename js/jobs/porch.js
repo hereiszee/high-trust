@@ -13,7 +13,7 @@ const LINES={deter:["That dad's in a lawn chair. Facing the street. With a lemon
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 /* the delivery street: the 4 Maple houses nearest the home house (not ours), porch points on their street side */
 let STREET=null;
-function street(){if(STREET)return STREET;const a=A(),W=a.WORLD,T=2;if(!W||!W.houses)return null;
+function street(){if(STREET)return STREET;const a=A(),W=a&&a.WORLD,T=2;if(!W||!W.houses)return null;
   const home=W.houses.find(h=>h.home)||W.houses[0];const regionOK=h=>!W.hoods||!a.roads||true;
   const cand=W.houses.filter(h=>!h.home&&h.face&&Math.hypot(h.cx-home.cx,h.cz-home.cz)>8&&Math.hypot(h.cx-home.cx,h.cz-home.cz)<90).sort((p,q)=>Math.hypot(p.cx-home.cx,p.cz-home.cz)-Math.hypot(q.cx-home.cx,q.cz-home.cz));
   const sameFace=cand.filter(h=>h.face===cand[0].face&&Math.abs((h.face==='s'?h.z1:h.z0)-(cand[0].face==='s'?cand[0].z1:cand[0].z0))<=1).slice(0,4);
@@ -75,7 +75,8 @@ J.register('porch',{
   medal:M=>M.lost?1:(!M.hurt&&M.caught+M.deterred>=PIRATES)?3:2,
   end(M,ok){},
   test:{/* dev/jobs-check.js drives this: place the chair badly so pirates come, tackle, zip-tie, return the parcels */
-    step:(a,t,o)=>porchBot(a,t,o)}
+    step:(a,t,o)=>porchBot(a,t,o),
+    sample:()=>({porches:['wait','wait','wait','wait'].map(state=>({state})),lost:1,chair:{placed:false,mesh:{position:{set(){}}}},truck:{done:false,obj:{}}})}
 });
 function truck(dt,M){const a=A(),T=M.truck;if(T.done)return;const p=T.pts[T.k];if(!p){T.done=true;T.obj.visible=false;return}
   if(T.wait>0){T.wait-=dt;if(T.wait<=0&&p.stop!=null){const P_=M.porches[p.stop];P_.state='porch';P_.mesh=parcel();a.wmAdd(P_.mesh);P_.mesh.position.set(P_.x,0,P_.z);P_.mesh.rotation.y=Math.random();a.snd&&a.snd('cuff',.4);T.k++}}
