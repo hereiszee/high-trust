@@ -40,7 +40,7 @@ const TUNE={
 
 /* ---------------- the neighbourhood (metres; Riverside streets: Main z40-46, Ash z68-74, Mill z96-102; River Rd x312-318,
    2nd St x344-350 (south of Ash only: the Fellowship Hall laundromat lot covers it between Main and Ash), 3rd St x376-382) ---------------- */
-const CHURCH={dee:{x:331,z:37.6},dad:{x:330.2,z:40.6},kids:{x0:326,x1:337,z:35.6}};
+const CHURCH={dee:{x:331,z:37.6},dad:{x:332.4,z:40.9},kids:{x0:326,x1:337,z:35.6}};
 /* the eleven, in their suggested drop-off order; homes are WORLD.porchesAll ids (sidewalk point in front of the door) */
 const KIDS=[
   {id:'priya',name:'Priya',base:'daughter',top:'#22a99a',sc:.84,trait:'cracks',home:'rp15',grown:{key:'nb_mei',who:'Priya\'s mom'},bag:'#f6d55c'},
@@ -155,11 +155,12 @@ function stopSign(M,scale){const T=T_(),g=new T.Group();const tex=M.cg.signTex||
   if(scale)g.scale.setScalar(scale);g.userData.plate=plate;return g}
 function oct(c,cx,cy,r){c.beginPath();for(let i=0;i<8;i++){const a=Math.PI/8+i*Math.PI/4;c[i?'lineTo':'moveTo'](cx+Math.cos(a)*r,cy+Math.sin(a)*r)}c.closePath()}
 /* the hi-vis vest: front and back panels with reflective bands, on the dad's chest bone */
-function vest(M){const T=T_(),g=new T.Group();const tex=canvasTex(M,128,128,(c,W,H)=>{c.fillStyle='#d6f22a';c.fillRect(0,0,W,H);c.fillStyle='#f4f4ee';c.fillRect(0,64,W,14);c.fillRect(0,92,W,14);
-    c.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<W;i+=6)c.fillRect(i,0,1,H)});
-  const m=reg(M,new T.MeshStandardMaterial({map:tex,roughness:.6,emissive:A().lin('#3a4a00'),emissiveIntensity:.35}));
-  const mk=(w,h,d,x,y,z)=>{const o=new T.Mesh(geo(M,new T.BoxGeometry(w,h,d)),m);o.position.set(x,y,z);o.castShadow=true;g.add(o);return o};
-  mk(.4,.42,.02,0,-.05,.14);mk(.4,.46,.02,0,-.05,-.13);for(const s of[-1,1])mk(.02,.42,.26,s*.205,-.05,0);
+function vest(M){const T=T_(),g=new T.Group();const tex=canvasTex(M,256,128,(c,W,H)=>{c.fillStyle='#d4ef22';c.fillRect(0,0,W,H);c.fillStyle='#eef0ea';c.fillRect(0,70,W,12);c.fillRect(0,94,W,12);
+    c.fillStyle='rgba(60,70,0,.18)';for(let i=0;i<W;i+=4)c.fillRect(i,0,1,H);c.fillStyle='#e6e9e2';c.fillRect(W*.25-3,0,6,H);c.fillRect(W*.75-3,0,6,H)});
+  const m=reg(M,new T.MeshStandardMaterial({map:tex,roughness:.65,side:T.DoubleSide,emissive:A().lin('#2b3600'),emissiveIntensity:.25}));
+  /* a fitted tube around the chest (slightly narrower at the shoulders), with straps over the shoulders */
+  const body=new T.Mesh(geo(M,new T.CylinderGeometry(.92,1,.44,20,1,true)),m);body.scale.set(.205,1,.142);body.castShadow=true;g.add(body);
+  const sm=mat(M,'#d4ef22',{roughness:.65});for(const sx of[-1,1]){const st=new T.Mesh(geo(M,new T.BoxGeometry(.07,.018,.27)),sm);st.position.set(sx*.1,.225,0);st.castShadow=true;g.add(st)}
   return g}
 /* zebra stripes for a crosswalk rectangle (one merged mesh per crossing, painted on the road) */
 function zebra(M,X){const T=T_(),g=new T.Group();const m=M.cg.zebraMat||(M.cg.zebraMat=reg(M,new T.MeshStandardMaterial({color:A().lin('#eeeae0'),roughness:.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2})));
@@ -303,7 +304,7 @@ function chainStep(dt,M){const C=M.cg,P=A().P,head=trailHead(M),first=trailFirst
     const kb=kerbAhead(M,k.s,tgt+.2,k);k.kerb=null;if(kb){const ks=kb.s-TUNE.kerb;if(tgt>=ks-.05){tgt=ks;k.kerb=kb}}
     if(k.fz>0)tgt=k.s;
     /* the crack-avoider hops: tiny pauses every ~0.75 m */
-    let max=k.def.trait==='cracks'?2.5:k.def.trait==='tired'?3:k.def.trait==='cool'?4.2:TUNE.kidRun;
+    let max=k.def.trait==='cracks'?2.5:k.def.trait==='tired'?3.5:k.def.trait==='cool'?4.2:TUNE.kidRun;
     if(k.def.trait==='cracks'){k.hop-=dt;if(k.hop<0&&k.v>.4){k.hop=.55+Math.random()*.35;k.hopP=.16}if(k.hopP>0){k.hopP-=dt;max=.25}}
     const want=clamp((tgt-k.s)*TUNE.catchK,0,max);k.v+=clamp(want-k.v,-TUNE.kidAcc*2*dt,TUNE.kidAcc*dt);if(k.v<0)k.v=0;
     k.s=Math.min(Math.max(tgt,k.s),k.s+k.v*dt);if(k.s<first)k.s=first;
@@ -564,18 +565,18 @@ function rickStep(dt,M){const C=M.cg,c=C.rickCar;if(!c)return;C.rickT+=dt;
 
 /* ---------------- the HUD: the headcount strip (always right; funny when the number isn't what it should be) and speech bubbles ---------------- */
 const CSS=`.cgx{position:absolute;inset:0;pointer-events:none;font-family:inherit}
-.cgx-card{position:absolute;left:50%;transform:translateX(-50%);bottom:96px;display:flex;align-items:center;gap:12px;padding:8px 12px 8px 14px;border-radius:14px;background:rgba(14,18,26,.62);backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,.28);color:#f4f1ea}
+.cgx-card{position:absolute;right:22px;bottom:186px;display:flex;align-items:center;gap:12px;padding:8px 12px 8px 14px;border-radius:14px;background:rgba(14,18,26,.62);backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,.28);color:#f4f1ea}
 .cgx-n{display:flex;flex-direction:column;align-items:flex-start;min-width:92px}.cgx-k{font-size:10px;letter-spacing:.14em;opacity:.75;font-weight:700}
 .cgx-big{font-size:26px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.cgx-big small{font-size:15px;opacity:.65;font-weight:700}.cgx-big.warn{color:#ffcf5a}.cgx-big.bad{color:#ff7b6b}
 .cgx-sub{font-size:11px;opacity:.85;max-width:200px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cgx-row{display:flex;gap:5px;align-items:flex-end}.cgx-c{position:relative;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.35);transition:transform .2s,opacity .3s}
+.cgx-row{display:flex;gap:5px;align-items:flex-end}.cgx-c{position:relative;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.35);transition:transform .2s,opacity .3s}
 .cgx-c.out{background:transparent!important;border:2px dashed currentColor;box-shadow:none;animation:cgxb 1s infinite}.cgx-c.fz{outline:2px solid #9fd3ff;outline-offset:1px}.cgx-c.lost{animation:cgxp .6s infinite}
 .cgx-c.home{opacity:.38;transform:scale(.82)}.cgx-c.home::after{content:'';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;background:#6fd08c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5.2l2 2 4-4.4' stroke='white' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") center/9px no-repeat}
 .cgx-c.kev{width:20px;height:20px;font-size:10px}.cgx-c i{position:absolute;bottom:-13px;font-style:normal;font-size:9px;font-weight:700;color:#ffe08a;white-space:nowrap;text-shadow:0 1px 2px #000}
 @keyframes cgxb{50%{transform:translateY(-3px)}}@keyframes cgxp{50%{box-shadow:0 0 0 4px rgba(255,90,70,.6)}}
 .cgx-b{position:absolute;transform:translate(-50%,-100%);padding:3px 8px;border-radius:10px;background:#fffdf6;color:#1d2230;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .cgx-b::after{content:'';position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:#fffdf6}.cgx-b.loud{background:#ffe1d6;color:#8a1d10}.cgx-b.tag{background:#1d2230;color:#ffd36b}.cgx-b.tag::after{border-top-color:#1d2230}
-@media (max-width:700px){.cgx-card{bottom:150px;gap:8px;padding:6px 9px}.cgx-c{width:19px;height:19px;font-size:9px}.cgx-big{font-size:20px}.cgx-n{min-width:70px}.cgx-sub{max-width:120px}}`;
+@media (max-width:700px){.cgx-card{bottom:auto;top:118px;right:10px;gap:8px;padding:6px 9px}.cgx-c{width:19px;height:19px;font-size:9px}.cgx-big{font-size:20px}.cgx-n{min-width:70px}.cgx-sub{max-width:120px}}`;
 function hudBuild(M){const C=M.cg;if(C.hudEl||typeof document==='undefined'||!document.createElement)return;
   if(!document.getElementById('cgx-css')){const st=document.createElement('style');st.id='cgx-css';st.textContent=CSS;document.head.appendChild(st)}
   const el=document.createElement('div');el.className='cgx';el.innerHTML='<div class="cgx-card"><div class="cgx-n"><div class="cgx-k">HEADCOUNT</div><div class="cgx-big"></div><div class="cgx-sub"></div></div><div class="cgx-row"></div></div><div class="cgx-bubs"></div>';
@@ -635,7 +636,7 @@ function crossStep(dt,M,F){const C=M.cg,a=A(),P=a.P;const line=lineKids(M);
       a.feed('Crossing'+(name?' · '+name:''),clean?'trust':'info',X.t.toFixed(1)+' s'+(X.cars?' · '+X.cars+' car'+(X.cars>1?'s':'')+' waited':'')+(clean?' · clean':''));if(clean)chime();C.lastCross=null;C.crossEnd=C.clock;C.cross=null;music('hub',.35)}}}
 /* is it safe to wave them across? (no car still rolling toward the crossing) — for the HUD line and the test player */
 function carsComing(M,x,z){const C=M.cg;if(!C.traffic)return 0;let n=0;for(const c of C.traffic.cars){const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);
-    if(ah>-1&&ah<34&&lat<6&&c.v>.6&&!c.forSign&&!(c.why==='car'||c.why==='kid'||c.why==='kidfar'||c.why==='dad'||c.why==='sign'))n++}return n}
+    if(ah>-1&&ah<34&&lat<6&&(c.v>.6||c.why==='dad')&&!c.forSign&&!(c.why==='car'||c.why==='kid'||c.why==='kidfar'||c.why==='sign'))n++}return n}
 function waveAcross(M){const C=M.cg,line=lineKids(M);if(!C.atKerb)return;const ok={};for(const k of C.kids)if(k.state==='line'||k.state==='hand'||k.state==='free')ok[k.id]=1;if(C.kevin)ok.kevin=1;
   const s0=Math.min(...C.atKerb.map(k=>k.s)),head=trailHead(M);for(const id in C.trail.runs){const r=C.trail.runs[id];if(r.s1<s0-1||r.s0>head+.1)continue;r.ok=1;r.okT=C.clock+TUNE.waveLife;r.okFor=ok}
   C.waveT=1.4;M.cs.waves++;say(M,'you',pick(L_.wave),{now:true});const cc=carsComing(M,C.atKerb[0].x,C.atKerb[0].z);if(cc&&!C.sign.up)later(M,.5,()=>{})}
@@ -722,7 +723,7 @@ function chalkSpot(M,q){const T=T_();const tex=M.cg.chalkTex||(M.cg.chalkTex=can
   const m=M.cg.chalkMat||(M.cg.chalkMat=reg(M,new T.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3})));
   const o=new T.Mesh(geo(M,new T.PlaneGeometry(1,1)),m);o.rotation.x=-Math.PI/2;o.position.set(q.x+.3,ground(q.x,q.z)+.01,q.z);o.scale.setScalar(.01);o.visible=false;M.cg.root.add(o);q.sun=o;return o}
 function gearUp(M){const C=M.cg,a=A(),P=a.P;if(C.gear)return;C.gear=true;C.signObj.visible=true;thwack();
-  if(P.dude){C.vest=vest(M);try{const sp=boneW(P.dude,'Bip01_Spine2'),loc=P.dude.root.worldToLocal(sp.clone());onBone(P.dude,C.vest,'Bip01_Spine2',[0,loc.y-.02,.0])}catch(_){P.dude.root.add(C.vest)}}
+  if(P.dude){C.vest=vest(M);try{const sp=boneW(P.dude,'Bip01_Spine2'),loc=P.dude.root.worldToLocal(sp.clone());onBone(P.dude,C.vest,'Bip01_Spine2',[0,loc.y+.04,.01])}catch(_){P.dude.root.add(C.vest)}}
   say(M,'dee',L_.dee[0],{now:true});say(M,'dee',L_.dee[1]);
   /* line up: on the lot, then along the sidewalk to you */
   trailSeed(M,[[325.5,34.6],[337.6,34.6],[339.2,36.2],[337.6,38.85],[P.pos.x,P.pos.z]]);const head=trailHead(M);
@@ -848,7 +849,7 @@ J.register('crossing',{
 /* ---------------- the scripted player (dev/jobs-check.js, dev/jobs/crossing.js) ----------------
    Walks the direct route like a careful person: sign up in the road, waits for the cars to stop, waves, walks the kids over,
    talks both crews down, goes back for strays, waits for stragglers. o.fail: walks off and leaves the kids behind. */
-const ROUTE=[{act:'gear'},{x:321.2,z:39.45},
+const ROUTE=[{act:'gear'},{x:331,z:38.35},{x:327.6,z:38.35},{x:321.2,z:39.45},
   {cross:'main',from:[319.3,39.3],mid:[319.4,43.3],to:[319.2,48.8]},{x:318.38,z:56},{x:318.38,z:66.3},
   {cross:'ash',from:[319.3,67.3],mid:[319.4,71.2],to:[319.8,75.4]},{home:'priya'},{home:'wen'},{x:338.5,z:74.75},{x:342.6,z:76.2},
   {talk:'A',at:[343.55,82.1]},{talk:'B',via:[[345.2,81.4],[349.6,83.6]],at:[350.6,83.9],back:[[349.4,83.4],[344.6,80.6]]},
@@ -861,7 +862,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   if(a.CV){if(!M.exitOpen)a.exitCar();return null}
   if(C.talking&&!C.talking.busy){B.talkT=(B.talkT||0)+dt;if(B.talkT>.9){const i=C.talking.opts.findIndex(x=>x.win);talkPick(M,i>=0?i:0);B.talkT=0}return null}
   /* a fresh start (a retry) can land mid-route: skip ahead to the nearest step of the current stage */
-  if(!B.synced){B.synced=true;if(C.stage!=='gear'){const st={main:1,river:3,corner:6,mill:15}[C.stage];if(st!=null)B.i=st;if(C.stage==='corner'){if(M.cs.home.includes('wen'))B.i=8}if(C.stage==='mill'){B.i=ROUTE.findIndex(r=>r.home==='jaylen')}}}
+  if(!B.synced){B.synced=true;if(C.stage!=='gear'){const st={main:1,river:5,corner:8,mill:17}[C.stage];if(st!=null)B.i=st;if(C.stage==='corner'){if(M.cs.home.includes('wen'))B.i=10}if(C.stage==='mill'){B.i=ROUTE.findIndex(r=>r.home==='jaylen')}}}
   if(o.fail){if(C.stage==='gear')return botGear(a,M,B);P.aim=false;go(a,{x:395,z:38.9},true);return null}
   if(M.exitOpen){P.aim=false;const c=M.car;if(c&&hyp(c.pos.x-P.pos.x,c.pos.z-P.pos.z)<3.6){a.useTap=true;return null}if(c)go(a,{x:c.pos.x+2.9,z:c.pos.z+.2});return null}
   const step=ROUTE[B.i];if(!step)return null;
@@ -900,7 +901,7 @@ function botCross(a,M,B,s){const C=M.cg,P=a.P;const line=lineKids(M);
   if(B.ph==='over'){P.aim=true;const onR=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&onRoadKid(k)),waiting=line.some(k=>k.kerb);
     const arrived=go(a,{x:s.to[0],z:s.to[1]},false,true);if(waiting&&B.t>2&&C.atKerb){a.keys.e=carsComing(M,s.from[0],s.from[1])===0}
     if(arrived&&!waiting&&B.t>1){B.ph='clear';B.t=0}return null}
-  if(B.ph==='clear'){P.aim=true;const onR=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&onRoadKid(k));const nx=ROUTE[B.i+1]||{};const tgt=nx.x!=null?nx:nx.from?{x:nx.from[0],z:nx.from[1]}:null;
+  if(B.ph==='clear'){P.aim=true;const vx=s.to[0]-s.mid[0],vz=s.to[1]-s.mid[1];const onR=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&(onRoadKid(k)||(k.x-s.mid[0])*vx+(k.z-s.mid[1])*vz<0));const nx=ROUTE[B.i+1]||{};const tgt=nx.x!=null?nx:nx.from?{x:nx.from[0],z:nx.from[1]}:null;
     if(tgt&&hyp(P.pos.x-s.to[0],P.pos.z-s.to[1])<6)go(a,tgt,false,true);if(!onR&&B.t>.5||B.t>25){B.ph='';B.i++;B.t=0;P.aim=false}return null}}
 /* walk toward a point (the game's own movement: face it, hold W); true when there */
 function go(a,p,run,slow){const P=a.P,dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=hyp(dx,dz);if(d<.45)return true;const U=go.u||(go.u={x:0,z:0,t:0,side:0,sideT:0});
