@@ -6,7 +6,7 @@ const SOLID=open.solid;
 function bfs(def,sx,sz,box){const W=def.W,H=def.H,seen=new Uint8Array(W*H),q=[sz*W+sx];seen[q[0]]=1;
   while(q.length){const c=q.pop(),x=c%W,z=(c/W)|0;for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;
     if(box&&(nx<box.x0||nx>box.x1||nz<box.z0||nz>box.z1))continue;const k=nz*W+nx;if(seen[k]||SOLID.includes(def.map[nz][nx]))continue;seen[k]=1;q.push(k)}}return seen}
-test('grid is 80 rows x 232 columns',()=>{assert.strictEqual(open.map.length,80);for(const r of open.map)assert.strictEqual(r.length,232);assert.strictEqual(open.ground.length,80)});
+test('grid is 128 rows x 232 columns (rows 80-127: Fort Sensible, docs/base.md)',()=>{assert.strictEqual(open.map.length,128);for(const r of open.map)assert.strictEqual(r.length,232);assert.strictEqual(open.ground.length,128)});
 test('deterministic: two builds are identical',()=>{const a=Wd.build({bridgeOpen:true}),b=Wd.build({bridgeOpen:true});
   assert.strictEqual(a.map.join('\n'),b.map.join('\n'));assert.deepStrictEqual(a.tags,b.tags);assert.deepStrictEqual(a.houses,b.houses);assert.deepStrictEqual(a.lamps,b.lamps);assert.deepStrictEqual(a.porches.map(p=>p.order),b.porches.map(p=>p.order))});
 test('reference hash of the open-bridge map is stable',()=>{let h=2166136261;for(const ch of open.map.join('\n')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0}assert.strictEqual(h.toString(16),REF_HASH)});
@@ -32,12 +32,14 @@ test('bridge unlock follows the save (after Rick\'s job)',()=>{assert.strictEqua
   assert.strictEqual(Wd.build({save:{prog:{done:[1,1,0,0]}}}).bridgeOpen,true);assert.strictEqual(Wd.build({save:{world:{bridgeOpen:true},prog:{done:[]}}}).bridgeOpen,true)});
 test('openBridge() mutates map, ground and chunk lists',()=>{const d=Wd.build({bridgeOpen:false});assert(d.chunks.some(c=>c.barricade.length));Wd.openBridge(d);
   assert(d.bridgeOpen);assert(d.barricade.every(b=>d.map[b.tz][b.tx]===','));assert(!d.chunks.some(c=>c.barricade.length))});
-test('regionAt uses world metres',()=>{assert.strictEqual(Wd.regionAt(50*2+1,40),'maple');assert.strictEqual(Wd.regionAt(120*2+1,40),'route9');assert.strictEqual(Wd.regionAt(200*2+1,40),'river');assert.strictEqual(Wd.regionAt(151*2+1,0),'route9');assert.strictEqual(Wd.regionAt(152*2,0),'river')});
-test('chunks: 8x3, cover the grid, every object in exactly one chunk',()=>{assert.strictEqual(open.chunks.length,24);let n=0;for(const c of open.chunks)n+=c.trees.length;assert.strictEqual(n,open.trees.length);
+test('regionAt uses world metres',()=>{assert.strictEqual(Wd.regionAt(50*2+1,40),'maple');assert.strictEqual(Wd.regionAt(120*2+1,40),'route9');assert.strictEqual(Wd.regionAt(200*2+1,40),'river');assert.strictEqual(Wd.regionAt(151*2+1,0),'route9');assert.strictEqual(Wd.regionAt(152*2,0),'river');
+  assert.strictEqual(Wd.regionAt(60*2+1,100*2+1),'base');assert.strictEqual(Wd.regionAt(130*2+1,79*2+1),'route9');assert.strictEqual(Wd.regionAt(160*2+1,100*2+1),'river')});
+test('chunks: 8x4, cover the grid, every object in exactly one chunk',()=>{assert.strictEqual(open.chunks.length,32);let n=0;for(const c of open.chunks)n+=c.trees.length;assert.strictEqual(n,open.trees.length);
   for(const key of['lamps','houses','rowUnits','walls','chainlink','tags','porches','parked'])assert.strictEqual(open.chunks.reduce((s,c)=>s+c[key].length,0),open[key].length,key);
   for(const t of open.trees){const c=open.chunks[Wd.chunkIndex(t.tx,t.tz)];assert(c.trees.includes(t))}
-  assert.strictEqual(Wd.chunkAt(0,0),0);assert.strictEqual(Wd.chunkAt(463,159),23);assert.deepStrictEqual(Wd.chunksNear(10,10,1,open),[0])});
-test('counts match SPEC2 A.4 (after SPEC3: school replaced 3 houses, Mill St Auto Recovery replaced block 3,3)',()=>{assert.strictEqual(open.trees.length,1099);assert.strictEqual(open.lamps.length,251);assert.strictEqual(open.houses.length,74);
+  assert.strictEqual(Wd.chunkAt(0,0),0);assert.strictEqual(Wd.chunkAt(463,159),23);assert.strictEqual(Wd.chunkAt(463,255),31);assert.deepStrictEqual(Wd.chunksNear(10,10,1,open),[0])});
+test('counts match SPEC2 A.4 (after SPEC3: school replaced 3 houses, Mill St Auto Recovery replaced block 3,3; Fort Sensible strip added)',()=>{assert.strictEqual(open.trees.length,1478);assert.strictEqual(open.lamps.length,255);   /* +379 trees, +4 lamps: the base strip's borders and Industrial Way's extension */
+  assert.strictEqual(open.houses.length,74);
   assert.strictEqual(open.walls.length,245);assert.strictEqual(open.porches.length,48);assert.strictEqual(open.tags.length,48)});
 test('house door rule keeps SPEC.md home facing north',()=>{const home=open.houses.find(h=>h.home);assert(home);assert.strictEqual(home.face,'n');assert.deepStrictEqual([home.x0,home.z0,home.x1,home.z1],[17,11,21,13])});
 test('ground chars are all colour chars',()=>{for(const r of open.ground)for(const ch of r)assert(',.gsb=~'.includes(ch),ch)});
