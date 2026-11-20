@@ -170,7 +170,7 @@ function slot(target,o,car){o=o||{};const tw=target.w||1.9,cw=(car&&car.w)||1.9,
   const gap=o.gap!=null?o.gap:2.6,back=o.back!=null?o.back:side?0:(tl/2+cl/2+gap),lat=side*(tw/2+cw/2+1.1),lead=(o.lead||0)*(target.spd||0);
   if(o.path&&o.s!=null){const P=o.path,a=P.at(o.s-back+lead),r=rgt(a.yaw),l=(o.lat0||0)+lat;return{x:a.x+r[0]*l,z:a.z+r[1]*l,yaw:a.yaw}}
   const f=fwd(target.yaw),r=rgt(target.yaw);return{x:target.x+f[0]*(lead-back)+r[0]*lat,z:target.z+f[1]*(lead-back)+r[1]*lat,yaw:target.yaw}}
-function boxed(target,cars,o){o=o||{};const st=o.st||(o.st={t:0});const r=o.r!=null?o.r:4,need=o.t!=null?o.t:3,vmax=o.vmax!=null?o.vmax:8,dt=o.dt||0;
+function boxed(target,cars,o){o=o||{};const st=o.st||(o.st={t:0});if(!(st.t>=0))st.t=0;const r=o.r!=null?o.r:4,need=o.t!=null?o.t:3,vmax=o.vmax!=null?o.vmax:8,dt=o.dt||0;
   let n=0;st.err=[];(cars||[]).forEach((c,i)=>{let ok;if(o.ok)ok=!!o.ok(c,i);else{const sl=(o.slots&&o.slots[i])||c.slot;if(!sl){ok=false}else{const p=slot(target,sl,c),e=Math.hypot(c.x-p.x,c.z-p.z);st.err[i]=e;ok=e<=r}}if(ok)n++});
   st.n=n;st.ok=!!cars&&cars.length>0&&n===cars.length&&Math.abs(target.spd||0)<vmax;
   st.t=st.ok?Math.min(need,st.t+dt):Math.max(0,st.t-dt*2);st.boxed=st.ok&&st.t>=need;return st.boxed}
