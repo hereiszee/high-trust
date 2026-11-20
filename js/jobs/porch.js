@@ -96,10 +96,12 @@ function pirates(dt,M,F){const a=A(),P=a.P;if(M.stage!=='pirates')return;
   for(const p of M.pir){const e=p.e;if(e.state==='cuffed'){if(p.st!=='done'){p.st='done';M.caught++}continue}if(e.state==='dead'){if(p.st!=='done'){p.st='done';M.hurt++}continue}
     if(e.hp<e.maxhp&&!p.hit){p.hit=true;M.hurt++}
     if(e.state==='surrender'){if(p.st==='run')drop(M,p);p.st='surr';continue}
-    if(p.st==='walk'){const t=M.porches[p.t];if(!t||t.state!=='porch'){retarget(M,p);continue}
+    if(p.st==='walk'){p.walkT=(p.walkT||0)+dt;if(p.walkT>35){/* stuck on the way (a fence, a parked car): he gives up and leaves */p.st='leave';M.deterred++;go(e,p.exit,3.4,()=>vanish(M,p));continue}
+      const t=M.porches[p.t];if(!t||t.state!=='porch'){retarget(M,p);continue}
       if(Math.hypot(t.x-D.x,t.z-D.z)<D.r&&Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<45){const n=retarget(M,p,true);if(!n){p.st='leave';M.deterred++;a.radio('Porch pirate',pick(LINES.deter),true);go(e,p.exit,3.4,()=>vanish(M,p))}}
       else if(!e.script)go(e,t,3.6,()=>grab(M,p))}
-    else if(p.st==='run'){const d=Math.hypot(e.pos.x-p.from.x,e.pos.z-p.from.z);F.target={x:e.pos.x,z:e.pos.z,label:'Porch pirate'};
+    else if(p.st==='leave'){p.leaveT=(p.leaveT||0)+dt;if(p.leaveT>25)vanish(M,p)}
+    else if(p.st==='run'){p.runT=(p.runT||0)+dt;if(p.runT>40&&Math.hypot(e.pos.x-p.from.x,e.pos.z-p.from.z)<LOST_D){/* wedged with the parcel: it's as good as gone */e.pos.set(p.exit.x,0,p.exit.z)}const d=Math.hypot(e.pos.x-p.from.x,e.pos.z-p.from.z);F.target={x:e.pos.x,z:e.pos.z,label:'Porch pirate'};
       if(Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z)<1.6){a.surrender(e);a.radio('Porch pirate',pick(LINES.give),true);drop(M,p);p.st='surr'}
       else if(d>LOST_D){M.lost++;const pk=M.porches[p.t];pk.state='lost';if(pk.mesh&&pk.mesh.parent)pk.mesh.parent.remove(pk.mesh);a.feed('Parcel lost','bad',M.lost+'/3');p.st='gone';vanish(M,p)}
       else if(!e.script)go(e,p.exit,4.4,()=>{})}
