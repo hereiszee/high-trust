@@ -359,6 +359,9 @@ function hud(st){const a=A();if(!a)return;fogLate(a);const on=F.on&&a.CV&&a.CV.t
 function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const dt=Math.min(.1,Math.max(0,a.simT-(S.simT||a.simT)));S.simT=a.simT;
   if(a.mode==='hub')ensure(a);
   const e=S.e;if(F.on&&(!e||a.CV!==e)){stop(a,e)}
+  /* a rental: left away from the apron and out of sight for 20 s, the Air Wing tows it home */
+  if(e&&a.CV!==e&&!F.on){const d=B().def(),far=Math.hypot(e.pos.x-d.jet.x,e.pos.z-d.jet.z)>30,away=a.camera.position.distanceTo(e.obj.position)>120;S.parkT=far&&away?(S.parkT||0)+(Math.min(.1,Math.max(0,a.simT-(S.homeT||a.simT)))):0;S.homeT=a.simT;
+    if(S.parkT>20){S.parkT=0;home(a,e);a.feed('The Air Wing towed the jet back to Hangar 2. It was a rental.','info')}}
   if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<140||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
@@ -380,6 +383,8 @@ hook();
 /* test hooks (dev/base-check.js) */
 Jet.state=()=>({e:!!S.e,on:F.on,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
+function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}e.obj.quaternion.setFromEuler(_e.set(0,d.jet.yaw+Math.PI/2,0,'YZX'));e.obj.position.y=0}
+Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};
 Jet.HB=HB;Jet.camera=dt=>camera(dt);
 /* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
 Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};

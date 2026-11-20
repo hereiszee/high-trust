@@ -161,6 +161,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
     await press('e');s=await st();ok(!s.car,'E gets out on the ground');
     /* eject: take off again, climb, hold E */
+    await ev(()=>HT.Jet.home());/* what the Air Wing does with a jet left far away (20 s out of sight) */
     await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
     {const h0=(await js()).hdg;await key('w',true);for(let i=0;i<300;i++){j=await js();let he=h0-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04);await key('ArrowUp',j.spd>42);if(j.air&&j.alt>12)break;await step(2)}await release()}
     await fly({to:[-100,d.runway.z],alt:110,max:200,until:q=>q.alt>80});
