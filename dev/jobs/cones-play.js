@@ -8,7 +8,6 @@ const SHOTS=!!arg('shots',false),FR=+arg('frames',16000),EVERY=+arg('every',60),
   OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/cones'));
 (async()=>{const {b,p,errs}=await open(TOUCH?{viewport:{width:844,height:390},dpr:1}:{});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
   if(THR){const c=await p.context().newCDPSession(p);await c.send('Emulation.setCPUThrottlingRate',{rate:THR});console.log('CPU throttled x'+THR)}
-  if(TOUCH)await p.addStyleTag({content:''});
   const shot=async(n,prep)=>{if(!SHOTS)return;if(prep)await ev(prep);
     await ev(async()=>{const H=window.__ht;for(let i=0;i<40&&H.assets&&H.assets.stream&&!H.assets.stream.idle();i++)await new Promise(r=>setTimeout(r,300))});
     await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});

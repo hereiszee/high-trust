@@ -51,6 +51,7 @@ const PLATE0='7HXK 418';
 
 /* ---------------- lines ---------------- */
 const L_={
+  hintTouch:"Plan view: the bird's-eye view. Post crew: put a man somewhere official.",
   brief:[['earl',"Thursday, 3:52. Industrial Way. Never late. Like me. I hate that I respect it."],
     ['earl',"Ninety seconds. Cones. Sawhorses. Your minivan. Whatever's lying around. Make a wall."],
     ['earl',"Sal says the cars in his lot are fair game. Customers' cars. Bring them back like you found them."]],
@@ -337,7 +338,7 @@ function buildTick(M,dt,F){const a=A(),S=res().props,P=a.P;pileSync(M);
   if(!M.paused)M.clock=Math.max(0,M.clock-dt);
   const t=M.clock,B={ph:'build',ttl:6};if(t<=62&&!M.said.stack&&once(M,'stackIdea'))say(M,L_.stack,false,B);if(t<=60&&once(M,'t60'))say(M,[L_.t60],false,B);if(t<=30&&once(M,'t30')){say(M,[L_.t30],false,B);music('tension',.6)}if(t<=10&&once(M,'t10'))say(M,[L_.t10],true,B);
   if(M.clock<=0)return startConvoy(M,false);
-  if(M.elapsed>6&&once(M,'hint'))a.feed(L_.hint,'info');
+  if(M.elapsed>6&&once(M,'hint'))a.feed(M.touch?L_.hintTouch:L_.hint,'info');
   /* carry + place */
   const c=P.carry;const carrying=c&&c.kind&&c.kind.startsWith('cz:');
   if(carrying&&!a.CV){const kind=c.kind.slice(3),f=fwd(P.yaw),want=M.planGo&&M.planGo.place?M.planGo:M.planOn&&M.planCursor?M.planCursor:null;
@@ -405,7 +406,7 @@ function crewBack(M){const a=A();restoreCrew(M.crew);if(RES)RES.crewOut=null;for
 /* ---------------- the planning view: a bird's-eye camera over the zone, click to walk and place ---------------- */
 function planToggle(M,on){const a=A();on=on==null?!M.planOn:!!on;if(M.planOn===on)return;M.planOn=on;M.planGo=null;
   /* the pointer stays locked (dropping it pauses the game): the mouse moves a cursor on the road, a click is the trigger (consumed) */
-  if(on){M.planCursor={x:a.P.pos.x,z:Math.max(ZONE.z0,Math.min(ZONE.z1,a.P.pos.z+8))};M.planYaw=a.P.yaw;M.planPitch=a.P.pitch;M.planClickT=.3;if(once(M,'planHint'))a.feed('Move the cursor, click: he walks there and puts it down. G posts a dad there.','info')}
+  if(on){M.planCursor={x:a.P.pos.x,z:Math.max(ZONE.z0,Math.min(ZONE.z1,a.P.pos.z+8))};M.planYaw=a.P.yaw;M.planPitch=a.P.pitch;M.planClickT=.3;if(once(M,'planHint'))a.feed(M.touch?'Tap the road: he walks there and puts it down.':'Move the cursor, click: he walks there and puts it down. G posts a dad there.','info')}
   else{a.P.yaw=M.planYaw!=null?M.planYaw:a.P.yaw;a.P.pitch=M.planPitch!=null?M.planPitch:a.P.pitch}
   cursorMesh(M,on);drawPlan(M);planOverlay(M)}
 function cursorMesh(M,on){const a=A(),T3=a.THREE,R=res();if(!R.cur&&on){const g=new T3.Group();const m=M_(new T3.MeshBasicMaterial({color:new T3.Color('#ffffff'),transparent:true,opacity:.9,depthWrite:false}));
@@ -435,6 +436,9 @@ function planOverlay(M){const a=A();if(typeof document==='undefined')return;cons
     el.innerHTML='<div style="font:700 11px/1 system-ui;letter-spacing:.14em;color:#ffb35c;margin-bottom:6px">PLANNING · INDUSTRIAL WAY</div><div class="cz-v" style="font:700 17px/1.25 system-ui;margin-bottom:6px"></div><div class="cz-g"></div>'+
       '<div style="margin-top:8px;color:#b8b4aa;font-size:12px"><b style="color:#fff">Click</b> the road: walk there, put it down · <b style="color:#fff">G</b> post a dad · <b style="color:#fff">Tab</b> back<br>Sell it with any two: the sign 4-50 m before the wall, a flagger with the paddle, a lit flare. Two cars wall to wall stop anyone.</div>'+
       '<div style="margin-top:8px;display:flex;gap:10px;font-size:11px;color:#cfcac0"><span><i style="display:inline-block;width:10px;height:10px;background:#e8473b;border-radius:2px"></i> car</span><span><i style="display:inline-block;width:10px;height:10px;background:#ff9a2e;border-radius:2px"></i> sawhorse/sign</span><span><i style="display:inline-block;width:10px;height:10px;background:#ffd84a;border-radius:2px"></i> cones/crew</span><span><i style="display:inline-block;width:10px;height:10px;background:#47e08a;border-radius:2px"></i> their way</span></div>';
+    /* short screens (phones): a compact strip under the meter, verdict and lines only */
+    if(innerHeight<520){el.style.cssText+=';left:50%;top:150px;transform:translateX(-50%);max-height:none;width:min(380px,calc(100vw - 32px));padding:8px 12px';for(const d of[...el.children].slice(3))d.style.display='none'}
+    if(M.touch){const h=el.children[3];if(h)h.innerHTML='<b style="color:#fff">Tap</b> the road: walk there, put it down · <b style="color:#fff">Post crew</b> sends a dad there · <b style="color:#fff">Plan view</b> back<br>Sell it with any two: the sign 4-50 m before the wall, a flagger with the paddle, a lit flare. Two cars wall to wall stop anyone.'}
     M.planEl=el;a.overlay('cz-plan',wrapEl);R.ov['cz-plan']=1}
   const pl=M.plan;if(!pl)return;const key=pl.verdict+'|'+pl.groups.map(g=>g.verdict+g.zc.toFixed(0)).join(',');if(M.planKey===key)return;M.planKey=key;
   M.planEl.querySelector('.cz-v').textContent=pl.text;
@@ -634,6 +638,7 @@ function wrapTick(M,dt,F){const a=A(),P=a.P,S=res().props;
   const back=M.lot.filter(e=>Math.hypot(e.pos.x-e.home.x,e.pos.z-e.home.z)>6);if(back.length)F.objs.push(["Return "+back.map(e=>e.name+"'s "+LOT[e.lot].label).join(', ')+" to Sal's lot (optional)",false]);
   /* Pepper rides along in whatever you drive, so the job only ends once she's home (or with Earl) */
   M.exitOpen=M.goatSt!=='follow';
+  M.def.endLine='Earl: Twenty converters back in twenty driveways. '+(M.goatSt==='home'?'A goat back in a yard. ':M.goatSt==='earl'?'A goat in my truck. Don\'t ask. ':'A goat still in a box truck. We\'ll talk about that. ')+(onRoad.length?'And '+onRoad.length+' of my cones still on Industrial Way. Pick up your cones.':'And not one cone on Industrial Way. Thursday.');
   if(M.goatSt==='truck')F.objs.push(['Pepper the goat needs a ride home (optional)',false])}
 /* the cones and the borrowed cars are settled as the job ends (end() never runs on a replay) */
 function settle(M){const a=A();if(M.settled)return;M.settled=true;
