@@ -270,3 +270,10 @@ test('catalogue is complete and consistent',()=>{
   const best=sum([0,1,2,3].map(i=>E.computePayout({mission:i,ok:true,cuffs:4,confiscated:3,allyDowns:0,got:4,elapsed:100,timeLeft:60,bossDone:'cuffed',trust:80}).total));
   assert.ok(best>4500&&best<8000,'clean campaign pays '+best);
 });
+
+test('a Dadazon gun order is refunded when the armory unlocks the same gun first (no lost purchase)',()=>{
+  fresh();const d=Save.data;d.cash=2000;d.prog.done[1]=true;
+  const r=E.buy('gun','smg','dadazon');assert.equal(r.ok,true);assert.equal(r.delivered,'pending');const paid=r.price,after=d.cash;
+  let u;for(let i=0;i<10&&!(u&&u.unlocked);i++)u=E.collectGun('smg');assert.equal(u.unlocked,true);
+  assert.equal(d.pending.length,0,'order cancelled');assert.equal(d.cash,after+paid,'paid price refunded');assert.ok(d.owned.guns.includes('smg'));
+});

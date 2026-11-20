@@ -565,7 +565,7 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   const oldCash=s.cash;s.cash-=st.price;s.stats.spent+=st.price;
   const deliverLater=STORES[store]&&STORES[store].deliver==='pending'&&(kind==='gun'||kind==='att'||kind==='furn');
   let ev=null;
-  if(deliverLater){s.pending.push({kind,id});}
+  if(deliverLater){s.pending.push(kind==='gun'?{kind,id,paid:st.price}:{kind,id});}
   else if(kind==='gun'){s.owned.guns.push(id);ev='boughtGun';autoSlot(id,s)}
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
@@ -610,8 +610,10 @@ function deliverPending(s){s=S(s);const got=s.pending.splice(0);
 function collectGun(id,s){s=S(s);if(!GUNS[id])return{unlocked:false};const need=GUNS[id].unlock.collect;
   s.armory.seen[id]=(s.armory.seen[id]||0)+1;
   let unlocked=false;if(need&&s.armory.seen[id]>=need&&!s.owned.guns.includes(id)){s.owned.guns.push(id);s.events.push('armory');unlocked=true;
-    s.pending=s.pending.filter(e=>!(e.kind==='gun'&&e.id===id))}
-  if(mine(s))Save.touch('armory','owned','events');
+    /* a Dadazon order for the same gun is cancelled: refund what was paid for it so the purchase isn't lost */
+    const refund=s.pending.filter(e=>e.kind==='gun'&&e.id===id).reduce((t,e)=>t+(+e.paid||0),0);
+    s.pending=s.pending.filter(e=>!(e.kind==='gun'&&e.id===id));if(refund>0){const old=s.cash;s.cash+=refund;s.stats.spent=Math.max(0,s.stats.spent-refund);if(mine(s))emit('cash',s.cash,old)}}
+  if(mine(s))Save.touch('armory','owned','events','pending');
   return{unlocked,n:s.armory.seen[id],need:need||0,name:GUNS[id].name}}
 
 /* Loadout rules (SPEC C.4) */
