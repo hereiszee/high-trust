@@ -33,7 +33,7 @@ async function pass(label,seed,unlockAll,base){const {b,p,errs}=await open(seed?
     const mine=[];const visit=(o,d)=>{for(const c of o.children){if(c.isCamera||c===H.P.dude?.root)continue;mine.push(c);if(d<2&&!c.isMesh&&c.children.length)visit(c,d+1)}};visit(H.scene,0);
     const sigs=mine.map(sig);let extra=[];if(base){const cnt=new Map();for(const x of base)cnt.set(x,(cnt.get(x)||0)+1);mine.forEach((o,i)=>{const k=sigs[i],c=cnt.get(k)||0;if(c>0){cnt.set(k,c-1);return}if(o.visible)extra.push(o)})}
     const shown=o=>{for(let n=o;n&&n!==H.scene;n=n.parent)if(!n.visible)return false;return true};/* a hidden parent hides it (job rings wait hidden) */
-    const people=new Set(H.npcs.map(n=>n.dude&&n.dude.root).filter(Boolean));const ofPerson=o=>{for(let n=o;n&&n!==H.scene;n=n.parent)if(people.has(n))return true;return false};
+    const people=new Set(H.npcs.flatMap(n=>[n.dude&&n.dude.root,n.ring]).filter(Boolean));/* people and their (non-solid) giver rings */const ofPerson=o=>{for(let n=o;n&&n!==H.scene;n=n.parent)if(people.has(n))return true;return false};
     for(const o of extra){if(!shown(o)||ofPerson(o))continue;const bb=new T.Box3().setFromObject(o);if(bb.isEmpty()||bb.max.y<.15)continue;/* decals and markings */if(bb.max.x-bb.min.x>30||bb.max.z-bb.min.z>30)continue;const h=onRoad(bb.min.x,bb.min.z,bb.max.x,bb.max.z);if(h)hits.push({kind:'job dressing',what:o.name||o.type,...h})}
     return{hits,sigs,edges:G.edges.length,done:H.MISSIONS.filter((m,i)=>H.prog.done[i]).length,givers:H.npcs.filter(n=>n.marker).length}},[unlockAll,base,LANE_HALF]);
   r.errs=errs.filter(e=>!/favicon/.test(e));await b.close();console.log('-- '+label+': '+r.edges+' road edges, '+r.done+' jobs done, '+r.givers+' givers, '+r.hits.length+' things on a carriageway');

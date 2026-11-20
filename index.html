@@ -4147,8 +4147,7 @@ function wmHubGivers(){const out=[],lines=[];
   setObj(L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights',lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'])}
 function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
   ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
-/* the finale waits until nothing story-wise is on offer: every built-in job done, and every registered story job done or still locked (a gate the player hasn't met, like Small Talk's zip-ties) */
-function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>prog.done[i]||(m.reg&&(m.repeatable||(typeof jrLock==='function'&&jrLock(m)))))&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
+function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>m.reg||prog.done[i])&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
 function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;jrHubEnter();
   const s=SV();if(prog.done[1]&&!WM.beat&&!(s&&s.flags.act2Intro)){WM.beat=true;prog.act=2;if(s){s.flags.act2Intro=true;s.world.bridgeOpen=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags','world')}
     setTimeout(()=>{if(mode!=='hub'||HUD.screen==='result')return;running=false;releaseLock();

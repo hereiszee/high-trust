@@ -551,6 +551,20 @@ function build(opts){opts=opts||{};
   const ci=(t,z)=>Math.floor(z/CHUNK)*CW+Math.floor(t/CHUNK);
   const put=(list,key,f)=>{for(const o of list){const[x,z]=f?f(o):[o.tx,o.tz];chunks[ci(Math.min(W-1,Math.max(0,Math.floor(x))),Math.min(H-1,Math.max(0,Math.floor(z))))][key].push(o)}};
   const mid=o=>[(o.x0+o.x1)/2,(o.z0+o.z1)/2];
+  /* kerbside parking (QA): a 'V' car stood on the carriageway's outer lane. Move it to the nearest stretch of plain sidewalk on either
+     side of its street (no lamp, porch or door), parallel to the kerb, wheels on the sidewalk, fully out of the carriageway, with grass or a
+     house wall behind it, clear of every place (givers, doors) and site ring. Second pass for blocks with a stoop every third tile: centred
+     between two clear sidewalk tiles (0.3 m over the next tile at the kerb edge, never a stoop); last, the strict rule further along the street. Deterministic; the order of def.parked (owners' names) stays. */
+  {const OKB='ghrA#BC',plc=Object.values(places),rng=Object.values(sites).map(s=>s.ring).filter(Boolean);
+   const clear=(x,z)=>!plc.some(q=>Math.hypot(q.x-x,q.z-z)<6)&&!rng.some(q=>Math.hypot(q.x-x,q.z-z)<q.r+3);
+   for(const p of parked){if(!(g[p.tz][p.tx]==='V'))continue;const horiz=g[p.tz][p.tx-1]!=='s'&&g[p.tz][p.tx+1]!=='s';if(!horiz)continue;
+     let best=null;
+     for(const pass of[0,1,2]){if(best)break;for(let dx=0;dx<=(pass===2?30:12)&&!best;dx++)for(const sx of dx?[dx,-dx]:[0])for(const side of[-1,1]){if(best)break;const cx=p.tx+sx;
+         let sz=p.tz;while(g[sz]&&!'slp'.includes(g[sz][p.tx])&&Math.abs(sz-p.tz)<4)sz+=side;if(!g[sz]||!g[sz+side]||g[sz][cx+1]===undefined)continue;
+         let x;if(pass!==1){if(g[sz].slice(cx-1,cx+2).join('')!=='sss'||[...g[sz+side].slice(cx-1,cx+2)].some(c=>!OKB.includes(c)))continue;x=tc(cx)}
+         else{if(g[sz].slice(cx,cx+2).join('')!=='ss'||g[sz][cx-1]==='p'||g[sz][cx+2]==='p'||[...g[sz+side].slice(cx,cx+2)].some(c=>!OKB.includes(c)))continue;x=(cx+1)*TILE}
+         const z=+(tc(sz)+side*.12).toFixed(2);if(!clear(x,z))continue;best={x,z,tx:cx,tz:sz}}}
+     if(best){g[p.tz][p.tx]=',';Object.assign(p,{tx:best.tx,tz:best.tz,x:best.x,z:best.z,kerb:true,aabb:{x0:best.x-2.3,z0:best.z-1.1,x1:best.x+2.3,z1:best.z+1.1}})}}}
   put(trees,'trees');put(lamps,'lamps');put(crates,'crates');put(tables,'tables');put(pumps,'pumps');put(parked,'parked');put(porches,'porches');
   put(houses,'houses',mid);put(rowUnits,'rowUnits',mid);put(walls,'walls',mid);put(warehouses,'warehouses',mid);put(chainlink,'chainlink',mid);
   put(hedges,'hedges',mid);put(rails,'rails',mid);put(G.buildings,'buildings',mid);put(water,'water',mid);put(tags,'tags');put(chalk,'chalk');put(trash,'trash');
