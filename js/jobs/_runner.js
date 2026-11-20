@@ -333,6 +333,65 @@ function bell(){const Au=HT.Audio;if(!Au||!Au.tone)return;Au.tone({f:2350,type:'
 /* the spoke card: brrrrr (a rattle whose rate follows the wheel) */
 function brrr(spd,dt,st){const Au=HT.Audio;if(!Au||!Au.tone||spd<1.2)return;st.t=(st.t||0)+dt*spd*3.2;if(st.t>1){st.t=0;Au.tone({f:180+spd*14,to:120,type:'square',d:.025,gain:Math.min(.07,.02+spd*.006)})}}
 
+/* ---------------------------------------------------------------- HT.Cast: young people on the wrong side of the dads, from a mixed pool
+   The owner's rule: never one look. A "teen" is built from several bases (the boy and girl neighbour models, the girl teen neighbour,
+   slim adult street-crew and neighbour models at 0.9-0.93, the family kids at ~1.2 so they read as teenagers, not as Tyler or Maddie),
+   with the CLOTHES recoloured (only texels on triangles skinned to the spine / clavicles = shirt, thighs = trousers, so skin and faces
+   are never touched) and sometimes a cap fitted to the head bone. Deterministic: the same seed ('bike:dez', 'hoa:lookout') is the same
+   person every time.
+     HT.Cast.teen(seed, {look}) -> HT.People character or null (model not loaded yet: preload HT.Cast.keys(seed) first)
+     HT.Cast.keys(seed, {look}) -> the People model keys that look needs     HT.Cast.LOOKS (ids)    HT.Cast.lookOf(seed) */
+const LOOKS={
+  kidTall:{base:'nb_kid',scale:1.12,shirt:'#2f6f4f',pants:'#2b3440',cap:'#1f2a44',tee:true},
+  kidRed:{base:'nb_kid',scale:1.1,shirt:'#b23a3a',pants:'#3a3a40',tee:true},
+  teenGirl:{base:'nb_teen',scale:.95,shirt:'#4b5d8a',pants:null},
+  sonTeen:{base:'son',scale:1.22,shirt:'#6a3f8c',pants:'#2c2f36',cap:'#d8d3c4'},
+  daughterTeen:{base:'daughter',scale:1.2,shirt:'#2f7f86',pants:'#33302c',cap:'#b8432f'},
+  slimBeanie:{base:'thug_beanie',scale:.91,shirt:'#c9a227',pants:'#3b3b44'},
+  slimTee:{base:'nb_kenji',scale:.92,shirt:'#3a3f4a',pants:'#5a6b80',cap:'#c0392b'},
+  slimSweater:{base:'nb_sweater',scale:.9,shirt:'#4d8a5a',pants:'#2e2e34',cap:'#2a2a30'},
+  slimHood:{base:'thug_brown',scale:.91,shirt:'#2b3550',pants:'#4a5a72',cap:'#c9302c'}};/* boot-loaded bases first for jobs that place their cast on start */
+const LOOK_IDS=Object.keys(LOOKS);
+const hashS=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
+const lookOf=(seed,o)=>LOOKS[o&&o.look]?o.look:LOOK_IDS[hashS(String(seed))%LOOK_IDS.length];
+const TEXC=new Map();
+/* a copy of the model's atlas with the shirt / trouser texels recoloured (luminance kept, hue and saturation from the target) */
+function recolour(mesh,shirt,pants,tee){const t=T(),mat=mesh.material,img=mat&&mat.map&&mat.map.image;if(!img||!img.width)return null;
+  const key=mat.map.uuid+'|'+shirt+'|'+pants+'|'+!!tee;if(TEXC.has(key))return TEXC.get(key);
+  const W=img.width,H=img.height,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(img,0,0);
+  /* the mask: UV triangles by their dominant bone */const m=document.createElement('canvas');m.width=W;m.height=H;const mg=m.getContext('2d');
+  const geo=mesh.geometry,uv=geo.attributes.uv,si=geo.attributes.skinIndex,sw=geo.attributes.skinWeight,idx=geo.index,bones=mesh.skeleton.bones;
+  if(!uv||!si||!sw)return null;const kind=b=>{const n=(bones[b]&&bones[b].name)||'';return /Spine|Clavicle/.test(n)||tee&&/Pelvis/.test(n)?1:/Thigh/.test(n)?2:0};/* tee: a long T-shirt hangs over the pelvis */
+  const SI=si.array,SW=sw.array,dom=v=>{let best=0,bw=-1;for(let k=0;k<4;k++){const w=SW[v*4+k];if(w>bw){bw=w;best=SI[v*4+k]}}return kind(best)};/* (r128: no getComponent) */
+  const n=idx?idx.count:uv.count,flip=mat.map.flipY===false;
+  for(const want of[1,2]){const col=want===1?shirt:pants;if(!col)continue;mg.fillStyle=want===1?'#f00':'#0f0';
+    for(let i=0;i<n;i+=3){const a=idx?idx.getX(i):i,b=idx?idx.getX(i+1):i+1,cc=idx?idx.getX(i+2):i+2;if(dom(a)!==want||dom(b)!==want||dom(cc)!==want)continue;
+      mg.beginPath();for(const[k,v]of[[0,a],[1,b],[2,cc]]){const x=uv.getX(v)*W,y=(flip?uv.getY(v):1-uv.getY(v))*H;k?mg.lineTo(x,y):mg.moveTo(x,y)}mg.closePath();mg.fill()}}
+  const D=g.getImageData(0,0,W,H),K=mg.getImageData(0,0,W,H).data,px=D.data;const tc=[shirt,pants].map(h=>h?new t.Color(h):null);
+  for(let i=0;i<px.length;i+=4){const r=K[i],gg=K[i+1];if(r<128&&gg<128)continue;const tg=r>=128?tc[0]:tc[1];if(!tg)continue;
+    const L=(.299*px[i]+.587*px[i+1]+.114*px[i+2])/255,k=.35+L*1.25;px[i]=Math.min(255,tg.r*255*k);px[i+1]=Math.min(255,tg.g*255*k);px[i+2]=Math.min(255,tg.b*255*k)}
+  g.putImageData(D,0,0);const tx=new t.CanvasTexture(c);tx.encoding=mat.map.encoding;tx.flipY=mat.map.flipY;tx.wrapS=mat.map.wrapS;tx.wrapT=mat.map.wrapT;tx.anisotropy=4;TEXC.set(key,tx);return tx}
+/* a simple cap: a crown and a brim, fitted to the head bone in the bind pose */
+function capOn(d,hex){const t=T(),B=d.rb&&(d.rb.body||d.body)||d.root,head=B.getObjectByName('Bip01_Head');if(!head)return null;d.root.updateMatrixWorld(true);
+  const m=CAPM[hex]||(CAPM[hex]=new t.MeshStandardMaterial({color:lin(hex),roughness:.75}));const g=new t.Group();
+  const crown=new t.Mesh(new t.SphereGeometry(.105,14,8,0,6.283,0,Math.PI/2),m);crown.scale.set(1,.8,1.08);g.add(crown);
+  const brim=new t.Mesh(new t.CylinderGeometry(.075,.075,.012,14,1,false,0,Math.PI),m);brim.rotation.y=-Math.PI/2;brim.position.set(0,.004,.09);brim.scale.set(1,1,1.25);g.add(brim);
+  /* the top of the head, measured: the highest skinned vertices weighted to the head bone */
+  d.root.updateMatrixWorld(true);let top=null,cx=0,cz=0,n=0;const sc=d.root.scale.y||1,fq=d.root.getWorldQuaternion(new t.Quaternion());
+  d.root.traverse(m=>{if(!m.isSkinnedMesh||top||!/bodyhead/.test(m.material&&m.material.name||''))return;/* not the lashes/brows card mesh */const bi=m.skeleton.bones.indexOf(head);if(bi<0)return;const SI=m.geometry.attributes.skinIndex.array,SW=m.geometry.attributes.skinWeight.array,pos=m.geometry.attributes.position;
+    const pts=[],v=V(0,0,0);for(let i=0;i<pos.count;i++){let w=0;for(let k=0;k<4;k++)if(SI[i*4+k]===bi)w+=SW[i*4+k];if(w<.6)continue;v.fromBufferAttribute(pos,i);m.boneTransform(i,v);m.localToWorld(v);pts.push(v.clone())}
+    if(!pts.length)return;let my=-1e9;for(const q of pts)my=Math.max(my,q.y);const crown=pts.filter(q=>q.y>my-.06);for(const q of crown){cx+=q.x;cz+=q.z;n++}top={x:cx/n,y:my,z:cz/n}});
+  if(!top)return null;g.position.set(top.x,top.y-.035*sc,top.z);g.quaternion.copy(fq);g.scale.setScalar(sc*1.02);d.root.add(g);g.position.copy(d.root.worldToLocal(V(top.x,top.y-.035*sc,top.z)));
+  g.quaternion.identity();g.scale.setScalar(1.02);g.updateMatrixWorld(true);head.attach(g);
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+const CAPM={};
+function teen(seed,o){o=o||{};const PPL=W.HT&&W.HT.People,id=lookOf(seed,o),L=LOOKS[id];if(!PPL||!PPL.ok||!PPL.has||!PPL.has(L.base))return null;let d=null;
+  try{d=PPL.make(L.base,{scale:L.scale})}catch(e){d=null}if(!d)return null;
+  d.root.traverse(m=>{if(!m.isSkinnedMesh||!m.material||Array.isArray(m.material)||!/bodyhead/.test(m.material.name||''))return;const tx=recolour(m,L.shirt,L.pants,L.tee);if(!tx)return;
+    const mm=m.material.clone();mm.map=tx;m.material=mm;(d._castMats||(d._castMats=[])).push(mm)});
+  if(L.cap)try{capOn(d,L.cap)}catch(e){}
+  d.castLook=id;return d}
+HT.Cast={teen,keys:(seed,o)=>[LOOKS[lookOf(seed,o)].base],lookOf,LOOKS,LOOK_IDS:LOOK_IDS.slice()};
 HT.Runner={_v:1,bike,spin,ride,release,unride,nav,make,playerBike,disposeBike,bell,brrr,points,FEEL,bikeStats,glue,rng,SIZES};
 if(J&&J.api)glue();
 })();
