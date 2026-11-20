@@ -56,7 +56,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const talkDone=()=>waitFor(()=>{const M=window.__ht.M;return M&&!M.chat},null,700);
   const skipLines=async n=>{for(let i=0;i<n;i++){await press('e',6)}};
   const at=(id)=>ev(id=>{const q=window.__ht.M.pp[id];return{x:q.pos.x,z:q.pos.z,yaw:q.yaw}},id);
-  const front=async(id,r)=>{const q=await at(id);return{x:q.x+Math.sin(q.yaw)*(r||1.1),z:q.z+Math.cos(q.yaw)*(r||1.1),r:.45}};
+  /* walk up from the street side (people turn to face somebody who walks up to them) */
+  const front=async(id,r)=>{const q=await at(id);return{x:q.x,z:q.z+(r||1.2),r:.4}};
   /* ---- 1. out of the van, and pick a disguise from the back ---- */
   await step(10);if(await ev(()=>!!window.__ht.CV)){await press('e',6);ok(!await ev(()=>!!window.__ht.CV),'E gets out of the van')}
   ok(await ev(()=>{const H=window.__ht,c=H.M.car;return Math.hypot(H.P.pos.x-c.pos.x,H.P.pos.z-c.pos.z)<4}),'the job starts beside the van');
@@ -82,7 +83,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await waitFor(()=>{const M=window.__ht.M;return M&&M.V&&M.V.choice},null,400);await shot('05-small-talk');const a1=await answer();console.log('     answered '+JSON.stringify(a1));
   await talkDone();const won=await ev(()=>window.__ht.M.talked);console.log('     talked '+JSON.stringify(won));
   /* ---- 3. Marco's ladder ---- */
-  await walk([{x:352,z:42.2},{x:358,z:42.3}]);const mr=await front('marco',1.0);await walk([mr]);await face((await at('marco')).x,(await at('marco')).z);await press('e',6);
+  await walk([{x:352,z:42.2},{x:358,z:42.3}]);const mr=await front('marco',1.3);await walk([{x:mr.x,z:42.6},mr]);await face((await at('marco')).x,(await at('marco')).z);await press('e',6);
   await answer(0);await talkDone();const lo=await ev(()=>window.__ht.M.ladderOn);ok(lo,"Marco asks for a hand and the ladder job starts");
   await walk([{x:361.8,z:39.85,r:.35}]);await face(361.4,38.6);await p.keyboard.down('e');for(let i=0;i<60;i++){await step(2);if(i===40)await shot('06-hold-the-ladder',[364.6,1.9,42.6,360.8,1.9,38.7])}await p.keyboard.up('e');await step(4);
   const af=await waitFor(()=>window.__ht.M.archFixed,null,120);ok(af,'holding E fixes the arch ("balloon emergency" learned)');await step(150);
@@ -98,13 +99,13 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     const cancelled=await ev(w=>!window.__ht.M.D.timers[w],who);ok(ch===who&&cancelled,'walking up and talking to '+who+' cancels their "…"');await answer();await talkDone()}
   await step(60);
   /* ---- 6. Vince's photo op (a real click when he smiles) ---- */
-  const vf=await front('vince',1.1);await walk([{x:362,z:42.6},vf]);const vq=await at('vince');await face(vq.x,vq.z);await press('e',6);await answer(0);await talkDone();
+  const vf=await front('vince',1.3);await walk([{x:362,z:42.6},{x:vf.x,z:42.6},vf]);const vq=await at('vince');await face(vq.x,vq.z);await press('e',6);await answer(0);await talkDone();
   const pst=await ev(()=>window.__ht.M.photo&&window.__ht.M.photo.st);ok(pst==='walk','Vince sends you to the photo spot');
   await walk([{x:358,z:42.35,r:.4}]);await face(358,39.3);const aim=await waitFor(()=>window.__ht.M.photo&&window.__ht.M.photo.st==='aim',null,200);ok(aim,'standing on the spot raises the viewfinder');
   let shotOk=false;for(let i=0;i<120&&!shotOk;i++){const q=await ev(()=>{const ph=window.__ht.M.photo;return ph&&ph.q});if(q>.68&&q<.82){await shot('09-photo-op');await p.mouse.down();await p.mouse.up();await step(2);shotOk=true}else await step(1)}
   const vip=await waitFor(()=>window.__ht.M.vip,null,60);ok(vip,'a left click (under pointer lock) takes the photo: VIP');await skipLines(2);await step(90);
   /* ---- 7. a raffle ticket ---- */
-  const kf=await front('kev',1.0);await walk([kf]);await face((await at('kev')).x,(await at('kev')).z);await press('e',6);await answer(0);await talkDone();ok(await ev(()=>window.__ht.M.ticket),'Kev sells a raffle ticket (#407)');
+  const kf=await front('kev',1.25);await walk([{x:kf.x,z:42.4},kf]);await face((await at('kev')).x,(await at('kev')).z);await press('e',6);await answer(0);await talkDone();ok(await ev(()=>window.__ht.M.ticket),'Kev sells a raffle ticket (#407)');
   /* ---- 8. Denise ---- */
   await walk([{x:358,z:40.3},{x:358,z:36.6},{x:357.6,z:34.3},{x:356.6,z:33.5,r:.4}]);const dq=await at('denise');await face(dq.x,dq.z);await press('e',6);
   await waitFor(()=>{const M=window.__ht.M;return M&&M.V&&M.V.choice},null,300);await shot('10-denise');
