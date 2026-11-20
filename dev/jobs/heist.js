@@ -9,7 +9,7 @@ const {open}=require('../ai-ingame-lib.js'),path=require('path'),fs=require('fs'
 const arg=(k,d)=>{const a=process.argv.find(x=>x.startsWith('--'+k+'='));return a?a.split('=')[1]:process.argv.includes('--'+k)?true:d};
 const SHOTS=!!arg('shots',false),TOUCH=!!arg('touch',false),OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/heist'));
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
-(async()=>{const {b,p,errs}=await open(TOUCH?{viewport:{width:844,height:390},dpr:2}:{});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
+async function session(main,app){const {b,p,errs}=await open(TOUCH?{viewport:{width:844,height:390},dpr:2}:{});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
   if(SHOTS)await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}for(let i=0;i<60&&H.assets.stream&&!H.assets.stream.idle();i++)await new Promise(r=>setTimeout(r,500))});
   /* a placed camera for framing shots (the job's camera hook returns undefined; ours is a system hook used only here) */
@@ -22,9 +22,19 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const until=(cond,max,o)=>ev(([cond,max,o])=>{const H=window.__ht,a=H.jobs.api,j=H.jobs.registry.get('heist'),f=new Function('M','H','return '+cond);let t=0;
     for(;t<max&&H.M&&H.M.state==='go'&&!f(H.M,H);t++){j.test.step(a,(window.__T=(window.__T||0)+1),o||{});H.P.hp=Math.max(H.P.hp,60);H.step(1)}for(const k of['w','a','s','d','e'])H.keys[k]=false;return{t,ok:!!(H.M&&f(H.M,H))}},[cond,max,o]);
   const shot=async(n,cam)=>{if(!SHOTS)return;await ev(c=>{window.__cam=c||null},cam||null);
-    if(/brief|result|plan/.test(n)){await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false})}
-    await ev(()=>{const H=window.__ht;H.ow&&H.ow.buildAll&&H.ow.buildAll();H.step(1);H.draw()});await p.screenshot({path:path.join(OUT,(TOUCH?'touch-':'')+n+'.jpg'),type:'jpeg',quality:82});await ev(()=>{window.__cam=null})};
+    if(true){await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(/brief|result|plan/.test(n)?700:1500);await ev(()=>{window.__rafOn=false})}
+    await ev(()=>{const H=window.__ht,O=window.HT.OpenWorld;try{O.buildAll();O.update(H.camera,1/30)}catch(e){console.warn(e)}H.step(1);try{O.buildAll();O.update(H.camera,1/30)}catch(_){}H.draw()});await p.screenshot({path:path.join(OUT,(TOUCH?'touch-':'')+n+'.jpg'),type:'jpeg',quality:82});await ev(()=>{window.__cam=null})};
   const keyHold=async(k,frames)=>{await p.keyboard.down(k);await step(frames);await p.keyboard.up(k)};
+  async function branchRun(app){await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('heist');j.test.give(H.jobs.api);await Promise.race([window.HT.People.preload(H.jobs.castKeys('heist')).catch(()=>{}),new Promise(r=>setTimeout(r,30000))]);H.jobs.start('heist');H.step(4)});
+    let r=await until("M.stage0==='job'",6000,{app});ok(r.ok,app+': planned and started');await step(30);await shot('20-'+app+'-start');let s;
+    if(app==='bluff'){r=await until('M.ch&&M.bluffR>=1',1500,{app});await shot('21-bluff-talk',null);r=await until('M.bluffDone',2000,{app});s=await st();ok(r.ok,'bluff finished ('+(s.loud?'went loud':'Dwayne bought it')+')');
+      r=await until('M.truckIn&&M.loaded>=2',4000,{app});await shot('22-bluff-loading',[244.5,2.1,147.6,256,.7,148.6])}
+    else{r=await until('M.truckIn',3000,{app});await step(40);await tp(244.5,148.3);await look(256,148.4,-.12);await step(2);await shot('21-loud-fight');
+      r=await until("M.stage0==='getaway'&&M.truck.pos.x<205.5&&M.chasers&&M.chasers.some(c=>!c.gone&&Math.hypot(c.c.x-M.truck.pos.x,c.c.z-M.truck.pos.z)<45)",8000,{app});
+      const cc=await ev(()=>{const M=window.__ht.M,e=M.truck,c=M.chasers.find(c=>!c.gone)||M.chasers[0];const fx=-Math.sin(e.yaw),fz=-Math.cos(e.yaw),rx=Math.cos(e.yaw),rz=-Math.sin(e.yaw);return[e.pos.x+fx*6+rx*7,4.5,e.pos.z+fz*6+rz*7,(e.pos.x+c.c.x)/2,.8,(e.pos.z+c.c.z)/2]});await shot('22-loud-chase',cc)}
+    r=await until("M.state!=='go'",12000,{app});s=await st();ok(s.state==='won',app+' run won');await step(40);await shot('23-'+app+'-result');
+    const bad=errs.filter(e=>!/favicon/.test(e));ok(!bad.length,app+': no console errors'+(bad.length?': '+bad.slice(0,5).join(' | '):''));await b.close()}
+  if(!main)return branchRun(app);
   /* ---- start ---- */
   await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('heist');j.test.give(H.jobs.api);await Promise.race([window.HT.People.preload(H.jobs.castKeys('heist')).catch(()=>{}),new Promise(r=>setTimeout(r,30000))]);H.jobs.start('heist');H.step(4)});
   let s=await st();ok(s&&s.s0==='scope','job started in the scope stage');
@@ -75,27 +85,22 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await tp(262,148.4);await look(262,150,-.15);await keyHold('e',80);await step(60);s=await st();ok(s.lock==='cut','held E at unit 47: padlock cut, door up');
   await shot('10-job-unit-open',[258.2,2.3,145.6,262,1,149.4]);
   r=await until('M.truckIn',2400);ok(r.ok,'the driver backed the truck in');
-  await shot('11-job-truck-in',[245,4.2,144.4,256,.8,148.6]);
+  await tp(258.6,147.2);await look(250,148.2,-.2);await step(3);await shot('11-job-truck-in');
   await ev(()=>{const H=window.__ht,M=H.M,t=M.it.find(t=>t.state==='pile');H.P.pos.set(t.x,0,t.z-.3);H.P.yaw=Math.atan2(-(t.x-H.P.pos.x),-(t.z-H.P.pos.z))});await keyHold('e',30);s=await st();ok(s.carry>=1,'held E at the pile: carrying '+s.carry);
   await ev(()=>{const H=window.__ht,M=H.M,R={x:M.truck.pos.x+Math.sin(M.truck.yaw)*3.3,z:M.truck.pos.z+Math.cos(M.truck.yaw)*3.3};H.P.pos.set(R.x+1.6,0,R.z);H.P.yaw=Math.PI/2;H.P.pitch=-.1});await step(3);await shot('12-job-carrying');
   const n0=await ev(()=>window.__ht.M.loaded);await ev(()=>{const H=window.__ht,M=H.M,e=M.truck,S=H.jobs.api.carSize(e);H.P.pos.set(e.pos.x+Math.sin(e.yaw)*(S.l/2+.75),0,e.pos.z+Math.cos(e.yaw)*(S.l/2+.75))});await step(2);
   await p.keyboard.press('e');await step(3);const n1=await ev(()=>window.__ht.M.loaded);ok(n1>n0,'E at the back of the truck: loaded ('+n0+' -> '+n1+')');
-  r=await until('M.cr.lifter&&M.cr.lifter.st==="carry"',900);await shot('13-job-lifter',[257,2.6,145.2,254,1,148.4]);
+  r=await until('M.cr.lifter&&M.cr.lifter.st==="carry"',900);await shot('13-job-lifter',[244.5,2.1,147.6,256,.7,148.6]);
   r=await until('M.hide',1500);if(r.ok)await shot('14-job-hidden',[264,2.2,145,262,1,149.6]);
   r=await until("M.loaded>=12||M.stage0==='getaway'",6000);ok(r.ok,'loaded everything: '+JSON.stringify(await st()));
   r=await until("M.stage0==='getaway'&&H.CV",900);ok(r.ok,'in Ron\'s truck: the getaway');await step(30);await shot('15-getaway-drive');
   r=await until("M.state!=='go'",4000);s=await st();ok(s.state==='won','the truck made it to Gary\'s: won');await step(40);await shot('16-result-quiet');
   const res=await ev(()=>{const r=document.querySelector('.ht-result');return r?{h2:r.querySelector('h2').textContent,stats:[...r.querySelectorAll('.ht-stats b')].map(x=>x.textContent),lf:r.querySelectorAll('.htp-lf li').length}:null});
   ok(res&&res.lf===12&&res.stats.includes('Recovered'),'result card: headline, job stats and the Lost & Found list '+JSON.stringify(res));
-  /* ---- the bluff and the loud branch (the job's bot) ---- */
-  for(const app of['bluff','loud']){await ev(()=>{const H=window.__ht;H.HUD.hide('result');H.UIacts['result:go']&&H.UIacts['result:go']();H.step(3);H.jobs.start('heist');H.step(4)});
-    r=await until("M.stage0==='job'",6000,{app});ok(r.ok,app+': planned and started');await step(30);await shot('20-'+app+'-start');
-    if(app==='bluff'){r=await until('M.ch&&M.bluffR>=1',1500,{app});await shot('21-bluff-talk',null);r=await until('M.bluffDone',2000,{app});s=await st();ok(r.ok,'bluff finished ('+(s.loud?'went loud':'Dwayne bought it')+')');
-      r=await until('M.truckIn&&M.loaded>=2',4000,{app});await shot('22-bluff-loading',[247,3.6,143.6,258,1,148.6])}
-    else{r=await until('M.truckIn',3000,{app});await step(40);await shot('21-loud-fight',[236,4,143,252,1,148.4]);r=await until("M.stage0==='getaway'",8000,{app});await step(200);await shot('22-loud-chase')}
-    r=await until("M.state!=='go'",12000,{app});s=await st();ok(s.state==='won',app+' run won');await step(40);await shot('23-'+app+'-result')}
   /* ---- afterwards: free roam, the things on their owners' porches ---- */
   await ev(()=>{const H=window.__ht;H.HUD.hide('result');H.UIacts['result:go']&&H.UIacts['result:go']();H.step(6)});await tp(73.5,17.8);await look(73.4,21.2,-.25);await step(20);
   const home=await ev(()=>{const H=window.__ht,h=H.jobs.registry.get('heist').home;console.log(JSON.stringify({mode:H.mode,flags:(H.jobs.api.SV().flags||{}).heistReturned,built:h.built,n:h.list.length}));return h.list.length});ok(home>=3,'free roam: returned things on porches ('+home+')');await shot('30-homecoming-patel');
   const bad=errs.filter(e=>!/favicon/.test(e));ok(!bad.length,'no console errors'+(bad.length?': '+bad.slice(0,5).join(' | '):''));
-  await b.close();console.log(fails?fails+' FAILED':'all ok');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});
+  await b.close()}
+/* the quiet run with real input, then the bluff and the loud branch each in a fresh session */
+(async()=>{await session(true);for(const app of['bluff','loud'])await session(false,app);console.log(fails?fails+' FAILED':'all ok');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

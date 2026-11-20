@@ -21,11 +21,12 @@
 /* Good Fences result card: the Lost & Found list */
 .ht-result .htp-lf{margin:10px 0 4px}
 .ht-result .htp-lf .hk{font:700 12px/1 var(--ht-ui,system-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--fg2,#aaa);margin-bottom:8px}
-.ht-result .htp-lf ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 18px}
-.ht-result .htp-lf li{display:flex;align-items:baseline;gap:7px;font:600 12px/1.35 var(--ht-body,system-ui);color:var(--fg3,#8d939b)}
+.ht-result .htp-lf ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 14px}
+.ht-result .htp-lf li{display:flex;align-items:baseline;gap:6px;font:600 11px/1.3 var(--ht-body,system-ui);color:var(--fg3,#8d939b)}
 .ht-result .htp-lf li i{flex:none;width:9px;height:9px;border-radius:2px;box-shadow:inset 0 0 0 1.5px currentColor;transform:translateY(1px)}
 .ht-result .htp-lf li.ok{color:var(--fg,#eee)}.ht-result .htp-lf li.ok i{background:var(--leaf,#8fd18a);box-shadow:none}
-.ht-result .htp-lf li em{margin-left:auto;font-style:normal;font-weight:500;color:var(--fg3,#8d939b);white-space:nowrap}
+.ht-result .htp-lf li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ht-result .htp-lf li em{display:none}
+.ht-result .htp-lf li:hover em{display:inline}
 @media (max-width:720px){.ht-result .htp-lf ul{grid-template-columns:1fr}}
 /* desktop: everything on one screen at 1280×720 (roles left, gear and the forecast right, the approach across the bottom) */
 @media (min-width:900px){

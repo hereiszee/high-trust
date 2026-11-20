@@ -218,7 +218,7 @@ function mats(M){if(M.vis.m)return M.vis.m;const m={steel:mat(M,'#9aa3a8',{rough
   orange:mat(M,'#e2642a',{roughness:.45}),red:mat(M,'#c63a2e',{roughness:.45}),blue:mat(M,'#2f86d6',{roughness:.45}),green:mat(M,'#3b8a3f',{roughness:.5}),yellow:mat(M,'#f0c228',{roughness:.45}),
   brass:mat(M,'#d6a640',{roughness:.25,metalness:.85}),wood:mat(M,'#8a6640',{roughness:.85}),card:mat(M,'#c49a64',{roughness:.9}),white:mat(M,'#f0eee8',{roughness:.6}),skin:mat(M,'#f0c8a8',{roughness:.6}),
   al:mat(M,'#c9ced2',{roughness:.3,metalness:.65}),kayak:mat(M,'#f2b01e',{roughness:.35}),cream:mat(M,'#ece4d0',{roughness:.5}),door:mat(M,'#e8611c',{roughness:.5,metalness:.3}),
-  blanket:mat(M,'#3b5f9a',{roughness:.95}),interior:mat(M,'#0d0e10',{roughness:1}),pine:mat(M,'#5b7d4a',{roughness:.9})};return M.vis.m=m}
+  blanket:mat(M,'#3b5f9a',{roughness:.95}),interior:mat(M,'#232428',{roughness:1}),pine:mat(M,'#5b7d4a',{roughness:.9})};return M.vis.m=m}
 
 /* ---------------- props: the twelve things ---------------- */
 function itemMesh(M,it){const T3=A().THREE,g=new T3.Group(),m=mats(M),P=(...a)=>part(M,g,...a);
@@ -258,7 +258,7 @@ function ladderMesh(M,len){const T3=A().THREE,g=new T3.Group(),m=mats(M);len=len
 function buildDoor(M){const a=A(),T3=a.THREE,m=mats(M),g=new T3.Group();g.name='heistUnit47';a.wmAdd(g);const u=S_.u47,W=3.32,H=2.46;
   const dt=canvasTex(M,128,256,(c,w,h)=>{c.fillStyle='#e8611c';c.fillRect(0,0,w,h);for(let y=0;y<h;y+=10){c.fillStyle='rgba(0,0,0,.16)';c.fillRect(0,y,w,2);c.fillStyle='rgba(255,255,255,.08)';c.fillRect(0,y+3,w,1)}
     c.fillStyle='#d8d8d8';c.fillRect(54,h-26,20,12);c.fillStyle='#1a1a1a';c.font='bold 30px Arial';c.textAlign='center';c.fillText('47',w/2,40)});
-  const dm=own(M,new T3.MeshStandardMaterial({map:dt,roughness:.5,metalness:.3,side:T3.DoubleSide}));
+  const dm=own(M,new T3.MeshStandardMaterial({map:dt,roughness:.5,metalness:.3,side:T3.DoubleSide}));M.vis.interiorCol='#1c1d20';
   const pg=own(M,new T3.PlaneGeometry(W,H));pg.translate(0,-H/2,0);const door=new T3.Mesh(pg,dm);door.position.set(u.x,H+.04,u.z-.1);door.rotation.y=Math.PI;door.receiveShadow=true;g.add(door);
   const ig=own(M,new T3.PlaneGeometry(W-.02,H-.02));const inner=new T3.Mesh(ig,m.interior);inner.position.set(u.x,H/2+.04,u.z-.08);inner.rotation.y=Math.PI;g.add(inner);inner.visible=false;
   const roll=part(M,g,'cyl',m.door,u.x,H+.02,u.z-.25,.16,W,.16,0,0,Math.PI/2);roll.visible=false;
@@ -267,6 +267,20 @@ function buildDoor(M){const a=A(),T3=a.THREE,m=mats(M),g=new T3.Group();g.name='
   /* the back of the pile, visible once it's open: boxes stacked to the ceiling */
   const back=new T3.Group();for(let i=0;i<6;i++)part(M,back,'box',i%2?m.card:mat(M,'#b88d5a',{roughness:.9}),u.x-1.1+(i%3)*1.1,.32+Math.floor(i/3)*.62,u.z-.42,.9,.6,.5,0,(i*.37)%.3-.15,0);back.visible=false;g.add(back);
   M.vis.door={g,door,inner,roll,lock,back,H,k:0}}
+/* the lot at night: a wall pack over the main aisle, the office door light, the pole lamp on the east aisle, a bare bulb inside 47 */
+function buildLights(M){const a=A(),T3=a.THREE,g=new T3.Group();g.name='heistLights';a.wmAdd(g);M.vis.lights=[];const m=mats(M);
+  const glowT=canvasTex(M,128,128,(c,w,h)=>{const r=c.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(.45,'rgba(255,255,255,.32)');r.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=r;c.fillRect(0,0,w,h)});
+  const pg=own(M,new T3.PlaneGeometry(1,1));pg.rotateX(-Math.PI/2);
+  const pool=(x,z,sx,sz,col,op)=>{const q=new T3.Mesh(pg,own(M,new T3.MeshBasicMaterial({map:glowT,color:new T3.Color(col),transparent:true,opacity:op,depthWrite:false,blending:T3.AdditiveBlending,toneMapped:false,fog:false,polygonOffset:true,polygonOffsetFactor:-4})));q.position.set(x,.05,z);q.scale.set(sx,1,sz);q.renderOrder=2;g.add(q);return q};
+  const lamp=(x,y,z,col,i,d)=>{const l=new T3.PointLight(col,i,d,1.6);l.position.set(x,y,z);g.add(l);M.vis.lights.push({l,i});return l};
+  const bulb=(x,y,z,w,h,dd)=>{const b=new T3.Mesh(G(M).box,own(M,new T3.MeshBasicMaterial({color:new T3.Color(2.3,2.05,1.6),toneMapped:false})));b.scale.set(w,h,dd);b.position.set(x,y,z);g.add(b)};
+  part(M,g,'box',m.dark,238,2.95,146.12,.36,.26,.22);bulb(238,2.84,146.24,.28,.06,.06);lamp(238,2.7,146.8,0xffe2b0,1.7,11);pool(238,147.8,8,5,'#ffe7c0',.22);
+  bulb(215,2.62,150.06,.2,.05,.06);lamp(215,2.5,149.6,0xfff0d0,1.1,7);pool(215,148.6,4.4,3.4,'#fff0d0',.2);
+  lamp(268.6,6.2,140,0xdfe8ff,1.5,14);pool(267.5,140,8,8,'#e3ecff',.14);
+  M.vis.unitBulb=lamp(262,2.2,150.2,0xffc070,0,8);M.vis.unitPool=pool(262,148.9,4.6,3.2,'#ffcf8a',0);
+  part(M,g,'box',m.dark,251,2.95,146.12,.36,.26,.22);bulb(251,2.84,146.24,.28,.06,.06);lamp(251,2.7,146.8,0xffe2b0,1.6,10);pool(251,147.8,7,4.6,'#ffe7c0',.2)}
+function lightsTick(M){const k=window.NIGHT?Math.max(.15,window.NIGHT.k!=null?window.NIGHT.k:1):1;for(const o of M.vis.lights||[])o.l.intensity=o.i*k;
+  const open=(M.vis.door&&M.vis.door.k||0);if(M.vis.unitBulb)M.vis.unitBulb.intensity=2.4*open*k;if(M.vis.unitPool)M.vis.unitPool.material.opacity=.3*open;if(M.unitLight)M.unitLight.on=open>.5}
 function setDoor(M,k){const D=M.vis.door;if(!D)return;D.k=k;D.door.scale.y=Math.max(.03,1-k);D.door.visible=k<.99;D.inner.visible=k>.01;D.back.visible=k>.3;D.roll.visible=k>.05;D.lock.visible=M.lock!=='cut'}
 function buildTruck(M){const a=A(),T3=a.THREE;const obj=a.makeVehicle('workvan','#f1efe9')||a.makeVanBox('#f1efe9');a.wmAdd(obj);const S=a.carSize({obj});
   const st=canvasTex(M,512,128,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#1f4c8a';c.font='900 64px "Arial Narrow",Arial';c.textAlign='center';c.fillText("RON'S MOVING",w/2,64);c.fillStyle='#e8611c';c.fillRect(60,76,w-120,6);
@@ -481,13 +495,14 @@ function beginJob(M,fromLoad){const a=A(),P=a.P,app=M.plan&&M.plan.entry||'quiet
   if(a.CV)try{a.exitCar()}catch(_){}
   const V=a.VAN;if(V&&V.pos){V.pos.set(S_.stage.van.x,0,S_.stage.van.z);V.yaw=S_.stage.van.yaw;V.spd=0;if(V.car){V.car.spd=0;V.car.x=V.pos.x;V.car.z=V.pos.z;V.car.yaw=V.yaw}a.syncCar(V);M.car=V}
   P.pos.set(S_.stage.you.x,0,S_.stage.you.z);a.collide(P.pos,.35);P.yaw=gyaw(0,1);P.pitch=-.1;
+  M.q.length=0;/* nothing left over from the afternoon */
   if(!fromLoad){a.banner(L.night[app].split(' · ')[0],L.night[app].split(' · ')[1],3.2);seq(M,L.jobOpen[app],3,{t:1.2})}
   jobInit(M);
   M.noGuns=app==='loud'?false:L.noGuns;
   if(app==='loud')goLoud(M,'planned');
   if(!fromLoad)a.CP.mark('job')}
 function jobInit(M){const a=A(),T3=a.THREE;if(M.jobbed)return;M.jobbed=true;const app=M.app;
-  buildDoor(M);setDoor(M,M.door||0);buildTruck(M);
+  buildDoor(M);setDoor(M,M.door||0);buildTruck(M);buildLights(M);
   M.gateCol=a.wmCol({x0:-999,z0:-999,x1:-999,z1:-999,s:'fence'});
   if(app==='bluff')setGate(M,1);else setGate(M,M.gateOpen?1:0);
   /* the twelve things */
@@ -515,7 +530,7 @@ function stealthInit(M){const a=A(),Sx=ST();if(!Sx||M.S)return;const T3=a.THREE;
   M.cams=S_.cams.map((c,i)=>{const yaw=[-2.356,2.356,.785,0][i]+Math.PI;/* the site's game yaws, turned to the stealth convention */const ses=M.tags.cams?S:S2;
     return ses.addObserver({id:'cam'+i,kind:'camera',pos:{x:c.x,z:c.z},yaw,eye:c.y,R:K.cam.R,half:K.cam.half,mul:K.cam.mul})});
   /* the lights over the aisles */
-  S.light({x:238,y:4,z:148,r:8,i:.8});S.light({x:269.3,y:6.5,z:140,r:9,i:.75});S.light({x:215,y:3,z:150.5,r:5,i:.9});
+  S.light({x:238,y:2.9,z:146.7,r:8,i:.8});S.light({x:251,y:2.9,z:146.7,r:6,i:.7});M.unitLight=S.light({x:262,y:2.2,z:150.2,r:3.2,i:.6,on:false});S.light({x:269.3,y:6.5,z:140,r:9,i:.75});S.light({x:215,y:3,z:150.5,r:5,i:.9});
   S2.lights.push(...S.lights);
   const paths=M.tags.board?[{pts:ROUTE.filter(s=>s.go).map(s=>({x:s.go[0],z:s.go[1]})),loop:true,color:'#ffe28a'}]:[];
   const grp=new T3.Group();grp.name='heistStealth';a.wmAdd(grp);M.vis.sg=grp;
@@ -849,7 +864,7 @@ J.register('heist',{
     switch(M.stage0){
       case'scope':scopeInit(M);scopeTick(M,F,dt);break;
       case'gear':case'plan':gearInit(M);if(M.board){F.objs.push(['The plan board is open',false]);for(const id of DADS){const p=M.crewP&&M.crewP[id];if(p)posePerson(p,dt)}break}gearTick(M,F,dt);break;
-      case'job':jobInit(M);gateTick(M,dt);jobTick(M,F,dt);break;
+      case'job':jobInit(M);gateTick(M,dt);lightsTick(M);jobTick(M,F,dt);break;
       case'getaway':jobInit(M);getawayTick(M,F,dt);break}
     M.score=M.loaded},
   /* [CP] what a stage needs to come back */
@@ -905,7 +920,7 @@ function applyLoad(M,s){const a=A();M.tags=s.tags||{};M.weird=s.weird||0;M.weird
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='heist'||M.state==='go'||M.resDone)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
   const won=M.state==='won',n=M.loaded||0;const h2=r.querySelector('h2');
   if(h2&&won)h2.textContent=n>=12?(M.ghost?'Nobody saw a thing. Everybody gets their stuff back.':'Loud, but everything came home.'):n+' of 12 came home. Gary has the rest on a spreadsheet.';
-  const stt=r.querySelector('.ht-stats');if(stt){const medal=stt.lastElementChild&&won?stt.lastElementChild.outerHTML:'';const secs=Math.round(M.elapsed||0);
+  const stt=r.querySelector('.ht-stats');if(stt){const medal=[...stt.children].filter(c=>{const b=c.querySelector('b');return b&&!/^(Neutralized|Zip-tied|Time|Trust)$/.test(b.textContent.trim())}).map(c=>c.outerHTML).join('');const secs=Math.round(M.elapsed||0);
     const crew=M.plan?['lookout','driver','lifter','distraction'].map(k=>M.plan.assign[k]?DADNAME[M.plan.assign[k]]+' '+'★'.repeat(starsOf(M,k,M.plan.assign[k])):'').filter(Boolean).join(' · '):'';
     const cell=(k,v,s)=>`<div><b>${k}</b><span class="ht-num">${v}</span>${s?`<small>${s}</small>`:''}</div>`;
     stt.innerHTML=cell('Recovered',n+'/12',n>=12?'every last one':'')+cell('Approach',M.app==='bluff'?'The bluff':M.app==='loud'?'Loud':M.app?'Quiet':'—',M.loud&&M.app!=='loud'?'it went loud':M.ghost&&M.app?'no alarm':'')+
@@ -943,6 +958,7 @@ function cleanup(M){if(!M||M.cleaned)return;M.cleaned=true;M.live=false;const a=
   try{if(M.viz)M.viz.dispose()}catch(_){}try{if(M.hud)M.hud.dispose()}catch(_){}M.viz=M.hud=null;
   try{if(M.S)M.S.dispose()}catch(_){}try{if(M.S2)M.S2.dispose()}catch(_){}M.S=M.S2=null;
   const v=M.vis||{};
+  for(const o of v.lights||[]){try{if(o.l.parent)o.l.parent.remove(o.l);if(o.l.dispose)o.l.dispose()}catch(_){}}
   if(v.vanLadder&&v.vanLadder.parent)v.vanLadder.parent.remove(v.vanLadder);if(v.dolly&&v.dolly.parent)v.dolly.parent.remove(v.dolly);
   for(const t of M.it||[])if(t.mesh&&t.mesh.parent)t.mesh.parent.remove(t.mesh);
   if(M.truck&&M.truck.obj){try{const ud=M.truck.obj.userData;if(ud.dispose)ud.dispose()}catch(_){}if(M.truck.obj.parent)M.truck.obj.parent.remove(M.truck.obj)}
