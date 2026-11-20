@@ -24,7 +24,7 @@ const K={dawn:840,clock0:190,clock1:300,/* real seconds to dawn; 3:10 AM -> 5:00
   treats:3,tossMin:3,tossMax:11,plap:3.2,tinyEat:6.5,chew:22,chain:5.6,barkCd:3,
   caughtR:1.3,seenMax:3.2,seenDecay:.6,
   walk:{walt:1.05,kyle:1.35,boss:1.25},run:{walt:2.5,kyle:3.7,boss:3.3},
-  carryMul:.62,leash:95,
+  carryMul:.74,leash:95,
   pay:{ghost:400,toy:50,ledger:150},trust:{ghost:8,tie:3}};
 const D2R=Math.PI/180,wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a},clamp=(v,a,b)=>v<a?a:v>b?b:v,hyp=Math.hypot;
 const yawTo=(dx,dz)=>Math.atan2(dx,dz);/* character convention: forward = (sin, cos) */
@@ -35,9 +35,9 @@ const Y={x0:417.2,x1:436.8,z0:112,z1:120.85,gateX0:424,gateX1:430,gateZ:121,gate
   trucks:[{id:'t1',x:421.3,z:114.05,yaw:-Math.PI/2,name:'the northwest truck'},{id:'t2',x:432.7,z:114.05,yaw:Math.PI/2,name:'the northeast truck'},
     {id:'t3',x:421.3,z:118.95,yaw:-Math.PI/2,name:'the southwest truck'},{id:'t4',x:432.7,z:118.95,yaw:Math.PI/2,name:'the southeast truck'}],
   chair:{x:426.1,z:119.85,yaw:Math.PI-.25},gateLight:{x:430.25,y:2.35,z:121.05},
-  floods:[{x:420,z:112.25,y:2.95},{x:434,z:112.25,y:2.95}],shopLight:{x:430,z:107.6,y:3.2},
+  floods:[{x:420,z:112.25,y:2.95,yaw:.5},{x:434,z:112.25,y:2.95,yaw:-.5}],/* aimed in at the middle aisle: the corridor ends stay dark */shopLight:{x:430,z:107.6,y:3.2},
   desk:{x:419.6,z:107.3},officeDoor:{x:421,z:111.4},bed:{x:432.2,z:108.9},bay:{x:428,z:104.6},
-  sign:{x:427,z:103.86,y:3.98,w:9,h:1.75},mount:{x:427.4,z:102.95},
+  sign:{x:427,z:103.86,y:3.98,w:9,h:1.75},mount:{x:423.6,z:102.95},
   tarp:{x:418.55,z:116.85},potty:{x:435.85,z:117.35},hole:{x:417,z:115.6},vault:{x:437,z:115.6},
   tyres:[{x:427.7,z:115.55,n:4},{x:425.9,z:118.55,n:3},{x:418.2,z:112.7,n:3}],drums:[{x:431.4,z:116.85},{x:430.7,z:117.3}],
   metal:[{x:427,z:119.55,w:1.6,d:1.1,yaw:.12},{x:424.4,z:116.6,w:1.3,d:1,yaw:-.3}],chains:[{x:434.6,z:116.1,w:1.2,d:.8}],gravel:{x0:423.6,z0:120.3,x1:430.6,z1:121.8}};
@@ -45,10 +45,11 @@ const Y={x0:417.2,x1:436.8,z0:112,z1:120.85,gateX0:424,gateX1:430,gateZ:121,gate
 const ROUTES={
   walt:[{sit:34},{go:[427,117.6]},{go:[419.8,116.6]},{look:3.2,a:-Math.PI/2,s:.9},{go:[427,116.6]},{go:[434.6,116.6]},{look:3,a:Math.PI/2,s:.9},{go:[427,116.4]},
     {go:[425.4,112.6]},{go:[421,112.55]},{act:'refill',t:6,a:Math.PI},{go:[425.4,112.6]},{go:[427,117.4]},{go:[Y.chair.x,Y.chair.z+.05]}],
-  kyle:[{go:[414.7,122.7]},{look:2.6,a:Math.PI/2,s:.8},{go:[427,122.75]},{look:2.2,a:Math.PI,s:.6},{go:[439.3,122.7]},{look:2.6,a:-Math.PI/2,s:.8},{go:[439.35,112.5]},{go:[439.3,102.7]},
-    {look:2.4,a:-Math.PI/2,s:.8},{go:[427,102.6]},{look:2,a:Math.PI,s:.5},{go:[414.7,102.7]},{look:2.4,a:Math.PI/2,s:.8},{go:[414.65,112.5]}],
+  /* Kyle: Dock St and the east side, there and back; from the NE corner his flashlight sweeps down Mill St (the sign), from the middle of Dock St it looks in through the gate */
+  kyle:[{go:[414.7,122.7]},{look:2.6,a:Math.PI/2,s:.7},{go:[427,122.75]},{look:2.2,a:Math.PI,s:.6},{go:[439.3,122.7]},{go:[439.35,112.5]},{go:[439.3,103]},{look:3.5,a:-Math.PI/2,s:.45},
+    {go:[439.35,112.5]},{go:[439.3,122.7]},{go:[427,122.75]},{look:1.6,a:Math.PI,s:.5}],
   boss:[{act:'desk',t:26},{go:[421,110.4]},{go:[421,112.5]},{go:[427.2,112.5]},{go:[429.4,110.4]},{go:[431.2,109.6]},{act:'pet',t:4.5},{go:[428.6,106.3]},{go:[428.2,105.1]},
-    {look:5,a:Math.PI,s:.7},{go:[428.6,106.6]},{go:[427.2,111.2]},{go:[427.2,112.5]},{go:[421,112.5]},{go:[421,110.4]},{go:[Y.desk.x+.9,Y.desk.z+.2]}]};
+    {look:5,a:Math.PI,s:.7},{go:[428.6,106.6]},{go:[427.2,111.2]},{go:[427.2,112.5]},{go:[421,112.5]},{go:[421,110.4]},{go:[Y.desk.x+.2,Y.desk.z+1]}]};
 const CAST={walt:{key:'nb_pops',name:'WALT',look:{shirt:'#4f6b8a',pants:'#3b3b3b',cap:'#24364d'}},kyle:{key:'thug_track',name:'KYLE',look:{shirt:'#e88a1a',pants:'#2b2b2b'}},
   boss:{key:'thug_jacket',name:'MANAGER',look:{shirt:'#2d2d33',pants:'#22252b'}}};
 const ORDER=['walt','kyle','boss'];
@@ -152,7 +153,7 @@ function buildYard(M){const a=A(),T3=a.THREE,g=new T3.Group();g.name='sabotageYa
   {const s=Y.mount;for(const u of[-.24,.24]){B(m.al,s.x+u,1.0,s.z+.25,.05,2.05,.05,0,.18);B(m.al,s.x+u,.95,s.z-.18,.05,1.95,.05,0,-.22)}for(let i=1;i<6;i++)B(m.al,s.x,i*.34,s.z+.25-i*.06,.5,.035,.08)}
   mergeParts(M,P,g);
   /* noisy ground: gravel decal at the gate, plus a faint amber outline on the plates/chains that the goggles pick out */
-  const gt=canvasTex(M,256,64,(c,w,h)=>{c.clearRect(0,0,w,h);for(let i=0;i<900;i++){const v=110+Math.random()*90|0;c.fillStyle=`rgba(${v},${v-6},${v-14},${.55+Math.random()*.4})`;c.beginPath();c.arc(Math.random()*w,Math.random()*h,.8+Math.random()*1.8,0,6.28);c.fill()}});
+  const gt=canvasTex(M,256,64,(c,w,h)=>{c.clearRect(0,0,w,h);for(let i=0;i<900;i++){const v=110+Math.random()*90|0;c.fillStyle=`rgba(${v*.42|0},${v*.4|0},${v*.37|0},${.35+Math.random()*.35})`;c.beginPath();c.arc(Math.random()*w,Math.random()*h,.8+Math.random()*1.8,0,6.28);c.fill()}});
   const gv=Y.gravel,gp=own(M,new T3.PlaneGeometry(gv.x1-gv.x0,gv.z1-gv.z0));gp.rotateX(-Math.PI/2);const gm=new T3.Mesh(gp,own(M,new T3.MeshStandardMaterial({map:gt,transparent:true,roughness:1,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2})));
   gm.position.set((gv.x0+gv.x1)/2,.015,(gv.z0+gv.z1)/2);gm.receiveShadow=true;g.add(gm);
   const hl=own(M,new T3.MeshBasicMaterial({color:new T3.Color(1,.62,.12),transparent:true,opacity:0,depthWrite:false,blending:T3.AdditiveBlending,toneMapped:false,fog:false}));M.vis.noisyMat=hl;
@@ -168,12 +169,12 @@ function buildYard(M){const a=A(),T3=a.THREE,g=new T3.Group();g.name='sabotageYa
   const pool=(x,z,sx,sz,col,op)=>{const mm=own(M,new T3.MeshBasicMaterial({map:glowT,color:new T3.Color(col),transparent:true,opacity:op,depthWrite:false,blending:T3.AdditiveBlending,toneMapped:false,fog:false,polygonOffset:true,polygonOffsetFactor:-4}));
     const q=new T3.Mesh(poolG,mm);q.position.set(x,.04,z);q.scale.set(sx,1,sz);q.renderOrder=2;g.add(q);return q};
   const q=H().render&&H().render.q,shadows=q==='high'||q==='med';M.vis.lights=[];
-  for(const f of Y.floods){const s=new T3.SpotLight(0xfff1d6,0,16,58*D2R,.45,1.3);s.position.set(f.x,f.y,f.z+.15);s.target.position.set(f.x,0,f.z+6.2);
+  for(const f of Y.floods){const s=new T3.SpotLight(0xfff1d6,0,16,46*D2R,.4,1.3);s.position.set(f.x,f.y,f.z+.15);s.target.position.set(f.x+Math.sin(f.yaw)*6,0,f.z+.15+Math.cos(f.yaw)*6);
     if(shadows){s.castShadow=true;s.shadow.mapSize.set(512,512);s.shadow.camera.near=.5;s.shadow.camera.far=16;s.shadow.bias=-.0008}g.add(s);g.add(s.target);M.vis.lights.push({l:s,i:3.2});
-    pool(f.x,f.z+4.2,9,8.5,'#fff0d0',.32);
+    {const pq=pool(f.x+Math.sin(f.yaw)*4.2,f.z+Math.cos(f.yaw)*4.2,8,7.5,'#fff0d0',.32);pq.rotation.y=f.yaw}
     const bg=own(M,new T3.CylinderGeometry(.18,3.6,f.y,20,1,true));bg.translate(0,-f.y/2,0);const bm=own(M,new T3.MeshBasicMaterial({map:glowT,color:new T3.Color('#fff2d8'),transparent:true,opacity:.07,depthWrite:false,blending:T3.AdditiveBlending,side:T3.DoubleSide,toneMapped:false,fog:false}));
-    const beam=new T3.Mesh(bg,bm);beam.position.set(f.x,f.y,f.z+.2);beam.rotation.x=-.55;beam.renderOrder=4;g.add(beam);
-    M.S.light({x:f.x,y:f.y,z:f.z+.15,r:10.5,i:.95,yaw:0,half:62*D2R})}
+    const beam=new T3.Mesh(bg,bm);beam.position.set(f.x,f.y,f.z+.2);beam.rotation.order='YXZ';beam.rotation.y=f.yaw;beam.rotation.x=-.55;beam.renderOrder=4;g.add(beam);
+    M.S.light({x:f.x,y:f.y,z:f.z+.15,r:10.5,i:.95,yaw:f.yaw,half:46*D2R})}
   {const gl=Y.gateLight,s=new T3.PointLight(0xffd9a0,0,8,1.6);s.position.set(gl.x-.3,gl.y,gl.z-.3);g.add(s);M.vis.lights.push({l:s,i:1.3});pool(gl.x-1.6,gl.z-1.4,6.5,5.5,'#ffd9a0',.3);
     const fx=[];B(m.dark,gl.x,gl.y,gl.z,.22,.16,.2);M.S.light({x:gl.x-.3,y:gl.y,z:gl.z-.3,r:5.2,i:.92});
     const lamp=new T3.Mesh(G.box,own(M,new T3.MeshBasicMaterial({color:new T3.Color(2.2,1.9,1.3),toneMapped:false})));lamp.scale.set(.18,.08,.14);lamp.position.set(gl.x-.12,gl.y-.06,gl.z-.12);g.add(lamp)}
@@ -241,17 +242,42 @@ function handProp(M,g,kind){const a=A(),T3=a.THREE,d=g.d;if(g.prop){if(g.prop.pa
   else if(kind==='thermos'){const b=new T3.Mesh(M.vis.hg.cyl,M.vis.m.thermos);b.scale.set(.05,.24,.05);p.add(b);const c=new T3.Mesh(M.vis.hg.cyl,M.vis.m.dark);c.scale.set(.052,.05,.052);c.position.y=.14;p.add(c);p.rotation.x=-Math.PI/2}
   d.gunHold.add(p);g.prop=p}
 function makeGuards(M){const a=A(),T3=a.THREE;M.vis.hg={cyl:own(M,new T3.CylinderGeometry(1,1,1,10))};M.vis.lens=own(M,new T3.MeshBasicMaterial({color:new T3.Color(2.4,2.2,1.8),toneMapped:false}));
-  M.g={};for(const id of ORDER){const c=CAST[id],R=ROUTES[id],s0=id==='walt'?{x:Y.chair.x,z:Y.chair.z+.05}:id==='kyle'?{x:427,z:122.75}:{x:Y.desk.x+.9,z:Y.desk.z+.2};
-    const d=person(M,c,s0.x,s0.z,0);const g={id,c,d,pos:{x:s0.x,z:s0.z},yaw:id==='walt'?Y.chair.yaw:id==='kyle'?-Math.PI/2:Math.PI,look:0,k:id==='kyle'?3:0,t:0,mode:'route',path:null,said:{},tied:false,speed:K.walk[id],sit:false,act:null,prop:null,lineT:0};
+  M.g={};for(const id of ORDER){const c=CAST[id],R=ROUTES[id],s0=id==="walt"?{x:Y.chair.x,z:Y.chair.z+.05}:id==="kyle"?{x:427,z:122.75}:{x:Y.desk.x+.2,z:Y.desk.z+1};
+    const d=person(M,c,s0.x,s0.z,0);const g={id,c,d,pos:{x:s0.x,z:s0.z},yaw:id==='walt'?Y.chair.yaw:id==='kyle'?Math.PI:Math.PI,look:0,k:id==='kyle'?3:0,t:0,mode:'route',path:null,said:{},tied:false,speed:K.walk[id],sit:false,act:null,prop:null,lineT:0};
     g.ob=M.S.addObserver({id,kind:'guard',pos:g.pos,yaw:g.yaw,lamp:id!=='walt',headY:1.9,handY:1.15});
     handProp(M,g,id==='walt'?null:'flash');M.g[id]=g}}
 /* walk toward (x,z) along the site nav when the straight line is blocked; true on arrival */
+/* is the straight segment clear of every collider (inflated by r)? */
+function segFree(x0,z0,x1,z1,r){const cs=A().L.colliders,dx=x1-x0,dz=z1-z0;
+  for(const c of cs){if(c.off||c.ob||c.x1-c.x0>40||c.z1-c.z0>40)continue;const bx0=c.x0-r,bx1=c.x1+r,bz0=c.z0-r,bz1=c.z1+r;if(Math.max(x0,x1)<bx0||Math.min(x0,x1)>bx1||Math.max(z0,z1)<bz0||Math.min(z0,z1)>bz1)continue;
+    let t0=0,t1=1,ok=true;for(let q=0;q<2&&ok;q++){const p=q?z0:x0,d=q?dz:dx,lo=q?bz0:bx0,hi=q?bz1:bx1;if(Math.abs(d)<1e-9){if(p<=lo||p>=hi)ok=false}else{let u0=(lo-p)/d,u1=(hi-p)/d;if(u0>u1){const w=u0;u0=u1;u1=w}if(u0>t0)t0=u0;if(u1<t1)t1=u1;if(t0>=t1)ok=false}}
+    if(ok)return false}return true}
+/* a fine (0.5 m) walk grid over the site and its sidewalks: the 2 m site nav can't see the 3 m corridor between the truck rows */
+const FN={x0:410,z0:99,x1:446,z1:127,c:.5};
+function fineGrid(M){const W=Math.round((FN.x1-FN.x0)/FN.c),Hh=Math.round((FN.z1-FN.z0)/FN.c),b=new Uint8Array(W*Hh),cs=A().L.colliders,r=.36;
+  for(const c of cs){if(c.off||c.ob||c.x1-c.x0>40||c.z1-c.z0>40)continue;const i0=Math.max(0,Math.floor((c.x0-r-FN.x0)/FN.c)),i1=Math.min(W-1,Math.floor((c.x1+r-FN.x0)/FN.c)),j0=Math.max(0,Math.floor((c.z0-r-FN.z0)/FN.c)),j1=Math.min(Hh-1,Math.floor((c.z1+r-FN.z0)/FN.c));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const cx=FN.x0+(i+.5)*FN.c,cz=FN.z0+(j+.5)*FN.c;if(cx>c.x0-r&&cx<c.x1+r&&cz>c.z0-r&&cz<c.z1+r)b[j*W+i]=1}}
+  M.fine={W,H:Hh,b}}
+function finePath(M,x0,z0,x1,z1){const F=M.fine;if(!F)return null;const W=F.W,Hh=F.H,c=FN.c,ix=x=>Math.floor((x-FN.x0)/c),iz=z=>Math.floor((z-FN.z0)/c);
+  let s=[ix(x0),iz(z0)],e=[ix(x1),iz(z1)];if(s[0]<0||s[1]<0||s[0]>=W||s[1]>=Hh||e[0]<0||e[1]<0||e[0]>=W||e[1]>=Hh)return null;
+  const free=(i,j)=>i>=0&&j>=0&&i<W&&j<Hh&&!F.b[j*W+i],near=p=>{if(free(p[0],p[1]))return p;for(let r=1;r<5;r++)for(let dj=-r;dj<=r;dj++)for(let di=-r;di<=r;di++)if(free(p[0]+di,p[1]+dj))return[p[0]+di,p[1]+dj];return null};
+  s=near(s);e=near(e);if(!s||!e)return null;const N=W*Hh,gS=new Float32Array(N).fill(1e9),par=new Int32Array(N).fill(-1),shut=new Uint8Array(N),open=[];const si=s[1]*W+s[0],ei=e[1]*W+e[0];gS[si]=0;open.push([0,si]);
+  const h=k=>Math.hypot(k%W-e[0],((k/W)|0)-e[1]);let n=0;
+  while(open.length&&n++<6000){let bi=0;for(let q=1;q<open.length;q++)if(open[q][0]<open[bi][0])bi=q;const cur=open[bi][1];open.splice(bi,1);if(shut[cur])continue;shut[cur]=1;if(cur===ei)break;
+    const ci=cur%W,cj=(cur/W)|0;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const ni=ci+di,nj=cj+dj;if(!free(ni,nj))continue;if(di&&dj&&(!free(ci+di,cj)||!free(ci,cj+dj)))continue;
+      const k=nj*W+ni,g2=gS[cur]+(di&&dj?1.414:1);if(g2<gS[k]){gS[k]=g2;par[k]=cur;open.push([g2+h(k),k])}}}
+  if(par[ei]<0&&si!==ei)return null;const raw=[];for(let k=ei;k!==si&&k>=0;k=par[k])raw.push({x:FN.x0+(k%W+.5)*c,z:FN.z0+(((k/W)|0)+.5)*c});raw.reverse();raw.push({x:x1,z:z1});
+  const pts=[];let cx=x0,cz=z0,i=0;while(i<raw.length){let j=raw.length-1;while(j>i&&!segFree(cx,cz,raw[j].x,raw[j].z,.25))j--;pts.push(raw[j]);cx=raw[j].x;cz=raw[j].z;i=j+1}return pts}
 function walkTo(M,g,x,z,sp,dt){const a=A(),nav=a.L&&a.L.nav;
-  if(!g.path||g.path.tx!==x||g.path.tz!==z){let pts=[{x,z}];if(nav&&nav.walkLine&&!nav.walkLine(g.pos.x,g.pos.z,x,z)&&nav.path){const r=nav.path(g.pos.x,g.pos.z,x,z);if(r&&r.pts&&r.pts.length)pts=r.pts.slice(1).concat([{x,z}])}g.path={tx:x,tz:z,pts,k:0,stuck:0,last:1e9}}
-  const P=g.path,t=P.pts[Math.min(P.k,P.pts.length-1)];if(hyp(t.x-g.pos.x,t.z-g.pos.z)<.45&&P.k<P.pts.length-1)P.k++;
+  if(!g.path||g.path.tx!==x||g.path.tz!==z){let pts=[{x,z}];
+    if(!segFree(g.pos.x,g.pos.z,x,z,.2)){const fp=finePath(M,g.pos.x,g.pos.z,x,z);if(fp&&fp.length)pts=fp;
+      else if(nav&&nav.path){const r=nav.path(g.pos.x,g.pos.z,x,z);if(r&&r.pts&&r.pts.length)pts=r.pts.slice(1).concat([{x,z}])}}
+    g.path={tx:x,tz:z,pts,k:0,stuck:0,last:hyp(x-g.pos.x,z-g.pos.z)}}
+  const P=g.path,t=P.pts[Math.min(P.k,P.pts.length-1)];if(hyp(t.x-g.pos.x,t.z-g.pos.z)<.4&&P.k<P.pts.length-1)P.k++;
   const dx=t.x-g.pos.x,dz=t.z-g.pos.z,l=hyp(dx,dz),dEnd=hyp(x-g.pos.x,z-g.pos.z);if(dEnd<.32){g.path=null;return true}
   if(l>1e-3){const s=Math.min(l,sp*dt);g.pos.x+=dx/l*s;g.pos.z+=dz/l*s;const v=a.V3(g.pos.x,0,g.pos.z);a.collide(v,.33);g.pos.x=v.x;g.pos.z=v.z;g.yaw+=wrap(yawTo(dx,dz)-g.yaw)*Math.min(1,dt*6)}
-  if(dEnd<P.last-.02){P.last=dEnd;P.stuck=0}else{P.stuck+=dt;if(P.stuck>2.5){g.path=null;return true}}return false}
+  /* stuck (pushed against something for 3 s without getting 0.3 m closer): give up on this stop */
+  P.stuck+=dt;if(dEnd<P.last-.3){P.last=dEnd;P.stuck=0}else if(P.stuck>3){g.path=null;return true}return false}
 function faceYaw(g,y,dt,r){g.yaw+=wrap(y-g.yaw)*Math.min(1,dt*(r||4))}
 function gLine(M,g,kind,force){const L_=L[kind]&&L[kind][g.id];if(!L_)return;if(!force&&M.t-(g.lineT||-99)<4)return;g.lineT=M.t;const txt=typeof L_==='string'?L_:pickN(L_,(g.said[kind]=(g.said[kind]||0)+1)-1);
   const P=A().P,d=hyp(g.pos.x-P.pos.x,g.pos.z-P.pos.z);if(d<34||force)say(M,g.c.name.charAt(0)+g.c.name.slice(1).toLowerCase(),txt,kind==='alert'||kind==='caught')}
@@ -309,7 +335,7 @@ function init(M){const a=A(),Sx=ST(),T3=a.THREE;if(!Sx||M.S)return!!M.S;M.vis=M.
   solid(Y.desk.x-.76,Y.desk.z-.38,Y.desk.x+.76,Y.desk.z+.38,.78);solid(418.3,109,418.8,109.6,1.3,'metal');
   /* the gate panel slid nearly shut: Walt leaves a crack so he can get to his car */
   a.wmCol({x0:417.95+Y.gateShift,x1:423.9+Y.gateShift,z0:Y.gateZ-.12,z1:Y.gateZ+.12,s:'fence'});/* the panel parks at x 417.95-423.9 when open */
-  a.wmSetWindow(a.wmWindow(427,113,13));
+  a.wmSetWindow(a.wmWindow(427,113,13));fineGrid(M);M.finePath=(x0,z0,x1,z1)=>finePath(M,x0,z0,x1,z1);
   makeGuards(M);makeTiny(M);
   const paths=ORDER.map(id=>({pts:ROUTES[id].filter(s=>s.go||s.sit).map(s=>s.go?{x:s.go[0],z:s.go[1]}:{x:Y.chair.x,z:Y.chair.z}),loop:true,color:id==='walt'?'#9fffb0':id==='kyle'?'#ffe28a':'#9fd6ff'}));
   M.viz=Sx.viz(S,{THREE:T3,parent:M.vis.g,paths});
@@ -330,7 +356,9 @@ function init(M){const a=A(),Sx=ST(),T3=a.THREE;if(!Sx||M.S)return!!M.S;M.vis=M.
   S.on('heard',(b,n)=>{if(n.kind==='hiss'&&b.kind==='guard'&&!M.said.hiss&&b.sus>.3){M.said.hiss=1;lineSeq(M,L.heardHiss,2.4);M.queue.push({t:5,fn:()=>{b.sus=Math.min(b.sus,.18);b.floorUntil=-1}})}});
   S.on('bark',(b,n)=>bark(M,n));
   return true}
-function placeRoll(M){const a=A(),c=M.car,r=M.vis.roll;if(!r||!c||M.sign)return;const f=[-Math.sin(c.yaw),-Math.cos(c.yaw)],S=a.carSize(c);r.position.set(c.pos.x-f[0]*(S.l/2-.5),.95,c.pos.z-f[1]*(S.l/2-.5));r.rotation.set(0,c.yaw+Math.PI/2,0);M.rollAt={x:c.pos.x-f[0]*(S.l/2+.7),z:c.pos.z-f[1]*(S.l/2+.7)}}
+function placeRoll(M){const a=A(),c=M.car,r=M.vis.roll;if(!r||!c||M.sign)return;const f=[-Math.sin(c.yaw),-Math.cos(c.yaw)],S=a.carSize(c);r.position.set(c.pos.x-f[0]*(S.l/2-.5),.95,c.pos.z-f[1]*(S.l/2-.5));r.rotation.set(0,c.yaw+Math.PI/2,0);
+  /* reach it from the kerb side by the back corner (the exit ring is on the kerb side) */
+  const ex=a.L.exit||{x:c.pos.x-f[0]*(S.l/2+.7),z:c.pos.z-f[1]*(S.l/2+.7)};M.rollAt={x:ex.x-f[0]*(S.l/2-.4),z:ex.z-f[1]*(S.l/2-.4)}}
 function makeTiny(M){const d=dogModel(M);A().wmAdd(d);const T={d,pos:{x:Y.bed.x,z:Y.bed.z},yaw:Math.PI*.15,st:'bed',t:0,alertT:0,barkT:-9,tx:0,tz:0};d.position.set(Y.bed.x,0,Y.bed.z);d.rotation.y=T.yaw;M.tiny=T;
   T.ob=M.S.addObserver({id:'tiny',kind:'dog',pos:T.pos,yaw:T.yaw,sight:false,headY:1.1})}
 
@@ -356,7 +384,8 @@ function radioTick(M,dt){const P=A().P,r=M.vis.radioAt;if(!r)return;M.radioT=(M.
   const d=hyp(P.pos.x-r.x,P.pos.z-r.z),v=.05*clamp(1-d/16,0,1);if(!n[0]||v<.004)return;tone({f:n[0],type:'triangle',d:n[1]*beat*.9,gain:v});tone({f:n[0]/2,type:'sine',d:n[1]*beat*.6,gain:v*.5})}
 
 /* ---------------- the player's side: stance, light, hiding, carrying ---------------- */
-const HIDES=[{id:'tarp',x:Y.tarp.x,z:Y.tarp.z,r:1.25,txt:'Hide under the tarp',out:'Crawl out from under the tarp'},{id:'potty',x:Y.potty.x-.95,z:Y.potty.z,r:1.1,txt:'Duck into the porta-potty',out:'Step out of the porta-potty',at:{x:Y.potty.x,z:Y.potty.z}}];
+const HIDES=[{id:'tarp',x:Y.tarp.x,z:Y.tarp.z,r:1.25,txt:'Hide under the tarp',out:'Crawl out from under the tarp',ex:{x:Y.tarp.x+.2,z:Y.tarp.z-1.15}},
+  {id:'potty',x:Y.potty.x-.95,z:Y.potty.z,r:1.1,txt:'Duck into the porta-potty',out:'Step out of the porta-potty',at:{x:Y.potty.x,z:Y.potty.z},ex:{x:Y.potty.x-.95,z:Y.potty.z}}];
 function playerState(M){const a=A(),P=a.P,N=window.NIGHT,keys=a.keys;
   const carry=P.carry&&P.carry.kind==='banner',sprint=!!keys.shift&&P.moving&&!P.crouch&&!carry;
   const stance=M.hide?'crouch':carry?'carry':P.crouch?'crouch':sprint?'sprint':'stand';
@@ -364,14 +393,15 @@ function playerState(M){const a=A(),P=a.P,N=window.NIGHT,keys=a.keys;
   if(N&&N.flash)lit=1;return{x:P.pos.x,z:P.pos.z,stance,lit,hidden:!!M.hide}}
 function hideTick(M,F){const a=A(),P=a.P;
   if(M.hide){const h=HIDES.find(h=>h.id===M.hide),at=h.at||h;P.pos.set(at.x,0,at.z);if(M.hide==='tarp')P.crouch=true;
-    F.taps.push({d:0,r:2,txt:h.out,fn:()=>{const h2=HIDES.find(q=>q.id===M.hide);M.hide=null;P.pos.set(h2.x,0,h2.z);a.collide(P.pos,.35);setPotty(M,false);a.snd&&a.snd('click',.3)}});return}
-  if(P.carry)return;for(const h of HIDES){const d=hyp(P.pos.x-h.x,P.pos.z-h.z);if(d<h.r)F.taps.push({x:h.x,z:h.z,r:h.r,txt:h.txt,fn:()=>{M.hide=h.id;if(h.id==='potty')setPotty(M,true);
+    F.taps.push({d:0,r:2,txt:h.out,fn:()=>{const h2=HIDES.find(q=>q.id===M.hide);M.hide=null;P.pos.set(h2.ex.x,0,h2.ex.z);a.collide(P.pos,.35);setPotty(M,false);a.snd&&a.snd('click',.3)}});return}
+  /* a short hold, so the nearest action wins (a tap loses to any hold in range, like the valve right next to the tarp) */
+  if(P.carry)return;for(const h of HIDES){const d=hyp(P.pos.x-h.x,P.pos.z-h.z);if(d<h.r)F.holds.push({x:h.x,z:h.z,r:h.r,o:h.o||(h.o={}),time:.3,txt:h.txt,fn:()=>{M.hide=h.id;if(h.id==='potty')setPotty(M,true);
     if(!M.said['hide_'+h.id]){M.said['hide_'+h.id]=1;say(M,'you',h.id==='tarp'?"I'm a tarp. I'm a lumpy, dad-shaped tarp.":"Occupied. Very occupied. Go away, everyone.")}}})}}
 function setPotty(M,on){const v=M.vis;if(!v)return;if(!v.latch){const a=A(),T3=a.THREE;v.latch=new T3.Mesh(own(M,new T3.PlaneGeometry(.16,.07)),own(M,new T3.MeshBasicMaterial({color:new T3.Color(.15,.8,.25),toneMapped:false})));
   v.latch.position.set(Y.potty.x-.585,1.32,Y.potty.z+.28);v.latch.rotation.y=-Math.PI/2;v.g.add(v.latch)}v.latch.material.color.setRGB(on?1:.15,on?.15:.8,on?.12:.25)}
 /* the banner slows you down and you can't crouch with it */
 function carryTick(M){const a=A(),P=a.P;if(!(P.carry&&P.carry.kind==='banner')){M.prevP=null;return}P.crouch=false;
-  if(M.prevP){const dx=P.pos.x-M.prevP.x,dz=P.pos.z-M.prevP.z;P.pos.x=M.prevP.x+dx*K.carryMul;P.pos.z=M.prevP.z+dz*K.carryMul}M.prevP={x:P.pos.x,z:P.pos.z}}
+  if(M.prevP){const dx=P.pos.x-M.prevP.x,dz=P.pos.z-M.prevP.z;if(dx*dx+dz*dz<1){P.pos.x=M.prevP.x+dx*K.carryMul;P.pos.z=M.prevP.z+dz*K.carryMul}}M.prevP={x:P.pos.x,z:P.pos.z}}/* a jump (checkpoint, climb) isn't slowed */
 /* a tossed jerky treat: 0.55 s arc, a soft plap where it lands (guards nearby go and look), and Tiny trots over if he can reach it */
 function tossAt(M,x,z){const a=A(),T3=a.THREE,P=a.P;if(M.treats<=0){if(!M.said.noTreat){M.said.noTreat=1;say(M,'you',"Out of jerky. I ate one. It was a long night.")}return false}M.treats--;
   const m=new T3.Mesh(M.vis.hg.cyl,M.vis.treatMat||(M.vis.treatMat=matC(M,'#7a3f1c',{roughness:.7})));m.scale.set(.02,.12,.02);m.rotation.z=Math.PI/2;M.vis.g.add(m);
@@ -438,7 +468,7 @@ function objectives(M,F,dt){const a=A(),P=a.P,keys=a.keys,pl=M.pl,busy=!!M.hide;
   if(!busy&&!P.carry){const V=Y.vault,out={x:V.x+1.15,z:V.z},inn={x:V.x-.95,z:V.z};
     for(const[from,to]of[[out,inn],[inn,out]])if(hyp(P.pos.x-from.x,P.pos.z-from.z)<1.1)F.holds.push({x:from.x,z:from.z,r:1.1,o:M.vaultO||(M.vaultO={}),txt:'Climb the fence',time:.9,fn:()=>{P.pos.set(to.x,0,to.z);a.collide(P.pos,.35);M.S.noise({x:V.x,z:V.z,r:5,kind:'rattle'});noiseRing(M,V.x,V.z,5);tone({f:220,to:180,type:'square',d:.18,gain:.04});tone({f:330,to:260,type:'square',d:.14,gain:.03,at:.12})}});
     const Ho=Y.hole,ho={x:Ho.x-.85,z:Ho.z},hi={x:Ho.x+.85,z:Ho.z};
-    for(const[from,to]of[[ho,hi],[hi,ho]])if(hyp(P.pos.x-from.x,P.pos.z-from.z)<1)F.taps.push({x:from.x,z:from.z,r:1,txt:'Squeeze through the gap in the fence',fn:()=>{P.pos.set(to.x,0,to.z);a.collide(P.pos,.35);P.crouch=true;M.S.noise({x:Ho.x,z:Ho.z,r:1.2,kind:'step'});if(!M.said.hole){M.said.hole=1;say(M,'you',"Somebody cut this and never fixed it. Bless whoever you are.")}}})}}
+    for(const[from,to]of[[ho,hi],[hi,ho]])if(hyp(P.pos.x-from.x,P.pos.z-from.z)<1)F.holds.push({x:from.x,z:from.z,r:1,o:M.holeO||(M.holeO={}),time:.5,txt:'Squeeze through the gap in the fence',fn:()=>{P.pos.set(to.x,0,to.z);a.collide(P.pos,.35);P.crouch=true;M.S.noise({x:Ho.x,z:Ho.z,r:1.2,kind:'step'});if(!M.said.hole){M.said.hole=1;say(M,'you',"Somebody cut this and never fixed it. Bless whoever you are.")}}})}}
 function signDone(M){const a=A();M.sign=2;if(a.P.carry&&a.P.carry.kind==='banner')a.wmDrop();M.vis.roll.visible=false;const sg=M.vis.sign;sg.visible=true;sg.position.set(Y.sign.x,Y.sign.y,Y.sign.z-.04);sg.rotation.set(0,Math.PI,.012);sg.scale.set(Y.sign.w+.2,Y.sign.h,1);
   lineSeq(M,L.signDone,2.6);a.feed('Sign swapped','trust','Honest Towing');wantCP(M)}
 /* deflation: a held valve hisses and the tyre sags as you go; a finished one keeps sighing down to the rim */
@@ -469,11 +499,12 @@ function applyLoad(M){const s=M.loadState;if(!s||!M.vis||!M.vis.trucks)return;M.
   for(let k=0;k<M.valves.length;k++){const v=M.valves[k];v.shown=-1}deflateTick(M,0);
   if(M.sign===2)signDone(M);else{M.sign=0;placeRoll(M)}
   if(M.ledger&&M.vis.ledger)M.vis.ledger.visible=false;
-  if(M.toyIn&&M.tiny){M.tiny.st='happy'}
+  if(M.toyIn&&M.tiny){M.tiny.st='happy'}if(M.hide==='potty')setPotty(M,true);
   for(const gs of s.gs||[]){const g=M.g&&M.g[gs.id];if(!g)continue;g.pos.x=gs.x;g.pos.z=gs.z;g.yaw=gs.yaw;g.k=gs.k%ROUTES[g.id].length;g.t=gs.t||0;g.mode='route';g.sit=false;
     if(gs.tied){g.tied=true;M.S.takedown(g.ob);handProp(M,g,null)}}
   M.S.calm(2.5);M.queue.length=0;M.cpWant=null}
 
+const JERKY_SVG='<svg class="sab-jerky" viewBox="0 0 120 40" width="120" height="40"><path d="M6 24c8-10 16 4 26-6s18 2 28-6 18 4 26-4 16 2 26-6l2 8c-10 8-18 2-26 8s-18-4-26 4-18-2-28 6-18-4-26 6z" fill="#8a4a22" stroke="#f4e9dc" stroke-width="2.4" stroke-linejoin="round"/><path d="M20 22l8-3M46 18l9-3M74 14l8-2" stroke="#c98b55" stroke-width="2" stroke-linecap="round"/></svg>';
 J.item('sab_treat',{name:'Jerky treats',use(M){if(!M||!M.S||M.hide)return;const t=tossTarget();tossAt(M,t.x,t.z)}});
 
 J.register('sabotage',{
@@ -509,7 +540,8 @@ J.register('sabotage',{
     for(const id of ORDER)guardTick(M,M.g[id],dt);tinyTick(M,dt);
     if(M.spot){M.spot.t+=dt;if(M.spot.t>=1.6&&!M.spot.done){M.spot.done=true;const g=M.spot.g;return a.spotted((g?'"'+L.caught[g.id]+'" ':'')+L.caughtFail)}}
     objectives(M,F,dt);deflateTick(M,dt);radioTick(M,dt);
-    if(M.cpWant&&M.S.max()<.3&&!M.spot&&!M.hide){const st=M.cpWant;M.cpWant=null;if(st!==M.stage)a.CP.mark(st)}
+    /* checkpoint as soon as nobody is actively searching (a retry should never drop you into someone's arms) */
+    if(M.cpWant&&M.S.max()<.55&&!M.spot){const st=M.cpWant;M.cpWant=null;if(st!==M.stage)a.CP.mark(st)}
     /* HUD */
     const nT=M.valves.filter(v=>v.done).length,carry=P.carry&&P.carry.kind==='banner';
     M.allDone=nT>=8&&M.sign===2;
@@ -543,9 +575,9 @@ J.register('sabotage',{
 
   /* [CP] what a stage needs: the clock, every valve, the banner, the ledger, the toy, who's zip-tied, where the guards are on their routes */
   save(M){const gs=M.g?ORDER.map(id=>{const g=M.g[id];return{id,x:Math.round(g.pos.x*100)/100,z:Math.round(g.pos.z*100)/100,yaw:Math.round(wrap(g.yaw)*1000)/1000,k:g.k,t:Math.round((g.t||0)*10)/10,tied:!!g.tied}}):(M.gsave||[]);
-    return{clock:Math.round((M.clock||0)*10)/10,v:(M.valves||[]).map(v=>v.done?1:Math.round((v.flat||0)*100)/100),sign:M.sign===2?2:0,ledger:!!M.ledger,toy:!!M.toyIn,treats:M.treats==null?K.treats:M.treats,ties:M.ties||0,ghost:M.ghost!==false,gs}},
+    return{clock:Math.round((M.clock||0)*10)/10,v:(M.valves||[]).map(v=>v.done?1:Math.round((v.flat||0)*100)/100),sign:M.sign===2?2:0,ledger:!!M.ledger,toy:!!M.toyIn,treats:M.treats==null?K.treats:M.treats,ties:M.ties||0,ghost:M.ghost!==false,hide:M.hide||null,gs}},
   load(M,s){if(!s)return;M.clock=s.clock||0;(s.v||[]).forEach((x,k)=>{const v=M.valves&&M.valves[k];if(!v)return;v.done=x===1;v.flat=x===1?1:x;v.prog=0});
-    M.sign=s.sign===2?2:0;M.ledger=!!s.ledger;M.toyIn=!!s.toy;M.treats=s.treats;M.ties=s.ties||0;M.ghost=s.ghost!==false;M.gsave=s.gs||[];M.loadState=s;if(M.vis&&M.vis.trucks)applyLoad(M)},
+    M.sign=s.sign===2?2:0;M.ledger=!!s.ledger;M.toyIn=!!s.toy;M.treats=s.treats;M.ties=s.ties||0;M.ghost=s.ghost!==false;M.hide=s.hide||null;M.gsave=s.gs||[];M.loadState=s;if(M.vis&&M.vis.trucks)applyLoad(M)},
   payout(M,ok){if(!ok)return[];const out=[];
     if(M.ghost)out.push(['Ghost · nobody ever came looking',K.pay.ghost]);
     if(M.toyIn)out.push(["Good boy · Tiny's squeaky hot dog",K.pay.toy]);
@@ -566,14 +598,16 @@ J.register('sabotage',{
       if(kind==='metal'){tone({f:140,to:90,type:'square',d:.16,gain:.05});tone({f:620,to:420,type:'triangle',d:.3,gain:.035})}
       else if(kind==='chain'){for(let i=0;i<3;i++)tone({f:1800+i*400,type:'square',d:.04,gain:.02,at:i*.05})}
       if(!M.said['surf_'+kind]){M.said['surf_'+kind]=1;say(M,'you',kind==='metal'?"BONG. Great. Sheet metal. Very subtle.":kind==='chain'?"Chains. Who leaves chains lying around? Tow guys. Tow guys do.":"Gravel. Crunchy. Step light.")}}},
-  pose(dt){const a=A(),M=a.M;if(!M||M.def.id!=='sabotage'||!M.S)return;if(M.hide&&a.P.dude)a.P.dude.root.visible=false},
-  hud(st){const M=A().M;if(!M||!M.S||M.def.id!=='sabotage')return;st.weapon={name:'Jerky treats',type:'treats',mag:M.treats,reserve:0,magSize:K.treats,reloading:0,holstered:false}},
+  pose(dt){const a=A(),M=a.M;if(!M||M.def.id!=='sabotage'||!M.S)return;if(M.hide&&a.P.dude)a.P.dude.root.visible=false;
+    /* the weapon panel: a strip of jerky instead of a gun silhouette */
+    const gEl=typeof document!=='undefined'&&document.querySelector('.ht-wp .gun');if(gEl&&!gEl.querySelector('.sab-jerky'))gEl.innerHTML=JERKY_SVG},
+  hud(st){const M=A().M;if(!M||!M.S||M.def.id!=='sabotage')return;st.weapon={name:'Jerky treats',type:'treats',mag:M.treats,reserve:0,magSize:K.treats,reloading:0,holstered:false,firemode:'Toss'};st.weapons=[]},
   test:{give(a){/* Hitch Happens done (and the jobs before it), Riverside cast preloaded so the job starts without waiting */
       const h=window.__ht,s=a.SV();for(const id of['gary','rick','earl','tow']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
       if(s&&s.world)s.world.bridgeOpen=true;const PP=window.HT.People;
       if(PP&&PP.preload)try{PP.preload(['nb_pops','thug_track','thug_jacket'].filter(k=>PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),
-    sample:()=>({clock:212.4,valves:[0,1,2,3,4,5,6,7].map(i=>({flat:i<3?1:i===3?.4:0,done:i<3,prog:0})),sign:0,ledger:true,toyIn:false,treats:2,ties:1,ghost:true,
+    sample:()=>({hide:null,clock:212.4,valves:[0,1,2,3,4,5,6,7].map(i=>({flat:i<3?1:i===3?.4:0,done:i<3,prog:0})),sign:0,ledger:true,toyIn:false,treats:2,ties:1,ghost:true,
       gsave:[{id:'walt',x:426.1,z:119.9,yaw:2.9,k:0,t:3,tied:false},{id:'kyle',x:430,z:122.7,yaw:-1.57,k:3,t:0,tied:true},{id:'boss',x:420.5,z:107.5,yaw:3.14,k:0,t:10,tied:false}]})}
 });
 
@@ -609,8 +643,8 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.S||!M.vis||!M.vi
   k.e=false;if(B.wait>0){B.wait--;return null}
   const T=M.tiny,acts=[];
   /* Tiny first: a treat where he can reach it but off his bed, then the squeaky hot dog in the bed */
-  if(!M.toyIn&&T.st==='bed'&&M.treats>0&&!M.toss)acts.push({id:'treat',x:427.2,z:116.7,stance:'crouch',max:4,fire:()=>tossAt(M,430.1,111.6),done:()=>true});
-  if(!M.toyIn&&(T.st==='chew'||T.st==='eat'))acts.push({id:'toy',x:Y.bed.x-.6,z:Y.bed.z+.4,stance:'crouch',max:200,done:()=>M.toyIn});
+  if(!M.toyIn&&T.st==='bed'&&M.treats>0&&!M.toss&&!P.carry)acts.push({id:'treat',x:427.2,z:116.7,stance:'crouch',max:4,fire:()=>tossAt(M,430.1,111.6),done:()=>true});
+  if(!M.toyIn&&(T.st==='chew'||T.st==='eat')&&!P.carry)acts.push({id:'toy',x:Y.bed.x-.6,z:Y.bed.z+.4,stance:'crouch',max:200,done:()=>M.toyIn});
   if(M.sign===0&&!P.carry)acts.push({id:'roll',x:M.rollAt.x,z:M.rollAt.z,stance:'stand',max:200,keep:true,done:()=>M.sign===1});
   if(M.sign===1)acts.push({id:'mount',x:Y.mount.x,z:Y.mount.z,stance:'carry',max:400,done:()=>M.sign===2,first:true});
   if(!P.carry)M.valves.forEach((v,i)=>{if(!v.done)acts.push({id:'valve'+i,x:v.x,z:v.z,stance:'crouch',max:300,done:()=>v.done})});

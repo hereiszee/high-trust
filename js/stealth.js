@@ -40,15 +40,16 @@ const T={
   half:{calm:50*D2R,curious:60*D2R,searching:70*D2R,alerted:110*D2R},
   per:{band:25*D2R,mul:.35},           /* peripheral band beyond the cone */
   near:6,far:.25,                      /* distance falloff: 1 within 6 m, linear down to 0.25 at the range */
-  stance:{stand:1,crouch:.55,sprint:1.3,carry:1.25},
-  fill:.9,close:1.5,closeR:6,          /* fill rate per second x the factors; x1.5 within 6 m */
+  stance:{stand:1,crouch:.55,sprint:1.3,carry:1.15},
+  fill:.7,close:1.5,closeR:6,          /* fill rate per second x the factors; x1.5 within 6 m (SPEC said 0.9: too twitchy at night) */
   th:{curious:.35,searching:.6,alerted:1},
   decay:.12,hold:2.5,floor:.3,floorT:20,
   hear:{near:.6,far:.35,cap:.95},      /* a noise heard within r: +0.35, within r/2: +0.6; hearing alone never alerts */
   dog:{crouch:4,stand:12,carry:12,run:16,sprint:18,ear:1.8},
   take:{r:1.3,ang:120*D2R,hold:2,sus:.35},
   cam:{sweep:30*D2R,rate:12*D2R,R:18,mul:1.2},
-  spread:1.5,losT:.1,
+  doubt:{t:.9,mul:.35},              /* the double take on first noticing */
+  spread:1.5,losT:.1,wallH:2.6,wallMul:.6,           /* walls (occluders 2.6 m+) cut hearing to 60% */
   h:{eye:1.65,stand:1.45,crouch:.9,sprint:1.45,carry:1.45}};
 
 function create(o){o=o||{};const obs=[],occ=[],lights=[],noises=[],ev={};let t=0,calmT=0,released=false;
@@ -68,8 +69,8 @@ function create(o){o=o||{};const obs=[],occ=[],lights=[],noises=[],ev={};let t=0
   S.noise=n=>{if(n&&isFinite(n.x)&&isFinite(n.z)&&n.r>0)noises.push(n)};
   S.calm=s=>{calmT=Math.max(calmT,s||0)};
   /* sight line from (ax,az, height ha) to (bx,bz, height hb): blocked where it passes under an occluder's top */
-  S.blocked=(ax,az,ha,bx,bz,hb)=>{const dx=bx-ax,dz=bz-az;
-    for(const b of occ){let t0=0,t1=1,ok=true;
+  S.blocked=(ax,az,ha,bx,bz,hb,minH)=>{const dx=bx-ax,dz=bz-az;
+    for(const b of occ){if(minH&&b.h<minH)continue;let t0=0,t1=1,ok=true;
       for(let q=0;q<2&&ok;q++){const p=q?az:ax,d=q?dz:dx,lo=q?b.z0:b.x0,hi=q?b.z1:b.x1;
         if(Math.abs(d)<1e-9){if(p<=lo||p>=hi)ok=false}else{let u0=(lo-p)/d,u1=(hi-p)/d;if(u0>u1){const w=u0;u0=u1;u1=w}if(u0>t0)t0=u0;if(u1<t1)t1=u1;if(t0>=t1)ok=false}}
       if(!ok)continue;const h0=ha+(hb-ha)*t0,h1=ha+(hb-ha)*t1;if(Math.min(h0,h1)<b.h)return true}
@@ -100,12 +101,15 @@ function create(o){o=o||{};const obs=[],occ=[],lights=[],noises=[],ev={};let t=0
     const st=T.stance[p.stance]||1,li=inFlash||p.lit==null?1:clamp(p.lit,0,1);
     return{v:cone*clamp(df_,T.far,1)*st*li,lit:inFlash,d}}
   const stOf=s=>s>=T.th.alerted?'alerted':s>=T.th.searching?'searching':s>=T.th.curious?'curious':'calm';
-  function setState(b,next){if(b.state===next)return false;const prev=b.state;b.state=next;if(next==='searching'||next==='alerted')b.floorUntil=t+T.floorT;
+  function setState(b,next){if(b.state===next)return false;const prev=b.state;b.state=next;if(prev==='calm'&&next==='curious')b.doubt=T.doubt.t;if(next==='searching'||next==='alerted')b.floorUntil=t+T.floorT;
     if(next==='alerted'){b.alertAt=t;b.spreadDone=false;emit('alert',b)}emit('state',b,prev,next);return true}
   /* hearing: dogs hear footsteps by stance (12 m walking, 4 m crouched), everyone else by the noise's radius x his ear */
   function hear(b,n){if(n.not&&n.not===b.kind||n.only&&n.only!==b.kind)return false;let r=n.r*(b.ear||1);
     if(b.kind==='dog'&&n.player&&n.kind==='step')r=T.dog[n.stance||(n.r<=1.2?'crouch':n.r<=3?'stand':n.r<=7.5?'run':'sprint')]||n.r*T.dog.ear;
-    const d=hyp(n.x-b.pos.x,n.z-b.pos.z);if(d>r)return false;const add=d<=r*.5?T.hear.near:T.hear.far;
+    let d=hyp(n.x-b.pos.x,n.z-b.pos.z);if(d>r)return false;
+    /* through a wall a noise carries 60% as far */
+    if(S.blocked(n.x,n.z,1.2,b.pos.x,b.pos.z,1.2,T.wallH)){r*=T.wallMul;if(d>r)return false}
+    const add=d<=r*.5?T.hear.near:T.hear.far;
     const cap=b.state==='alerted'?1:T.hear.cap;const before=b.sus;b.sus=Math.min(cap,Math.max(b.sus,Math.min(cap,b.sus+add)));
     b.lkp={x:n.x,z:n.z};b.seenT=Math.min(b.seenT,0);b.heardT=t;if(b.sus>before)b.cause=n.kind||'noise';emit('heard',b,n,before);if(b.kind==='dog')emit('bark',b,n);return true}
   S.tick=(dt,p)=>{t+=dt;if(calmT>0)calmT=Math.max(0,calmT-dt);const out=[];const nq=noises.splice(0);
@@ -115,7 +119,9 @@ function create(o){o=o||{};const obs=[],occ=[],lights=[],noises=[],ev={};let t=0
       const prev=b.state;let v=0;
       if(p&&calmT<=0){const s=sees(b,p);v=s.v;b.d=s.d}
       b.v=v;
-      if(v>0){const close=b.d!=null&&b.d<T.closeR?T.close:1;b.sus=Math.min(1,b.sus+T.fill*v*close*(b.mul||1)*(o.diff||1)*dt);b.seenT=0;b.lkp={x:p.x,z:p.z};b.cause='sight'}
+      /* the double take: for a moment after he first wonders, it fills slowly (time for the player to duck) */
+      if(b.doubt>0)b.doubt-=dt;
+      if(v>0){const close=b.d!=null&&b.d<T.closeR?T.close:1,dk=b.doubt>0?T.doubt.mul:1;b.sus=Math.min(1,b.sus+T.fill*v*close*dk*(b.mul||1)*(o.diff||1)*dt);b.seenT=0;b.lkp={x:p.x,z:p.z};b.cause='sight'}
       else{b.seenT+=dt;if(b.seenT>T.hold){b.sus=Math.max(0,b.sus-T.decay*dt)}if(t<b.floorUntil)b.sus=Math.max(b.sus,T.floor)}
       if(calmT<=0)for(const n of nq)hear(b,n);
       /* alerted sticks until he has lost you for good (below searching) */
@@ -157,7 +163,7 @@ function bindHud(HUD){if(Stealth.gadgetBound||!HUD||!HUD.on)return;Stealth.gadge
 /* ---------------- visuals (browser, THREE) ---------------- */
 const COL={calm:[.86,.9,1],curious:[1,.84,.25],searching:[1,.52,.12],alerted:[1,.16,.12],cuffed:[.5,.5,.5]};
 function gradTex(THREE,kind){const c=document.createElement('canvas');c.width=128;c.height=kind==='ring'?128:8;const x=c.getContext('2d');
-  if(kind==='fan'){const g=x.createLinearGradient(0,0,128,0);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.75,'rgba(255,255,255,.55)');g.addColorStop(.97,'rgba(255,255,255,.7)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,8)}
+  if(kind==='fan'){const g=x.createLinearGradient(0,0,128,0);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.35,'rgba(255,255,255,.7)');g.addColorStop(.7,'rgba(255,255,255,.32)');g.addColorStop(.93,'rgba(255,255,255,.12)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,8)}
   else if(kind==='beam'){const g=x.createLinearGradient(0,0,128,0);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,8)}
   else{const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.78,'rgba(255,255,255,0)');g.addColorStop(.9,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
   const t=new THREE.CanvasTexture(c);return t}
@@ -197,12 +203,12 @@ function viz(S,o){const THREE=o.THREE,par=o.parent,N=o.rays||28,own=[],grp=new T
         f.g.attributes.position.needsUpdate=true;f.g.attributes.uv.needsUpdate=true;
         const c=COL[b.state]||COL.calm;f.col.setRGB(c[0],c[1],c[2]);f.m.color.copy(f.col);
         const susK=clamp(b.sus/.6,0,1),pulse=b.state==='alerted'?.5+.5*Math.sin(S.t*14):1;
-        f.m.opacity=(.07*base+.1*susK+.18*kN)*(.6+.4*pulse);
+        f.m.opacity=(.045*base+.1*susK+.16*kN)*(.6+.4*pulse);
         if(f.beam){const hy=b.handY||1.15,len=Math.min(FR,S.ray(ox,oz,Math.sin(b.yaw),Math.cos(b.yaw),FR,1.2)),pitch=Math.atan2(hy,Math.max(4,len));
           f.beam.position.set(ox+Math.sin(b.yaw)*.35,hy,oz+Math.cos(b.yaw)*.35);f.beam.rotation.set(0,0,0);f.beam.rotation.order='YXZ';f.beam.rotation.y=b.yaw;f.beam.rotation.x=pitch;
           const L=Math.hypot(len,hy),w=Math.tan(FH*.8)*L;f.beam.scale.set(w,w*.75,L);f.beam.material.opacity=(.07+.05*kN)*(b.state==='alerted'?1.4:1);f.beam.material.color.setRGB(1,.95-.3*susK*(b.state==='calm'?0:1),.82-.5*susK*(b.state==='calm'?0:1))}}
       for(const l of paths){l.material.opacity=.05*base+.55*kN;l.visible=l.material.opacity>.02}
-      for(const R of rings){if(!R.m.visible)continue;R.t+=dt;const k=R.t/R.dur;if(k>=1){R.m.visible=false;continue}const s=R.r*(.35+.65*Math.sqrt(k));R.m.scale.set(s,1,s);R.m.material.opacity=(1-k)*(.35+.45*kN)}},
+      for(const R of rings){if(!R.m.visible)continue;R.t+=dt;const k=R.t/R.dur;if(k>=1){R.m.visible=false;continue}const s=R.r*(.35+.65*Math.sqrt(k));R.m.scale.set(s,1,s);R.m.material.opacity=(1-k)*(.16+.4*kN)}},
     dispose(){if(grp.parent)grp.parent.remove(grp);for(const x of own)if(x&&x.dispose)x.dispose();own.length=0;for(const k in per)delete per[k]}};
   return V}
 
@@ -212,12 +218,12 @@ const CSS=`.hts-tag{position:absolute;transform:translate(-50%,-100%);font:900 2
 .hts-tag i{position:absolute;inset:-2px;border-radius:50%;border:2px solid transparent;border-top-color:currentColor}
 .hts-tag.cur{color:#ffd23f}.hts-tag.sea{color:#ff8a2a}.hts-tag.ale{color:#ff3b30;transform:translate(-50%,-100%) scale(1.25)}
 .hts-chev{position:absolute;width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:18px solid #ffd23f;transform-origin:50% 60%;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6));pointer-events:none}
-.hts-gem{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:18px;background:rgba(8,12,18,.55);
+.hts-gem{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:18px;background:rgba(8,12,18,.55);
   font:700 12px/1 'Barlow Condensed','Arial Narrow',Arial,sans-serif;letter-spacing:.08em;color:#cfd8e6;text-transform:uppercase;pointer-events:none;backdrop-filter:blur(2px)}
 .hts-gem b{display:block;width:22px;height:22px;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.25) inset;background:radial-gradient(circle at 40% 35%,#fff 0,#ffe7a0 30%,#c98a1a 65%,#3a2a10 100%);transition:filter .2s,opacity .2s}
 .hts-gem s{display:block;width:44px;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;text-decoration:none}.hts-gem s u{display:block;height:100%;background:#9fd3ff;width:0;transition:width .1s}
 .hts-gem em{font-style:normal;min-width:62px}
-@media (max-width:700px){.hts-gem{bottom:150px;font-size:11px}}`;
+@media (max-width:700px){.hts-gem{bottom:auto;top:96px;font-size:11px}}`;
 function hud(S,o){const host=document.createElement('div');host.className='hts';host.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden';
   const st=document.createElement('style');st.textContent=CSS;host.appendChild(st);
   const gem=document.createElement('div');gem.className='hts-gem';gem.innerHTML='<b></b><em>Hidden</em><s><u></u></s>';host.appendChild(gem);
