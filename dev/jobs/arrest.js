@@ -3,10 +3,12 @@
    Shots go to docs/screenshots/jobs/arrest/ (jpg, world streamed in first). */
 const {open}=require('../ai-ingame-lib.js'),path=require('path'),fs=require('fs');
 const arg=(k,d)=>{const a=process.argv.find(x=>x.startsWith('--'+k+'='));return a?a.split('=')[1]:process.argv.includes('--'+k)?true:d};
-const FAIL=!!arg('fail',false),SHOTS=!!arg('shots',false),OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/arrest')),MAX=+arg('max',14000);
+const FAIL=!!arg('fail',false),SHOTS=!!arg('shots',false),ONLY=arg('only','')?String(arg('only','')).split(','):null,OUT=path.resolve(__dirname,'../../',arg('out','docs/screenshots/jobs/arrest')),MAX=+arg('max',14000);
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});const ev=(f,a)=>p.evaluate(f,a);if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async n=>{if(!SHOTS)return;await ev(async()=>{const H=window.__ht;for(let k=0;k<40&&H.assets.stream&&!H.assets.stream.idle();k++){H.draw();await new Promise(r=>setTimeout(r,300))}});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(600);await ev(()=>{window.__rafOn=false});
-    await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('  shot '+n)};
+  /* the open world builds in slices on draw: draw until nothing new has been built for a few draws */
+  const stream=()=>ev(async()=>{const H=window.__ht;let last=-1,same=0;for(let k=0;k<120&&same<6;k++){H.draw();await new Promise(r=>setTimeout(r,60));const s=H.ow&&H.ow.stats&&H.ow.stats();const b=s?s.built:0;if(b===last)same++;else{same=0;last=b}}});
+  const shot=async n=>{if(!SHOTS||ONLY&&!ONLY.some(o=>n.startsWith(o)))return;await stream();/* the HUD clock only runs on rendered frames: the start banner's letterbox would otherwise stay up in a stepped test */await ev(()=>{const H=window.__ht;if(H.M&&H.M.ho&&H.M.ho.clock>4)try{H.HUD.banner(null)}catch(_){}});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(600);await ev(()=>{window.__rafOn=false});
+    await ev(()=>{const b=document.querySelector('.ht-bn');if(b&&window.__ht.M&&window.__ht.M.ho&&window.__ht.M.ho.clock>5)b.classList.remove('lbx');window.__ht.draw()});await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('  shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
   await p.evaluate(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('arrest');j.test.give(H.jobs.api);const i=H.jobs.index('arrest');
     const pm=window.HT.People;await Promise.race([pm.preload(['rosa','dad_gary','nb_pops','nb_office','nb_sweater','nb_kenji','nb_marcus','nb_mei','nb_lucia','nb_gran','nb_teen','nb_kid','thug_hoodie','thug_track','thug_beanie','thug_red']).catch(()=>{}),new Promise(r=>setTimeout(r,40000))]);
@@ -33,7 +35,7 @@ const FAIL=!!arg('fail',false),SHOTS=!!arg('shots',false),OUT=path.resolve(__dir
   const W=FAIL?[['f1-drawn',`M.ho.drawn&&M.ho.panic>30`]]:[['01-arrive',`M.ho.spawned&&M.ho.clock>2`],['02-rosa',`M.ho.talked&&M.ho.clock>6`],['03-watch',`M.ho.watch.c&&M.ho.watchedAny>2`],['04-notebook',`M.ho.clues.length>=2&&M.ho.watch.c`],
     ['05-ided',`M.ho.ided&&M.ho.clock>(M.ho.idAt||(M.ho.idAt=M.ho.clock+2))`],['06-ruse',`M.ho.cols[M.ho.skim].ruse&&M.ho.cols[M.ho.skim].ruse.st==='go'&&M.ho.cols[M.ho.skim].ruse.k>=2`],['07-drawn',`M.ho.drawn&&M.ho.ret==='ok'`],
     ['08-down',`M.ho.down&&M.ho.clock>(M.ho.dAt||(M.ho.dAt=M.ho.clock+1.2))`],['09-chase',`M.ho.duf.st==='run'&&M.ho.duf.t>2`],['10-twist',`M.ho.tied&&M.ho.clock>(M.ho.tAt||(M.ho.tAt=M.ho.clock+.8))`],['11-win',`M.exitOpen`]];
-  for(const[n,cond]of W){const r=await ev(([c,max])=>window.__T.run(max,new Function('M','return '+c)),[cond,MAX]);console.log(n,r);await shot(n);if(r!==true&&r!=='timeout'&&r!==1)break;if(r==='timeout')break}
+  for(const[n,cond]of W){if(ONLY&&!W.slice(W.findIndex(w=>w[0]===n)).some(w=>ONLY.some(o=>w[0].startsWith(o))))break;const r=await ev(([c,max])=>window.__T.run(max,new Function('M','return !!('+c+')')),[cond,MAX]);console.log(n,r);await shot(n);if(r!==true&&r!=='timeout'&&r!==1)break;if(r==='timeout')break}
   const r=await ev(max=>window.__T.run(max,M=>M.state!=='go'),MAX);console.log('end',r);await ev(()=>window.__ht.step(40));await shot(FAIL?'f9-fail':'12-result');
   const log=await ev(()=>window.__T.log);for(const l of log.slice(0,400))console.log(l.join(' '));
   const fin=await ev(()=>{const H=window.__ht,M=H.M,O=M&&M.ho;return{state:M&&M.state,stage:M&&M.stage,panicPeak:O&&O.panicPeak,oneShot:O&&O.oneShot,wrong:O&&O.wrong,pay:M&&M.pay&&M.pay.lines&&M.pay.lines.map(l=>l.label+':'+l.amount)}});console.log(JSON.stringify(fin));

@@ -149,14 +149,18 @@ const KEY_E=()=>touch()?'USE':'E';
 function own(O,x){O.own.push(x);return x}
 function stdMat(O,col,o){const a=A();return own(O,new a.THREE.MeshStandardMaterial(Object.assign({color:a.lin(col),roughness:.8,metalness:0},o||{})))}
 function canvasTex(O,w,h,draw){const T=A().THREE,c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);if(T.sRGBEncoding)t.encoding=T.sRGBEncoding;t.anisotropy=4;return own(O,t)}
-/* merge simple parts into one mesh per material: [{geo, mat, x,y,z, rx,ry,rz, sx,sy,sz, uv:[u0,v0,u1,v1]}] */
-function mergeParts(O,parts,parent,opt){const T=A().THREE,byMat=new Map();opt=opt||{};
+/* merge simple parts: textured or see-through materials keep a mesh each; every plain-coloured part goes into ONE vertex-coloured mesh.
+   parts: [{geo, mat, x,y,z, rx,ry,rz, sx,sy,sz, uv:[u0,v0,u1,v1]}] */
+function mergeParts(O,parts,parent,opt){const T=A().THREE,byMat=new Map();opt=opt||{};O=opt.O||O||H();
   for(const p of parts){const g=p.geo.clone();if(p.uv){const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,p.uv[0]+uv.getX(i)*(p.uv[2]-p.uv[0]),p.uv[1]+uv.getY(i)*(p.uv[3]-p.uv[1]))}
     const m4=new T.Matrix4().compose(new T.Vector3(p.x||0,p.y||0,p.z||0),new T.Quaternion().setFromEuler(new T.Euler(p.rx||0,p.ry||0,p.rz||0,'YXZ')),new T.Vector3(p.sx||1,p.sy||1,p.sz||1));
-    g.applyMatrix4(m4);const gi=g.index?g.toNonIndexed():g;if(gi!==g)g.dispose();(byMat.get(p.mat)||byMat.set(p.mat,[]).get(p.mat)).push(gi)}
-  const out=[];for(const[m,gs]of byMat){let n=0;for(const g of gs)n+=g.attributes.position.count;const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let k=0;
-    for(const g of gs){P.set(g.attributes.position.array,k*3);if(g.attributes.normal)N.set(g.attributes.normal.array,k*3);if(g.attributes.uv)U.set(g.attributes.uv.array,k*2);k+=g.attributes.position.count;g.dispose()}
-    const bg=new T.BufferGeometry();bg.setAttribute('position',new T.BufferAttribute(P,3));bg.setAttribute('normal',new T.BufferAttribute(N,3));bg.setAttribute('uv',new T.BufferAttribute(U,2));bg.computeBoundingSphere();own(opt.O||H(),bg);
+    g.applyMatrix4(m4);const gi=g.index?g.toNonIndexed():g;if(gi!==g)g.dispose();const plain=!p.mat.map&&!p.mat.transparent&&p.mat.side!==T.DoubleSide;
+    if(plain){const c=p.mat.color,col=new Float32Array(gi.attributes.position.count*3);for(let i=0;i<col.length;i+=3){col[i]=c.r;col[i+1]=c.g;col[i+2]=c.b}gi.setAttribute('color',new T.BufferAttribute(col,3))}
+    const key=plain?'vc':p.mat;(byMat.get(key)||byMat.set(key,[]).get(key)).push(gi)}
+  const out=[];for(const[k,gs]of byMat){let n=0;for(const g of gs)n+=g.attributes.position.count;const vc=k==='vc';const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2),C=vc?new Float32Array(n*3):null;let i=0;
+    for(const g of gs){P.set(g.attributes.position.array,i*3);if(g.attributes.normal)N.set(g.attributes.normal.array,i*3);if(g.attributes.uv)U.set(g.attributes.uv.array,i*2);if(C)C.set(g.attributes.color.array,i*3);i+=g.attributes.position.count;g.dispose()}
+    const bg=new T.BufferGeometry();bg.setAttribute('position',new T.BufferAttribute(P,3));bg.setAttribute('normal',new T.BufferAttribute(N,3));bg.setAttribute('uv',new T.BufferAttribute(U,2));if(C)bg.setAttribute('color',new T.BufferAttribute(C,3));bg.computeBoundingSphere();own(O,bg);
+    const m=vc?(O.vcStall||(O.vcStall=own(O,new T.MeshStandardMaterial({vertexColors:true,roughness:.82,metalness:.04})))):k;
     const mesh=new T.Mesh(bg,m);mesh.castShadow=opt.shadow!==false&&!m.transparent;mesh.receiveShadow=true;mesh.userData.ho=1;parent.add(mesh);out.push(mesh)}
   return out}
 
@@ -290,6 +294,17 @@ function propKit(O){if(O.kit)return O.kit;const a=A(),T=a.THREE,G=O.G,m=O.mats;c
   K_.apron=['#2f5e4a','#7a3f2f','#3f4f7a','#5a5a5a'].map(c=>stdMat(O,c,{roughness:.95,side:T.DoubleSide}));K_.cane=stdMat(O,'#4a2f1c');
   K_.apronGeo=own(O,new T.CylinderGeometry(.19,.22,.5,10,1,true,-1.1,2.2));
   return O.kit=K_}
+/* a prop built from parts becomes one mesh: vertex colours from each part's material, one shared material, cached per kind */
+function bake(O,g,key,shadow){const T=A().THREE;let geo=key&&O.baked&&O.baked[key];
+  if(!geo){g.updateMatrixWorld(true);const inv=new T.Matrix4().copy(g.matrixWorld).invert();const parts=[];
+    g.traverse(m=>{if(!m.isMesh)return;const c=m.material&&m.material.color||new T.Color(1,1,1);const q=m.geometry.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv,m.matrixWorld));const n=q.index?q.toNonIndexed():q;if(n!==q)q.dispose();
+      const col=new Float32Array(n.attributes.position.count*3);for(let i=0;i<col.length;i+=3){col[i]=c.r;col[i+1]=c.g;col[i+2]=c.b}n.setAttribute('color',new T.BufferAttribute(col,3));parts.push(n)});
+    let cnt=0;for(const q of parts)cnt+=q.attributes.position.count;const P=new Float32Array(cnt*3),N=new Float32Array(cnt*3),C=new Float32Array(cnt*3);let k=0;
+    for(const q of parts){P.set(q.attributes.position.array,k*3);N.set(q.attributes.normal.array,k*3);C.set(q.attributes.color.array,k*3);k+=q.attributes.position.count;q.dispose()}
+    geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(P,3));geo.setAttribute('normal',new T.BufferAttribute(N,3));geo.setAttribute('color',new T.BufferAttribute(C,3));geo.computeBoundingSphere();own(O,geo);
+    if(key)(O.baked||(O.baked={}))[key]=geo}
+  if(!O.vcMat)O.vcMat=own(O,new T.MeshStandardMaterial({vertexColors:true,roughness:.72,metalness:.05,side:T.DoubleSide}));
+  const out=new T.Group();const m=new T.Mesh(geo,O.vcMat);m.castShadow=!!shadow;m.receiveShadow=false;m.userData.ho=1;out.add(m);return out}
 const mesh=(geo,mat,x,y,z,sx,sy,sz,rx,ry,rz)=>{const T=A().THREE,o=new T.Mesh(geo,mat);o.position.set(x||0,y||0,z||0);o.scale.set(sx||1,sy||1,sz||1);o.rotation.set(rx||0,ry||0,rz||0);o.castShadow=true;o.userData.ho=1;return o};
 function vest(O,d,c,skim){const K_=propKit(O),T=A().THREE,g=new T.Group();
   const v=mesh(K_.vestGeo,K_.vest[c.id],0,0,0,1.06,1,.8);g.add(v);g.add(mesh(K_.bandGeo,K_.refl,0,-.08,0,1.07,1,.81));g.add(mesh(K_.bandGeo,K_.refl,0,.06,0,1.07,1,.81));
@@ -297,28 +312,28 @@ function vest(O,d,c,skim){const K_=propKit(O),T=A().THREE,g=new T.Group();
   const card=new T.Group();card.position.set(0,.02,.162);card.add(mesh(O.G.box,K_.card,0,0,0,.07,.095,.006));if(!skim)card.add(mesh(O.G.box,K_.logo[c.id],0,.012,.004,.05,.04,.003));
   else card.add(mesh(O.G.box,K_.card,0,0,.003,.05,.01,.002));g.add(card);
   for(const s of[-1,1])g.add(mesh(O.G.box,K_.strap,s*.045,.12,.15,.012,.2,.004,0,0,s*.35));
-  toBody(d,'Bip01_Spine2',g,[0,-.06,0]);return g}
+  toBody(d,'Bip01_Spine2',bake(O,g,'vest'+c.id+(skim?'s':'')),[0,-.06,0]);return g}
 function hat(O,d,c){const K_=propKit(O),T=A().THREE,g=new T.Group();if(!c.hat)return null;const m=K_.hat[c.id];
   if(c.hat==='cap'){g.add(mesh(O.G.sph,m,0,0,0,.115,.075,.122));g.add(mesh(O.G.cyl,m,0,-.01,.1,.09,.012,.08))}
   else{g.add(mesh(O.G.cyl,m,0,.01,0,.105,.08,.11));g.add(mesh(O.G.cyl,m,0,-.03,0,.17,.012,.17))}
-  toBody(d,'Bip01_Head',g,[0,.13,.0]);return g}
-function clipboard(O){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.box,K_.board,0,0,0,.23,.31,.012));g.add(mesh(O.G.box,K_.paper,0,-.01,.008,.2,.25,.003));g.add(mesh(O.G.box,O.mats.metal,0,.14,.01,.08,.03,.012));return g}
-function tin(O,c){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.cyl,K_.tin[c.id],0,0,0,.065,.16,.065));g.add(mesh(O.G.cyl,O.mats.metal,0,.082,0,.067,.008,.067));g.add(mesh(O.G.box,K_.card,0,0,.064,.06,.07,.003));return g}
+  toBody(d,'Bip01_Head',bake(O,g,'hat'+c.id),[0,.13,.0]);return g}
+function clipboard(O){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.box,K_.board,0,0,0,.23,.31,.012));g.add(mesh(O.G.box,K_.paper,0,-.01,.008,.2,.25,.003));g.add(mesh(O.G.box,O.mats.metal,0,.14,.01,.08,.03,.012));return bake(O,g,'clip')}
+function tin(O,c){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.cyl,K_.tin[c.id],0,0,0,.065,.16,.065));g.add(mesh(O.G.cyl,O.mats.metal,0,.082,0,.067,.008,.067));g.add(mesh(O.G.box,K_.card,0,0,.064,.06,.07,.003));return bake(O,g,'tin'+c.id)}
 function billMesh(O){return mesh(O.G.box,propKit(O).bill,0,0,0,.075,.004,.035)}
 function phoneMesh(O){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.box,K_.phone,0,0,0,.07,.14,.01));const s=mesh(O.G.plane,K_.screen,0,0,.006,.06,.12,1);s.castShadow=false;g.add(s);return g}
 function basket(O){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.cyl,K_.wicker,0,-.2,0,.17,.16,.12));g.add(mesh(O.G.sph,O.mats.red,-.05,-.1,0,.045,.045,.045));g.add(mesh(O.G.sph,O.mats.leaf,.05,-.1,.02,.06,.05,.06));
-  const h=mesh(O.G.box,K_.wicker,0,-.05,0,.02,.2,.02);g.add(h);return g}
-function tote(O){const K_=propKit(O),g=new (A().THREE.Group)();g.add(mesh(O.G.box,pick(K_.tote),0,-.24,0,.3,.34,.06));g.add(mesh(O.G.cyl6,O.mats.leaf,.06,-.02,0,.01,.22,.01));return g}
-function apron(O,d){const K_=propKit(O),g=new (A().THREE.Group)();g.add(mesh(K_.apronGeo,pick(K_.apron),0,0,0,1.05,1,.85));toBody(d,'Bip01_Spine',g,[0,-.08,.0]);return g}
+  const h=mesh(O.G.box,K_.wicker,0,-.05,0,.02,.2,.02);g.add(h);return bake(O,g,'basket')}
+function tote(O){const K_=propKit(O),g=new (A().THREE.Group)(),i=Math.floor(Math.random()*K_.tote.length);g.add(mesh(O.G.box,K_.tote[i],0,-.24,0,.3,.34,.06));g.add(mesh(O.G.cyl6,O.mats.leaf,.06,-.02,0,.01,.22,.01));return bake(O,g,'tote'+i)}
+function apron(O,d){const K_=propKit(O),g=new (A().THREE.Group)();const m=mesh(K_.apronGeo,pick(K_.apron),0,0,0,1.05,1,.85);m.castShadow=false;g.add(m);toBody(d,'Bip01_Spine',g,[0,-.08,.0]);return g}
 function stroller(O,alt){const K_=propKit(O),T=A().THREE,g=new T.Group(),m=O.mats.metal,fab=alt?K_.pram2:K_.pram;
   g.add(mesh(O.G.box,fab,0,.62,0,.42,.26,.66));g.add(mesh(new T.CylinderGeometry(.23,.23,.42,12,1,false,0,Math.PI),fab,0,.75,-.18,1,1,1,0,0,Math.PI/2));
   for(const s of[-1,1]){g.add(mesh(O.G.cyl,m,s*.2,.6,.36,.012,.62,.012,-.5));g.add(mesh(O.G.cyl,m,s*.2,.38,0,.012,.8,.012,Math.PI/2));
     for(const z of[-.28,.3]){const w=mesh(O.G.cyl,O.mats.dark,s*.22,.11,z,.11,.04,.11,0,0,Math.PI/2);g.add(w)}}
-  g.add(mesh(O.G.cyl,O.mats.dark,0,.86,.5,.014,.44,.014,0,0,Math.PI/2));g.traverse(o=>{if(o.geometry&&o.geometry.type==='CylinderGeometry'&&o.geometry!==O.G.cyl)own(O,o.geometry)});A().wmAdd(g);return g}
+  g.add(mesh(O.G.cyl,O.mats.dark,0,.86,.5,.014,.44,.014,0,0,Math.PI/2));const half=g.children[1].geometry;const b=bake(O,g,'pram'+(alt?1:0),true);half.dispose();A().wmAdd(b);return b}
 function duffelMesh(O){const K_=propKit(O),g=new (A().THREE.Group)();g.add(mesh(O.G.cyl,K_.duffel,0,.18,0,.18,.62,.18,0,0,Math.PI/2));g.add(mesh(O.G.box,O.mats.dark,0,.37,0,.32,.02,.04));
-  g.add(mesh(O.G.box,O.mats.metal,.12,.3,.17,.05,.04,.02));return g}
+  g.add(mesh(O.G.box,O.mats.metal,.12,.3,.17,.05,.04,.02));return bake(O,g,'duffel',true)}
 function guitar(O){const K_=propKit(O),T=A().THREE,g=new T.Group();g.add(mesh(O.G.cyl,K_.guitar,0,0,0,.18,.08,.22,Math.PI/2));g.add(mesh(O.G.cyl,K_.guitar,0,.0,-.2,.14,.07,.16,Math.PI/2));
-  g.add(mesh(O.G.cyl,O.mats.dark,0,.041,.02,.045,.003,.045,Math.PI/2));g.add(mesh(O.G.box,K_.neck,0,0,.42,.05,.025,.5));return g}
+  g.add(mesh(O.G.cyl,O.mats.dark,0,.041,.02,.045,.003,.045,Math.PI/2));g.add(mesh(O.G.box,K_.neck,0,0,.42,.05,.025,.5));return bake(O,g,'guitar')}
 
 /* ---------------- people: spawning, walking, the crowd ---------------- */
 function loadedKeys(){const pp=PPL();return ADULTS.filter(k=>pp&&pp.has&&pp.has(k))}
@@ -392,7 +407,8 @@ function vendorStep(O,dt){const a=A(),P=a.P;for(const v of O.people){if(v.kind!=
 
 /* ---------------- the collectors: pitch, take the money, and (one of them) give himself away ---------------- */
 function colStep(O,dt){const a=A();for(const c of O.cols){if(c.gone)continue;
-    if(c.skim&&c.ruse)continue;/* the takedown drives him */
+    if(c.skim&&(c.ruse||c.down||O.run))continue;/* the takedown drives him */
+    if(O.down&&!c.skim){/* the others stop to look */if(c.st==='walk'||c.st==='idle'){face(c,O.down.x,O.down.z,dt);continue}}
     c.next-=dt;if(c.tell){c.tell.t-=dt;if(c.tell.t<=0)c.tell=null}
     if(c.st==='idle'||c.st==='walk'){
       /* the skimmer: the duffel guy waved, he checks his phone */
@@ -718,6 +734,14 @@ function giveBack(){const a=A(),P=a&&a.P;if(!BORROW||!P)return;const b=BORROW;BO
     for(const k of['side','p1','p2']){const id=b.lo[k];if(id)a.give(id,{mag:0,extra:0,auto:false})}for(const id in b.ammo)if(P.ammo[id])Object.assign(P.ammo[id],b.ammo[id]);
     if(P.ammo.beanbag&&!Object.values(b.lo).includes('beanbag'))delete P.ammo.beanbag;if(b.cur&&P.weapons.includes(b.cur))a.swap(b.cur,true)}catch(e){console.warn('[arrest] loadout',e)}}
 
+/* the open world's moving-truck set piece parks at the kerb of whichever Riverside block is mid-renovation, which can be inside the
+   market: while the market runs it waits elsewhere (hidden, its collider parked), and it comes back when the job ends */
+function truckAway(O){const a=A(),M=O&&a.M;if(!O||O.truckT>0&&(O.truckT-=1/30)>0)return;O.truckT=1;
+  if(!O.truck){a.scene.traverse(o=>{if(!O.truck&&o.userData&&o.userData.van&&o.userData.noCompact)O.truck=o})}const T=O.truck;if(!T||!T.visible)return;
+  const x=T.position.x,z=T.position.z;if(x<346||x>412||z<36||z>50)return;T.visible=false;O.truckHid=true;
+  const col=(a.L.colliders||[]).find(c=>c.k==='truck');if(col&&!col.off){O.truckCol={c:col,was:{x0:col.x0,z0:col.z0,x1:col.x1,z1:col.z1,off:col.off}};Object.assign(col,{x0:-1e4,z0:-1e4,x1:-1e4,z1:-1e4,off:true})}}
+function truckBack(O){if(!O)return;if(O.truckHid&&O.truck){O.truck.visible=true;O.truckHid=false}if(O.truckCol){Object.assign(O.truckCol.c,O.truckCol.was);O.truckCol=null}O.truck=null}
+
 /* ---------------- the job ---------------- */
 J.register('arrest',{
   def:{giver:'rosa',hood:'river',title:'Hands Off',role:'Rosa · Strand 2/2 · Capture alive in a crowd',place:"Riverside Farmers' Market, Main St",
@@ -739,13 +763,13 @@ J.register('arrest',{
     for(const al of a.allies.slice()){if(al.dude&&al.dude.root.parent)al.dude.root.parent.remove(al.dude.root);if(al.tag)al.tag.remove()}a.allies.length=0;a.rebuildTargets();
     /* the street is closed for the market: ambient traffic is cleared for the job */
     try{const H_=window.__ht,OW_=H_&&H_.ow;if(OW_&&OW_.traffic)OW_.traffic(0,{player:a.P.pos,car:null,camera:a.camera,off:true})}catch(_){}
-    buildMarket(O);overlay(O);borrow();try{a.holster(true)}catch(_){}
+    buildMarket(O);overlay(O);borrow();O.truckT=0;truckAway(O);try{a.holster(true)}catch(_){}
     if(o&&o.checkpoint)return;
     music('hub',.35)},
 
   upd(dt,M,F){const a=A(),O=M.ho,P=a.P;if(!O)return;O.clock+=dt;laterStep(O);if(M.state!=='go')return;
     if(!O.spawned){if(castReady()||O.clock>20)spawnCrowd(O);else{F.objs.push(['The market is setting up…',false]);return}}
-    if(O.alertT>0)O.alertT-=dt;
+    if(O.alertT>0)O.alertT-=dt;truckAway(O);
     if(O.pendingLoad)applyLoad(O);
     crowdStep(O,dt);vendorStep(O,dt);colStep(O,dt);ruseStep(O,dt);garyStep(O,dt);runStep(O,dt);downStep(O,dt);dufStep(O,dt);buskStep(O,dt);
     if(O.stage==='market'&&O.talked)watchStep(O,dt);else O.watch.c=null;
@@ -813,12 +837,15 @@ function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();
       else{F.objs.push(['Catch the duffel guy: run into him',false]);F.target={x:e.pos.x,z:e.pos.z,label:'Duffel guy'}}}
     if(!O.tied)F.objs.push(['Rosa’s got the skimmer',false]);meters(O,F)}}
 function meters(O,F){F.meters.push({id:'panic',label:'Panic',v:O.panic,max:100,style:'bar',warn:60,icon:'eye',sub:O.panic>=60?'they’re scared':''});
-  if(O.stage==='aside')F.widgets.push({id:'wit',kind:'score',label:'Would see it',v:O.wit,hot:O.wit>0})}
-function taps(O,F){const P=A().P;let best=null,bd=2.6;
-  for(const c of O.cols){if(c.gone||c.down)continue;if(O.stage==='aside'&&!c.skim)continue;const d=hyp(c.x-P.pos.x,c.z-P.pos.z);if(d<bd){bd=d;best={c}}}
-  if(best){const c=best.c;F.taps.push({x:c.x,z:c.z,r:2.6,txt:O.stage==='aside'?'Talk to him':'Talk to the '+c.col.label.toLowerCase(),fn:()=>colChat(O,c)});return}
-  if(O.stage!=='market')return;
-  for(const v of O.people){if(v.kind!=='vendor')continue;const f=front(v.stall),d=hyp(f.x-P.pos.x,f.z-P.pos.z);if(d<2.2){F.taps.push({x:f.x,z:f.z,r:2.2,txt:'Chat with '+v.name,fn:()=>vendorChat(O,v)});return}}}
+  if(O.stage==='aside')F.widgets.push({id:'wit',kind:'score',label:'Eyes on you',v:O.wit,hot:O.wit>0,sub:O.wit?'if you drew now':'nobody\u2019s looking'})}
+/* E goes to whatever you're facing: a collector or a vendor, scored by distance and by how far off your view it is */
+function taps(O,F){const a=A(),P=a.P;let best=null,bs=1e9;
+  const score=(x,z,r)=>{const d=hyp(x-P.pos.x,z-P.pos.z);if(d>r)return 1e9;const off=Math.abs(angWrap(yawTo(x-P.pos.x,z-P.pos.z)-P.yaw));return d+off*1.6};
+  for(const c of O.cols){if(c.gone||c.down)continue;if(O.stage==='aside'&&!c.skim)continue;const sc=score(c.x,c.z,2.6);if(sc<bs){bs=sc;best={c}}}
+  if(O.stage==='market')for(const v of O.people){if(v.kind!=='vendor')continue;const f=front(v.stall),sc=Math.min(score(f.x,f.z,2.3),score(v.x,v.z,3.4));if(sc<bs){bs=sc;best={v}}}
+  if(!best)return;
+  if(best.c){const c=best.c;F.taps.push({x:c.x,z:c.z,r:2.6,txt:O.stage==='aside'?'Talk to him':'Talk to the '+c.col.label.toLowerCase(),fn:()=>colChat(O,c)})}
+  else{const v=best.v;F.taps.push({d:0,r:1,txt:'Chat with '+v.name,fn:()=>vendorChat(O,v)})}}
 function talkRosa(O){const a=A();if(O.talked)return;O.talked=true;O.nbOn=true;O.nbDirty=true;O.stage='market';
   let t=seq(LINES.rosaBrief,3.6);later(t+.4,()=>{if(O.stage==='market'&&(O.watchedAny||0)<1.2)say('rosa',LINES.rosaWatchTip,true)});
   later(t+14,()=>{if(O.stage==='market'&&!O.clues.length)say('rosa',LINES.rosaGossip,true)});
@@ -835,7 +862,7 @@ function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return
 
 /* ---------------- cleanup: free everything when the job ends, is retried or replayed ---------------- */
 const LIVE={M:null};
-function cleanup(M){if(!M||M.hoClean)return;M.hoClean=true;const O=M.ho;giveBack();if(!O)return;closeChat(O);
+function cleanup(M){if(!M||M.hoClean)return;M.hoClean=true;const O=M.ho;giveBack();if(!O)return;closeChat(O);truckBack(O);
   try{A().overlay('handsoff',null)}catch(_){}if(O.ov&&O.ov.el&&O.ov.el.parentNode)O.ov.el.parentNode.removeChild(O.ov.el);O.ov=null;
   for(const p of O.people){if(p.d&&p.d.root.parent)p.d.root.parent.remove(p.d.root);if(p.stroller&&p.stroller.parent)p.stroller.parent.remove(p.stroller);p.d=null;p.stroller=null}
   if(O.g&&O.g.parent)O.g.parent.remove(O.g);if(O.car&&O.car.parent)O.car.parent.remove(O.car);if(O.duf&&O.duf.bag&&O.duf.bag.parent)O.duf.bag.parent.remove(O.duf.bag);
