@@ -343,15 +343,7 @@ function scopeInit(M){const a=A();if(M.scoped)return;M.scoped=true;M.dw=person(M
       if(!(s.hits||[]).some(h=>h.stars>=1)&&!M.said.miss){M.said.miss=1;say(M,'gary',"Get closer, or zoom. The wheel zooms. It needs to be clear enough to read.")}},
     stamp:()=>'SAT  2:14 PM',flash:false,status:()=>({v:M.weird,text:M.weird>.05?'DWAYNE '+Math.round(M.weird*100)+'%':''})});
   if(!M.retryScope)seq(M,L.open,3);try{music('tension',.12)}catch(_){}}
-/* the phone is a toggle (the core's RMB is hold-to-aim): RMB flips it up or down; anything else that raises it (LMB with the phone, the touch aim button) latches it up; the on-screen back arrow lowers it */
-let PHONE=null;function phoneLatch(){if(PHONE||typeof addEventListener!=='function')return;PHONE={};
-  addEventListener('mousedown',e=>{const M=A()&&A().M;if(e.button===2&&M&&M.def&&M.def.id==='heist'&&M.stage0==='scope'&&M.state==='go')M.rmbFlip=true},true);
-  addEventListener('pointerdown',e=>{const M=A()&&A().M;if(M&&M.def&&M.def.id==='heist'&&e.target&&e.target.closest&&e.target.closest('.ph-x'))M.phoneUp=false},true);
-  /* the core doesn't call fire() while the guns are holstered (M.noGuns), so held items never get the left button: route it here */
-  addEventListener('mousedown',e=>{const a=A(),M=a&&a.M;const H=window.__ht;if(e.button!==0||!M||!M.def||M.def.id!=='heist'||M.state!=='go'||!H||!H.running)return;const cv=H.renderer&&H.renderer.domElement||document.querySelector('canvas');if(e.target!==cv)return;
-    if(M.item==='phone'){const Ph=PH();if(!Ph)return;if(!Ph.isRaised())M.phoneUp=true;else Ph.shoot()}else if(M.item==='heist_laser')laserUse(M)},true)}
-function phoneTick(M){const P=A().P;if(M.rmbFlip){M.rmbFlip=false;M.phoneUp=!M.phoneUpAt}else if(P.aim&&!M.phoneUp&&!M.aimPrev)M.phoneUp=true;P.aim=!!M.phoneUp;M.aimPrev=P.aim;M.phoneUpAt=M.phoneUp}
-function scopeTick(M,F,dt){const a=A(),P=a.P,Ph=PH(),dw=M.dw;phoneLatch();phoneTick(M);
+function scopeTick(M,F,dt){const a=A(),P=a.P,Ph=PH(),dw=M.dw;
   /* Dwayne: leans in his doorway, looks the lot over, watches you if you're close */
   const dp=hyp(P.pos.x-dw.pos.x,P.pos.z-dw.pos.z);M.dwT=(M.dwT||0)+dt;
   if(dp<9&&!a.CV)face(dw,P.pos.x,P.pos.z,dt,3);else{const base=Math.PI+Math.sin(M.dwT*.35)*.9;dw.yaw+=wrap(base-dw.yaw)*Math.min(1,dt*1.5)}
@@ -391,9 +383,9 @@ function losClear(x0,z0,x1,z1){const cs=A().L.colliders,dx=x1-x0,dz=z1-z0;for(co
 /* =====================================================================
    STAGE 2: GEAR (errands around Maple) and STAGE 3: THE PLAN (Gary's driveway)
    ===================================================================== */
-function gearEnter(M){M.stage0='gear';M.phoneUp=false;try{A().P.aim=false}catch(_){}const Ph=PH();if(Ph)try{Ph.end()}catch(_){}M.item=null;M.noGuns=L.noGunsDay;
+function gearEnter(M){M.stage0='gear';const Ph=PH();try{if(Ph)Ph.raise(false)}catch(_){}if(Ph)try{Ph.end()}catch(_){}M.item=null;M.noGuns=L.noGunsDay;
   if(M.dw){M.dw.d.root.visible=false}
-  if(!M.said.gearOpen){M.said.gearOpen=1;seq(M,L.gearOpen,3.2,{t:1})}try{music('home',.1)}catch(_){}}
+  if(!M.said.gearOpen){M.said.gearOpen=1;seq(M,L.gearOpen,3.2,{t:1})}try{music('hub',.2)}catch(_){}}
 function gearInit(M){const a=A();if(M.geared)return;M.geared=true;M.gp={};
   for(const g of GEAR){const p=person(M,g.who,g.at.x,g.at.z,g.face);p.home={x:g.at.x,z:g.at.z};M.gp[g.id]=p;
     const f=[Math.sin(g.face),Math.cos(g.face)];g.ring={x:g.at.x+f[0]*1.7,z:g.at.z+f[1]*1.7};M.vis['ring_'+g.id]=ringMesh(M,g.ring.x,g.ring.z,.85)}
@@ -632,7 +624,7 @@ function escalate(M,why){const a=A();if(M.loud)return;M.alarmWhy=why;
   if(why==='reggie')say(M,L.spotted[0],L.spotted[1],{front:true});else if(why==='camera')say(M,L.camSpot[0],L.camSpot[1],{front:true});else if(why==='bluff')seq(M,L.bluffLose,1.8,{front:true});
   try{a.spotted(why==='camera'?'Dwayne saw you on camera':why==='bluff'?'Dwayne called Vince':'Reggie saw you')}catch(_){}goLoud(M,why)}
 function goLoud(M,why){const a=A();if(M.loud)return;M.loud=true;M.ghost=false;M.noGuns=false;M.hide=null;
-  if(M.S){try{M.S.release()}catch(_){}try{M.S2.release()}catch(_){}try{if(M.viz)M.viz.dispose()}catch(_){}try{if(M.hud)M.hud.dispose()}catch(_){}M.viz=M.hud=null}
+  if(M.S){try{M.S.release()}catch(_){}try{M.S2.release()}catch(_){}try{if(M.viz)M.viz.dispose()}catch(_){}try{if(M.hud)M.hud.dispose()}catch(_){}M.viz=M.hud=null;try{A().overlay('stealth',null)}catch(_){}}
   if(M.board)try{M.board.close(true)}catch(_){}if(M.ch){try{M.ch.close()}catch(_){}M.ch=null}
   const n=why==='planned'?[4,3,2][st(M,'distraction')-1]:why==='bluff'?3:2;M.enemies=[];
   const spots=[{x:M.rg?M.rg.pos.x:238,z:M.rg?M.rg.pos.z:148},{x:S_.office.door.x+1,z:S_.office.door.z-1.4},{x:247,z:140.2},{x:230,z:140.2}];
@@ -698,7 +690,7 @@ function bluffTick(M,F,dt){const a=A(),P=a.P,dw=M.dw;
   return false}
 /* ---------------- the job, every frame ---------------- */
 const HIDE_R=1.3;
-function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.loud;M.t+=dt;phoneLatch();
+function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.loud;M.t+=dt;
   if(!M.loud&&app!=='loud'){M.clock-=dt;if(M.clock<=180&&!M.said.c3){M.said.c3=1;say(M,L.clock3[0],L.clock3[1],{front:true})}if(M.clock<=60&&!M.said.c1){M.said.c1=1;say(M,L.clock1[0],L.clock1[1],{front:true})}
     if(M.clock<=0)return a.endMission(false,L.clockFail,'Shift change.')}
   /* inside the fence yet? (the distraction starts when you are) */
@@ -955,7 +947,7 @@ function cleanup(M){if(!M||M.cleaned)return;M.cleaned=true;M.live=false;const a=
   try{if(M.board)M.board.close(true)}catch(_){}M.board=null;try{if(M.ch)M.ch.close()}catch(_){}M.ch=null;try{a.overlay('bluff',null)}catch(_){}
   try{const Ph=PH();if(Ph&&Ph.S&&Ph.S.job==='heist')Ph.end()}catch(_){}
   try{gateRestore(M)}catch(_){}
-  try{if(M.viz)M.viz.dispose()}catch(_){}try{if(M.hud)M.hud.dispose()}catch(_){}M.viz=M.hud=null;
+  try{if(M.viz)M.viz.dispose()}catch(_){}try{if(M.hud)M.hud.dispose()}catch(_){}M.viz=M.hud=null;try{a.overlay('stealth',null)}catch(_){}
   try{if(M.S)M.S.dispose()}catch(_){}try{if(M.S2)M.S2.dispose()}catch(_){}M.S=M.S2=null;
   const v=M.vis||{};
   for(const o of v.lights||[]){try{if(o.l.parent)o.l.parent.remove(o.l);if(o.l.dispose)o.l.dispose()}catch(_){}}
@@ -987,12 +979,12 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.waitCast)return n
   if(B.w>0){B.w--;return null}
   switch(M.stage0){
     case'scope':{if(a.CV){if(!M.tags.u47)a.exitCar();return null}
-      const next=BOTSHOTS.find(s=>!M.tags[s[0]]);if(!next){if(Ph&&Ph.isRaised()){M.phoneUp=false;P.aim=false;return null}const v=M.car;tp(v.pos.x+2.6,v.pos.z+.5);a.enterCar(v);return null}
+      const next=BOTSHOTS.find(s=>!M.tags[s[0]]);if(!next){if(Ph&&Ph.isRaised()){Ph.raise(false);return null}const v=M.car;tp(v.pos.x+2.6,v.pos.z+.5);a.enterCar(v);return null}
       const id=next[0],sub=subjects(M).find(s=>s.item===id);const spot=next[1]||{x:M.dw.pos.x+.3,z:M.dw.pos.z-3.4};
-      if(B.id!==id){B.id=id;B.n=0;tp(spot.x,spot.z);M.phoneUp=false;return null}B.n++;
-      if(!Ph)return null;if(!Ph.isRaised()){M.phoneUp=true;return null}if(Ph.zoom!==(id==='cams'?4:id==='keypad'||id==='board'?2:1))Ph.setZoom(id==='cams'?2:id==='keypad'||id==='board'?1:0);
+      if(B.id!==id){B.id=id;B.n=0;tp(spot.x,spot.z);if(Ph)Ph.raise(false);return null}B.n++;if(B.n>200){/* the phone only comes up on a drawn frame (HT.Photo raises in its HUD pass): a sync harness tags it */M.tags[id]?0:tag(M,id);return null}
+      if(!Ph)return null;if(!Ph.isRaised()){Ph.raise(true);return null}if(Ph.zoom!==(id==='cams'?4:id==='keypad'||id==='board'?2:1))Ph.setZoom(id==='cams'?2:id==='keypad'||id==='board'?1:0);
       Ph.aimAt(sub.pos.x,sub.pos.y+sub.h/2,sub.pos.z);if(!Ph.focus.locked&&B.n<60)return null;if(B.n%12===0){const pv=Ph.preview(),h=pv&&pv.hits.find(h=>h.item===id);if(h&&h.stars>=1||B.n>90)Ph.shoot()}
-      if(B.n>200){M.tags[id]=true}return null}
+      return null}
     case'gear':case'plan':{if(a.CV){a.exitCar();return null}if(M.board){/* the board: the same keys a player presses */const Pl=PL(),ctx=planCtx(M);
         const want=o.app?Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:o.app},o.fail||o.app==='loud'?{assign:{lookout:'doug',driver:'gary',lifter:'dave',distraction:'rick'}}:{}):o.fail?{assign:{lookout:'doug',driver:'gary',lifter:'dave',distraction:'rick'},entry:'loud'}:M.replay&&!Pl.locks(PLAN_DEF,ctx).bluff?Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'bluff'}):Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'quiet'});
         if(!B.planSet){B.planSet=1;M.board.set(want);return null}M.board.key('Enter');return null}

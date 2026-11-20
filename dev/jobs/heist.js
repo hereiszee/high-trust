@@ -22,7 +22,7 @@ async function session(main,app){const {b,p,errs}=await open(TOUCH?{viewport:{wi
   const until=(cond,max,o)=>ev(([cond,max,o])=>{const H=window.__ht,a=H.jobs.api,j=H.jobs.registry.get('heist'),f=new Function('M','H','return '+cond);let t=0;
     for(;t<max&&H.M&&H.M.state==='go'&&!f(H.M,H);t++){j.test.step(a,(window.__T=(window.__T||0)+1),o||{});H.P.hp=Math.max(H.P.hp,60);H.step(1)}for(const k of['w','a','s','d','e'])H.keys[k]=false;return{t,ok:!!(H.M&&f(H.M,H))}},[cond,max,o]);
   const shot=async(n,cam)=>{if(!SHOTS)return;await ev(c=>{window.__cam=c||null},cam||null);
-    if(true){await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(/brief|result|plan/.test(n)?700:1500);await ev(()=>{window.__rafOn=false})}
+    if(true){await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(/result/.test(n)?1800:/brief|plan/.test(n)?900:1500);await ev(()=>{window.__rafOn=false})}
     await ev(()=>{const H=window.__ht,O=window.HT.OpenWorld;try{O.buildAll();O.update(H.camera,1/30)}catch(e){console.warn(e)}H.step(1);try{O.buildAll();O.update(H.camera,1/30)}catch(_){}H.draw()});await p.screenshot({path:path.join(OUT,(TOUCH?'touch-':'')+n+'.jpg'),type:'jpeg',quality:82});await ev(()=>{window.__cam=null})};
   const keyHold=async(k,frames)=>{await p.keyboard.down(k);await step(frames);await p.keyboard.up(k)};
   async function branchRun(app){await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('heist');j.test.give(H.jobs.api);await Promise.race([window.HT.People.preload(H.jobs.castKeys('heist')).catch(()=>{}),new Promise(r=>setTimeout(r,30000))]);H.jobs.start('heist');H.step(4)});
@@ -94,7 +94,7 @@ async function session(main,app){const {b,p,errs}=await open(TOUCH?{viewport:{wi
   r=await until('M.hide',1500);if(r.ok)await shot('14-job-hidden',[264,2.2,145,262,1,149.6]);
   r=await until("M.loaded>=12||M.stage0==='getaway'",6000);ok(r.ok,'loaded everything: '+JSON.stringify(await st()));
   r=await until("M.stage0==='getaway'&&H.CV",900);ok(r.ok,'in Ron\'s truck: the getaway');await step(30);await shot('15-getaway-drive');
-  r=await until("M.state!=='go'",4000);s=await st();ok(s.state==='won','the truck made it to Gary\'s: won');await step(40);await shot('16-result-quiet');
+  r=await until("M.state!=='go'",4000);s=await st();ok(s.state==='won','the truck made it to Gary\'s: won');await step(40);await p.waitForTimeout(1200);await shot('16-result-quiet');
   const res=await ev(()=>{const r=document.querySelector('.ht-result');return r?{h2:r.querySelector('h2').textContent,stats:[...r.querySelectorAll('.ht-stats b')].map(x=>x.textContent),lf:r.querySelectorAll('.htp-lf li').length}:null});
   ok(res&&res.lf===12&&res.stats.includes('Recovered'),'result card: headline, job stats and the Lost & Found list '+JSON.stringify(res));
   /* ---- afterwards: free roam, the things on their owners' porches ---- */
