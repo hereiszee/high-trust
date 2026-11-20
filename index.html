@@ -1418,7 +1418,7 @@ function enterHub(o){
 function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
   const obj=m.obj||{loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
   HUD.show('brief',{kicker:'New job',title:m.title,giver:HOMIES[m.giver].name,role:m.role,place:m.place,color:HOMIES[m.giver].shirt,lines:m.lines,
-    meta:[['Job',obj],['Crew','You, '+m.crew.map(c=>HOMIES[c].name).join(', ')],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
+    meta:[['Job',obj],['Crew',m.crew.length?'You, '+m.crew.map(c=>HOMIES[c].name).join(', '):'Just you'],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
   const close=()=>{HUD.hide('brief');UI.acts={}};
   if(bo.home){/* a job offered from home (JOBS): go = it's on the list, head out to the van; no = not today */
     UI.acts={'brief:go':()=>{close();JRS.pending=i;running=true;last=performance.now();canvasFocus();requestLock();radio('you',pick(["Okay. Keys, wallet, phone. Van's in the driveway.","On it. Back before dinner."]))},
@@ -3342,7 +3342,7 @@ function jrHubEnter(){if(JRS.night){JRS.night=false;if(typeof setNight==='functi
 function calEntries(){const s=SV(),out=[];if(!s)return out;const jobs=s.jobs||{};
   MISSIONS.forEach((m,i)=>{const r=jobs[m.id],done=(r&&r.done)||prog.done[i];if(!done)return;const e=(s.calendar&&s.calendar.entries||[]).find(e=>e.id===m.id)||{};
     const b=(r&&r.best)||e.best||null,t=b&&b.t!=null?Math.floor(b.t/60)+':'+String(Math.round(b.t)%60).padStart(2,'0'):'—';
-    out.push({id:m.id,i,title:m.title,giver:(HOMIES[m.giver]||{}).name||m.giver,place:m.place,hood:m.hood||'maple',medal:(r&&r.medal)||e.medal||1,best:t,runs:(r&&r.runs)||e.runs||1,day:e.day||1,
+    out.push({id:m.id,i,title:m.title,giver:(HOMIES[m.giver]||{}).name||m.giver,place:m.place,hood:m.hood==='river'?'Riverside Flats':'Maple Heights',medal:(r&&r.medal)||e.medal||1,best:t,runs:(r&&r.runs)||e.runs||1,day:e.day||1,
       replayable:!!WORLD&&missionInWorld(i),note:(m.medals?m.medals.map((x,k)=>['Bronze','Silver','Gold'][k]+': '+x).join(' · '):'')})});return out}
 function openCalendar(sel){const s=SV();running=false;releaseLock();const close=()=>{HUD.hide('calendar');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock()};
   const ent=calEntries();
