@@ -63,3 +63,12 @@ To play an upper-body clip (for example rifle_aim) over legs that walk, keep onl
 ## Roster round 2 (street crews only)
 - **Street crews:** 10 variants in the same neutral streetwear: thug_hoodie, thug_track, thug_beanie, thug_red, thug_fro, thug_jacket, thug_brown, thug_cap, thug_f_hood and thug_f_leather. Each spawn draws from a shuffle bag over the loaded variants, so the mix stays even and no two in a row look alike. The first four are in the ASSETS manifest; the other six stream in right after the game starts.
 - The crew (dads) is unchanged.
+
+## Riverside cast (on demand, only in Riverside Flats)
+Rebuilt with `tools/rocketbox/build_riverside.sh` (texture edits in `tools/rocketbox/texfx.py`, Benny's apron in `acc.add_apron`). Every file is at most 1.3 MB. None of these avatars or outfits is used by the street crews, the dads or the family.
+- **Job-givers** (`HT.People` roles `earl`, `dee`, `rosa`, `benny`, 13 hitboxes like the crew):
+  - earl: Business_Male_07, older, light-blue transit shirt with tie, jeans, navy cap.
+  - dee: Business_Female_01, plain dark suit (no religious dress or symbols).
+  - rosa: Medical_Female_01, teal scrubs. Works as a crew member: gun fit, aim, crouch, down and revive use the shared systems.
+  - benny: Business_Male_06, pink-striped shirt, pink cap, white waist apron (`acc_apron`, skinned to the pelvis and thighs).
+- **Neighbours** (`HT.People.neighbourKeys`, `make('neighbour',{variant})` with a shuffle bag; no hitboxes): nb_gran (Business_Female_02), nb_pops (Male_Adult_05), nb_office (Business_Female_03), nb_sweater (Male_Adult_02), nb_teen (Female_Party_02, scaled 0.95), nb_kid (Male_Child_02), nb_kenji (Male_Adult_09), nb_marcus (Male_Adult_12), nb_mei (Female_Adult_03), nb_lucia (Female_Adult_11). 5 women, 5 men/boys, spread across white, Black, Latino, Middle Eastern and Asian like the street-crew pool.

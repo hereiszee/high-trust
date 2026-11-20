@@ -2,7 +2,10 @@
 'use strict';
 const fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..');
-if(process.argv.includes('--sync-maps')){const s=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');const i=s.indexOf('const MISSIONS=['),j=s.indexOf('const HUB=');
+/* the MISSIONS literal in index.html: from 'const MISSIONS=[' to its matching ']' (strings skipped); the old 'const HUB=' end marker is gone with the open world */
+function missionsSpan(s){const i=s.indexOf('const MISSIONS=[');let d=0,q=null;for(let n=i+15;n<s.length;n++){const c=s[n];if(q){if(c==='\\'){n++;continue}if(c===q)q=null;continue}
+  if(c==='"'||c==="'"||c==='`'){q=c;continue}if(c==='[')d++;else if(c===']'&&--d===0)return[i,n+1]}return[i,-1]}
+if(process.argv.includes('--sync-maps')){const s=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');const[i,j]=missionsSpan(s);
   const M=new Function(s.slice(i,j).replace('const MISSIONS=','return '))();const out=M.map(m=>({id:m.id,title:m.title,type:m.type,pad:m.pad,crew:m.crew,weapons:m.weapons,waves:m.waves,time:m.time,map:m.map}));
   const src=fs.readFileSync(path.join(__dirname,'maps.js'),'utf8');fs.writeFileSync(path.join(__dirname,'maps.js'),src.replace(/const MAPS=[\s\S]*?;if\(typeof module/,'const MAPS='+JSON.stringify(out,null,1)+';if(typeof module'));console.log('maps synced');}
 const AI=require('../js/ai.js');const MAPS=require('./maps.js');const Sim=require('./sim.js');
@@ -15,7 +18,7 @@ const mean=a=>a.reduce((x,y)=>x+y,0)/(a.length||1);
 let rs=12345;const rnd=()=>{rs=(rs*1103515245+12345)%2147483648;return rs/2147483648};
 
 /* maps still match the game */
-{const s=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');const i=s.indexOf('const MISSIONS=['),j=s.indexOf('const HUB=');let same=true;
+{const s=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');const[i,j]=missionsSpan(s);let same=true;
   try{const M=new Function(s.slice(i,j).replace('const MISSIONS=','return '))();same=M.every((m,k)=>JSON.stringify(m.map)===JSON.stringify(MAPS[k].map))}catch(e){same=false}
   check('dev/maps.js matches the MISSIONS maps in index.html',same,same?'':'run node dev/ai.test.js --sync-maps')}
 

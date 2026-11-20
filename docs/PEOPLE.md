@@ -72,3 +72,11 @@ HT.People.debugHitboxes(true)        // shows the hitboxes as magenta wireframe
   - the barrel follows the view
   - the hand rises with pitch
   - the camera never sits inside the head
+
+## Riverside cast (job-givers and neighbours)
+- **Roles:** `earl`, `dee`, `rosa`, `benny` (the four Riverside job-givers) and `neighbour` (pool of 10, `HT.People.neighbourKeys`, shuffle bag like the street crews). All load on demand: `HT.People.preload(keys)`.
+- **index.html:** `giverModel(id)` uses the cast model when People has it (preloading it otherwise and falling back to the stand-in until it lands); `giverKey(id)` gives the file a job's cast needs, so `startMissionWhenReady` waits for Rosa and the job's giver. Sal still uses the stand-in.
+- **Neighbours have no hitboxes** (`d.neighbour=true`, `d.meshes=[]`) and are never in ray targets or solids: shots pass through them.
+- **js/openworld.js `OW.neighbours(dt,{player,camera,trust,river,shots})`:** fills the nearest porch anchors from `HT.WorldGen.neighbourSlots` (none at tier 0, up to 10 within 55 m), loading only as many models as there are porches. Kinds: sitting on the stoop (a lawn chair), standing beside the stoop, out on the sidewalk, and from trust 50 one kid with chalk or a bike. Standing ones turn to the dad when he is close and wave now and then. New people appear out of view (or on arriving in Riverside). Called from `owNeighbours()` in free roam and during world jobs.
+- **Gunfire:** `OW.neighbourCower(x,z,r)` sends everyone within r m to their front door and indoors; they come back out after 25 s of quiet. index.html feeds it the dad's shots and every enemy in a firefight.
+- **Test:** `node dev/neighbours-check.js [--shots]` (12 checks, screenshots in `docs/screenshots/neighbours/`).

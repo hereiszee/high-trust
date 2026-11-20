@@ -385,12 +385,22 @@ function hornNote(t,dur,dst){const a=OSC('sawtooth',418),b=OSC('sawtooth',527),b
   a.connect(bp);b.connect(bp);bp.connect(sh);sh.connect(lp);lp.connect(g);g.connect(dst||N.sfx);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.012);g.gain.setValueAtTime(.16,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+.03);
   a.start(t);b.start(t);a.stop(t+dur+.05);b.stop(t+dur+.05);b.onended=()=>{for(const n of [a,b,bp,lp,sh,g])n.disconnect()};return{a,b,g}}
+/* worn-car one-shots: misfire pop, loose-panel rattle, warning chime, hazard relay tick, flat-tyre thump */
+function wearBuf(k,v){return cached('wear:'+k+v,()=>{const r=RNG(hash(k)+v*17);let x;
+  if(k==='misfire'){x=D.arr(.5);thock(x,0,140+r()*60,1,.05,r);const n=D.white(.25,r);D.filt(n,'lp',1800,.8);D.env(n,.001,.035);D.add(x,D.norm(n),.002,.8);grains(x,.01,.12,6,900,3200,.35,r,.003);D.sat(x,2)}
+  else if(k==='rattle'){x=D.arr(.6);let t=0;for(let i=0;i<5+v*2;i++){clk(x,t,1200+r()*2600,.5+r()*.4,.004+r()*.006,r,.3);t+=.03+r()*.06}D.add(x,D.modes(.4,[[620+r()*200,.4,.05],[1480+r()*300,.3,.03]],r),.01,.4)}
+  else if(k==='chime'){x=D.arr(1.1);for(const[at,f]of[[0,1318.5],[.22,987.8]])D.add(x,D.env(D.modes(.9,[[f,1,.35],[f*2.01,.2,.15],[f*3,.06,.08]],r),.003,.6),at,.5)}
+  else if(k==='tick'){x=D.arr(.08);clk(x,0,2600,.8,.003,r,0);thock(x,.004,900,.5,.006,r)}
+  else if(k==='thump'){x=D.arr(.25);D.add(x,D.env(D.osc(.25,D.glide(95,45,.04)),.002,.05),0,1);const n=D.white(.1,r);D.filt(n,'lp',400,.7);D.env(n,.001,.02);D.add(x,D.norm(n),0,.5)}
+  else x=D.arr(.01);
+  return D.buf([D.norm(D.trim(x),.9)])})}
 function vehicle(opt={}){
-  const nop={set(){},horn(){},hornDown(){},hornUp(){},door(){},crash(){},stop(){},alive:false};
+  const nop={set(){},horn(){},hornDown(){},hornUp(){},door(){},crash(){},misfire(){},rattle(){},stall(){},chime(){},tick(){},thump(){},stop(){},alive:false};
   if(!ctx)return nop;
   const t0=ctx.currentTime,all=[],out=G(0),cab=BQ('lowpass',opt.inside===false?18000:5500,.5);out.connect(cab);cab.connect(N.sfx);
   const st=(n)=>{n.start(t0);all.push(n);return n};
   const eLP=BQ('lowpass',400,.9),sh=ctx.createWaveShaper(),eG=G(.04);sh.curve=satCurve(2.2);eLP.connect(sh);sh.connect(eG);eG.connect(out);
+  const rfO=st(OSC('sine',5)),rfG=G(0);rfO.connect(rfG);rfG.connect(eG.gain);   /* damage: a lumpy, uneven idle (AM on the engine bus) */
   const o1=st(OSC('sawtooth',40)),o2=st(OSC('square',20)),o3=st(OSC('sine',60)),g1=G(.45),g2=G(.3),g3=G(.35);
   o1.connect(g1);g1.connect(eLP);o2.connect(g2);g2.connect(eLP);o3.connect(g3);g3.connect(eLP);
   const nz=st(loopSrc(noiseLoop('pink'))),nBP=BQ('bandpass',200,1.2),am=G(.5),amO=st(OSC('sawtooth',40)),amD=G(.5),nG=G(.6);
@@ -402,20 +412,27 @@ function vehicle(opt={}){
   const qO=st(OSC('triangle',1050)),qL=st(OSC('sine',7)),qD=G(35),qG=G(0);qL.connect(qD);qD.connect(qO.frequency);qO.connect(qG);qG.connect(N.sfx);
   if(opt.start!==false){play(starterBuf(),{gain:.5,prio:4,room:0,out:0});out.gain.setValueAtTime(0,t0);out.gain.setValueAtTime(0,t0+.5);out.gain.linearRampToValueAtTime(1,t0+.85)}
   else{out.gain.setValueAtTime(0,t0);out.gain.linearRampToValueAtTime(1,t0+.3)}
-  let held=null,alive=true;
+  let held=null,alive=true,stalled=false;
   const P=(param,v,tc=.06)=>param.setTargetAtTime(v,ctx.currentTime,tc);
   const c={alive:true,
     set(p={}){if(!alive)return;const r=clamp(p.rpm||0,0,1),th=clamp(p.throttle==null?r:Math.abs(p.throttle),0,1),sp=Math.abs(p.speed||0),sk=clamp(p.skid||0,0,1),f=30+r*165;
       P(o1.frequency,f);P(o2.frequency,f/2);P(o3.frequency,f*1.5);P(amO.frequency,f);P(nBP.frequency,f*2.4);
-      P(eLP.frequency,220+r*900+th*1700);P(eG.gain,.028+.016*r+.024*th);P(nG.gain,.35+.6*th);
+      P(eLP.frequency,220+r*900+th*1700);P(eG.gain,stalled?0:.028+.016*r+.024*th,stalled?.25:.06);P(nG.gain,stalled?0:.35+.6*th);
       P(wO.frequency,120+sp*28);P(wG.gain,Math.min(.02,sp*.001));
       P(rG.gain,Math.min(.12,sp*.006));P(rLP.frequency,140+sp*22);P(wiG.gain,Math.min(.05,Math.pow(sp/30,2)*.05));
       const sg=sk*Math.min(1,sp/4);P(sG.gain,sg*.1,.03);P(sBP.frequency,900+sg*500,.03);P(qG.gain,sg*.025,.03);P(qO.frequency,1000+sg*250+Math.random()*40,.05);
+      const dm=clamp(p.damage||0,0,1);P(rfG.gain,.03*dm);P(rfO.frequency,2.5+r*7+dm*2*Math.random());P(o2.detune,dm*45);P(o3.detune,-dm*30);
       if(p.inside!=null)P(cab.frequency,p.inside?5500:18000,.1)},
     horn(kind='short'){const t=ctx.currentTime+.005;for(const [at,d] of HORN[kind]||HORN.short)hornNote(t+at,d)},
     hornDown(){if(held)return;const t=ctx.currentTime;held=hornNote(t,30)},
     hornUp(){if(!held)return;const t=ctx.currentTime;held.g.gain.cancelScheduledValues(t);held.g.gain.setTargetAtTime(0,t,.015);held.a.stop(t+.1);held.b.stop(t+.1);held=null},
     door(kind='close'){play(doorBuf(kind),{gain:.5,prio:4,pan:kind==='slide'?.5:-.4,room:0,out:.05})},
+    stall(b=true){stalled=!!b;if(!b)play(starterBuf(),{gain:.45,prio:4,room:0,out:0})},
+    misfire(i=.6){play(wearBuf('misfire',Math.random()*3|0),{gain:.25+.45*clamp(i,0,1),prio:4,room:0,out:.1,rate:.9+Math.random()*.2})},
+    rattle(i=.5){play(wearBuf('rattle',Math.random()*3|0),{gain:.12+.3*clamp(i,0,1),prio:2,room:0,out:0,rate:.9+Math.random()*.25})},
+    chime(){play(wearBuf('chime',0),{bus:N.ui,gain:.35,prio:5,room:0,out:0})},
+    tick(on){play(wearBuf('tick',0),{bus:N.ui,gain:.18,rate:on?1:.8,prio:2,room:0,out:0})},
+    thump(i=.5){play(wearBuf('thump',0),{gain:.2+.3*clamp(i,0,1),prio:2,room:0,out:0})},
     crash(i=.5){i=clamp(i,0,1);play(crashBuf(i<.34?0:i<.7?1:2,Math.random()*2|0),{gain:.35+.55*i,prio:5,room:0,out:.08});duck(.4*i)},
     stop(){if(!alive)return;alive=false;c.alive=false;c.hornUp();const t=ctx.currentTime;out.gain.cancelScheduledValues(t);out.gain.setTargetAtTime(0,t,.12);sG.gain.setTargetAtTime(0,t,.05);qG.gain.setTargetAtTime(0,t,.05);
       for(const n of all)try{n.stop(t+.7)}catch(e){}all[0].onended=()=>{try{out.disconnect();cab.disconnect();sG.disconnect();qG.disconnect()}catch(e){}}}};
