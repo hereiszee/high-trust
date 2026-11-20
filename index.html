@@ -4172,14 +4172,14 @@ function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;i
 /* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
 function jrGivers(){if(!JR||!WORLD)return[];const out=[];
   for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
-    const g=jrGiverAt(m);if(g&&out.length<3)out.push({i,x:g.x,z:g.z})}return out}
+    const g=jrGiverAt(m);/* every unlocked job gets its giver; two jobs that share a giver's spot take turns (the earlier one first) */if(g&&out.length<14&&!out.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5))out.push({i,x:g.x,z:g.z})}return out}
 function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
   if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
   const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
   /* registered while the hub is up: its destination ring and giver appear without a rebuild */
   if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
-    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<6){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
+    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!npcs.some(n=>n.marker&&Math.hypot(n.marker.x-g.x,n.marker.z-g.z)<1.5)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
 /* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
 function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}
