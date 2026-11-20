@@ -678,7 +678,7 @@ function runStep(O,dt){const a=A(),P=a.P,R=O.run,sk=O.cols[O.skim];if(!R||O.down
   if(stepTo(O,sk,t.x,t.z,K.runSpeed,dt,.6)&&R.k<R.path.length-1)R.k++;
   const d=hyp(P.pos.x-sk.x,P.pos.z-sk.z);if(d<K.runTackle){say('you',"Hands off the garden money!",true);takeDown(O,'tackle');return}
   if(!O.failed&&(d>K.runLost||R.t>K.runMax||R.k>=R.path.length-1&&hyp(sk.x-R.esc.x,sk.z-R.esc.z)<2&&d>10)){O.failed=true;fail(O,LINES.fail.escape,'He got away.')}}
-function takeDown(O,how){const a=A(),sk=O.cols[O.skim];O.down={x:sk.x,z:sk.z,how};O.run=null;O.stage='down';closeChat(O);if(sk.ruse)sk.ruse=null;
+function takeDown(O,how){const a=A(),sk=O.cols[O.skim];O.down={x:sk.x,z:sk.z,how};O.run=null;O.stage='down';O.nbOn=false;closeChat(O);if(sk.ruse)sk.ruse=null;
   try{PPL().hit(sk.d,false)}catch(_){}sk.mode='hands';sk.down=true;showProp(O,sk,'bill',false);showProp(O,sk,'phone',false);
   later(.4,()=>say('Skimmer',how==='bean'?pick(LINES.hit):"OKAY. Okay. I yield. I yield to the dad.",true));later(1.3,()=>{sk.mode='kneel'});
   a.feed(how==='bean'?'One beanbag':'Tackled','trust',how==='bean'?(O.oneShot?'one shot':''):'');music('tension',.45);
@@ -835,7 +835,7 @@ function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();
     if(!O.chat&&!R&&!O.drawn)taps(O,F);meters(O,F);return}
   if(O.stage==='down'){const D=O.duf;if(D.st==='run'){const e=D.e;if(e.state==='surrender'){F.objs.push(['Zip-tie the duffel guy ('+E+')',false]);F.target={x:e.pos.x,z:e.pos.z,label:'Zip-tie'}}
       else{F.objs.push(['Catch the duffel guy: run into him',false]);F.target={x:e.pos.x,z:e.pos.z,label:'Duffel guy'}}}
-    if(!O.tied)F.objs.push(['Rosa’s got the skimmer',false]);meters(O,F)}}
+    else if(!O.tied)F.objs.push([O.rosa.st==='tie'?'Rosa is zip-tying him herself':'Rosa’s on her way over with the zip-ties',false]);if(D.st!=='run'&&O.tied)F.objs.push(['Hold on. Rosa has a few words for him',false]);meters(O,F)}}
 function meters(O,F){F.meters.push({id:'panic',label:'Panic',v:O.panic,max:100,style:'bar',warn:60,icon:'eye',sub:O.panic>=60?'they’re scared':''});
   if(O.stage==='aside')F.widgets.push({id:'wit',kind:'score',label:'Eyes on you',v:O.wit,hot:O.wit>0,sub:O.wit?'if you drew now':'nobody\u2019s looking'})}
 /* E goes to whatever you're facing: a collector or a vendor, scored by distance and by how far off your view it is */
