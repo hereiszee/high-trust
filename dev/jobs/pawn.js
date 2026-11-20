@@ -44,8 +44,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     const k=s.sub;if(k&&log[log.length-1]!==k)log.push(k);return s};
   const face=(x,z)=>ev(([x,z])=>{const P=window.__ht.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));P.pitch=-.12},[x,z]);
   const dist=(x,z)=>ev(([x,z])=>{const P=window.__ht.P;return Math.hypot(P.pos.x-x,P.pos.z-z)},[x,z]);
-  async function walk(pts,o){o=o||{};for(const q of pts){let stuck=0,last=1e9;await face(q.x,q.z);await p.keyboard.down('w');if(o.run)await p.keyboard.down('Shift');
-      for(let i=0;i<900;i++){await face(q.x,q.z);await step(2);T+=2;if(i%15===0)await sample();const d=await dist(q.x,q.z);if(d<(q.r||.6))break;if(d>last-.01){if(++stuck>40)break}else stuck=0;last=Math.min(last,d)}
+  async function walk(pts,o){o=o||{};for(const q of pts){if(o.until&&await o.until())break;let stuck=0,last=1e9;await face(q.x,q.z);await p.keyboard.down('w');if(o.run)await p.keyboard.down('Shift');
+      for(let i=0;i<900;i++){await face(q.x,q.z);await step(2);T+=2;if(i%15===0)await sample();if(o.until&&i%5===0&&await o.until())break;const d=await dist(q.x,q.z);if(d<(q.r||.6))break;if(d>last-.01){if(++stuck>40)break}else stuck=0;last=Math.min(last,d)}
       await p.keyboard.up('w');if(o.run)await p.keyboard.up('Shift')}await step(2)}
   const press=async(k,n)=>{await p.keyboard.press(k);await step(n||2)};
   const waitFor=async(fn,arg,max)=>{for(let i=0;i<(max||900);i++){const r=await ev(fn,arg);if(r)return r;await step(2);T+=2;if(i%15===0)await sample()}return null};
@@ -76,7 +76,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await press('g',4);const fx=await ev(()=>window.__ht.M.ph);ok(fx==='walk','G straightens the disguise (tutorial waits for it): '+fx);
   await step(20);await shot('03c-disguise-fixed',await faceCam());
   /* ---- 2. small talk with the first guest ---- */
-  await walk([{x:342,z:42.4},{x:346.5,z:42.6}]);const gl=await front('gloria',1.0);await walk([gl]);await face((await at('gloria')).x,(await at('gloria')).z);
+  await walk([{x:rear.x,z:45.6},{x:342,z:45.4},{x:346.5,z:42.6}]);const gl=await front('gloria',1.0);await walk([gl]);await face((await at('gloria')).x,(await at('gloria')).z);
   await shot('04-the-party',[344,2.6,46.5,357,1.2,40]);
   await press('e',6);const c1=await waitFor(()=>{const M=window.__ht.M;return M&&M.chat?M.chat.kind+':'+M.chat.p.id:null},null,60);ok(/small:/.test(c1||''),'E on a guest starts small talk: '+c1);
   await waitFor(()=>{const M=window.__ht.M;return M&&M.V&&M.V.choice},null,400);await shot('05-small-talk');const a1=await answer();console.log('     answered '+JSON.stringify(a1));
@@ -87,11 +87,11 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await walk([{x:361.8,z:39.85,r:.35}]);await face(361.4,38.6);await p.keyboard.down('e');for(let i=0;i<60;i++){await step(2);if(i===40)await shot('06-hold-the-ladder',[364.6,1.9,42.6,360.8,1.9,38.7])}await p.keyboard.up('e');await step(4);
   const af=await waitFor(()=>window.__ht.M.archFixed,null,120);ok(af,'holding E fixes the arch ("balloon emergency" learned)');await step(150);
   /* ---- 4. a song request ---- */
-  await walk([{x:364.5,z:43},{x:367.2,z:42.6}]);await face(369.5,41.3);await press('e',6);await answer(0);await talkDone();const sg=await ev(()=>window.__ht.M.ev&&window.__ht.M.ev.kind);ok(sg==='song','the DJ plays his one song: '+sg);
+  await walk([{x:364.5,z:43},{x:367.6,z:41.9}]);await face(369.5,41.3);await press('e',6);await answer(0);await talkDone();const sg=await ev(()=>window.__ht.M.ev&&window.__ht.M.ev.kind);ok(sg==='song','the DJ plays his one song: '+sg);
   await step(150);await shot('07-the-one-song',[361.2,2.0,44.6,365.5,1.1,41]);
   /* ---- 5. too weird in public: sprint around the dance floor until somebody goes "…", then walk off and make small talk ---- */
   const spr=[{x:362.2,z:42.8},{x:366.5,z:42.9},{x:366.6,z:40.4},{x:362.4,z:40.4}];let dots=null;
-  for(let lap=0;lap<6&&!dots;lap++){await walk(spr,{run:true});dots=await ev(()=>{const M=window.__ht.M;const k=Object.keys(M.D.timers);return k.length?k:null})}
+  const anyDots=()=>ev(()=>{const M=window.__ht.M;const k=Object.keys(M.D.timers);return k.length?k:null});for(let lap=0;lap<6&&!dots;lap++){await walk(spr,{run:true,until:anyDots});dots=await anyDots()}
   ok(!!dots,'sprinting around people drains cover until somebody starts a politeness timer: '+JSON.stringify(dots));
   if(dots){const who=dots[0];const q=await at(who);await face(q.x,q.z);await step(2);await shot('08-politeness',[q.x+Math.sin(q.yaw)*3.2+1.2,2.0,q.z+Math.cos(q.yaw)*3.2+1.4,q.x,1.6,q.z]);
     const fr=await front(who,1.0);await walk([fr]);await face(q.x,q.z);await press('e',6);const ch=await ev(()=>window.__ht.M.chat&&window.__ht.M.chat.p.id);

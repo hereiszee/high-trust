@@ -144,13 +144,14 @@ function check(o){o=o||{};const C=convo({mood:o.mood||'bored',rounds:[{options:o
      D.timers {id:{t,T}}  D.watch {id:secs}  D.cover D.max D.min D.started (timers ever started) D.excused D.save() D.load(s)
    Cover drains only while somebody sees you; nobody watching, nothing changes. A crowd is camouflage: with 2+ guests within 2.5 m
    drains are halved and the public gain doubled. Loitering by a staff door (st.loiter) costs -0.05/s. A slipped tell (the mustache
-   on its way off) costs -0.06/s. Someone who said "Excuse me" watches you for 20 s: everything he sees drains x1.5.
+   on its way off) costs -0.06/s. Someone who said "Excuse me" watches you for 20 s: everything they see drains x1.5. A second
+   "Excuse me" while someone is already watching costs -0.12 instead of -0.3 (the room was already looking).
    ===================================================================== */
 const DISGUISES={
   press:   {id:'press',   name:'Local Press',  short:'Press',   max:.9, staff:-.18,polite:1,  slip:[95,140], tell:'lanyard'},
   cousin:  {id:'cousin',  name:"DJ's Cousin",  short:'Cousin',  max:.85,staff:-.06,polite:1,  slip:[80,120], tell:'cap'},
   mustache:{id:'mustache',name:'Mustache',     short:'Mustache',max:.7, staff:-.12,polite:1.5,slip:[26,44],  tell:'mustache'}};
-const COVER={range:10,run:-.08,crouch:-.05,staff:-.12,carry:-.04,public:.02,win:.15,lose:-.10,recog:-.2,excuse:-.3,slip:-.06,loiter:-.05,
+const COVER={range:10,run:-.08,crouch:-.05,staff:-.12,carry:-.04,public:.02,win:.15,lose:-.10,recog:-.2,excuse:-.3,excuse2:-.12,slip:-.06,loiter:-.05,
   low:.35,cancel:.45,polite:[4,8],watchT:20,watchMul:1.5,crowd:2};
 function hashId(s){let h=2166136261;s=String(s);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function cover(o){o=o||{};const R0=rng(o.seed||7);let draws=0;const rnd=()=>{draws++;return R0()};
@@ -181,7 +182,8 @@ function cover(o){o=o||{};const R0=rng(o.seed||7);let draws=0;const rnd=()=>{dra
     if(D.cover<COVER.low)for(const s of seen){if(D.timers[s.id]||D.watch[s.id]>0||s.noPolite)continue;startTimer(s.id);ev.push({kind:'polite',id:s.id})}
     for(const id in D.timers){const tm=D.timers[id];
       if(!ids[id]||D.cover>COVER.cancel){delete D.timers[id];ev.push({kind:'cancel',id,why:!ids[id]?'gone':'fixed'});continue}
-      tm.t-=dt;if(tm.t<=0){delete D.timers[id];D.excused++;D.watch[id]=COVER.watchT;set(D.cover+COVER.excuse);ev.push({kind:'excuse',id})}}
+      tm.t-=dt;if(tm.t<=0){/* a second 'excuse me' while somebody else is already watching you costs less: the room was already looking */const pile=Object.keys(D.watch).some(k=>k!==id&&D.watch[k]>0);
+        delete D.timers[id];D.excused++;D.watch[id]=COVER.watchT;set(D.cover+(pile?COVER.excuse2:COVER.excuse));ev.push({kind:'excuse',id,pile})}}
     if(D.cover<=0&&c0>0)ev.push({kind:'blown'});
     return{dc:D.cover-c0,events:ev,cover:D.cover}};
   /* the next slip of the tell (seconds); running and eating make a mustache slip sooner */

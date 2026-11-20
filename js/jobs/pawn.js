@@ -868,9 +868,9 @@ function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
   /* the van: change disguise (party stage only) */
   if(M.stage==='party'&&!M.got){const r=vanRear(M);if(r&&!a.CV)F.taps.push({x:r.x,z:r.z,r:2,txt:'Change disguise ('+LOOK[D.id].label+' now)',fn:()=>pickOpen(M)})}
   /* talk to anybody close */
-  if(M.pp&&!M.chat&&!(M.photo&&M.photo.st==='aim'))for(const id in M.pp){const p=M.pp[id];const d=hyp(p.pos.x-P.pos.x,p.pos.z-P.pos.z);if(d>K.talkR)continue;
+  if(M.pp&&!M.chat&&!(M.photo&&M.photo.st==='aim'))for(const id in M.pp){const p=M.pp[id];const d=hyp(p.pos.x-P.pos.x,p.pos.z-P.pos.z),tr=id==='dj'?3.2:K.talkR;if(d>tr)continue;
     const kind=p.mode==='visit'?'visit':CHAT[id]?id:'small';if(p.mode==='event'&&!['dj','kev'].includes(id)&&M.ev&&M.ev.kind==='raffle')continue;
-    F.taps.push({d,r:K.talkR,txt:'Talk to '+(ROLE_NAME[id]||p.c.name)+(p.talked&&kind==='small'?' (again)':''),fn:()=>{const pl=a.P;pl.yaw=Math.atan2(-(p.pos.x-pl.pos.x),-(p.pos.z-pl.pos.z));chatOpen(M,p,kind)}})}
+    F.taps.push({d:id==='dj'?d-.8:d,r:tr,txt:'Talk to '+(ROLE_NAME[id]||p.c.name)+(p.talked&&kind==='small'?' (again)':''),fn:()=>{const pl=a.P;pl.yaw=Math.atan2(-(p.pos.x-pl.pos.x),-(p.pos.z-pl.pos.z));chatOpen(M,p,kind)}})}
   /* the ladder */
   if(M.ladderOn&&!M.archFixed){F.objs.push(["Hold Marco's ladder (hold E)",false]);F.target={x:S.ladder.x+.25,z:S.ladder.z+.85,label:'Ladder'};
     F.holds.push({x:S.ladder.x+.25,z:S.ladder.z+.85,r:1.5,o:M.ladderO,txt:'Hold the ladder',time:K.ladder,fn:()=>ladderDone(M)});
