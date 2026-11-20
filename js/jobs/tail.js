@@ -32,12 +32,14 @@ const START={x:210,z:18};                                  /* the dad parks in t
 const PUMP={x:227.2,z:28.3,yaw:-Math.PI/2};               /* the grey sedan at pump 4, nose east */
 const EXIT=[[227.2,28.3],[232,28.6],[236.4,31],[239.4,35.4],[241.5,40.4],[245,43.7],[252,44.5]];
 /* the route: Route 9 east, over the bridge, then a figure-eight tour of Riverside that ends on 4th St at Dock St */
-const RT=[[203,43],[315,43],[347,43],[379,43],[411,43],[411,71],[411,99],[411,127],[379,127],[347,127],[315,127],[315,99],[315,71],[347,71],[379,71],
-  [379,43],[379,15],[411,15],[443,15],[443,43],[443,71],[443,99],[411,99],[379,99],[347,99],[347,71],[347,43],[379,43],[411,43],[411,71],[411,99],[411,127]];
-const DROP=[[409.5,128],[408.6,130.4],[406.4,132.6],[404.8,134.8],[403.6,137.3],[401.8,139.3],[399.6,139.9]];/* into the old lot through the gate */
-const STOPS=[4,10,16,21,24];                             /* full stops at these route nodes (he's a careful driver: it's suspicious) */
-const LIGHT_NODE=27;                                      /* the red light: 3rd & Main, eastbound, his second time through */
-const FIG8_NODE=15;                                       /* where the loop crosses itself */
+/* (4th St between Ash and Mill runs through the community garden's props and 2nd St between Ash and Main through the laundromat's
+   walls: the route never uses either; dev/jobs/tail.js checks the whole lane for static colliders) */
+const RT=[[203,43],[315,43],[347,43],[379,43],[411,43],[443,43],[443,71],[443,99],[443,127],[411,127],[379,127],[347,127],[315,127],[315,99],[315,71],[347,71],[379,71],
+  [379,43],[379,15],[411,15],[443,15],[443,43],[443,71],[443,99],[411,99],[379,99],[347,99],[315,99],[315,71],[315,43],[347,43],[379,43],[379,71],[379,99],[379,127],[411,127]];
+const DROP=[[397,128.6],[400.6,129.4],[403.2,131.6],[404,134.6],[403.2,137.6],[401.4,139.4],[399.6,139.9]];/* east along Dock, then right through the gate */
+const STOPS=[5,8,12,18,23];                              /* full stops at these route nodes (he's a careful driver: it's suspicious) */
+const LIGHT_NODE=31;                                      /* the red light: 3rd & Main, eastbound, his second time through */
+const FIG8_NODE=17;                                       /* where the loop crosses itself */
 const TRUCK={x:393,z:135.5,yaw:Math.PI/2};               /* the box truck, nose west, its back (and the plate) toward Dock St east */
 const SEDAN_PARK={x:399.6,z:139.9};
 const WATCH=[{x:429,z:126.4,label:'Watch spot · Dock St'},{x:442.6,z:138,label:'Watch spot · 5th St'}];
@@ -74,7 +76,7 @@ const L_={
   lightGood:["Hanging back at a light. Beautiful. That's the stuff they don't teach. Because nobody teaches this."],
   arrive:[["doug","He's turning into the old Dock Street lot. The Duke's place. Don't follow him in. Never follow him in."],
     ["doug","Park somewhere boring with a view of the back of that truck. Thirty, sixty metres. The plate's on the back. Plates live on the back."]],
-  bino:[["doug","Binoculars. Right mouse. I keep a pair in every car. Including yours, now. Surprise."]],
+  bino:[["doug","Binoculars. Right-click. I keep a pair in every car. Including yours, now. Surprise."]],
   plate:[["doug","Box truck. Get the plate. Steady. Steadier. Breathe like a sniper. A sniper who coaches T-ball."]],
   photo:[["doug","Got it. That's going on the corkboard. With red string."],["doug","Same truck, same lot, every week, I'd bet my glasses. Earl knows every timetable in this town. I'll ask Earl."]],
   photoBad:["Closer to the back. I need the plate, not a lovely shot of a truck's personality.","That's the side of the truck. The plate's on the back. I'm repeating myself because I care."],
@@ -98,7 +100,8 @@ function freeAll(){const R=RES;RES=null;if(!R)return;const a=A();
   for(const o of Object.keys(R.ov))try{a&&a.overlay&&a.overlay(o,null)}catch(_){}
   for(const g of R.geo)try{g.dispose()}catch(_){}for(const m of R.mat)try{m.dispose()}catch(_){}for(const t of R.tex)try{t.dispose()}catch(_){}
   for(const v of R.veh)try{v.userData&&v.userData.dispose&&v.userData.dispose()}catch(_){}
-  for(const[t,ev,fn]of R.listeners)try{t.removeEventListener(ev,fn)}catch(_){}}
+  for(const[t,ev,fn]of R.listeners)try{t.removeEventListener(ev,fn)}catch(_){}
+  for(const e of R.dom||[])try{e.remove()}catch(_){}hudHide(false)}
 function listen(t,ev,fn){t.addEventListener(ev,fn);res().listeners.push([t,ev,fn])}
 const std=(c,o)=>M_(new (A().THREE.MeshStandardMaterial)(Object.assign({color:A().lin?A().lin(c):c,roughness:.6,metalness:0},o||{})));
 function canvasTex(w,h,f){const T3=A().THREE,c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new T3.CanvasTexture(c);if(T3.sRGBEncoding)t.encoding=T3.sRGBEncoding;t.anisotropy=4;return T_(t)}
@@ -209,8 +212,8 @@ function dropRail(M,v){const a=A();if(v.obj.parent)v.obj.parent.remove(v.obj);v.
 
 /* the route as road-graph nodes and a right-lane polyline */
 function buildRoute(M){const a=A(),Tl=TL(),G=a.roads();if(!G||!Tl)return false;const ids=RT.map(([x,z])=>G.nearestNode(x,z));M.ids=ids;
-  const lane=G.lane(ids);let k=0;while(k<lane.length-1&&lane[k].x<254)k++;
-  const pts=EXIT.map(([x,z])=>({x,z})).concat(lane.slice(k),DROP.map(([x,z])=>({x,z})));const P=Tl.poly(pts);M.P=P;
+  const lane=G.lane(ids);let k=0;while(k<lane.length-1&&lane[k].x<254)k++;let e=lane.length;while(e>k+2&&lane[e-1].z>120&&lane[e-1].x>394)e--;
+  const pts=EXIT.map(([x,z])=>({x,z})).concat(lane.slice(k,e),DROP.map(([x,z])=>({x,z})));const P=Tl.poly(pts);M.P=P;
   /* where each route node sits along the poly (searched forward from the last one, so loops resolve in order) */
   let hint=0;M.nodeS=ids.map((id,i)=>{const n=G.nodes[id];if(i===0)return 0;const r=P.project(n.x,n.z,hint+60,90);hint=r.s;return r.s});
   M.turns=ids.map((id,i)=>{if(i===0||i===ids.length-1)return null;const A_=G.nodes[ids[i-1]],B=G.nodes[id],C=G.nodes[ids[i+1]];const y1=yawTo(B.x-A_.x,B.z-A_.z),y2=yawTo(C.x-B.x,C.z-B.z),d=wrap(y2-y1);
@@ -244,7 +247,7 @@ J.register('tail',{
     /* stops along the way */
     const st=[];for(const k of STOPS)st.push({s:M.nodeS[k]-6.6,t:K.stopT,kind:'stop',node:k});
     st.push({s:M.nodeS[LIGHT_NODE]-6.8,t:K.lightT,kind:'light',node:LIGHT_NODE,onHold:()=>{M.lightHold=true},onGo:()=>{M.lightHold=false;M.lightDone=true}});
-    const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[24]+14,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
+    if(!(o&&o.checkpoint))carsHome(M);const sw=swapSpot(M);M.swapCar=sw?sw.car:null;st.push({s:sw?sw.stopS:M.nodeS[27]+12,t:K.pullT,lat:1.25,kind:'pull',until:()=>pullUntil(M),onHold:()=>{M.pullAt=M.t;pullHold(M)},onGo:()=>{M.pullDone=true}});
     M.tg.rail.stops=st.sort((p,q)=>p.s-q.s);M.tg.rail.max=K.r9Max;
     M.truck=truckModel();M.truck.position.set(TRUCK.x,a.groundAt(TRUCK.x,TRUCK.z),TRUCK.z);M.truck.rotation.y=TRUCK.yaw;a.wmAdd(M.truck,true);doorSet(M.truck,0);
     {const S=7.6,W=2.4,s=Math.abs(Math.sin(TRUCK.yaw)),c=Math.abs(Math.cos(TRUCK.yaw));a.wmCol({x0:TRUCK.x-(s*S/2+c*W/2),x1:TRUCK.x+(s*S/2+c*W/2),z0:TRUCK.z-(c*S/2+s*W/2),z1:TRUCK.z+(c*S/2+s*W/2)})}
@@ -252,7 +255,9 @@ J.register('tail',{
     /* the ambient traffic froze where it was when the job began: clear it, the job runs its own */
     try{const O=H().ow;if(O&&O.traffic)O.traffic(0,{player:a.P.pos,car:null,camera:a.camera,off:true})}catch(_){}
     a.wmSetWindow(a.wmWindow(START.x,START.z,20));
-    if(typeof window!=='undefined'&&window.addEventListener)listen(window,'mousedown',e=>{if(e.button===0&&M===A().M&&M.vf&&M.vfOn)snap(M)});
+    /* the binoculars are a toggle (nothing held down): right-click raises and lowers, left-click / E / Space shoots, Esc lowers */
+    if(typeof window!=='undefined'&&window.addEventListener){listen(window,'mousedown',e=>{if(M!==A().M||M.state!=='go')return;if(e.button===2)binoToggle(M);else if(e.button===0&&M.vfOn)snap(M)});
+      listen(window,'keydown',e=>{if(M!==A().M||M.state!=='go'||e.repeat)return;if(e.key==='Escape'&&M.binoUp)binoToggle(M,false);else if((e.key===' '||e.code==='Space')&&M.vfOn)snap(M)})}
     if(o&&o.checkpoint)return;
     /* parked properly: nose toward the exit, so getting out after him is a drive, not a seven-point turn */
     {const e=a.CV;if(e&&Math.hypot(e.pos.x-START.x,e.pos.z-START.z)<12){e.pos.set(START.x,0,START.z);e.yaw=-Math.PI/2+.25;a.owStopCar(e);a.syncCar(e);a.P.yaw=e.yaw}}
@@ -303,6 +308,21 @@ J.register('tail',{
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'tail',s0:412.5,Ts:{sus:22.5,max:48,lose:1.2,fam:{van:.62},made:[],car:'van',type:'minivan'},swaps:0,bi:-1,vanAt:null,pullDone:false,lightDone:false,items:{},photo:null,maxSus:48,everMade:false})}
 });
+
+/* the result card: an observation job's numbers (suspicion, the trunk, the plate, the cars) instead of the generic fight stats */
+const HEADS=['Nobody saw a thing.','Textbook. There is no textbook.','Boring, on purpose.','Two cars back the whole way.'];
+J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='tail'||M.state==='go'||M.resDone||typeof document==='undefined')return;
+  const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
+  if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=HEADS[Math.min(HEADS.length-1,Math.floor((M.maxSus||0)/26))]}
+  const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);
+    if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
+  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
+  const mx=Math.round(M.maxSus||0),n=Object.keys(M.items||{}).length;
+  set(by('neutralized'),'Max suspicion',mx+'%',mx<=K.goldMax?'textbook':mx<=K.cleanMax?'clean tail':mx<=K.silverMax?'he wondered':'he knew');
+  set(by('zip-tied'),'Itemised',n+'/'+ITEMS.length,n>=ITEMS.length?'the whole trunk':'out of the trunk');
+  const grid=r.querySelector('.ht-stats');if(grid){const add=(k,v,sub)=>{const d=document.createElement('div');grid.appendChild(d);set(d,k,v,sub)};
+    add('Plate',M.photo?'★'.repeat(M.photo.stars)+'☆'.repeat(3-M.photo.stars):'—',M.photo?PLATE_TXT+' · '+M.photo.d+' m':'no photo');
+    add('Swaps',String(M.swaps||0),M.swaps?(M.returned?'car returned':'car still borrowed'):'stuck with the minivan')}});
 
 /* free everything once the job is over (any ending: won, failed, quit, replayed). 'pose' runs every frame, headless too. */
 J.on('pose',()=>{if(!RES)return;const a=A();if(!a)return;const M=a.M;if(a.mode==='mission'&&M&&M.def&&M.def.id==='tail')return;freeAll()});
@@ -370,9 +390,11 @@ function tailTick(M,dt,F){const a=A(),Tl=TL(),tg=M.tg,r=tg.rail,p=playerCar();
   if(M.swaps)F.widgets.push({id:'car',kind:'score',label:'Car',v:M.swaps,sub:CAR_NAME[p.type]||p.type});
   /* he arrives */
   if(r.s>=M.lotS){M.ph='drop';a.CP.mark('drop');dropStart(M,false)}}
-function failNow(M){const a=A();if(M.failWhy==='spooked')a.endMission(false,"He spotted the tail and floored it. Doug says it was the minivan. It was the minivan.","Made");
+function loseWhy(M,why){const S=M.T&&M.T.S,r=M.tg&&M.tg.rail,p=playerCar();M.loseWhy={why,t:Math.round(M.t),stage:M.stage,s:r?Math.round(r.s):0,d:r?Math.round(Math.hypot(r.x-p.x,r.z-p.z)):0,
+  sus:S?Math.round(S.sus):0,lose:S?+S.lose.toFixed(1):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,made:S?!!S.made[S.carId]:false,cause:S?S.why||null:null,car:p.id,swaps:M.swaps,sight:!!M.sight}}
+function failNow(M){const a=A();loseWhy(M,M.failWhy);if(M.failWhy==='spooked')a.endMission(false,"He spotted the tail and floored it. Doug says it was the minivan. It was the minivan.","Made");
   else a.endMission(false,"You lost the grey sedan. Doug is drawing the route from memory on a napkin.","Lost him")}
-function rammed(M){const a=A();M.rammed=true;M.rams++;say(M,"You RAMMED him. That's not tailing. That's the opposite of tailing.",{front:true});
+function rammed(M){const a=A();loseWhy(M,'rammed');M.rammed=true;M.rams++;say(M,"You RAMMED him. That's not tailing. That's the opposite of tailing.",{front:true});
   a.endMission(false,"You rammed the man you were tailing. He's fine. He's furious. Doug sighs a sigh you will remember.","Rammed him")}
 /* chatter: band, cover, the light, familiarity, being ahead */
 function commentary(M,R,t,p){const a=A(),Tl=TL();
@@ -402,8 +424,12 @@ function bumped(M,p,t){if(!p.e)return false;const v=Math.abs(p.spd),dv=(M.pv||0)
 /* ---------------- the swap ---------------- */
 function neighbourCars(){const a=A();return(a.L&&a.L.cars||[]).filter(e=>e&&e.obj&&e!==a.CV&&(e.owner==='neighbour'||e===a.VAN))}
 /* the parked neighbour's car the route passes before his stop, and a stop ~30 m on round the corner */
-function swapSpot(M){let best=null;for(const e of neighbourCars()){if(e===A().VAN)continue;const r=M.P.project(e.pos.x,e.pos.z,700,260);if(r.d>9||r.s<480||r.s>900)continue;if(!best||r.s>best.s)best={car:e,s:r.s}}
-  if(!best)return null;let s=best.s+30;for(let k=0;k<6;k++){if(M.nodeS.every(n=>Math.abs(n-s)>11))break;s+=6}return{car:best.car,stopS:s}}
+/* the swap beat depends on neighbours' cars being where they live: whoever borrowed one last time (you, in an earlier run) has
+   brought it back by now. Cars within 12 m of the route go home (never the car you're sitting in) */
+function carsHome(M){const a=A();for(const e of neighbourCars()){if(e===a.VAN||e===a.CV||!e.home)continue;const h=e.home;if(Math.hypot(e.pos.x-h.x,e.pos.z-h.z)<1.5&&Math.abs(wrap(e.yaw-h.yaw))<.2)continue;
+    if(M.P.project(h.x,h.z).d>12)continue;e.pos.set(h.x,0,h.z);e.yaw=h.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}}}
+function swapSpot(M){let best=null;for(const e of neighbourCars()){if(e===A().VAN)continue;const r=M.P.project(e.pos.x,e.pos.z,700,260);if(r.d>9||r.s<420||r.s>M.lotS-150)continue;if(!best||r.s>best.s)best={car:e,s:r.s}}
+  if(!best)return null;/* just round the next corner after the car: out of his mirror while you swap */const nx=M.nodeS.find(n=>n>best.s+8);let s=nx!=null?nx+12:best.s+30;for(let k=0;k<6;k++){if(M.nodeS.every(n=>Math.abs(n-s)>11))break;s+=4}return{car:best.car,stopS:s}}
 /* he waits a little longer while you're parked beside the swap car (never more than 10 s extra) */
 function pullUntil(M){const p=playerCar(),c=M.swapCar;if(M.swaps||!c||!p.e)return true;return!(Math.hypot(c.pos.x-p.x,c.pos.z-p.z)<9&&M.t-(M.pullAt||0)<K.pullT+10)}
 function pullHold(M){if(M.swaps>0){say(M,"He's stopped. Phone call. Stay back. Look at a mailbox.",{chatter:true});return}
@@ -420,6 +446,7 @@ function doSwap(M,e){const a=A(),Tl=TL();const from=a.CV,wasVan=from===a.VAN;if(
   a.CP.mark('swap')}
 function interactFor(M,prompt){const a=A();
   if(M.ph==='tail'&&a.CV){const e=swapTarget(M);if(e){const lab=e===a.VAN?'the minivan':e.name+"'s "+(CAR_NAME[e.type]||'car');return{txt:'Swap into '+lab,hold:1.2,fn:()=>doSwap(M,e)}}}
+  if(M.vfOn&&a.CV&&M.ph!=='drop')return{txt:'Binoculars up',fn:()=>{}};/* E never drops you out of the car mid-look */
   if(M.vfOn&&a.CV&&M.ph==='drop'){const g=grade(M);return{txt:M.handoff==='done'?(g.ok?'Take the photo · '+'★'.repeat(g.stars):'Line up the plate · '+(g.why||'')):'Photo (once they shut the truck)',fn:()=>snap(M)}}
   if(M.ph==='home'&&a.CV&&a.CV!==a.VAN&&Math.abs(a.CV.car?a.CV.car.spd:0)<1){const b=M.borrowed[0];if(b&&Math.hypot(b.pos.x-b.home.x,b.pos.z-b.home.z)>12)return{txt:"Call it a day (leave "+b.name+"'s car here)",hold:1.5,fn:()=>homeEnd(M,false)}}
   return null}
@@ -494,11 +521,11 @@ function dropTick(M,dt,F){const a=A(),Tl=TL(),r=M.tg.rail,p=playerCar();r.step(d
   const seen=loiter&&near<K.dropNear&&Tl.los(TRUCK.x+4,TRUCK.z+1,p.x,p.z,{grid:{map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2}});
   if(seen&&M.handoff!=='done'){M.T.event('drop',K.dropSus*dt);chat(M,'dropNear',10,L_.dropNear)}else M.T.calm(4*dt);
   M.T.S.maxSus=Math.max(M.T.S.maxSus,M.T.S.sus);
-  if(M.T.S.sus>=100){M.ph='lost';M.failWhy='crew';M.state==='go'&&a.endMission(false,"The loaders looked up, saw two dads in a car staring at them, and everybody left at once. That's the opposite of a handoff.","They made you");return}
+  if(M.T.S.sus>=100){M.ph='lost';M.failWhy='crew';loseWhy(M,'crew');M.state==='go'&&a.endMission(false,"The loaders looked up, saw two dads in a car staring at them, and everybody left at once. That's the opposite of a handoff.","They made you");return}
   /* objectives */
   const parked=p.e&&Math.abs(p.spd)<1,dist=Math.hypot(p.x-(TRUCK.x+3.8),p.z-TRUCK.z),g=M.vfOn?grade(M):null;
   F.objs.push([M.handoff==='done'?'Photograph the box truck\'s plate':'Watch the handoff from 30-60 m away',false]);
-  F.objs.push(['Binoculars: hold right mouse while parked'+(M.touch?' (or the binoculars button)':''),!!M.vfOn]);
+  F.objs.push([M.touch?'Binoculars button · Photo button for the plate':'Binoculars: right-click · left-click to photograph the plate',!!M.vfOn]);
   const n=Object.keys(M.items).length;F.meters.push({id:'items',label:'Itemised',v:n,max:ITEMS.length,style:'pips'});
   F.meters.push({id:'sus',label:'Suspicion',v:M.T.S.sus,max:100,style:'ring',icon:'eye'});
   if(!M.vfOn){const w=WATCH.reduce((b,q)=>Math.hypot(q.x-p.x,q.z-p.z)<Math.hypot(b.x-p.x,b.z-p.z)?q:b,WATCH[0]);F.target=dist>30&&dist<62&&parked?{x:TRUCK.x+3.8,z:TRUCK.z,label:'Box truck'}:{x:w.x,z:w.z,label:w.label}}
@@ -523,8 +550,8 @@ function spotItems(M,cam){const a=A();for(const L of M.loaders){if(!L.it||!L.it.
     const f=cam.f,c=(dx*f[0]+dy*f[1]+dz*f[2])/d;if(c>Math.cos(4.5*D)&&d<85){M.items[L.it.it.id]=true;say(M,L.it.it.line,{front:L.it.it.id==='washer'});M.score=Object.keys(M.items).length}}}
 
 /* ---------------- binoculars: from the driver's window, the photo viewfinder kit ---------------- */
-function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail')&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&P.aim;
-  if(!can){if(M.vfOn)vfOff(M);return false}
+function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail'||M.ph==='wrap'&&M.wrapT<1.4)&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&M.binoUp;
+  if(!can){if(M.vfOn)vfOff(M);if(M.binoUp&&e&&Math.abs(e.car?e.car.spd:0)>=1.5)M.binoUp=false;/* driving off puts them down */return false}
   const cam=a.camera,S=a.carSize(e),lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),f=fwd(e.yaw),rr=rgt(e.yaw),fa=Math.abs(lx*f[0]+lz*f[1]),sa=Math.abs(lx*rr[0]+lz*rr[1]),out=Math.min(fa>.01?S.l/2/fa:99,sa>.01?S.w/2/sa:99)+.45;
   cam.position.set(e.pos.x+lx*out,a.groundAt(e.pos.x,e.pos.z)+Math.max(1.55,S.h*.85),e.pos.z+lz*out);cam.rotation.set(P.pitch,P.yaw,0,'YXZ');
   /* binoculars focus past the foreground: anything within 14 m (a kerbside fence, the wing mirror) is out of the picture */
@@ -532,12 +559,50 @@ function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.p
   cam.fov+=(11-cam.fov)*Math.min(1,dt*10);cam.updateProjectionMatrix();cam.updateMatrixWorld();if(P.dude)P.dude.root.visible=false;
   const cf=[-Math.sin(P.yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(P.yaw)*Math.cos(P.pitch)];M.camInfo={x:cam.position.x,y:cam.position.y,z:cam.position.z,f:cf};
   vfOn(M);if(M.handoff&&M.handoff!=='done'&&M.handoff!=='wait')spotItems(M,M.camInfo);
-  if(M.vf){const g=grade(M),pl=plateWorld();let br=null;if(g.inFrame){const p0=a.project(pl.x,pl.y+.6,pl.z),p1=a.project(pl.x,pl.y-.5,pl.z),hh=Math.max(30,Math.abs(p1.y-p0.y)),ww=hh*1.6;br={x:p0.x-ww/2,y:p0.y,w:ww,h:hh,label:g.ok?'PLATE':'PLATE · '+g.why,ok:g.ok}}
-    const vfo={zoom:'6×',label:'BINOCULARS · Doug\'s',bracket:M.handoff==='done'||M.photo?br:null,stars:M.handoff==='done'&&g.ok?g.stars:null,hint:M.handoff==='done'?'[E] Photo · [RMB] Lower':'Watch the handoff · [RMB] Lower',rec:false,flash:!!M.flash};const key=JSON.stringify(vfo);if(key!==M.vfKey){M.vfKey=key;M.vf.set(vfo)}M.flash=false}
+  {const g=grade(M),pl=plateWorld();let br=null;const show=M.handoff==='done'||!!M.photo;
+    if(show&&g.inFrame){const p0=a.project(pl.x,pl.y+.55,pl.z),p1=a.project(pl.x,pl.y-.45,pl.z),hh=Math.max(34,Math.abs(p1.y-p0.y)),ww=hh*1.7;br={x:p0.x-ww/2,y:p0.y,w:ww,h:hh,ok:g.ok,stars:g.ok?g.stars:0,why:g.why}}
+    binoDraw(M,{br,phase:M.ph,done:M.handoff==='done',dt})}
   return true}
-function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;M.vfKey=null;const HD=a.HUD;if(!M.vf&&HD&&HD.kit&&HD.kit.viewfinder){M.vf=HD.kit.viewfinder()}if(M.vf){a.overlay('tail-vf',M.vf.el);res().ov['tail-vf']=1}
+/* Doug's binoculars: two round lenses (a canvas under the HUD, so the meters and Doug's lines stay readable on top), the zoom and
+   the shutter hint at the sides (clear of the subtitles), corner brackets on the plate once it matters, a white flash on the shot.
+   While they're up the speedometer and the vehicle prompt step aside. */
+function binoEl(M){if(M.bino)return M.bino;if(typeof document==='undefined')return null;const c=document.createElement('canvas');c.id='tail-bino';
+  c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4';document.body.appendChild(c);res().dom=(res().dom||[]).concat([c]);
+  M.bino={c,x:c.getContext('2d'),w:0,h:0,key:'',flash:0};return M.bino}
+function hudHide(on){if(typeof document==='undefined')return;for(const q of['.ht-drv','.ht-pr'])for(const e of document.querySelectorAll(q)){if(on){if(e.dataset.tailHid==null){e.dataset.tailHid=e.style.visibility||'';e.style.visibility='hidden'}}else if(e.dataset.tailHid!=null){e.style.visibility=e.dataset.tailHid;delete e.dataset.tailHid}}}
+function binoDraw(M,o){const B=binoEl(M);if(!B)return;const W=innerWidth,Hh=innerHeight;B.flash=Math.max(0,B.flash-(o.dt||0)*2.4);
+  const br=o.br,key=[W,Hh,o.phase,o.done,!!M.photo,br?[Math.round(br.x/2),Math.round(br.y/2),Math.round(br.w/2),br.ok,br.stars,br.why].join(','):'-',B.flash>0?Math.round(B.flash*20):0,M.touch?1:0].join('|');
+  if(key===B.key)return;B.key=key;const c=B.c,x=B.x;if(B.w!==W||B.h!==Hh){B.w=c.width=W;B.h=c.height=Hh}
+  const r=Math.min(W*.27,Hh*.37),cy=Hh*.5,cxs=[W/2-r*.8,W/2+r*.8];
+  x.clearRect(0,0,W,Hh);x.fillStyle='#030405';x.fillRect(0,0,W,Hh);
+  /* the lenses: cut out with a soft rim, a faint blue coating near the edge */
+  x.globalCompositeOperation='destination-out';for(const cx of cxs){const gr=x.createRadialGradient(cx,cy,r*.86,cx,cy,r);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill()}
+  x.globalCompositeOperation='source-over';for(const cx of cxs){const gr=x.createRadialGradient(cx,cy,r*.62,cx,cy,r*.98);gr.addColorStop(0,'rgba(40,70,110,0)');gr.addColorStop(1,'rgba(40,70,110,.28)');x.fillStyle=gr;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill()}
+  /* a fine centre reticle */
+  x.strokeStyle='rgba(255,255,255,.45)';x.lineWidth=1;x.beginPath();x.moveTo(W/2,cy-r*.12);x.lineTo(W/2,cy-r*.04);x.moveTo(W/2,cy+r*.04);x.lineTo(W/2,cy+r*.12);x.moveTo(W/2-r*.12,cy);x.lineTo(W/2-r*.04,cy);x.moveTo(W/2+r*.04,cy);x.lineTo(W/2+r*.12,cy);x.stroke();
+  /* side labels: zoom on the left, what to do on the right */
+  const fs=Math.max(11,Math.round(Hh*.019));x.font='700 '+fs+'px system-ui,Arial';x.textBaseline='middle';x.fillStyle='rgba(255,255,255,.9)';
+  const lx=Math.max(16,cxs[0]-r-16);x.textAlign='right';x.fillText('BINOCULARS',lx,cy-fs*.8);x.fillStyle='#ffc94a';x.font='800 '+Math.round(fs*1.5)+'px system-ui,Arial';x.fillText('6×',lx,cy+fs*.7);
+  const rx=Math.min(W-16,cxs[1]+r+16);x.textAlign='left';x.font='700 '+fs+'px system-ui,Arial';
+  const keyE=M.touch?'Photo':'LMB',keyR=M.touch?'Binoculars':'RMB';
+  const hint=o.phase==='drop'?(o.done&&!M.photo?[[keyE,'Photo'],[keyR,'Lower']]:[['','Watch the handoff'],[keyR,'Lower']]):[[keyR,'Lower']];
+  /* keep the longest line on screen: start where it fits */
+  const lineW=([k,t])=>{x.font='800 '+fs+'px system-ui,Arial';const kw=k?x.measureText(k).width+fs*1.4:0;x.font='700 '+fs+'px system-ui,Arial';return kw+x.measureText(t.toUpperCase()).width};
+  const hx=Math.min(rx,W-16-Math.max(...hint.map(lineW)));
+  hint.forEach(([k,t],i)=>{const y=cy+(i-(hint.length-1)/2)*fs*2.1;let xx=hx;if(k){x.font='800 '+fs+'px system-ui,Arial';const w=x.measureText(k).width+fs*.9;x.fillStyle='rgba(255,255,255,.92)';x.beginPath();
+      if(x.roundRect)x.roundRect(xx,y-fs*.8,w,fs*1.6,fs*.35);else x.rect(xx,y-fs*.8,w,fs*1.6);x.fill();x.fillStyle='#111';x.fillText(k,xx+fs*.45,y+1);xx+=w+fs*.5}
+    x.font='700 '+fs+'px system-ui,Arial';x.fillStyle='rgba(255,255,255,.9)';x.fillText(t.toUpperCase(),xx,y+1)});
+  /* the plate: corner brackets, green when the shot is good, and the grade */
+  if(br){const col=br.ok?'#56e07a':'#ffc94a',L=Math.min(br.w,br.h)*.35;x.strokeStyle=col;x.lineWidth=2.5;x.beginPath();
+    for(const[px,py,dx,dy]of[[br.x,br.y,1,1],[br.x+br.w,br.y,-1,1],[br.x,br.y+br.h,1,-1],[br.x+br.w,br.y+br.h,-1,-1]]){x.moveTo(px+dx*L,py);x.lineTo(px,py);x.lineTo(px,py+dy*L)}x.stroke();
+    x.font='800 '+fs+'px system-ui,Arial';x.textAlign='left';x.textBaseline='bottom';x.fillStyle=col;x.fillText(br.ok?'PLATE  '+'★'.repeat(br.stars)+'☆'.repeat(3-br.stars):'PLATE · '+String(br.why||'').toUpperCase(),br.x,br.y-6)}
+  if(B.flash>0){x.fillStyle='rgba(255,255,255,'+(B.flash*.85).toFixed(3)+')';x.fillRect(0,0,W,Hh)}}
+/* raise or lower (on = force). Only while parked in a car during the tail or at the drop */
+function binoToggle(M,on){const a=A(),e=a.CV;const want=on!=null?!!on:!M.binoUp;if(want&&!(e&&(M.ph==='drop'||M.ph==='tail')&&Math.abs(e.car?e.car.spd:0)<1.5)){if(e&&M.ph==='drop')chat(M,'binoMove',6,["Park first. Binoculars and driving is how I lost a mailbox."]);return}
+  M.binoUp=want;if(a.P)a.P.aim=false}
+function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;const B=binoEl(M);if(B){B.c.style.display='block';B.key=''}hudHide(true);
   if(!M.said.binoUp&&M.ph==='drop'){M.said.binoUp=1;say(M,"There. Truck's open. Count what comes out of that trunk. Out loud. I'll count too. We'll compare.",{chatter:true})}}
-function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}try{a.overlay('tail-vf',null)}catch(_){}if(M.vf&&M.vf.close)try{M.vf.close()}catch(_){}M.vf=null;
+function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}if(M.bino)M.bino.c.style.display='none';hudHide(false);
   const e=a.CV;if(a.P.dude&&!e)a.P.dude.root.visible=true}
 function plateWorld(){const f=fwd(TRUCK.yaw),bk=3.955;return{x:TRUCK.x-f[0]*bk,y:A().groundAt(TRUCK.x,TRUCK.z)+.9,z:TRUCK.z-f[1]*bk,nx:-f[0],nz:-f[1]}}
 /* any star rating is enough; stars for angle, distance and how centred it is */
@@ -546,7 +611,7 @@ function grade(M){const c=M.camInfo;if(!c)return{ok:false,inFrame:false,why:'no 
   const inFrame=off<5.2,clear=TL().los(c.x,c.z,pl.x,pl.z,{grid:{map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2}});
   let why=null;if(!inFrame)why='off frame';else if(face>68)why='wrong side';else if(d>78)why='too far';else if(!clear)why='blocked';else if(off>3.6)why='centre it';
   const stars=why?0:(face<35&&off<2&&d<58?3:face<52&&d<70?2:1);return{ok:!why,inFrame,why,stars,d,face,off}}
-function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;M.flash=true;try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready){Au.ui('click');Au.ui('hover')}else a.snd('reload',.3)}catch(_){}
+function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;if(M.bino)M.bino.flash=1;try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready){Au.ui('click');Au.ui('hover')}else a.snd('reload',.3)}catch(_){}
   if(M.handoff!=='done'){chat(M,'early',6,["Not yet. Let them finish. Rule two: never interrupt a crime mid-crime."]);return}
   const g=grade(M);if(!g.ok){chat(M,'photoBad',5,L_.photoBad);return}
   M.photo={stars:g.stars,d:Math.round(g.d),face:Math.round(g.face)};a.feed('Plate photographed · '+PLATE_TXT,'good','★'.repeat(g.stars)+' · '+Math.round(g.d)+' m');sayAll(M,L_.photo,true);
@@ -557,7 +622,7 @@ function touchButtons(M,on){const a=A();const touch=typeof window!=='undefined'&
   if(on&&!M.tbtn){const el=document.createElement('div');el.style.cssText='position:fixed;right:18px;bottom:190px;display:flex;flex-direction:column;gap:10px;z-index:30;pointer-events:none';
     const b=(txt,fn)=>{const x=document.createElement('button');x.textContent=txt;x.style.cssText='pointer-events:auto;font:600 15px system-ui;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(16,20,26,.62);color:#fff;backdrop-filter:blur(4px)';
       x.addEventListener('touchstart',ev=>{ev.preventDefault();fn()},{passive:false});x.addEventListener('click',fn);el.appendChild(x);return x};
-    b('Binoculars',()=>{a.P.aim=!a.P.aim});b('Photo',()=>{if(M.vfOn)snap(M)});M.tbtn=el;a.overlay('tail-touch',el);res().ov['tail-touch']=1}}
+    b('Binoculars',()=>binoToggle(M));b('Photo',()=>{if(M.vfOn)snap(M)});M.tbtn=el;a.overlay('tail-touch',el);res().ov['tail-touch']=1}}
 
 /* ---------------- 4. wrap-up, then the borrowed car ---------------- */
 function wrapTick(M,dt,F){const a=A();M.wrapT+=dt;F.objs.push(['Plate on file. Doug is already thinking about red string.',true]);
@@ -594,20 +659,20 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
     if(B.wp<WP.length){const w=WP[B.wp],r0=M.tg.rail;if(Math.hypot(w[0]-c.x,w[1]-c.z)<3.2){B.wp++;return null}const want=r0.s>6?8:0;steerTo(c,w[0],w[1],want);unstick(e,c,want,null);B.ps=0;return null}
     /* where am I on his route (first time: search behind him, so a checkpoint retry mid-route finds the right pass of the loop) */
     if(!B.init){B.init=1;B.ps=M.P.project(c.x,c.z,Math.max(0,r.s-35),120).s}B.ps=M.P.project(c.x,c.z,B.ps,60).s;
-    if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
+    if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar&&!o.fail&&!o.noswap){const sc=M.swapCar,d=Math.hypot(sc.pos.x-c.x,sc.pos.z-c.z);
       if(d<5.5){off();k.s=c.spd>.3;k.e=Math.abs(c.spd)<2.5;return null}k.e=false;const goal=M.P.at(M.P.project(sc.pos.x,sc.pos.z,B.ps,60).s);steerTo(c,goal.x,goal.z,Math.min(9,d*.6+1.5));if(d>40)B.ps=M.P.project(c.x,c.z,B.ps,60).s;return null}
-    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const gap=o.fail?5:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
-    let want=Math.max(0,Math.min(14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
+    k.e=false;if(o.fail)k.h=(t%40)<3;/* o.fail: tailgates and leans on the horn */const urgent=M.T.S.lose>4;/* the reacquire meter is filling: close up like a person would */const gap=o.fail?5:urgent?20:(M.lightHold?28:30),err=(r.s-B.ps)-gap,look=M.P.at(B.ps+4.5+Math.abs(c.spd)*.3);
+    let want=Math.max(0,Math.min(urgent?17:14,r.v+err*.35));if(r.v<.5&&err<4)want=0;
     /* slow for corners like a person: the heading change over the next 16 m */
     {const y0=M.P.at(B.ps).yaw;for(let q=4;q<=16;q+=4){if(Math.abs(wrap(M.P.at(B.ps+q).yaw-y0))>.5){want=Math.min(want,5.5+q*.25);break}}}
     const g=TL().aheadGap({x:c.x,z:c.z,yaw:c.yaw,len:4.6},obstacles(M,null).filter(q=>q.pri<3),18);B.g=g;B.want=want;if(g!=null)want=Math.min(want,Math.max(0,(g-4)*.8));
     steerTo(c,look.x,look.z,want);unstick(e,c,want,[look,M.P.at(B.ps+10)]);return null}
   if(M.ph==='drop'||M.ph==='wrap'){const e=a.CV;if(!e){off();return null}const c=e.car||e;
-    if(!B.parked){const WP=[[409.6,112],[409.6,121],[411.5,126.6],[416,128.4],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
+    if(!B.parked){const WP=[[384,128.5],[396,128.5],[408,128.5],[418,128.5],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
       const w=WP[B.dw],dw=Math.hypot(w[0]-c.x,w[1]-c.z),lastW=B.dw===WP.length-1;if(dw<(lastW?1.6:3)){if(lastW){off();k.s=c.spd>.2;if(Math.abs(c.spd)<.3)B.parked=true;return null}B.dw++;return null}
       steerTo(c,w[0],w[1],lastW?Math.max(1.5,dw*.6):B.dw>=2?6:9);unstick(e,c,6,[{x:w[0],z:w[1]}]);return null}off();k.s=c.spd>.2;k.w=c.spd<-.2;
-    if(M.ph==='wrap'){P.aim=false;return null}
-    P.aim=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
+    if(M.ph==='wrap'){M.binoUp=false;return null}
+    M.binoUp=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
     const cam=M.camInfo||{x:c.x,y:1.6,z:c.z};const dx=aimAt.x-cam.x,dz=aimAt.z-cam.z,dy=(aimAt.y||1)-cam.y;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));
     if(M.handoff==="done"&&M.vfOn&&(B.snapT=(B.snapT||0)+1)>45&&grade(M).ok){a.useTap=true;B.snapT=0}return null}
   if(M.ph==='home'){const b=M.borrowed[0];if(!b){off();return null}if(a.CV===b){const hm=b.home;if(drive({x:hm.x,z:hm.z},11,3)||Math.hypot(b.pos.x-hm.x,b.pos.z-hm.z)<6&&Math.abs((b.car||b).spd)<.5){off();a.exitCar()}return null}
