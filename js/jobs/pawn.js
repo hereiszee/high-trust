@@ -955,7 +955,7 @@ J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||M.state==='go'||M
 /* ---------------- Ramos Bakery: once the job is done, the storefront changes (hub only; a replay shows the shop as it was) ---------------- */
 const BAK={g:null,L:null,own:[]};
 function bakeryTick(){const a=A();if(!a)return;const s=a.SV&&a.SV(),on=!!(s&&s.world&&s.world.storefronts&&s.world.storefronts.pawn==='bakery');const L_=a.L;const inJob=a.M&&a.M.def&&a.M.def.id==='pawn'&&a.mode==='mission';
-  if(BAK.g&&(BAK.L!==L_||!on)){if(BAK.g.parent)BAK.g.parent.remove(BAK.g);for(const x of BAK.own)try{x.dispose()}catch(_){}BAK.own.length=0;BAK.g=null}
+  if(BAK.g&&(BAK.L!==L_||!on||!BAK.g.parent)){if(BAK.g.parent)BAK.g.parent.remove(BAK.g);for(const x of BAK.own)try{x.dispose()}catch(_){}BAK.own.length=0;BAK.g=null}
   if(BAK.g){BAK.g.visible=!inJob;return}
   if(!on||!L_||!L_.group||(a.mode!=='hub'&&a.mode!=='mission'))return;const P=a.P;if(hyp(P.pos.x-358,P.pos.z-38)>140)return;
   const T3=a.THREE,g=new T3.Group();g.name='ramosBakery';const own_=x=>{BAK.own.push(x);return x};
@@ -967,7 +967,7 @@ function bakeryTick(){const a=A();if(!a)return;const s=a.SV&&a.SV(),on=!!(s&&s.w
   const aw=document.createElement('canvas');aw.width=512;aw.height=64;const ax=aw.getContext('2d');for(let i=0;i<16;i++){ax.fillStyle=i%2?'#f6ead2':'#2f7d55';ax.fillRect(i*32,0,33,64)}
   const ag=own_(new T3.PlaneGeometry(10.6,1.3));const am=new T3.Mesh(ag,own_(new T3.MeshStandardMaterial({map:tex(aw),roughness:.85,side:T3.DoubleSide})));am.position.set(358,2.75,38.75);am.rotation.x=-Math.PI/2+.62;am.castShadow=true;g.add(am);
   L_.group.add(g);BAK.g=g;BAK.L=L_;g.visible=!inJob}
-J.on('pose',()=>{try{bakeryTick()}catch(_){}});
+J.on('pose',()=>{try{bakeryTick()}catch(e){BAK.err=String(e)}});HT.Jobs.bakery=BAK;
 /* warm the party cast while the job is on offer in the hub */
 let PRE=false;J.on('hud',()=>{if(PRE)return;const a=A();if(!a||a.mode!=='hub')return;const s=a.SV&&a.SV();if(!(s&&s.jobs&&s.jobs.dee&&s.jobs.dee.done))return;const pp=PPL();if(!pp||!pp.ok)return;PRE=true;preloadCast()});
 /* ---------------- the scripted player (dev/jobs-check.js): plays it like someone who read the brief ----------------
