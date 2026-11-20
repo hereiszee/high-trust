@@ -192,8 +192,8 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     if(SHOTS){await p.screenshot({path:path.join(OUT,'eggs-pause.jpg'),type:'jpeg',quality:82});say('  shot eggs-pause.jpg')}
     await p.keyboard.press('Escape');await p.waitForTimeout(200);
   }
-  fs.writeFileSync(path.join(OUT,'evidence.txt'),log.join('\n')+'\n');
+  if(SHOTS)fs.writeFileSync(path.join(OUT,'evidence.txt'),log.join('\n')+'\n');
   say(errs.length?'CONSOLE ERRORS:\n'+errs.slice(0,12).join('\n'):'no console errors');if(errs.length)fails++;
   say((fails?fails+' FAILED':'all ok')+' · '+((Date.now()-T0)/1000).toFixed(0)+' s');
-  fs.writeFileSync(path.join(OUT,'evidence.txt'),log.join('\n')+'\n');
+  if(SHOTS)fs.writeFileSync(path.join(OUT,'evidence.txt'),log.join('\n')+'\n');
   await b.close();process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});
