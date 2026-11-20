@@ -604,7 +604,7 @@ J.register('sabotage',{
   hud(st){const M=A().M;if(!M||!M.S||M.def.id!=='sabotage')return;st.weapon={name:'Jerky treats',type:'treats',mag:M.treats,reserve:0,magSize:K.treats,reloading:0,holstered:false,firemode:'Toss'};st.weapons=[]},
   test:{give(a){/* Hitch Happens done (and the jobs before it), Riverside cast preloaded so the job starts without waiting */
       const h=window.__ht,s=a.SV();for(const id of['gary','rick','earl','tow']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
-      if(s&&s.world)s.world.bridgeOpen=true;const PP=window.HT.People;
+      if(s&&s.world)s.world.bridgeOpen=true;if(s&&s.flags)s.flags.act2Intro=true;/* Act 2's card was seen long ago */const PP=window.HT.People;
       if(PP&&PP.preload)try{PP.preload(['nb_pops','thug_track','thug_jacket'].filter(k=>PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({hide:null,clock:212.4,valves:[0,1,2,3,4,5,6,7].map(i=>({flat:i<3?1:i===3?.4:0,done:i<3,prog:0})),sign:0,ledger:true,toyIn:false,treats:2,ties:1,ghost:true,
