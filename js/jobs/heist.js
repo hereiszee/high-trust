@@ -36,7 +36,7 @@ const cyaw=(dx,dz)=>Math.atan2(dx,dz)/* characters and stealth: forward=(sin,cos
 
 /* ---------------- tuning ---------------- */
 const K={
-  weird:{fill:.24,decay:.08,R:15,half:62*Math.PI/180,max:1},           /* Dwayne noticing the phone */
+  weird:{fill:.14,decay:.08,R:13,half:62*Math.PI/180,max:1},           /* Dwayne noticing the phone */
   clock:420,                                                              /* the job: 7 real minutes until the 1:30 shift change */
   lead:[1.6,3.2,5],textLag:1.6,                                           /* lookout warning lead by stars; without walkies it comes by text, late */
   busy:[50,80,120],                                                       /* distraction: seconds Dwayne is off the monitors */
@@ -329,7 +329,15 @@ function scopeInit(M){const a=A();if(M.scoped)return;M.scoped=true;M.dw=person(M
       if(!(s.hits||[]).some(h=>h.stars>=1)&&!M.said.miss){M.said.miss=1;say(M,'gary',"Get closer, or zoom. The wheel zooms. It needs to be clear enough to read.")}},
     stamp:()=>'SAT  2:14 PM',flash:false,status:()=>({v:M.weird,text:M.weird>.05?'DWAYNE '+Math.round(M.weird*100)+'%':''})});
   if(!M.retryScope)seq(M,L.open,3);try{music('tension',.12)}catch(_){}}
-function scopeTick(M,F,dt){const a=A(),P=a.P,Ph=PH(),dw=M.dw;
+/* the phone is a toggle (the core's RMB is hold-to-aim): RMB flips it up or down; anything else that raises it (LMB with the phone, the touch aim button) latches it up; the on-screen back arrow lowers it */
+let PHONE=null;function phoneLatch(){if(PHONE||typeof addEventListener!=='function')return;PHONE={};
+  addEventListener('mousedown',e=>{const M=A()&&A().M;if(e.button===2&&M&&M.def&&M.def.id==='heist'&&M.stage0==='scope'&&M.state==='go')M.rmbFlip=true},true);
+  addEventListener('pointerdown',e=>{const M=A()&&A().M;if(M&&M.def&&M.def.id==='heist'&&e.target&&e.target.closest&&e.target.closest('.ph-x'))M.phoneUp=false},true);
+  /* the core doesn't call fire() while the guns are holstered (M.noGuns), so held items never get the left button: route it here */
+  addEventListener('mousedown',e=>{const a=A(),M=a&&a.M;const H=window.__ht;if(e.button!==0||!M||!M.def||M.def.id!=='heist'||M.state!=='go'||!H||!H.running)return;const cv=H.renderer&&H.renderer.domElement||document.querySelector('canvas');if(e.target!==cv)return;
+    if(M.item==='phone'){const Ph=PH();if(!Ph)return;if(!Ph.isRaised())M.phoneUp=true;else Ph.shoot()}else if(M.item==='heist_laser')laserUse(M)},true)}
+function phoneTick(M){const P=A().P;if(M.rmbFlip){M.rmbFlip=false;M.phoneUp=!M.phoneUpAt}else if(P.aim&&!M.phoneUp&&!M.aimPrev)M.phoneUp=true;P.aim=!!M.phoneUp;M.aimPrev=P.aim;M.phoneUpAt=M.phoneUp}
+function scopeTick(M,F,dt){const a=A(),P=a.P,Ph=PH(),dw=M.dw;phoneLatch();phoneTick(M);
   /* Dwayne: leans in his doorway, looks the lot over, watches you if you're close */
   const dp=hyp(P.pos.x-dw.pos.x,P.pos.z-dw.pos.z);M.dwT=(M.dwT||0)+dt;
   if(dp<9&&!a.CV)face(dw,P.pos.x,P.pos.z,dt,3);else{const base=Math.PI+Math.sin(M.dwT*.35)*.9;dw.yaw+=wrap(base-dw.yaw)*Math.min(1,dt*1.5)}
@@ -345,7 +353,7 @@ function scopeTick(M,F,dt){const a=A(),P=a.P,Ph=PH(),dw=M.dw;
   const n=TAGS.filter(k=>M.tags[k]).length;
   if(!M.raisedOnce&&raised)M.raisedOnce=true;
   if(!M.tags.u47||!a.CV){
-    if(!M.raisedOnce)F.objs.push(['Scope the place with your phone. Raise it: RIGHT mouse button',false]);
+    if(!M.raisedOnce)F.objs.push(['Scope the place with your phone. Raise it: RIGHT mouse button (press again to lower)',false]);
     else if(!n)F.objs.push(['Point it at something on the list and press LEFT mouse button (wheel zooms)',false]);
     else F.objs.push(['Scope the place · '+n+'/5 photographed',n>=5]);
     for(const k of TAGS)F.objs.push([(k==='u47'?'Required: ':'')+TAGLABEL[k],!!M.tags[k]]);
@@ -369,7 +377,7 @@ function losClear(x0,z0,x1,z1){const cs=A().L.colliders,dx=x1-x0,dz=z1-z0;for(co
 /* =====================================================================
    STAGE 2: GEAR (errands around Maple) and STAGE 3: THE PLAN (Gary's driveway)
    ===================================================================== */
-function gearEnter(M){M.stage0='gear';const Ph=PH();if(Ph)try{Ph.end()}catch(_){}M.item=null;M.noGuns=L.noGunsDay;
+function gearEnter(M){M.stage0='gear';M.phoneUp=false;try{A().P.aim=false}catch(_){}const Ph=PH();if(Ph)try{Ph.end()}catch(_){}M.item=null;M.noGuns=L.noGunsDay;
   if(M.dw){M.dw.d.root.visible=false}
   if(!M.said.gearOpen){M.said.gearOpen=1;seq(M,L.gearOpen,3.2,{t:1})}try{music('home',.1)}catch(_){}}
 function gearInit(M){const a=A();if(M.geared)return;M.geared=true;M.gp={};
@@ -439,7 +447,9 @@ function forecast(M,st){const out=[],as=st.assign||{},g=M.gear,t=M.tags,app=st.e
   if(!g.dolly)out.push({text:'No hand truck: the grill, the kayak and the mower are the lifter\'s problem.',tone:'bad'});
   if(g.blankets&&app!=='loud')out.push({text:'Moving blankets: the padlock and the loading stay quiet.',tone:'good'});
   if(g.pack&&app==='quiet')out.push({text:"Doug's laser pointer: fire to make Reggie look somewhere else (3 tries).",tone:'good'});
-  return out.filter(x=>x.text)}
+  /* the card has room for seven: the approach first, then what's worst and what's best */
+  const list=out.filter(x=>x.text),first=list.shift();const rank=x=>x.tone==='bad'?0:x.tone==='good'?1:2;const rest=list.map((x,i)=>({x,i})).sort((p,q)=>rank(p.x)-rank(q.x)||p.i-q.i).slice(0,6).sort((p,q)=>p.i-q.i).map(o=>o.x);
+  return first?[first].concat(rest):rest}
 function intel(M){const t=M.tags;return[{label:'Keypad',ok:t.keypad},{label:'Cameras',ok:t.cams},{label:'Guard rota',ok:t.board},{label:'Dwayne',ok:t.dwayne&&!M.weirdFlag,note:M.weirdFlag?'He remembers you':''},{label:'Unit 47',ok:t.u47}]}
 function openBoard(M){const a=A(),Pl=PL();if(!Pl||M.board)return;
   if(M.stage!=='plan'){a.CP.mark('plan');if(!M.said.board){M.said.board=1;seq(M,L.board,2.2)}}
@@ -673,7 +683,7 @@ function bluffTick(M,F,dt){const a=A(),P=a.P,dw=M.dw;
   return false}
 /* ---------------- the job, every frame ---------------- */
 const HIDE_R=1.3;
-function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.loud;M.t+=dt;
+function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.loud;M.t+=dt;phoneLatch();
   if(!M.loud&&app!=='loud'){M.clock-=dt;if(M.clock<=180&&!M.said.c3){M.said.c3=1;say(M,L.clock3[0],L.clock3[1],{front:true})}if(M.clock<=60&&!M.said.c1){M.said.c1=1;say(M,L.clock1[0],L.clock1[1],{front:true})}
     if(M.clock<=0)return a.endMission(false,L.clockFail,'Shift change.')}
   /* inside the fence yet? (the distraction starts when you are) */
@@ -729,9 +739,10 @@ function cutLock(M){M.lock='cut';M.doorT=0;feed(L.lockCut,'trust');tone({f:200,t
   for(let i=0;i<5;i++)tone({f:180+i*25,type:'square',d:.08,gain:.025,at:i*.25})}
 function tieReggie(M){const a=A(),g=M.rg;g.tied=true;M.S.takedown(g.ob);M.ties=(M.ties||0)+1;try{a.addTrust(3,'maple')}catch(_){}try{a.snd&&a.snd('cuff')}catch(_){}
   say(M,'Reggie',"Oh, come ON. This is my second job.",{front:true});say(M,'you',"Very assertive cable management. Somebody'll be by in the morning.",{t:2.2});feed('Reggie zip-tied','trust','+3 trust')}
-J.item('heist_laser',{name:'Laser pointer',use(M){if(!M||!M.S||M.loud||M.laser<=0)return;const a=A(),T3=a.THREE,C=a.camera,P=a.P;const dir=new T3.Vector3(0,0,-1).applyQuaternion(C.quaternion);let t=14;if(dir.y<-.03)t=Math.min(26,(C.position.y-.05)/-dir.y);
+J.item('heist_laser',{name:'Laser pointer',use(M){laserUse(M)}});
+function laserUse(M){{if(!M||!M.S||M.loud||M.laser<=0)return;const a=A(),T3=a.THREE,C=a.camera,P=a.P;const dir=new T3.Vector3(0,0,-1).applyQuaternion(C.quaternion);let t=14;if(dir.y<-.03)t=Math.min(26,(C.position.y-.05)/-dir.y);
   const x=C.position.x+dir.x*t,z=C.position.z+dir.z*t;M.laser--;if(M.rg&&!M.rg.tied&&hyp(x-M.rg.pos.x,z-M.rg.pos.z)<24){M.rg.lure={x,z};M.rg.mode2='lured';M.rg.lookT=0;M.S.poke(M.rg.ob,x,z,.4,'laser')}
-  laserDot(M,x,z);if(!M.said.laser){M.said.laser=1;say(M,'Reggie',"...Is that a laser? Who has a laser?")}feed('Laser pointer · '+M.laser+' left','info')}});
+  laserDot(M,x,z);if(!M.said.laser){M.said.laser=1;say(M,'Reggie',"...Is that a laser? Who has a laser?")}feed('Laser pointer · '+M.laser+' left','info')}}
 function laserDot(M,x,z){const a=A(),T3=a.THREE;if(!M.vis.dot){M.vis.dot=new T3.Mesh(own(M,new T3.CircleGeometry(.07,12)),own(M,new T3.MeshBasicMaterial({color:new T3.Color(3,.1,.1),toneMapped:false,transparent:true,depthWrite:false})));M.vis.dot.rotation.x=-Math.PI/2;a.wmAdd(M.vis.dot)}
   M.vis.dot.position.set(x,.03,z);M.vis.dot.visible=true;M.dotT=3}
 function objectives(M,F){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.loud,carrying=(M.carrying||[]).length;let tgt=null;
@@ -904,7 +915,7 @@ J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='heist'||M.state==='go'||
 /* warm the cast while the job is on offer (neighbour models load on demand) */
 let PRE=false;J.on('hud',()=>{if(PRE)return;const a=A();if(!a||a.mode!=='hub')return;const s=a.SV&&a.SV();if(!(s&&s.jobs&&s.jobs.talk&&s.jobs.talk.done))return;PRE=true;preloadCast()});
 /* free roam: the things that came home sit on their owners' porches; walk by and the owner has a word (once a visit) */
-const HOME={L:null,built:false,M:null,said:{},dirty:false,list:[]};
+const HOME={L:null,built:false,M:null,said:{},dirty:false,list:[]};J.get('heist').home=HOME;/* tests read it */
 function homeTeardown(){const H=HOME;for(const o of H.list)if(o.g&&o.g.parent)o.g.parent.remove(o.g);for(const x of(H.M&&H.M.vis.own)||[])try{x.dispose()}catch(_){}H.list=[];H.M=null;H.built=false;H.L=null}
 function homeBuild(a,s){const H=HOME;homeTeardown();const ret=new Set(s.flags.heistReturned||[]);if(!ret.size)return;H.M={vis:{own:[]}};H.L=a.L;H.built=true;
   for(const h of HOMECOMING){const its=h.items.filter(id=>ret.has(id));if(!its.length)continue;const T3=a.THREE,g=new T3.Group();g.name='heistHome';
@@ -960,14 +971,14 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.waitCast)return n
   if(B.w>0){B.w--;return null}
   switch(M.stage0){
     case'scope':{if(a.CV){if(!M.tags.u47)a.exitCar();return null}
-      const next=BOTSHOTS.find(s=>!M.tags[s[0]]);if(!next){if(Ph&&Ph.isRaised()){P.aim=false;return null}const v=M.car;tp(v.pos.x+2.6,v.pos.z+.5);a.enterCar(v);return null}
+      const next=BOTSHOTS.find(s=>!M.tags[s[0]]);if(!next){if(Ph&&Ph.isRaised()){M.phoneUp=false;P.aim=false;return null}const v=M.car;tp(v.pos.x+2.6,v.pos.z+.5);a.enterCar(v);return null}
       const id=next[0],sub=subjects(M).find(s=>s.item===id);const spot=next[1]||{x:M.dw.pos.x+.3,z:M.dw.pos.z-3.4};
-      if(B.id!==id){B.id=id;B.n=0;tp(spot.x,spot.z);P.aim=false;return null}B.n++;
-      if(!Ph)return null;if(!Ph.isRaised()){P.aim=true;return null}if(Ph.zoom!==(id==='cams'?4:id==='keypad'||id==='board'?2:1))Ph.setZoom(id==='cams'?2:id==='keypad'||id==='board'?1:0);
+      if(B.id!==id){B.id=id;B.n=0;tp(spot.x,spot.z);M.phoneUp=false;return null}B.n++;
+      if(!Ph)return null;if(!Ph.isRaised()){M.phoneUp=true;return null}if(Ph.zoom!==(id==='cams'?4:id==='keypad'||id==='board'?2:1))Ph.setZoom(id==='cams'?2:id==='keypad'||id==='board'?1:0);
       Ph.aimAt(sub.pos.x,sub.pos.y+sub.h/2,sub.pos.z);if(!Ph.focus.locked&&B.n<60)return null;if(B.n%12===0){const pv=Ph.preview(),h=pv&&pv.hits.find(h=>h.item===id);if(h&&h.stars>=1||B.n>90)Ph.shoot()}
       if(B.n>200){M.tags[id]=true}return null}
     case'gear':case'plan':{if(a.CV){a.exitCar();return null}if(M.board){/* the board: the same keys a player presses */const Pl=PL(),ctx=planCtx(M);
-        const want=o.fail?{assign:{lookout:'doug',driver:'gary',lifter:'dave',distraction:'rick'},entry:'loud'}:M.replay&&!Pl.locks(PLAN_DEF,ctx).bluff?Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'bluff'}):Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'quiet'});
+        const want=o.app?Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:o.app},o.fail||o.app==='loud'?{assign:{lookout:'doug',driver:'gary',lifter:'dave',distraction:'rick'}}:{}):o.fail?{assign:{lookout:'doug',driver:'gary',lifter:'dave',distraction:'rick'},entry:'loud'}:M.replay&&!Pl.locks(PLAN_DEF,ctx).bluff?Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'bluff'}):Object.assign(Pl.auto(PLAN_DEF,ctx),{entry:'quiet'});
         if(!B.planSet){B.planSet=1;M.board.set(want);return null}M.board.key('Enter');return null}
       const order=M.replay?['walkies','dolly','blankets','pack','ladder']:['walkies','dolly','pack','ladder','blankets'];const need=order.find(id=>!M.gear[id]);
       if(M.ladderCarry){const r=vanRear(M);tp(r.x,r.z);a.useTap=true;B.w=3;return null}

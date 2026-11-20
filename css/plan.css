@@ -27,3 +27,21 @@
 .ht-result .htp-lf li.ok{color:var(--fg,#eee)}.ht-result .htp-lf li.ok i{background:var(--leaf,#8fd18a);box-shadow:none}
 .ht-result .htp-lf li em{margin-left:auto;font-style:normal;font-weight:500;color:var(--fg3,#8d939b);white-space:nowrap}
 @media (max-width:720px){.ht-result .htp-lf ul{grid-template-columns:1fr}}
+/* desktop: everything on one screen at 1280×720 (roles left, gear and the forecast right, the approach across the bottom) */
+@media (min-width:900px){
+  .ht-rc.htp .pn{width:min(1120px,calc(100vw - 40px))}
+  .ht-rc.htp .ph{padding:16px 24px 8px}.ht-rc.htp h2{font-size:26px;margin-top:6px}.htp-x{margin-top:8px}
+  .ht-rc.htp .bd{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"ro gr" "ro fc" "en fc";grid-template-rows:auto auto 1fr;gap:0 24px;padding:2px 24px 10px}
+  .ht-rc.htp h3{margin:10px 0 6px}
+  .ht-rc.htp .rr{min-height:44px;padding:5px 12px;margin-bottom:4px}.ht-rc.htp .rr .l{font-size:16px}.ht-rc.htp .rr .d{font-size:11.5px;line-height:1.2}
+  .ht-rc.htp .ph{padding-bottom:6px}.htp-x{margin-top:6px}
+  .ht-rc.htp .cc{height:42px}
+  .ht-rc.htp .gi{min-height:0;padding:5px 10px;margin-bottom:3px;font-size:13px}
+  .ht-rc.htp .gi{flex-wrap:nowrap}.ht-rc.htp .gi .l{flex:none}
+  .ht-rc.htp .htp-does{order:2;flex:1 1 auto;flex-basis:auto;min-width:0;padding-left:4px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:none;letter-spacing:0}
+  .ht-rc.htp .gi .w{order:3;flex:none}
+  .ht-rc.htp .gi .w{font-size:12px}
+  .ht-rc.htp .er{min-height:0;padding:5px 10px;margin-bottom:3px}.ht-rc.htp .er .l{font-size:14px}
+  .ht-rc.htp .fc{padding:9px 12px;gap:5px}.ht-rc.htp .fc li{font-size:13px}
+  .ht-rc.htp .pf{padding-top:10px;padding-bottom:12px}
+}
