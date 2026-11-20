@@ -35,7 +35,7 @@ const K={
   susAhead:6,          /* + close but in front of him (you overtook): odd, not damning */
   famD:50,famT:40,famHide:1/140,
   madeMul:2,lightMul:2,
-  turnMatch:7,turnFree:1,turnD:70, /* + copying his turns: the 1st is free, then +7, +14, ... */
+  turnMatch:7,turnFree:1,turnMax:21,turnForget:14,turnD:70, /* + copying his turns: the 1st is free, then +7, +14, +21 (max); 14 s without a copied turn forgets one */
   horn:15,bump:12,touch:30,
   loseLosing:1,loseNoLos:1,loseLost:2,loseBack:3,
   pullAt:50,fastAt:80,fastAdd:3};
@@ -79,9 +79,10 @@ function create(o){o=o||{};const bands=Object.assign({close:K.close,ideal:[K.clo
     else S.lose=Math.max(0,S.lose-dt*K.loseBack);
     if(sight)S.seenT=0;else S.seenT+=dt;
     /* turns he made: did we copy them? */
+    S.matchT=(S.matchT||0)+dt;if(S.matchT>K.turnForget&&S.streak>0){S.streak--;S.matchT=0}   /* a quiet stretch and he forgets the pattern, one turn at a time */
     for(let i=S.turns.length-1;i>=0;i--){const q=S.turns[i];q.age+=dt;const dn=Math.hypot(p.x-q.x,p.z-q.z);
       if(dn<9)q.at=true;else if(q.at&&dn>13){const same=Math.abs(wrap((p.yaw||0)-q.out))<.6;S.turns.splice(i,1);
-        if(same&&q.close){S.streak++;if(S.streak>K.turnFree){add(K.turnMatch*(S.streak-K.turnFree),'turns');S.streakHit=S.streak}}else S.streak=0}
+        if(same&&q.close){S.streak++;S.matchT=0;if(S.streak>K.turnFree){add(Math.min(K.turnMax,K.turnMatch*(S.streak-K.turnFree)),'turns');S.streakHit=S.streak}}else S.streak=0}
       else if(q.age>25){S.turns.splice(i,1)}}
     S.maxSus=Math.max(S.maxSus,S.sus);
     if(S.sus>=100)S.spooked=true;if(S.lose>=lostT||d>bands.lost)S.lost=true;

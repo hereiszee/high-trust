@@ -195,7 +195,9 @@ function walkTo(d,t,sp,dt){const r=d.root.position,dx=t.x-r.x,dz=t.z-r.z,l=Math.
 function faceTo(d,x,z,dt){const r=d.root,w=Math.atan2(x-r.position.x,z-r.position.z);r.rotation.y+=wrap(w-r.rotation.y)*Math.min(1,(dt||1)*5)}
 
 /* ---------------- vehicles on rails: the sedan, cover traffic, oncoming traffic ---------------- */
-function railCar(M,type,color,path,o){const a=A(),Tl=TL(),obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);if(obj.userData&&obj.userData.dispose)res().veh.push(obj);
+/* traffic uses the light LOD-1 models like the game's own ambient traffic; the sedan you stare at for three minutes gets the hero model */
+function lightCar(type,color){const VM=window.HT&&HT.Vehicles;if(!VM||!VM.make)return null;try{const v=VM.make(type,{color,lod:1});if(!v)return null;v.userData.mod=true;v.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;m.userData.noBatch=true}});return v}catch(_){return null}}
+function railCar(M,type,color,path,o){const a=A(),Tl=TL(),obj=(o&&o.kind!=='target'&&lightCar(type,color))||a.makeVehicle(type,color,o&&o.kind==='target'?{rims:'stock'}:undefined)||a.makeVanBox(color);a.wmAdd(obj);if(obj.userData&&obj.userData.dispose)res().veh.push(obj);
   const S=a.carSize({obj}),rail=Tl.Rail(path,Object.assign({len:S.l,gap:7},o||{}));const col=a.wmCol({x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1});
   const v={type,color,obj,rail,col,S,kind:o&&o.kind||'cover',doneT:0,id:(M.vid=(M.vid||0)+1)};rail.pri=(o&&o.pri||0)+v.id*1e-4;v.pri=rail.pri;/* unique priorities: no two-way standoffs */syncRail(v,0);return v}
 function syncRail(v,dt){const a=A(),r=v.rail,o=v.obj;o.position.set(r.x,a.groundAt(r.x,r.z),r.z);o.rotation.set(0,r.yaw+Math.PI/2,0);
@@ -218,7 +220,7 @@ function speedAt(M){return s=>s<(M.bridgeS||0)+30?K.r9Max:K.townMax}
 
 /* ---------------- the job ---------------- */
 J.register('tail',{
-  def:{giver:'doug',hood:'maple',title:'Following Distance',role:'Doug · Neighbourhood Watch (Self-Appointed)',place:'Fill-Er-Up, Route 9',
+  def:{giver:'doug',hood:'maple',title:'Following Distance',role:'Doug · Neighbourhood Watch (Self-Appointed)',place:'Fill-Er-Up to Dock St',
     lines:["Same grey sedan. Fill-Er-Up, every Tuesday, four-ten. Fills the tank, drives off with the trunk riding low. Every Tuesday.",
       "I want to know where it goes. And no, we can't just ask. You don't just ASK. That's not how surveillance works. Or manners.",
       "We tail him. You drive, I commentate. Hang back, keep a car between us, and if he starts recognising the minivan, we swap cars. I've thought about this a lot. Too much, my wife says."],

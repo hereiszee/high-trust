@@ -40,7 +40,7 @@ const FAILAT=arg('failat',''),SHOTS=!!arg('shots',false),FR=+arg('frames',14000)
       for(;i<n&&H.M&&H.M.state==='go';i++){j.test.step(a,T.t++,{fail});H.P.hp=Math.max(H.P.hp,60);H.step(1)}
       const M=H.M;if(!M)return{done:true};const tg=M.tg&&M.tg.rail,e=H.CV,S=M.T&&M.T.S;
       return{state:M.state,ph:M.ph,stage:M.stage,el:+M.elapsed.toFixed(1),ts:tg?Math.round(tg.s):0,tv:tg?+tg.v.toFixed(1):0,hold:tg&&tg.holding?tg.holding.kind:'',
-        d:tg&&e?Math.round(Math.hypot(tg.x-e.pos.x,tg.z-e.pos.z)):-1,sus:S?Math.round(S.sus):0,max:S?Math.round(S.maxSus):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,lose:S?+S.lose.toFixed(1):0,los:M.los,
+        d:tg&&e?Math.round(Math.hypot(tg.x-e.pos.x,tg.z-e.pos.z)):-1,sus:S?Math.round(S.sus):0,max:S?Math.round(S.maxSus):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,lose:S?+S.lose.toFixed(1):0,los:M.los,why:S?S.why:null,streak:S?S.streak:0,
         x:e?Math.round(e.pos.x):0,z:e?Math.round(e.pos.z):0,yaw:e?+e.yaw.toFixed(2):0,wp:M.bot&&M.bot.wp,g:M.bot&&M.bot.g!=null?Math.round(M.bot.g):null,want:M.bot&&M.bot.want!=null?+M.bot.want.toFixed(1):null,car:e?(e===H.VAN?'van':e.name+':'+e.type):'foot',spd:e?+(e.car?e.car.spd:0).toFixed(1):0,cov:(M.covers||[]).length,onc:(M.oncoming||[]).length,items:Object.keys(M.items||{}).length,ho:M.handoff||'',vf:!!M.vfOn,photo:!!M.photo}},[EVERY,failNow]);
     if(r.done)break;console.log(JSON.stringify(r));
     if(r.stage&&shots[r.stage]&&!taken[r.stage]){taken[r.stage]=1;await shot(shots[r.stage])}
@@ -55,6 +55,10 @@ const FAILAT=arg('failat',''),SHOTS=!!arg('shots',false),FR=+arg('frames',14000)
     if(FAILAT&&!retried&&r.state==='lost'){retried=true;failNow=false;await ev(()=>window.__ht.step(45));const rt=await ev(()=>{const H=window.__ht;const lab=[...document.querySelectorAll('button')].map(e=>e.textContent.trim()).filter(t=>/Retry|Restart/.test(t));H.UIacts['result:retry']();H.step(3);return{lab,state:H.M.state,stage:H.M.stage,retried:H.M.retried,car:H.CV?(H.CV===H.VAN?'van':H.CV.name):'foot',van:[Math.round(H.VAN.pos.x),Math.round(H.VAN.pos.z)]}});console.log('RETRY',JSON.stringify(rt));continue}
     if(r.state!=='go')break}
   await ev(()=>window.__ht.step(40));await p.waitForTimeout(1500);await shot('10-result');
+  if(arg('again',false)){/* a second run straight after (like a replay): the swap car is wherever the first run left it */
+    const r2=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('tail'),a=H.jobs.api;H.UIacts['result:go']&&H.UIacts['result:go']();H.step(5);H.jobs.start('tail',{replay:true});H.step(3);const M=H.M;
+      const sw=M.swapCar?{name:M.swapCar.name,x:Math.round(M.swapCar.pos.x),z:Math.round(M.swapCar.pos.z)}:null;let t=0;for(;t<12000&&H.M&&H.M.state==='go';t++){j.test.step(a,t,{});H.P.hp=Math.max(H.P.hp,60);H.step(1)}
+      return{sw,state:H.M&&H.M.state,stage:H.M&&H.M.stage,el:H.M&&Math.round(H.M.elapsed),swaps:H.M&&H.M.swaps}});console.log('again',JSON.stringify(r2))}
   const T=await ev(()=>{const H=window.__ht,M=H.M;return{lines:window.__T.lines,pay:M&&M.pay?M.pay.lines.map(l=>l.label+':'+l.amount):null,total:M&&M.pay&&M.pay.total,medal:M&&M.medal,state:M&&M.state,el:M&&Math.round(M.elapsed)}});
   console.log('\n--- transcript ---');for(const l of T.lines)console.log(l[0].padStart(6)+'  '+l[1]+': '+l[2]);
   console.log('\nresult',JSON.stringify({state:T.state,el:T.el,medal:T.medal,total:T.total,pay:T.pay}));
