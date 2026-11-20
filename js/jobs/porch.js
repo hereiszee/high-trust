@@ -40,7 +40,7 @@ J.register('porch',{
     crew:[],weapons:['pistol','beanbag'],from:{home:'laptop'},
     get start(){const s=street();return s?{x:s.road.x,z:s.road.z}:null},
     unlock:{done:['gary']},/* SPEC3 3.3 gates it behind done.hoa (wave 2); the smoke test opens after the first job so it can be played now */
-    repeatable:true,pay:50,par:0,winTrust:0,roam:true,order:90,
+    repeatable:true,pay:50,payLabel:'Dadazon route pay',par:0,winTrust:0,roam:true,order:90,
     stages:['deliveries','pirates'],stageLabels:{deliveries:'The deliveries',pirates:'The pirates'},failPolicy:'escalate',
     medals:['Finished','No parcel lost','No parcel lost, every pirate caught or scared off, nobody hurt'],
     radio:[['you',"Okay. Lawn chair's in the back. Lemonade's in the cupholder. Let's watch some porches."]],

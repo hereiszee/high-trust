@@ -1885,7 +1885,7 @@ function endMission(ok,why,title){
     stats:[['Neutralized',M.kills],['Zip-tied',M.cuffs,M.cuffs?'second chances':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0')],['Trust',Math.round(m.hood==='river'?prog.trustR:prog.trust)+'%',m.hood==='river'?'Riverside Flats':'']]};
   const mi=M.i;HUD.banner(lent?{kind:'done',kicker:'New in your gun locker',title:"Rick's Carbine",sub:m.place,dur:1.5}:{kind:ok?'done':'fail',title:ok?'Job done':'Job failed',sub:m.place,dur:1.5});
   UI.acts={'result:retry':()=>{HUD.hide('result');UI.acts={};startMissionWhenReady(mi);requestLock()},'result:go':()=>{HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}};
-  jrFinish(ok,res);metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);
+  jrFinish(ok,res);metaResult(ok,res,mi);if(M.world)wmResult(ok,res,mi);jrResultCard(ok,res);
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust),tr=Math.round(prog.trustR||0),both=MISSIONS.length>4,good=both?t>=70&&tr>=70:t>=70;
@@ -1911,8 +1911,16 @@ document.addEventListener('pointerlockchange',()=>{const was=locked;locked=docum
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
   if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
-  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=true;e.preventDefault()});
-addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2)P.aim=false});
+  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=aimToggleOn()?!P.aim:true;e.preventDefault()});
+addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2&&!aimToggleOn())P.aim=false});
+/* Aim: Hold (default: right mouse held) or Toggle (click to aim, click again to lower), saved with the settings. Mission aim modes that need
+   another button at the same time (Crossing Guard's sign + hold E, Higher Ground's scope + fire, the stakeout binoculars) are always a toggle:
+   a job sets def.aimToggle (or a live M.aimToggle). The touch AIM button was already a toggle. */
+{if(CFG.aimMode!=='toggle')CFG.aimMode='hold';HUD.settings.aimMode=CFG.aimMode;const g=HUD.settingsSchema.find(x=>x.tab==='controls'&&x.items.some(i=>i.k==='ads'));
+ const row={k:'aimMode',l:'Aim',sub:'Hold: aim while right mouse is held · Toggle: click to aim, click again to lower',type:'seg',opts:[['hold','Hold'],['toggle','Toggle']]};
+ if(g)g.items.splice(g.items.findIndex(i=>i.k==='ads')+1,0,row);else HUD.settingsSchema.push({tab:'controls',h:'Aim',items:[row]});
+ HUD.on('setting',(k,v)=>{if(k==='aimMode'){CFG.aimMode=v==='toggle'?'toggle':'hold';P.aim=false}})}
+function aimToggleOn(){return CFG.aimMode==='toggle'||!!(mode==='mission'&&M&&M.state==='go'&&(M.aimToggle||M.def.aimToggle||M.phase==='stake'))}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function look(dx,dy){camLookT=1.3;const gw=WEAPONS[P.cur],base=CFG.sens*.00032,s=base*((P.adsT>.5||(P.aim&&!gw))?CFG.ads/100*(gw&&gw.scope?gw.ads.zoom:1):1);P.yaw-=dx*s;
   const dp=-dy*s*(CFG.inv?-1:1);if(dp<0&&P.rDebt>0)P.rDebt=Math.max(0,P.rDebt+dp);/* pulling down counts against recoil recovery */P.pitch=clamp(P.pitch+dp,-1.3,1.25)}
@@ -1924,7 +1932,7 @@ addEventListener('mousemove',e=>{if(!running||pauseOpen)return;
   lastMX=lastMY=null});
 cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 /* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
-function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
+function syncPause(){return Object.assign(HUD.settings,{aimMode:CFG.aimMode==='toggle'?'toggle':'hold',sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
 HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
   if(k==='gfx')RENDER.apply(v);if(k in VOL_DEF)setVolume();saveCfg()});
 /* volume: the js/audio.js buses when present; otherwise one gain node in front of the fallback synth's speakers */
@@ -2607,10 +2615,12 @@ function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
   let prompt=null,target=null;const mp=metaHubUpd(dt);
+  let tn=null,tnd=2.8;/* the nearest giver in reach is the one E talks to (and the one the prompt names) */
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
     if(JOB===null&&!target)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
-    if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
+    if(!VAN.on){const dn=n.pos.distanceTo(P.pos);if(dn<tnd){tnd=dn;tn=n}}}
+  if(tn){const n=tn;prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}
   for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
     if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
@@ -2622,7 +2632,7 @@ function updHub(dt){
     else if(e){prompt=prompt||KE+' · '+(e===VAN?'Drive the minivan':'Borrow '+e.name+"'s "+feel(e).label);if(useTap&&!prompt.includes('Talk')){useTap=false;enterCar(e)}}}
   DRV.quipT-=dt;carTidy();
   if(!VAN.on&&JOB!==null)target={x:VAN.pos.x,z:VAN.pos.z,label:'Minivan'};
-  hubObj();setPrompt(mp||(frp&&frp[0])||prompt,!mp&&frp?frp[1]:0);showMarker(target);
+  hubObj();/* free-roam actions (zip-tie, hand back goods) take E first, so they also own the prompt */setPrompt((frp&&frp[0])||mp||prompt,frp&&frp[0]?frp[1]:0);showMarker(target);
 }
 
 /* ================= HUD ================= */
@@ -2781,7 +2791,7 @@ function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shot
   metaSave()}
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
 function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
-  try{pay=ECON.computePayout({mission:m.reg?m.id:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
+  try{pay=ECON.computePayout({mission:m.reg?m.id:M.i,payLabel:m.payLabel||null,crewless:!!(m.reg&&!(m.crew&&m.crew.length)),ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
     bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:m.hood==='river'?prog.trustR:prog.trust,rerun:!!M.rerun,...(M.payX||{})});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
   /* Coach Rick lets you keep the carbine after his job */
   const s=SV();if(ok&&M.lent&&M.lent.length)for(const g of M.lent)if(!s.owned.guns.includes(g)){s.owned.guns.push(g);if(!s.loadout.p2&&s.loadout.p1!==g)s.loadout.p2=g;SAVEM.touch('owned','loadout')}
@@ -4096,7 +4106,7 @@ function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];retu
 function wmHubGivers(){const out=[],lines=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
-  out.push(...jrGivers());/* JOBS: registered jobs' givers */
+  out.push(...jrGivers(out));/* JOBS: registered jobs' givers (never on a built-in giver's spot, never a second copy of the same person) */
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
     if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
     const gk=giverKey(m.giver);if(gk&&pm&&pm.preload&&!pm.has(gk)&&!(n.dude.rb&&n.dude.rb.key===gk))pm.preload([gk]).then(()=>{if(!npcs.includes(n)||!pm.has(gk))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
@@ -4175,16 +4185,20 @@ function jrDest(m){const P_=WORLD.places,s=m.start;if(s){if(s.tile)return{x:tile
 function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;if(f.place&&P_[f.place])return{x:P_[f.place].x,z:P_[f.place].z};if(f.tile)return{x:tileC(f.tile[0]),z:tileC(f.tile[1])};if(f.x!=null)return{x:f.x,z:f.z};
   const g=P_['g_'+m.giver];return g?{x:g.x,z:g.z}:null}
 /* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
-function jrGivers(){if(!JR||!WORLD)return[];const out=[];
-  for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
-    const g=jrGiverAt(m);/* every unlocked job gets its giver; two jobs that share a giver's spot take turns (the earlier one first) */if(g&&out.length<14&&!out.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5))out.push({i,x:g.x,z:g.z})}return out}
+/* one person, one place: a giver who has several jobs (Dee, Earl, Dave, Doug...) offers them one at a time, story jobs before repeatables,
+   then by def.order; two jobs that share a spot take turns the same way. taken = the givers already standing (the built-in jobs'). */
+const jrGiverRank=m=>(m.repeatable?1000:0)+(m.order!=null?m.order:99);
+function jrGiverClash(g,who,list){return list.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5||(o.who&&o.who===who))}
+function jrGivers(taken){if(!JR||!WORLD)return[];const out=[],seen=(taken||[]).map(o=>({x:o.x,z:o.z,who:o.who||(MISSIONS[o.i]&&MISSIONS[o.i].giver)}));
+  for(const j of JR.list(j=>!j.builtin).sort((a,b)=>jrGiverRank(a.def)-jrGiverRank(b.def))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
+    const g=jrGiverAt(m);if(g&&out.length<14&&!jrGiverClash(g,m.giver,seen.concat(out))){out.push({i,x:g.x,z:g.z,who:m.giver})}}return out.map(o=>({i:o.i,x:o.x,z:o.z}))}
 function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
   if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
   const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
   /* registered while the hub is up: its destination ring and giver appear without a rebuild */
   if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
-    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!npcs.some(n=>n.marker&&Math.hypot(n.marker.x-g.x,n.marker.z-g.z)<1.5)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
+    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!jrGiverClash(g,m.giver,npcs.filter(n=>n.marker).map(n=>({x:n.marker.x,z:n.marker.z,who:MISSIONS[n.marker.i]&&MISSIONS[n.marker.i].giver})))&&!jrGivers(npcs.filter(n=>n.marker).map(n=>({i:n.marker.i,x:n.marker.x,z:n.marker.z}))).every(o=>o.i!==i)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
 /* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
 function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}
@@ -4233,6 +4247,13 @@ function jrFinish(ok,res){if(!M)return;const m=M.def,j=JR&&JR.get(m.id),s=SV();l
   if(rec&&rec.bonus){M.payX=M.payX||{};M.payX.extra=(M.payX.extra||[]).concat([{id:'medal',label:(medal>=3?'Gold':'Silver')+' medal · first time',amount:rec.bonus}])}
   if(ok&&res)res.stats=(res.stats||[]).concat([['Medal',['—','Bronze','Silver','Gold'][medal],M.replay?'replay · half pay':(j&&j.def.medals?j.def.medals[Math.min(medal,3)-1]||'':'')]]);
   if(SAVEM&&SAVEM.touch)try{SAVEM.touch('jobs','calendar')}catch(_){}}
+/* the result card for registered jobs: a peaceful job (def.peaceful, default: a noGuns job) doesn't count 'Neutralized' (unless somebody was)
+   or an empty 'Zip-tied', and doesn't win with a fight's headline; then the job's own result(M,ok,res) hook edits res {title,text,stamp,stats}
+   (rows [label,value,sub]) before the card is shown, so no job has to patch the card's DOM */
+const PEACE_HEADS=['Home in time for dinner.','Nobody got hurt. Write that down.','The neighbours noticed. In a good way.'];
+function jrResultCard(ok,res){if(!M||!res||!M.def.reg)return;const m=M.def,j=JR&&JR.get(m.id);
+  if(m.peaceful!=null?m.peaceful:!!m.noGuns){res.stats=(res.stats||[]).filter(r=>!((r[0]==='Neutralized'&&!M.kills)||(r[0]==='Zip-tied'&&!M.cuffs)));if(ok)res.title=pick(PEACE_HEADS)}
+  if(j&&!j.builtin&&typeof j.result==='function')try{j.result(M,ok,res)}catch(e){console.warn('job result failed',e)}}
 /* fail card: retry from the last stage, or restart the job (registered jobs with stages) */
 function jrResult(ok,res,mi){const m=MISSIONS[mi];if(ok||!m||!m.reg)return;const s=CP.last();
   if(s&&JRS.cp&&JRS.cp.i===mi&&(s.stage!==(m.stages||[])[0]||s.job)){const snap=JSON.parse(JSON.stringify(s)),rp=M&&M.replay;

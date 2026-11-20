@@ -229,7 +229,7 @@ J.register('tail',{
       "We tail him. You drive, I commentate. Hang back, keep a car between us, and if he starts recognising the minivan, we swap cars. I've thought about this a lot. Too much, my wife says."],
     obj:"Tail the grey sedan from Fill-Er-Up to wherever it's going without being made, then photograph whoever it meets.",
     crew:['doug'],weapons:['pistol'],from:{place:'g_doug'},start:{x:START.x,z:START.z},site:null,
-    unlock:{done:['rick']},pay:K.pay,par:K.par,winTrust:10,roam:true,stay:true,order:20,
+    unlock:{done:['rick']},pay:K.pay,payLabel:'Doug\'s surveillance budget',par:K.par,winTrust:10,roam:true,stay:true,order:20,
     noGuns:"Doug: We are OBSERVERS. Observers don't shoot. Observers take notes.",
     stages:['gas','tail','swap','drop','home'],stageLabels:{gas:'Fill-Er-Up',tail:'Tail start',swap:'After the swap',drop:'The handoff',home:'The borrowed car'},failPolicy:'soft',
     medals:['Finished','One car swap, suspicion never above 70%','Suspicion never above 40%, done in under 4:00'],
@@ -291,6 +291,7 @@ J.register('tail',{
     if(s.ph==='tail'){M.ph='tail';M.saidGo=true}
     else if(s.ph==='drop'){r.place(M.P.len);r.done=true;r.v=0;M.ph='drop';dropStart(M,true)}
     else if(s.ph==='home'){r.place(M.P.len);r.done=true;M.ph='home';dropStart(M,true);finishHandoff(M);homeStart(M,true)}},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){if(!ok)return[];const out=[];if(!M.everMade)out.push(['Never made',K.neverMade]);
     const n=Object.keys(M.items||{}).length;if(n)out.push(['Itemised the trunk ×'+n,K.itemPay*n]);if(M.returned)out.push(['Returned '+(M.retName||'the borrowed car'),K.returned]);
     if(M.photo&&M.photo.stars>=3)out.push(['Sharp plate photo',30]);return out},
@@ -311,18 +312,13 @@ J.register('tail',{
 
 /* the result card: an observation job's numbers (suspicion, the trunk, the plate, the cars) instead of the generic fight stats */
 const HEADS=['Nobody saw a thing.','Textbook. There is no textbook.','Boring, on purpose.','Two cars back the whole way.'];
-J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='tail'||M.state==='go'||M.resDone||typeof document==='undefined')return;
-  const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
-  if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=HEADS[Math.min(HEADS.length-1,Math.floor((M.maxSus||0)/26))]}
-  const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);
-    if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
-  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
-  const mx=Math.round(M.maxSus||0),n=Object.keys(M.items||{}).length;
-  set(by('neutralized'),'Max suspicion',mx+'%',mx<=K.goldMax?'textbook':mx<=K.cleanMax?'clean tail':mx<=K.silverMax?'he wondered':'he knew');
-  set(by('zip-tied'),'Itemised',n+'/'+ITEMS.length,n>=ITEMS.length?'the whole trunk':'out of the trunk');
-  const grid=r.querySelector('.ht-stats');if(grid){const add=(k,v,sub)=>{const d=document.createElement('div');grid.appendChild(d);set(d,k,v,sub)};
-    add('Plate',M.photo?'★'.repeat(M.photo.stars)+'☆'.repeat(3-M.photo.stars):'—',M.photo?PLATE_TXT+' · '+M.photo.d+' m':'no photo');
-    add('Swaps',String(M.swaps||0),M.swaps?(M.returned?'car returned':'car still borrowed'):'stuck with the minivan')}});
+/* through the registry's result(M,ok,res) hook (see the register call): no DOM patching */
+function resultCard(M,ok,res){if(ok)res.title=HEADS[Math.min(HEADS.length-1,Math.floor((M.maxSus||0)/26))];
+  const mx=Math.round(M.maxSus||0),n=Object.keys(M.items||{}).length,keep=(res.stats||[]).filter(r=>!/^(Neutralized|Zip-tied)$/.test(r[0]));
+  res.stats=[['Max suspicion',mx+'%',mx<=K.goldMax?'textbook':mx<=K.cleanMax?'clean tail':mx<=K.silverMax?'he wondered':'he knew'],
+    ['Itemised',n+'/'+ITEMS.length,n>=ITEMS.length?'the whole trunk':'out of the trunk'],
+    ['Plate',M.photo?'★'.repeat(M.photo.stars)+'☆'.repeat(3-M.photo.stars):'—',M.photo?PLATE_TXT+' · '+M.photo.d+' m':'no photo'],
+    ['Swaps',String(M.swaps||0),M.swaps?(M.returned?'car returned':'car still borrowed'):'stuck with the minivan']].concat(keep)}
 
 /* free everything once the job is over (any ending: won, failed, quit, replayed). 'pose' runs every frame, headless too. */
 J.on('pose',()=>{if(!RES)return;const a=A();if(!a)return;const M=a.M;if(a.mode==='mission'&&M&&M.def&&M.def.id==='tail')return;freeAll()});

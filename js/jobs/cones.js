@@ -246,7 +246,7 @@ J.register('cones',{
     crew:['gary','dave'],weapons:['pistol','beanbag'],
     start:{x:RING.x,z:RING.z},site:null,
     unlock:{done:['tail','benny']},
-    pay:950,par:330,roam:true,order:40,
+    pay:950,payLabel:'Road crew day rate',par:330,roam:true,order:40,
     stages:['build','convoy'],stageLabels:{build:'The roadblock',convoy:'The convoy'},failPolicy:'escalate',
     medals:['Finished','Stopped cold: no chase','Airtight (two cars and a lit flare), not a single shot fired'],
     radio:[['earl',"Cones are in the back of my truck. Ninety seconds once you're there. Don't be late. Nobody's ever late on a Thursday."]],
@@ -298,6 +298,7 @@ J.register('cones',{
     (s.cars||[]).forEach((c,i)=>{const e=M.lot&&M.lot[i];if(!c||!e)return;e.pos.set(c.x,0,c.z);e.yaw=c.y;a.syncCar(e)});
     (s.posts||[]).forEach((p,i)=>{const c=M.crew&&M.crew[i];if(!p||!c)return;c.post={x:p.x,z:p.z};c.pos.set(p.x,0,p.z);c.dude.root.position.set(p.x,0,p.z);if(p.p)givePaddle(M,c)});
     if(s.ph==='convoy'){M.clock=0;M.said.t60=M.said.t30=M.said.t10=1;startConvoy(M,true)}},
+  result(M,ok,res){const c=card(M,res);res.stats=c.stats},
   payout(M,ok){if(!ok)return[];const out=[];
     if(M.stoppedCold)out.push([M.airtight?'Airtight · stopped cold, no chase':'Stopped cold · no chase',K.airtight]);
     out.push(['Catalytic converters back ×20',0]);
@@ -648,9 +649,9 @@ function settle(M){const a=A();if(M.settled)return;M.settled=true;
     else if(fr<.9)a.radio(LOT[e.lot].name,LOT[e.lot].hurt)}}
 
 /* ---------------- HUD: the result card shows this job's own numbers ---------------- */
-function hookHud(){const a=A(),H=a.HUD;if(!H||!H.show||H.show.__cz)return;const orig=H.show;const wrapped=function(name,o,...rest){try{const M=a.M;if(name==='result'&&o&&M&&M.def&&M.def.id==='cones'&&M.state!=='go')o=card(M,o)}catch(e){console.warn('[cones] card',e)}return orig.call(this,name,o,...rest)};
+function hookHud(){/* the card now goes through the registry's result(M,ok,res) hook; HUD.show is no longer wrapped */return;const a=A(),H=a.HUD;if(!H||!H.show||H.show.__cz)return;const orig=H.show;const wrapped=function(name,o,...rest){try{const M=a.M;if(name==='result'&&o&&M&&M.def&&M.def.id==='cones'&&M.state!=='go')o=card(M,o)}catch(e){console.warn('[cones] card',e)}return orig.call(this,name,o,...rest)};
   wrapped.__cz=true;wrapped.__orig=orig;H.show=wrapped}
-function card(M,o){const keep=(o.stats||[]).filter(s=>/^(Time|Trust|Medal)$/.test(s[0]));const pl=M.lineBuilt;
+function card(M,o){const keep=(o.stats||[]).filter(s=>/^(Time|Trust|Medal|Payout)$/.test(s[0]));const pl=M.lineBuilt;
   const built=pl?pl.groups.reduce((n,g)=>n+g.items.length,0):0;
   const st=[['Roadblock',pl?VLABEL[pl.verdict]:'—',pl&&pl.top?pl.top.why:''],
     ['Convoy',M.branch==='stop'?(M.airtight?'Gave up':'Stopped'):M.branch==='chase'?(M.state==='won'?'Chased down':'Got away'):'—',M.branch==='chase'&&M.rams?M.rams+' rams':M.knocked?M.knocked+' props knocked flying':''],

@@ -589,7 +589,7 @@ J.register('cargo',{
     obj:"Drive Big Dave's fourteen-hour brisket across the river to the block party without throwing it around.",
     crew:[],weapons:['pistol'],noGuns:"Not with the brisket in the truck. Not with Dave in the truck.",
     from:{place:'g_dave'},start:{x:RING.x,z:RING.z},site:null,
-    unlock:{done:['benny']},pay:500,par:240,winTrust:0,roam:true,order:22,
+    unlock:{done:['benny']},pay:500,payLabel:'Dave\'s catering cut',par:240,winTrust:0,roam:true,order:22,
     stages:['load','drive','bridge','party'],stageLabels:{load:"Dave's table",drive:'The drive',bridge:'At the bridge',party:'The block party'},failPolicy:'escalate',
     medals:['Delivered','Pristine: 90% or better','Perfect: 98% or better, no stage retry'],
     radio:[['dave',"Fourteen hours. Don't you dare rush the last fifteen minutes."]],

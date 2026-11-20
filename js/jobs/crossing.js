@@ -7,7 +7,7 @@
    bunch up when you stop, straggle when you hurry, stop at every kerb until you wave them across, and wander off after dogs,
    cats and chalk. Each kid has a personality (the dog petter, the crack avoider, the runner, the "why" kid, the twins who swap
    places, the tired one, the one who wants the sign, the cool older one, the quiet last one) and a stoop with a grown-up waiting.
-   The sign (hold right mouse / AIM) stops traffic within 25 m (a driver on the phone takes 3 s, so step in front of him),
+   The sign (right-click / AIM toggles it up and down) stops traffic within 25 m (a driver on the phone takes 3 s, so step in front of him),
    makes street-crew members step back, and shields the kids behind it. Crossings are set pieces: sign up in the road, then
    hold E to wave them across. The flare-up is pressure you route around, outwait, de-escalate (talk), block with the sign,
    or hand to Coach Rick (call-in). Nothing violent ever happens near the kids: the crews only shout.
@@ -694,7 +694,7 @@ function separation(dt,M,F){const C=M.cg,a=A(),P=a.P;let worst=null;
 function objectives(M,F){const C=M.cg,a=A(),P=a.P;
   if(C.stage==='gear'){F.objs.push(['Get the vest and the stop sign from Pastor Dee',false]);F.target={x:CHURCH.dee.x,z:CHURCH.dee.z+.8,label:'Pastor Dee'};return}
   const left=C.kids.filter(k=>k.def.home&&k.state!=='home'&&k.state!=='homeward');F.objs.push([left.length?'Walk the kids home · '+left.length+' to go':'Everybody is home',!left.length]);
-  if(C.atKerb){const k=C.atKerb[0],cc=carsComing(M,k.x,k.z);F.objs.push([C.sign.up?(cc?'Car coming · keep the sign up and wait':'Hold '+(touch()?'USE':'E')+' to wave them across'):'At the kerb · sign up in the road ('+(touch()?'AIM':'right mouse')+')',false,cc&&!C.sign.up?'warn':undefined])}
+  if(C.atKerb){const k=C.atKerb[0],cc=carsComing(M,k.x,k.z);F.objs.push([C.sign.up?(cc?'Car coming · keep the sign up and wait':'Hold '+(touch()?'USE':'E')+' to wave them across'):'At the kerb · sign up in the road ('+(touch()?'AIM':'right-click')+')',false,cc&&!C.sign.up?'warn':undefined])}
   if(C.flareNear&&!M.cs.talked.A&&!M.cs.talked.B&&C.stageN>=3&&!M.cs.rick)F.objs.push(['2nd St: talk them down ('+(touch()?'USE':'E')+'), wait for a quiet moment, or go round by 3rd'+(M.cs.rick?'':' · '+(touch()?'Rick chip':'X')+': call Rick'),false]);
   /* next stop on the marker: the nearest home of a kid who's with you */
   let best=null,bd=1e9;for(const k of C.kids){if(k.state!=='line'&&k.state!=='hand'||!k.home)continue;if(k.def.trait==='quiet'&&left.length>1)continue;const d=hyp(k.home.x-P.pos.x,k.home.z-P.pos.z)+KIDS.indexOf(k.def)*1.5;if(d<bd){bd=d;best=k}}
@@ -822,9 +822,9 @@ J.register('crossing',{
       "I've got a reflective vest and a stop sign. That's the whole plan. You walk them home, one stoop at a time, and every grown-up on that list is waiting at their door.",
       "No guns. Not one, not today, not with my kids. If somebody starts something, you go around it, you wait it out, or you talk. You're good at talking. Too good."],
     obj:'Walk eleven kids home from the church. Stop traffic with the sign, wave them across, and steer them around the trouble on 2nd St. No guns.',
-    crew:[],weapons:[],noGuns:"Not with the kids here. The sign's my whole personality today.",
+    crew:[],weapons:[],aimToggle:true,noGuns:"Not with the kids here. The sign's my whole personality today.",
     from:{place:'g_dee'},start:{x:315,z:29},
-    unlock:{done:['dee']},pay:700,par:420,winTrust:3,
+    unlock:{done:['dee']},pay:700,payLabel:'Church volunteer stipend',par:420,winTrust:3,
     stages:STAGES,stageLabels:LABELS,failPolicy:'soft',
     medals:['Finished','No detour','No detour and no call-in'],order:28,
     radio:[['dee',"I'm on the church steps with eleven kids and two juice boxes. Hurry."]],

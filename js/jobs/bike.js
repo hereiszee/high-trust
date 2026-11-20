@@ -331,7 +331,7 @@ J.register('bike',{
     crew:[],weapons:['pistol','beanbag'],
     get from(){const Pl=places();return Pl?{x:Pl.tyler.x,z:Pl.tyler.z}:{place:'home'}},
     start:{place:'school'},site:'school',
-    unlock:{done:['earl','taxi']},pay:600,par:960,winTrust:6,roam:true,order:40,
+    unlock:{done:['earl','taxi']},pay:600,payLabel:'Tyler\'s piggy bank',par:960,winTrust:6,roam:true,order:40,
     stages:['rack','leads','meet','chase','garage','bikes','home'],
     stageLabels:{rack:'The bike rack',leads:'Ask around',meet:'The meet',chase:'The chase',garage:'The garage',bikes:'Whose bike is whose',home:'Brrrrr'},
     failPolicy:'escalate',medals:['Finished','Caught Dez in the chase','Caught Dez on foot'],
@@ -361,6 +361,7 @@ J.register('bike',{
   load(M,s){if(!s)return;Object.assign(M,{found:(s.found||[]).slice(),lite:Object.assign({},s.lite||{}),wrong:s.wrong|0,owrong:s.owrong|0,nb:Object.assign({linda:0,phil:0,walt:0},s.nb||{}),msg:s.msg,meetSet:!!s.meetSet,
     caught:s.caught||null,caughtHow:s.caughtHow||null,carNear:!!s.carNear,lost:!!s.lost,usedCar:!!s.usedCar,usedBike:!!s.usedBike,tagged:s.tagged|0,_tags:(s.tags||[]).slice(),bikeIn:!!s.bikeIn,laptopUsed:!!s.laptopUsed});
     if(M.ui)boardPaint(M);M.resumed=true},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){if(!ok)return[];const out=[];if(!M.carNear)out.push(['Tyler\'s bike, unscratched',100]);
     out.push([M.owrong?'Every bike home (a few wrong guesses)':'Every bike home',M.owrong?100:200]);
     if(M.caught)out.push(['Dez: talked down, not tied down',0]);if(M.wrong)out.push(['Wrong listings messaged ×'+M.wrong,0]);return out},
@@ -589,7 +590,7 @@ const LIVE={M:null};
 J.on('hud',()=>{const a=A(),M=a&&a.M,mine=!!(M&&M.def&&M.def.id==='bike');
   if(LIVE.M&&LIVE.M!==M){teardown(LIVE.M,mine&&M.state==='go');LIVE.M=null}
   if(mine&&M.state==='go'){LIVE.M=M;return}
-  if(mine){endTalk(M);boardKill(M);resultCard(M)}});
+  if(mine){endTalk(M);boardKill(M)}});
 function teardown(m,keepListings){const a=A();endTalk(m);boardKill(m);const R=RS();if(R&&!keepListings)R.clear('bike');const RR=RN();
   if(RR){if(m.dez&&m.dez.d)RR.release(m.dez.d);if(m.ty&&m.ty.d)RR.release(m.ty.d)}
   if(m.garMat){for(const x of m.garMat)try{x.dispose()}catch(e){}m.garMat=null}m.nav=null;
@@ -600,12 +601,12 @@ function teardown(m,keepListings){const a=A();endTalk(m);boardKill(m);const R=RS
   for(const k of['rackBikes'])if(m[k]){for(const b of m[k])b.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose()});m[k]=null}
   for(const k of['garage','clueG','tyBike'])if(m[k]){m[k].traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose()});m[k]=null}
   if(m.dez&&m.dez.b){m.dez.b.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose()})}m.dez=null;m.ty=null;m.nbD=null}
-function resultCard(M){if(M.resDone)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const ok=M.state==='won';
-  const h=r.querySelector('h2');if(h)h.textContent=ok?(M.caught?'The bike\'s home. So is everybody else\'s.':'The bike\'s home. Dez got away. For now.'):'The bikes are still in that garage.';
-  const sx=r.querySelector('.ht-stats');if(sx&&ok){const t=Math.round(M.elapsed),tt=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
-    const rows=[['Clues',M.found.filter(x=>CLUES[x]).length+'/'+Object.keys(CLUES).length,'on the board'],['Dez',M.caught?'Talked down':'Got away',M.caught?(M.caughtHow==='foot'?'on foot':M.caughtHow==='bike'?'on Earl\'s loaner':'from the minivan'):'followed the brrrr'],
-      ['Bikes home',(LOOT.length+1)+'',M.owrong?M.owrong+' wrong guess'+(M.owrong>1?'es':''):'every tag right'],['Time',tt,M.wrong?M.wrong+' wrong listing'+(M.wrong>1?'s':''):'']];
-    const med=[...sx.children].find(c=>/Medal/.test(c.textContent));sx.innerHTML=rows.map(([k,v,s])=>'<div><b>'+esc(k)+'</b><span class="ht-num">'+esc(v)+'</span>'+(s?'<small>'+esc(s)+'</small>':'')+'</div>').join('');if(med)sx.appendChild(med)}}
+/* the result card: through the registry's result(M,ok,res) hook, no DOM patching */
+function resultCard(M,ok,res){res.title=ok?(M.caught?'The bike\'s home. So is everybody else\'s.':'The bike\'s home. Dez got away. For now.'):'The bikes are still in that garage.';
+  if(!ok)return;const t=Math.round(M.elapsed),tt=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+  const rows=[['Clues',M.found.filter(x=>CLUES[x]).length+'/'+Object.keys(CLUES).length,'on the board'],['Dez',M.caught?'Talked down':'Got away',M.caught?(M.caughtHow==='foot'?'on foot':M.caughtHow==='bike'?'on Earl\'s loaner':'from the minivan'):'followed the brrrr'],
+    ['Bikes home',(LOOT.length+1)+'',M.owrong?M.owrong+' wrong guess'+(M.owrong>1?'es':''):'every tag right'],['Time',tt,M.wrong?M.wrong+' wrong listing'+(M.wrong>1?'s':''):'']];
+  res.stats=rows.concat((res.stats||[]).filter(r=>/^(Medal|Payout)$/.test(r[0])))}
 
 /* ---------------- the scripted player (dev/jobs-check.js) ----------------
    Plays it in order like a person who read the board: the rack clues, Linda / Phil / Walt (good lines), the laptop (Tyler's listing),

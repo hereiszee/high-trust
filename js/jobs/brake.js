@@ -196,7 +196,7 @@ J.register('brake',{
       "Three cars. You, me, Big Dave. We box him in: one in front, one beside, one behind, and we brake together. No ramming. No civilians. No guns. We're not animals. We're a zone defence."],
     obj:"Run Rick's play: hold your slot around the getaway car until the box closes, brake together, then zip-tie the crew and return the cash box.",
     crew:[],weapons:['pistol'],from:{place:'g_rick'},start:{x:STAGE.you.x,z:STAGE.you.z},site:null,
-    unlock:{done:['duke']},pay:K.pay,par:K.par,winTrust:0,roam:true,stay:true,order:14,noGuns:NOGUN,
+    unlock:{done:['duke']},pay:K.pay,payLabel:'Booster club cheque',par:K.par,winTrust:0,roam:true,stay:true,order:14,noGuns:NOGUN,
     stages:['huddle','chase','collar'],stageLabels:{huddle:'The huddle',chase:'The snap',collar:'Hands up'},failPolicy:'escalate',
     medals:['Finished','Clean box: no contact with the hatchback','Clean box in under 1:30 of chase'],
     radio:[['rick',"Fill-Er-Up. South edge of the lot, nose east. Dave's bringing the pickup. I'm bringing the playbook. And orange slices."]],
@@ -244,6 +244,7 @@ J.register('brake',{
     if(s.ph==='collar'&&M.play){M.said.hutDone=1;snapNow(M,true);const tg=M.tg;tg.rail.place(s.s);tg.s=s.s;tg.v=0;tg.rail.v=0;poseOn(M,tg,s.s,0,0,0);
       for(const[i,id]of['rick','dave'].entries()){const q=s.crew[i],c=M.crew[id];if(q){c.st='route';c.s=q.s;c.lat=q.lat;c.v=0;poseOn(M,c,q.s,q.lat,0,0)}}
       M.chaseT=s.chaseT||0;startCollar(M,true);return}},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){if(!ok)return[];const out=[];if(!M.flags)out.push(['Clean box (no contact)',K.clean]);if(!M.civHits&&!M.civKiss)out.push(['No civilians touched',K.noCiv]);
     if((M.stopT||1e9)<K.quickT)out.push(['Boxed in under 2:00',K.quick]);if(M.ranDown)out.push(['Ran him down on foot',K.ranDown]);return out},
   medal(M){if(M.flags)return 1;return(M.stopT||1e9)<K.goldT?3:2},
@@ -262,18 +263,12 @@ J.register('brake',{
 
 /* the result card: a driving play's numbers instead of the fight stats */
 const HEADS=["That's a W.","Hands in. Box on three.","Zone defence. Undefeated.","A muddy W. Still a W."];
-J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='brake'||M.state==='go'||M.resDone||typeof document==='undefined')return;
-  const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
-  if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=M.flags?HEADS[3]:(M.stopT||1e9)<K.goldT?HEADS[2]:HEADS[0]}
-  const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);
-    if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
-  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
-  const pl=PLAYS[M.play]||{name:'—',you:'twelve'};
-  set(by('neutralized'),'Play',pl.name,'you took '+(SLOT[pl.you]?SLOT[pl.you].name.toLowerCase():'a slot'));
-  set(by('zip-tied'),'Zip-tied',String(M.cuffs||0),M.ranDown?'one ran. briefly':'nobody ran');
-  const grid=r.querySelector('.ht-stats');if(grid){const add=(k,v,sub)=>{const d=document.createElement('div');grid.appendChild(d);set(d,k,v,sub)};
-    const ct=Math.round(M.stopT||M.chaseT||0);add('Snap to stop',Math.floor(ct/60)+':'+String(ct%60).padStart(2,'0'),M.boxes>1?'box formed '+M.boxes+' times':'one box, one stop');
-    add('Flags',String(M.flags||0),M.flags?'contact with the hatchback':'clean box');add('Civilians',(M.civHits||0)+(M.civKiss||0)?String((M.civHits||0)+(M.civKiss||0)):'0',(M.civHits||0)+(M.civKiss||0)?'touched':'not a scratch')}});
+/* through the registry's result(M,ok,res) hook (see the register call): no DOM patching */
+function resultCard(M,ok,res){if(ok)res.title=M.flags?HEADS[3]:(M.stopT||1e9)<K.goldT?HEADS[2]:HEADS[0];
+  const pl=PLAYS[M.play]||{name:'—',you:'twelve'},keep=(res.stats||[]).filter(r=>!/^(Neutralized|Zip-tied)$/.test(r[0])),ct=Math.round(M.stopT||M.chaseT||0),civ=(M.civHits||0)+(M.civKiss||0);
+  res.stats=[['Play',pl.name,'you took '+(SLOT[pl.you]?SLOT[pl.you].name.toLowerCase():'a slot')],['Zip-tied',String(M.cuffs||0),M.ranDown?'one ran. briefly':'nobody ran'],
+    ['Snap to stop',Math.floor(ct/60)+':'+String(ct%60).padStart(2,'0'),M.boxes>1?'box formed '+M.boxes+' times':'one box, one stop'],
+    ['Flags',String(M.flags||0),M.flags?'contact with the hatchback':'clean box'],['Civilians',String(civ),civ?'touched':'not a scratch']].concat(keep)}
 J.on('pose',()=>{if(!RES)return;const a=A();if(!a)return;const M=a.M;if(a.mode==='mission'&&M&&M.def&&M.def.id==='brake')return;freeAll()});
 
 /* ---------------- lines: Rick paces himself (the radio keeps 4) ---------------- */

@@ -166,7 +166,7 @@ J.register('tow',{
       "Back up to the front bumper, hook it, tow it home. One at a time. Back up slow. Slower. You're not parallel parking at a funeral."],
     obj:"Get past the \"impound\" crew, then hitch each of the five cars and tow it to its owner's curb before street sweeping ends.",
     crew:['gary'],weapons:['pistol','beanbag'],from:{place:'auto'},start:{x:SAL_RING.x,z:SAL_RING.z},
-    unlock:{done:['earl'],trustR:20},pay:700,par:600,winTrust:0,roam:true,stay:true,order:30,
+    unlock:{done:['earl'],trustR:20},pay:700,payLabel:'Sal\'s flat rate',par:600,winTrust:0,roam:true,stay:true,order:30,
     stages:['lot','car1','car2','car3','car4','car5','sal'],
     stageLabels:{lot:'The impound lot',car1:'Car 1 of 5',car2:'Car 2 of 5',car3:'Car 3 of 5',car4:'Car 4 of 5',car5:'Car 5 of 5',sal:"Back to Sal's"},failPolicy:'escalate',
     medals:['Finished','All five cars home, none wrecked','All five home, not a scratch (all 90%+), in under 9 minutes'],

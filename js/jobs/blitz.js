@@ -681,7 +681,7 @@ J.register(ID,{
       "Fences, bulbs, graffiti, Mrs. Ramos' carts. There's a cat. There's always a cat.","I supply the tools. You supply the dad energy. Meet me at Ramos'. Bring sneakers."],
     obj:'Three minutes. Fix as much of Riverside as you can: fences, bulbs, graffiti, carts, a cat. Chain fixes for a combo. 80 counts.',
     crew:[],weapons:[],noGuns:LINES.noGun,from:{tile:[21,5]},start:{place:'mart'},unlock:{done:['earl']},
-    repeatable:true,pay:150,par:0,winTrust:0,roam:true,order:40,stages:['belt','blitz'],stageLabels:{belt:'The tool belt',blitz:'The blitz'},failPolicy:'soft',
+    repeatable:true,pay:150,payLabel:'Hank\'s promotion',par:0,winTrust:0,roam:true,order:40,stages:['belt','blitz'],stageLabels:{belt:'The tool belt',blitz:'The blitz'},failPolicy:'soft',
     medals:['80 points (it counts)','150 points (and Hank’s discount)','250 points'],
     radio:[['hank',"Table's by the mart. Gerald's on it. Don't keep Gerald waiting."]],
     endLine:"Riverside's a little straighter, a little brighter, and Mrs. Ramos got her carts back."},
@@ -694,6 +694,8 @@ J.register(ID,{
     if(B.phase==='count'&&B.table!==undefined){startCount(M,false)}},
   payout(M,ok){const B=M.bz;if(!ok||!B)return[];const l=[['Points ×'+B.score+' at $'+TUNE.perPoint,B.score*TUNE.perPoint]];
     if(B.helperJoined)l.push(['A Coupon Boy held the ladder · he’ll be at the court',0]);if(M.newDiscount)l.push(['Hank’s lifetime 10% discount',0]);return l},
+  result(M,ok,res){const B=M.bz;if(!B)return;/* Hank's tally, not a fight's numbers */res.title=ok?(B.score>=TUNE.gold?'Riverside, fixed. Gerald is exhausted.':B.score>=TUNE.silver?'A respectable Saturday.':'It counts. Barely. It counts.'):res.title;
+    res.stats=[['Points',String(B.score),B.score>=TUNE.silver?'Hank lost count':'Hank counted twice'],['Fixes',String(B.fixed||0),'best combo ×'+(B.bestMult||1)]].concat((res.stats||[]).filter(r=>!/^(Neutralized|Zip-tied)$/.test(r[0])))},
   medal:M=>{const s=M.bz?M.bz.score:0;return s>=TUNE.gold?3:s>=TUNE.silver?2:1},
   end(M,ok){const B=M.bz,s=SV();if(!B||!s)return;/* story effects: never on a replay (the framework skips end() then) */
     for(const id of B.perm.tags)if(!s.world.scrubbed.includes(id))s.world.scrubbed.push(id);const pl=plan(s);for(const k of B.perm.lamps)if(!pl.lamps.includes(k))pl.lamps.push(k);

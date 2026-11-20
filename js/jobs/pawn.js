@@ -780,7 +780,7 @@ J.register('pawn',{
       "No guns, no shouting. Put on a disguise, smile, eat a hot dog, and walk into the back like you belong. You won't. Nobody will say a word."],
     obj:"Crash the grand opening in a disguise, keep your cover, get past the staff into the back office, get the buy ledger (photos or the book), and walk out.",
     crew:[],weapons:[],from:{x:323,z:39}/* the church sidewalk, a few steps from the steps (Crossing Guard's Dee stands at g_dee) */,start:{x:S.van.x,z:S.van.z},site:'pawn',
-    unlock:{done:['dee'],trustR:30},pay:900,par:K.par,order:30,
+    unlock:{done:['dee'],trustR:30},pay:900,payLabel:'The collection plate',par:K.par,order:30,
     noGuns:L.noGuns,failPolicy:'soft',
     stages:['party','office','exit'],stageLabels:{party:'Back at the van: pick a disguise',office:'The back office',exit:'Walking out'},
     medals:['Finished','Nobody went "…": no politeness timer','With the Mustache, under 5:00, and nobody went "…"'],
@@ -834,6 +834,7 @@ J.register('pawn',{
     M.balloonLine=!!f.bl;M.vip=!!f.vip;M.deniseOk=!!f.dn;M.ticket=!!f.tk;M.raffled=!!f.rf;M.prize=!!f.pz;M.archFixed=!!f.af;M.songs=f.sg|0;M.canapes=f.cn|0;M.pages=f.pg|0;M.book=!!f.bk;M.haveIt=!!f.got;M.fixes=f.fx|0;
     if(f.ft)M.said.firstTalk=1;M.t=s.t||0;M.queue=[];if(M.ph!=='van')M.queue.push(['dee',M.haveIt?"Okay. Deep breath. You've got it. Now walk out like you came for the hot dogs.":"Okay. Deep breath. Fix your face. Try the back office again."]);
     if(M.D)M.D=null;M.ready=false},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){if(!ok)return[];const out=[],D=M.D;
     if(D&&D.min>=K.neverMin)out.push(['Never questioned · cover never under 40%',K.pay.never]);
     if(M.book&&M.pages>=K.pages)out.push(['Ledger and pictures · the book and three pages',K.pay.both]);
@@ -944,13 +945,11 @@ J.on('pose',()=>{const M=LIVE.M;if(!M)return;const a=A(),cur=a&&a.M;if(cur!==M||
 let HUDB=false;J.on('hud',()=>{if(HUDB)return;const a=A();if(!a||!a.HUD||!a.HUD.on)return;HUDB=true;a.HUD.on('gadget',id=>{const M=A().M;if(id==='pawnfix'&&M&&M.def.id==='pawn')M.fixTap=true})});
 /* the result card: an infiltration's numbers (cover, conversations, the ledger) instead of the fight stats */
 const HEADS=['Nobody asked a single question.','Nobody asked. A few people almost did.','Everybody noticed. Nobody said a word.','Very polite neighbourhood.'];
-J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||M.state==='go'||M.resDone)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const D=M.D;
-  if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=D?HEADS[D.started===0?0:D.excused===0?1:D.excused<3?2:3]:HEADS[0]}
-  const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);
-    if(sub){const s=document.createElement('small');s.textContent=sub;d.appendChild(s)}};
-  const talks=Object.keys(M.talked||{}).length,wins=Object.values(M.talked||{}).filter(x=>x==='win').length;
-  set(cells[0],'Lowest cover',D?Math.round(D.min*100)+'%':'—',D?LOOK[D.id].label:'');set(cells[1],'Small talk',wins+'/'+talks,D&&D.started?D.started+' × "…"':'nobody went "…"');
-  const leg=r.querySelector('.ht-stats');if(M.state==='won'&&leg){const d=document.createElement('div');leg.insertBefore(d,cells[2]||null);set(d,'Ledger',M.book?(M.pages>=3?'Book + 3':'The book'):M.pages+' pages',M.prize?'and a leaf blower':'')}});
+/* through the registry's result(M,ok,res) hook (see the register call): no DOM patching */
+function resultCard(M,ok,res){const D=M.D;if(ok)res.title=D?HEADS[D.started===0?0:D.excused===0?1:D.excused<3?2:3]:HEADS[0];
+  const talks=Object.keys(M.talked||{}).length,wins=Object.values(M.talked||{}).filter(x=>x==='win').length,keep=(res.stats||[]).filter(r=>!/^(Neutralized|Zip-tied)$/.test(r[0]));
+  res.stats=[['Lowest cover',D?Math.round(D.min*100)+'%':'—',D?LOOK[D.id].label:''],['Small talk',wins+'/'+talks,D&&D.started?D.started+' × "…"':'nobody went "…"']]
+    .concat(ok?[['Ledger',M.book?(M.pages>=3?'Book + 3':'The book'):M.pages+' pages',M.prize?'and a leaf blower':'']]:[]).concat(keep)}
 
 /* ---------------- Ramos Bakery: once the job is done, the storefront changes (hub only; a replay shows the shop as it was) ---------------- */
 const BAK={g:null,L:null,own:[]};

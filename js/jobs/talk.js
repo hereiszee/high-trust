@@ -226,7 +226,7 @@ J.register('talk',{
     crew:[],weapons:['pistol'],
     get start(){const L_=lay();return{x:L_.road.x,z:L_.road.z}},
     unlock:{cuffed:10,when:p=>!!(p&&p.done&&(typeof p.done==='function'?(p.done('dee')||p.done('duke')):(p.done.dee||p.done.duke)))},
-    pay:300,par:0,winTrust:0,order:30,noGuns:false,
+    peaceful:true,pay:300,payLabel:'Gary\'s coffee fund',par:0,winTrust:0,order:30,noGuns:false,
     stages:['arrive','talk'],stageLabels:{arrive:'The walk up',talk:'The conversation'},failPolicy:'soft',
     medals:['Finished','No awkward resets','Rapport 100 in 8 lines or less'],
     radio:[['gary',"He's at Dave's. Front lawn, corner of Linden. Dave insists. He says the backyard is for brisket only."]],

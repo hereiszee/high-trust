@@ -24,7 +24,10 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await ev(()=>{const H=window.__ht,T=window.__J={};const k=H.keys;
     T.api=()=>H.jobs.api;T.SV=()=>H.jobs.api.SV();
     T.unlock=id=>{const j=H.jobs.registry.get(id),u=j.def.unlock||{},s=T.SV();for(const d of[].concat(u.done||[])){const i=H.jobs.index(d);if(i>=0)H.prog.done[i]=true;if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,d).done=true}
-      if(u.trust)H.prog.trust=Math.max(H.prog.trust,u.trust);if(u.trustR)H.prog.trustR=Math.max(H.prog.trustR||0,u.trustR);if(j.test&&j.test.give)j.test.give(T.api());/* the Act 2 'bridge is open' card would pop over the test and pause the game */try{const sv=H.save;if(sv&&sv.flags&&H.prog.done[1]){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,2)}}catch(e){}return H.jobs.lock(id)};
+      if(u.trust)H.prog.trust=Math.max(H.prog.trust,u.trust);if(u.trustR)H.prog.trustR=Math.max(H.prog.trustR||0,u.trustR);/* one person, one place: a giver with several jobs offers the earlier (story) ones first, so take those as a player would have */
+      {const me=j.def,MI=H.MISSIONS;for(let pass=0;pass<4;pass++)for(const m2 of MI){const k=MI.indexOf(m2);if(m2===me||m2.repeatable||H.prog.done[k]||H.jobs.lock(m2.id))continue;if(m2.giver!==me.giver)continue;
+          H.prog.done[k]=true;if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,m2.id).done=true}}
+      if(j.test&&j.test.give)j.test.give(T.api());/* the Act 2 'bridge is open' card would pop over the test and pause the game */try{const sv=H.save;if(sv&&sv.flags&&H.prog.done[1]){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,2)}}catch(e){}return H.jobs.lock(id)};
     T.drive=(tgt,steps)=>{const G=H.ow.roads(),e=H.CV;if(!e)return{err:'not driving'};let route=G.route({x:e.pos.x,z:e.pos.z},tgt),pts=route?route.points:[tgt],wi=1,s=0,stuck=0;
       for(;s<steps;s++){const d0=Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z);if(H.mode!=='hub')break;
         while(wi<pts.length-1&&Math.hypot(pts[wi].x-e.pos.x,pts[wi].z-e.pos.z)<6)wi++;const w=d0<12?tgt:pts[Math.min(wi,pts.length-1)];

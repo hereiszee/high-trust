@@ -514,7 +514,7 @@ J.register('sabotage',{
       "Valve core tool. Quarter turn. Tsssss. That's the sound of justice. Two tyres a truck, hang my banner over their sign, and don't get seen."],
     obj:"At night, sneak into the yard, let the air out of two tyres on each of the four tow trucks, hang Sal's banner over their sign and get out unseen.",
     crew:[],weapons:[],from:{place:'auto'},start:{x:386,z:125.5},site:'millshop',
-    unlock:{done:['tow']},pay:1000,par:420,winTrust:10,roam:true,night:true,order:32,
+    unlock:{done:['tow']},pay:1000,payLabel:'Sal\'s envelope',par:420,winTrust:10,roam:true,night:true,order:32,
     noGuns:L.noGuns,
     stages:['approach','job1','job2','job3','job4','exfil'],
     stageLabels:{approach:'The approach',job1:'1 of 5 done',job2:'2 of 5 done',job3:'3 of 5 done',job4:'4 of 5 done',exfil:'Getting out'},failPolicy:'soft',

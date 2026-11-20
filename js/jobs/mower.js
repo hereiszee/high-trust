@@ -527,7 +527,7 @@ const DEF={giver:'dave',hood:'maple',title:'The Grass Is Greener',role:'Big Dave
     "Riverside entered a team for the first time. Marcus. Tasha's dad. Somebody's been texting him to throw the race. Weird, right?",
     "Pick a mower, qualify, race five of us for three laps of Linden Park. Bumping's allowed. Gary's marshalling. Gary has a clipboard."],
   obj:'Pick a mower, set a qualifying lap, then race five neighbours over 3 laps of Linden Park. Race fair: Gary is counting bumps.',
-  crew:[],weapons:['pistol'],from:{place:'g_dave'},start:{x:92,z:98},site:null,unlock:{done:['rick']},pay:500,par:0,winTrust:0,roam:true,order:30,
+  crew:[],weapons:['pistol'],from:{place:'g_dave'},start:{x:92,z:98},site:null,unlock:{done:['rick']},pay:500,payLabel:'Grand Prix purse',par:0,winTrust:0,roam:true,order:30,
   stages:['pick','quali','race'],stageLabels:{pick:'Pick a mower',quali:'Qualifying',race:'The race'},failPolicy:'soft',
   medals:['Finished the race','On the podium','Won it after stopping for Marcus'],noGuns:"No guns at the Grand Prix. Barb would never let me hear the end of it.",
   radio:[],endLine:"Linden Park smells like cut grass and lemonade. Riverside and Maple Heights shared a podium. Gil says this one doesn't count as an Incident."};
@@ -633,7 +633,7 @@ function raceFrame(dt,M,F){const a=A(),P=a.P,R=M.R,me=meRacer(M);R.update(dt);co
 J.register('mowertt',{def:{giver:'dave',hood:'maple',title:'Mower Time Trial',role:'Big Dave · holding the stopwatch by the Linden Park sign',place:'Linden Park',
     lines:["The course is still up. Barb won't let anybody take the cones down.","One flying lap. Cones cost a second, gates cost two. The board by the gate keeps your best.","Phil's been out here every night. In socks."],
     obj:'One flying lap of the Grand Prix course on a mower. Beat your best.',crew:[],weapons:['pistol'],from:{x:97.6,z:100.8},start:{x:92,z:98},site:null,unlock:{done:['mower']},
-    repeatable:true,pay:60,par:0,winTrust:0,roam:true,order:80,stages:['lap'],stageLabels:{lap:'The lap'},medals:['Set a time','Under 21.0 s','Under 19.8 s'],noGuns:DEF.noGuns,radio:[],
+    repeatable:true,pay:60,payLabel:'Time trial purse',par:0,winTrust:0,roam:true,order:80,stages:['lap'],stageLabels:{lap:'The lap'},medals:['Set a time','Under 21.0 s','Under 19.8 s'],noGuns:DEF.noGuns,radio:[],
     endLine:"Barb wrote your time on the board in chalk. Phil photographed it."},
   start(M,o){M.mode='tt';setupWorld(M,o);for(const r of M.field){r.obj.visible=false;if(r.rider)r.rider.root.visible=false;r.parked=true;r.car.x=-999;r.car.z=-999}
     M.field=[];if(!o||!o.checkpoint)sayAll(SAY.ttIntro,true);music('hub',.3)},

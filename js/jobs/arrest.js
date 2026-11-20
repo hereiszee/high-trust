@@ -776,7 +776,7 @@ J.register('arrest',{
       "Find him. Get him somewhere quiet. One beanbag, in front of nobody. Then I'd like a word with him."],
     obj:"Find the fake charity collector at the farmers' market, get him away from the crowd, and drop him with one beanbag without starting a panic.",
     crew:['gary'],weapons:['beanbag'],from:{place:'g_rosa'},site:'market',
-    unlock:{done:['overwatch']},pay:850,par:420,winTrust:8,
+    unlock:{done:['overwatch']},pay:850,payLabel:'The vendors\' collection',par:420,winTrust:8,
     stages:['market','aside'],stageLabels:{market:'The market',aside:'Get him alone'},failPolicy:'escalate',
     medals:['Finished','One shot','One shot, panic under 10'],order:26,
     radio:[['rosa',"I'm at the garden stall. Come find me. Walk, don't run. It's a farmers' market, not a fire drill."]],
@@ -819,6 +819,7 @@ J.register('arrest',{
   load(M,s){const O=M.ho;if(!O||!s)return;O.skim=s.skim|0;O.ided=!!s.ided;O.idHow=s.idHow||null;O.wrong=s.wrong|0;O.panicPeak=s.peak|0;O.talked=!!s.talked;O.stage=s.st||'arrive';
     O.clues=(s.clues||[]).slice();O.savedNotes=s.notes||[];O.pendingLoad=true;O.nbOn=O.talked},
 
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){const O=M.ho;if(!ok||!O)return[];const out=[];if(O.oneShot)out.push(['One shot',300]);if(O.panicPeak<20)out.push(['Nobody noticed · panic '+Math.round(O.panicPeak),150]);
     if(O.idHow==='tells'||O.idHow==='proof')out.push(['Proof, not a hunch',100]);if(O.wrong)out.push(['Apology muffins ×'+O.wrong,-25*O.wrong]);
     if(O.duf&&O.duf.cuffed)out.push(['Duffel guy zip-tied',0]);return out},
@@ -899,12 +900,11 @@ J.on('pose',()=>{const M=LIVE.M;if(!M)return;const a=A(),cur=a&&a.M;if(cur!==M||
 J.on('hud',()=>{hookTouch();const a=A(),M=a&&a.M;
   /* warm the market cast while the job is on offer in Riverside (neighbour models load on demand) */
   if(!PRE&&a&&a.mode==='hub'){const j=J.get('arrest'),i=j&&a.MISSIONS.indexOf(j.def);if(i>=0){const H_=window.__ht;if(H_&&H_.prog&&H_.prog.done&&H_.prog.done[a.MISSIONS.findIndex(m=>m.id==='overwatch')]){PRE=true;preload()}}}
-  /* the result card says what this job was about */
-  if(!M||!M.def||M.def.id!=='arrest'||M.state==='go'||!M.ho||M.hoRes)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.hoRes=true;const O=M.ho;
-  const h2=r.querySelector('h2');if(h2&&M.state==='won')h2.textContent=O.oneShot?'One bean. Zero panic. Mostly.':'Hands off the garden money.';
-  const st=r.querySelector('.ht-stats');if(st){const secs=Math.round(M.elapsed),rows=[['Rounds fired',String(O.shots),O.oneShot?'one shot':''],['Panic, worst',Math.round(O.panicPeak)+'%',O.panicPeak<10?'nobody noticed':O.panicPeak<20?'a few looks':''],
-      ['Wrong guesses',String(O.wrong),O.wrong?'apology muffins':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),'']];
-    const keep=[...st.children].filter(d=>/Trust|Medal/.test((d.querySelector('b')||{}).textContent||''));st.innerHTML=rows.map(([k,v,s])=>'<div><b>'+esc(k)+'</b><span class="ht-num">'+esc(v)+'</span>'+(s?'<small>'+esc(s)+'</small>':'')+'</div>').join('');for(const d of keep)st.appendChild(d)}});
+  /* the result card: through the registry's result(M,ok,res) hook (resultCard below), no DOM patching */});
+function resultCard(M,ok,res){const O=M.ho;if(!O)return;if(ok)res.title=O.oneShot?'One bean. Zero panic. Mostly.':'Hands off the garden money.';const secs=Math.round(M.elapsed);
+  const rows=[['Rounds fired',String(O.shots),O.oneShot?'one shot':''],['Panic, worst',Math.round(O.panicPeak)+'%',O.panicPeak<10?'nobody noticed':O.panicPeak<20?'a few looks':''],
+    ['Wrong guesses',String(O.wrong),O.wrong?'apology muffins':''],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),'']];
+  res.stats=rows.concat((res.stats||[]).filter(r=>/^(Trust|Medal|Payout)$/.test(r[0])))}
 let PRE=false;
 
 /* ---------------- the scripted player (dev/jobs-check.js) ----------------

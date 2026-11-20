@@ -304,7 +304,7 @@ J.register('moving',{
     obj:"Hold 3rd St while the Adeyemis unload. Carry boxes yourself to speed it up, post the crew on the corners (no guns near the family), and get the couch and the piano in.",
     crew:['rick','dave','rosa','gary'],weapons:['pistol','beanbag'],
     from:{x:L_.okafor.x,z:L_.okafor.z},start:{x:L_.ring.x,z:L_.ring.z},
-    unlock:{done:['rosa'],trustR:40},pay:1000,par:300,winTrust:6,order:20,
+    unlock:{done:['rosa'],trustR:40},pay:1000,payLabel:'Moving-day cash',par:300,winTrust:6,order:20,
     stages:['unload','couch','piano'],stageLabels:{unload:'Moving day',couch:'The couch',piano:'The piano'},failPolicy:'escalate',
     medals:['Finished','You carried 25 boxes yourself','Moved in under 3:30'],
     radio:[['you',"Okay, crew. Moving day. Nobody draws anywhere near that family. We hold the corners."]],

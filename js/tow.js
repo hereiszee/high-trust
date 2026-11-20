@@ -296,7 +296,7 @@ function freeRoamE(e,c,dt){const a=A(),r=action();S.hint=r;if(!r||r.info){if(!a.
   if(a.keys.e&&S.eDown){S.hold+=dt/r.hold;winchSnd(true,S.hold);if(S.hold>=1){S.hold=0;S.eDown=0;winchSnd(false);r.fn()}}
   else{if(S.eDown&&S.hold<.2/r.hold&&!a.keys.e){S.eDown=0;S.hold=0;winchSnd(false);a.exitCar();return}S.eDown=0;S.hold=0;winchSnd(false)}}
 /* missions: the interact hook. A quick tap while hitched still gets you out (to zip-tie somebody, say) */
-function interact(prompt){const a=A();if(!a||!a.CV)return undefined;const r=action();
+function interact(prompt){const a=A();if(!a||!a.CV)return undefined;if(prompt){winchSnd(false);S.eT=0;return undefined}/* the job's own E action wins: never two actions on one press */const r=action();
   if(!r){winchSnd(false);return undefined}
   if(r.info){winchSnd(false);return undefined}/* line-up hints live in the HUD meter; E stays "Get out" */
   if(a.keys.e){S.eT+=1/30}else{if(S.eT>0&&S.eT<.22){S.eT=0;winchSnd(false);a.exitCar();return undefined}S.eT=0}

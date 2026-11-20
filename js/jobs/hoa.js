@@ -229,7 +229,7 @@ J.register('hoa',{
       "Take this checklist and your phone. Don't let them see you. Phil, my sister's Buick and my backyard are at your disposal."],
     obj:"Photograph the six HOA violations at 1418 Walnut Dr (2 stars on at least five) without the crew noticing you.",
     crew:[],weapons:['pistol'],from:{x:121.6,z:66.7},get start(){const L_=lay();return{x:L_.ring.x,z:L_.ring.z}},site:null,
-    unlock:{done:['gary']},pay:500,par:0,winTrust:6,order:20,noGuns:"It's an HOA matter. Bylaws, not bullets.",
+    unlock:{done:['gary']},pay:500,payLabel:'Barb\'s petty cash',par:0,winTrust:6,order:20,noGuns:"It's an HOA matter. Bylaws, not bullets.",
     stages:['stakeout','meeting'],stageLabels:{stakeout:'The stakeout',meeting:'The emergency meeting'},failPolicy:'soft',
     medals:['Five violations at 2 stars','All six at 2 stars or better','All six at 3 stars'],
     radio:[['barb',"Over here, dear. The house with the good hydrangeas."]],

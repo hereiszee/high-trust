@@ -12,6 +12,8 @@
      payout   (M,ok) -> [[label,amount],...]   extra lines on the result card
      medal    (M) -> 0..3              0 failed, 1 bronze (finished), 2 silver, 3 gold
      end      (M,ok) -> void           households, storefronts, flags (never called on a replay for story effects: check M.replay)
+     result   (M,ok,res) -> void       edit the result card before it shows: res.title (headline), res.text, res.stats [[label,value,sub],...]
+     def.payLabel  what the base pay line is called ('Hank's promotion'); def.peaceful (default: noGuns) drops Neutralized/empty Zip-tied
      perceive/noise/vehicle/camera/interact/fire/hud/home   per-job hook handlers, called only while this job runs (home: always)
    HT.Jobs.on(hook,fn)    a system-wide hook handler (stealth, photo, tow...), called for every job and in free roam
    HT.Jobs.item(id,def)   a special held item ('phone','stopSign','toolbelt'): {name,use(M),hud(state)}; fire = use, no ammo
@@ -38,7 +40,7 @@ function register(id,spec){if(!id||typeof id!=='string')throw new Error('HT.Jobs
 function attach(j){if(!j.builtin&&!j.def.__pushed&&!G.MISSIONS.includes(j.def)){j.def.__pushed=true;G.MISSIONS.push(j.def)}
   j.index=G.MISSIONS.indexOf(j.def);
   /* the economy's mission table (js/save.js HT.CATALOG.missions) gets the base pay and par so computePayout prices it by id */
-  const C=G.catalog;if(C&&!j.builtin&&!C.some(m=>m.id===j.id))C.push({id:j.id,giver:j.def.giver,who:j.def.giver,title:j.def.title,base:j.def.pay,par:j.def.par||0,hood:j.def.hood,bonus:[]});
+  const C=G.catalog;if(C&&!j.builtin&&!C.some(m=>m.id===j.id))C.push({id:j.id,giver:j.def.giver,who:j.def.giver,title:j.def.title,base:j.def.pay,par:j.def.par||0,hood:j.def.hood,bonus:[]});if(C&&!j.builtin&&j.def.payLabel){const e=C.find(m=>m.id===j.id);if(e)e.payLabel=j.def.payLabel}
   try{G.onRegister&&G.onRegister(j)}catch(e){warn('onRegister '+j.id,e)}}
 /* index.html wraps the nine built-in jobs (MISSIONS + WJ) so every job goes through the same path */
 function wrap(id,def,cb){const j=Object.assign({id,builtin:true,def},cb||{});def.reg=def.reg||false;jobs.set(id,j);if(G)j.index=G.MISSIONS.indexOf(def);return j}

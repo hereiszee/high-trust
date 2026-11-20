@@ -774,11 +774,11 @@ function computePayout(r,s){r=r||{};
   const trust=num(r.trust,sv?(river?sv.prog.trustR:sv.prog.trust):12);
   const lines=[];let pos=0,pen=0;
   const add=(id,label,amt,kind)=>{amt=Math.round(amt);if(!amt)return;lines.push({id,label,amount:amt,kind:kind||'bonus'});if(amt>0)pos+=amt;else pen-=amt};
-  if(ok)add('base','Bake sale fund',m.base*k,'base');
+  if(ok)add('base',r.payLabel||m.payLabel||'Bake sale fund',m.base*k,'base');/* def.payLabel: what the base pay is called on the card */
   else add('gas','Gas money',40,'base');
   if(n(r.cuffs))add('cuffs','Second chances ×'+n(r.cuffs),60*n(r.cuffs)*k);
   if(n(r.confiscated))add('guns','Guns turned in to Officer Dana ×'+n(r.confiscated),25*n(r.confiscated)*k);
-  if(ok&&n(r.allyDowns)===0)add('hamstring','Nobody pulled a hamstring',150*k);
+  if(ok&&n(r.allyDowns)===0)add('hamstring',r.crewless?'Nobody got hurt':'Nobody pulled a hamstring',150*k);/* a job with no crew: nobody to pull one */
   const rr=Object.assign({},r,{ok,got:n(r.got),bikes:n(r.bikes),converters:n(r.converters),ids:n(r.ids),timeLeft:num(r.timeLeft,0)});
   for(const f of m.bonus){const l=f(rr);if(l)add(l[0],l[1],l[2]*k)}
   if(ok&&m.par&&r.elapsed!=null){const e=num(r.elapsed,1e9);if(e<m.par)add('quick','Quick work',100*k);else if(e<m.par*1.5)add('quick','Pretty quick work',50*k)}

@@ -156,7 +156,7 @@ J.register('taxi',{
     obj:'Six stops, one clock, four kids. Hit each stop in its window, drive smoothly (they notice), and be home before Jen.',
     crew:[],weapons:['pistol'],from:{home:'fridge'},
     get start(){const p=places();return p?{x:p.depart.x,z:p.depart.z}:null},/* the end of our block, on the way to school (the game's road graph can't reach the kerb right outside the house: see the report) */
-    unlock:{done:['gary']},pay:400,par:0,stay:true,roam:true,order:10,
+    unlock:{done:['gary']},pay:400,payLabel:'Jen\'s gas money',par:0,stay:true,roam:true,order:10,
     stages:['run','bikes','back'],stageLabels:{run:'The morning run',bikes:'The bike thieves',back:'Home before Jen'},failPolicy:'escalate',
     noGuns:"Not with the kids in the car. Not ever.",
     medals:['Finished','Every stop on time','Every stop on time and a ride score of 90+'],
