@@ -507,7 +507,10 @@ function bot(a,t,o){const M=a.M;if(!M||M.state!=='go'||!M.live)return null;const
     driveTo(a,{x:q.x+rx*wnt*.95,z:q.z+rz*wnt*.95},{stop:true,r:1.2,max:15});return null}
   /* the forgotten item, then the next stop */
   const it=M.item,S=L_.S;let tgt=null;if(L_.busy){stopKeys();k[' ']=Math.abs(a.CV.spd)>.3;return null}
-  if(it&&it.noticed&&!it.done&&!it.lost&&!o.skipItem){const s=S.stops[it.k];tgt={x:s.x,z:s.z}}
+  /* a detour is worth it only if the deadlines still hold afterwards (what a player watching the clock would decide) */
+  if(it&&it.noticed&&!it.done&&!it.lost&&!o.skipItem&&L_.botItem==null){const s=S.stops[it.k],c={x:a.CV.pos.x,z:a.CV.pos.z},lt=(p,q)=>SX().legTime(a,p,q,{v:10.5,turn:2.4,pad:3}).t;
+    let t=M.elapsed+lt(c,s)+6,p=s,ok=true;for(const q of S.stops.slice(S.i)){t+=lt(p,q)+(q.id==='school2'&&M.st.phase!=='back'?45:5);p=q;if(q.hard&&t>q.target+q.hard-10)ok=false}L_.botItem=ok||!!o.takeItem}
+  if(it&&it.noticed&&!it.done&&!it.lost&&!o.skipItem&&L_.botItem){const s=S.stops[it.k];tgt={x:s.x,z:s.z}}
   else{const s=S.cur();if(s)tgt={x:s.x,z:s.z}}
   if(it&&it.busy){stopKeys();k[' ']=true;return null}
   if(tgt)driveTo(a,tgt,{stop:true,r:1.4,max:o.max||13});else stopKeys();return null}
