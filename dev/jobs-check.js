@@ -40,6 +40,9 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     T.res=()=>({acts:Object.keys(H.UIacts||{}),pay:H.M&&H.M.pay?{total:H.M.pay.total,rerun:H.M.pay.rerun,lines:H.M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:H.M&&H.M.medal,replay:!!(H.M&&H.M.replay),retried:!!(H.M&&H.M.retried)});
     T.rec=id=>{const s=T.SV();return s?{job:s.jobs&&s.jobs[id],cal:(s.calendar&&s.calendar.entries||[]).find(e=>e.id===id)||null,day:s.day,cash:s.cash,hh:(s.world&&s.world.households||[]).length}:null}});
   const lk=await ev(id=>window.__J.unlock(id),ID);ok(lk===null,'unlocked (lock='+lk+')');
+  /* the job start waits for its cast (crew, giver, thugs) to stream in; synchronous stepping never resolves that wait, so load it first */
+  const cast=await p.evaluate(async id=>{const H=window.__ht,pm=window.HT&&HT.People;if(!pm||!pm.ok||!pm.preload)return'no People';const want=H.jobs.castKeys(id);
+    await Promise.race([pm.preload(want).catch(()=>{}),new Promise(r=>setTimeout(r,25000))]);return want.join(',')||'already loaded'},ID);console.log('     cast: '+cast);
   /* rebuild the hub so world givers for the newly unlocked job spawn */
   await ev(()=>{const H=window.__ht;if(H.mode==='hub'){H.enterHub();H.step(2)}});
   /* ---- the giver -> brief -> drive ---- */
@@ -52,7 +55,9 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       ok(go.mode==='hub'&&go.job===reg.index,'accepted at home, out the front door with the job on the list ('+JSON.stringify(go)+')')}
     else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
         const br=!!(H.UIacts&&H.UIacts['brief:go']);if(br)H.UIacts['brief:go']();H.step(1);return{brief:br,job:H.JOB}},reg.index);ok(g.brief&&g.job===reg.index,'giver in the world offers the brief ('+JSON.stringify(g)+')')}
-    const dr=await ev(i=>window.__J.toRing(i),reg.index);ok(dr.mode==='mission','drove into the ring, the job started ('+JSON.stringify(dr)+')')}
+    let dr=await ev(i=>window.__J.toRing(i),reg.index);
+    /* the start may be waiting on a model still streaming in (startMissionWhenReady's castWait): let it finish, then step */
+    if(dr.mode==='hub')dr=await p.evaluate(async()=>{const H=window.__ht;const w=H.jobs.castWait;if(w)await w;H.step(2);return{mode:H.mode,waited:!!w}});ok(dr.mode==='mission','drove into the ring, the job started ('+JSON.stringify(dr)+')')}
   else await ev(id=>window.__ht.jobs.start(id),ID);
   let st=await ev(id=>{const H=window.__ht;return{mode:H.mode,id:H.M&&H.M.def.id,stage:H.M&&H.M.stage}},ID);ok(st.mode==='mission'&&st.id===ID,'job running '+JSON.stringify(st));await shot(ID+'-start');
   const r0=await ev(id=>window.__J.rec(id),ID);

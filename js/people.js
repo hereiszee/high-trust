@@ -547,16 +547,19 @@ function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const 
   if(S.arms>.003&&!(rb.gunType&&rb.in.aim)){rotWorld(B[4],fwdW,-.55*S.arms);rotWorld(B[5],fwdW,.55*S.arms)}
   /* landing absorb: hips sink while the knees bend (feet stay near the floor) */
   d.body.position.y=-(S.dip*.22+S.tuck*(a&&(a.k==='land'||a.k==='climb'||a.k==='mantle')?.06:0))}
-P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;
+/* zoom-aware LOD: through a scope or binoculars a far character fills the screen like a near one, so the animation-rate steps and the
+   far-gun swap use dist x (camera.fov / P.baseFov) (never more than the real distance) */
+P.baseFov=72;
+P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;const zk=camera&&camera.fov?Math.min(1,Math.max(.02,camera.fov/(P.baseFov||72))):1;
   for(let i=P.live.length-1;i>=0;i--){const d=P.live[i];const rb=d.rb;
     if(!d.root.parent){if(++rb.orphan>90){P.live.splice(i,1);rb.mixer.stopAllAction()}continue}rb.orphan=0;
     rb.acc+=dt;
     /* far or hidden characters animate at a lower rate */
-    let every=1;if(cp){const dist=Math.hypot(d.root.position.x-cp.x,d.root.position.z-cp.z);every=dist<22?1:dist<45?2:dist<80?4:8}if(!d.root.visible)every=Math.max(every,6);
+    let every=1;if(cp){const dist=Math.hypot(d.root.position.x-cp.x,d.root.position.z-cp.z);const zd=dist*zk;every=zd<22?1:zd<45?2:zd<80?4:8}if(!d.root.visible)every=Math.max(every,6);
     if(rb.dead&&rb.deadT>3)every=Math.max(every,rb.deadT>12?2:10);
     /* shadows by distance: body within 25 m, head/hair/accessories/gun within 12 m, none when hidden or long dead */
     {const dist=cp?Math.hypot(d.root.position.x-cp.x,d.root.position.z-cp.z):0;const band=!d.root.visible||(rb.dead&&rb.deadT>3)?2:dist<12?0:dist<25?1:2;
-      gunLod(d,dist>8&&!(rb.cyc));
+      gunLod(d,dist*zk>8&&!(rb.cyc));
       if(band!==rb.shadowBand){rb.shadowBand=band;const body=rb.bodyMesh||(rb.bodyMesh=rb.skinned.reduce((a,b)=>(!a||b.geometry.attributes.position.count>a.geometry.attributes.position.count)?b:a,null));
         d.root.traverse(o=>{if(!o.isMesh||(o.userData&&o.userData.hitbox))return;o.castShadow=band===0||(band===1&&o===body)})}}
     if(++rb.skip<every){P.stats.skipped++;continue}rb.skip=0;const t=Math.min(rb.acc,.25);rb.acc=0;step(d,t);P.stats.updates++}};
