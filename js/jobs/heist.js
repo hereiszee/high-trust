@@ -55,7 +55,7 @@ const K={
 const S_={gate:{x:208,z:148,panelX:209.35,closeDz:4},keypad:{x:207.2,z:145.6},office:{door:{x:215,z:151},desk:{x:219,z:153}},board:{x:219,z:149.8},
   u47:{x:262,z:150,front:{x:262,z:148.8}},cams:[{x:209.6,z:133.6,y:3.4},{x:270.4,z:133.6,y:3.4},{x:270.4,z:153.4,y:3.4},{x:221.6,z:150.2,y:3.6}],
   ring:{x:204.6,z:139.5},                         /* Industrial Way, just north of the gate (where you pull up) */
-  stage:{van:{x:203.2,z:128,yaw:0},you:{x:205.6,z:131.5},truck:{x:203.2,z:137.6,yaw:0},lookout:{x:198.6,z:145.2},crew:{x:205.7,z:154.6}},
+  stage:{van:{x:203.2,z:104,yaw:0},you:{x:205.8,z:107.5},truck:{x:203.2,z:137.6,yaw:0},lookout:{x:198.6,z:145.2},crew:{x:205.7,z:154.6}},
   ladder:{out:{x:206.9,z:141.2},in:{x:210.8,z:141.2}},gateBox:{x:210.7,z:145.2},
   truckIn:{x:251,z:148,yaw:-Math.PI/2},           /* backed down the main aisle, cab toward the gate (facing -x) */
   hide:{x:262,z:150.9}};
@@ -194,6 +194,7 @@ const L={
   leash:"You're wandering off. The job's back that way."};
 
 /* ---------------- small helpers ---------------- */
+const poss=n=>/s$/.test(n)?n+"'":n+"'s";
 const pick=a=>a[Math.floor(Math.random()*a.length)],pickN=(a,n)=>a[((n%a.length)+a.length)%a.length];
 const NAMEOF={gary:'gary',rick:'rick',dave:'dave',doug:'doug',you:'you'};
 /* the subtitle queue: lines fed to the game's radio one at a time on game time (never blocks play) */
@@ -459,7 +460,7 @@ function gearVisOff(M){for(const g of GEAR){const p=M.gp&&M.gp[g.id];if(p)p.d.ro
   if(M.vis.ladder)M.vis.ladder.visible=false;if(M.vis.board)M.vis.board.visible=false;if(M.vis.ringBoard)M.vis.ringBoard.visible=false;for(const id of DADS){const p=M.crewP&&M.crewP[id];if(p)p.d.root.visible=false}
   if(M.dw)M.dw.d.root.visible=false}
 function gateObj(){const O=window.HT&&HT.OpenWorld;return O&&O.prop?O.prop('storage.gate'):null}
-function setGate(M,k){const g=gateObj();if(!g)return;if(M.gate0==null)M.gate0=g.position.z;g.position.z=M.gate0+S_.gate.closeDz*(1-k);M.gateK=k;
+function setGate(M,k){M.gateK=k;const g=gateObj();if(g){if(M.gate0==null)M.gate0=g.position.z;g.position.z=M.gate0+S_.gate.closeDz*(1-k)}
   if(M.gateCol){const c=M.gateCol;if(k<.6){c.x0=208.95;c.x1=209.75;c.z0=145.9;c.z1=150.1}else{c.x0=c.x1=c.z0=c.z1=-999}}}
 function smashGate(M){const g=gateObj();if(!g)return;if(M.gate0==null)M.gate0=g.position.z;g.position.z=M.gate0+S_.gate.closeDz;g.rotation.z=-1.35;g.position.y=.12;g.position.x=-.6;M.gateSmashed=true;if(M.gateCol){const c=M.gateCol;c.x0=c.x1=c.z0=c.z1=-999}}
 function gateRestore(M){const g=gateObj();if(g&&M.gate0!=null){g.position.z=M.gate0;g.rotation.z=0;g.position.y=0;g.position.x=0}M.gate0=null}
@@ -548,7 +549,7 @@ function lookoutTick(M,dt){const lk=M.cr.lookout,P=A().P;if(lk){lk.mode='stand';
   if(!would&&M.warned&&M.warnCool<3){M.warned=false;if(M.gear.walkies&&Math.random()<.5)say(M,roleOf(M,'lookout'),pick(L.allClear))}}
 /* the distraction: on the intercom at the gate keeping Dwayne off his monitors */
 function distractTick(M,dt){const p=M.cr.distraction;if(!p)return;const app=M.app;
-  if(p.st==='wait'){p.mode='stand';face(p,S_.keypad.x,S_.keypad.z,dt,2);if((M.inside&&app==='quiet')||(app==='bluff'&&M.bluffWon)){p.st='go'}}
+  if(p.st==='wait'){p.mode='stand';face(p,S_.keypad.x,S_.keypad.z,dt,2);if((app==='quiet'&&!M.loud&&(M.inside||hyp(A().P.pos.x-S_.gate.x,A().P.pos.z-S_.gate.z)<22))||(app==='bluff'&&M.bluffWon)){p.st='go'}}
   else if(p.st==='go'){const tgt=app==='bluff'?{x:S_.office.door.x+.8,z:S_.office.door.z-1.4}:{x:S_.keypad.x-.5,z:S_.keypad.z+.3};if(walk(p,tgt.x,tgt.z,1.4,dt)){p.st='talk';M.busy=K.busy[st(M,'distraction')-1];M.busy0=M.busy;
       seq(M,L.distract[roleOf(M,'distraction')]||[],2.6,{front:true});feed('Dwayne is busy','trust','Cameras unwatched for about '+M.busy+' s')}}
   else if(p.st==='talk'){p.mode='stand';face(p,app==='bluff'?S_.office.door.x:S_.keypad.x,app==='bluff'?S_.office.door.z:S_.keypad.z+.1,dt,3);M.busy-=dt;p.talkT=(p.talkT||0)+dt;
@@ -574,7 +575,7 @@ function truckTick(M,dt){const a=A(),e=M.truck;if(!e||M.truckIn||!M.truckGo)retu
 function carryCap(M){return M.gear.dolly?2:1}
 function pickUp(M,t){const a=A(),P=a.P;if(t.state!=='pile')return;if(t.def.heavy&&!M.gear.dolly){say(M,'you',L.heavy);return}
   t.state='you';M.carrying=(M.carrying||[]).concat([t]);t.mesh.visible=true;restack(M);tone({f:300,to:420,type:'triangle',d:.08,gain:.04});
-  if(!M.said['own_'+t.def.id]&&Math.random()<.5){M.said['own_'+t.def.id]=1;say(M,'you',t.def.owner.replace(/^the /,'The ')+"'s "+t.def.label.toLowerCase()+'.')}}
+  if(!M.said['own_'+t.def.id]&&Math.random()<.5){M.said['own_'+t.def.id]=1;say(M,'you',poss(t.def.owner).replace(/^the /,'The ')+' '+t.def.label.toLowerCase()+'.')}}
 /* the carried things ride in front of you (on the hand truck, two stack) */
 function restack(M){const a=A(),P=a.P,c=M.carrying||[];let y=.75;for(const t of c){const m=t.mesh;if(m.parent!==P.dude.root){if(m.parent)m.parent.remove(m);P.dude.root.add(m)}m.position.set(0,M.gear.dolly?y-.45:y,.5);m.rotation.set(0,Math.PI/2,0);m.scale.setScalar(t.def.kind==='kayak'?.85:1);y+=t.def.heavy?.55:.42}
   if(M.gear.dolly&&c.length){if(!M.vis.dolly){M.vis.dolly=dollyMesh(M)}if(M.vis.dolly.parent!==P.dude.root)P.dude.root.add(M.vis.dolly);M.vis.dolly.visible=true}else if(M.vis.dolly)M.vis.dolly.visible=false}
@@ -582,7 +583,7 @@ function dollyMesh(M){const T3=A().THREE,g=new T3.Group(),m=mats(M);for(const x 
 function loadAll(M,who){const c=M.carrying||[];if(!c.length)return;const a=A();for(const t of c){t.state='loaded';if(t.mesh.parent)t.mesh.parent.remove(t.mesh);t.mesh.visible=false;M.loaded++;(M.loadedIds||(M.loadedIds=[])).push(t.def.id)}
   M.carrying=[];restack(M);const n=M.loaded;tone({f:180,to:120,type:'square',d:.12,gain:.05});if(M.S&&!M.loud){const r=M.gear.blankets?K.noise.loadB:K.noise.load,R=truckRear(M);M.S.noise({x:R.x,z:R.z,r,kind:'load'});if(M.viz)M.viz.ring(R.x,R.z,r)}
   loadedFx(M,n)}
-function loadedFx(M,n){feed('Loaded '+n+'/12','trust',(M.loadedIds||[]).slice(-1).map(id=>{const d=ITEMS.find(x=>x.id===id);return d.owner+"'s "+d.label.toLowerCase()})[0]);
+function loadedFx(M,n){feed('Loaded '+n+'/12','trust',(M.loadedIds||[]).slice(-1).map(id=>{const d=ITEMS.find(x=>x.id===id);return poss(d.owner)+' '+d.label.toLowerCase()})[0]);
   if(n===K.minLoad&&n<12&&!M.said.enough){M.said.enough=1;say(M,L.enough[0],L.enough[1],{front:true})}if(n>=12&&!M.said.all){M.said.all=1;say(M,L.all[0],L.all[1],{front:true})}}
 function lifterTick(M,dt){const p=M.cr.lifter;if(!p)return;const who=roleOf(M,'lifter'),k=st(M,'lifter'),sp=K.lift.speed[k-1];
   if(p.st==='wait'){p.mode='stand';face(p,S_.gate.x,S_.gate.z,dt,2);p.moving=false;posePerson(p,dt);return}
@@ -685,7 +686,7 @@ function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.lou
   else if(quiet&&M.lock==='cut'&&!(M.carrying||[]).length&&hyp(P.pos.x-S_.u47.front.x,P.pos.z-S_.u47.front.z)<HIDE_R)
     F.holds.push({x:S_.u47.front.x,z:S_.u47.front.z,r:HIDE_R,o:M.hdO||(M.hdO={}),time:K.hold.hide,txt:L.hideIn,fn:()=>{M.hide='unit';(M.carrying||[]).length||0;tone({f:330,to:200,type:'square',d:.3,gain:.025})}});
   if(quiet){M.pl=playerSt(M);M.S.tick(dt,M.pl);M.S2.tick(dt,M.pl);
-    if(!watched(M))for(const ses of[M.S,M.S2])for(const b of ses.obs)if(b.kind==='camera'&&b.sus>.55)b.sus=.55;
+    if(!watched(M))for(const ses of[M.S,M.S2])for(const b of ses.obs)if(b.kind==='camera'){b.sus=0;b.state='calm'}
     reggieTick(M,dt);lookoutTick(M,dt)}else{lookoutTick(M,dt);if(M.rg&&!M.loud&&app!=='bluff')reggieTick(M,dt)}
   crewTicks(M,dt);truckTick(M,dt);alarmTick(M,dt);
   if(M.loud&&M.rg)M.rg.d.root.visible=false;
@@ -705,7 +706,7 @@ function jobTick(M,F,dt){const a=A(),P=a.P,app=M.app,quiet=app==='quiet'&&!M.lou
   /* ---- the things: pick up at the pile, load at the back of the truck ---- */
   const carrying=(M.carrying||[]).length,cap=carryCap(M);
   if(!M.hide&&M.lock==='cut'&&M.door>=1&&carrying<cap){let best=null,bd=1.5;for(const t of M.it){if(t.state!=='pile')continue;if(carrying&&(t.def.heavy||M.carrying[0].def.heavy))continue;const d=hyp(P.pos.x-t.x,P.pos.z-t.z);if(d<bd){bd=d;best=t}}
-    if(best)F.holds.push({x:best.x,z:best.z,r:1.5,o:best.o,time:K.hold.pick,txt:'Pick up: '+best.def.owner.replace(/^the /,'the ')+"'s "+best.def.label.toLowerCase()+(best.def.heavy&&!M.gear.dolly?' (too heavy alone)':''),fn:()=>pickUp(M,best)})}
+    if(best)F.holds.push({x:best.x,z:best.z,r:1.5,o:best.o,time:K.hold.pick,txt:'Pick up: '+poss(best.def.owner)+' '+best.def.label.toLowerCase()+(best.def.heavy&&!M.gear.dolly?' (too heavy alone)':''),fn:()=>pickUp(M,best)})}
   if(carrying){if(M.truckIn){const R=truckRear(M);F.taps.push({x:R.x,z:R.z,r:2.3,txt:'Load it into the truck',fn:()=>loadAll(M)})}slow(M,M.gear.dolly?K.dollyMul:K.carryMul);P.crouch=false}else M.prevP=null;
   /* ---- Reggie, up close: a silent zip-tie from behind ---- */
   if(quiet&&M.rg&&!M.rg.tied&&!carrying&&M.S.canTakedown(M.rg.ob,M.pl))F.holds.push({x:M.rg.pos.x,z:M.rg.pos.z,r:1.4,o:M.tieO||(M.tieO={}),time:2,txt:'Zip-tie Reggie from behind',fn:()=>tieReggie(M)});
@@ -720,7 +721,7 @@ function crewTicks(M,dt){if(!M.cr)return;distractTick(M,dt);lifterTick(M,dt);if(
   if(M.dw&&M.app!=='bluff'){M.dw.d.root.visible=false}}
 function openGate(M,how){if(M.gateOpening)return;M.gateOpening=0.001;M.gateHow=how;if(how==='code'){seq(M,L.codeOk,1.6);for(let i=0;i<3;i++)tone({f:[1320,990,1180][i],type:'square',d:.08,gain:.03,at:i*.18,bus:'ui'});if(M.S)M.S.noise({x:S_.keypad.x,z:S_.keypad.z,r:K.noise.code,kind:'beep'})}
   else say(M,L.gateIn[0],L.gateIn[1]);if(M.S)M.S.noise({x:S_.gate.x,z:S_.gate.z,r:K.noise.motor,kind:'motor'});if(M.viz)M.viz.ring(S_.gate.x,S_.gate.z,K.noise.motor)}
-function gateTick(M,dt){if(M.gateOpening){M.gateOpening+=dt;const k=clamp(M.gateOpening/4,0,1);setGate(M,k);tone&&(M.gmT=(M.gmT||0)-dt);if(M.gmT<=0){M.gmT=.35;tone({f:70,type:'sawtooth',d:.3,gain:.018})}if(k>=1){M.gateOpening=0;M.gateOpen=true}}}
+function gateTick(M,dt){if(M.gateOpening){M.gateOpening+=dt;const k=clamp(M.gateOpening/4,0,1);setGate(M,k);M.gmT=(M.gmT||0)-dt;if(M.gmT<=0){M.gmT=.35;tone({f:70,type:'sawtooth',d:.3,gain:.018})}if(k>=1){M.gateOpening=0;M.gateOpen=true}}}
 function climb(M,inward){const a=A(),P=a.P;if(!M.ladderUp){M.ladderUp=true;say(M,L.overFence[0],L.overFence[1]);const l=ladderMesh(M,4.3);l.rotation.set(-1.1,Math.PI/2,0);l.position.set(208.2,1.6,141.2);a.wmAdd(l);M.vis.fenceLadder=l;
     if(M.S){M.S.noise({x:208,z:141.2,r:2.5,kind:'rattle'})}tone({f:260,to:200,type:'square',d:.15,gain:.03})}
   const to=inward?S_.ladder.in:S_.ladder.out;P.pos.set(to.x,0,to.z);a.collide(P.pos,.35);if(inward)M.inside=true}
@@ -784,7 +785,7 @@ function chaseTick(M,dt){const a=A(),CA=a.CarAI(),e=M.truck,G=a.roads&&a.roads()
     /* contact: they ram the truck; you can ram them back */
     const d=hyp(tx-c.x,tz-c.z);C.hitT-=dt;
     if(d<3.4&&C.hitT<=0&&a.CV===e){C.hitT=.8;const rel=Math.abs((tc.spd||0)-(c.spd||0))+3;const mine=Math.abs(tc.spd||0)>(c.spd||0)+2;
-      const dmg=(mine?.35:1)*rel*.9/(e.car&&e.car.hpMul||1);try{a.carDamage(e,dmg,'ram')}catch(_){}C.hp-=mine?rel*3.2:rel*1.1;
+      const dmg=(mine?.35:1)*(4+rel*.9)/(e.car&&e.car.hpMul||1);try{a.carDamage(e,dmg,'ram')}catch(_){}C.hp-=mine?rel*3.2:rel*.3;
       const nx=(c.x-tx)/(d||1),nz=(c.z-tz)/(d||1);c.x+=nx*.9;c.z+=nz*.9;c.spd=(c.spd||0)*.55;tone({f:120,to:60,type:'square',d:.2,gain:.08});
       if(!mine&&Math.random()<.5)say(M,'gary',pick(L.truckHit))}
     if(d>85)C.far+=dt;else C.far=Math.max(0,C.far-dt*.5);
@@ -948,10 +949,11 @@ const _start=J.get('heist').start;J.get('heist').start=function(M,o){if(LIVE.M&&
    cousins wreck it (a real fail state), so the retry starts at the getaway.
    ===================================================================== */
 const BOTSHOTS=[['keypad',{x:206.3,z:143.6}],['cams',{x:212.6,z:138.6}],['board',{x:219,z:146.6}],['dwayne',null],['u47',{x:262,z:144.6}]];
-function botSafe(M,x,z,stance){const S=M.S;if(!S||M.loud)return true;if(Math.max(S.max(),M.S2.max())>.3)return false;const lit=S.lightAt(x,z,1,.4),pr=S.probe({x,z,stance:stance||'crouch',lit}),pr2=M.S2.probe({x,z,stance:stance||'crouch',lit});
-  if(pr.v>0||pr2.v>0&&watched(M))return false;const g=M.rg;if(g&&!g.tied){const d=hyp(g.pos.x-x,g.pos.z-z);if(d<6)return false;if(d<22){const ang=Math.abs(wrap(cyaw(x-g.pos.x,z-g.pos.z)-g.yaw));if(ang<1.5)return false}
-    /* where he'll be in 6 s (his round is deterministic) */const G2={pos:{x:g.pos.x,z:g.pos.z},yaw:g.yaw,k:g.k,t:g.t};for(let s=0;s<6;s+=.5){roundStep(G2,.5);const d2=hyp(G2.pos.x-x,G2.pos.z-z);if(d2<15&&Math.abs(wrap(cyaw(x-G2.pos.x,z-G2.pos.z)-G2.yaw))<1.2)return false}}
-  /* cameras that could see it once Dwayne's back */if(!watched(M))return true;for(const ses of[S,M.S2])for(const b of ses.obs)if(b.kind==='camera'&&hyp(b.pos.x-x,b.pos.z-z)<K.cam.R+1){const ang=Math.abs(wrap(cyaw(x-b.pos.x,z-b.pos.z)-b.yaw));if(ang<K.cam.half+.25&&!S.blocked(b.pos.x,b.pos.z,b.eye||3.4,x,z,1.2))return false}
+function botSafe(M,x,z,stance){const r=botSafe0(M,x,z,stance);if(M.bot){M.bot.why=r;const H=M.bot.hist||(M.bot.hist={});H[r]=(H[r]||0)+1}return r===true}
+function botSafe0(M,x,z,stance){const S=M.S;if(!S||M.loud)return true;if(Math.max(S.max(),M.S2.max())>.3)return 'r1';if(M.warned)return 'rw';const lit=S.lightAt(x,z,1,.4),pr=S.probe({x,z,stance:stance||'crouch',lit}),pr2=M.S2.probe({x,z,stance:stance||'crouch',lit});
+  const w=watched(M);if(pr.v>0&&(w||!pr.who||pr.who.kind!=='camera')||pr2.v>0&&w)return 'r2';const g=M.rg;if(g&&!g.tied){const d=hyp(g.pos.x-x,g.pos.z-z);if(d<6)return 'r3';if(d<22){const ang=Math.abs(wrap(cyaw(x-g.pos.x,z-g.pos.z)-g.yaw));if(ang<1.5)return 'r4'}
+    /* where he'll be in 6 s (his round is deterministic) */const G2={pos:{x:g.pos.x,z:g.pos.z},yaw:g.yaw,k:g.k,t:g.t};for(let s=0;s<6;s+=.5){roundStep(G2,.5);const d2=hyp(G2.pos.x-x,G2.pos.z-z);if(d2<15&&Math.abs(wrap(cyaw(x-G2.pos.x,z-G2.pos.z)-G2.yaw))<1.2)return 'r5'}}
+  /* cameras that could see it once Dwayne's back */if(!watched(M))return true;for(const ses of[S,M.S2])for(const b of ses.obs)if(b.kind==='camera'&&hyp(b.pos.x-x,b.pos.z-z)<K.cam.R+1){const ang=Math.abs(wrap(cyaw(x-b.pos.x,z-b.pos.z)-b.yaw));if(ang<K.cam.half+.25&&!S.blocked(b.pos.x,b.pos.z,b.eye||3.4,x,z,1.2))return 'r6'}
   return true}
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.waitCast)return null;const k=a.keys,B=M.bot||(M.bot={i:0,w:0,log:[]}),Ph=PH();
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};k.e=false;
@@ -977,8 +979,10 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||M.waitCast)return n
       if(M.app==='bluff'&&!M.bluffDone){if(!M.bluffOn){tp(M.dw.pos.x+.4,M.dw.pos.z-1.6);a.useTap=true;B.w=6;return null}
         if(M.ch&&!M.chWait){const C=M.cv,opts=C.options(),best=opts.reduce((bi,x,i)=>{const sc=(C.table[C.st.mood]||{})[x.reg]||[0,0];const b=opts[bi],sb=(C.table[C.st.mood]||{})[b.reg]||[0,0];return(sc[0]+(x.gear?10:0))>(sb[0]+(b.gear?10:0))?i:bi},0);M.ch.pick?M.ch.pick(best):bluffPick(M,best)}return null}
       if(M.hide){if(botSafe(M,S_.u47.front.x,S_.u47.front.z-.6,'crouch')&&(B.hideT=(B.hideT||0)+1)>20){B.hideT=0;a.useTap=true}return null}
-      const act=(x,z,stance,hold)=>{if(quiet&&!botSafe(M,x,z,stance)){return false}tp(x,z);P.crouch=stance==='crouch';if(hold)k.e=true;else a.useTap=true;return true};
+      const act=(x,z,stance,hold)=>{const key=Math.round(x*10)+','+Math.round(z*10);const committed=B.cur===key&&(B.curN=(B.curN||0)+1)<150&&Math.max(M.S?M.S.max():0,M.S2?M.S2.max():0)<.45;
+        if(quiet&&!committed&&!botSafe(M,x,z,stance)){B.cur=null;return false}if(B.cur!==key){B.cur=key;B.curN=0}tp(x,z);P.crouch=stance==='crouch';if(hold==='move'){}else if(hold)k.e=true;else a.useTap=true;return true};
       const goHide=()=>{if(M.lock==='cut'&&quiet&&!(M.carrying||[]).length){tp(S_.u47.front.x,S_.u47.front.z);k.e=true}else tp(S_.stage.you.x,S_.stage.you.z)};
+      if(!M.inside&&M.app==='quiet'&&!M.loud&&M.gateK>=.6){if(!act(211.2,148.2,'crouch','move'))tp(S_.stage.you.x,S_.stage.you.z);return null}
       if(!M.inside&&M.app==='quiet'&&!M.loud){if(M.tags.keypad){if(!act(S_.keypad.x-.3,S_.keypad.z-.6,'crouch',true))tp(S_.stage.you.x,S_.stage.you.z)}else if(M.gear.ladder){if(!act(S_.ladder.out.x,S_.ladder.out.z,'crouch',true))tp(S_.stage.you.x,S_.stage.you.z)}return null}
       if(M.app==='loud'&&!M.inside){tp(212,148);M.inside=true;return null}
       if(M.lock!=='cut'){if(!act(S_.u47.front.x,S_.u47.front.z-.3,'crouch',true))goHide();return null}
