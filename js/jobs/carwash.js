@@ -20,10 +20,10 @@ const TUNE={shift:240,bronze:50,silver:100,gold:150,price:5,tipBase:2,tipShine:8
   trustCar:.3,trustRun:4,trustWeek:12,trustTalk:1,trustCuff:1.5,garyUses:2,goals:[500,1200]};
 /* tile geometry of the church lawn (worldgen: B('A',160,10,170,15,'church'), lawn 160..170 x 16..18, sidewalk z19, 2nd St z20..22) */
 const LOT={x0:320,x1:342,z0:32,z1:38};
-const BAY=[{x:323.6,z:35.5},{x:336.8,z:35.5}];
-const SPOT={reel:{x:330.9,z:32.55},spigot:{x:330.2,z:32.08},thermo:{x:327.4,z:32.7},table:{x:331.2,z:36.4},dee:{x:331.2,z:35.5},
-  sign:{x:342.4,z:39.25},aframe:{x:341.2,z:38.65},chairs:[{x:326.4,z:39.05},{x:327.5,z:39.05},{x:331.4,z:39.05},{x:332.5,z:39.05}],
-  bucket:[{x:320.75,z:38.55},{x:339.65,z:38.55}],wash:[{x:320.55,z:36.9},{x:339.85,z:36.9}],dry:{x:334.0,z:37.5},hang:{x:329.6,z:36.9},
+const BAY=[{x:326.2,z:35.5},{x:336.8,z:35.5}];/* bay 1 clears the bus stop (321,39) and the lamp (329,39) */
+const SPOT={reel:{x:330.9,z:32.55},spigot:{x:330.2,z:32.08},thermo:{x:322.2,z:33.4},table:{x:331.2,z:36.4},dee:{x:331.2,z:35.5},
+  sign:{x:342.4,z:39.25},aframe:{x:341.2,z:38.65},chairs:[{x:330.4,z:39.05},{x:331.5,z:39.05},{x:332.6,z:39.05},{x:333.7,z:39.05}],
+  bucket:[{x:323.35,z:38.55},{x:339.65,z:38.55}],wash:[{x:323.15,z:36.9},{x:339.85,z:36.9}],dry:{x:334.0,z:37.5},hang:{x:329.4,z:37.2},
   lane:41.7,far:44.6,rival:{x:334.5,z:48.6},rsign:{x:337.0,z:47.6},ring:{x:347,z:28},puddle:{x:333.5,z:40.35}};
 const STN={w0:{label:'Bay 1 · Soap & scrub',short:'Bay 1',icon:'soap'},w1:{label:'Bay 2 · Soap & scrub',short:'Bay 2',icon:'soap'},dry:{label:'Drying',short:'Dry',icon:'dry'},sign:{label:'Sign on the kerb',short:'Sign',icon:'sign'},table:{label:'Hanging out',short:'—',icon:'idle'}};
 const KIDS=[{id:'jaylen',name:'Jaylen',role:'nb_teen',st:'table',sc:1},{id:'sam',name:'Sam',role:'nb_kid',st:'w0',sc:1},{id:'riley',name:'Riley',role:'nb_kid',st:'dry',sc:.94},{id:'dev',name:'Dev',role:'nb_teen',st:'w1',sc:.97}];
@@ -355,9 +355,9 @@ function tuftsRestore(){for(const[o,i,m]of TUFT.saved){try{o.setMatrixAt(i,m);o.
 /* ---------- static set ---------- */
 function setup(M){const a=A(),C=cw(M),T=T3();a.wmSetWindow(a.wmWindow(332,40,28));
   const pad=padModel();a.wmAdd(pad);
-  const can=canopyModel('YOUTH GROUP CAR WASH','#2f6f8f');can.position.set(SPOT.table.x,0,SPOT.table.z);a.wmAdd(can);
+  const can=canopyModel('YOUTH GROUP CAR WASH','#2f6f8f');can.position.set(SPOT.table.x,0,SPOT.table.z);a.wmAdd(can);C.canopy=can;
   const tb=tableModel();tb.g.position.set(SPOT.table.x,0,SPOT.table.z);a.wmAdd(tb.g);C.box=true;C.boxMesh=tb.box;C.tableG=tb.g;a.wmCol({x0:SPOT.table.x-.9,x1:SPOT.table.x+.9,z0:SPOT.table.z-.38,z1:SPOT.table.z+.38});
-  const th=thermoModel();th.g.position.set(SPOT.thermo.x,0,SPOT.thermo.z);a.wmAdd(th.g);C.thermo=th;a.wmCol({x0:SPOT.thermo.x-.85,x1:SPOT.thermo.x+.85,z0:SPOT.thermo.z-.12,z1:SPOT.thermo.z+.12});
+  const th=thermoModel();th.g.position.set(SPOT.thermo.x,0,SPOT.thermo.z);th.g.rotation.y=.35;a.wmAdd(th.g);C.thermo=th;a.wmCol({x0:SPOT.thermo.x-.8,x1:SPOT.thermo.x+.8,z0:SPOT.thermo.z-.3,z1:SPOT.thermo.z+.3});
   const sp=spigotModel();sp.position.set(SPOT.spigot.x,0,SPOT.spigot.z);a.wmAdd(sp);C.reel=sp.userData.reel;
   const af=aframeModel();af.g.position.set(SPOT.aframe.x,0,SPOT.aframe.z);af.g.rotation.y=-.5;a.wmAdd(af.g);C.aframe=af;
   C.bk=[0,1].map(i=>{const b=bucketModel();b.position.set(SPOT.bucket[i].x,0,SPOT.bucket[i].z);a.wmAdd(b);setBucket(b,0);return b});
@@ -404,7 +404,7 @@ function setCarPose(c){c.car.position.set(c.x,0,c.z);c.car.rotation.y=c.yaw}
 function arc(cx,cz,r,a0,a1,n){const out=[];for(let i=1;i<=n;i++){const a=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(a)*r,z:cz+Math.sin(a)*r})}return out}
 function pathIn(b){const B=BAY[b],r=4.2,ln=SPOT.lane;/* heading west along the lane, then a right turn into the bay, nose to the church */
   return[{x:B.x+r+6,z:ln},{x:B.x+r,z:ln},...arc(B.x+r,ln-r,r,Math.PI/2,Math.PI,8).map(p=>({x:p.x,z:p.z})),{x:B.x,z:B.z}]}
-function pathOut(b){const B=BAY[b],r=4.2,ln=SPOT.lane;/* back out: the rear swings east into the lane, then drive away west */
+function pathOut(b){const B=BAY[b],r=4.2,ln=SPOT.lane;if(b===0)return[{x:B.x,z:ln-.4,rev:true},{x:B.x+3.6,z:ln+1,rev:true,stop:.7},{x:B.x+.5,z:ln},{x:290,z:ln}];/* bay 1: straight back, swing the rear east in the lane *//* back out: the rear swings east into the lane, then drive away west */
   const a_=arc(B.x+r,ln-r,r,Math.PI,Math.PI/2,8).map(p=>({x:p.x,z:p.z,rev:true}));a_[a_.length-1].stop=.7;return[{x:B.x,z:ln-r,rev:true},...a_,{x:B.x+r-3,z:ln},{x:290,z:ln}]}
 function drive(c,dt,sp){const P=c.path;if(!P||!P.length){c.spd=0;return true}if(c.stopT>0){c.stopT-=dt;c.spd=0;return false}
   const p=P[0],dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz);const slow=P.length===1||p.stop;const want=slow?Math.min(sp,.8+d*1.3):sp;c.spd+=(want-c.spd)*Math.min(1,dt*2.5);c.rev=!!p.rev;
@@ -627,7 +627,7 @@ function thiefTick(M,t,dt){const a=A(),C=cw(M),P=a.P,p=t.p;
       a.radio('dee',LINES.box.grab,true);a.radio('Kev',pick(LINES.bad.thief));a.feed('Kev grabbed the cash box','bad','catch him: run into him, or soak him');SFX.bad();music('combat',{intensity:.4});t.from={x:p.x,z:p.z};
       t.route=[{x:p.x+2,z:39.3},{x:318,z:39.3},{x:300,z:39.3},{x:270,z:39.3}]}return}
   if(t.st==='run'){const w=t.route[0];if(w&&walk(p,w.x,w.z,4.6,dt))t.route.shift();npcPose(p.d,dt,{moving:true,speed:1.5});if(!a.CV&&Math.hypot(P.pos.x-p.x,P.pos.z-p.z)<TUNE.catchR)thiefCaught(M,t,'tackle');
-    if(Math.hypot(p.x-SPOT.table.x,p.z-SPOT.table.z)>TUNE.thiefLost){t.st='gone';t.done=true;p.d.root.visible=false;const lost=Math.min(40,Math.round(C.raised*.3));C.raised-=lost;C.boxLost=lost;C.troubleWon++;a.radio('dee',LINES.box.lost,true);a.feed('The cash box is gone','bad','-'+money(lost));thermoDraw(M);music('tension',{intensity:.4})}return}
+    if(Math.hypot(p.x-SPOT.table.x,p.z-SPOT.table.z)>TUNE.thiefLost){t.st='gone';t.done=true;p.d.root.visible=false;const lost=Math.min(25,Math.round(C.raised*.25));C.raised-=lost;C.boxLost=lost;C.troubleWon++;a.radio('dee',LINES.box.lost,true);a.feed('The cash box is gone','bad','-'+money(lost));thermoDraw(M);music('tension',{intensity:.4})}return}
   if(t.st==='surr'){npcPose(p.d,dt,{mode:'hands'});turnTo(p,P.pos.x,P.pos.z,dt,4);return}
   if(t.st==='walk'){/* he walks with you, away from the kids */const tx_=P.pos.x+Math.sin(P.yaw)*1.6,tz=P.pos.z+Math.cos(P.yaw)*1.6;const d=Math.hypot(tx_-p.x,tz-p.z);const mv=d>.8&&!walk(p,tx_,tz,d>4?4.5:2.6,dt);if(!mv)turnTo(p,P.pos.x,P.pos.z,dt,4);npcPose(p.d,dt,{moving:mv});return}
   if(t.st==='cuffed'){npcPose(p.d,dt,{mode:'kneel'});return}}
@@ -678,12 +678,12 @@ const CSS=`
 #cwh .say:after{content:'';position:absolute;left:50%;bottom:-7px;margin-left:-7px;border:7px solid transparent;border-bottom:0;border-top-color:#f6f1e3}
 #cwh .pop{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font:900 30px/1 var(--ui);text-shadow:0 2px 0 #16181c,0 0 12px rgba(0,0,0,.4);text-align:center;white-space:nowrap}
 #cwh .pop small{display:block;font:700 13px/1.2 var(--ui);color:#f6f1e3}
-#cwh .roster{position:absolute;left:14px;bottom:150px;background:rgba(20,24,30,.72);border-radius:12px;padding:8px 10px;min-width:184px;font:700 14px/1.35 var(--ui)}
+#cwh .roster{position:absolute;right:14px;top:150px;background:rgba(20,24,30,.72);border-radius:12px;padding:8px 10px;min-width:184px;font:700 14px/1.35 var(--ui)}
 #cwh .roster h4{margin:0 0 4px;font:800 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;opacity:.65}
 #cwh .roster .r{display:flex;justify-content:space-between;gap:12px}#cwh .roster .r span:last-child{color:#ffd23f}
 #cwh .roster .keys{margin-top:6px;border-top:1px solid rgba(246,241,227,.15);padding-top:5px;font:600 12px/1.45 var(--ui);opacity:.9}
 #cwh kbd{display:inline-block;min-width:16px;text-align:center;background:#f6f1e3;color:#16181c;border-radius:4px;padding:0 4px;font:800 11px/16px var(--ui);margin-right:3px}
-#cwh .therm{position:absolute;right:16px;top:44%;transform:translateY(-50%);width:54px;text-align:center}
+#cwh .therm{position:absolute;right:22px;top:330px;width:54px;text-align:center}
 #cwh .therm .tube{position:relative;margin:0 auto;width:18px;height:150px;border-radius:9px;background:rgba(246,241,227,.85);overflow:hidden;border:2px solid rgba(20,24,30,.6)}
 #cwh .therm .tube i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ff6f5a,#c0392b)}#cwh .therm .tube b{position:absolute;left:0;right:0;bottom:0;background:#8e2a20}
 #cwh .therm .bulb{width:32px;height:32px;border-radius:50%;background:#c0392b;margin:-6px auto 0;border:2px solid rgba(20,24,30,.6)}
@@ -726,7 +726,7 @@ function hudTick(M,dt){if(!HUDL)return;const a=A(),C=cw(M),P=a.P,H=HUDL;const W=
       e.innerHTML='<div class="who">'+c.cu.who+(c.free?' · "FREE"':'')+'</div><div class="steps">'+st('s','SOAP',s==='soap'||s==='pull',s!=='soap'&&s!=='pull',soapP,'s')+st('r','RINSE',s==='rinse',s==='dry',Math.min(100,cl/TUNE.needClean),'r')+st('d','DRY',s==='dry',false,dr,'d')+'</div>'+
         (s==='rinse'?'<div class="pc">'+cl+'% clean'+((c.foamLeft||0)>TUNE.foamLeft?' · rinse the suds':'')+'</div>':s==='soap'?'<div class="pc" style="color:#ffd23f">'+(C.kids.some(k=>k.st==='w'+c.bay)?'kids scrubbing · '+soapP+'%':'no kids here! send one, or hold E')+'</div>':s==='dry'?'<div class="pc" style="color:#c9a6ff">'+(C.kids.some(k=>k.st==='dry')?'drying · ':'nobody drying · hold E · ')+dr+'%</div>':'');
       e.classList.toggle('warn',s==='soap'&&!C.kids.some(k=>k.st==='w'+c.bay)||s==='dry'&&!C.kids.some(k=>k.st==='dry'))}}poolHide('chip',n);
-  /* kid chips */n=0;for(const k of C.kids){const p=a.project(k.x,1.95*(k.d.root.scale.y||1),k.z);if(!vis(p))continue;const e=poolEl('kid',n++);at(e,p);const b=k.st.startsWith('w')?C.buckets[+k.st[1]]<=.01:false;
+  /* kid chips: near you, following you, or calling for water */n=0;for(const k of C.kids){const b=k.st.startsWith('w')?C.buckets[+k.st[1]]<=.01:false;if(!b&&C.follow!==k&&Math.hypot(k.x-P.pos.x,k.z-P.pos.z)>9&&C.phase!=='setup')continue;const p=a.project(k.x,1.95*(k.d.root.scale.y||1),k.z);if(!vis(p))continue;const e=poolEl('kid',n++);at(e,p);
     const key=k.name+k.st+(C.follow===k)+b;if(e._k!==key){e._k=key;e.innerHTML=k.name+' · <b>'+(C.follow===k?'following you':b?'bucket empty!':STN[k.st]?STN[k.st].short:'')+'</b>';e.classList.toggle('fol',C.follow===k);e.classList.toggle('alert',b)}}poolHide('kid',n);
   /* trouble markers */n=0;for(const t of C.trouble){if(t.done&&!(t.k==='thief'&&(t.st==='surr'||t.st==='walk')))continue;let x,z,lab;
     if(t.k==='kink'){if(C.hose.kink<0&&t.st!=='go')continue;const nd=C.rope.nodes[t.node];x=nd.x;z=nd.z;lab=t.st==='go'?'! COUPON BOY':'! KINK · hold E'}
@@ -768,6 +768,7 @@ function upd(dt,M,F){const a=A(),C=cw(M),P=a.P;if(!C)return;C.t=(C.t||0)+dt;C.dt
   if(C.phase==='load'){loadTick(M,dt,F);hudTick(M,dt);return}
   /* spraying: LMB / R held, the touch button, or the fire path pinged this frame */
   const H=C.hose;H.spray=!!(H.held&&(INPUT.lmb||INPUT.r||INPUT.touch||C.botSpray||(C.t-INPUT.ping)<.12));M.item=H.held?'cw_hose':null;
+  if(C.canopy){const cp=a.camera.position,inC=Math.abs(cp.x-SPOT.table.x)<1.75&&Math.abs(cp.z-SPOT.table.z)<1.75&&cp.y<2.9;for(const ch of C.canopy.children)if(ch.position.y>2)ch.visible=!inC}
   ropeTick(M,dt);streamTick(M,dt);wetTick(C,dt);kidTick(M,dt);
   /* Dee */if(C.dee){npcPose(C.dee.d,dt,{});const dd=Math.hypot(P.pos.x-C.dee.x,P.pos.z-C.dee.z);if(dd<9)turnTo(C.dee,P.pos.x,P.pos.z,dt,2)}
   if(C.talk){C.talk.t-=dt;if(C.talk.t<=0)C.talk.done(0)}
@@ -778,7 +779,7 @@ function upd(dt,M,F){const a=A(),C=cw(M),P=a.P;if(!C)return;C.t=(C.t||0)+dt;C.dt
   troubleTick(M,dt);garyTick(M,dt);
   if(C.phase!=='over'&&C.phase!=='tally')interact(M,F);
   hudTick(M,dt);
-  F.widgets.push({id:'cw-clock',kind:'timer',label:C.phase==='open'?'Shift':'Setup',v:C.phase==='setup'?TUNE.shift:Math.max(0,C.clock),hot:C.phase==='open'&&C.clock<=15});
+  F.widgets.push({id:'cw-clock',kind:'timer',label:C.phase==='setup'?'Setup':'Shift',v:C.phase==='setup'?TUNE.shift:Math.max(0,C.clock),hot:C.phase==='open'&&C.clock<=15});
   F.widgets.push({id:'cw-raised',kind:'score',label:'Raised $',v:Math.round(C.raised)});F.widgets.push({id:'cw-cars',kind:'score',label:'Cars',v:C.carsDone});
   if(H.kink>=0&&H.held)F.meters.push({id:'cw-press',label:'Water pressure',v:kinkPress(C),max:1,style:'bar',warn:.5,warnBelow:true,sub:'kinked hose'})}
 function loadTick(M,dt,F){const C=cw(M),pp=PP();C.loadT=(C.loadT||0)+dt;F.objs.push(['Setting up the car wash…',false]);
@@ -873,7 +874,7 @@ let PERS=null;
 function persistTick(dt){const a=A();if(!a)return;const s=SV();const near=a.mode==='hub'&&a.L&&a.L.ow&&s&&Math.hypot(a.P.pos.x-331,a.P.pos.z-36)<110;const pl=near?plan(s):null;const want=near&&pl&&(pl.runs>0||pl.raised>0);
   if(!want){if(PERS){for(const o of PERS.objs)if(o.parent)o.parent.remove(o);disposeRes(PERS.res);PERS=null}return}
   if(PERS&&(PERS.L!==a.L||PERS.raised!==pl.raised)){for(const o of PERS.objs)if(o.parent)o.parent.remove(o);disposeRes(PERS.res);PERS=null}
-  if(!PERS){const keep=RES;RES=null;const objs=[];try{const th=thermoModel();th.g.position.set(SPOT.thermo.x,0,SPOT.thermo.z);a.L.group.add(th.g);objs.push(th.g);const g=goalOf(pl.raised);drawThermo(th,pl.raised,0,g.goal,g.label,g.done);
+  if(!PERS){const keep=RES;RES=null;const objs=[];try{const th=thermoModel();th.g.position.set(SPOT.thermo.x,0,SPOT.thermo.z);th.g.rotation.y=.35;a.L.group.add(th.g);objs.push(th.g);const g=goalOf(pl.raised);drawThermo(th,pl.raised,0,g.goal,g.label,g.done);
       if(pl.raised>=TUNE.goals[0]){const V=window.HT&&HT.Vehicles;let van=null;try{van=V&&V.make?V.make('workvan',{color:'#f4f1ea',lod:1}):a.makeVehicle('workvan','#f4f1ea')}catch(_){van=null}
         if(van){van.position.set(316.6,0,30.5);van.rotation.y=Math.PI/2;a.L.group.add(van);objs.push(van);if(van.userData&&van.userData.dispose)R_own(van);
           const tex=canvasTex(512,128,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#2f6f8f';c.textAlign='center';c.font='900 54px '+uiFont();c.fillText('RIVERSIDE',w/2,56);c.font='800 40px '+uiFont();c.fillStyle='#c0392b';c.fillText('YOUTH CENTER',w/2,104)});
@@ -883,7 +884,7 @@ function persistTick(dt){const a=A();if(!a)return;const s=SV();const near=a.mode
 let WAS=false;
 J.on('pose',dt=>{const a=A();if(!a)return;const M=a.M,mine=!!(M&&M.def&&M.def.id===ID&&M.cw&&a.mode==='mission');
   if(mine&&M.state==='go'){WAS=true;return}
-  if(mine&&M.state!=='go'){if(HUDL){hudShow(HUDL.roster,false);hudShow(HUDL.therm,false);HUDL.mk.style.display='none'}if(M.cw.talk){try{a.overlay('cw-talk',null)}catch(_){}M.cw.talk=null}hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false;resultCard(M);return}
+  if(mine&&M.state!=='go'){if(HUDL)HUDL.r.style.display='none';if(M.cw.talk){try{a.overlay('cw-talk',null)}catch(_){}M.cw.talk=null}hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false;resultCard(M);return}
   if(WAS||HUDL){WAS=false;hudKill();hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false}if(TUFT.saved.length&&!mine)tuftsRestore()
   if(RES&&!mine)disposeRes();persistTick(dt||1/60)});
 /* the result card: a fundraiser's numbers */
@@ -924,7 +925,7 @@ J.register(ID,{
     for(const g of TUNE.goals)if(before<g&&pl.raised>=g){try{A().banner(g===TUNE.goals[0]?'THE YOUTH CENTER VAN':'SUMMER CAMP','The thermometer hit '+money(g)+'. Riverside did that.',3.2)}catch(_){}if(g===TUNE.goals[0]){s.flags=s.flags||{};s.flags.youthVan=true}}
     try{if(HT.Save.touch)HT.Save.touch('jobs','flags')}catch(_){}},
   pose(dt){const a=A(),M=a&&a.M,C=M&&M.cw;if(!C||!C.hose||!C.hose.held||a.CV||a.P.fp)return;aimArm(a,C)},
-  hud(state){if(state.weapon)state.weapon.holstered=true;state.weapons=[];if(state.crosshair){const C=A().M&&A().M.cw;state.crosshair.hidden=!(C&&C.hose.held);state.crosshair.noFire=false}},
+  hud(state){state.weapon=null;state.weapons=[];if(state.crosshair){const C=A().M&&A().M.cw;state.crosshair.hidden=!(C&&C.hose.held);state.crosshair.noFire=false}},
   dev:{spawnCar:M=>spawnCar(M),cleanOf,eraseAt,aimPoint,profile:t=>PROF[t],setBayCol,BAY,SPOT,TUNE,quad:S=>{const G=S.grid,o=[];for(let q=0;q<4;q++){const ox=(q===1||q===3)?32:0,oy=q>=2?32:0;let s=0;for(let y=0;y<32;y++)for(let x=0;x<32;x++)s+=G[(oy+y)*64+ox+x];o.push(Math.round(s))}return o}},
   test:{give(a){const pp=PP();if(pp&&pp.preload)try{pp.preload(['dee','nb_teen','nb_kid','thug_cap','thug_jacket','thug_hoodie','dad_gary'].concat(custKeys(CUST))).catch(()=>{})}catch(_){}
       if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},
@@ -953,15 +954,15 @@ function bot(a,t,o){const M=a.M,P=a.P,k=a.keys;o=o||{};if(!M||M.state!=='go'||!M
   const tap=()=>{if(t%8===0)a.useTap=true};k.e=false;
   const DB=B.dbg||(B.dbg={});if(C.hose.spray){const kk=C.hose.hit?C.hose.hit.kind:'none';DB[kk]=(DB[kk]||0)+1}DB.f=(DB.f||0)+1;
   /* a kid in the way of the water: step aside */const hh=C.hose.hit;B.kidT=hh&&(hh.kind==='kid'||hh.kind==='dee'||hh.kind==='owner')&&C.hose.spray?(B.kidT||0)+1:0;if(B.kidT>25){B.kidT=0;B.side_=(B.side_||1)*-1;P.pos.x+=B.side_*.9;a.collide(P.pos,.35)}
-  if(!C.hose.held&&C.phase!=='load'){const N=C.rope.nodes,L=N[N.length-1];const tg=Math.hypot(P.pos.x-L.x,P.pos.z-L.z)<Math.hypot(P.pos.x-SPOT.reel.x,P.pos.z-SPOT.reel.z)?{x:L.x,z:L.z}:{x:SPOT.reel.x,z:SPOT.reel.z+.9};if(go(tg.x,tg.z,1.1))tap();return null}
-  /* buckets (setup, and whenever a bucket is low and kids need it) */
-  const lowB=[0,1].find(b=>C.buckets[b]<(C.phase==='setup'?.95:.15)&&(C.phase==='setup'||C.cars.some(c=>c.bay===b&&c.st==='soap')));
-  if(o.fail&&C.phase==='open'){stop();return null}
   /* Kev first */const th=C.thief;
   if(th&&th.st==='run'){if(Math.hypot(th.p.x-P.pos.x,th.p.z-P.pos.z)<7&&C.hose.held){stop();if(aim(th.p.x,1.1,th.p.z)||B.aimT>0)C.botSpray=true;B.aimT=C.botSpray?.3:0;go(th.p.x,th.p.z,.5);return null}go(th.p.x,th.p.z,.4);return null}
   if(th&&th.st==='surr'){if(go(th.p.x,th.p.z,1.4))tap();return null}
   if(th&&th.st==='walk'){if(kidNear(C,th.p.x,th.p.z)<TUNE.kidR+1){go(300,39.3,.5);return null}stop();k.e=true;return null}
   if(th&&th.boxDrop&&!C.box){if(go(th.boxDrop.x,th.boxDrop.z,.9))tap();return null}
+  if(!C.hose.held&&C.phase!=='load'){const N=C.rope.nodes,L=N[N.length-1];const tg=Math.hypot(P.pos.x-L.x,P.pos.z-L.z)<Math.hypot(P.pos.x-SPOT.reel.x,P.pos.z-SPOT.reel.z)?{x:L.x,z:L.z}:{x:SPOT.reel.x,z:SPOT.reel.z+.9};if(go(tg.x,tg.z,1.1))tap();return null}
+  /* buckets (setup, and whenever a bucket is low and kids need it) */
+  const lowB=[0,1].find(b=>C.buckets[b]<(C.phase==='setup'?.95:.15)&&(C.phase==='setup'||C.cars.some(c=>c.bay===b&&c.st==='soap')));
+  if(o.fail&&C.phase==='open'){stop();return null}
   /* setup: buckets, then Jaylen */
   if(C.phase==='setup'){if(lowB!=null){const b=SPOT.bucket[lowB];if(go(b.x+(lowB?-1.2:1.2),b.z+2.6,.6)){if(aim(b.x,.3,b.z))C.botSpray=true}return null}
     const j=C.kids.find(q=>q.id==='jaylen');if(C.follow!==j){if(go(j.x,j.z,1.2))tap();return null}if(go(SPOT.sign.x,SPOT.sign.z,1))tap();return null}

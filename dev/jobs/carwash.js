@@ -64,7 +64,7 @@ const OUT=path.resolve(__dirname,'../../docs/screenshots/jobs/carwash');
       if(ok){taken[n]=1;const o=fr?await ev(f=>{const H=window.__ht,M=H.M,C=M.cw,P=H.P;return eval(f)},fr):null;await shot(n,o)}}
     if(r==='end')break}
   const fin=await ev(()=>{const H=window.__ht;H.step(40);return{state:H.M&&H.M.state,el:H.M&&Math.round(H.M.elapsed),medal:H.M&&H.M.medal,pay:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.label+':'+l.amount):null,acts:Object.keys(H.UIacts||{})}});
-  console.log('END',JSON.stringify(fin));await shot(FAIL?'fail':'16-result');
+  console.log('END',JSON.stringify(fin));await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(1800);await ev(()=>{window.__rafOn=false});await shot(FAIL?'fail':'16-result');
   if(!QUIET){const said=await ev(()=>window.__T.said);console.log('--- radio ('+said.length+')');for(const s of said.slice(0,80))console.log('  '+s)}
   const bad=errs.filter(e=>!/favicon/.test(e));console.log(bad.length?'ERRORS '+bad.slice(0,5).join(' | '):'no console errors');
   await b.close();process.exit(fin.state==='won'||FAIL&&fin.state==='lost'?0:1)})().catch(e=>{console.error(e);process.exit(1)});
