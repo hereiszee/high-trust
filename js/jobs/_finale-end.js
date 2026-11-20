@@ -19,7 +19,9 @@ FN.stages.chase={
     /* the box car (your pick) and the front blocker (Benny's truck, or Dave's pickup if Benny's driving the box) */
     const bx=role(M,'box');const bid=bx.id||'rick',fid=bid==='benny'?'dave':'benny';S.crew=[{id:bid,slot:{side:-1,back:0},who:'box',close:bx.v},{id:fid,slot:{side:0,back:-7.5},who:'front',close:3.6}].map((c,i)=>{const t=CREWCAR[c.id]||['suv','#555'];
       const v=FN.car(t[0],t[1],345.5+(i?-0:0),62+i*7,Math.PI);v.spd=0;return Object.assign(c,{v,mode:'convoy',in:false})});
-    S.useConvoy=!!(HT.Convoy&&HT.Convoy.create&&a.CarAI&&a.CarAI()&&false);/* see the note in convoyTick */
+    /* in line behind you on HT.Convoy (CarAI cars driving in your tracks); a breadcrumb follower if convoy.js isn't loaded */
+    const CA=a.CarAI&&a.CarAI();if(HT.Convoy&&HT.Convoy.create&&CA&&CA.make){S.C=HT.Convoy.create({gap:'normal'});S.lead={x:a.VAN.pos.x,z:a.VAN.pos.z,yaw:a.VAN.yaw,spd:0,len:5.1};S.C.leader(S.lead);
+      for(const c of S.crew){c.ai=CA.make(c.v.type,{x:c.v.x,z:c.v.z,yaw:c.v.yaw});c.m=S.C.add(c.ai,{id:c.id,name:c.id})}}
     if(once(M,'ch0'))sayAll([['you',"Van. Now."],[bid,"Right behind you. When you're on his bumper, say the word. Press G. That's the word."]])},
   upd(dt,M,F){const a=A(),S=M.fn.sub,r=S.rail,P=a.P;S.t+=dt;const pc=FN.playerCar();
     if(!S.go&&(pc||S.t>CK.startT+6)&&S.t>2){S.go=true;say('the wholesaler',"(on the radio) Hm. A minivan. Of course it's a minivan.")}
@@ -51,7 +53,12 @@ FN.stages.chase={
 /* breadcrumbs behind your car, for the convoy */
 function crumbs(M,p){const S=M.fn.sub,L=S.crumbs,l=L[L.length-1];if(!l||hyp(l.x-p.x,l.z-p.z)>CK.crumb){L.push({x:p.x,z:p.z});if(L.length>200)L.shift()}}
 /* the crew's cars: in convoy behind you until you call it, then into their slots around him (HT.Tail.slot keeps them in lane) */
-function crewTick(dt,M,p){const S=M.fn.sub,Tl=FN.TL(),r=S.rail;S.crew.forEach((c,i)=>{const v=c.v;let tx,tz,ty,maxV;
+function crewTick(dt,M,p){const S=M.fn.sub,Tl=FN.TL(),r=S.rail;
+  if(S.C&&!S.called){const a=A(),e=a.CV;if(e){S.lead.x=e.pos.x;S.lead.z=e.pos.z;S.lead.yaw=e.yaw;S.lead.spd=e.car?e.car.spd:(e.spd||0)}
+    try{S.C.tick(dt,{others:[{x:r.x,z:r.z,yaw:r.yaw,spd:r.v,len:4.9,w:2}]})}catch(err){console.error(err);S.C=null}
+    if(S.C){for(const c of S.crew){const q=c.ai;c.v.spd=q.spd;FN.placeCar(c.v,q.x,q.z,q.yaw,dt)}return}}
+  if(S.C&&S.called){for(const c of S.crew)try{S.C.remove(c.m)}catch(_){}S.C=null}
+  S.crew.forEach((c,i)=>{const v=c.v;let tx,tz,ty,maxV;
     if(!S.called){/* follow the crumb trail: the convoy (Minivan Roundup's HT.Convoy drives CarAI cars; ours are scripted, so a crumb follower) */
       const L=S.crumbs;let acc=0,k=L.length-1,want=CK.gap*(i+1);while(k>0&&acc<want){acc+=hyp(L[k].x-L[k-1].x,L[k].z-L[k-1].z);k--}const q=L[Math.max(0,k)]||{x:v.x,z:v.z};tx=q.x;tz=q.z;maxV=18}
     else{const sl=Tl&&Tl.slot?Tl.slot({x:r.x,z:r.z,yaw:r.yaw,spd:r.v,w:2,l:4.9},{side:c.slot.side,back:c.slot.back,gap:2.4,path:S.P,s:r.s},{w:2,l:v.S.l}):{x:r.x+Math.cos(r.yaw)*c.slot.side*2.6,z:r.z-Math.sin(r.yaw)*c.slot.side*2.6};

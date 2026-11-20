@@ -28,6 +28,7 @@ const D=typeof document!=='undefined'?document:null;
 function js(id,src,ok){if(!D||!D.head||ok()||D.getElementById(id))return;const s=D.createElement('script');s.id=id;s.src=src;D.head.appendChild(s)}
 function css(id,href){if(!D||!D.head||D.getElementById(id))return;const l=D.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;D.head.appendChild(l)}
 if(D&&D.createElement){js('ht-tail-js','js/tail.js',()=>HTx.Tail&&HTx.Tail.create);js('ht-plan-js','js/crewplan.js',()=>HTx.Plan&&HTx.Plan._ver);css('ht-plan-css','css/plan.css');
+  js('ht-convoy-js','js/convoy.js',()=>HTx.Convoy&&HTx.Convoy.create);/* HT.Convoy (Minivan Roundup's): the crew's cars in the chase */
   for(const f of['_finale-street','_finale-end','_finale-fest'])js('ht-'+f,'js/jobs/'+f+'.js',()=>false)}
 const ID='finale';
 const FN=HTx.Finale=HTx.Finale||{stages:{}};
