@@ -45,13 +45,18 @@ function streets(a){const W=a.WORLD;if(STR&&STR.W===W&&STR.open===!!W.bridgeOpen
   const path=(s,g)=>{const N=nodes.length,dist=new Float64Array(N).fill(1e18),prev=new Int32Array(N).fill(-1),done=new Uint8Array(N);
     for(const[i,d]of s)if(d<dist[i]){dist[i]=d}for(;;){let u=-1,b=1e18;for(let i=0;i<N;i++)if(!done[i]&&dist[i]<b){b=dist[i];u=i}if(u<0)break;done[u]=1;for(const e of nodes[u].e){const nd=dist[u]+e.l;if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u}}}
     let best=-1,bd=1e18;for(const[i,d]of g)if(dist[i]+d<bd){bd=dist[i]+d;best=i}const out=[];for(let u=best;u>=0;u=prev[u])out.unshift(u);return out};
-  STR={W,open:!!W.bridgeOpen,nodes,near,
-    route(from,to){const A_=near(from.x,from.z),B_=near(to.x,to.z);if(!A_||!B_)return null;
+  const keep=STR&&STR.W===W?STR.lots:[];STR={W,open:!!W.bridgeOpen,nodes,near,
+    lots:[],
+    /* a lot (parking lot, school loop) joins the streets at its entrance, not at whatever street is nearest */
+    via(p){for(const l of STR.lots)if(p.x>=l.x0&&p.x<=l.x1&&p.z>=l.z0&&p.z<=l.z1)return l.via;return null},
+    route(from,to){const fv=STR.via(from),tv=STR.via(to);if(fv||tv){const r=STR.route(fv||from,tv||to);if(!r)return null;if(fv)r.unshift({x:from.x,z:from.z});if(tv)r.push({x:to.x,z:to.z});return r}
+      const A_=near(from.x,from.z),B_=near(to.x,to.z);if(!A_||!B_)return null;
       if((A_.a===B_.a&&A_.b===B_.b)||(A_.a===B_.b&&A_.b===B_.a))return[{x:from.x,z:from.z},{x:A_.x,z:A_.z},{x:B_.x,z:B_.z},{x:to.x,z:to.z}];
       const da=i=>hyp(nodes[i].x-A_.x,nodes[i].z-A_.z),db=i=>hyp(nodes[i].x-B_.x,nodes[i].z-B_.z);
       const ids=path([[A_.a,da(A_.a)],[A_.b,da(A_.b)]],[[B_.a,db(B_.a)],[B_.b,db(B_.b)]]);
       return[{x:from.x,z:from.z},{x:A_.x,z:A_.z},...ids.map(i=>({x:nodes[i].x,z:nodes[i].z})),{x:B_.x,z:B_.z},{x:to.x,z:to.z}]}};
-  return STR}
+  STR.lots=keep;return STR}
+function lot(a,box){const S=streets(a);if(!S.lots.some(l=>l.x0===box.x0&&l.z0===box.z0))S.lots.push(box)}
 /* the drive line: the street graph's centreline route (corner points), the tile GPS as a fallback */
 function drive(a,from,to){let p=null;try{p=streets(a).route(from,to)}catch(e){p=null}if(p&&p.length>1){const out=[p[0]];for(const q of p.slice(1)){const l=out[out.length-1];if(hyp(q.x-l.x,q.z-l.z)>.3)out.push(q)}return out}return gps(a,from,to)}
 /* a drivable right-hand lane between two points: the street route, offset, filleted, easing in and out of the kerb */
@@ -136,8 +141,8 @@ function comfort(o={}){const C={v:100,sum:0,time:0,legSum:0,legTime:0,a:0,lat:0,
     if(acc>F.accel){bad+=(acc-F.accel)*F.kAccel*dt}
     if(C.lat>F.lat&&av>2){bad+=(C.lat-F.lat)*F.kLat*dt;if(C.lat>F.lat+3)ev('corner',C.lat)}
     if(av>F.speed){bad+=F.kSpeed*dt*(1+(av-F.speed)/6);ev('speed',av)}
-    if(ctx.offRoad&&av>3){if(!C.off){hit(6);ev('kerb',av)}bad+=1.5*dt}
-    C.off=!!ctx.offRoad;
+    if(ctx.offRoad&&av>5){if(!C.off){hit(6);ev('kerb',av)}bad+=1.5*dt}
+    C.off=!!ctx.offRoad&&av>5;
     if(bad>0)hit(bad);
     else if(C.t-C.lastBad>F.calm)C.v=Math.min(100,C.v+(F.regen+.8*(ctx.mood||0))*dt);
     if(ctx.mood<0&&C.t-C.lastBad>F.calm)C.v=Math.max(60,C.v+.25*ctx.mood*dt);
@@ -227,12 +232,22 @@ function radio(o={}){const R={i:o.start||0,st:STATIONS,t:0,talkT:2,on:o.on||null
 HT.Stops_STATIONS=STATIONS;
 
 /* ---------- dialogue queue: paced lines through api.radio ---------- */
-function talk(){const Q={q:[],wait:0,said:{}};
-  Q.say=(who,text,o={})=>{if(o.once){if(Q.said[o.once])return;Q.said[o.once]=1}if(o.low&&Q.q.length>1)return;if(o.now){Q.q.unshift([who,text,o])}else Q.q.push([who,text,o]);if(Q.q.length>9)Q.q.splice(1,1)};
-  Q.busy=()=>Q.q.length>0||Q.wait>.4;
-  Q.update=dt=>{Q.wait-=dt;if(Q.wait>0||!Q.q.length)return;const[w,t,o]=Q.q.shift();const a=A();a.radio(w,t,true);Q.wait=Math.min(5.2,1.5+t.length*.045)+(o.pause||0);
-    const au=window.HT&&HT.Audio;if(au&&au.voice&&o.voice!==false)try{au.voice(o.voice||(/^(Maddie|Tyler|Ava|Mason)/.test(w)?'kid':w==='you'?'dad':/thief|Kid in/i.test(w)?'thug':'dad'),null,{radio:/text|AM 860|phone/i.test(w),vol:.5,pitch:o.pitch})}catch(_){}};
-  Q.clear=()=>{Q.q.length=0;Q.wait=0};
+/* Lines go out in groups (an exchange is never split). Higher priority goes first: 3 story beats, 2 stop scenes, 1 reactions, 0 chatter.
+   Groups expire when they're stale (a reaction to a pothole 9 s ago is not funny), so the talk never lags behind the driving. */
+const TTL=[9,5,25,90];
+function talk(){const Q={q:[],cur:null,wait:0,said:{},t:0};
+  Q.group=(lines,o={})=>{if(o.once){if(Q.said[o.once])return;Q.said[o.once]=1}const prio=o.prio!=null?o.prio:o.now?2:1;if(o.low&&(Q.q.length||Q.cur))return;
+    Q.q.push({lines:lines.slice(),prio,born:Q.t,ttl:o.ttl||TTL[prio]||10,o});if(Q.q.length>12)Q.q.splice(Q.q.findIndex(g=>g.prio===Math.min(...Q.q.map(x=>x.prio))),1)};
+  Q.say=(who,text,o={})=>Q.group([[who,text,o]],o);
+  Q.busy=()=>Q.q.length>0||!!Q.cur||Q.wait>.4;
+  Q.idle=()=>!Q.q.length&&!Q.cur&&Q.wait<=0;
+  const out=([w,t,o])=>{const a=A();a.radio(w,t,true);Q.wait=Math.min(5,1.4+t.length*.042)+((o&&o.pause)||0);
+    const au=window.HT&&HT.Audio;if(au&&au.voice&&!(o&&o.voice===false))try{au.voice((o&&o.voice)||(/^(Maddie|Tyler|Ava|Mason)/.test(w)?'kid':w==='you'?'dad':/^Kid /.test(w)?'thug':'dad'),null,{radio:/text|AM 860|phone|radio/i.test(w),vol:.5,pitch:o&&o.pitch})}catch(_){}};
+  Q.update=dt=>{Q.t+=dt;Q.wait-=dt;if(Q.wait>0)return;
+    if(Q.cur){if(Q.cur.lines.length){out(Q.cur.lines.shift());return}const f=Q.cur.o.then;Q.cur=null;if(f)try{f()}catch(e){console.warn(e)}}
+    Q.q=Q.q.filter(g=>g.o.then||Q.t-g.born<=g.ttl);if(!Q.q.length)return;let bi=0;for(let i=1;i<Q.q.length;i++)if(Q.q[i].prio>Q.q[bi].prio)bi=i;
+    Q.cur=Q.q.splice(bi,1)[0];out(Q.cur.lines.shift())};
+  Q.clear=(below)=>{const keep=g=>g.o.then||(below!=null&&g.prio>=below);Q.q=Q.q.filter(keep);if(Q.cur&&!keep(Q.cur))Q.cur=null;if(below==null)Q.wait=Math.min(Q.wait,.3)};
   return Q}
 
 /* ---------- a scripted road vehicle on a polyline ---------- */
@@ -262,39 +277,40 @@ function cruiser(o){const a=A(),C={obj:o.obj,pts:o.points,d:o.d||0,spd:o.spd||0,
 /* ---------- the HUD layer ---------- */
 const CSS=`
 .stx{position:fixed;inset:0;pointer-events:none;z-index:11;font-family:var(--ht-ui,"Barlow Condensed",sans-serif);color:#fff}
-.stx-side{position:absolute;right:36px;top:212px;width:236px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.stx-side{position:absolute;right:36px;top:200px;width:226px;display:flex;flex-direction:column;gap:7px;align-items:stretch}
 .stx-clock{display:flex;align-items:baseline;justify-content:flex-end;gap:10px;text-shadow:0 2px 6px rgba(0,0,0,.55)}
-.stx-clock b{font:700 40px/1 var(--ht-ui,"Barlow Condensed",sans-serif);letter-spacing:.01em}
-.stx-clock span{font:700 12px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:#ffd36a}
+.stx-clock b{font:700 38px/1 var(--ht-ui,"Barlow Condensed",sans-serif);letter-spacing:.01em;white-space:nowrap}.stx-clock b small{font-size:.5em;margin-left:3px;letter-spacing:.06em}
+.stx-clock span{white-space:nowrap;font:700 12px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:#ffd36a}
 .stx-clock.hot b{color:#ff8a6a;animation:stxPulse .9s ease-in-out infinite}
 @keyframes stxPulse{50%{opacity:.55}}
 .stx-note{position:relative;background:linear-gradient(176deg,#fff7a8,#fbe97c 60%,#f3dc66);color:#3a3320;border-radius:2px 2px 10px 2px;padding:12px 14px 10px;transform:rotate(-1.2deg);
   box-shadow:0 10px 22px rgba(0,0,0,.35),inset 0 -18px 24px -18px rgba(150,110,0,.35);font-family:var(--ht-body,"Barlow",sans-serif)}
 .stx-note:before{content:"";position:absolute;left:50%;top:-9px;width:64px;height:18px;margin-left:-32px;background:rgba(255,255,255,.55);transform:rotate(2deg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.stx-note h4{margin:0 0 6px;font:800 13px/1 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:#7a5a00;display:flex;justify-content:space-between}
+.stx-note h4{margin:0 0 4px;font:800 13px/1 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:#7a5a00;display:flex;justify-content:space-between}
 .stx-note h4 i{font-style:normal;color:#b0352a}
-.stx-row{display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:baseline;padding:3px 0;border-bottom:1px dashed rgba(90,70,10,.25);font:600 14px/1.15 var(--ht-body)}
+.stx-row{display:grid;grid-template-columns:16px 1fr auto;gap:6px;align-items:baseline;padding:2px 0;border-bottom:1px dashed rgba(90,70,10,.25);font:600 13.5px/1.12 var(--ht-body)}
 .stx-row:last-child{border-bottom:0}
 .stx-row .bx{width:12px;height:12px;border:2px solid #5a4a20;border-radius:2px;position:relative;top:1px}
 .stx-row.done .bx:after{content:"";position:absolute;left:2px;top:-4px;width:5px;height:10px;border:solid #2f8f4a;border-width:0 3px 3px 0;transform:rotate(40deg)}
 .stx-row.done{color:rgba(58,51,32,.55)}
 .stx-row.done .nm{text-decoration:line-through;text-decoration-color:rgba(58,51,32,.5)}
-.stx-row.cur{color:#1d1a10}.stx-row.cur .nm{font-weight:800}
+.stx-row.cur{color:#1d1a10}.stx-row.cur .nm{font-weight:800}.stx-row.cur .sub,.stx-row.alert .sub{display:block}
 .stx-row.cur .bx{border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,.18)}
 .stx-row .tm{font:700 13px/1 var(--ht-ui);letter-spacing:.04em;white-space:nowrap}
 .stx-row .tm.late{color:#c0392b}.stx-row .tm.ok{color:#2f7a3f}
-.stx-row .sub{display:block;font:500 11.5px/1.15 var(--ht-body);color:rgba(58,51,32,.75);margin-top:1px}
-.stx-row .st{color:#d18b00;letter-spacing:1px;font-size:11px}
+.stx-row .sub{display:none;font:500 11.5px/1.15 var(--ht-body);color:rgba(58,51,32,.75);margin-top:1px}
+.stx-row .st{color:#d18b00;letter-spacing:-1px;font-size:9px;vertical-align:1px}
 .stx-row.alert{color:#b0352a}.stx-row.alert .bx{border-color:#b0352a;background:rgba(176,53,42,.15)}
-.stx-ride{background:rgba(14,20,30,.62);border-radius:10px;padding:8px 10px 9px;display:grid;grid-template-columns:34px 1fr;gap:4px 9px;align-items:center;backdrop-filter:blur(4px)}
-.stx-ride svg{grid-row:span 2}
+.stx-top{position:absolute;left:50%;top:92px;transform:translateX(-50%);display:flex;gap:8px;align-items:stretch}
+.stx-ride{width:190px;background:rgba(14,20,30,.62);border-radius:10px;padding:6px 10px 7px;display:grid;grid-template-columns:30px 1fr;gap:3px 8px;align-items:center;backdrop-filter:blur(4px)}
+.stx-ride svg{grid-row:span 2;width:30px;height:30px}
 .stx-ride .lb{font:700 11px/1 var(--ht-ui);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.7);display:flex;justify-content:space-between}
 .stx-ride .lb b{color:#fff;letter-spacing:.06em;font-size:13px}
 .stx-bar{height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;position:relative}
 .stx-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#ffb347,#ffd36a 40%,#7ed67e);transition:width .25s}
 .stx-bar.bad i{background:linear-gradient(90deg,#ff6a4d,#ffb347)}
 .stx-bar em{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.75)}
-.stx-radio{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;background:rgba(14,20,30,.62);border-radius:10px;padding:7px 10px;backdrop-filter:blur(4px);user-select:none;-webkit-tap-highlight-color:transparent}
+.stx-radio{width:210px;pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px;background:rgba(14,20,30,.62);border-radius:10px;padding:7px 10px;backdrop-filter:blur(4px);user-select:none;-webkit-tap-highlight-color:transparent}
 .stx-radio:active{transform:scale(.97)}
 .stx-radio .dial{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#3b4658,#1b2230);box-shadow:inset 0 0 0 2px #ffd36a;position:relative;flex:none}
 .stx-radio .dial:after{content:"";position:absolute;left:12px;top:4px;width:2px;height:9px;background:#ffd36a;border-radius:1px;transform-origin:1px 9px;transform:rotate(var(--r,0deg));transition:transform .3s}
@@ -303,38 +319,41 @@ const CSS=`
 .stx-radio .tx span{display:block;font:500 11px/1.2 var(--ht-body);color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stx-radio .key{font:700 11px/1 var(--ht-ui);padding:3px 6px;border-radius:4px;background:#f2efe6;color:#1b2230}
 .stx-radio .moods{display:flex;gap:2px;font-size:13px}
-.stx-toast{position:absolute;left:50%;top:132px;transform:translate(-50%,-14px);opacity:0;transition:opacity .35s,transform .35s;background:rgba(14,20,30,.78);border-radius:12px;padding:10px 18px 11px;min-width:300px;text-align:center;backdrop-filter:blur(5px);border-top:3px solid #ffd36a}
+.stx-toast{position:absolute;left:50%;top:auto;bottom:150px;transform:translate(-50%,-14px);opacity:0;transition:opacity .35s,transform .35s;background:rgba(14,20,30,.78);border-radius:12px;padding:10px 18px 11px;min-width:300px;text-align:center;backdrop-filter:blur(5px);border-top:3px solid #ffd36a}
 .stx-toast.on{opacity:1;transform:translate(-50%,0)}
 .stx-toast .k{font:700 11px/1 var(--ht-ui);letter-spacing:.2em;color:#ffd36a;text-transform:uppercase}
 .stx-toast .t{font:700 26px/1.05 var(--ht-ui);text-transform:uppercase;margin:4px 0 3px}
 .stx-toast .s{font:500 14px/1.2 var(--ht-body);color:rgba(255,255,255,.85)}
 .stx-toast .stars{font-size:22px;letter-spacing:3px;color:#ffd36a}.stx-toast .stars u{text-decoration:none;color:rgba(255,255,255,.22)}
-.stx-mid{position:absolute;left:50%;top:58%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.stx-mid{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
 .stx-slot:empty{display:none}
-@media (max-width:640px),(max-height:520px) and (orientation:landscape){
-  .stx-side{right:12px;top:300px;width:186px;gap:6px}.stx-clock b{font-size:30px}.stx-row{font-size:12.5px}.stx-row .sub{display:none}.stx-note{padding:9px 10px 7px}
-  .stx-toast{top:auto;bottom:250px;min-width:260px}.stx-toast .t{font-size:21px}.stx-mid{top:46%}}
+@media (max-width:640px){
+  .stx-side{right:10px;top:150px;width:172px;gap:5px}.stx-clock b{font-size:28px}.stx-clock span{display:none}
+  .stx-note{padding:8px 9px 6px;transform:none}.stx-note h4{font-size:11px}.stx-row{font-size:12.5px}.stx-row .sub,.stx-row.cur .sub,.stx-row.alert .sub{display:none}.stx-row.done,.stx-row.far{display:none}
+  .stx-top{top:298px;bottom:auto;left:auto;right:10px;transform:none;flex-direction:column;width:172px;gap:5px}.stx-ride,.stx-radio{width:auto}.stx-radio .tx span{display:none}
+  .stx-mid{top:auto;bottom:345px;width:94vw}.stx-mid>*{max-width:94vw}.stx-toast{bottom:360px;min-width:250px}.stx-toast .t{font-size:20px}}
+@media (max-height:520px) and (orientation:landscape){.stx-side{top:96px;width:190px}.stx-row .sub{display:none}.stx-row.done{display:none}.stx-top{top:auto;bottom:120px;left:auto;right:12px;transform:none;flex-direction:column;width:190px}.stx-ride,.stx-radio{width:auto}.stx-mid{top:30%}}
 @media (max-height:520px) and (orientation:landscape){.stx-side{top:120px}}`;
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
 function face(v){/* a little passenger face: smile to green-faced */const m=v>=75?'M10 21 Q17 27 24 21':v>=55?'M10 22 L24 22':'M10 24 Q17 18 24 24',c=v>=55?'#ffd36a':v>=35?'#ffb347':'#9bd36a';
   return`<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="${c}" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/><circle cx="12" cy="14" r="2" fill="#2a2418"/><circle cx="22" cy="14" r="2" fill="#2a2418"/><path d="${m}" stroke="#2a2418" stroke-width="2.4" fill="none" stroke-linecap="round"/>${v<35?'<path d="M9 9 l4 2 M25 9 l-4 2" stroke="#2a2418" stroke-width="1.6"/>':''}</svg>`}
 function panel(o={}){if(!document.getElementById('stx-css')){const s=el('style');s.id='stx-css';s.textContent=CSS;document.head.appendChild(s)}
-  const root=el('div','stx');root.dataset.job=o.id||'';const side=el('div','stx-side'),clock=el('div','stx-clock','<b>--:--</b><span></span>'),note=el('div','stx-note'),ride=el('div','stx-ride'),rad=el('div','stx-radio');
-  const toast=el('div','stx-toast'),mid=el('div','stx-mid');side.append(clock,note,ride,rad);root.append(side,toast,mid);
+  const root=el('div','stx');root.dataset.job=o.id||'';const side=el('div','stx-side'),clock=el('div','stx-clock','<b>--:--</b><span></span>'),note=el('div','stx-note'),ride=el('div','stx-ride'),rad=el('div','stx-radio'),top=el('div','stx-top');
+  const toast=el('div','stx-toast'),mid=el('div','stx-mid');side.append(clock,note);top.append(ride,rad);root.append(side,top,toast,mid);
   const slots={};const P={root,clock,note,ride,radio:rad,toast,mid,last:{},shown:false};
   rad.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(o.onRadio)o.onRadio()});
   P.slot=(id,where)=>{if(!slots[id]){const s=el('div','stx-slot');(where==='side'?side:mid).appendChild(s);slots[id]=s}return slots[id]};
   P.show=on=>{if(on&&!root.parentNode)document.body.appendChild(root);root.style.display=on?'':'none';P.shown=on};
   P.remove=()=>{if(root.parentNode)root.parentNode.removeChild(root)};
   const set=(k,e,html)=>{if(P.last[k]!==html){P.last[k]=html;e.innerHTML=html}};
-  P.clockSet=(t,sub,hot)=>{set('clock',clock,'<b>'+t+'</b><span>'+sub+'</span>');clock.classList.toggle('hot',!!hot)};
+  P.clockSet=(t,sub,hot)=>{const m=/^(.*) (AM|PM)$/.exec(t);set('clock',clock,'<b>'+(m?m[1]+'<small>'+m[2]+'</small>':t)+'</b><span>'+sub+'</span>');clock.classList.toggle('hot',!!hot)};
   /* rows: [{name, sub, time, state:'done'|'cur'|'todo'|'alert', late:bool, stars:n}] */
-  P.list=(title,flag,rows)=>set('note',note,'<h4>'+title+(flag?'<i>'+flag+'</i>':'')+'</h4>'+rows.map(r=>`<div class="stx-row ${r.state||''}"><div class="bx"></div><div><span class="nm">${r.name}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div><div class="tm ${r.cls||''}">${r.time||''}${r.stars?'<br><span class="st">'+'★'.repeat(r.stars)+'</span>':''}</div></div>`).join(''));
+  P.list=(title,flag,rows)=>set('note',note,'<h4>'+title+(flag?'<i>'+flag+'</i>':'')+'</h4>'+rows.map(r=>`<div class="stx-row ${r.state||''}${r.far?' far':''}"><div class="bx"></div><div><span class="nm">${r.name}</span>${r.sub?`<span class="sub">${r.sub}</span>`:''}</div><div class="tm ${r.cls||''}">${r.stars?'<span class="st">'+'★'.repeat(r.stars)+'</span> ':''}${r.time||''}</div></div>`).join(''));
   P.rideSet=(v,word,avg,goal)=>{const html=face(v)+`<div class="lb">Ride <b>${word}</b></div><div class="stx-bar${v<55?' bad':''}"><i style="width:${Math.round(v)}%"></i>${goal?`<em style="left:${goal}%"></em>`:''}</div>`;set('ride',ride,html);if(avg!=null)ride.title='Average '+Math.round(avg)};
   P.radioSet=(s,k,moods,touch)=>{set('radio',rad,`<div class="dial" style="--r:${-60+k*30}deg"></div><div class="tx"><b>${s.name}</b><span>${s.sub}</span></div><div class="moods">${moods}</div>${touch?'':'<span class="key">R</span>'}`)};
   let toastT=0;P.toastShow=(k,t,s,stars,dur)=>{toast.innerHTML=`<div class="k">${k}</div><div class="t">${t}</div>${stars!=null?`<div class="stars">${'★'.repeat(stars)}<u>${'★'.repeat(Math.max(0,5-stars))}</u></div>`:''}<div class="s">${s||''}</div>`;toast.classList.add('on');toastT=dur||4.2};
   P.tick=dt=>{if(toastT>0){toastT-=dt;if(toastT<=0)toast.classList.remove('on')}};
   return P}
 
-HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,gps,lane,pursue,streets,drive,laneRoute,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
+HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,gps,lane,pursue,streets,drive,laneRoute,lot,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
 })();
