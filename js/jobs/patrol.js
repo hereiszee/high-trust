@@ -143,7 +143,7 @@ function build(seed,variant){const a=A(),W=a.WORLD,Rn=rng(seed),c=centre(variant
 
 /* ================= the run ================= */
 function pt(M){return M&&M.pt}
-function setupRun(M,o){const a=A(),V=today();const seed=(o&&o.checkpoint&&o.checkpoint.job&&o.checkpoint.job.seed)||((Math.random()*1e9)>>>0);
+function setupRun(M,o){const a=A(),cj=o&&o.checkpoint&&o.checkpoint.job,V=cj&&cj.v?{river:!!cj.v.r,night:!!cj.v.n,n:cj.v.k|0}:today();const seed=(o&&o.checkpoint&&o.checkpoint.job&&o.checkpoint.job.seed)||((Math.random()*1e9)>>>0);
   const B=build(seed,V);M.pt={seed,variant:V,stops:B.stops,trouble:B.trouble?Object.assign(B.trouble,{}):null,start:B.start,t:0,clock:(V.night?TUNE.windowNight:TUNE.window)+(V.river?100:0),log:[],checked:0,handled:0,wrong:0,chats:0,goodChats:0,knocks:0,
     trustRun:0,said:{},props:[],people:[],bub:[],follow:null,talk:null,phase:'load',firstLook:false};const P_=M.pt;
   if(V.night){a.setNight(1);P_.nightSet=true}
@@ -348,14 +348,14 @@ J.register(ID,{
     radio:[['doug',"Clipboard's in your seat. Start where the route starts."]],endLine:"The porches are checked, the bins are up, and somebody's dog is home. The neighbourhood got watched. Nicely."},
   start(M,o){if(RES)disposeRes();hudKill();setupRun(M,o);M.score=0;const a=A();if(a.P.dude)a.equip(a.P.dude,null)},
   upd,
-  save:M=>({seed:(M.pt&&M.pt.seed)>>>0}),load(M,s){},
+  save:M=>{const P_=M.pt||{},v=P_.variant||{};return{seed:(P_.seed)>>>0,v:{r:v.river?1:0,n:v.night?1:0,k:v.n|0}}},load(M,s){},
   payout(M,ok){const P_=pt(M);if(!ok||!P_)return[];const l=[['Things handled ×'+P_.handled,TUNE.perEv*P_.handled]];if(P_.proportionate)l.push(['A word first: proportionate',25]);if(P_.goodChats)l.push(['Neighbours charmed ×'+P_.goodChats,0]);return l},
   medal(M){const s=stars(M);M.score=s;return s>=5?3:s>=4?2:1},
-  end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBOURHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
+  end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);if(!ok)return;pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBOURHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
   hud(state){state.weapon=null;state.weapons=[]},
   dev:{build,today,stars},
   test:{give(a){const pp=PP();if(pp&&pp.preload)try{pp.preload(['nb_kid','nb_teen','thug_hoodie','thug_cap','nb_kenji'].concat(NBROLES)).catch(()=>{})}catch(_){}if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},
-    step:(a,t,o)=>bot(a,t,o),sample:()=>({pt:{seed:777}}),cpNode:true}
+    step:(a,t,o)=>bot(a,t,o),sample:()=>({pt:{seed:777,variant:{river:false,night:true,n:1}}}),cpNode:true}
 });
 
 /* ================= the scripted player =================
