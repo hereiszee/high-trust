@@ -289,7 +289,7 @@ function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:
     const w=h.x1-h.x0,d=h.z1-h.z0;let grp=null;
     try{if(BUm)grp=h.store?BUm.shop({kind:'hardware',w,d,seed:h.seed,facing:h.facing}):BUm.house({w,d,seed:h.seed,style:['ranch','colonial','craftsman','cape'][h.seed%4],facing:h.facing,home:!!h.home})}catch(e){console.warn('house failed',e);grp=null}
     if(!grp)grp=W_.fallbackHouse(B,{w,d,seed:h.seed,facing:h.facing,cx,cz});
-    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
+    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
     if(grp)grp.userData._owCol=h.src.col;try{W_.yard(B,h)}catch(e){}yield}
   for(const s of ws.fenceSegs||[]){const mx=(s[0]+s[2])/2,mz=(s[1]+s[3])/2;if(mx>=box.x0&&mx<box.x1&&mz>=box.z0&&mz<box.z1)W_.fence(B,s[0],s[1],s[2],s[3])}
   /* rowhouses, warehouses, commercial buildings */
@@ -1212,7 +1212,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     /* dynamic collider so the player's car and the dad bump into it */
     if(!t.col){t.col={x0:0,z0:0,x1:0,z1:0,ph:1.5,k:'traffic'};lvl.colliders.push(t.col)}const a=Math.abs(fx),b=Math.abs(fz),hx=a*2.2+b*.95,hz=b*2.2+a*.95;Object.assign(t.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz});
     if(Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off){T.g.remove(t.v);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);T.cars.splice(i,1)}}};
-OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type})):[];
+OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type,yaw:t.c.yaw})):[];
 /* ================= Riverside neighbours (HT.People 'neighbour' pool on HT.WorldGen.neighbourSlots porch anchors) ================= */
 /* OW.neighbours(dt,{player,camera,trust,river,shots:[{x,z}]}) once per frame. More porches fill as Riverside trust rises (none at tier 0, up to
    NB_CAP within NB_R m of the player). Models load on demand, only here. Not targets: no hitboxes, never in solids or ray targets.
@@ -1240,17 +1240,21 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
   for(const s of(o.shots||[]))OW.neighbourCower(s.x,s.z,s.r||35);
   N.quiet+=dt;N.t-=dt;
   /* re-plan once a second: which porch anchors should be occupied */
-  if(N.t<=0){N.t=1;const slots=o.river===false||o.off?[]:G.neighbourSlots(ws.def,t,p.x,p.z,NB_CAP,NB_R);const want=new Set(slots);
+  if(N.t<=0){N.t=1;/* per block: a porch is eligible by its own block's trust tier (OW.blockTrust), so the blocks near the church / fixed sites fill first */
+    const lim=k=>(G.TIERS&&G.TIERS[k]?G.TIERS[k].neighbours:null);
+    let slots=o.river===false||o.off?[]:G.neighbourSlots(ws.def,OW.blockTrust?100:t,p.x,p.z,NB_CAP*3,NB_R);
+    if(OW.blockTrust&&slots.length){const cap=k=>{const v=lim(k);return v!=null?v:[0,4,10,18,28,28][k]};slots=slots.filter(sl=>sl.order<cap(G.tierOf(OW.blockTrust(sl.x,sl.z))))}
+    slots=slots.slice(0,NB_CAP);const want=new Set(slots);
     /* load only as many models as there are porches to fill (shuffled once, so different saves see different faces first) */
     if(!N.order){N.order=PP.neighbourKeys.slice();for(let i=N.order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[N.order[i],N.order[j]]=[N.order[j],N.order[i]]}}
     const need=Math.min(N.order.length,slots.length+2);if(need>N.want){N.want=need;PP.preload(N.order.slice(0,need).concat(G.tierOf(t)>=3?['nb_kid']:[])).catch(()=>{})}
     const seen=(x,z)=>{_b.min.set(x-.6,0,z-.6);_b.max.set(x+.6,2,z+.6);return o.camera&&ws.frustum.intersectsBox(_b)&&Math.hypot(x-o.camera.position.x,z-o.camera.position.z)<60};
     for(let i=N.list.length-1;i>=0;i--){const n=N.list[i];if(!want.has(n.slot)&&!(n.d&&seen(n.d.root.position.x,n.d.root.position.z))){nbDrop(N,n);N.list.splice(i,1)}}
     const tier=G.tierOf(t);
-    for(const sl of slots){if(N.list.some(n=>n.slot===sl))continue;if(N.list.length>=NB_CAP)break;
+    for(const sl of slots){const btier=OW.blockTrust?G.tierOf(OW.blockTrust(sl.x,sl.z)):tier;if(N.list.some(n=>n.slot===sl))continue;if(N.list.length>=NB_CAP)break;
       /* porch anchors face the street: stand a little toward it, facing it */
       const fx=sl.face[0],fz=sl.face[1],sx=fz,sz=-fx,k=sl.order;
-      const kidNow=tier>=3&&!N.list.some(q=>q.kind==='bike'||q.kind==='chalk');/* one kid out front at the high tiers: chalk or a bike */
+      const kidNow=btier>=3&&!N.list.some(q=>q.kind==='bike'||q.kind==='chalk');/* one kid out front at the high tiers: chalk or a bike */
       const kind=kidNow?(k%2?'bike':'chalk'):k%3===0?'sit':k%3===1?'sidewalk':'stand';
       const off=kind==='sit'?.2:kind==='stand'?1.4:2.2,side=kind==='sit'?0:(k%2?1:-1)*(1.2+(k*7)%3*.2);/* beside the stoop steps */
       /* stay off the road: the farthest candidate out front that is on a sidewalk tile (rowhouse stoops sit right on the street) */
@@ -1283,6 +1287,17 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
 OW.neighbourCower=(x,z,r)=>{const N=WS&&WS.nb;if(!N)return 0;r=r||35;let k=0;N.quiet=0;
   for(const n of N.list){if(!n.d||n.state==='in')continue;const q=n.d.root.position;if(Math.hypot(q.x-x,q.z-z)<r){if(n.state!=='going')n.state='going';k++}}return k};
 OW.neighbourList=()=>WS&&WS.nb?WS.nb.list.map(n=>({key:n.d&&n.d.rb.key,kind:n.kind,state:n.state,visible:!!(n.d&&n.d.root.visible),x:n.d?n.d.root.position.x:n.x,z:n.d?n.d.root.position.z:n.z,order:n.slot.order,dude:n.d})):[];
+/* night lighting (index.html setNight): every street lamp head and house/shop lantern in world metres, with whether it is lit.
+   Riverside lamps follow the trust dressing (broken until their block reaches brokenUntil); lanterns are known once their chunk is built. */
+function owPorch(ws,grp,cx,cz){const ls=grp.userData.lights;if(!ls||!ls.length)return;const m=ws.porch||(ws.porch=new Map());
+  for(const l of ls){const x=cx+l.x,z=cz+l.z,k=Math.round(x*4)+','+Math.round(z*4);if(!m.has(k)){m.set(k,{kind:l.kind||'porch',x,z,y:l.y,color:l.color,lit:true});ws.lightsV=(ws.lightsV||0)+1}}}
+OW.lights=()=>{const ws=WS;if(!ws)return[];
+  if(!ws.nl){ws.nl=[];for(const l of ws.def.lamps){const p=lampSpot(l),d=lampDir(ws,l),a=Math.atan2(d[0],d[1]);
+    ws.nl.push({kind:'street',x:p.x+Math.sin(a)*1.98,z:p.z+Math.cos(a)*1.98,y:7.55,px:p.x,pz:p.z,river:l.hood==='river',until:l.brokenUntil||0,lit:!(l.hood==='river'&&l.brokenUntil>0)})}}
+  for(const l of ws.nl)if(l.river&&l.until>0)l.lit=OW.blockTrust(l.px,l.pz)>=l.until;
+  return ws.porch?ws.nl.concat([...ws.porch.values()]):ws.nl};
+/* bumps when a newly built chunk adds lanterns, so a caller can rebuild what it derived from OW.lights() */
+OW.lightsVersion=()=>WS?(WS.lightsV||0):0;
 Object.defineProperty(OW,'state',{get:()=>WS});
 HT.OpenWorld=OW;
 })();
