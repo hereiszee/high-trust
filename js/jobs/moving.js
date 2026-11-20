@@ -56,7 +56,7 @@ const L_={
   truck:{x:377.3,z:83.6},rear:87.35,rampEnd:90.0,floorY:1.0,
   stack:{x:375.6,z:91.05},mrA:{x:377.3,z:86.4},
   corner:{x:375.55,z:96.0},granny:{x:376.25,z:97.35},
-  okafor:{x:364.0,z:97.55},okaforStoop:{x:364.0,z:96.4},
+  okafor:{x:364.0,z:95.1},okaforStoop:{x:364.0,z:94.6},/* on the sidewalk (z 94-96): the road is z 96-102, she used to stand in its lane */
   ring:{x:380.6,z:63.5},
   path:[{x:375.6,z:91.6},{x:375.9,z:93.8},{x:374.9,z:97.55},{x:373,z:97.55},{x:373,z:95.7},{x:373,z:94.35}],
   posts:{N:{x:378.6,z:59.5,face:{x:378.6,z:30}},S:{x:378.6,z:124.6,face:{x:378.6,z:150}},W:{x:349.3,z:87.2,face:{x:330,z:98}},T:{x:375.4,z:89.2,face:{x:377,z:70}}},
