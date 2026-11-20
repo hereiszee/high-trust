@@ -758,13 +758,12 @@ function carryBook(M,on){const a=A(),T3=a.THREE,V=M.vis,d=a.P.dude;if(V.carry&&V
    THE JOB
    ===================================================================== */
 J.item('pawn_cam',{name:'Camera',use(M){camUse(M)}});
-/* the shutter is the left mouse button. index.html only calls fire() (and so the held item) while a gun may be drawn, and this job has
-   def.noGuns: listen for the click ourselves (under pointer lock, the way a real player clicks), and for the touch fire button */
+/* the shutter is the left mouse button (and the touch fire button): index.html sends a click to the held item while the job has the
+   gun put away (def.noGuns). G (fix the disguise) is caught on key press here */
 if(typeof window!=='undefined'&&window.addEventListener&&typeof document!=='undefined'){
   /* G fixes the disguise: catch the key press itself (a tap shorter than a frame never shows up in the held-key state) */
   window.addEventListener('keydown',e=>{if(e.repeat||(e.key||'').toLowerCase()!=='g')return;const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||a.mode!=='mission'||M.state!=='go')return;M.fixTap=true},true);
-  window.addEventListener('mousedown',e=>{if(e.button!==0||!document.pointerLockElement)return;const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||a.mode!=='mission')return;camUse(M)},true);
-  let TB=false;J.on('hud',()=>{if(TB)return;const a=A();if(!a||!a.HUD||!a.HUD.on)return;TB=true;a.HUD.on('touch',(act,down)=>{if(act!=='fire'||!down)return;const M=A().M;if(M&&M.def.id==='pawn')camUse(M)})})}
+}
 function camUse(M){if(!M||M.def.id!=='pawn'||M.state!=='go')return;if(M.useF===M.frame)return;M.useF=M.frame;const V=M.V;
   if(M.chat&&V&&V.choice){V.confirm();return}if(M.chat&&V){V.skip();return}
   if(M.photo&&M.photo.st==='aim'){snap(M);return}
