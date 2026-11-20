@@ -29,6 +29,8 @@ const results=[];const ok=(n,pass,info)=>{results.push([n,!!pass]);console.log((
     return out},keys);
   const gb=g.filter(x=>x.bad);ok('ground: pelvis and feet within limits for '+g.length+' cases (14 models × idle, walk, run, sit, crouch, wave)',gb.length===0,gb.length?gb.slice(0,6):'all within limits');
   const hb=g.filter(x=>x.nb&&x.hitboxes>0);ok('neighbours carry no hitboxes; givers keep theirs',hb.length===0&&g.filter(x=>!x.nb).every(x=>x.hitboxes===13),hb.slice(0,3));
+  const dc=await p.evaluate(ks=>{const PP=HT.People,out={};for(const k of ks){const d=PP.make(k==='earl'||k==='dee'||k==='rosa'||k==='benny'?k:'neighbour',{variant:k});let n=0;d.root.traverse(o=>{if(o.isMesh&&o.visible&&o.material&&o.material.visible!==false&&!(o.userData&&o.userData.hitbox))n++});out[k]=n;PP.live.splice(PP.live.indexOf(d),1)}return out},keys);
+  ok('draw calls: every neighbour at most 3 meshes (givers listed)',keys.slice(4).every(k=>dc[k]<=3),dc);
   /* shuffle bag: no back-to-back repeats, the spread covers the pool */
   const bag=await p.evaluate(()=>{const PP=HT.People,ks=[];for(let i=0;i<60;i++){const d=PP.make('neighbour');ks.push(d.rb.key);PP.live.splice(PP.live.indexOf(d),1)}let rep=0;for(let i=1;i<ks.length;i++)if(ks[i]===ks[i-1])rep++;const c={};for(const k of ks)c[k]=(c[k]||0)+1;return{rep,distinct:Object.keys(c).length,counts:c}});
   ok("make('neighbour'): shuffle bag, no back-to-back repeats, even spread",bag.rep===0&&bag.distinct===10&&Math.max(...Object.values(bag.counts))<=7,bag);

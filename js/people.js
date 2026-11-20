@@ -29,6 +29,8 @@ const ROLE={earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',neighbour:NEIGHBOURS
 const SCALE={dad_dave:1.15,boss:1.06,nb_teen:.95};
 /* per-character fix-ups (none needed now): hide parts of the source outfit by material name, add a fabric cap (sRGB) */
 const HIDE={};const CAP_ADD={};
+/* caps that sit too low over the eyes on a high, bald forehead (Earl): lift the whole cap a little */
+const CAP_LIFT={earl:.022};
 const IDLE={dad_player:'idle',dad_gary:'idle_look',dad_rick:'idle',dad_dave:'idle',dad_doug:'idle',thug_hoodie:'idle_nervous',thug_track:'idle_angry',thug_beanie:'idle_nervous',thug_red:'idle_angry',boss:'idle_arms_folded',wife:'f_idle',son:'idle',daughter:'f_idle'};
 const FEMALE={wife:1,daughter:1,thug_f_hood:1,thug_f_leather:1};
 Object.assign(IDLE,{earl:'idle_look',dee:'f_idle',rosa:'f_idle',benny:'idle',nb_gran:'f_idle',nb_pops:'idle_look',nb_office:'f_idle',nb_sweater:'idle',nb_teen:'f_idle',nb_kid:'idle_look',nb_kenji:'idle_look',nb_marcus:'idle',nb_mei:'f_idle',nb_lucia:'f_idle'});
@@ -112,6 +114,8 @@ function prep(key){if(tpl[key])return tpl[key];const g=gltf(key);if(!g||!g.scene
   /* caps: replace the stiff helmet-like shell with a proper fabric baseball cap */
   const cap=B('acc_cap');if(cap){const col=(cap.material&&cap.material.color)?cap.material.color.clone():new T.Color(.05,.05,.1);cap.visible=false;cap.castShadow=false;
     const head=B('Bip01_Head');if(head)head.add(makeCap(s,head,col,key))}
+  /* Benny's apron hangs a few mm off the body: no self-shadow speckle on it */
+  const apron=B('acc_apron');if(apron)apron.traverse(o=>{if(o.isMesh)o.receiveShadow=false});
   if(key==='boss'){const head=B('Bip01_Head'),neck=B('Bip01_Spine2');if(head)head.add(makeCrown(s,head));if(neck)neck.add(makeChain())}
   if(!NB[key])for(const h of HITBOX){const b=B(h[0]);if(!b)continue;const m=new T.Mesh(hbGeo(h[2],h[3],h[4],h[5],h[6],h[7]),hitMat);m.name='hit_'+h[0];m.userData.hitbox=true;m.userData.head=h[1];m.castShadow=false;m.receiveShadow=false;m.frustumCulled=false;b.add(m)}
   const hand=B('Bip01_R_Hand');if(hand){const gh=new T.Group();gh.name='gunHold';hand.add(gh)}
@@ -181,7 +185,7 @@ function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vecto
 const CAP2HEAD=new T.Matrix4().makeBasis(new T.Vector3(0,0,1),new T.Vector3(1,0,0),new T.Vector3(0,1,0));
 function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._skull[key]=bb&&[bb.min.toArray(),bb.max.toArray()];bb=bb||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
   const g=new T.Group();g.name='rb_cap';g.applyMatrix4(CAP2HEAD);
-  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.004;
+  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.004+(CAP_LIFT[key]||0);
   const base=top-.088;/* low crown: the band sits just above the brow line */
   const fab=new T.MeshStandardMaterial({color:col,roughness:.96,metalness:0,normalMap:fabricNormal(),normalScale:new T.Vector2(.55,.55)});
   fab.color.multiplyScalar(1.15);

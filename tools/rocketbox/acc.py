@@ -185,7 +185,7 @@ def add_apron(arm, mesh, color=(0.92, 0.9, 0.86), name='acc_apron', top=0.06, bo
         for i in range(nx + 1):
             u = i / nx * 2 - 1
             x = hip.x + u * half * (1.0 + 0.08 * j / nz)
-            row.append(bm.verts.new((x, y + 0.02 * u * u, z)))
+            row.append(bm.verts.new((x, min(y, yfront) - 0.012 + 0.02 * u * u, z)))
         grid.append(row)
     for j in range(nz):
         for i in range(nx):
