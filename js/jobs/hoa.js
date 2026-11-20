@@ -165,18 +165,19 @@ function iced(){const a=A(),THREE=a.THREE,g=new THREE.Group();mesh(new THREE.Cyl
 
 /* ---------------- actors ---------------- */
 /* four new models on demand (Barb, Phil, Gil, the kid); the crew and the buyer reuse the street-crew set that is already loaded */
-const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',lookout:'nb_kid',driver:'thug_hoodie',loaderA:'thug_track',loaderB:'thug_beanie',buyer:'thug_red'};
+const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',lookout:'thug_brown',/* the lookout is an HT.Cast teen (boot-loaded base, so he is never a stand-in) (js/jobs/_runner.js): a different base from Chain Reaction's Dez */driver:'thug_hoodie',loaderA:'thug_track',loaderB:'thug_beanie',buyer:'thug_red'};
 const LOOKS={barb:{shirt:'#5a6f8f',pants:'#3a3a48'},phil:{shirt:'#7a8a5a',pants:'#4a4a3a'},gil:{shirt:'#8a8a9a',pants:'#3a3a3a'},nb1:{shirt:'#c76a5a',pants:'#2a2a3a'},nb2:{shirt:'#8a5ab8',pants:'#3a3a48'},
   lookout:{shirt:'#3a4a6a',pants:'#2a2a2a',hood:1},driver:{shirt:'#4a3a2a',pants:'#2a2a2a'},loaderA:{shirt:'#2f5d4a',pants:'#3a3a3a'},loaderB:{shirt:'#5a3a3a',pants:'#2a2a2a'},buyer:{shirt:'#3a5a8a',pants:'#2a2a3a'}};
 function PP(){return window.HT&&HT.People}
 function preload(){const p=PP();if(!p||!p.ok||!p.preload)return Promise.resolve(false);const keys=Object.values(CAST).filter(k=>!p.has||!p.has(k));return keys.length?p.preload(keys).catch(()=>false):Promise.resolve(true)}
 function castReady(){const p=PP();if(!p||!p.ok)return true;/* no rocketbox at all: the box people are the only people */return Object.values(CAST).every(k=>!p.has||p.has(k))}
-function makeActor(id){const a=A(),p=PP();let d=null;try{if(p&&p.ok&&(!p.has||p.has(CAST[id])))d=p.make(CAST[id],{scale:id==='lookout'?1.16:undefined})}catch(e){d=null}
+const castMake=(p,id)=>id==='lookout'&&window.HT.Cast?HT.Cast.teen('hoa:lookout',{look:'slimHood'}):p.make(CAST[id],{});
+function makeActor(id){const a=A(),p=PP();let d=null;try{if(p&&p.ok&&(!p.has||p.has(CAST[id])))d=castMake(p,id)}catch(e){d=null}
   if(!d)d=a.makeDude(Object.assign({role:CAST[id]},LOOKS[id]));
   if(id==='lookout'&&d.root&&!d.rb)d.root.scale.setScalar(.9);a.wmAdd(d.root);
   const o={id,d,x:0,z:0,yaw:0,face:null,path:null,speed:1.3,wait:0,moving:false,look:null,sus:0,tag:null,box:!d.rb};return o}
 /* a stand-in box character becomes the real one as soon as its model has streamed in (props in hand move across) */
-function upgrade(o){const a=A(),p=PP();if(!o.box||!p||!p.ok||(p.has&&!p.has(CAST[o.id])))return;let d=null;try{d=p.make(CAST[o.id],{scale:o.id==='lookout'?1.16:undefined})}catch(e){d=null}if(!d)return;
+function upgrade(o){const a=A(),p=PP();if(!o.box||!p||!p.ok||(p.has&&!p.has(CAST[o.id])))return;let d=null;try{d=castMake(p,o.id)}catch(e){d=null}if(!d)return;
   const old=o.d;const held=old.gunHold?[...old.gunHold.children]:[];d.root.visible=old.root.visible;if(old.root.parent)old.root.parent.remove(old.root);a.wmAdd(d.root);if(d.gunHold)for(const h of held)d.gunHold.add(h);o.d=d;o.box=false}
 function put(o,x,z,yaw){o.x=x;o.z=z;if(yaw!=null)o.yaw=yaw;o.d.root.position.set(x,0,z);o.d.root.rotation.y=o.yaw+Math.PI}
 const yawTo=(o,p)=>Math.atan2(-(p.x-o.x),-(p.z-o.z));
