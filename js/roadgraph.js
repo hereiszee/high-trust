@@ -58,6 +58,8 @@ function build(def){
     const n=P.length,dl=dirOf(P[n-2],P[n-1]),rl=right(dl);out.push({x:P[n-1].x+rl[0]*off,z:P[n-1].z+rl[1]*off});return out};
   /* road route between two world points: nearest road points at both ends, best pair of edge endpoints */
   G.route=(from,to)=>{const s=G.nearestRoad(from.x,from.z),t=G.nearestRoad(to.x,to.z);if(!s||!t)return null;
+    /* both ends on the same stretch of road: straight along it (never a U-turn through the junction at one end and back) */
+    if((s.a===t.a&&s.b===t.b)||(s.a===t.b&&s.b===t.a)){const len=Math.hypot(t.x-s.x,t.z-s.z);return{nodes:[],len,points:[{x:s.x,z:s.z},{x:t.x,z:t.z}]}}
     let best=null;for(const a of[s.a,s.b])for(const b of[t.a,t.b]){const p=G.path(a,b);if(!p)continue;
       const len=Math.hypot(nodes[a].x-s.x,nodes[a].z-s.z)+p.reduce((L,id,k)=>k?L+G.edge(p[k-1],id).len:0,0)+Math.hypot(nodes[b].x-t.x,nodes[b].z-t.z);
       if(!best||len<best.len)best={len,nodes:p}}

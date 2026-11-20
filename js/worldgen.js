@@ -11,12 +11,14 @@
  */
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
-const TILE=2,W=232,H=80,CHUNK=32,CW=Math.ceil(W/CHUNK),CH=Math.ceil(H/CHUNK);
+const TILE=2,W=232,H=128,CHUNK=32   /* H was 80: rows 80-127 are the Fort Sensible strip (js/base.js, docs/base.md) */,CW=Math.ceil(W/CHUNK),CH=Math.ceil(H/CHUNK);
 const tc=i=>i*TILE+TILE/2, tx=m=>Math.floor(m/TILE);
 const SOLID='#hctTfVQ'+'rxAz~|!Go&';      // world-relevant solids (index.html SOLID + SPEC2 A.2)
 const LOSBLOCK='#htVcTf'+'rxA';
 const COLCH=',.gs';                         // chars that are their own ground colour
-const HOODS={maple:{name:'Maple Heights',tx0:0,tx1:99},route9:{name:'Route 9',tx0:100,tx1:151},river:{name:'Riverside Flats',tx0:152,tx1:231}};
+const HOODS={maple:{name:'Maple Heights',tx0:0,tx1:99},route9:{name:'Route 9',tx0:100,tx1:151},river:{name:'Riverside Flats',tx0:152,tx1:231},
+  base:{name:'Fort Sensible',tx0:0,tx1:141,tz0:80}};   /* base: the training post south of Industrial Way (rows 80+, west of the river) */
+const TOWN_H=80;                            /* rows 0-79 are the town as it always was */
 const BRIDGE_UNLOCK_JOB=1;                  // owner decision: the bridge opens after Rick's job (prog.done[1])
 
 /* Mission maps. The first four are copies of index.html MISSIONS[i].map; build({missions}) can override them with the live ones. */
@@ -228,6 +230,29 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a
 function shuffle(arr,rnd){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const pt=(x,z,extra)=>Object.assign({tx:x,tz:z,x:tc(x),z:tc(z)},extra||{});
 
+/* ---------- Fort Sensible (js/base.js, docs/base.md): a small training post in rows 80-127, south of the old tree line ----------
+   Tiles. The fence ring is chain-link ('z'); its gate is where Industrial Way comes through. Buildings are 'A' blocks marked custom
+   (solid, on the minimap, colliders at their roofY) that js/base.js draws. Everything else is lot (',' asphalt), walk ('s' concrete)
+   or grass. Nothing here moves a tile of rows 0-79 except Industrial Way's two extra rows (78-79) and the tree line it passes through. */
+const BASE_T={fence:[2,84,138,125],gate:[99,103],road:[6,92,136,94],range:[6,96,54,111],shed:[55,97,58,110],apron:[104,104,137,114],runway:[6,115,137,121],
+  motor:[104,96,116,103],parade:[66,97,92,109],
+  bld:[['b_gate',105,86,106,87,2.9],['b_barracks1',62,86,76,89,5.2],['b_barracks2',80,86,94,89,5.2],['b_tower',131,86,133,88,11],['b_hangar',118,96,134,103,9.5],
+       ['b_range',59,97,63,100,3.4],['b_bermN',6,96,54,96,2.4],['b_bermS',6,111,54,111,2.4],['b_bermW',3,97,4,110,4.5]]};
+function stampBase(g,set,rect,buildings){
+  for(let z=TOWN_H;z<H;z++)for(let x=0;x<=HOODS.base.tx1;x++)set(x,z,'g');
+  /* the old southern tree line stays, with a gap for the road */
+  for(let x=0;x<W;x++)if(g[TOWN_H-1][x]!=='~'&&(x<98||x>104))g[TOWN_H-1][x]='t';
+  for(let z=TOWN_H-2;z<=91;z++){rect(100,z,102,z,',');set(99,z,'s');set(103,z,'s')}
+  const[f0,f1,f2,f3]=BASE_T.fence;rect(f0,f1,f2,f1,'z');rect(f0,f3,f2,f3,'z');rect(f0,f1,f0,f3,'z');rect(f2,f1,f2,f3,'z');
+  rect(BASE_T.gate[0],f1,BASE_T.gate[1],f1,',');set(99,f1,'s');set(103,f1,'s');
+  const R=(a,c)=>rect(a[0],a[1],a[2],a[3],c);
+  R(BASE_T.road,',');R(BASE_T.apron,',');R(BASE_T.runway,',');R(BASE_T.motor,',');R(BASE_T.parade,'s');R(BASE_T.shed,'s');
+  rect(62,90,94,91,'s');                                   /* the walk in front of the barracks */
+  for(const[id,x0,z0,x1,z1,roofY]of BASE_T.bld)buildings.push((rect(x0,z0,x1,z1,'A'),{kind:'A',id,x0,z0,x1,z1,custom:true,base:true,roofY}));
+  /* trees: outside the fence on the north side, and a few round the barracks (none near the runway) */
+  for(let x=7;x<138;x+=5)if(x<96||x>106)set(x,81+(x%2),'t');
+  for(const[x,z]of[[60,87],[78,86],[78,89],[96,87],[58,93-2]])if(g[z][x]==='g')set(x,z,'t');
+}
 /* ---------- the generator (SPEC2 A.2, plus the four Maple giver markers 1-4 from the old HUB) ---------- */
 function generate(maps){
   const g=[...Array(H)].map(()=>Array(W).fill('g'));
@@ -239,7 +264,7 @@ function generate(maps){
   road('h',20,1,230,'Maple Ave / Route 9 / Main St');
   road('h',47,1,99,'Birch St');
   for(const[x,n]of[[6,'Cedar Ln'],[30,'Linden Ave'],[53,'Walnut Dr'],[88,'Ridgeview Dr']])road('v',x,1,49,n);
-  road('v',100,20,77,'Industrial Way');
+  road('v',100,20,91,'Industrial Way');   /* was 20-77: now runs on through the tree line to the Fort Sensible gate */
   for(const[z,n]of[[6,'Oak St'],[34,'Ash St'],[48,'Mill St'],[62,'Dock St']])road('h',z,154,230,n);
   for(const[x,n]of[[156,'River Rd'],[172,'2nd St'],[188,'3rd St'],[204,'4th St'],[220,'5th St']])road('v',x,1,78,n);
   for(const r of roads){if(r.o==='h')rect(r.a,r.k-1,r.b,r.k+3,'s');else rect(r.k-1,r.a,r.k+3,r.b,'s')}
@@ -304,6 +329,7 @@ function generate(maps){
   B('A',65,1,78,3,{id:'school',sign:'MAPLE HEIGHTS ELEMENTARY',face:'s',col:'#b5654a',custom:true});
   B('A',104,2,111,6,{id:'ortho',sign:'BRACE YOURSELF ORTHODONTICS',face:'s',col:'#e6eef0'});
   {const c=buildings.find(b=>b.id==='center');c.roofY=ROOF_Y;c.parapet=.9}
+  stampBase(g,set,rect,buildings);
   for(let x=0;x<W;x++){if(g[0][x]!=='~')g[0][x]='t';if(g[H-1][x]!=='~')g[H-1][x]='t'}for(let z=0;z<H;z++){g[z][0]='t';g[z][W-1]='t'}
   for(const r of roads){for(let i=r.a+3;i<r.b-1;i+=8){
     if(r.o==='h'){for(const z of[r.k-1,r.k+3])if(g[z]&&g[z][i]==='s')set(i,z,'l')}else{for(const x of[r.k-1,r.k+3])if(g[i]&&g[i][x]==='s')set(x,i,'l')}}}
@@ -360,7 +386,7 @@ function groundAt(g,x,z,floor){const c=g[z][x];if(COLCH.includes(c))return c;if(
   const n={};for(const[dx,dz]of N8){const cc=g[z+dz]&&g[z+dz][x+dx];if(cc&&COLCH.includes(cc))n[cc]=(n[cc]||0)+1}
   let best=floor,bn=0;for(const k in n)if(n[k]>bn){bn=n[k];best=k}return best}
 const yawOf=(dx,dz)=>Math.atan2(-dx,-dz);   // game convention: forward = (-sin yaw, -cos yaw)
-function hoodOfTile(t){return t<=HOODS.maple.tx1?'maple':t<=HOODS.route9.tx1?'route9':'river'}
+function hoodOfTile(t,u){if(u!=null&&u>=HOODS.base.tz0&&t<=HOODS.base.tx1)return 'base';return t<=HOODS.maple.tx1?'maple':t<=HOODS.route9.tx1?'route9':'river'}
 
 /* SPEC3 site data the jobs need (metres unless a field says tiles). solids: extra static colliders {x0,z0,x1,z1,ph,h?,k} that js/openworld.js adds */
 function siteExtras(id,S,marks,g,buildings){const T=TILE,box=(x0,z0,x1,z1)=>({x0:x0*T,z0:z0*T,x1:(x1+1)*T,z1:(z1+1)*T,tx0:x0,tz0:z0,tx1:x1,tz1:z1});const o={solids:[]};
@@ -407,6 +433,17 @@ function genTags(g,seed){const rnd=mulberry32(seed),cand=[];
     return{id:'tag'+i,tx:c.x,tz:c.z,face:[c.dx,c.dz],kind:c.c,x:tc(c.x)+c.dx*off,y:c.c==='z'?1.1:1.2+rnd()*1.2,z:tc(c.z)+c.dz*off,ry:yawOf(-c.dx,-c.dz),
       w:(1.6+rnd()*.8)*half,h:(.7+rnd()*.4)*half,design:Math.floor(rnd()*8),clearAt:CLR[Math.floor(rnd()*CLR.length)]}})}
 
+/* Fort Sensible in metres (what js/base.js, js/tank.js and js/jet.js read). x grows east, z grows south; yaw: forward = (-sin yaw, -cos yaw). */
+function baseData(buildings){const T=TILE,box=a=>({x0:a[0]*T,z0:a[1]*T,x1:(a[2]+1)*T,z1:(a[3]+1)*T}),bl={};
+  for(const b of buildings)if(b.base)bl[b.id.slice(2)]=Object.assign(box([b.x0,b.z0,b.x1,b.z1]),{roofY:b.roofY});
+  const lanes=[0,1,2,3,4,5].map(i=>196.5+i*4.4);
+  return{name:HOODS.base.name,fence:box(BASE_T.fence),gate:{x:tc(101),z:BASE_T.fence[1]*T+1,w:10},barrier:{x:203,z:174.4,w:6.4},
+    guard:{x:208.6,z:174.2,yaw:Math.PI/2},booth:bl.gate,bld:bl,road:box(BASE_T.road),apron:box(BASE_T.apron),motor:box(BASE_T.motor),parade:box(BASE_T.parade),
+    runway:Object.assign(box(BASE_T.runway),{z:tc(118),yaw:Math.PI/2,start:{x:272,z:tc(118)},end:{x:14,z:tc(118)}}),
+    range:{box:box(BASE_T.range),shed:box(BASE_T.shed),line:110,stand:113,lanes,dists:[10,25,50,100],officer:{x:121.2,z:206.4,yaw:-Math.PI/2},
+      rack:{x:117.4,z:204.2,yaw:-Math.PI/2},board:{x:120.4,z:210.4},line0:{x0:108.6,z0:194.2,x1:118,z1:221.8}},
+    tank:{x:216,z:199,yaw:Math.PI},sarge:{x:226.4,z:196.4,yaw:Math.PI/2},jet:{x:256,z:221,yaw:Math.PI/2},crew:{x:249,z:214,yaw:Math.PI},
+    flag:{x:159,z:207},water:{x:198,z:206},tower:bl.tower,hangar:bl.hangar,place:'base'}}
 /* ---------- build ---------- */
 let LAST=null;
 function build(opts){opts=opts||{};
@@ -438,6 +475,8 @@ function build(opts){opts=opts||{};
   /* places, doors, starts */
   const places={};for(const k in PLACES){const p=PLACES[k];places[k]={...p,tx:p.x,tz:p.z,x:tc(p.x),z:tc(p.z)}}
   /* SPEC3: the orthodontist (a business pin on the Fill-Er-Up lot), Riverside bus stops (Earl's perk), each new site's door / giver spot */
+  /* Fort Sensible: the pin outside the gate, fast travel to the main road inside */
+  places.base={x:tc(101),z:tc(89),tx:101,tz:89,yaw:Math.PI,label:'Fort Sensible · Public Range',hood:'base',pin:true};
   places.ortho={x:tc(108),z:tc(8),tx:108,tz:8,yaw:-Math.PI/2,label:'Brace Yourself Orthodontics',hood:'route9',pin:true,door:pt(107,7)};
   for(const[id,x,z,f,label]of BUS_STOPS)places[id]={x:tc(x),z:tc(z),tx:x,tz:z,yaw:yawOf(f[0],f[1]),label,hood:'river',pin:true,bus:true,face:f};
   for(const[id,x,z,label]of[['school',71,4,'Maple Heights Elementary'],['walnut',61,24,'1418 Walnut Dr'],['storage',107,74,'Discount Storage Unlimited'],
@@ -525,11 +564,12 @@ function build(opts){opts=opts||{};
     sites,places,doors,markers,start:pt(15,9),vanStart:pt(19,7,{yaw:-Math.PI/2}),buildings:G.buildings,
     trees,lamps,crates,tables,pumps,parked,porches,houses,rowUnits,walls,warehouses,chainlink,hedges,rails,water,court,beds,
     tags,chalk,trash,tiers:TIERS,flags:FLAGS,chunks,
-    potholes,housePorches,porchesAll,newSites:Object.keys(NEW_SITES),roofY:ROOF_Y};
+    potholes,housePorches,porchesAll,newSites:Object.keys(NEW_SITES),roofY:ROOF_Y,
+    base:baseData(G.buildings)};
   LAST=def;return def}
 
 /* ---------- queries ---------- */
-function regionAt(x,z){return hoodOfTile(tx(x))}
+function regionAt(x,z){return hoodOfTile(tx(x),z==null?null:tx(z))}
 function regionAtTile(t){return hoodOfTile(t)}
 function site(id,def){def=def||LAST||build();return def.sites[id]||null}
 function siteAt(x,z,def){def=def||LAST;const t=tx(x),u=tx(z);for(const id in def.sites){const s=def.sites[id];if(t>=s.x0&&t<=s.x1&&u>=s.z0&&u<=s.z1)return s}return null}

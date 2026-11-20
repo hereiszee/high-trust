@@ -70,9 +70,10 @@ const ICON={
   gas:{shape:'c',g:'M7 6h6v12H7zM8.3 7.3v3h3.4v-3zM13 9h1.6l1.6 1.8v5.2a1 1 0 0 0 2 0V10l-1.4-1.6.9-.9 1.5 1.7v6.8a2.4 2.4 0 0 1-4.8 0v-4.6L14 11z'},
   mart:{shape:'c',g:'M5.5 7h2.2l1.6 7h7.4l1.6-5.4H9.1L8.8 7.6 8.5 7zM10 15.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm6 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'},
   star:{shape:'c',g:'M12 5.6l1.9 4 4.3.5-3.2 3 .9 4.3L12 15.3l-3.9 2.1.9-4.3-3.2-3 4.3-.5z'},
+  range:{shape:'c',g:'M12 5.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2.3a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4z'},   /* Fort Sensible (js/base.js) */
   site:{shape:'d',g:'M12 7.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 2.2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z'}
 };
-const KIND_COL={obj:'#ffc94a',job:'#ffc94a',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a'};
+const KIND_COL={obj:'#ffc94a',job:'#ffc94a',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a',range:'#b9d36a'};
 const SHAPE_D={d:'M12 1.5l10.5 10.5L12 22.5 1.5 12z',c:'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z',s:'M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z'};
 function iconSVG(kind){const ic=ICON[kind]||ICON.obj;const col='currentColor';
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SHAPE_D[ic.shape]}" fill="${col}" stroke="rgba(10,12,16,.55)" stroke-width="1.2"/>`+
@@ -683,8 +684,9 @@ function drawMap(st){
   c.imageSmoothingEnabled=MAP.z<4;
   if(MM.fog){c.globalAlpha=.1;c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);c.globalAlpha=1;c.drawImage(MM.rev,x0,y0,MM.base.width*sc,MM.base.height*sc)}else c.drawImage(MM.base,x0,y0,MM.base.width*sc,MM.base.height*sc);
   /* regions (open world): name + trust bar above each, unvisited ones dimmed */
-  for(const r of MM.regions||[]){const[ax,ay]=MAP.w2s(r.x0,0),[bx,by]=MAP.w2s(r.x1,MM.H*MM.tile);
-    if(r.dim){c.fillStyle='rgba(13,17,22,.55)';c.fillRect(ax,ay,bx-ax,by-ay)}
+  for(const r0 of MM.regions||[]){/* z0/z1 (optional): a region that covers part of the height (Fort Sensible); its label sits under it */
+    const[ax,ay0]=MAP.w2s(r0.x0,r0.z0||0),[bx,by]=MAP.w2s(r0.x1,r0.z1!=null?r0.z1:MM.H*MM.tile),r=r0,ay=r.z0?by+34:ay0;
+    if(r.dim){c.fillStyle='rgba(13,17,22,.55)';c.fillRect(ax,ay0,bx-ax,by-ay0)}
     const cxr=(ax+bx)/2,w=Math.min(150,bx-ax-16);c.textAlign='center';c.textBaseline='bottom';c.font='800 13px "Barlow Condensed",sans-serif';c.fillStyle='rgba(0,0,0,.6)';c.fillText(r.name.toUpperCase(),cxr+1,ay-15);c.fillStyle='#fff';c.fillText(r.name.toUpperCase(),cxr,ay-16);
     if(r.trust!=null){c.fillStyle='rgba(255,255,255,.14)';c.fillRect(cxr-w/2,ay-12,w,5);c.fillStyle=r.trust>=70?'#7fdc6e':r.trust>=35?'#ffc94a':'#ff8a6b';c.fillRect(cxr-w/2,ay-12,w*Math.max(0,Math.min(1,r.trust/100)),5);
       c.font='700 11px "Barlow Condensed",sans-serif';c.textAlign='left';c.fillStyle='rgba(255,255,255,.75)';c.fillText('TRUST '+Math.round(r.trust)+'%',cxr+w/2+6,ay-6)}}
@@ -747,12 +749,14 @@ function payout(rows){const p=HUD.payoutEl;if(!p)return;p.innerHTML=rows.map(r=>
 function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'controls';
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
-  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
+  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
   <div class="sep"></div>${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
   if(tab==='keys'){h='<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'}
+  else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
+    h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
   else for(const grp of SETTINGS.filter(g=>g.tab===tab)){h+=`<h3>${grp.h}</h3>`;for(const it of grp.items){const v=S[it.k];const lab=`<label for="hts-${it.k}">${it.l}${it.sub?`<small>${it.sub}</small>`:''}</label>`;
     if(it.type==='bool')h+=`<div class="ht-set">${lab}<button class="ht-tog" id="hts-${it.k}" role="switch" aria-checked="${!!v}" data-k="${it.k}"></button><span></span></div>`;
