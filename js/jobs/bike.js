@@ -303,7 +303,7 @@ function worldDress(){const a=A();if(!a||a.mode!=='hub'||!a.L||!a.L.ow||!a.WORLD
   Pl.rack.slots.forEach((sl,k)=>{const b=R.bike(Object.assign({static:true},looks[k]));b.position.set(sl.x+.15,0,sl.z);b.rotation.y=Math.PI;g.add(b)});
   /* bikes on porches: the neighbours you knocked on, a few Riverside stoops */
   for(const p of Pl.nb){const b=R.bike({static:true,size:'kid',color:p.id==='linda'?'#ff7ab6':p.id==='phil'?'#3fa0c8':'#8a8f96'});b.position.set(p.x+1.4,0,p.z-p.face*.3);b.rotation.y=.4;g.add(b)}
-  const rp=(a.WORLD.porches||[]).slice(0,3);rp.forEach((p,k)=>{const b=R.bike({static:true,size:k?'kid':'adult',color:['#7d4fb3','#2b62c4','#3d8a4a'][k],basket:!k});b.position.set(p.x+1.2,0,p.z);b.rotation.y=Math.PI/2;g.add(b)});/* beside the porch on the sidewalk, along it (pushed 1.2 m toward the street they stood in the lane) */
+  const rp=(a.WORLD.porches||[]).slice(0,3);rp.forEach((p,k)=>{const b=R.bike({static:true,size:k?'kid':'adult',color:['#7d4fb3','#2b62c4','#3d8a4a'][k],basket:!k});b.position.set(p.x+1.6,0,p.z);b.rotation.y=Math.PI/2;g.add(b)});/* beside the porch on the sidewalk, along it (pushed 1.2 m toward the street they stood in the lane) */
   /* Dez's family's porch gets flower boxes */
   const fp=(a.WORLD.porches||[])[3];if(fp){const bx=new T.MeshStandardMaterial({color:a.lin('#7a5534'),roughness:.8});const fl=['#ff6b8a','#ffd23f','#ff9a3d','#c86bff'];
     for(const dx of[-1.1,1.1]){const m=new T.Mesh(new T.BoxGeometry(.8,.22,.26),bx);m.position.set(fp.x+dx,.62,fp.z+(fp.face?fp.face[1]*.2:0));g.add(m);
