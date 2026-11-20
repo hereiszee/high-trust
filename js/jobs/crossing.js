@@ -347,7 +347,9 @@ function chainStep(dt,M){const C=M.cg,P=A().P,head=trailHead(M),first=trailFirst
 function freeStep(dt,M){const C=M.cg,a=A(),P=a.P;
   for(const k of C.kids){if(k.state!=='free'&&k.state!=='hand'&&k.state!=='stray')continue;const f=k.free;
     if(k.state==='hand'){/* Rosie: hand in hand at the dad's left */const r={x:Math.cos(P.yaw),z:-Math.sin(P.yaw)},fw={x:-Math.sin(P.yaw),z:-Math.cos(P.yaw)};
-      const tx=P.pos.x-r.x*.62-fw.x*.12,tz=P.pos.z-r.z*.62-fw.z*.12,d0=hyp(tx-k.x,tz-k.z);k.x+=(tx-k.x)*Math.min(1,dt*9);k.z+=(tz-k.z)*Math.min(1,dt*9);k.mov=C.dadMov>.4;k.spd=C.dadMov;k.yaw=turn(k.yaw,P.yaw,dt*6);continue}
+      let tx=P.pos.x-r.x*.62-fw.x*.12,tz=P.pos.z-r.z*.62-fw.z*.12;const dadRoad=isRoad(P.pos.x,P.pos.z);
+      /* hand in hand, but on the kerb side: if your left is the street, she swaps to your right (or tucks in behind) */
+      if(!dadRoad&&isRoad(tx,tz)){tx=P.pos.x+r.x*.62-fw.x*.12;tz=P.pos.z+r.z*.62-fw.z*.12;if(isRoad(tx,tz)){tx=P.pos.x-fw.x*.7;tz=P.pos.z-fw.z*.7}}k.x+=(tx-k.x)*Math.min(1,dt*9);k.z+=(tz-k.z)*Math.min(1,dt*9);k.mov=C.dadMov>.4;k.spd=C.dadMov;k.yaw=turn(k.yaw,P.yaw,dt*6);continue}
     if(k.state==='stray'){/* Kevin, before he spots the line */k.mov=false;k.spd=0;k.yaw=turn(k.yaw,yawTo(P.pos.x-k.x,P.pos.z-k.z),dt*2);continue}
     if(!f){k.state='line';continue}
     const dx=f.x-k.x,dz=f.z-k.z,dd=hyp(dx,dz);
@@ -939,7 +941,8 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   if(fz&&!step.cross){setSign(M,true);return null}
   const line=lineKids(M),tail=line[line.length-1];
   let lag=line.length?trailHead(M)-line[0].s-2.6:0;for(let i=1;i<line.length;i++)lag=Math.max(lag,line[i-1].s-line[i].s-2.2);lag*=2.2;const anyFree=C.kids.some(k=>k.state==='free'&&k.free&&k.free.mode!=='act');
-  if(C.atKerb&&!step.talk&&!step.cross){const k=C.atKerb[0];setSign(M,true);if(carsComing(M,k.x,k.z)===0&&hyp(k.x-P.pos.x,k.z-P.pos.z)<9)a.useTap=true;else if(hyp(k.x-P.pos.x,k.z-P.pos.z)>=9)go(a,{x:k.x,z:k.z});return null}
+  /* a kid stopped at a kerb we never meant to cross (a step into the road around a lamp): walk back to them, the trail shortcuts the detour */
+  if(C.atKerb&&!step.talk&&!step.cross){const k=C.atKerb[0];setSign(M,false);if(hyp(k.x-P.pos.x,k.z-P.pos.z)>1.2)go(a,{x:k.x,z:k.z});return null}
   if(step.home){const k=C.kids.find(k=>k.id===step.home);if(!k||k.state==='home'||k.state==='homeward'){B.i++;B.t=0;return null}const h=k.home;if(!h){B.i++;return null}
     const sx=h.x+(B.dir||1)*1.4,sz=h.z+h.fz*.72;if(hyp(sx-P.pos.x,sz-P.pos.z)>.6&&B.t<25){setSign(M,false);if(lag<9||hyp(sx-P.pos.x,sz-P.pos.z)>12)go(a,{x:sx,z:sz},false,true);return null}
     if(B.t>40){B.i++;B.t=0}return null}
