@@ -3524,7 +3524,7 @@ function wmOnScreen(x,z){const p=project(x,1,z);return !p.behind&&p.x>-60&&p.x<i
 
 /* ================= CHASE (SPEC2 B.7): a getaway car on the road graph; rubber band, ram/PIT both ways, crew and passenger fire ================= */
 function chaseCollide(ch){return(p,r)=>{const s={x0:ch.col.x0,z0:ch.col.z0,x1:ch.col.x1,z1:ch.col.z1};Object.assign(ch.col,VAN_OFF);collide(p,r);Object.assign(ch.col,s)}}
-function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)return null;
+function chaseStart(o){const CA=HTM('CarAI'),G=OW()&&OW().roads();if(!CA||!G)return null;/* a chase is balanced for a healthy van: the crew tops it up before the off */try{if(VAN&&carFrac(VAN)<1)carRepair(VAN,carHpMax(VAN)-carHp(VAN),{fresh:false})}catch(e){}
   const car=o.car||CA.make(o.type||'sedan',{x:o.x,z:o.z,yaw:o.yaw||0});if(o.hp){car.stats=Object.assign({},car.stats,{hp:o.hp});car.hp=o.hp}
   let obj=o.obj;if(!obj){obj=makeVehicle(o.type||'sedan',o.color||'#1c1c22')||makeVanBox(o.color||'#1c1c22');wmAdd(obj,true)}
   const ch={car,obj,col:o.col||wmCol({x0:0,z0:0,x1:0,z1:0}),label:o.label||'Getaway car',t:0,state:o.exit?'exit':'run',max:o.max||26,fireT:1.2,passenger:o.passenger||null,
