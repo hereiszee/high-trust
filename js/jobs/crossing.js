@@ -271,7 +271,7 @@ function trailAt(M,s){const p=M.cg.trail.pts;if(!p.length)return{x:0,z:0,dx:0,dz
   if(L<1e-4){const c=p[Math.max(0,i-1)],dx=a.x-c.x,dz=a.z-c.z,l=hyp(dx,dz)||1;return{x:a.x,z:a.z,dx:dx/l,dz:dz/l}}const t=clamp((s-a.s)/L,0,1);return{x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,dx:(b.x-a.x)/L,dz:(b.z-a.z)/L}}
 /* the kerb: the first road point after s (up to sMax) whose stretch of road nobody has waved this kid across */
 function kerbAhead(M,s,sMax,kid){const T=M.cg.trail,p=T.pts;let i=trailIdx(p,s);if(i<0)return null;if(p[i].s<s)i++;
-  for(;i<p.length&&p[i].s<=sMax+.01;i++){const q=p[i];if(!q.road)continue;const r=T.runs[q.run];if(r&&r.ok&&r.okFor&&r.okFor[kid.id]&&M.cg.clock<r.okT){i=Math.max(i,trailIdx(p,r.s1));continue}return{s:q.s,run:q.run}}return null}
+  for(;i<p.length&&p[i].s<=sMax+.01;i++){const q=p[i];if(!q.road)continue;const r=T.runs[q.run];if(r&&r.ok&&r.okFor&&r.okFor[kid.id]&&M.cg.clock<r.okT){i=Math.max(i,trailIdx(p,r.s1));continue}const pv=i>0?p[i-1]:null;return{s:pv&&!pv.road?Math.min(q.s,pv.s+TUNE.kerb):q.s,run:q.run}}return null}
 function onRoadKid(k){return k.d&&isRoad(k.x,k.z)}if(typeof window!=='undefined')window.__onR=k=>onRoadKid(k);
 /* rebuild a straight-ish trail behind a point (start, checkpoint) from a list of points, oldest first */
 function trailSeed(M,pts){M.cg.trail=trailNew();for(const q of pts)trailPush(M,q[0],q[1],true)}
@@ -575,7 +575,7 @@ const CSS=`.cgx{position:absolute;inset:0;pointer-events:none;font-family:inheri
 .cgx-n{display:flex;flex-direction:column;align-items:flex-start;min-width:92px}.cgx-k{font-size:10px;letter-spacing:.14em;opacity:.75;font-weight:700}
 .cgx-big{font-size:26px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.cgx-big small{font-size:15px;opacity:.65;font-weight:700}.cgx-big.warn{color:#ffcf5a}.cgx-big.bad{color:#ff7b6b}
 .cgx-sub{font-size:11px;opacity:.85;max-width:200px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cgx-row{display:flex;gap:5px;align-items:flex-end}.cgx-c{position:relative;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.35);transition:transform .2s,opacity .3s}
+.cgx-row{display:flex;gap:5px;align-items:flex-end}.cgx-c{position:relative;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.35);transition:transform .2s,opacity .3s}
 .cgx-c.out{background:transparent!important;border:2px dashed currentColor;box-shadow:none;animation:cgxb 1s infinite}.cgx-c.fz{outline:2px solid #9fd3ff;outline-offset:1px}.cgx-c.lost{animation:cgxp .6s infinite}
 .cgx-c.home{opacity:.38;transform:scale(.82)}.cgx-c.home::after{content:'';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;background:#6fd08c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5.2l2 2 4-4.4' stroke='white' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") center/9px no-repeat}
 .cgx-c.kev{width:20px;height:20px;font-size:10px}.cgx-c i{position:absolute;bottom:-13px;font-style:normal;font-size:9px;font-weight:700;color:#ffe08a;white-space:nowrap;text-shadow:0 1px 2px #000}
@@ -590,7 +590,7 @@ function hudBuild(M){const C=M.cg;if(C.hudEl||typeof document==='undefined'||!do
   for(const k of C.kids){const c=document.createElement('div');c.className='cgx-c'+(k.id==='kevin'?' kev':'');c.style.background=k.col;c.style.color=k.col;c.textContent=k.name[0];c.title=k.name;
     if(k.id==='kevin')c.style.display='none';C.hudRow.appendChild(c);C.chips[k.id]=c}
   try{A().overlay('crossing',el)}catch(_){}}
-function hudTick(dt,M){const C=M.cg,a=A(),P=a.P;if(!C.hudEl)return;C.hudAcc=(C.hudAcc||0)+dt;
+function hudTick(dt,M){const C=M.cg,a=A(),P=a.P;if(!C.hudEl)return;C.hudAcc=(C.hudAcc||0)+dt;const card=C.hudEl.firstChild,show=C.talking?'none':'';if(card.style.display!==show)card.style.display=show;/* the talk strip owns the bottom of the screen */
   /* chips */const out=[];let withN=0,home=0;for(const k of C.kids){if(k.id==='kevin')continue;const c=C.chips[k.id];let cls='cgx-c',lab='';
     if(k.state==='home'||k.state==='homeward'){cls+=' home';home++}else if(k.state==='line'||k.state==='hand'){withN++;if(k.fz>0){cls+=' fz';lab='!'}else if(k.kerb&&k.v<.2)lab=''}
     else if(k.state==='free'){cls+=' out';out.push(k);lab=k.free&&k.free.kind?k.free.kind:k.free&&k.free.sit?'tired':k.free&&k.free.mode==='back'?'':k.def.trait==='runner'?'ahead':''}
@@ -632,16 +632,19 @@ function crossStep(dt,M,F){const C=M.cg,a=A(),P=a.P;const line=lineKids(M);
   const waiting=line.filter(k=>k.kerb&&k.v<.35&&k.fz<=0);C.atKerb=waiting.length?waiting:null;
   if(waiting.length&&!C.kerbSaid){C.kerbSaid=1;const k=waiting[0];if(!M.cs.kerbTip){M.cs.kerbTip=1;kidSay(M,k,pick(L_.kerbWait))}later(M,20,()=>{C.kerbSaid=0})}
   const onRoad=C.kids.filter(k=>(k.state==='line'||k.state==='hand')&&onRoadKid(k));
-  if(onRoad.length&&!C.cross&&C.clock-(C.crossEnd||-9)<2.5&&C.lastCross){C.cross=C.lastCross;C.cross.clear=0}
+  /* stragglers who cross a few seconds later are the same crossing: the toast waits until the whole line is over */
+  if(onRoad.length&&!C.cross&&C.lastCross&&C.clock-C.crossEnd<8){const L0=C.lastCross,k=onRoad[0],xi=xingAt(k.x,k.z);if(xi&&xi===L0.xing){C.cross=L0;L0.clear=0;L0.t+=C.clock-C.crossEnd;C.lastCross=null}}
+  if(C.lastCross&&C.clock-C.crossEnd>=8)crossToast(M,C.lastCross);
   if(onRoad.length&&!C.cross){const k=onRoad[0],p=C.trail.pts[trailIdx(C.trail.pts,k.s)];const run=p&&p.run?p.run:0;const r=C.trail.runs[run];C.cross={run,xing:r&&r.xing||xingAt(k.x,k.z),t:0,honks:M.cs.honks,fz:M.cs.frozen,sign:0,cars:0};music('tension',.45)}
   const runOf=k=>{const p=C.trail.pts[trailIdx(C.trail.pts,k.s)];return p&&p.run?p.run:0};
   if(C.cross&&C.cross.run){const mine=onRoad.filter(k=>k.state==='hand'||runOf(k)===C.cross.run||!runOf(k));if(mine.length<onRoad.length&&!mine.length)C.cross.clear=9}
   if(C.cross){const X=C.cross;X.t+=dt;if(C.sign.up)X.sign+=dt;if(C.traffic)X.cars=Math.max(X.cars,C.traffic.cars.filter(c=>c.v<.3&&hyp(c.x-P.pos.x,c.z-P.pos.z)<30).length);
     F.widgets.push({id:'xing',kind:'timer',label:'Crossing',v:X.t,hot:X.t>12});
     X.clear=X.clear>=9?X.clear:onRoad.length?0:(X.clear||0)+dt;
-    if(X.clear>1.1&&X.t>.8){const clean=M.cs.honks===X.honks&&M.cs.frozen===X.fz;const name=X.xing?(XINGS.find(x=>x.id===X.xing)||{}).name:null;
-      M.cs.xings.push({id:X.xing||'street',t:+X.t.toFixed(1),clean:clean?1:0});
-      a.feed('Crossing'+(name?' · '+name:''),clean?'trust':'info',X.t.toFixed(1)+' s'+(X.cars?' · '+X.cars+' car'+(X.cars>1?'s':'')+' waited':'')+(clean?' · clean':''));if(clean)chime();C.lastCross=null;C.crossEnd=C.clock;C.cross=null;music('hub',.35)}}}
+    if(X.clear>1.1&&X.t>.8){X.t-=X.clear;C.lastCross=X;C.crossEnd=C.clock;C.cross=null;music('hub',.35)}}}
+function crossToast(M,X){const C=M.cg,a=A();C.lastCross=null;if(X.t<1.2)return;const clean=M.cs.honks===X.honks&&M.cs.frozen===X.fz;const name=X.xing?(XINGS.find(x=>x.id===X.xing)||{}).name:null;
+  M.cs.xings.push({id:X.xing||'street',t:+X.t.toFixed(1),clean:clean?1:0});
+  a.feed('Crossing'+(name?' · '+name:''),clean?'trust':'info',X.t.toFixed(1)+' s'+(X.cars?' · '+X.cars+' car'+(X.cars>1?'s':'')+' waited':'')+(clean?' · clean':''));if(clean)chime()}
 function carNear(M,x,z){const C=M.cg;if(!C.traffic)return false;for(const c of C.traffic.cars){if(c.v<1)continue;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);if(ah>-2&&ah<30&&lat<5.5)return true}return false}
 /* is it safe to wave them across? (no car still rolling toward the crossing) — for the HUD line and the test player */
 function carsComing(M,x,z){const C=M.cg;if(!C.traffic)return 0;let n=0;for(const c of C.traffic.cars){const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);
