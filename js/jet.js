@@ -159,7 +159,8 @@ function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* speed along the path: thrust, drag, gravity along the climb; sink when slow */
   F.spd+= (F.thr*K.TH+F.ab*K.AB-K.CD*F.spd*F.spd-9.8*_f.y)*dt;F.spd=Math.max(0,F.spd);
   const sink=9.8*Math.max(0,1-Math.pow(F.spd/K.STALL,2))*1.6+(F.gear?.4:0)*Math.max(0,1-F.spd/50);
-  const vy=_f.y*F.spd-sink;F.vs=vy;F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y+=vy*dt;
+  const settle=F.gear&&F.lastAlt<4&&F.thr<.5&&_f.y<.08?1.6:0;/* the flare: gear down, throttle back, a few metres up, it settles onto the wheels instead of floating down the runway */
+  const vy=_f.y*F.spd-sink-settle;F.vs=vy;F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y+=vy*dt;
   F.gearK+=((F.gear?1:0)-F.gearK)*Math.min(1,dt*1.4);
   /* the boundary: far out, the tower talks; farther, a gentle hand turns you home */
   const cx=232,cz=128,dd=Math.hypot(F.pos.x-cx,F.pos.z-cz);if(dd>K.WARNR&&!F.said.far){F.said.far=1;say(TOWER,pick(LINES.far),true)}if(dd<K.WARNR-200)F.said.far=0;
@@ -202,6 +203,8 @@ function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist(
 /* the family on the front lawn, waving, for half a minute (HT.People's family models; never restyled) */
 function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const h=a.L.start;if(!PP||!PP.ok||!h)return;
   const spots=[[0,-2.6],[1.3,-3.2],[-1.3,-3.2]];['wife','son','daughter'].forEach((r,i)=>{let d=null;try{d=PP.make(r)}catch(_){d=null}if(!d)return;d.root.position.set(h.x+spots[i][0],0,h.z+spots[i][1]);d.root.rotation.y=Math.PI;a.L.group.add(d.root);S.fam.push({d,ph:i*1.3})});
+  /* not loaded yet (they stream in): load them, then they come out */
+  if(!S.fam.length&&!S.famWait&&PP.preload){S.famWait=1;try{PP.preload(['wife','son','daughter']).then(()=>{S.famWait=0;if(a.L&&a.L.start===h)family(a)},()=>{S.famWait=0})}catch(_){S.famWait=0}}
   S.famT=30}
 function familyTick(a,dt){if(!S.fam.length)return;S.famT-=dt;for(const f of S.fam){try{a.pose(f.d,dt,{})}catch(_){}const b=f.d.rb&&f.d.rb.bones;if(b){const ua=b.Bip01_R_UpperArm,fa=b.Bip01_R_Forearm;const t=performance.now()/1000+f.ph;if(ua){ua.rotation.z-=1.9;ua.rotation.x+=Math.sin(t*7)*.35}if(fa)fa.rotation.z-=.6}
     /* look at the jet */if(F.on){const dx=F.pos.x-f.d.root.position.x,dz=F.pos.z-f.d.root.position.z;f.d.root.rotation.y=Math.atan2(dx,dz)}}

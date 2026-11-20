@@ -156,7 +156,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       await fly({to:[600,d.runway.z],alt:60,spd:60,max:200,until:q=>q.x>560});
       await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:60,spd:60,max:400,until:q=>q.x<470&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<6});
       await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
-      await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-262)*.09),spd:46,max:700,until:q=>!q.air});
+      await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:44,max:700,until:q=>!q.air});
       await key('s',true);for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}await release();
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
     await press('e');s=await st();ok(!s.car,'E gets out on the ground');
@@ -186,7 +186,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     const d=await ev(()=>HT.Base.def().range);await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x+1.2,0,z);window.__ht.step(4)},[d.rack.x,d.rack.z]);await step(4);
     for(let i=0;i<10&&(await ev(()=>window.__ht.P.cur))!=='hunter';i++){await press('e');await step(4)}/* the .308 from the rental rack: a pistol doesn't reach 100 m */
     await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(4)},[d.stand,d.lanes[1]+1.3]);await step(10);
-    for(let i=0;i<6&&!(await found('bigfoot'));i++){await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await click(1);await step(8)}
+    await p.mouse.down({button:'right'});await step(30);/* aim down the scope (right mouse held), like a person would at 100 m */
+    for(let i=0;i<6&&!(await found('bigfoot'));i++){await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await step(20);await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await click(1);await step(8)}
+    if(SHOTS)await shot('egg-bigfoot');await p.mouse.up({button:'right'});await step(4);
     ok(await found('bigfoot'),'hit the cardboard Bigfoot at 100 m');
     /* the pause menu lists them */
     await p.keyboard.press('Escape');await p.waitForTimeout(300);const tab=await p.$('[data-tab="found"]');ok(!!tab,'pause menu has "Things your dad found"');if(tab){await tab.click();await p.waitForTimeout(300)}
