@@ -30,8 +30,70 @@ function polyAt(p,d){for(let i=1;i<p.length;i++){const l=hyp(p[i].x-p[i-1].x,p[i
   const q=p[p.length-1];return{x:q.x,z:q.z,yaw:0,i:p.length-1}}
 function route(a,from,to){const G=a.roads&&a.roads();let r=null;try{r=G&&G.route(from,to)}catch(_){r=null}const pts=r&&r.points&&r.points.length>1?r.points.map(p=>({x:p.x,z:p.z})):[{x:from.x,z:from.z},{x:to.x,z:to.z}];
   pts[0]={x:from.x,z:from.z};pts.push({x:to.x,z:to.z});return pts}
+/* streets: a graph built straight from WORLD.roads (each road's centreline, nodes at every crossing and at the ends).
+   Independent of HT.Roads' tile checks, so a driveway tile on a centreline doesn't cut a street in two. The bridge counts only when open. */
+let STR=null;
+function streets(a){const W=a.WORLD;if(STR&&STR.W===W&&STR.open===!!W.bridgeOpen)return STR;const tc=i=>i*2+1,roads=W.roads||[],nodes=[],key=new Map();
+  const node=(x,z)=>{const k=x+','+z;if(!key.has(k)){key.set(k,nodes.length);nodes.push({x,z,e:[]})}return key.get(k)};
+  const H=roads.filter(r=>r.o==='h'),V=roads.filter(r=>r.o==='v');const lists=roads.map(()=>[]);
+  roads.forEach((r,i)=>{const c=r.k+1;lists[i].push(r.a+1,r.b-1);if(r.o==='h'&&!W.bridgeOpen&&r.a<140&&r.b>153)lists[i].push(139,155);for(const q of(r.o==='h'?V:H)){const qc=q.k+1;if(qc>=r.a&&qc<=r.b&&c>=q.a&&c<=q.b)lists[i].push(qc)}});
+  roads.forEach((r,i)=>{const c=r.k+1,ts=[...new Set(lists[i])].sort((p,q)=>p-q);for(let j=1;j<ts.length;j++){const t0=ts[j-1],t1=ts[j];
+      if(r.o==='h'&&!W.bridgeOpen&&t0<=139&&t1>=155)continue;
+      const A_=r.o==='h'?node(tc(t0),tc(c)):node(tc(c),tc(t0)),B_=r.o==='h'?node(tc(t1),tc(c)):node(tc(c),tc(t1)),l=(t1-t0)*2;nodes[A_].e.push({to:B_,l});nodes[B_].e.push({to:A_,l})}});
+  /* a point onto the nearest street: [node a, node b, projected x,z] */
+  const near=(x,z)=>{let best=null;nodes.forEach((n,i)=>{for(const e of n.e){if(e.to<i)continue;const m=nodes[e.to],dx=m.x-n.x,dz=m.z-n.z,L2=dx*dx+dz*dz||1,t=clamp(((x-n.x)*dx+(z-n.z)*dz)/L2,0,1),px=n.x+dx*t,pz=n.z+dz*t,d=hyp(px-x,pz-z);if(!best||d<best.d)best={a:i,b:e.to,x:px,z:pz,d}}});return best};
+  const path=(s,g)=>{const N=nodes.length,dist=new Float64Array(N).fill(1e18),prev=new Int32Array(N).fill(-1),done=new Uint8Array(N);
+    for(const[i,d]of s)if(d<dist[i]){dist[i]=d}for(;;){let u=-1,b=1e18;for(let i=0;i<N;i++)if(!done[i]&&dist[i]<b){b=dist[i];u=i}if(u<0)break;done[u]=1;for(const e of nodes[u].e){const nd=dist[u]+e.l;if(nd<dist[e.to]){dist[e.to]=nd;prev[e.to]=u}}}
+    let best=-1,bd=1e18;for(const[i,d]of g)if(dist[i]+d<bd){bd=dist[i]+d;best=i}const out=[];for(let u=best;u>=0;u=prev[u])out.unshift(u);return out};
+  STR={W,open:!!W.bridgeOpen,nodes,near,
+    route(from,to){const A_=near(from.x,from.z),B_=near(to.x,to.z);if(!A_||!B_)return null;
+      if((A_.a===B_.a&&A_.b===B_.b)||(A_.a===B_.b&&A_.b===B_.a))return[{x:from.x,z:from.z},{x:A_.x,z:A_.z},{x:B_.x,z:B_.z},{x:to.x,z:to.z}];
+      const da=i=>hyp(nodes[i].x-A_.x,nodes[i].z-A_.z),db=i=>hyp(nodes[i].x-B_.x,nodes[i].z-B_.z);
+      const ids=path([[A_.a,da(A_.a)],[A_.b,da(A_.b)]],[[B_.a,db(B_.a)],[B_.b,db(B_.b)]]);
+      return[{x:from.x,z:from.z},{x:A_.x,z:A_.z},...ids.map(i=>({x:nodes[i].x,z:nodes[i].z})),{x:B_.x,z:B_.z},{x:to.x,z:to.z}]}};
+  return STR}
+/* the drive line: the street graph's centreline route (corner points), the tile GPS as a fallback */
+function drive(a,from,to){let p=null;try{p=streets(a).route(from,to)}catch(e){p=null}if(p&&p.length>1){const out=[p[0]];for(const q of p.slice(1)){const l=out[out.length-1];if(hyp(q.x-l.x,q.z-l.z)>.3)out.push(q)}return out}return gps(a,from,to)}
+/* a drivable right-hand lane between two points: the street route, offset, filleted, easing in and out of the kerb */
+function laneRoute(a,from,to,off=1.05,rad=3.6){const g=drive(a,from,to);const ln=lane(g.slice(1,-1),off,rad);
+  const ease=(i,j)=>{const p=ln[i],q=ln[j];if(!p||!q)return;const l=hyp(p.x-q.x,p.z-q.z);if(l<.5)return;const m=Math.min(6,l*.45);ln[i]={x:p.x+(q.x-p.x)/l*m,z:p.z+(q.z-p.z)/l*m}};
+  if(ln.length>=2){ease(0,1);ease(ln.length-1,ln.length-2)}ln.unshift({x:from.x,z:from.z});ln.push({x:to.x,z:to.z});return ln}
+/* the tile GPS (HT.Roads.gps: roads cheap, grass dear, solids blocked): follows every drivable street, even where the road graph has a gap */
+function gps(a,from,to){let r=null;try{r=window.HT.Roads&&HT.Roads.gps&&HT.Roads.gps(a.WORLD,from,to)}catch(_){r=null}
+  if(!r||!r.points||r.points.length<2)return route(a,from,to);const pts=r.points.map(p=>({x:p.x,z:p.z}));pts[0]={x:from.x,z:from.z};pts.push({x:to.x,z:to.z});return pts}
+/* a right-hand lane from a corner polyline: each segment moved off metres to its right, corners filleted with radius rad */
+function lane(pts,off=1.5,rad=5){const out=[],n=pts.length;if(n<2)return pts.slice();const dir=i=>{const a=pts[i],b=pts[i+1],l=hyp(b.x-a.x,b.z-a.z)||1;return{x:(b.x-a.x)/l,z:(b.z-a.z)/l,l}};
+  const segs=[];for(let i=0;i<n-1;i++){const d=dir(i);if(d.l<.05)continue;const r={x:-d.z,z:d.x};/* right of travel in this world: forward (dx,dz) -> right (-dz, dx) */
+    segs.push({a:{x:pts[i].x+r.x*off,z:pts[i].z+r.z*off},b:{x:pts[i+1].x+r.x*off,z:pts[i+1].z+r.z*off},d})}
+  if(!segs.length)return pts.slice();out.push(segs[0].a);
+  for(let i=0;i<segs.length-1;i++){const s0=segs[i],s1=segs[i+1];const cr=s0.d.x*s1.d.z-s0.d.z*s1.d.x,dt=s0.d.x*s1.d.x+s0.d.z*s1.d.z;
+    if(Math.abs(cr)<.05&&dt>0){continue}
+    /* the corner: intersection of the two offset lines */const den=s0.d.x*s1.d.z-s0.d.z*s1.d.x;let c;if(Math.abs(den)<1e-6)c=s0.b;else{const t=((s1.a.x-s0.a.x)*s1.d.z-(s1.a.z-s0.a.z)*s1.d.x)/den;c={x:s0.a.x+s0.d.x*t,z:s0.a.z+s0.d.z*t}}
+    const r=Math.min(rad,s0.d.l*.45,s1.d.l*.45),p0={x:c.x-s0.d.x*r,z:c.z-s0.d.z*r},p1={x:c.x+s1.d.x*r,z:c.z+s1.d.z*r};
+    for(let k=0;k<=6;k++){const t=k/6,u=1-t;out.push({x:u*u*p0.x+2*u*t*c.x+t*t*p1.x,z:u*u*p0.z+2*u*t*c.z+t*t*p1.z})}}
+  out.push(segs[segs.length-1].b);return out}
+/* an autopilot for scripted drivers (tests): pure pursuit along a lane, slowing for the bends ahead. keys = api.keys. Returns the distance left */
+function pursue(car,P,keys,o={}){const k=keys,L_=P.pts;if(!L_||L_.length<2)return 0;
+  if(!P.cum){P.cum=[0];for(let i=1;i<L_.length;i++)P.cum.push(P.cum[i-1]+hyp(L_[i].x-L_[i-1].x,L_[i].z-L_[i-1].z));P.j=0}
+  const cum=P.cum,tot=cum[cum.length-1];
+  /* project the car onto the line (segments near the last one) */
+  let bj=P.j||0,bd=1e9,bs=0;for(let j=Math.max(0,bj-1);j<Math.min(L_.length-1,bj+30);j++){const a=L_[j],b=L_[j+1],dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz||1e-9,t=clamp(((car.pos.x-a.x)*dx+(car.pos.z-a.z)*dz)/l2,0,1),px=a.x+dx*t,pz=a.z+dz*t,d=hyp(px-car.pos.x,pz-car.pos.z);
+    if(d<bd-1e-6){bd=d;bj=j;bs=cum[j]+t*Math.sqrt(l2)}}P.j=bj;P.i=bj;P.err=bd;
+  const at=s_=>{s_=clamp(s_,0,tot);let j=bj;while(j<L_.length-2&&cum[j+1]<s_)j++;const a=L_[j],b=L_[j+1],l=cum[j+1]-cum[j]||1e-9,t=(s_-cum[j])/l;return{x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,j}};
+  const sp=car.spd,look=4+Math.max(0,sp)*.45;let tg=at(bs+look);
+  const hd=j=>Math.atan2(L_[j+1].x-L_[j].x,L_[j+1].z-L_[j].z),h0=hd(bj);let turn=0;const hz=Math.max(10,sp*sp/7+8);
+  for(let j=bj+1;j<L_.length-1&&cum[j]<bs+hz;j++){if(cum[j+1]-cum[j]<.05)continue;let d=hd(j)-h0;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;turn=Math.max(turn,Math.abs(d))}
+  const left=Math.max(tot-bs,0)+(bj>=L_.length-2?0:0);
+  /* steer around parked cars (o.avoid: [{x,z}]) by sliding the aim point sideways */
+  if(o.avoid){const fx=-Math.sin(car.yaw),fz=-Math.cos(car.yaw);let push=0;for(const ob of o.avoid){const ox=ob.x-car.pos.x,oz=ob.z-car.pos.z,al=ox*fx+oz*fz;if(al<0||al>24)continue;
+      const tx=tg.x-car.pos.x,tz=tg.z-car.pos.z,tl=Math.hypot(tx,tz)||1,side=(ox*tz-oz*tx)/tl;/* + = obstacle left of the line */if(Math.abs(side)<3.1){const want=(3.3-Math.abs(side))*(side>0?-1:1);P.slow=1;if(Math.abs(want)>Math.abs(push))push=want}}
+    if(push){tg={x:tg.x+(-fz)*-push,z:tg.z+fx*-push}}}
+  const dx=tg.x-car.pos.x,dz=tg.z-car.pos.z;let d=Math.atan2(-dx,-dz)-car.yaw;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+  let want=o.max||12;if(P.slow){want=Math.min(want,8);P.slow=0}if(turn>.35)want=Math.min(want,turn>1.2?5.2:6.5);if(Math.abs(d)>.7)want=Math.min(want,4);if(o.stop)want=Math.min(want,Math.max(0,Math.sqrt(2*3.2*Math.max(0,left-(o.r||1)))));
+  P.dbg={want:Math.round(want*10)/10,d:Math.round(d*100)/100,j:bj+'/'+L_.length,left:Math.round(left*10)/10,err:Math.round(bd*10)/10};
+  k.a=d>.04;k.d=d<-.04;k.w=sp<want-.25&&want>.2;k.s=sp>want+1.2&&sp>.4;k[' ']=!!(o.stop&&left<(o.r||1)&&Math.abs(sp)>.15);return left}
 /* drive time estimate: corners cost extra (a careful dad slows to ~6 m/s for each), straights at o.v (default 10 m/s) */
-function legTime(a,from,to,o={}){const p=route(a,from,to),len=polyLen(p);let turns=0;for(let i=1;i<p.length-1;i++){const h1=Math.atan2(p[i].x-p[i-1].x,p[i].z-p[i-1].z),h2=Math.atan2(p[i+1].x-p[i].x,p[i+1].z-p[i].z);let d=Math.abs(h2-h1);if(d>Math.PI)d=2*Math.PI-d;if(d>.6)turns++}
+function legTime(a,from,to,o={}){const p=drive(a,from,to),len=polyLen(p);let turns=0;for(let i=1;i<p.length-1;i++){const h1=Math.atan2(p[i].x-p[i-1].x,p[i].z-p[i-1].z),h2=Math.atan2(p[i+1].x-p[i].x,p[i+1].z-p[i].z);let d=Math.abs(h2-h1);if(d>Math.PI)d=2*Math.PI-d;if(d>.6)turns++}
   return{len,turns,t:len/(o.v||10)+turns*(o.turn||2.2)+(o.pad||3),points:p}}
 
 /* ---------- schedule ---------- */
@@ -274,5 +336,5 @@ function panel(o={}){if(!document.getElementById('stx-css')){const s=el('style')
   P.tick=dt=>{if(toastT>0){toastT-=dt;if(toastT<=0)toast.classList.remove('on')}};
   return P}
 
-HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
+HT.Stops={schedule,comfort,riders,radio,panel,talk,cruiser,legTime,route,gps,lane,pursue,streets,drive,laneRoute,polyLen,polyAt,clockStr,seatCount,seatsOf,SEATS,STATIONS,CF};
 })();

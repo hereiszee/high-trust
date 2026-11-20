@@ -46,8 +46,11 @@ const RADIO_LINES={like:{kidz:["Yes! KIDZ 98!","This is my SONG.","Turn it up! .
   hate:{kidz:["Nooo. Not the bop one.","Dad, change it, this song is about nothing."],talk:["Not the talk one. Please. They just yell about punting.","Why do grown-ups yell about punting?"],rock:["Is this from the olden days?"],jazz:["This is elevator music. Are we in an elevator?"],off:["Why is it so QUIET.","Silence is weird. Put something on."]}};
 
 /* ---------- places: curbside points computed from the road graph (the school site if the world has one) ---------- */
-function curb(a,x,z,toward,off){const G=a.roads&&a.roads();const r=G&&G.nearestRoad(x,z);if(!r)return{x,z,yaw:0};const A_=G.nodes[r.a],B_=G.nodes[r.b],dx=B_.x-A_.x,dz=B_.z-A_.z,l=hyp(dx,dz)||1;
-  const nx=-dz/l,nz=dx/l,s=((toward.x-r.x)*nx+(toward.z-r.z)*nz)>=0?1:-1;return{x:r.x+nx*s*(off||1.7),z:r.z+nz*s*(off||1.7),yaw:Math.atan2(-dx,-dz),side:{x:nx*s,z:nz*s}}}
+function curb(a,x,z,toward,off){/* nearest street from the world's road list (centreline 3 tiles wide), then the kerb lane on the side facing 'toward' */
+  const W=a.WORLD,tc=i=>i*2+1;let best=null;for(const r of W.roads||[]){const c=tc(r.k+1),lo=r.a*2,hi=(r.b+1)*2;
+    const p=r.o==='h'?{x:Math.max(lo,Math.min(hi,x)),z:c,dx:1,dz:0}:{x:c,z:Math.max(lo,Math.min(hi,z)),dx:0,dz:1};const d=hyp(p.x-x,p.z-z);if(!best||d<best.d)best=Object.assign(p,{d})}
+  if(!best)return{x,z,yaw:0,side:{x:0,z:1}};const nx=-best.dz,nz=best.dx,s=((toward.x-best.x)*nx+(toward.z-best.z)*nz)>=0?1:-1;
+  return{x:best.x+nx*s*(off||1.7),z:best.z+nz*s*(off||1.7),yaw:Math.atan2(-best.dx,-best.dz),side:{x:nx*s,z:nz*s}}}
 let PL=null;
 function places(){const a=A(),W=a&&a.WORLD;if(!W)return null;if(PL&&PL.W===W)return PL;const pl=W.places||{},st=W.sites||{};
   const homeP=pl.home||{x:39,z:15},hankP=pl.hank||{x:45,z:17},park=st.dave&&st.dave.ring||{x:91,z:97};
@@ -187,6 +190,7 @@ J.register('taxi',{
       if(H&&H.album&&M.st.video)H.album(null,{id:'taxi-block',job:'taxi',item:'The minivan block on Route 9',stars:M.st.choice==='ride'?3:2,day:SV.day,jpg:null});
       if(H&&H.touch)H.touch('flags')}catch(e){console.warn(e)}},
   test:{give(a){},step:(a,t,o)=>bot(a,t,o||{}),
+    item(M,id){const it=ITEMS.find(x=>x.id===id);if(it&&M){M.item=Object.assign({noticed:false,done:false,lost:false},it)}},
     sample:()=>({st:{seed:7,phase:'bikes',choice:null,said:{a:1},shown:3,video:0,stops:[{done:true,at:40,late:-3,onTime:true,stars:5,comfort:95}],comfort:{v:88,sum:4000,time:45,n:{brake:1,corner:0,kerb:0,bump:0,speed:0}},radio:1,riders:[{id:'tyler',state:'seat',seat:2,x:0,z:0,yaw:0}],item:{k:2,id:'card',noticed:true,done:false,lost:false}},item:{k:2,id:'card'}})}
 });
 
@@ -249,7 +253,7 @@ function tick(dt,M,F){const a=A(),L_=M.live,S=L_.S,C=L_.C,K=L_.K,P_=places();
   if(cur&&cur.id==='home')jenCar(dt,M,cur);
   hud(dt,M,F);
   /* the GPS line to the marker (the hub's GPS is off during jobs) */
-  L_.t.route-=dt;if(L_.t.route<=0&&F.target&&a.HUD&&a.HUD.minimap&&a.HUD.minimap.route){L_.t.route=1.4;try{const pts=SX().route(a,{x:a.P.pos.x,z:a.P.pos.z},F.target);a.HUD.minimap.route(pts)}catch(_){}}}
+  L_.t.route-=dt;if(L_.t.route<=0&&F.target&&a.HUD&&a.HUD.minimap&&a.HUD.minimap.route){L_.t.route=1.4;try{const pts=SX().drive(a,{x:a.P.pos.x,z:a.P.pos.z},F.target);a.HUD.minimap.route(pts)}catch(_){}}}
 function offRoadAt(a,car){const G=a.roads&&a.roads();if(!G)return false;const r=G.nearestRoad(car.pos.x,car.pos.z);if(!r||r.dist<4.4)return false;
   /* parking lots and driveways are paved too: only the kerb/grass counts */const W=a.WORLD,g=a.L&&a.L.g;if(g){const tx=Math.floor(car.pos.x/2),tz=Math.floor(car.pos.z/2),c=(g[tz]||[])[tx];if(c===','||c==='='||c==='V'||c==='l')return false}return true}
 function chatter(dt,M,kids,driving){const L_=M.live,C=L_.C;if(!driving||!kids.length)return;
@@ -319,7 +323,7 @@ function item(dt,M,F){const a=A(),L_=stopRing(M),S=L_.S,it=M.item,P_=places(),ca
 function startBikes(M){const a=A(),L_=M.live;M.st.phase='bikes';a.CP.mark('bikes');encounterInit(M,false)}
 function encounterInit(M,restored){const a=A(),L_=M.live,P_=places(),S=SX();bikesTo(M,'gone');
   const obj=a.makeVehicle('pickup','#8c2f25')||a.makeVanBox('#8c2f25');a.wmAdd(obj);const col=a.wmCol({x0:0,z0:0,x1:0,z1:0});
-  const startAt={x:P_.school.x+4,z:P_.school.z};const pts=S.route(a,startAt,P_.bridge);
+  const startAt={x:P_.school.x+4,z:P_.school.z};const pts=S.laneRoute(a,startAt,P_.bridge,1.5,5);
   const cr=S.cruiser({obj,points:pts,speed:T.thiefSpeed,accel:4.5,len:5.6,wid:2.05,col});cr.spd=0;
   bikesTo(M,'bed',obj);
   const E=L_.enc={cr,delay:restored?T.thiefDelay-2:T.thiefDelay,block:0,stuck:0,side:1,state:'call',t:0,thieves:[],rick:null,said:{},rec:false};
@@ -387,7 +391,7 @@ function choose(M,c){const a=A(),L_=M.live,E=L_.enc,K=L_.K,car=M.rideCar,P_=plac
     for(const r of E.thieves){r.mode=null;r.prefer=[5,6,4];K.board(r,{x:r.x,z:r.z},car,()=>{if(++n>=2){sayAll(M,[['Tyler',"Do you guys want a granola bar?"],['Kid in the passenger seat',"...What kind?"]]);done()}})}}}
 /* Rick takes the pickup and the bikes back to the school */
 function rickDrive(M){const a=A(),L_=M.live,E=L_.enc,P_=places(),S=SX(),cr=E.cr;if(E.rick){E.rick.state='off';E.rick.d.root.visible=false}
-  const dst={x:P_.school.x+9,z:P_.school.z};const pts=S.route(a,{x:cr.x,z:cr.z},dst);const nc=S.cruiser({obj:cr.obj,points:pts,speed:9,accel:3.5,len:5.6,wid:2.05,col:cr.col});nc.spd=0;E.cr=nc;E.rickDriving=true;
+  const dst={x:P_.school.x+8+P_.school.side.x*2.2,z:P_.school.z+P_.school.side.z*2.2};/* up on the kerb by the rack, like every school-run dad */const pts=S.laneRoute(a,{x:cr.x,z:cr.z},dst,1.5,5);const nc=S.cruiser({obj:cr.obj,points:pts,speed:9,accel:3.5,len:5.6,wid:2.05,col:cr.col});nc.spd=0;E.cr=nc;E.rickDriving=true;
   E.rickSeat=true;if(M.st.choice==='zip')E.thieves.forEach((r,i)=>{r.state='bed';r.d.root.visible=true})}
 /* the pickup keeps rolling to school while you drive the rest */
 function rickTick(dt,M){const a=A(),L_=M.live,E=L_.enc;if(!E||!E.rickDriving)return;const cr=E.cr;if(!cr.done)cr.update(dt,a.CV?[{x:a.CV.pos.x,z:a.CV.pos.z,yaw:a.CV.yaw,len:4.8,wid:2}]:[]);else cr.sync(dt);
@@ -409,7 +413,7 @@ function jenText(M){const S=M.live.S,late=S.stops.filter(s=>s.done&&!s.onTime).l
   const it=M.item;if(!(it&&it.id==='trombone'))say(M,'Maddie',"I have the trombone. I always have the trombone.")}
 /* the last leg: Jen's car comes up Oak St on the hard deadline */
 function jenCar(dt,M,s){const a=A(),L_=M.live,S=L_.S,P_=places();const rem=S.left(s,M.elapsed),lead=32;if(rem>lead||s.at!=null&&!L_.jen)return;
-  if(!L_.jen){const obj=a.makeVehicle('sedan','#6d7f93')||a.makeVanBox('#6d7f93');a.wmAdd(obj);const from={x:P_.home.x+150,z:P_.home.z-1.5};const pts=SX().route(a,from,{x:P_.home.x+6,z:P_.home.z});
+  if(!L_.jen){const obj=a.makeVehicle('sedan','#6d7f93')||a.makeVanBox('#6d7f93');a.wmAdd(obj);const pts=[{x:P_.home.x+150,z:P_.home.z-3.2},{x:P_.home.x+12,z:P_.home.z-3.2},{x:P_.home.x+6,z:P_.home.z-.4}];
     L_.jen={obj,pts,len:SX().polyLen(pts),col:null};say(M,'Jen (text)',"Leaving now. Ten minutes.",{now:true});say(M,'Tyler',"Mom's car! I can see Mom's car! Dad, GO!")}
   const J_=L_.jen;if(s.at!=null){J_.arr=(J_.arr||0)+dt}const k=s.at!=null?Math.min(1,J_.k+dt/8):Math.max(0,1-rem/lead);J_.k=k;const p=SX().polyAt(J_.pts,J_.len*k);J_.obj.position.set(p.x,a.groundAt(p.x,p.z),p.z);J_.obj.rotation.set(0,p.yaw+Math.PI/2,0);
   try{const VM=HT.Vehicles;J_.obj.userData.mod&&VM&&VM.update&&VM.update(J_.obj,{speed:k<1?10:0,steer:0,braking:k>=1,headlights:false,dt})}catch(_){}}
@@ -478,12 +482,11 @@ function bot(a,t,o){const M=a.M;if(!M||M.state!=='go'||!M.live)return null;const
   if(M.st.phase==='bikes'&&E){if(E.state==='choice'){stopKeys();k['2']=!o.zip&&(t%20<10);k['1']=!!o.zip&&(t%20<10);return null}k['1']=k['2']=false;
     if(E.state!=='drive'){stopKeys();k[' ']=true;return null}
     if(o.fail){stopKeys();k[' ']=true;return null}
-    /* get ahead of it on its route and stop across its path */
-    const cr=E.cr,ahead=SX().polyAt(cr.pts,Math.min(cr.total-4,cr.d+(L_.bt||0)+Math.max(30,cr.spd*3.2)));if(!L_.bt)L_.bt=0;
-    const d=hyp(ahead.x-a.CV.pos.x,ahead.z-a.CV.pos.z);if(!L_.blockAt||(cr.d>L_.blockD-6&&!cr.blocked))L_.blockAt={x:ahead.x,z:ahead.z},L_.blockD=cr.d+Math.max(30,cr.spd*3.2);
-    /* nudge into the swerve lane */
-    const tg=L_.blockAt;const fx=-Math.sin(cr.yaw),fz=-Math.cos(cr.yaw),rx=Math.cos(cr.yaw),rz=-Math.sin(cr.yaw);const want={x:tg.x+rx*cr.want*.9,z:tg.z+rz*cr.want*.9};
-    driveTo(a,want,{stop:true,r:1.2,max:14});return null}
+    /* get ahead of it on its route (never behind the van) and stop in its lane; follow its swerve */
+    const cr=E.cr,van={x:a.CV.pos.x,z:a.CV.pos.z};let ps=0,pd=1e9;for(let s_=0;s_<=cr.total;s_+=2){const q=SX().polyAt(cr.pts,s_),d=hyp(q.x-van.x,q.z-van.z);if(d<pd){pd=d;ps=s_}}
+    if(!L_.blk||(cr.d>L_.blk.s-3&&!cr.blocked&&cr.spd>3&&cr.revT<=0))L_.blk={s:Math.min(cr.total-6,Math.max(cr.d+38,ps+5))};
+    const sw=cr.want?6:0,q=SX().polyAt(cr.pts,L_.blk.s+sw),rx=Math.cos(q.yaw),rz=-Math.sin(q.yaw);
+    driveTo(a,{x:q.x+rx*cr.want*.95,z:q.z+rz*cr.want*.95},{stop:true,r:1.2,max:15});return null}
   /* the forgotten item, then the next stop */
   const it=M.item,S=L_.S;let tgt=null;if(L_.busy){stopKeys();k[' ']=Math.abs(a.CV.spd)>.3;return null}
   if(it&&it.noticed&&!it.done&&!it.lost&&!o.skipItem){const s=S.stops[it.k];tgt={x:s.x,z:s.z}}
@@ -491,13 +494,13 @@ function bot(a,t,o){const M=a.M;if(!M||M.state!=='go'||!M.live)return null;const
   if(it&&it.busy){stopKeys();k[' ']=true;return null}
   if(tgt)driveTo(a,tgt,{stop:true,r:1.4,max:o.max||13});else stopKeys();return null}
 function driveTo(a,tgt,o){const e=a.CV,k=a.keys,B=driveTo;if(!e)return;const key=Math.round(tgt.x)+','+Math.round(tgt.z);
-  if(B.key!==key||!B.pts||B.age++>90){B.key=key;B.age=0;B.pts=SX().route(a,{x:e.pos.x,z:e.pos.z},tgt);B.i=1}
-  const pts=B.pts;while(B.i<pts.length-1&&hyp(pts[B.i].x-e.pos.x,pts[B.i].z-e.pos.z)<5)B.i++;
-  const d0=hyp(tgt.x-e.pos.x,tgt.z-e.pos.z),w=d0<9?tgt:pts[Math.min(B.i,pts.length-1)];
-  /* corner ahead? look at the turn angle at the next waypoint */
-  let corner=0;if(B.i<pts.length-1){const p=pts[B.i],q=pts[B.i+1],h1=Math.atan2(p.x-e.pos.x,p.z-e.pos.z),h2=Math.atan2(q.x-p.x,q.z-p.z);let dd=Math.abs(h2-h1);if(dd>Math.PI)dd=2*Math.PI-dd;const dp=hyp(p.x-e.pos.x,p.z-e.pos.z);if(dd>.5&&dp<16)corner=1}
-  const dx=w.x-e.pos.x,dz=w.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
-  let want=o.stop&&d0<16?Math.max(0,(d0-o.r)*.75):Math.abs(d)>.6?4.5:corner?6:o.max||13;if(o.stop&&d0<o.r)want=0;
-  k.a=d>.06;k.d=d<-.06;const sp=e.spd;k.w=sp<want-.3;k.s=sp>want+1.6&&sp>.5;k[' ']=o.stop&&d0<o.r&&Math.abs(sp)>.2;
-  if(Math.abs(sp)<.4&&d0>3){B.stuck=(B.stuck||0)+1;if(B.stuck>150){B.stuck=0;const q=pts[Math.min(B.i+1,pts.length-1)];e.pos.set(q.x,0,q.z);e.yaw=Math.atan2(-(tgt.x-q.x),-(tgt.z-q.z));if(e.car){e.car.x=q.x;e.car.z=q.z;e.car.yaw=e.yaw}a.syncCar(e)}}else B.stuck=0}
+  if(B.key!==key||!B.P||B.off>60){B.key=key;B.off=0;B.P={pts:SX().laneRoute(a,{x:e.pos.x,z:e.pos.z},tgt,1.05,3.6),i:0}}
+  /* the test player's three-point turn: when the way out is behind it and it's nearly stopped, it turns on the spot (allowed for test bots) */
+  {const pts=B.P.pts,q=pts[Math.min(pts.length-1,(B.P.i||0)+3)],dx=q.x-e.pos.x,dz=q.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
+   if((Math.abs(d)>1.9||B.turning)&&Math.abs(e.spd)<2.5&&hyp(dx,dz)>4){B.turning=Math.abs(d)>.25;const st=Math.sign(d)*Math.min(Math.abs(d),2.4/30);e.yaw+=st;if(e.car)e.car.yaw=e.yaw;k.w=k.a=k.d=false;k.s=false;k[' ']=true;a.syncCar(e);return}}
+  if(!B.avT||B.avT--<=0){B.avT=15;B.av=((a.L&&a.L.cars)||[]).filter(c=>c!==e&&hyp(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<30).map(c=>({x:c.pos.x,z:c.pos.z}));const E_=a.M&&a.M.live&&a.M.live.enc;if(E_&&E_.cr&&E_.state==='done')B.av.push({x:E_.cr.x,z:E_.cr.z})}
+  const left=SX().pursue(e,B.P,k,{max:o.max||12,stop:o.stop,r:o.r||1,avoid:B.av});window.__ppd=Object.assign({tgt:[Math.round(tgt.x),Math.round(tgt.z)]},B.P.dbg);
+  if(B.P.err>6)B.off++;else B.off=0;
+  if(B.back>0){B.back--;const sa=k.a;k.w=false;k.s=true;k.a=B.bs>0;k.d=B.bs<0;k[' ']=false;if(!B.back)B.P=null;return}
+  if(Math.abs(e.spd)<1&&left>3&&k.w){B.stuck=(B.stuck||0)+1;if(B.stuck>90){B.stuck=0;B.back=45;B.bs=k.a?-1:1}}else B.stuck=0}
 })();
