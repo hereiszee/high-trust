@@ -6,10 +6,11 @@
    3. the job's own scripted player, test.step(api, frame, opts), until the job ends -> checks: won, paid, saved (jobs[id], calendar)
    --retry   first a run with opts.fail (the bot gives up) -> fail card offers "Retry from <stage>" and "Restart job" -> retry -> win
    --replay  then the fridge calendar at home -> Replay -> win again: half pay, no new day, done stays, households unchanged
+   --shots writes jpgs to docs/screenshots/jobs/<id>/.
    Exit code 1 on any failure; console errors fail the run. */
 const {open}=require('./ai-ingame-lib.js'),path=require('path'),fs=require('fs');
 const ID=process.argv[2];if(!ID||ID.startsWith('--')){console.log('usage: node dev/jobs-check.js <id> [--retry] [--replay] [--shots]');process.exit(2)}
-const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),SHOT_DIR=path.join(__dirname,'../docs/screenshots/jobs-framework');
+const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),SHOT_DIR=path.join(__dirname,'../docs/screenshots/jobs/'+ID);
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{const {b,p,errs}=await open();const ev=(f,a)=>p.evaluate(f,a);
   const shot=async(n,prep)=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(prep)await ev(prep);
@@ -39,6 +40,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     T.res=()=>({acts:Object.keys(H.UIacts||{}),pay:H.M&&H.M.pay?{total:H.M.pay.total,rerun:H.M.pay.rerun,lines:H.M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:H.M&&H.M.medal,replay:!!(H.M&&H.M.replay),retried:!!(H.M&&H.M.retried)});
     T.rec=id=>{const s=T.SV();return s?{job:s.jobs&&s.jobs[id],cal:(s.calendar&&s.calendar.entries||[]).find(e=>e.id===id)||null,day:s.day,cash:s.cash,hh:(s.world&&s.world.households||[]).length}:null}});
   const lk=await ev(id=>window.__J.unlock(id),ID);ok(lk===null,'unlocked (lock='+lk+')');
+  /* rebuild the hub so world givers for the newly unlocked job spawn */
+  await ev(()=>{const H=window.__ht;if(H.mode==='hub'){H.enterHub();H.step(2)}});
   /* ---- the giver -> brief -> drive ---- */
   const from=reg.from||{};
   if(!has('no-giver')){

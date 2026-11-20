@@ -159,5 +159,128 @@
 "source": "Rocketbox Adults/Female_Adult_04",
 "idle": "f_idle",
 "accessories": []
+},
+ {
+"key": "earl",
+"name": "Earl (retired bus driver)",
+"role": "giver",
+"source": "Rocketbox Professions/Business_Male_07",
+"idle": "idle_look",
+"accessories": [
+"acc_cap"
+],
+"notes": "shirt retinted transit blue, navy cap"
+},
+ {
+"key": "dee",
+"name": "Pastor Dee (youth pastor)",
+"role": "giver",
+"source": "Rocketbox Professions/Business_Female_01",
+"idle": "f_idle",
+"accessories": [],
+"notes": "plain dark suit, no religious dress or symbols"
+},
+ {
+"key": "rosa",
+"name": "Rosa (ER nurse, crew medic)",
+"role": "giver",
+"source": "Rocketbox Professions/Medical_Female_01",
+"idle": "f_idle",
+"accessories": [],
+"notes": "white uniform retinted to teal scrubs; fights as crew"
+},
+ {
+"key": "benny",
+"name": "Benny (ice-cream man)",
+"role": "giver",
+"source": "Rocketbox Professions/Business_Male_06",
+"idle": "idle",
+"accessories": [
+"acc_cap",
+"acc_apron"
+],
+"notes": "pink-striped shirt (retextured), pink cap, waist apron"
+},
+ {
+"key": "nb_gran",
+"name": "Neighbour: older woman, blazer and glasses",
+"role": "neighbour",
+"source": "Rocketbox Professions/Business_Female_02",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "nb_pops",
+"name": "Neighbour: older man, work shirt and vest",
+"role": "neighbour",
+"source": "Rocketbox Adults/Male_Adult_05",
+"idle": "idle_look",
+"accessories": []
+},
+ {
+"key": "nb_office",
+"name": "Neighbour: woman in office clothes",
+"role": "neighbour",
+"source": "Rocketbox Professions/Business_Female_03",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "nb_sweater",
+"name": "Neighbour: man in a plain sweater",
+"role": "neighbour",
+"source": "Rocketbox Adults/Male_Adult_02",
+"idle": "idle",
+"accessories": []
+},
+ {
+"key": "nb_teen",
+"name": "Neighbour: teenage girl",
+"role": "neighbour",
+"source": "Rocketbox Adults/Female_Party_02",
+"idle": "f_idle",
+"accessories": [],
+"notes": "scaled 0.95"
+},
+ {
+"key": "nb_kid",
+"name": "Neighbour: boy (~10)",
+"role": "neighbour",
+"source": "Rocketbox Children/Male_Child_02",
+"idle": "idle_look",
+"accessories": [],
+"notes": "chalk or bike at high trust"
+},
+ {
+"key": "nb_kenji",
+"name": "Neighbour: man in a tee",
+"role": "neighbour",
+"source": "Rocketbox Adults/Male_Adult_09",
+"idle": "idle_look",
+"accessories": []
+},
+ {
+"key": "nb_marcus",
+"name": "Neighbour: man in a denim jacket",
+"role": "neighbour",
+"source": "Rocketbox Adults/Male_Adult_12",
+"idle": "idle",
+"accessories": []
+},
+ {
+"key": "nb_mei",
+"name": "Neighbour: woman in a purple top",
+"role": "neighbour",
+"source": "Rocketbox Adults/Female_Adult_03",
+"idle": "f_idle",
+"accessories": []
+},
+ {
+"key": "nb_lucia",
+"name": "Neighbour: woman in a knit dress",
+"role": "neighbour",
+"source": "Rocketbox Adults/Female_Adult_11",
+"idle": "f_idle",
+"accessories": []
 }
 ]
