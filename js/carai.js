@@ -47,6 +47,7 @@ const CATALOG=[
  {id:'cargo',group:'util',slot:'cargo',lvl:1,name:'Roof Cargo Box',blurb:'The good cooler goes up top',price:300},
  {id:'rack',group:'util',slot:'rack',lvl:1,name:'Gun Rack',blurb:'Three is a reasonable number of guns for a soccer dad',price:700,req:{trust:60}},
  {id:'aid',group:'util',slot:'aid',lvl:1,name:"Rosa's First-Aid Kit",blurb:'Labelled. Alphabetised. Do not touch the scissors.',price:400,req:{done:['rosa']}},
+ {id:'hitch',group:'util',slot:'hitch',lvl:1,name:'Tow Hitch',blurb:"Rated for 3,500 lb. Sal rated it for 'probably'.",price:350,req:{done:['tow']}},
  {id:'v_workvan',group:'vehicle',type:'workvan',name:'The Contractor',blurb:'For the dad who owns a ladder',price:3500,req:{done:['doug']}},
  {id:'v_pickup',group:'vehicle',type:'pickup',name:'The Tailgater',blurb:'Bed holds two coolers or one Big Dave',price:5500,req:{done:['earl']}},
  {id:'v_suv',group:'vehicle',type:'suv',name:'The Suburbanite',blurb:'Seats seven. Fits one ego.',price:7500,req:{done:['benny']}},
@@ -121,7 +122,9 @@ function make(type,o){o=o||{};const st=o.stats||apply(type,o.vehicle,o.util);con
     sportT:0,sportCd:0,spinT:0,stuckT:0,revT:0,bump:0,ai:null,dead:false,stopped:false,t:0}}
 
 /* the player's model: index.html updVan generalised (SPEC2 C.2). collide(p,r) pushes {x,z} out of solids (optional). */
-function drive(c,inp,dt,collide){const S=c.stats;let thr=inp.thr||0,st=inp.st||0;if(c.hp<=0)thr=0;
+/* [TOW] a car with a hitched load (c.towMul, set by js/tow.js): slower, softer, longer braking, slow reverse, no boost or sport */
+const towStats=(S,T)=>Object.assign({},S,{maxSpeed:S.maxSpeed*T.max,boostMax:S.maxSpeed*T.max,sportMax:S.maxSpeed*T.max,accel:S.accel*T.acc,boostAccel:S.accel*T.acc,brake:S.brake*T.brake,hbrake:S.hbrake*T.brake,steerResp:S.steerResp*T.steer,revMax:S.revMax*(T.rev||.6),revAccel:S.revAccel*T.acc});
+function drive(c,inp,dt,collide){const S=c.towMul?towStats(c.stats,c.towMul):c.stats;let thr=inp.thr||0,st=inp.st||0;if(c.hp<=0)thr=0;
   if(inp.sport&&S.sport&&c.sportCd<=0){c.sportT=S.sportDur;c.sportCd=S.sportCool}
   c.sportT=Math.max(0,c.sportT-dt);c.sportCd=Math.max(0,c.sportCd-dt);
   const sp=c.sportT>0,boost=!!inp.boost,dmg=c.topMul!=null?c.topMul:c.hp<S.hp*.3?.75:1;   // the game sets c.topMul from its own damage bands
