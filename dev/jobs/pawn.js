@@ -125,8 +125,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   ok(fin.state==='won','back in the van: the job is won '+JSON.stringify(fin));await step(40);await shot('13-result');
   const res=await ev(()=>{const r=document.querySelector('.ht-result');return r?r.innerText.replace(/\s+/g,' ').slice(0,500):null});console.log('     result: '+res);
   /* back in the hub: the storefront is Ramos Bakery now */
-  const bak=await ev(()=>{const H=window.__ht;H.UIacts['result:go']&&H.UIacts['result:go']();H.step(3);if(H.CV)H.exitVehicle();H.P.pos.set(358,0,45.5);H.collide(H.P.pos,.35);for(let i=0;i<20;i++)H.step(1);
-    const s=H.jobs.api.SV();return{mode:H.mode,store:s&&s.world&&s.world.storefronts&&s.world.storefronts.pawn,sign:!!H.L.group.getObjectByName('ramosBakery')}});
+  const bak=await ev(()=>{const H=window.__ht;H.UIacts['result:go']&&H.UIacts['result:go']();H.step(3);/* a day-card or similar may be up: the hub runs once it's dismissed */for(let k=0;k<4&&!H.running;k++){const go=Object.keys(H.UIacts||{}).find(x=>/:go$|:close$|:ok$/.test(x));if(go)H.UIacts[go]();else H.running=true;H.step(2)}window.__bk={running:H.running,acts:Object.keys(H.UIacts||{})};if(H.CV)H.exitVehicle();H.P.pos.set(358,0,45.5);H.collide(H.P.pos,.35);for(let i=0;i<20;i++)H.step(1);
+    const s=H.jobs.api.SV();return{mode:H.mode,store:s&&s.world&&s.world.storefronts&&s.world.storefronts.pawn,sign:!!H.L.group.getObjectByName('ramosBakery'),bk:window.__bk}});
   ok(bak.store==='bakery'&&bak.sign,'the storefront is Ramos Bakery in the hub '+JSON.stringify(bak));await shot('14-ramos-bakery',[352.5,2.2,47.5,358,2.6,38]);
   console.log('\n---- transcript ----\n'+log.join('\n'));
   const bad=errs.filter(e=>!/favicon/.test(e));ok(!bad.length,'no console errors'+(bad.length?': '+bad.slice(0,5).join(' | '):''));

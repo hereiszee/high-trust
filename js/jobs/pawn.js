@@ -399,7 +399,7 @@ function headphones(M,p){const a=A(),T3=a.THREE,V=M.vis,hd=bone(p,'Bip01_Head');
 /* Vince's giant ribbon scissors, in his right hand (gunHold: the gun grip; muzzle along -Z) */
 function scissors(M,p){const a=A(),T3=a.THREE,V=M.vis,h=p.d.gunHold;if(!h)return;const g=new T3.Group();g.name='pawnScissors';
   for(const k of[-1,1]){const bl=new T3.Mesh(V.G.box,V.m.steel);bl.scale.set(.025,.012,.62);bl.position.set(k*.022,0,-.42);bl.rotation.y=k*.06;g.add(bl);
-    const ring=new T3.Mesh(own(M,new T3.TorusGeometry(.06,.016,6,14)),matC(M,'#ffd23f',{roughness:.4,metalness:.3}));ring.position.set(k*.06,0,.03);ring.rotation.x=Math.PI/2;g.add(ring)}
+    const ring=new T3.Mesh(own(M,new T3.TorusGeometry(.06,.016,6,14)),matC(M,'#c3261f',{roughness:.45,metalness:.1}));ring.position.set(k*.06,0,.03);ring.rotation.x=Math.PI/2;g.add(ring)}
   const bow=new T3.Mesh(V.G.sph,V.m.red);bow.scale.set(.05,.05,.05);bow.position.set(0,.02,-.12);g.add(bow);g.position.set(0,.02,.0);h.add(g);p.sc=g}
 function spawnCast(M){M.pp={};for(const c of CAST)M.pp[c.id]=person(M,c);M.castT=0}
 /* walk along p.path; true when done */
