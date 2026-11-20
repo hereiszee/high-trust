@@ -796,6 +796,8 @@ J.register('pawn',{
 
   upd(dt,M,F){const a=A(),P=a.P;M.frame++;
     if(!M.ready){const r=init(M,F);if(r!==true){if(r==='cast')F.objs.push(['The party is setting up... (balloons take a minute)',false]);if(M.ph!=='van')return}}
+    /* a fresh start: the dad steps out beside the van (not into the middle of the party in his own face) */
+    if(!M.placed){M.placed=true;const c=M.car||a.VAN;if(!a.CV&&c&&c.pos&&M.ph==='van'){const r={x:Math.cos(c.yaw),z:-Math.sin(c.yaw)};P.pos.set(c.pos.x+r.x*2.0,P.pos.y,c.pos.z+r.z*2.0);a.collide(P.pos,.35);P.yaw=Math.atan2(-(358-P.pos.x),-(40-P.pos.z));P.pitch=-.05}}
     M.t+=dt;queueTick(M,dt);
     if(M.blownT!=null){M.blownT-=dt;if(M.blownT<=0){M.blownT=null;return a.spotted(L.blownFail)}}
     const D=M.D;

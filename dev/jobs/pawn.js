@@ -58,7 +58,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const at=(id)=>ev(id=>{const q=window.__ht.M.pp[id];return{x:q.pos.x,z:q.pos.z,yaw:q.yaw}},id);
   const front=async(id,r)=>{const q=await at(id);return{x:q.x+Math.sin(q.yaw)*(r||1.1),z:q.z+Math.cos(q.yaw)*(r||1.1),r:.45}};
   /* ---- 1. out of the van, and pick a disguise from the back ---- */
-  await step(10);const inVan=await ev(()=>!!window.__ht.CV);await press('e',6);ok(inVan&&!await ev(()=>!!window.__ht.CV),'E gets out of the van');
+  await step(10);if(await ev(()=>!!window.__ht.CV)){await press('e',6);ok(!await ev(()=>!!window.__ht.CV),'E gets out of the van')}
+  ok(await ev(()=>{const H=window.__ht,c=H.M.car;return Math.hypot(H.P.pos.x-c.pos.x,H.P.pos.z-c.pos.z)<4}),'the job starts beside the van');
   await sample();await step(30);
   const rear=await ev(()=>{const M=window.__ht.M,c=M.car;const l=4.8;return{x:c.pos.x+Math.sin(c.yaw)*(l/2+.7),z:c.pos.z+Math.cos(c.yaw)*(l/2+.7)}});
   await shot('01-van-and-the-party',null);
