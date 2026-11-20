@@ -320,7 +320,7 @@ function pickPlay(M,id){const a=A();if(M.play||M!==a.M)return;M.play=id;const pl
   sayAll(M,[["rick",pick(L_.hut)]]);setT(M,pl.call.reduce((t,l)=>t+Math.max(2.2,l[1].length*.052)+.3,0)+.3,()=>whistle(M,false));
   M.ph='snap';M.snapT=-1.6}
 /* the hatchback goes: the chase starts (and the [CP] for "Retry from the snap") */
-function snapNow(M,fromCP){const a=A(),tg=M.tg,pl=PLAYS[M.play]||PLAYS.sandwich;M.ph='chase';M.chaseT0=M.t-(fromCP?0:0);M.formT=0;M.breakT=0;M.box={t:0};M.phase='escort';/* the milder chase damage band (carChasing) */
+function snapNow(M,fromCP){const a=A(),tg=M.tg,pl=PLAYS[M.play]||PLAYS.sandwich;M.q=M.q.filter(l=>l[1]===pl.call[0][1]||l[1]===(pl.call[1]||[])[1]).slice(0,2);M.ph='chase';M.chaseT0=M.t-(fromCP?0:0);M.formT=0;M.breakT=0;M.box={t:0};M.phase='escort';/* the milder chase damage band (carChasing) */
   for(const d of[M.thA,M.thB,M.rick,M.dave])if(d)d.inCar=true;M.thIn=2;M.crew.rick.inCar=M.crew.dave.inCar=true;M.crew.rick.slot=pl.rick;M.crew.dave.slot=pl.dave;
   M.atm.userData.door.visible=true;M.atm.userData.hole.visible=true;
   tg.rail.place(0);tg.rail.v=fromCP?0:2;tg.s=0;tg.v=tg.rail.v;tg.rail.stops=[];tg.rail.done=false;
@@ -355,6 +355,7 @@ function chaseTick(M,dt,F){const a=A(),tg=M.tg,pr=pOnRoute(M);M.pr=pr;
   const all=M.held.you&&M.held.rick&&M.held.dave;if(!M.boxPh)M.boxPh='form';
   const cars=[{x:pr.p.x,z:pr.p.z,who:'you'},{x:M.crew.rick.x,z:M.crew.rick.z,who:'rick'},{x:M.crew.dave.x,z:M.crew.dave.z,who:'dave'}];
   const tgt={x:tg.x,z:tg.z,yaw:tg.yaw,spd:tg.v,w:tg.w,l:tg.len},Tl=TL();
+  M.noCars=M.boxPh==='squeeze'||M.boxPh==='stop';
   if(M.boxPh==='form'){M.formT=all?M.formT+dt:0;if(M.formT>=K.formT){M.boxPh='squeeze';M.boxes++;M.vBox=tg.v;M.box={t:0};for(const c of M.civs.slice())if(c.v<0&&c.s>tg.s+55&&Math.hypot(c.x-pr.p.x,c.z-pr.p.z)>60){dropCar(M,c)}M.civs=M.civs.filter(c=>!c.gone);sayAll(M,L_.boxUp,true);blip(880,.2);
       say(M,M.held.you&&slotOf(M,'you')===SLOT.twelve?L_.squeezeYou12:L_.squeezeYou9,{front:false});setT(M,1.5,()=>{say(M,pick(L_.thiefA),{who:'kev'});say(M,pick(L_.thiefB),{who:'dante'})});music('combat',.85)}}
   else if(M.boxPh==='squeeze'||M.boxPh==='stop'){
@@ -512,7 +513,7 @@ function civHit(M,what,parked){const a=A();if(M.state!=='go'||M.ph!=='chase')ret
   a.radio('rick',parked?L_.cardParked:L_.card,true);fail(M,'card')}
 
 /* ---------------- 3. hands up: the stop, the runner, the zip-ties, the cash box, hands in ---------------- */
-function startCollar(M,quiet){const a=A(),tg=M.tg,f=fwd(tg.yaw),r=rgt(tg.yaw);M.ph='collar';M.boxPh='done';M.phase=null;M.ghost.visible=false;tg.haz=true;tg.v=0;syncC(tg,0);
+function startCollar(M,quiet){const a=A(),tg=M.tg,f=fwd(tg.yaw),r=rgt(tg.yaw);M.ph='collar';M.noCars=false;M.q.length=0;M.boxPh='done';M.phase=null;M.ghost.visible=false;tg.haz=true;tg.v=0;syncC(tg,0);
   for(const d of[M.thA,M.thB])if(d&&d.root.parent){d.root.parent.remove(d.root)}M.thA=M.thB=null;
   /* both climb out the passenger side (the driver's door has a dad parked on it, or it will in a second) */
   const out=k=>{const q=A().wmSnap?A().wmSnap(tg.x+r[0]*2.2-f[0]*k,tg.z+r[1]*2.2-f[1]*k):{x:tg.x+r[0]*2.2-f[0]*k,z:tg.z+r[1]*2.2-f[1]*k};return q};
@@ -568,7 +569,7 @@ function ghostTick(M){const g=M.ghost;if(!g)return;const show=M.ph==='chase'&&M.
   g.userData.m.opacity=on?.75:.95}
 /* the playbook: Rick's chalkboard, top right, with the three slots filling (DOM written on change only) */
 function playbook(M,init){if(typeof document==='undefined')return;const a=A();
-  if(init){const root=document.createElement('div');root.style.cssText='position:absolute;inset:0;pointer-events:none';const el=document.createElement('div');root.appendChild(el);el.className='brake-pb';el.style.cssText='position:absolute;right:18px;top:118px;width:176px;height:auto;box-sizing:border-box;padding:10px 10px 8px;border-radius:12px;background:linear-gradient(160deg,#25402f,#1a3024);'+
+  if(init){const root=document.createElement('div');root.style.cssText='position:absolute;inset:0;pointer-events:none';const el=document.createElement('div');root.appendChild(el);el.className='brake-pb';el.style.cssText='position:absolute;right:18px;top:142px;width:176px;height:auto;box-sizing:border-box;padding:10px 10px 8px;border-radius:12px;background:linear-gradient(160deg,#25402f,#1a3024);'+
       'box-shadow:0 6px 24px rgba(0,0,0,.45),inset 0 0 0 3px #6b4a2a,inset 0 0 0 6px #4b321b;font:600 11px/1.25 system-ui,Segoe UI,Arial,sans-serif;color:#eef3e6;pointer-events:none;letter-spacing:.02em;opacity:0;transition:opacity .4s';
     el.innerHTML='<div class="t" style="font:800 11px system-ui,Arial;letter-spacing:.14em;text-transform:uppercase;opacity:.85;display:flex;justify-content:space-between"><span>Playbook</span><span class="pn"></span></div><svg viewBox="0 0 156 150" width="156" height="150" style="display:block;margin-top:4px"></svg><div class="c" style="min-height:28px;font-weight:600;opacity:.95"></div>';
     M.pb={el,svg:el.querySelector('svg'),pn:el.querySelector('.pn'),c:el.querySelector('.c'),key:''};a.overlay('brake-pb',root);res().ov['brake-pb']=1;return}
