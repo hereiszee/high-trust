@@ -98,7 +98,8 @@ function freeAll(){const R=RES;RES=null;if(!R)return;const a=A();
   for(const o of Object.keys(R.ov))try{a&&a.overlay&&a.overlay(o,null)}catch(_){}
   for(const g of R.geo)try{g.dispose()}catch(_){}for(const m of R.mat)try{m.dispose()}catch(_){}for(const t of R.tex)try{t.dispose()}catch(_){}
   for(const v of R.veh)try{v.userData&&v.userData.dispose&&v.userData.dispose()}catch(_){}
-  for(const[t,ev,fn]of R.listeners)try{t.removeEventListener(ev,fn)}catch(_){}}
+  for(const[t,ev,fn]of R.listeners)try{t.removeEventListener(ev,fn)}catch(_){}
+  for(const e of R.dom||[])try{e.remove()}catch(_){}hudHide(false)}
 function listen(t,ev,fn){t.addEventListener(ev,fn);res().listeners.push([t,ev,fn])}
 const std=(c,o)=>M_(new (A().THREE.MeshStandardMaterial)(Object.assign({color:A().lin?A().lin(c):c,roughness:.6,metalness:0},o||{})));
 function canvasTex(w,h,f){const T3=A().THREE,c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new T3.CanvasTexture(c);if(T3.sRGBEncoding)t.encoding=T3.sRGBEncoding;t.anisotropy=4;return T_(t)}
@@ -252,7 +253,7 @@ J.register('tail',{
     /* the ambient traffic froze where it was when the job began: clear it, the job runs its own */
     try{const O=H().ow;if(O&&O.traffic)O.traffic(0,{player:a.P.pos,car:null,camera:a.camera,off:true})}catch(_){}
     a.wmSetWindow(a.wmWindow(START.x,START.z,20));
-    if(typeof window!=='undefined'&&window.addEventListener)listen(window,'mousedown',e=>{if(e.button===0&&M===A().M&&M.vf&&M.vfOn)snap(M)});
+    if(typeof window!=='undefined'&&window.addEventListener)listen(window,'mousedown',e=>{if(e.button===0&&M===A().M&&M.vfOn)snap(M)});
     if(o&&o.checkpoint)return;
     /* parked properly: nose toward the exit, so getting out after him is a drive, not a seven-point turn */
     {const e=a.CV;if(e&&Math.hypot(e.pos.x-START.x,e.pos.z-START.z)<12){e.pos.set(START.x,0,START.z);e.yaw=-Math.PI/2+.25;a.owStopCar(e);a.syncCar(e);a.P.yaw=e.yaw}}
@@ -303,6 +304,21 @@ J.register('tail',{
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'tail',s0:412.5,Ts:{sus:22.5,max:48,lose:1.2,fam:{van:.62},made:[],car:'van',type:'minivan'},swaps:0,bi:-1,vanAt:null,pullDone:false,lightDone:false,items:{},photo:null,maxSus:48,everMade:false})}
 });
+
+/* the result card: an observation job's numbers (suspicion, the trunk, the plate, the cars) instead of the generic fight stats */
+const HEADS=['Nobody saw a thing.','Textbook. There is no textbook.','Boring, on purpose.','Two cars back the whole way.'];
+J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='tail'||M.state==='go'||M.resDone||typeof document==='undefined')return;
+  const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
+  if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=HEADS[Math.min(HEADS.length-1,Math.floor((M.maxSus||0)/26))]}
+  const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);
+    if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
+  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
+  const mx=Math.round(M.maxSus||0),n=Object.keys(M.items||{}).length;
+  set(by('neutralized'),'Max suspicion',mx+'%',mx<=K.goldMax?'textbook':mx<=K.cleanMax?'clean tail':mx<=K.silverMax?'he wondered':'he knew');
+  set(by('zip-tied'),'Itemised',n+'/'+ITEMS.length,n>=ITEMS.length?'the whole trunk':'out of the trunk');
+  const grid=r.querySelector('.ht-stats');if(grid){const add=(k,v,sub)=>{const d=document.createElement('div');grid.appendChild(d);set(d,k,v,sub)};
+    add('Plate',M.photo?'★'.repeat(M.photo.stars)+'☆'.repeat(3-M.photo.stars):'—',M.photo?PLATE_TXT+' · '+M.photo.d+' m':'no photo');
+    add('Swaps',String(M.swaps||0),M.swaps?(M.returned?'car returned':'car still borrowed'):'stuck with the minivan')}});
 
 /* free everything once the job is over (any ending: won, failed, quit, replayed). 'pose' runs every frame, headless too. */
 J.on('pose',()=>{if(!RES)return;const a=A();if(!a)return;const M=a.M;if(a.mode==='mission'&&M&&M.def&&M.def.id==='tail')return;freeAll()});
@@ -420,6 +436,7 @@ function doSwap(M,e){const a=A(),Tl=TL();const from=a.CV,wasVan=from===a.VAN;if(
   a.CP.mark('swap')}
 function interactFor(M,prompt){const a=A();
   if(M.ph==='tail'&&a.CV){const e=swapTarget(M);if(e){const lab=e===a.VAN?'the minivan':e.name+"'s "+(CAR_NAME[e.type]||'car');return{txt:'Swap into '+lab,hold:1.2,fn:()=>doSwap(M,e)}}}
+  if(M.vfOn&&a.CV&&M.ph!=='drop')return{txt:'Binoculars up',fn:()=>{}};/* E never drops you out of the car mid-look */
   if(M.vfOn&&a.CV&&M.ph==='drop'){const g=grade(M);return{txt:M.handoff==='done'?(g.ok?'Take the photo · '+'★'.repeat(g.stars):'Line up the plate · '+(g.why||'')):'Photo (once they shut the truck)',fn:()=>snap(M)}}
   if(M.ph==='home'&&a.CV&&a.CV!==a.VAN&&Math.abs(a.CV.car?a.CV.car.spd:0)<1){const b=M.borrowed[0];if(b&&Math.hypot(b.pos.x-b.home.x,b.pos.z-b.home.z)>12)return{txt:"Call it a day (leave "+b.name+"'s car here)",hold:1.5,fn:()=>homeEnd(M,false)}}
   return null}
@@ -523,7 +540,7 @@ function spotItems(M,cam){const a=A();for(const L of M.loaders){if(!L.it||!L.it.
     const f=cam.f,c=(dx*f[0]+dy*f[1]+dz*f[2])/d;if(c>Math.cos(4.5*D)&&d<85){M.items[L.it.it.id]=true;say(M,L.it.it.line,{front:L.it.it.id==='washer'});M.score=Object.keys(M.items).length}}}
 
 /* ---------------- binoculars: from the driver's window, the photo viewfinder kit ---------------- */
-function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail')&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&P.aim;
+function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.ph==='tail'||M.ph==='wrap'&&M.wrapT<1.4)&&Math.abs(e.car?e.car.spd:e.spd||0)<1.5&&P.aim;
   if(!can){if(M.vfOn)vfOff(M);return false}
   const cam=a.camera,S=a.carSize(e),lx=-Math.sin(P.yaw),lz=-Math.cos(P.yaw),f=fwd(e.yaw),rr=rgt(e.yaw),fa=Math.abs(lx*f[0]+lz*f[1]),sa=Math.abs(lx*rr[0]+lz*rr[1]),out=Math.min(fa>.01?S.l/2/fa:99,sa>.01?S.w/2/sa:99)+.45;
   cam.position.set(e.pos.x+lx*out,a.groundAt(e.pos.x,e.pos.z)+Math.max(1.55,S.h*.85),e.pos.z+lz*out);cam.rotation.set(P.pitch,P.yaw,0,'YXZ');
@@ -532,12 +549,47 @@ function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.p
   cam.fov+=(11-cam.fov)*Math.min(1,dt*10);cam.updateProjectionMatrix();cam.updateMatrixWorld();if(P.dude)P.dude.root.visible=false;
   const cf=[-Math.sin(P.yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(P.yaw)*Math.cos(P.pitch)];M.camInfo={x:cam.position.x,y:cam.position.y,z:cam.position.z,f:cf};
   vfOn(M);if(M.handoff&&M.handoff!=='done'&&M.handoff!=='wait')spotItems(M,M.camInfo);
-  if(M.vf){const g=grade(M),pl=plateWorld();let br=null;if(g.inFrame){const p0=a.project(pl.x,pl.y+.6,pl.z),p1=a.project(pl.x,pl.y-.5,pl.z),hh=Math.max(30,Math.abs(p1.y-p0.y)),ww=hh*1.6;br={x:p0.x-ww/2,y:p0.y,w:ww,h:hh,label:g.ok?'PLATE':'PLATE · '+g.why,ok:g.ok}}
-    const vfo={zoom:'6×',label:'BINOCULARS · Doug\'s',bracket:M.handoff==='done'||M.photo?br:null,stars:M.handoff==='done'&&g.ok?g.stars:null,hint:M.handoff==='done'?'[E] Photo · [RMB] Lower':'Watch the handoff · [RMB] Lower',rec:false,flash:!!M.flash};const key=JSON.stringify(vfo);if(key!==M.vfKey){M.vfKey=key;M.vf.set(vfo)}M.flash=false}
+  {const g=grade(M),pl=plateWorld();let br=null;const show=M.handoff==='done'||!!M.photo;
+    if(show&&g.inFrame){const p0=a.project(pl.x,pl.y+.55,pl.z),p1=a.project(pl.x,pl.y-.45,pl.z),hh=Math.max(34,Math.abs(p1.y-p0.y)),ww=hh*1.7;br={x:p0.x-ww/2,y:p0.y,w:ww,h:hh,ok:g.ok,stars:g.ok?g.stars:0,why:g.why}}
+    binoDraw(M,{br,phase:M.ph,done:M.handoff==='done',dt})}
   return true}
-function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;M.vfKey=null;const HD=a.HUD;if(!M.vf&&HD&&HD.kit&&HD.kit.viewfinder){M.vf=HD.kit.viewfinder()}if(M.vf){a.overlay('tail-vf',M.vf.el);res().ov['tail-vf']=1}
+/* Doug's binoculars: two round lenses (a canvas under the HUD, so the meters and Doug's lines stay readable on top), the zoom and
+   the shutter hint at the sides (clear of the subtitles), corner brackets on the plate once it matters, a white flash on the shot.
+   While they're up the speedometer and the vehicle prompt step aside. */
+function binoEl(M){if(M.bino)return M.bino;if(typeof document==='undefined')return null;const c=document.createElement('canvas');c.id='tail-bino';
+  c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4';document.body.appendChild(c);res().dom=(res().dom||[]).concat([c]);
+  M.bino={c,x:c.getContext('2d'),w:0,h:0,key:'',flash:0};return M.bino}
+function hudHide(on){if(typeof document==='undefined')return;for(const q of['.ht-drv','.ht-pr'])for(const e of document.querySelectorAll(q)){if(on){if(e.dataset.tailHid==null){e.dataset.tailHid=e.style.visibility||'';e.style.visibility='hidden'}}else if(e.dataset.tailHid!=null){e.style.visibility=e.dataset.tailHid;delete e.dataset.tailHid}}}
+function binoDraw(M,o){const B=binoEl(M);if(!B)return;const W=innerWidth,Hh=innerHeight;B.flash=Math.max(0,B.flash-(o.dt||0)*2.4);
+  const br=o.br,key=[W,Hh,o.phase,o.done,!!M.photo,br?[Math.round(br.x/2),Math.round(br.y/2),Math.round(br.w/2),br.ok,br.stars,br.why].join(','):'-',B.flash>0?Math.round(B.flash*20):0,M.touch?1:0].join('|');
+  if(key===B.key)return;B.key=key;const c=B.c,x=B.x;if(B.w!==W||B.h!==Hh){B.w=c.width=W;B.h=c.height=Hh}
+  const r=Math.min(W*.27,Hh*.37),cy=Hh*.5,cxs=[W/2-r*.8,W/2+r*.8];
+  x.clearRect(0,0,W,Hh);x.fillStyle='#030405';x.fillRect(0,0,W,Hh);
+  /* the lenses: cut out with a soft rim, a faint blue coating near the edge */
+  x.globalCompositeOperation='destination-out';for(const cx of cxs){const gr=x.createRadialGradient(cx,cy,r*.86,cx,cy,r);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=gr;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill()}
+  x.globalCompositeOperation='source-over';for(const cx of cxs){const gr=x.createRadialGradient(cx,cy,r*.62,cx,cy,r*.98);gr.addColorStop(0,'rgba(40,70,110,0)');gr.addColorStop(1,'rgba(40,70,110,.28)');x.fillStyle=gr;x.beginPath();x.arc(cx,cy,r,0,6.2832);x.fill()}
+  /* a fine centre reticle */
+  x.strokeStyle='rgba(255,255,255,.45)';x.lineWidth=1;x.beginPath();x.moveTo(W/2,cy-r*.12);x.lineTo(W/2,cy-r*.04);x.moveTo(W/2,cy+r*.04);x.lineTo(W/2,cy+r*.12);x.moveTo(W/2-r*.12,cy);x.lineTo(W/2-r*.04,cy);x.moveTo(W/2+r*.04,cy);x.lineTo(W/2+r*.12,cy);x.stroke();
+  /* side labels: zoom on the left, what to do on the right */
+  const fs=Math.max(11,Math.round(Hh*.019));x.font='700 '+fs+'px system-ui,Arial';x.textBaseline='middle';x.fillStyle='rgba(255,255,255,.9)';
+  const lx=Math.max(16,cxs[0]-r-16);x.textAlign='right';x.fillText('BINOCULARS',lx,cy-fs*.8);x.fillStyle='#ffc94a';x.font='800 '+Math.round(fs*1.5)+'px system-ui,Arial';x.fillText('6×',lx,cy+fs*.7);
+  const rx=Math.min(W-16,cxs[1]+r+16);x.textAlign='left';x.font='700 '+fs+'px system-ui,Arial';
+  const keyE=M.touch?'Photo':'E',keyR=M.touch?'Binoculars':'RMB';
+  const hint=o.phase==='drop'?(o.done&&!M.photo?[[keyE,'Photo'],[keyR,'Lower']]:[['','Watch the handoff'],[keyR,'Lower']]):[[keyR,'Lower']];
+  /* keep the longest line on screen: start where it fits */
+  const lineW=([k,t])=>{x.font='800 '+fs+'px system-ui,Arial';const kw=k?x.measureText(k).width+fs*1.4:0;x.font='700 '+fs+'px system-ui,Arial';return kw+x.measureText(t.toUpperCase()).width};
+  const hx=Math.min(rx,W-16-Math.max(...hint.map(lineW)));
+  hint.forEach(([k,t],i)=>{const y=cy+(i-(hint.length-1)/2)*fs*2.1;let xx=hx;if(k){x.font='800 '+fs+'px system-ui,Arial';const w=x.measureText(k).width+fs*.9;x.fillStyle='rgba(255,255,255,.92)';x.beginPath();
+      if(x.roundRect)x.roundRect(xx,y-fs*.8,w,fs*1.6,fs*.35);else x.rect(xx,y-fs*.8,w,fs*1.6);x.fill();x.fillStyle='#111';x.fillText(k,xx+fs*.45,y+1);xx+=w+fs*.5}
+    x.font='700 '+fs+'px system-ui,Arial';x.fillStyle='rgba(255,255,255,.9)';x.fillText(t.toUpperCase(),xx,y+1)});
+  /* the plate: corner brackets, green when the shot is good, and the grade */
+  if(br){const col=br.ok?'#56e07a':'#ffc94a',L=Math.min(br.w,br.h)*.35;x.strokeStyle=col;x.lineWidth=2.5;x.beginPath();
+    for(const[px,py,dx,dy]of[[br.x,br.y,1,1],[br.x+br.w,br.y,-1,1],[br.x,br.y+br.h,1,-1],[br.x+br.w,br.y+br.h,-1,-1]]){x.moveTo(px+dx*L,py);x.lineTo(px,py);x.lineTo(px,py+dy*L)}x.stroke();
+    x.font='800 '+fs+'px system-ui,Arial';x.textAlign='left';x.textBaseline='bottom';x.fillStyle=col;x.fillText(br.ok?'PLATE  '+'★'.repeat(br.stars)+'☆'.repeat(3-br.stars):'PLATE · '+String(br.why||'').toUpperCase(),br.x,br.y-6)}
+  if(B.flash>0){x.fillStyle='rgba(255,255,255,'+(B.flash*.85).toFixed(3)+')';x.fillRect(0,0,W,Hh)}}
+function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;const B=binoEl(M);if(B){B.c.style.display='block';B.key=''}hudHide(true);
   if(!M.said.binoUp&&M.ph==='drop'){M.said.binoUp=1;say(M,"There. Truck's open. Count what comes out of that trunk. Out loud. I'll count too. We'll compare.",{chatter:true})}}
-function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}try{a.overlay('tail-vf',null)}catch(_){}if(M.vf&&M.vf.close)try{M.vf.close()}catch(_){}M.vf=null;
+function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}if(M.bino)M.bino.c.style.display='none';hudHide(false);
   const e=a.CV;if(a.P.dude&&!e)a.P.dude.root.visible=true}
 function plateWorld(){const f=fwd(TRUCK.yaw),bk=3.955;return{x:TRUCK.x-f[0]*bk,y:A().groundAt(TRUCK.x,TRUCK.z)+.9,z:TRUCK.z-f[1]*bk,nx:-f[0],nz:-f[1]}}
 /* any star rating is enough; stars for angle, distance and how centred it is */
@@ -546,7 +598,7 @@ function grade(M){const c=M.camInfo;if(!c)return{ok:false,inFrame:false,why:'no 
   const inFrame=off<5.2,clear=TL().los(c.x,c.z,pl.x,pl.z,{grid:{map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2}});
   let why=null;if(!inFrame)why='off frame';else if(face>68)why='wrong side';else if(d>78)why='too far';else if(!clear)why='blocked';else if(off>3.6)why='centre it';
   const stars=why?0:(face<35&&off<2&&d<58?3:face<52&&d<70?2:1);return{ok:!why,inFrame,why,stars,d,face,off}}
-function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;M.flash=true;try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready){Au.ui('click');Au.ui('hover')}else a.snd('reload',.3)}catch(_){}
+function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;if(M.bino)M.bino.flash=1;try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready){Au.ui('click');Au.ui('hover')}else a.snd('reload',.3)}catch(_){}
   if(M.handoff!=='done'){chat(M,'early',6,["Not yet. Let them finish. Rule two: never interrupt a crime mid-crime."]);return}
   const g=grade(M);if(!g.ok){chat(M,'photoBad',5,L_.photoBad);return}
   M.photo={stars:g.stars,d:Math.round(g.d),face:Math.round(g.face)};a.feed('Plate photographed · '+PLATE_TXT,'good','★'.repeat(g.stars)+' · '+Math.round(g.d)+' m');sayAll(M,L_.photo,true);
