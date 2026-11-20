@@ -206,7 +206,7 @@ J.register('tow',{
 
   /* [CP] what a stage needs to resume: each car's state, hp and pose; the gate; Lyle and his truck; the sweeping clock */
   save:M=>({ph:M.ph==='fit'||M.ph==='drive'||M.ph==='lot'?M.ph:M.ph,sweep:Math.round(M.sweep*10)/10,gate:!!(M.gate&&M.gate.want),lot:!!M.lotClear,talked:!!M.talked,fought:!!M.fought,
-    cars:M.cars.map(e=>({st:e.st==='tow'||e.st==='stolen'?(e.loose?'loose':'lot'):e.st,hp:Math.round(hpOf(e)*10)/10,x:Math.round(e.pos.x*100)/100,z:Math.round(e.pos.z*100)/100,y:Math.round(e.yaw*1000)/1000})),
+    cars:(M.cars||[]).filter(e=>e&&e.pos).map(e=>({st:e.st==='tow'||e.st==='stolen'?(e.loose?'loose':'lot'):e.st,hp:Math.round(hpOf(e)*10)/10,x:Math.round(e.pos.x*100)/100,z:Math.round(e.pos.z*100)/100,y:Math.round(e.yaw*1000)/1000})),
     truck:M.truckOut?{cuffed:!!M.lyleCuffed,x:M.ft?Math.round(M.ft.e.pos.x*10)/10:0,z:M.ft?Math.round(M.ft.e.pos.z*10)/10:0,y:M.ft?Math.round(M.ft.e.yaw*100)/100:0,brought:!!M.brought}:null}),
   load(M,s){const a=A();if(!s)return;M.sweep=s.sweep||0;M.talked=!!s.talked;M.fought=!!s.fought;
     if(s.lot){lotCleared(M,true)}
