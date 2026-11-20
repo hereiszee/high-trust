@@ -1,4 +1,4 @@
 {
- "hash": "bf029267",
+ "hash": "f7850293",
  "note": "FNV-1a of HT.World.build({bridgeOpen:true}).map.join(newline). Regenerate only for an intentional world change."
 }

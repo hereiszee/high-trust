@@ -6,13 +6,16 @@
    3. the job's own scripted player, test.step(api, frame, opts), until the job ends -> checks: won, paid, saved (jobs[id], calendar)
    --retry   first a run with opts.fail (the bot gives up) -> fail card offers "Retry from <stage>" and "Restart job" -> retry -> win
    --replay  then the fridge calendar at home -> Replay -> win again: half pay, no new day, done stays, households unchanged
+   --shots writes jpgs to docs/screenshots/jobs/<id>/.
    Exit code 1 on any failure; console errors fail the run. */
 const {open}=require('./ai-ingame-lib.js'),path=require('path'),fs=require('fs');
 const ID=process.argv[2];if(!ID||ID.startsWith('--')){console.log('usage: node dev/jobs-check.js <id> [--retry] [--replay] [--shots]');process.exit(2)}
-const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),SHOT_DIR=path.join(__dirname,'../docs/screenshots/jobs-framework');
+const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),SHOT_DIR=path.join(__dirname,'../docs/screenshots/jobs/'+ID);
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{const {b,p,errs}=await open();const ev=(f,a)=>p.evaluate(f,a);
-  const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(SHOT_DIR,n+'.jpg'),type:'jpeg',quality:82})};
+  const shot=async(n,prep)=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(prep)await ev(prep);
+    /* cards fade in on animation frames: let the page run live for a moment, then pause it again */
+    await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(900);await ev(()=>{window.__rafOn=false});await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(SHOT_DIR,n+'.jpg'),type:'jpeg',quality:82,timeout:120000,animations:'disabled'}).catch(e=>console.log('     (shot '+n+' failed: '+e.message.split('\n')[0]+')'))};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));
   await p.waitForTimeout(300);
   const reg=await p.evaluate(async id=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get(id);return j?{title:j.def.title,from:j.def.from||null,index:H.jobs.index(id),stages:j.def.stages,test:!!j.test,builtin:!!j.builtin}:null},ID);
@@ -37,12 +40,14 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     T.res=()=>({acts:Object.keys(H.UIacts||{}),pay:H.M&&H.M.pay?{total:H.M.pay.total,rerun:H.M.pay.rerun,lines:H.M.pay.lines.map(l=>l.label+':'+l.amount)}:null,medal:H.M&&H.M.medal,replay:!!(H.M&&H.M.replay),retried:!!(H.M&&H.M.retried)});
     T.rec=id=>{const s=T.SV();return s?{job:s.jobs&&s.jobs[id],cal:(s.calendar&&s.calendar.entries||[]).find(e=>e.id===id)||null,day:s.day,cash:s.cash,hh:(s.world&&s.world.households||[]).length}:null}});
   const lk=await ev(id=>window.__J.unlock(id),ID);ok(lk===null,'unlocked (lock='+lk+')');
+  /* rebuild the hub so world givers for the newly unlocked job spawn */
+  await ev(()=>{const H=window.__ht;if(H.mode==='hub'){H.enterHub();H.step(2)}});
   /* ---- the giver -> brief -> drive ---- */
   const from=reg.from||{};
   if(!has('no-giver')){
     if(from.home){await ev(()=>window.__ht.enterHome());await p.waitForFunction(()=>window.__ht.mode==='home',null,{timeout:60000}).catch(()=>{});
       const g=await ev(h=>{const H=window.__ht;H.step(3);const r=H.jobs.homeUse(h);H.step(1);return{used:r,acts:Object.keys(H.UIacts||{})}},from.home);
-      ok(g.used&&g.acts.includes('brief:go'),'home giver "'+from.home+'" offers the brief ('+JSON.stringify(g)+')');await shot(ID+'-brief');
+      ok(g.used&&g.acts.includes('brief:go'),'home giver "'+from.home+'" offers the brief ('+JSON.stringify(g)+')');await shot(ID+'-brief',()=>{const H=window.__ht;if(H.mode==='home'){H.P.pos.set(1.9,0,6.3);H.P.yaw=0;H.P.pitch=-.12}});
       const go=await ev(i=>{const H=window.__ht;H.UIacts['brief:go']();H.step(2);H.exitHome('front');H.step(3);return{mode:H.mode,job:H.JOB,i}},reg.index);
       ok(go.mode==='hub'&&go.job===reg.index,'accepted at home, out the front door with the job on the list ('+JSON.stringify(go)+')')}
     else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
@@ -66,7 +71,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   if(has('replay')){await ev(()=>{const H=window.__ht;H.UIacts['result:go']&&H.UIacts['result:go']();H.step(2)});
     await ev(()=>window.__ht.enterHome());await p.waitForFunction(()=>window.__ht.mode==='home',null,{timeout:60000}).catch(()=>{});
     const c=await ev(id=>{const H=window.__ht;H.step(2);H.jobs.calendar();H.step(1);const e=H.jobs.calEntries();return{entries:e.map(x=>x.id+':'+x.medal),acts:Object.keys(H.UIacts||{}),card:!!document.querySelector('.ht-cal,[data-screen=calendar],.cal-card')}},ID);
-    ok(c.entries.some(x=>x.startsWith(ID+':'))&&c.acts.includes('calendar:replay'),'fridge calendar lists the job with Replay ('+JSON.stringify(c)+')');await shot(ID+'-calendar');
+    ok(c.entries.some(x=>x.startsWith(ID+':'))&&c.acts.includes('calendar:replay'),'fridge calendar lists the job with Replay ('+JSON.stringify(c)+')');await shot(ID+'-calendar',()=>{const H=window.__ht;if(H.mode==='home'){H.P.pos.set(1.9,0,6.3);H.P.yaw=0;H.P.pitch=-.12}});
     const rp=await ev(id=>{const H=window.__ht;H.UIacts['calendar:replay'](id);H.step(3);return{mode:H.mode,replay:H.M&&H.M.replay,id:H.M&&H.M.def.id}},ID);ok(rp.mode==='mission'&&rp.replay&&rp.id===ID,'replay started from the calendar '+JSON.stringify(rp));
     const r2a=await ev(id=>window.__J.rec(id),ID);const w2=await ev(id=>window.__J.play(id,{},12000),ID);ok(w2.state==='won','replay won '+JSON.stringify(w2));await ev(()=>window.__ht.step(40));
     const res2=await ev(()=>window.__J.res()),r2=await ev(id=>window.__J.rec(id),ID);

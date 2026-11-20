@@ -11,6 +11,11 @@
   #bench:hover{opacity:1}
   #bench a{color:#fff;background:#0009;padding:3px 6px;border-radius:3px;text-decoration:none}
   body.shot #bench{display:none}
+  #jd{position:fixed;right:6px;top:50%;transform:translateY(-50%);z-index:99;width:200px;display:flex;flex-wrap:wrap;gap:3px;padding:6px;border-radius:6px;background:#000b;font:11px system-ui;color:#fff;opacity:.3}
+  #jd:hover{opacity:1}#jd b{width:100%;font-weight:700;margin-top:3px}
+  #jd button{font:11px system-ui;padding:3px 5px;border:0;border-radius:3px;background:#fff2;color:#fff;cursor:pointer}#jd button.on{background:#ffc94a;color:#000}
+  #jd label{width:100%;display:flex;gap:4px;align-items:center}#jd input{flex:1;min-width:0}
+  body.shot #jd{display:none}
 </style>
 <div id="bg"></div>
 <div id="hud"></div>
@@ -23,7 +28,7 @@ if(Q.has('shot'))document.body.classList.add('shot');
 const tall=innerHeight>innerWidth;
 document.getElementById('bg').style.backgroundImage=`url(bg_hub_${tall?'tall':'wide'}.jpg)`;
 const HUD=HT.HUD.init(document.getElementById('hud'),{touch:Q.has('touch')?Q.get('touch')==='1':undefined});
-['mission','hub','lowhp','shotgun','scope','drive','interior','home','banner','done','map','title','title-loading','brief','result','pause','pause-display','pause-keys'].forEach(s=>{const a=document.createElement('a');a.href='?s='+s;a.textContent=s;document.getElementById('bench').appendChild(a)});
+['mission','hub','lowhp','shotgun','scope','drive','interior','home','banner','done','map','title','title-loading','brief','result','pause','pause-display','pause-keys','jobs'].forEach(s=>{const a=document.createElement('a');a.href='?s='+s;a.textContent=s;document.getElementById('bench').appendChild(a)});
 
 /* ---- the game's HUB generator (copied so the minimap shows the real neighbourhood) ---- */
 const HUB=(()=>{const W=60,H=42,g=[...Array(H)].map((_,z)=>Array(W).fill(0).map((_,x)=>x===0||z===0||x===W-1||z===H-1?'t':'g'));
@@ -84,6 +89,8 @@ const SC={
   banner(){const s=SC.hub();s.prompt=null;s.banner={id:'b1',kind:'title',kicker:'Job 02 · Birch Street',title:'Fourth Quarter',sub:'Smash three stash tables before reinforcements arrive.'};return s},
   done(){const s=SC.mission();Object.assign(s,{prompt:null,subtitles:null,tags:[],banner:{id:'b2',kind:'done',kicker:'Return to Sender',title:'Job Done',stats:[['Trust','+12'],['Zip-tied','3'],['Payout','$850']],dur:30}});return s},
   map(){return SC.hub()},
+  jobs(){const s=SC.mission();Object.assign(s,{prompt:null,subtitles:null,tags:[],timer:null,crew:crew.slice(0,2),
+    objective:{kicker:'Good Fences · Stage 2',title:'Make the swap',lines:[{text:'Get past the gate'},{text:'Swap the crates · 1/3'},{text:'Stay unseen',warn:true}]}});return s},
 };
 const scr={
   'title-loading':()=>HUD.show('title',{progress:.42,canContinue:false,version:'0.9'}),
@@ -101,6 +108,7 @@ HUD.on('*',(n,...a)=>console.log('[hud]',n,...a));
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
   if(S==='drive'){state.speedMph=43+Math.sin(t)*6}
+  if(S==='jobs')JOBS.tick(dt);
   state.player={x:cam.x,z:cam.z};state.compassYaw=cam.yaw;
   if(state.markers)for(const m of state.markers)m.screen=project(m.x,m.h??1.8,m.z);
   HUD.update(state,dt);requestAnimationFrame(frame)}
@@ -112,6 +120,115 @@ window.fx=()=>{
   if(S==='lowhp'){HUD.damage({angle:-1.2},30);HUD.damage({angle:2.6},18);HUD.hit('hit')}
   if(S==='shotgun')HUD.hit('kill');
 };
+/* ---- SPEC3 mission widgets demo: ?s=jobs[&demo=meters|bars|photo|choices|roles|calendar|restart][&check=1] ---- */
+const JOBS=S!=='jobs'?null:(()=>{const D=Q.get('demo')||'meters',J={set:'stealth',wg:true,manual:{},vf:null,ch:null,rc:null,score:1250,combo:2,comboT:1,timer:154,nv:true,fl:false,charge:.62,tt:0};
+  const ZONES=[[0,15,'bad','Too close'],[15,60,'good','Ideal'],[60,110,'warn','Losing'],[110,160,'bad','Lost']];
+  const val=(k,auto)=>J.manual[k]!=null?J.manual[k]:auto;
+  function meters(){const tt=J.tt;
+    const ring={id:'eye',label:'Guard on the porch',style:'ring',v:val('ring',clamp01(.5+.62*Math.sin(tt*.55))),max:1,sub:null};
+    ring.sub=ring.v>=1?'Spotted':ring.v>=.6?'Coming to look':ring.v>=.35?'Something\'s off':'Unseen';
+    if(J.set==='stealth')return[ring,{id:'cover',label:'Cover',icon:'mask',style:'bar',v:val('bar',.78-.3*Math.max(0,Math.sin(tt*.3))),max:1,warn:.35,warnBelow:true,sub:'Press badge'},{id:'noise',label:'Noise',icon:'bolt',style:'pips',v:val('pips',2.4+1.6*Math.sin(tt*.8)),max:5,warn:4}];
+    if(J.set==='tail'){const d=val('band',72+62*Math.sin(tt*.35));return[{id:'dist',label:'Following distance',icon:'car',style:'bands',v:d,max:160,zones:ZONES,marker:38,sub:Math.round(d)+' m'},{id:'fam',label:'Familiarity · minivan',icon:'eye',style:'pips',v:val('pips',2.6+.4*Math.sin(tt*.2)),max:5,warn:5},ring]}
+    if(J.set==='talk')return[{id:'rap',label:'Rapport',icon:'chat',style:'bar',v:val('bar',46+20*Math.sin(tt*.4)),max:100,marker:80,sub:'Win at 80',color:'#7fdc6e'},{id:'awk',label:'Awkward',icon:'heart',style:'bar',v:val('bar2',58+30*Math.sin(tt*.5+1)),max:100,warn:70,sub:'Lose at 100'}];
+    return[ring,{id:'dist',label:'Following distance',icon:'car',style:'bands',v:val('band',72+62*Math.sin(tt*.35)),max:160,zones:ZONES,marker:38},{id:'fam',label:'Familiarity',icon:'eye',style:'pips',v:val('pips',3.4),max:5,warn:5},{id:'extra',label:'Fourth (never shown)',v:1}]}
+  const clamp01=v=>Math.max(0,Math.min(1.1,v));
+  function tick(dt){J.tt+=dt;state.meters=meters();
+    J.timer-=dt;if(J.timer<0)J.timer=154;J.comboT-=dt*.22;if(J.comboT<=0){J.combo=1;J.comboT=0}
+    if(Math.floor(J.tt/2.6)!==Math.floor((J.tt-dt)/2.6)){J.score+=50*J.combo;J.combo=Math.min(8,J.combo+1);J.comboT=1}
+    state.widgets=J.wg?[{id:'t',kind:'timer',label:'Until the truck leaves',v:J.timer,max:154,hot:J.timer<=30},{id:'s',kind:'score',label:'Lawn score',v:J.score,max:5000},{id:'c',kind:'combo',label:'Combo',n:J.combo,v:J.comboT,hot:J.combo>=5}]:[];
+    if(J.nv){J.charge-=dt*.01;if(J.charge<0)J.charge=1}
+    state.gadgets=[{id:'nv',label:'NV',key:'N',on:J.nv,charge:val('charge',J.charge)},{id:'flashlight',label:'Light',key:'F',on:J.fl}];
+    if(J.vf){const k=.5+.5*Math.sin(J.tt*.7),w=60+k*90,h=w*1.6,x=innerWidth*(innerWidth<640?.56:.62)-w/2+Math.sin(J.tt*.4)*30,y=innerHeight*(innerWidth<640?.56:.5)-h/2+10;
+      const st=w>120?3:w>95?2:w>70?1:0;J.vf.set({bracket:{x,y,w,h,label:'Trailer on the lawn'},stars:st})}}
+  /* panel */
+  const P=document.createElement('div');P.id='jd';document.body.appendChild(P);
+  const b=(lab,fn,grp)=>{const e=document.createElement('button');e.textContent=lab;e.onclick=()=>{fn(e);sync()};if(grp)e.dataset.g=grp;P.appendChild(e);return e};
+  const h=t=>{const e=document.createElement('b');e.textContent=t;P.appendChild(e)};
+  const sl=(lab,k,min,max,step)=>{const l=document.createElement('label');l.innerHTML=`<span>${lab}</span><input type=range min=${min} max=${max} step=${step}><button>auto</button>`;const i=l.querySelector('input');i.oninput=()=>J.manual[k]=+i.value;l.querySelector('button').onclick=()=>delete J.manual[k];P.appendChild(l)};
+  h('Meters');for(const s of['stealth','tail','talk','all'])b(s,()=>J.set=s,'set:'+s);
+  sl('ring','ring',0,1.1,.01);sl('band','band',0,160,1);sl('pips','pips',0,5,.1);sl('bar','bar',0,1,.01);sl('battery','charge',0,1,.01);
+  h('Widgets & gadgets');b('widgets',()=>J.wg=!J.wg,'wg');b('NV (N)',()=>J.nv=!J.nv,'nv');b('Light (F)',()=>J.fl=!J.fl,'fl');b('score +',()=>{J.score+=250});
+  h('Overlays & cards');b('checkpoint',()=>HUD.checkpoint('Stage 2: The swap'));b('viewfinder',()=>photo(!J.vf),'vf');b('flash',()=>J.vf&&(J.vf.set({flash:true}),J.vf.set({flash:false})));
+  b('choices',()=>choices(!J.ch),'ch');b('roles',()=>roles(!J.rc),'rc');b('calendar',calendar);b('result+restart',restart);
+  function sync(){P.querySelectorAll('[data-g]').forEach(e=>{const g=e.dataset.g;e.classList.toggle('on',g.startsWith('set:')?J.set===g.slice(4):!!J[g])})}
+  addEventListener('keydown',e=>{if(HUD.screen)return;if(e.code==='KeyN'){J.nv=!J.nv;sync()}if(e.code==='KeyF'){J.fl=!J.fl;sync()}});
+  HUD.on('gadget',id=>{if(id==='nv')J.nv=!J.nv;else J.fl=!J.fl;sync()});
+  function photo(on){if(!on){J.vf&&J.vf.close();J.vf=null;return}J.vf=HUD.kit.viewfinder();HUD.overlay('photo',J.vf.el);
+    J.vf.set({zoom:'2×',label:'Evidence 2/3',rec:false,hint:document.querySelector('.ht-root.touch')?'Pinch to zoom · tap Fire to shoot':'[RMB] Lower · [Wheel] Zoom · [LMB] Shoot'})}
+  const ROUNDS=[{prompt:'So… you guys cops or something?',tell:'Tre looks away and pockets his phone.',options:[{text:'Do cops wear cargo shorts this confidently?',reg:'joke'},{text:'No. I just want my neighbour\'s bike back.',reg:'real'},{text:'I once cried at a minivan commercial. Twice.',reg:'over'}]},
+    {prompt:'…Okay. What bike?',tell:'Tre shrugs, half a smile.',options:[{text:'Red Schwinn. It has a bell that plays the Macarena.',reg:'real'},{text:'You have great taste in sneakers, by the way.',reg:'compliment'},{text:'The one in your garage. Probably.',reg:'joke',disabled:true}]}];
+  function choices(on){if(!on){J.ch&&J.ch.close();J.ch=null;return}let r=0;J.set='talk';
+    J.ch=HUD.kit.choices(Object.assign({speaker:'Tre',onPick:(i,op)=>{HUD.feed('Picked: '+op.reg,'info');J.picked=i;setTimeout(()=>{if(J.ch){r=(r+1)%ROUNDS.length;J.ch.set(ROUNDS[r])}},1300)}},ROUNDS[0]));HUD.overlay('talk',J.ch.el)}
+  const PLAN={kicker:'Good Fences · The plan',title:'Who does what',
+    roles:[{id:'driver',label:'Driver',desc:'Stays with the truck. Better drivers lose chasers faster.',need:1},{id:'lookout',label:'Lookout',desc:'Calls out guards before they turn.',need:1},{id:'muscle',label:'Muscle',desc:'Holds the line if it goes loud.',need:0},{id:'talker',label:'Talker',desc:'Keeps the clerk busy.',need:0},{id:'tech',label:'Tech',desc:'Loops the camera.',need:1}],
+    crew:[{id:'gary',name:'Gary',color:'#7d6b8f',stars:{driver:1,lookout:1,muscle:1,talker:2,tech:3}},{id:'rick',name:'Coach Rick',color:'#b33a3a',stars:{driver:2,lookout:2,muscle:2,talker:2,tech:1}},{id:'dave',name:'Big Dave',color:'#c77d2a',stars:{driver:2,lookout:1,muscle:3,talker:2,tech:1}},{id:'doug',name:'Doug',color:'#5e6b4a',stars:{driver:1,lookout:3,muscle:2,talker:1,tech:2}},{id:'earl',name:'Earl',color:'#2f8a7a',stars:{driver:3,lookout:2,muscle:1,talker:3,tech:1}}],
+    assign:{tech:'gary',lookout:'doug'},entry:'roof',
+    entries:[{id:'gate',label:'Front gate (keypad code)',lock:'Needs a photo of the keypad'},{id:'roof',label:'Roof (Linda\'s ladder)'},{id:'fence',label:'Cut the back fence',lock:'Needs bolt cutters from Hank\'s'}],
+    gear:[{id:'ladder',label:'Linda\'s ladder',where:'Linda, Elm St',have:true},{id:'walkies',label:'Walkie-talkies',where:'Hank\'s · $60',have:true},{id:'cutters',label:'Bolt cutters',where:'Hank\'s · $45',have:false}],
+    forecast:['Doug watches the yard: warnings 6 s before a guard turns.','Gary loops the camera for 2 minutes.',{text:'Nobody is driving. Pick a driver.',tone:'bad'}]};
+  function forecast(a){const f=[];const n=id=>(PLAN.crew.find(c=>c.id===a[id])||{}).name;
+    if(a.driver)f.push({text:n('driver')+' drives. Chasers lose you about '+[0,0,1.5,3][PLAN.crew.find(c=>c.id===a.driver).stars.driver]+' s faster.',tone:'good'});else f.push({text:'Nobody is driving. Pick a driver.',tone:'bad'});
+    if(a.lookout)f.push(n('lookout')+' watches the yard.');if(a.tech)f.push(n('tech')+' loops the camera.');if(a.muscle)f.push(n('muscle')+' holds the line if it goes loud.');return f}
+  function roles(on){if(!on){J.rc&&J.rc.close();J.rc=null;return}
+    J.rc=HUD.kit.roles(Object.assign({},PLAN,{onChange:s=>{J.rc.set({forecast:forecast(s.assign)});console.log('plan',s)},onGo:s=>{HUD.feed('Plan locked','trust');roles(false);sync()},onBack:()=>{roles(false);sync()}}));
+    HUD.overlay('plan',J.rc.el)}
+  const CAL=[{id:'gary',title:'Return to Sender',giver:'Gary',place:'The chop shop',hood:'Maple Heights',medal:3,best:'4:12',runs:3,day:2,note:'The Kowalskis got their porch swing back. They wave now.'},
+    {id:'rick',title:'Fourth Quarter',giver:'Coach Rick',place:'The duplex on Birch',hood:'Maple Heights',medal:2,best:'2:41',runs:2,day:5,note:'The duplex on Birch is a duplex again. Two families, one lawn mower.'},
+    {id:'doug',title:'Block Party',giver:'Doug',place:'Cul-de-sac',hood:'Maple Heights',medal:1,best:'6:03',runs:1,day:9},
+    {id:'tail',title:'Following Distance',giver:'Doug',place:'Route 9',hood:'Route 9',medal:0,best:'8:20',runs:1,day:12,note:'Gold needs a tail without ever reaching "Too close".'},
+    {id:'earl',title:'Bike Library',giver:'Earl',place:'Ash St',hood:'Riverside Flats',medal:3,best:'3:55',runs:4,day:16},
+    {id:'king',title:'The Kingpin',giver:'Everyone',place:'Ridgeview',hood:'Maple Heights',medal:2,best:'11:48',runs:1,day:16,replayable:false,note:'Story finale. Replays unlock after the credits.'}];
+  function calendar(){HUD.show('calendar',{title:'Run it back',day:18,entries:CAL,selected:'rick'})}
+  function restart(){HUD.show('result',{fail:true,stamp:'Job failed',title:'Good Fences',text:'The guard dog was, in fairness, a very good boy.',stats:[['Stage','2 / 4'],['Time','5:20'],['Spotted','1'],['Trust','±0']],canRetry:true,retryLabel:'Retry from Stage 2',restartLabel:'Restart job',goLabel:'Head home'})}
+  HUD.on('action',(a,arg)=>{if(a==='calendar:replay'){HUD.feed('Replay '+arg,'info');HUD.hide('calendar')}if(/^result:/.test(a)){HUD.feed(a,'info');HUD.hide('result')}});
+  /* automated check (?check=1, or window.jobsCheck() from a test script) */
+  async function check(){const out=[],ok=(n,c,info)=>out.push({n,ok:!!c,info:info??''});const fr=()=>new Promise(r=>requestAnimationFrame(()=>r()));
+    J.set='all';await fr();await fr();
+    ok('meters capped at 3',document.querySelectorAll('.ht-me:not([hidden])').length===3);
+    J.manual.ring=.2;await fr();const me=document.querySelector('.ht-me[data-s=ring]');ok('ring calm shows the eye',me.classList.contains('lv0')&&getComputedStyle(me.querySelector('.eye')).display!=='none'&&getComputedStyle(me.querySelector('.gl')).display==='none');
+    J.manual.ring=.4;await fr();ok('ring yellow at .35 with ?',me.classList.contains('lv1')&&me.querySelector('.gl').textContent==='?'&&getComputedStyle(me.querySelector('.eye')).display==='none');
+    J.manual.ring=.7;await fr();ok('ring orange at .6',me.classList.contains('lv2'));
+    J.manual.ring=1;await fr();ok('ring red at 1 with !',me.classList.contains('lv3')&&me.querySelector('.gl').textContent==='!');
+    J.manual.band=8;await fr();ok('bands zone label',/Too close/.test(document.querySelector('.ht-me[data-s=bands] .vl').textContent));
+    J.manual.band=40;await fr();ok('bands zone label ideal',/Ideal/.test(document.querySelector('.ht-me[data-s=bands] .vl').textContent));
+    ok('pips count = max',document.querySelectorAll('.ht-me[data-s=pips] .ht-pips i').length===5);
+    J.timer=75.2;await fr();ok('timer m:ss',document.querySelector('.ht-wi[data-k=timer] .n').textContent==='1:16');
+    J.timer=8.31;await fr();ok('timer tenths + hot',document.querySelector('.ht-wi[data-k=timer] .n').textContent.match(/^8\.[34]$/)&&document.querySelector('.ht-wi[data-k=timer]').classList.contains('hot'));
+    ok('combo ×n',/^×\d$/.test(document.querySelector('.ht-wi[data-k=combo] .n').textContent));
+    J.manual.charge=.1;await fr();ok('gadgets: 2 chips, low battery blinks',document.querySelectorAll('.ht-gc').length===2&&document.querySelector('.ht-gc.low'));delete J.manual.charge;
+    /* no DOM churn with unchanged values */
+    const frozen=Object.assign({},J.manual);J.manual={ring:.5,band:50,pips:3,charge:.5};const sv=[J.timer,J.score,J.combo,J.comboT];const tk=JOBS.tick;let mut=0;
+    JOBS.tick=()=>{state.widgets.forEach(w=>{});};await fr();await fr();await new Promise(r=>setTimeout(r,1000));
+    const mo=new MutationObserver(l=>mut+=l.length);mo.observe(document.querySelector('.ht-tc'),{subtree:true,childList:true,attributes:true,characterData:true});mo.observe(document.querySelector('.ht-gd'),{subtree:true,childList:true,attributes:true,characterData:true});
+    for(let i=0;i<30;i++)await fr();mo.disconnect();JOBS.tick=tk;J.manual=frozen;ok('no DOM writes over 30 unchanged frames',mut===0,mut+' mutations');
+    /* crosshair clear */
+    HUD.checkpoint('Stage 2: The swap');photo(true);choices(true);await fr();await new Promise(r=>setTimeout(r,300));
+    const cx=innerWidth/2,cy=innerHeight/2,hitC=[...document.querySelectorAll('.ht-tc>*,.ht-me,.ht-wi,.ht-cp,.ht-ch .pl,.ht-vf .tp,.ht-vf .st,.ht-vf .zm,.ht-vf .ft,.ht-gc')].filter(e=>{const r=e.getBoundingClientRect();return r.width&&r.left<cx+30&&r.right>cx-30&&r.top<cy+30&&r.bottom>cy-30}).map(e=>e.className);
+    ok('nothing within 30 px of the crosshair',!hitC.length,hitC.join(','));
+    let picked=null;J.picked=null;dispatchEvent(new KeyboardEvent('keydown',{key:'2',code:'Digit2',bubbles:true}));await fr();ok('choices: key 2 picks option 2',J.picked===1);
+    choices(false);photo(false);await new Promise(r=>setTimeout(r,250));ok('overlay unmounts',!document.querySelector('.ht-ov:not(.out)')&&!HUD.overlay('photo'));
+    roles(true);await fr();const go=document.querySelector('.ht-rc .go');ok('roles: Go disabled with a required role empty',go.disabled);
+    dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',bubbles:true}));await fr();dispatchEvent(new KeyboardEvent('keydown',{key:'5',code:'Digit5',bubbles:true}));await fr();
+    ok('roles: keys 1 then 5 assign Earl as driver',JOBS.J.rc.get().assign.driver==='earl');ok('roles: Go enabled once filled',!document.querySelector('.ht-rc .go').disabled);roles(false);
+    let got=null;const off=HUD.on('action',(a,arg)=>{if(a==='calendar:replay')got=arg});calendar();await fr();document.querySelector('.ht-cal [data-id=earl]').click();document.querySelector('.ht-cal [data-cal=replay]').click();off();
+    ok('calendar: replay passes the job id',got==='earl',got);
+    calendar();await fr();let closed=false;const off2=HUD.on('action',a=>{if(a==='calendar:close')closed=true});dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));off2();await new Promise(r=>setTimeout(r,500));ok('calendar: Esc closes',closed&&!HUD.screen);
+    HUD.show('calendar',{day:3,entries:[]});await fr();ok('calendar: empty state',/Nothing on the fridge/.test(document.querySelector('.ht-cal .ls').textContent));HUD.hide('calendar',true);
+    restart();await fr();const rs=document.querySelector('[data-act="result:restart"]');ok('result: restart button with act result:restart',rs&&rs.textContent==='Restart job'&&document.querySelector('[data-act="result:retry"]'));HUD.hide('result',true);
+    HUD.show('result',{title:'x',canRetry:true});ok('result: no restart without restartLabel',!document.querySelector('[data-act="result:restart"]'));HUD.hide('result',true);
+    J.manual={};const bad=out.filter(x=>!x.ok);console.log('[jobsCheck]',bad.length?'FAIL':'PASS',JSON.stringify(out));return{pass:!bad.length,out}}
+  /* demo presets for screenshots */
+  setTimeout(()=>{
+    if(D==='meters'){J.set='tail';J.manual={ring:.68,band:44,pips:2.6};setTimeout(()=>HUD.checkpoint('Stage 2: The swap'),600)}
+    if(D==='bars'){J.set='talk';J.wg=false}
+    if(D==='photo'){J.set='stealth';J.wg=false;J.manual={ring:.42,bar:.7,pips:1.6};photo(true)}
+    if(D==='choices'){J.wg=false;choices(true);J.manual={bar:52,bar2:74}}
+    if(D==='roles'){roles(true);setTimeout(()=>dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1'})),100)}
+    if(D==='calendar')calendar();
+    if(D==='restart')restart();
+    sync();if(Q.has('check'))check().then(r=>{window.jobsResult=r})},50);
+  return{tick,J,check}})();
+window.jobsCheck=()=>JOBS&&JOBS.check();
 window.HUDBENCH={state,cam,HUD};
 })();
 </script>

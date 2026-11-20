@@ -7,7 +7,7 @@ for (const f of process.argv.slice(2)) {
   const doc = await io.read(f);
   let tris = 0;
   for (const m of doc.getRoot().listMaterials()) {
-    if (/_opacity/.test(m.getName())) { m.setAlphaMode('MASK').setAlphaCutoff(0.35).setDoubleSided(true); }
+    if (/_opacity|_glasses/.test(m.getName())) { m.setAlphaMode('MASK').setAlphaCutoff(0.35).setDoubleSided(true); }
   }
   for (const me of doc.getRoot().listMeshes()) for (const p of me.listPrimitives()) tris += p.getIndices().getCount() / 3;
   await io.write(f, doc);
