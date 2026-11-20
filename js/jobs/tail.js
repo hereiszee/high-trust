@@ -473,11 +473,15 @@ function dropStart(M,quiet){const a=A();const r=M.tg.rail;r.stops=[];M.handoff='
   a.wmSetWindow(a.wmWindow(TRUCK.x+10,TRUCK.z-4,30));
   if(!quiet){sayAll(M,L_.arrive,true);setT(M,9,()=>{if(M.ph==='drop'&&!M.said.bino){M.said.bino=1;sayAll(M,L_.bino)}})}
   else M.said.bino=1}
+/* the sedan's trunk, popped open (a lid in the car's colour, hinged at the back window) */
+function trunkLid(M){const a=A(),T3=a.THREE;if(M.lid||!M.tg)return;const r=M.tg.rail,f=fwd(r.yaw),S=M.tg.S,g=new T3.Group();
+  g.position.set(r.x-f[0]*(S.l/2-1.05),a.groundAt(r.x,r.z)+1.02,r.z-f[1]*(S.l/2-1.05));g.rotation.y=r.yaw;a.wmAdd(g);
+  const piv=new T3.Group();piv.rotation.x=1.2;g.add(piv);mesh(bx(S.w*.8,.05,.95),std('#8f969c',{roughness:.35,metalness:.3}),0,0,.47,piv);mesh(bx(S.w*.7,.02,.8),std('#2a2c2f',{roughness:.9}),0,-.035,.47,piv);M.lid=g}
 function trunkPt(){return{x:SEDAN_PARK.x+3.1,z:SEDAN_PARK.z+.15}}
 function truckPt(i){return{x:TRUCK.x+4.5+.0,z:TRUCK.z+(i-1)*.6}}
 function dropTick(M,dt,F){const a=A(),Tl=TL(),r=M.tg.rail,p=playerCar();r.step(dt,{});
   /* the driver gets out once he's parked */
-  if(r.done&&!M.driverOut){M.driverOut=true;const d=M.driver;if(d){d.root.visible=true;d.root.position.set(SEDAN_PARK.x+.6,0,SEDAN_PARK.z-1.5);M.handoff='go'}}
+  if(r.done&&!M.driverOut){M.driverOut=true;const d=M.driver;if(d){d.root.visible=true;d.root.position.set(SEDAN_PARK.x+.6,0,SEDAN_PARK.z-1.5);M.handoff='go'}trunkLid(M)}
   if(M.driverOut&&M.driver){const d=M.driver;if(M.handoff!=='done'){if(walkTo(d,{x:SEDAN_PARK.x+3.6,z:SEDAN_PARK.z-1.4},1.3,dt))faceTo(d,TRUCK.x,TRUCK.z,dt)}else{faceTo(d,TRUCK.x+4,TRUCK.z,dt);pose(d,dt)}}
   handoffTick(M,dt);
   /* the crew at the drop: too close (or in the lot) and somebody looks up */
@@ -542,7 +546,7 @@ function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;M.flash=
   const g=grade(M);if(!g.ok){chat(M,'photoBad',5,L_.photoBad);return}
   M.photo={stars:g.stars,d:Math.round(g.d),face:Math.round(g.face)};a.feed('Plate photographed · '+PLATE_TXT,'good','★'.repeat(g.stars)+' · '+Math.round(g.d)+' m');sayAll(M,L_.photo,true);
   M.ph='wrap';M.wrapT=0;try{const Au=window.HT&&HT.Audio;Au&&Au.ready&&Au.music('hub',{intensity:.35})}catch(_){}}
-function finishHandoff(M){/* a checkpoint past the handoff: the truck is loaded and shut */M.handoff='done';doorSet(M.truck,0);for(const L of M.loaders){L.st='idle';L.d.root.position.set(TRUCK.x-1.8+Math.random(),0,TRUCK.z-1.8)}for(const q of M.qItems)q.st='in';M.driverOut=true;if(M.driver){M.driver.root.visible=true;M.driver.root.position.set(SEDAN_PARK.x+3.6,0,SEDAN_PARK.z-1.4)}}
+function finishHandoff(M){/* a checkpoint past the handoff: the truck is loaded and shut */M.handoff='done';doorSet(M.truck,0);for(const L of M.loaders){L.st='idle';L.d.root.position.set(TRUCK.x-1.8+Math.random(),0,TRUCK.z-1.8)}for(const q of M.qItems)q.st='in';M.driverOut=true;if(M.driver){M.driver.root.visible=true;M.driver.root.position.set(SEDAN_PARK.x+3.6,0,SEDAN_PARK.z-1.4)}trunkLid(M)}
 /* touch: binoculars and shutter buttons while parked at the drop */
 function touchButtons(M,on){const a=A();const touch=typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(pointer:coarse)').matches;M.touch=touch;if(!touch||typeof document==='undefined')return;
   if(on&&!M.tbtn){const el=document.createElement('div');el.style.cssText='position:fixed;right:18px;bottom:190px;display:flex;flex-direction:column;gap:10px;z-index:30;pointer-events:none';
@@ -595,7 +599,7 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||M.broken)return n
   if(M.ph==='drop'||M.ph==='wrap'){const e=a.CV;if(!e){off();return null}const c=e.car||e;
     if(!B.parked){const WP=[[409.6,112],[409.6,121],[411.5,126.6],[416,128.4],[424,128.5],[429,128.5]];if(B.dw==null){B.dw=0;let bd=1e9;WP.forEach((w,i)=>{const d=Math.hypot(w[0]-c.x,w[1]-c.z);if(d<bd&&i<WP.length-1){bd=d;B.dw=i}})}
       const w=WP[B.dw],dw=Math.hypot(w[0]-c.x,w[1]-c.z),lastW=B.dw===WP.length-1;if(dw<(lastW?1.6:3)){if(lastW){off();k.s=c.spd>.2;if(Math.abs(c.spd)<.3)B.parked=true;return null}B.dw++;return null}
-      steerTo(c,w[0],w[1],lastW?Math.max(1.5,dw*.6):B.dw>=2?6:9);unstick(e,c,6,[{x:w[0],z:w[1]}]);return null}off();k.s=Math.abs(c.spd)>.2;
+      steerTo(c,w[0],w[1],lastW?Math.max(1.5,dw*.6):B.dw>=2?6:9);unstick(e,c,6,[{x:w[0],z:w[1]}]);return null}off();k.s=c.spd>.2;k.w=c.spd<-.2;
     if(M.ph==='wrap'){P.aim=false;return null}
     P.aim=true;let aimAt=M.handoff==='done'?plateWorld():null;if(!aimAt){const L=M.loaders.find(L=>L.it&&L.it.pos);aimAt=L?{x:L.it.pos.x,y:L.it.pos.y,z:L.it.pos.z}:{x:TRUCK.x+5,y:1.2,z:TRUCK.z+2}}
     const cam=M.camInfo||{x:c.x,y:1.6,z:c.z};const dx=aimAt.x-cam.x,dz=aimAt.z-cam.z,dy=(aimAt.y||1)-cam.y;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));
