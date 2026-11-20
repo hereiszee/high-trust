@@ -14,6 +14,7 @@ async function open(o={}){
     r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':TYPES[path.extname(f).toLowerCase()]||'application/octet-stream','access-control-allow-origin':'*'}})});
   await p.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);window.__rafOn=true;
     window.requestAnimationFrame=cb=>{if(window.__rafOn)return raf(cb);window.__rafPending=cb;return 0}});
+  if(o.init)await p.addInitScript(o.init.fn,o.init.arg);/* e.g. seed localStorage with a save before the game boots */
   const t0=Date.now();await p.goto('http://ht.local/index.html');
   await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:90000});
   await p.evaluate(()=>{window.__rafOn=false});await p.waitForTimeout(300);

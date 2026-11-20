@@ -23,6 +23,7 @@ HT.Jobs.register('taxi',{
   payout(M,ok){return[['Label',amount],...]},   // extra result-card lines (the trust multiplier and rerun ×0.5 apply)
   medal(M){return 1|2|3},    // calendar medal; bronze = finished. Gold is capped to silver after a stage retry (M.retried)
   end(M,ok){},               // story effects: HT.Save.household(), storefront(), flags. NEVER runs on a replay
+  result(M,ok,res){},        // edit the result card before it shows: res.title (headline), res.text, res.stats [[label,value,sub],...]. Never patch the card's DOM
   perceive(e,world){}, noise(n){}, vehicle(car,dt){}, camera(dt){}, interact(prompt){}, fire(){}, hud(state){}, home(id){},
   test:{give(api){}, step(api,frame,opts){}}    // for dev/jobs-check.js
 });
@@ -50,7 +51,10 @@ Standard MISSIONS fields: `giver, hood ('maple'|'river'), role, title, place, li
 | `stay` | The dad stays at the wheel when the job starts (taxi, tail, cargo). |
 | `roam` | No "get back to the job" leash (jobs that move around the map). |
 | `winTrust` | Trust on success instead of the default (+16 Maple / +14 Riverside). Use 0 and call `api.addTrust` yourself for small-step jobs. |
-| `order` | Giver priority (lower first). At most 3 registered givers show at once. |
+| `order` | Giver priority (lower first). One person, one place: a giver with several jobs (Dee, Dave, Doug, Earl, Sal…) offers them one at a time — built-in jobs first, then story jobs before repeatables, then `order`; two jobs on the same spot take turns the same way (see `docs/JOBS-ORDER.md`). |
+| `payLabel` | What the base pay line on the result card is called ("Hank's promotion"). Default: "Bake sale fund" (the four Maple originals). |
+| `peaceful` | The card drops "Neutralized" (unless somebody was) and an empty "Zip-tied", and wins with a peaceful headline. Default: `!!noGuns`. A job with no `crew` says "Nobody got hurt" instead of "Nobody pulled a hamstring". |
+| `aimToggle` | Right-click (AIM) is a pure toggle in this job whatever the player's Aim setting (the sign, a scope): never a held button plus another input. Also settable live: `M.aimToggle`. |
 
 ### `M` (the running mission) and `F` (the frame)
 
@@ -65,6 +69,7 @@ Set `M.exitOpen=true` when the job is won: "Back to your ride" appears and getti
 | `objs.push([text, done, 'warn'?])` | Objective lines. |
 | `target={x,z,label}` | The marker and minimap route. |
 | `holds.push({x,z,r,o,txt,time,fn})` | Hold-E actions (`o.prog` keeps progress). |
+| *E arbitration* | One action per press and the prompt always names it: a surrendered enemy (zip-tie) > the nearest of your placed holds/taps (a hold in progress keeps E) > `{d}` taps > the interact hook (system handlers yield when the job already has an action) > cars ("Get in" is dropped while a job tap/hold is within its radius + 1.5 m and nearer than the car). |
 | `taps.push({x,z,r,txt,fn})` or `{d,r,txt,fn}` | Press-E actions (`d` = your own distance). |
 | `prompt`, `promptP` | A raw prompt. |
 | `meters.push({...})` | HUD meters (below), max 3. |

@@ -2623,7 +2623,9 @@ function updHub(dt){
   if(tn){const n=tn;prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}
   for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
-    if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
+    if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}
+      /* the tow boom: hold E hitches (js/tow.js takes the press first), a quick tap still gets you out: the prompt says both */
+      {const TW=window.HT&&HT.Tow,th=TW&&TW.action?TW.action():null;if(th&&th.hold&&!th.info)prompt='Hold '+KE+' · '+th.txt+' · tap: get out'}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
         else{const j=JOB,b=e!==VAN?e:null;if(L.ow)OWS.ret={x:e.pos.x,z:e.pos.z,yaw:e.yaw};setPrompt(null);showMarker(null);startMissionWhenReady(j);if(b)radio(speaker()||'you',pick(["We rolled up in "+b.name+"'s "+feel(b).label+". Very intimidating.","Nobody tell "+b.name+" where we parked it.","Leave the keys in the cupholder. We're the good guys."]));return}}}
@@ -2989,7 +2991,8 @@ function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){
   let best=null,bd=1e9;const fam=H.familyInteractables?H.familyInteractables():[];
   for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
   const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Root beer · the fridge calendar',calendar:'Calendar · replay a job',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
-  setPrompt(best?KE+' · '+(LBL[best.id]||best.label):null);
+  {const offer=best&&typeof jrHomeOffer==='function'?jrHomeOffer(best.id):null;/* a job on offer here takes E: say so */
+   setPrompt(best?KE+' · '+(offer?(LBL[best.id]||best.label).split(' · ')[0]+' · Job: '+offer.title:(LBL[best.id]||best.label)):null)}
   homeHint-=dt;setObj('Home',homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
   if(!best||!useTap)return;useTap=false;const id=best.id;
   if(JH.home(id))return;/* JOBS: jobs offered from home, Doug's corkboard, Jen's note */
@@ -3785,6 +3788,8 @@ function wmFrame(dt,J){jrHolsterTick();const m=M.def,F={objs:[],target:null,hold
   let hold=null,bd=1e9;if(!VAN.on&&!atRide)for(const h of F.holds){const dd=Math.hypot(h.x-P.pos.x,h.z-P.pos.z);if(dd<(h.r||1.8)&&dd<bd){bd=dd;hold=h}}
   for(const h of F.holds)if(h!==hold&&h.o.prog)h.o.prog=Math.max(0,h.o.prog-dt);
   const busy=hold&&hold.o.prog>0;let prompt=F.prompt,pp=F.promptP;
+  /* nearest wins: a placed tap nearer than the nearest hold takes E (a hold already in progress keeps it) */
+  if(hold&&!busy&&!near){let td=1e9;for(const t of F.taps){if(t.x==null||t.d!=null)continue;/* placed taps only: {d} taps are job-wide actions */const dd=Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td)td=dd}if(td<bd-.05)hold=null}
   if(near&&!busy){prompt=KE+' · Zip-tie';if(useTap){useTap=false;wmCuff(near)}}
   else if(hold){hold.o.prog=hold.o.prog||0;prompt='Hold '+KE+' · '+hold.txt;if(keys.e){hold.o.prog+=dt/hold.time;if(hold.o.prog>=1){hold.o.prog=0;hold.fn()}}else hold.o.prog=Math.max(0,hold.o.prog-dt);pp=hold.o.prog}
   else{let tap=null,td=1e9;for(const t of F.taps){const dd=t.d!=null?t.d:Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td){td=dd;tap=t}}
@@ -4118,7 +4123,8 @@ function wmHubGivers(){const out=[],lines=[];
   setObj(L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights',lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'])}
 function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
   ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
-function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>m.reg||prog.done[i])&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
+/* the finale waits until nothing story-wise is on offer: every built-in job done, and every registered story job done or still locked (a gate the player hasn't met, like Small Talk's zip-ties) */
+function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>prog.done[i]||(m.reg&&(m.repeatable||(typeof jrLock==='function'&&jrLock(m)))))&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
 function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;jrHubEnter();
   const s=SV();if(prog.done[1]&&!WM.beat&&!(s&&s.flags.act2Intro)){WM.beat=true;prog.act=2;if(s){s.flags.act2Intro=true;s.world.bridgeOpen=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags','world')}
     setTimeout(()=>{if(mode!=='hub'||HUD.screen==='result')return;running=false;releaseLock();
@@ -4262,9 +4268,11 @@ function jrResult(ok,res,mi){const m=MISSIONS[mi];if(ok||!m||!m.reg)return;const
     UI.acts['result:restart']=()=>{HUD.hide('result');UI.acts={};JRS.cp=null;startMissionWorld(mi,{replay:rp});requestLock()}}
   else if(M&&M.replay){UI.acts['result:retry']=()=>{HUD.hide('result');UI.acts={};startMissionWorld(mi,{replay:true});requestLock()}}}
 /* ---- home: a job offered from home (the laptop, Jen's fridge note) and the fridge calendar ---- */
-function jrHomeGiver(id){if(!JR||!WORLD)return false;const s=SV(),day=s?s.day:1;
+/* the job a home interactable would offer right now (the prompt names it, so E never surprises) */
+function jrHomeOffer(id){if(!JR||!WORLD)return null;const s=SV(),day=s?s.day:1;
   for(const j of JR.list(j=>!j.builtin&&j.def.from&&j.def.from.home===id)){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m)||(!m.repeatable&&prog.done[i]))continue;if(JRS.declined[m.id]===day||JRS.pending===i)continue;
-    openBrief(i,{home:id});return true}return false}
+    return m}return null}
+function jrHomeGiver(id){const m=jrHomeOffer(id);if(!m)return false;openBrief(MISSIONS.indexOf(m),{home:id});return true}
 function jrHubEnter(){if(JRS.night){JRS.night=false;if(typeof setNight==='function')try{setNight(0)}catch(_){}}
   if(JRS.pending!=null&&mode==='hub'){const i=JRS.pending;JRS.pending=null;if(!L.dests[i]){const d=jrDest(MISSIONS[i]);if(d)L.dests[i]=d}if(L.dests[i]){JOB=i;objKey='';jrOnRegister(JR.get(MISSIONS[i].id));destRings.forEach((r,k)=>{if(r)r.visible=k===i});hubObj()}}}
 function calEntries(){const s=SV(),out=[];if(!s)return out;const jobs=s.jobs||{};

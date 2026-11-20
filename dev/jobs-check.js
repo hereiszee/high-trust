@@ -7,16 +7,18 @@
    --retry   first a run with opts.fail (the bot gives up) -> fail card offers "Retry from <stage>" and "Restart job" -> retry -> win
    --replay  then the fridge calendar at home -> Replay -> win again: half pay, no new day, done stays, households unchanged
    --shots writes jpgs to docs/screenshots/jobs/<id>/.
+   --save <file.json> starts from that save instead of a new game (e.g. dev/fixtures/all-done-save.json: every job done)
    Exit code 1 on any failure; console errors fail the run. */
 const {open}=require('./ai-ingame-lib.js'),path=require('path'),fs=require('fs');
 const ID=process.argv[2];if(!ID||ID.startsWith('--')){console.log('usage: node dev/jobs-check.js <id> [--retry] [--replay] [--shots]');process.exit(2)}
 const has=k=>process.argv.includes('--'+k),SHOTS=has('shots'),SHOT_DIR=path.join(__dirname,'../docs/screenshots/jobs/'+ID);
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
-(async()=>{const {b,p,errs}=await open();const ev=(f,a)=>p.evaluate(f,a);
+const SAVE_I=process.argv.indexOf('--save'),SAVE_F=SAVE_I>0?process.argv[SAVE_I+1]:null;/* --save file.json: start from that save (title -> Continue) */
+(async()=>{const {b,p,errs}=await open(SAVE_F?{init:{fn:s=>{try{if(!sessionStorage.getItem('__seeded')){localStorage.setItem('ht-save',s);sessionStorage.setItem('__seeded','1')}}catch(e){}},arg:fs.readFileSync(SAVE_F,'utf8')}}:{});const ev=(f,a)=>p.evaluate(f,a);
   const shot=async(n,prep)=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(prep)await ev(prep);
     /* cards fade in on animation frames: let the page run live for a moment, then pause it again */
     await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(900);await ev(()=>{window.__rafOn=false});await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(SHOT_DIR,n+'.jpg'),type:'jpeg',quality:82,timeout:120000,animations:'disabled'}).catch(e=>console.log('     (shot '+n+' failed: '+e.message.split('\n')[0]+')'))};
-  await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));
+  await p.click('.ht-title [data-act='+(SAVE_F?'continue':'newgame')+']').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));
   await p.waitForTimeout(300);
   const reg=await p.evaluate(async id=>{const H=window.__ht;await H.jobs.ready;H.step(2);const j=H.jobs.registry.get(id);return j?{title:j.def.title,from:j.def.from||null,index:H.jobs.index(id),stages:j.def.stages,test:!!j.test,builtin:!!j.builtin}:null},ID);
   ok(!!reg&&!reg.builtin,'registered: '+JSON.stringify(reg));if(!reg||reg.builtin){await b.close();process.exit(1)}
