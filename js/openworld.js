@@ -653,6 +653,12 @@ function adArt(i){const c=canvas(1024,384),x=c.getContext('2d');const T=(t,sz,y,
    (opaque, cut-out and floor-decal atlases), textured buckets only where they read (brick, siding, roof, glass). sp.r: the piece is drawn within r metres. */
 const S3={},S3_SITE_R={pawn:110,storage:120,millshop:110};   /* props a job can move: S3['parkride.barrier'] (pivot; rotation.x 0 = closed), S3['storage.gate'], S3['millshop.gate'] (groups that slide) */
 OW.prop=name=>S3[name]||null;
+/* ---- hooks for modules that add to the world without editing this file (js/base.js, js/jet.js; docs/base.md) ----
+   OW.addSetpiece({id,box(def),build(ws,u),r?,always?}) before the world is built: a cull unit like the ones above.
+   OW.kit: the helpers set pieces use. OW.flight({R,blod}) widens the draw radius while flying (null = back to the preset). */
+OW.addSetpiece=sp=>{if(sp&&sp.id&&!SETPIECES.some(q=>q.id===sp.id))SETPIECES.push(sp)};
+OW.kit={stdMat,basicGlow,canvas,ctex,lin,M4,cyl,rng,signCanvas,HW,TILE};
+OW.flight=o=>{const ws=WS;if(!ws)return;ws.fly=o||null;for(const u of ws.units){u.near=null;u.mnear=null;u.far=null}};
 const s3Vc=()=>stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1});
 const S3C={white:[.82,.81,.77],galv:[.5,.53,.55],dark:[.1,.11,.12],conc:[.5,.49,.46],glass:[.03,.05,.08],wood:[.33,.22,.13],red:[.62,.06,.05],yellow:[.85,.62,.06],paint:[.86,.85,.8],brass:[.6,.45,.15]};
 /* sign atlases: add() collects canvases + placements, build() packs them into one texture per kind and emits one mesh per kind */
@@ -1141,14 +1147,16 @@ OW.sourcesChanged=()=>{if(WS){WS.tsrc=null;const t=WS.trust;WS.trust=null;OW.dre
 /* ================= per frame ================= */
 const _v=new THREE.Vector3(),_b=new THREE.Box3();
 OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
-  const fogFar=C.fogFar?C.fogFar():200;const R=Math.min(ws.R||(ws.R=200),fogFar+8);ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
+  const fogFar=C.fogFar?C.fogFar():200;const R=ws.fly?Math.max(ws.fly.R||0,Math.min(ws.R||(ws.R=200),fogFar+8)):Math.min(ws.R||(ws.R=200),fogFar+8);   /* ws.fly: OW.flight (the jet) */ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
     if(!u.built){if(d<R+40&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue}
     if(!u.ready){u.group.visible=false;continue}
-    if(u.mg){const far=d>ws.BLOD;if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
-    let vis=u.sp&&u.sp.always?true:d<(u.r?Math.min(u.r,R):R);   /* u.r: a unit drawn only within r metres (SPEC3 sites and their dressing) */if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
+    if(u.mg){const far=d>(ws.fly&&ws.fly.blod||ws.BLOD);if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
+    let vis=u.sp&&u.sp.always?true:d<(u.r&&!ws.fly?Math.min(u.r,R):R);   /* flying (OW.flight): everything to R, the small-radius units too */
+    /* the old southern tree line hides the Fort Sensible strip (rows 80+) from street level in town: skip its units beyond 60 m */
+    if(vis&&!ws.fly&&u.box.z0>=158&&cz<156&&camera.position.y<25&&d>60)vis=false;   /* u.r: a unit drawn only within r metres (SPEC3 sites and their dressing) */if(vis&&!(u.sp&&u.sp.always)){_b.min.set(u.box.x0,-6,u.box.z0);_b.max.set(u.box.x1,u.box.y1||20,u.box.z1);vis=ws.frustum.intersectsBox(_b)}
     u.visible=vis;u.group.visible=vis;
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}

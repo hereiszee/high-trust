@@ -20,7 +20,10 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
       const dx=w.x-e.pos.x,dz=w.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
       const want=d0<12?Math.max(2,d0*.5):Math.abs(d)>.5?7:(o.v||14);k.a=d>.05;k.d=d<-.05;k.w=e.spd<want;k.s=e.spd>want+2;k.shift=false;
       if(s%30===0){const mv=T.dp?Math.hypot(e.pos.x-T.dp.x,e.pos.z-T.dp.z):9;T.dp={x:e.pos.x,z:e.pos.z};if(mv<1.2&&d0>4)stuck=Math.max(stuck,61)}/* no headway (bouncing off a parked or stopped car counts) */
-      if(Math.abs(e.spd)<.5||stuck>60){stuck++;if(stuck>60){k.w=false;k.s=true;k.a=!k.a;k.d=!k.d}if(stuck>100){stuck=0;route=G.route({x:e.pos.x,z:e.pos.z},tgt);pts=route?route.points:[tgt];wi=1}}else stuck=0;
+      if(Math.abs(e.spd)<.5||stuck>60){stuck++;if(stuck>60){/* back out with opposite lock, so the nose swings toward the target (flipping the wheel every frame backed out straight into the same lamp post) */k.w=false;k.s=true;k.a=d<-.05;k.d=d>.05}if(stuck>100+40*Math.min(2,T.unN||0)){/* each repeat at the same spot backs out further; the third time it re-centres on the lane (counted in T.recentres, like the chase driver) */
+          const here=T.unAt&&Math.hypot(e.pos.x-T.unAt.x,e.pos.z-T.unAt.z)<6;T.unN=here?(T.unN||0)+1:0;T.unAt={x:e.pos.x,z:e.pos.z};stuck=0;route=G.route({x:e.pos.x,z:e.pos.z},tgt);pts=route?route.points:[tgt];wi=1;
+          if(T.unN>=3&&pts.length>1){let bi=0,bd=1e9;for(let j=0;j<pts.length;j++){const q=Math.hypot(pts[j].x-e.pos.x,pts[j].z-e.pos.z);if(q<bd){bd=q;bi=j}}const a=pts[bi],b=pts[Math.min(bi+1,pts.length-1)];
+            e.pos.set(a.x,0,a.z);e.yaw=Math.atan2(-(b.x-a.x),-(b.z-a.z))||e.yaw;e.spd=0;if(e.car){e.car.x=a.x;e.car.z=a.z;e.car.yaw=e.yaw;e.car.spd=0}H.syncVan&&H.syncVan();T.recentres=(T.recentres||0)+1;T.unN=0;wi=Math.min(bi+1,pts.length-1)}}}else stuck=0;
       H.step(1);if(H.mode!=='hub'&&!o.inMission)break;if(o.until&&o.until())break}
     T.clear();k.s=true;H.step(8);k.s=false;return{steps:s,d:Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z),mode:H.mode}};
   T.pursue=(steps,o={})=>{/* chase like a player: pure pursuit along the getaway car's own trail, close in and ram; back out when wedged */

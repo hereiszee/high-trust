@@ -16,7 +16,7 @@
    HT.Tail.cone(t,p,deg)                 is p inside the target's rear-view (mirror) cone
    HT.Tail.Rail                          a vehicle on rails along a polyline (cumulative arc, stops, kerb pulls, gap keeping)
    HT.Tail.poly(points)                  {pts, cum, len, at(s)->{x,z,yaw}, project(x,z,hint)->s}
-   HT.Tail.slot / HT.Tail.boxed          formation slots for Brake Check (wave 4): STUBS, see the comment below
+   HT.Tail.slot / HT.Tail.boxed          formation slots and the box-in timer (Brake Check, wave 4), see the comment below
    Conventions as index.html: yaw 0 faces -z, forward = (-sin yaw, -cos yaw). Metres, m/s, seconds (all from the dt passed in).
 
    REUSING THE PIECES (Brake Check, Everybody Waves, Chain Reaction): js/jobs/tail.js is the worked example.
@@ -29,7 +29,7 @@
    - Sight: los() takes the tile grid (WORLD.map + WORLD.losblock) and car circles separately; tick() wants los (traffic included: can he
      see you) and sight (buildings only: can you see him).
    - Formation slots: slot() returns a point relative to the target (feed it to HT.CarAI.follow as a 1-point path at ~5 Hz, or to a Rail
-     as its want-position); boxed() is the box-in timer. Both are stubs for Brake Check to finish; keep their signatures.
+     as its want-position; pass path+s to measure along a lane); boxed() is the box-in timer. js/jobs/brake.js is the worked example.
    ===================================================================== */
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
@@ -155,14 +155,25 @@ function aheadGap(me,others,r){const f=fwd(me.yaw);let best=null;for(const o of 
   if(o.yaw!=null&&o.pri!=null&&me.pri!=null){/* crossing traffic: only the lower priority waits (no two-way standoffs at a corner) */const dy=Math.abs(wrap(o.yaw-me.yaw));if(dy>.6&&o.pri<me.pri)continue}
   const g=a-(me.len||4.6)/2-(o.len||4.6)/2;if(best==null||g<best)best=g}return best}
 
-/* ---------------- formation slots (Brake Check, wave 4): STUBS ----------------
-   slot(target,{side:-1|0|1,back:m},car) -> a world point relative to the target's pose, for HT.CarAI.follow with a 1-point path
-   refreshed at 5 Hz. boxed(target,[cars],{r:4,t:3,vmax:8}) -> true once the cars have held the target boxed for t seconds.
-   The wave 4 worker owns the real versions (side offsets by car width, a lead for speed, the box-in timer); these keep the
-   signatures stable and return something sane so callers can be written now. */
-function slot(target,o,car){o=o||{};const f=fwd(target.yaw),r=rgt(target.yaw),back=o.back!=null?o.back:8,side=(o.side||0)*2.6;
-  return{x:target.x-f[0]*back+r[0]*side,z:target.z-f[1]*back+r[1]*side,yaw:target.yaw}}
-function boxed(target,cars,o){/* stub: always false until Brake Check implements the timer */return false}
+/* ---------------- formation slots (Brake Check, wave 4) ----------------
+   slot(target,{side:-1|0|1, back:m, gap, lead, lat0, path, s},car) -> {x,z,yaw}: a point relative to the target's pose.
+     side -1 = his left (his nine o'clock), +1 = his right, 0 = his lane. back > 0 = behind him (his six), < 0 = in front (his twelve);
+     back omitted = bumper to bumper plus `gap` (2.6 m) for side 0, level with him for side != 0. Side offsets use both cars' widths
+     (target.w/car.w, default 1.9) plus 1.1 m, so "alongside" is the next lane. lead (s): the point moves ahead by spd*lead (for a
+     follower fed at 5 Hz). With path (a poly()) and s (the target's arc length on it) the point is measured ALONG the path and its
+     lane offset (lat0 = the target's own lateral offset) instead of straight off his nose: slots stay in lane through corners.
+   boxed(target,[cars],{r:4,t:3,vmax:8,dt,slots,ok,st}) -> true once every car has held its slot for t seconds while the target is
+     slower than vmax. Each car is {x,z,...} with car.slot (or o.slots[i]) as the slot() options; o.ok(car,i) overrides the
+     "in slot" test (a job with its own lane maths). Timer state lives in o.st (pass the same object every frame; it is created if
+     missing): st.t (held seconds, drains at 2x when the box breaks), st.ok (all in slot this frame), st.n (cars in slot), st.err[i]. */
+function slot(target,o,car){o=o||{};const tw=target.w||1.9,cw=(car&&car.w)||1.9,tl=target.l||4.4,cl=(car&&car.l)||4.4,side=o.side||0;
+  const gap=o.gap!=null?o.gap:2.6,back=o.back!=null?o.back:side?0:(tl/2+cl/2+gap),lat=side*(tw/2+cw/2+1.1),lead=(o.lead||0)*(target.spd||0);
+  if(o.path&&o.s!=null){const P=o.path,a=P.at(o.s-back+lead),r=rgt(a.yaw),l=(o.lat0||0)+lat;return{x:a.x+r[0]*l,z:a.z+r[1]*l,yaw:a.yaw}}
+  const f=fwd(target.yaw),r=rgt(target.yaw);return{x:target.x+f[0]*(lead-back)+r[0]*lat,z:target.z+f[1]*(lead-back)+r[1]*lat,yaw:target.yaw}}
+function boxed(target,cars,o){o=o||{};const st=o.st||(o.st={t:0});if(!(st.t>=0))st.t=0;const r=o.r!=null?o.r:4,need=o.t!=null?o.t:3,vmax=o.vmax!=null?o.vmax:8,dt=o.dt||0;
+  let n=0;st.err=[];(cars||[]).forEach((c,i)=>{let ok;if(o.ok)ok=!!o.ok(c,i);else{const sl=(o.slots&&o.slots[i])||c.slot;if(!sl){ok=false}else{const p=slot(target,sl,c),e=Math.hypot(c.x-p.x,c.z-p.z);st.err[i]=e;ok=e<=r}}if(ok)n++});
+  st.n=n;st.ok=!!cars&&cars.length>0&&n===cars.length&&Math.abs(target.spd||0)<vmax;
+  st.t=st.ok?Math.min(need,st.t+dt):Math.max(0,st.t-dt*2);st.boxed=st.ok&&st.t>=need;return st.boxed}
 
 HT.Tail={create,cone,front,los,poly,Rail,aheadGap,slot,boxed,K,FAM,fwd,rgt,yawTo,wrap};
 if(typeof module!=='undefined'&&module.exports)module.exports=HT.Tail;
