@@ -1127,9 +1127,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   owChevrons();
   /* ambient traffic around the player (HT.CarAI on the road graph) */
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic});
-  /* Riverside neighbours on the porches (more as trust rises); anyone near gunfire goes indoors */
-  if(O.neighbours){const sh=[];if(simT-P.lastShotT<.4)sh.push({x:P.pos.x,z:P.pos.z});for(const e of enemies)if(e.state==='idle'&&e.alert&&e.target)sh.push({x:e.pos.x,z:e.pos.z});
-    O.neighbours(dt,{player:P.pos,camera,trust:prog.trustR||0,river:O.regionAt(P.pos.x,P.pos.z)==='river',shots:sh})}
+  owNeighbours(dt);
 }
 function owLerpMood(a,b,k){const o={};const c=new THREE.Color();for(const key in a){const va=a[key],vb=b[key];
   if(typeof va==='number')o[key]=va+(vb-va)*k;else if(typeof va==='string'&&va[0]==='#'){c.set(va).lerp(new THREE.Color(vb),k);o[key]='#'+c.getHexString()}else o[key]=va}return o}
@@ -2081,6 +2079,7 @@ function updCamera(dt){
 
 /* ================= MISSION LOGIC ================= */
 function updMission(dt){
+  if(L.ow)owNeighbours(dt);
   if(!M||M.state!=='go')return;const m=M.def;let prompt=null,promptP=null,objs=[],target=null;M.elapsed+=dt;
   if(M.world&&wmMission(dt))return;/* WORLD MISSIONS: site extras + the Riverside jobs */
   let near=null,nd=2.4;for(const e of enemies)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
@@ -2139,6 +2138,9 @@ function updMission(dt){
   {const pk=updPickups(dt,!!prompt);if(pk){prompt=pk[0];promptP=pk[1]}}
   setObj(m.title,objs);setPrompt(prompt,promptP);showMarker(target);
 }
+/* Riverside neighbours on the porches (more as trust rises), in free roam and during world jobs; anyone near gunfire goes indoors */
+function owNeighbours(dt){const O=OW();if(!O||!O.neighbours||!L||!L.ow)return;const sh=[];if(simT-P.lastShotT<.4)sh.push({x:P.pos.x,z:P.pos.z});for(const e of enemies)if(e.state==='idle'&&e.alert&&e.target)sh.push({x:e.pos.x,z:e.pos.z});
+  O.neighbours(dt,{player:P.pos,camera,trust:prog.trustR||0,river:O.regionAt(P.pos.x,P.pos.z)==='river',shots:sh})}
 function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   let prompt=null,target=null;const mp=metaHubUpd(dt);

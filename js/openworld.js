@@ -826,7 +826,7 @@ function nbBike(){if(MC.nbBike)return MC.nbBike;const parts=[];
   return MC.nbBike={geo:nbMerge(parts),mat:stdMat('nbbike',{color:'#c8262b',roughness:.45,metalness:.3})}}
 function nbDrop(N,n){if(n.d){N.g.remove(n.d.root);n.d=null}if(n.prop){N.g.remove(n.prop);n.prop=null}}
 OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.neighbourSlots||!PP||!PP.ok||!PP.neighbourKeys)return;o=o||{};
-  const N=ws.nb||(ws.nb={g:null,list:[],t:0,quiet:99,want:0,order:null});
+  const N=ws.nb||(ws.nb={g:null,list:[],t:0,quiet:99,want:0,order:null,fresh:true});
   if(!N.g){N.g=new THREE.Group();N.g.name='neighbours';ws.lvl.group.add(N.g);ws.own.add(N.g)}
   const p=o.player||(o.camera&&o.camera.position);if(!p)return;const t=+o.trust||0;
   for(const s of(o.shots||[]))OW.neighbourCower(s.x,s.z,s.r||35);
@@ -835,21 +835,27 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
   if(N.t<=0){N.t=1;const slots=o.river===false||o.off?[]:G.neighbourSlots(ws.def,t,p.x,p.z,NB_CAP,NB_R);const want=new Set(slots);
     /* load only as many models as there are porches to fill (shuffled once, so different saves see different faces first) */
     if(!N.order){N.order=PP.neighbourKeys.slice();for(let i=N.order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[N.order[i],N.order[j]]=[N.order[j],N.order[i]]}}
-    const need=Math.min(N.order.length,slots.length+(G.tierOf(t)>=3?1:0));if(need>N.want){N.want=need;PP.preload(N.order.slice(0,need).concat(G.tierOf(t)>=3?['nb_kid']:[])).catch(()=>{})}
+    const need=Math.min(N.order.length,slots.length+2);if(need>N.want){N.want=need;PP.preload(N.order.slice(0,need).concat(G.tierOf(t)>=3?['nb_kid']:[])).catch(()=>{})}
     const seen=(x,z)=>{_b.min.set(x-.6,0,z-.6);_b.max.set(x+.6,2,z+.6);return o.camera&&ws.frustum.intersectsBox(_b)&&Math.hypot(x-o.camera.position.x,z-o.camera.position.z)<60};
     for(let i=N.list.length-1;i>=0;i--){const n=N.list[i];if(!want.has(n.slot)&&!(n.d&&seen(n.d.root.position.x,n.d.root.position.z))){nbDrop(N,n);N.list.splice(i,1)}}
     const tier=G.tierOf(t);
     for(const sl of slots){if(N.list.some(n=>n.slot===sl))continue;if(N.list.length>=NB_CAP)break;
-      /* road side: face away from the house (porch anchors carry the house-facing direction) */
-      const fx=-sl.face[0],fz=-sl.face[1],sx=fz,sz=-fx,k=sl.order;
-      const kind=tier>=3&&k%5===2?(k%2?'bike':'chalk'):k%3===0?'sit':k%3===1?'walk':'stand';
-      const off=kind==='sit'?.2:kind==='chalk'?1.6:1.1,side=((k*7)%5-2)*.25;
-      const n={slot:sl,kind,home:{x:sl.x,z:sl.z},x:sl.x+fx*off+sx*side,z:sl.z+fz*off+sz*side,ry:Math.atan2(fx,fz),d:null,prop:null,state:'out',t:Math.random()*4,waveT:0};
-      if(seen(n.x,n.z))continue;/* pop in out of view */N.list.push(n)}}
+      /* porch anchors face the street: stand a little toward it, facing it */
+      const fx=sl.face[0],fz=sl.face[1],sx=fz,sz=-fx,k=sl.order;
+      const kidNow=tier>=3&&!N.list.some(q=>q.kind==='bike'||q.kind==='chalk');/* one kid out front at the high tiers: chalk or a bike */
+      const kind=kidNow?(k%2?'bike':'chalk'):k%3===0?'sit':k%3===1?'sidewalk':'stand';
+      const off=kind==='sit'?.2:kind==='stand'?1.4:2.2,side=kind==='sit'?0:(k%2?1:-1)*(1.2+(k*7)%3*.2);/* beside the stoop steps */
+      /* stay off the road: the farthest candidate out front that is on a sidewalk tile (rowhouse stoops sit right on the street) */
+      let px=sl.x+fx*off+sx*side,pz=sl.z+fz*off+sz*side;if(kind!=='sit'){const onWalk=(x,z)=>{const tx=Math.floor(x/TILE),tz=Math.floor(z/TILE);return ws.K&&ws.K[tz*ws.def.W+tx]==='walk'};let found=false;
+        for(const o2 of[off,.8,.3])for(const s2 of[side,-side,side*1.4,-side*1.4]){if(found)break;const qx=sl.x+fx*o2+sx*s2,qz=sl.z+fz*o2+sz*s2;if(onWalk(qx,qz)){px=qx;pz=qz;found=true}}if(!found)continue}
+      const n={slot:sl,kind,home:{x:sl.x,z:sl.z},x:px,z:pz,ry:Math.atan2(fx,fz),d:null,prop:null,state:'out',t:Math.random()*4,waveT:0};
+      if(seen(n.x,n.z)&&!N.fresh&&Math.hypot(n.x-p.x,n.z-p.z)<35)continue;/* pop in out of view (or far away, or on arriving in Riverside) */N.list.push(n)}
+    N.fresh=!slots.length}
   /* build missing models as their files arrive; animate */
   const cam=o.camera?o.camera.position:p;
   for(const n of N.list){if(!n.d){const kid=n.kind==='bike'||n.kind==='chalk';const v=kid?'nb_kid':null;if(kid&&!PP.has('nb_kid'))continue;
-      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){d=null}if(!d)continue;
+      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){console.warn('neighbour: make failed',e);d=null}/* nobody twice on the same street (one kid is enough): redraw from the bag a few times */
+      for(let tries=0;d&&!kid&&tries<4&&N.list.some(q=>q.d&&q.d.rb.key===d.rb.key);tries++){const li=PP.live.indexOf(d);if(li>=0)PP.live.splice(li,1);try{d=PP.make('neighbour')}catch(e){d=null}}if(!d)continue;
       if(!kid&&d.rb.key==='nb_kid'&&n.kind==='sit')n.kind='stand';
       d.root.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});n.d=d;const y=HW()?HW().groundY(ws.lvl,n.x,n.z):0;d.root.position.set(n.x,y,n.z);d.root.rotation.y=n.ry;N.g.add(d.root);
       if(n.kind==='sit'){const B=nbBench(),m=new THREE.Mesh(B.geo,B.mat);m.castShadow=true;m.position.set(n.x,y,n.z);m.rotation.y=n.ry;m.position.x-=Math.sin(n.ry)*.12;m.position.z-=Math.cos(n.ry)*.12;n.prop=m;N.g.add(m)}

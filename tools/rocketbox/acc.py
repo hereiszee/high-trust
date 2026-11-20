@@ -168,7 +168,7 @@ def belly(arm, mesh, amp=0.07, zc=None, sigma=0.14):
         # push mostly forward / sideways
         c += Vector((n.x * 0.8, n.y, n.z * 0.2)) * k
 
-def add_apron(arm, mesh, color=(0.92, 0.9, 0.86), name='acc_apron', top=0.12, bottom=-0.36, half=0.19):
+def add_apron(arm, mesh, color=(0.92, 0.9, 0.86), name='acc_apron', top=0.06, bottom=-0.42, half=0.16):
     """Waist apron (vendor / cook): a grid that follows the front of the body from just above the hips to the knees,
     skinned to the pelvis at the waist and blended onto both thighs below, so it moves with walking."""
     hip = arm.data.bones['Bip01 Pelvis'].head_local
@@ -179,13 +179,13 @@ def add_apron(arm, mesh, color=(0.92, 0.9, 0.86), name='acc_apron', top=0.12, bo
     for j in range(nz + 1):
         z = hip.z + top + (bottom - top) * j / nz
         band = [c.y for c in co if abs(c.z - z) < 0.03 and abs(c.x - hip.x) < half]
-        y = (min(band) if band else hip.y - 0.12) - 0.014
+        y = (min(band) if band else hip.y - 0.12) - 0.01
         yfront = y if yfront is None else min(yfront, y + 0.0)  # never tuck back in between the legs
         row = []
         for i in range(nx + 1):
             u = i / nx * 2 - 1
             x = hip.x + u * half * (1.0 + 0.08 * j / nz)
-            row.append(bm.verts.new((x, min(y, yfront + 0.03) + 0.025 * u * u, z)))
+            row.append(bm.verts.new((x, y + 0.02 * u * u, z)))
         grid.append(row)
     for j in range(nz):
         for i in range(nx):
