@@ -23,7 +23,7 @@ const OWm=()=>window.HT&&HT.OpenWorld;
 const TUNE={
   bean:{v:125,g:5.2,mag:5,res:15,name:'Beanbag'},live:{v:820,g:9.8,mag:5,res:5,name:'Live .308'},
   bolt:1.15,                 /* bolt cycle between shots */
-  zoom:[4,8],baseFov:74,
+  zoom:[3,6,10],baseFov:74,
   sway:{drift:.0021,breath:.0042,heart:.0005,stand:1,crouch:.62,brace:.34,move:2.2},
   breath:{inn:1.7,out:1.7,pause:1.0,hold:4.5,shake:1.8,recover:3},
   kick:.045,kickBack:5.5,
