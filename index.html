@@ -3648,11 +3648,11 @@ function activateSite(st){const lvl=L;lvl.items=[];lvl.bonus=[];lvl.stashes=[];l
   for(const p of st.waveSpawns)lvl.waveSpawns.push({x:p.x,z:p.z});
   if(st.grill){lvl.grill={x:st.grill.x,z:st.grill.z};if(st.bounce)lvl.bounce={x:st.bounce.x,z:st.bounce.z}}
   wmSetWindow(st.win)}
-function wmExitAt(car){/* the exit ring beside the dad's own vehicle, kerb side first */const e=car||VAN,r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);let p=null;
+function wmExitAt(car){/* the exit ring beside the dad's own vehicle */const e=car||VAN,r=V3(Math.cos(e.yaw),0,-Math.sin(e.yaw)),S=carSize(e);let p=null;
   const f=V3(-Math.sin(e.yaw),0,-Math.cos(e.yaw)),col=e.col,sv=col&&{x0:col.x0,z0:col.z0,x1:col.x1,z1:col.z1,ob:col.ob};if(col)Object.assign(col,VAN_OFF,{ob:null});
-  for(const[a,s]of[[0,S.w/2+1.05],[0,-(S.w/2+1.05)],[-.8,S.w/2+1.05],[.8,-(S.w/2+1.05)],[-(S.l/2+.9),0]]){const q=e.pos.clone().addScaledVector(f,a).addScaledVector(r,s);
+  /* driver's door first: that is where you get in, so that is where the ring goes */for(const[a,s]of[[0,-(S.w/2+1.05)],[0,S.w/2+1.05],[.8,-(S.w/2+1.05)],[-.8,S.w/2+1.05],[-(S.l/2+.9),0]]){const q=e.pos.clone().addScaledVector(f,a).addScaledVector(r,s);
     if(walkable(tx(q.x),tx(q.z))&&!solidAt(q.x,q.z,.4,0)&&Math.hypot(q.x-e.pos.x,q.z-e.pos.z)>S.w/2+.6){p=q;break}}
-  if(col)Object.assign(col,sv);if(!p)p=e.pos.clone().addScaledVector(r,S.w/2+1.05)
+  if(col)Object.assign(col,sv);if(!p)p=e.pos.clone().addScaledVector(r,-(S.w/2+1.05))
   L.exit={x:p.x,z:p.z};if(!L.exitRing||!L.exitRing.parent){const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,.05,24),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.4}));L.exitRing=wmAdd(ring)}
   L.exitRing.position.set(p.x,groundAt(p.x,p.z)+.04,p.z);L.exitRing.visible=false}
 function ensureWorld(){if(L&&L.ow&&L.def===WORLD)return;clearChars();buildLevel(HUB);makePlayer();makeHubVan()}
@@ -4153,14 +4153,14 @@ function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;i
 /* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
 function jrGivers(){if(!JR||!WORLD)return[];const out=[];
   for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
-    const g=jrGiverAt(m);if(g&&out.length<3)out.push({i,x:g.x,z:g.z})}return out}
+    const g=jrGiverAt(m);/* every unlocked job gets its giver; two jobs that share a giver's spot take turns (the earlier one first) */if(g&&out.length<14&&!out.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5))out.push({i,x:g.x,z:g.z})}return out}
 function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
   if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
   const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
   /* registered while the hub is up: its destination ring and giver appear without a rebuild */
   if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
-    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<6){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
+    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!npcs.some(n=>n.marker&&Math.hypot(n.marker.x-g.x,n.marker.z-g.z)<1.5)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
       const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
 /* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
 function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}

@@ -408,7 +408,9 @@ function steer(a,ai,world,speed,intent){const p=ai.path;if(!p||ai.pi2>=p.length)
 const atGoal=(a,ai)=>!ai.path||ai.pi2>=ai.path.length||(ai.goal&&hyp(ai.goal.x-a.pos.x,ai.goal.z-a.pos.z)<.45);
 
 /* perception: best visible threat */
-function perceive(a,ai,world){const nav=world.nav,t=world.t;let best=null,bs=1e9;let crouched=ai.stance==='crouch';const alert=ai.mode!=='idle';
+function perceive(a,ai,world){/* [STEALTH] (js/stealth.js): while ai.blind, HT.Stealth decides what he has seen (cones, light, suspicion), so the AI's own sight is off */
+  if(ai.blind)return null;
+  const nav=world.nav,t=world.t;let best=null,bs=1e9;let crouched=ai.stance==='crouch';const alert=ai.mode!=='idle';
   /* a man crouched behind a crate still glances over it now and then */
   if(crouched&&ai.mode==='combat'&&t>=(ai.glanceT||0)){ai.glanceT=t+rr(.5,.9);crouched=false}
   /* world.sight scales the view range (night: 14/24 of day); a threat's own .sight overrides it (a dad with his flashlight on is seen as in daylight) */
