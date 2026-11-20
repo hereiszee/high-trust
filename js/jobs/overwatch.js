@@ -164,7 +164,7 @@ J.register('overwatch',{
     /* the crew the brief lists are scripted here, not the follow-the-dad AI: take them out of the ally list */
     for(const al of a.allies.slice()){if(al.dude&&al.dude.root.parent)al.dude.root.parent.remove(al.dude.root);if(al.tag)al.tag.remove()}a.allies.length=0;a.rebuildTargets();
     props(M);
-    if(!o||!o.checkpoint){a.P.pos.set(R.bottom.x+1.2,0,R.bottom.z+.4);a.P.yaw=Math.PI/2+.25;
+    if(!o||!o.checkpoint){a.P.pos.set(R.bottom.x+2.2,0,R.bottom.z-3.2);a.P.yaw=Math.atan2(2.2,-3.2)+Math.PI;a.P.pitch=.08;
       later(M,5,()=>{if(M.state==='go'&&!M.ow.roof.on)a.radio('doug',"Green box is beans, red box is the real thing. The red box stays closed unless I say so. Or a car does.")})}
     music('tension',.25)},
 
@@ -195,7 +195,7 @@ J.register('overwatch',{
   end(M,ok){returnRifle(M);if(!ok)return;const s=A().SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'ferreira')}catch(_){}try{SV.perk(s,'doug',true)}catch(_){}s.flags=s.flags||{};s.flags.ferreira=true}},
 
-  test:{give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river');/* the hub places givers when it is built: rebuild it so Doug offers this job */if(H.mode==='hub'&&H.enterHub)H.enterHub()},
+  test:{give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ow:{stage:'court',rifle:{type:'bean',box:{bean:{mag:3,res:9},live:{mag:5,res:5}}},stats:{beaned:2,cuffed:2,lethal:0,spooked:0,civ:0,shots:3,hits:2,kevin:0,flats:0},sight:{done:true},roof:{on:false},
       witHp:87,esc:null,escSaved:{s:40.5,state:'walk',stopK:-1,stopsDone:[4],revived:0,hp:[100,87,100],fired:[0,0]}}})}
@@ -556,13 +556,20 @@ function scopeCam(dt,M){const a=A(),O=M.ow,R=O.rifle,P=a.P,cam=a.camera;const sc
   cam.fov=fov;cam.updateProjectionMatrix();if(P.dude)P.dude.root.visible=false;return true}
 function hideGameScope(){const s=document.getElementById('scope');if(s&&s.style.display!=='none')s.style.display='none'}
 let OV=null;
-function overlay(){if(OV)return OV;const d=document.createElement('div');d.className='ow-scope';d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';
+function overlay(){if(OV)return OV;if(!document.getElementById('ow-style')){const st=document.createElement('style');st.id='ow-style';
+    st.textContent='.ht-cmp,.ht-me,.ht-wi,.ht-obj,.ht-tr,.ht-gd{transition:opacity .18s}body.ow-scoped .ht-cmp,body.ow-scoped .ht-me,body.ow-scoped .ht-wi,body.ow-scoped .ht-obj,body.ow-scoped .ht-tr,body.ow-scoped .ht-tag{opacity:0!important}';document.head.appendChild(st)}const d=document.createElement('div');d.className='ow-scope';d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';
   const blur=document.createElement('div');blur.style.cssText='position:absolute;inset:0;backdrop-filter:blur(1.6px);-webkit-backdrop-filter:blur(1.6px)';d.appendChild(blur);
   const c=document.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';d.appendChild(c);OV={el:d,c,g:c.getContext('2d'),blur,w:0,h:0,on:false};return OV}
-function hudHook(M,st){const a=A(),O=M.ow,R=O.rifle,sc=scoped(M)&&R.scopeT>.05;
+/* People animate far characters at 1/2..1/8 rate by camera distance, which a 4-8x scope makes visible: inside the lens,
+   characters are stepped every frame (the zoom-aware LOD belongs in js/people.js; reported to the framework) */
+function lensLod(M){const a=A(),O=M.ow,cam=a.camera,fw=aimDir(M),e=cam.position,cosLim=Math.cos(cam.fov*Math.PI/180*.6);
+  const go=d=>{if(!d||!d.rb||!d.root.parent)return;const p=d.root.position,dx=p.x-e.x,dy=p.y+1-e.y,dz=p.z-e.z,l=Math.hypot(dx,dy,dz)||1;if((dx*fw.x+dy*fw.y+dz*fw.z)/l>cosLim)d.rb.skip=1e6};
+  for(const t of O.threats)if(t.e)go(t.e.dude);for(const c of O.civs)go(c.d);if(O.kevin)go(O.kevin.d);if(O.esc)for(const m of O.esc.party)go(m.dude)}
+function hudHook(M,st){const a=A(),O=M.ow,R=O.rifle,sc=scoped(M)&&R.scopeT>.05;if(sc)lensLod(M);
   if(O.roof.on){st.crosshair=Object.assign({},st.crosshair||{},{hidden:sc||!!(st.crosshair&&st.crosshair.hidden)});
     st.gadgets=[{id:'ow-rounds',label:R.type==='bean'?'Beanbag ×'+R.box.bean.mag+'/'+R.box.bean.res:'Live .308 ×'+R.box.live.mag+'/'+R.box.live.res,key:'Q',on:R.type==='live'},
       {id:'ow-zoom',label:TUNE.zoom[R.zoomK]+'× zoom',key:'Z',on:R.zoomK>0},{id:'ow-breath',label:R.breath.held?'Holding breath':'Hold breath',key:'Shift',on:R.breath.held,charge:R.breath.left}]}
+  if(document.body&&document.body.classList.contains('ow-scoped')!==sc)document.body.classList.toggle('ow-scoped',sc);
   const ov=overlay();
   if(O.roof.on&&!ov.on){a.overlay('overwatch',ov.el);ov.on=true}else if(!O.roof.on&&ov.on){a.overlay('overwatch',null);ov.on=false}
   if(ov.on)drawOverlay(M,sc)}
@@ -588,7 +595,7 @@ function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=
   for(const[w,col]of[[5.5,halo],[3.4,ink]]){line(cx-Rl,cy,cx-post,cy,w,col);line(cx+post,cy,cx+Rl,cy,w,col);line(cx,cy+post,cx,cy+Rl,w,col);line(cx,cy-Rl,cx,cy-post,w*.7,col)}
   for(const[w,col]of[[2.6,halo],[1.1,ink]]){line(cx-post,cy,cx+post,cy,w,col);line(cx,cy-post,cx,cy+post,w,col)}
   if(R.type==='bean'){g.font='600 10px var(--ui,sans-serif)';g.textBaseline='middle';
-    for(const d of[25,50,75,100]){const T=TUNE.bean,t=d/T.v,drop=.5*T.g*t*t,ang=Math.atan2(drop,d);const y=cy+Math.tan(Math.max(0,ang))*pxPerRad;if(y-cy<3||y>cy+post)continue;
+    for(const d of R.zoomK?[25,50,75,100]:[50,75,100]){const T=TUNE.bean,t=d/T.v,drop=.5*T.g*t*t,ang=Math.atan2(drop,d);const y=cy+Math.tan(Math.max(0,ang))*pxPerRad;if(y-cy<3||y>cy+post)continue;
       const hw=d===100?14:d===50?11:8;line(cx-hw,y,cx+hw,y,3,halo);line(cx-hw,y,cx+hw,y,1.6,'#ff8a1e');g.fillStyle='#ffb067';g.fillText(String(d),cx+hw+4,y)}}
   else{for(let m=-4;m<=4;m++){if(!m)continue;const off=m*.005*pxPerRad;if(Math.abs(off)>post)continue;g.fillStyle=ink;g.beginPath();g.arc(cx+off,cy,1.6,0,6.3);g.fill();g.beginPath();g.arc(cx,cy+off,1.6,0,6.3);g.fill()}}
   /* centre: lit red when the sight is still (the pause at the bottom of the breath, or a held breath) */
@@ -602,6 +609,7 @@ function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=
   g.textAlign='center';g.textBaseline='alphabetic';g.font='600 12px var(--ui,sans-serif)';
   const B=R.box[R.type],rng=R.range!=null?Math.round(R.range)+' m':'— m';
   const items=[[R.type==='bean'?'BEAN':'LIVE',R.type==='bean'?'#ffb067':'#ff6a5a'],[B.mag+' | '+B.res,'#e8e4da'],[TUNE.zoom[R.zoomK]+'×','#e8e4da'],['RNG '+rng,'#e8e4da']];if(R.braced)items.push(['BRACED','#9fe0a8']);
+  if(O.esc){items.push(['FERREIRA '+O.witHp,O.witHp<40?'#ff6a5a':'#9fe0a8']);if(O.esc.pinT>.5)items.push(['PINNED '+Math.ceil(PIN_LIMIT-O.esc.pinT)+'s','#ff6a5a'])}
   let tw=0;for(const[t]of items)tw+=g.measureText(t).width+18;let x=cx-tw/2;const y=cy+Rl*.8;
   for(const[t,col]of items){const w=g.measureText(t).width+18;g.fillStyle='rgba(0,0,0,.42)';g.fillRect(x,y-13,w-4,18);g.fillStyle=col;g.fillText(t,x+(w-4)/2,y);x+=w}
   /* breath: where you are in the cycle, and the held-breath reserve */
@@ -659,20 +667,25 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ow)return null;c
   if(!O.roof.on){P.pos.set(R.bottom.x,0,R.bottom.z);a.keys.e=true;return null}
   if(o.fail){P.aim=false;return null}/* sit on your hands: the walk gets pinned */
   /* vantage: braced on the north-west corner for the street, the west parapet for the garden */
-  const tgt=botTarget(M);const want=tgt&&tgt.z>62?{x:R.r.x0+.6,z:R.r.z1-1.2}:{x:R.r.x0+.6,z:R.r.z0+.7};P.pos.x=want.x;P.pos.z=want.z;P.pos.y=R.y;P.crouch=true;
-  if(!tgt){P.aim=false;B.hold=0;if(O.esc&&O.esc.state==='stop'&&O.stopT>2.5&&!lurkersAhead(M).length)a.useTap=true;if(O.rifle.box.bean.mag+O.rifle.box.bean.res<4&&!O.esc){}return null}
+  const tgt=botTarget(M,o);const want=tgt&&tgt.z>62?{x:R.r.x0+.6,z:R.r.z1-1.2}:{x:R.r.x0+.6,z:R.r.z0+.7};P.pos.x=want.x;P.pos.z=want.z;P.pos.y=R.y;P.crouch=true;
+  if(!tgt){P.aim=o.human&&O.esc&&O.esc.state==='stop'&&O.stopT<5;B.hold=0;if(O.esc&&O.esc.state==='stop'&&O.stopT>(o.human?5.5:2.5)&&!lurkersAhead(M).length)a.useTap=true;if(O.rifle.box.bean.mag+O.rifle.box.bean.res<4&&!O.esc){}return null}
   /* the right rounds for the target */if((tgt.kind==='tyre')!==(O.rifle.type==='live'))switchRounds(M);
-  P.aim=true;const sol=solveAim(M,tgt);if(!sol)return null;P.yaw=sol.yaw-O.rifle.sw.y;P.pitch=sol.pitch-O.rifle.sw.p-O.rifle.kick;a.keys.shift=O.rifle.scopeT>.9&&B.hold>.2;B.hold+=1/30;
+  /* human-ish: a reaction delay on each new target, the aim slews over instead of snapping, and a little error that breathing hides */
+  const key=tgt.kind+(tgt.o?tgt.o.id||'':'');if(key!==B.key){B.key=key;B.react=o.human?.9+Math.random()*1.1:0;B.err={y:o.human?(Math.random()-.5)*.004:0,p:o.human?(Math.random()-.5)*.003:0};B.hold=0}
+  if(B.react>0){B.react-=1/30;P.aim=o.human?false:true;return null}
+  P.aim=true;const sol=solveAim(M,tgt);if(!sol)return null;const wy=sol.yaw-O.rifle.sw.y+B.err.y,wp=sol.pitch-O.rifle.sw.p-O.rifle.kick+B.err.p;
+  if(o.human){let dy=wy-P.yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;const k=.16;P.yaw+=dy*k;P.pitch+=(wp-P.pitch)*k;B.err.y*=.97;B.err.p*=.97;if(Math.abs(dy)>.004){B.hold=0;return null}}else{P.yaw=wy;P.pitch=wp}
+  a.keys.shift=O.rifle.scopeT>.9&&B.hold>(o.human?.6:.2);B.hold+=1/30;
   const need=tgt.kind==='kevin'?1.2:tgt.kind==='threat'&&!tgt.o.marked?.75:.3;
   if(tgt.kind==='kevin')return null;/* look, don't shoot */
   if(B.hold>need&&O.rifle.scopeT>=1&&O.rifle.boltT<=0&&!P.rl&&(O.rifle.still||O.rifle.breath.held)){H.mouse=true;B.hold=need*.5}
   return null}
-function botTarget(M){const O=M.ow;if(!O.sight.done&&O.scare)return{kind:'scare',x:O.scare.x,y:1.45,z:O.scare.z,vx:0,vz:0};
+function botTarget(M,o){const O=M.ow,E=O.esc,hu=o&&o.human;if(!O.sight.done&&O.scare)return{kind:'scare',x:O.scare.x,y:1.45,z:O.scare.z,vx:0,vz:0};
   if(O.kevin&&O.kevin.st==='aim'&&!O.kevin.ided&&O.kevin.d)return{kind:'kevin',o:O.kevin,x:O.kevin.x,y:.8,z:O.kevin.z,vx:0,vz:0};
   for(const c of O.civs)if(c.alarm&&c.d&&!c.ided&&!c.gone&&c.st==='go'&&c.t>2.5)return{kind:'civ',o:c,x:c.x,y:1.1,z:c.z,vx:0,vz:0};
   const C=O.car;if(C&&!C.done&&C.flats.reduce((s,f)=>s+f,0)<TUNE.car.stallFlats&&C.c.x<455){const ws=wheels(C).filter(w=>!C.flats[w.i]).sort((p,q)=>Math.hypot(p.x-417,p.z-48)-Math.hypot(q.x-417,q.z-48));if(ws[0]){const sp=C.c.spd||0;return{kind:'tyre',x:ws[0].x,y:ws[0].y,z:ws[0].z,vx:-Math.sin(C.c.yaw)*sp,vz:-Math.cos(C.c.yaw)*sp}}}
   const live=O.threats.filter(t=>t.e&&t.e.state==='idle'&&t.st!=='gone'&&t.st!=='pending').sort((p,q)=>(q.st!=='lurk')-(p.st!=='lurk'));
-  for(const t of live){const e=t.e;const run=t.st==='dash'||t.st==='run';return{kind:'threat',o:t,x:e.pos.x,y:(t.y||0)+(t.crouch&&t.st==='lurk'?.85:1.1),z:e.pos.z,vx:run?-Math.sin(e.yaw)*4.3:0,vz:run?-Math.cos(e.yaw)*4.3:0}}
+  for(const t of live){const e=t.e;/* a person finds a lurker by scanning ahead of the walk, not by reading the code */if(hu&&t.st==='lurk'&&!(E&&E.near(e.pos.x,e.pos.z)<24))continue;const run=t.st==='dash'||t.st==='run';return{kind:'threat',o:t,x:e.pos.x,y:(t.y||0)+(t.crouch&&t.st==='lurk'?.85:1.1),z:e.pos.z,vx:run?-Math.sin(e.yaw)*4.3:0,vz:run?-Math.cos(e.yaw)*4.3:0}}
   return null}
 /* the aim that lands a round of the loaded type on (x,y,z), leading a mover: a few fixed-point steps on time of flight and drop */
 function solveAim(M,t){const O=M.ow,T=TUNE[t.kind==='tyre'?'live':O.rifle.type],e=sightPos(M);let x=t.x,z=t.z,y=t.y;

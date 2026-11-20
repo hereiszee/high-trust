@@ -10,10 +10,9 @@ const has=k=>process.argv.includes('--'+k),arg=(k,d)=>{const a=process.argv.find
 const OUT=path.join(__dirname,'../../docs/screenshots/jobs/overwatch');const SHOTS=has('shots'),MAX=+arg('max',12000);
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});const ev=(f,a)=>p.evaluate(f,a);
   const shot=async(n,prep)=>{if(!SHOTS)return;fs.mkdirSync(OUT,{recursive:true});if(prep)await ev(prep);
-    await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
-    await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('     shot '+n)};
+    await ev(()=>{const H=window.__ht;H.draw();H.draw()});await p.waitForTimeout(150);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});console.log('     shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
-  await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.openBridge();H.ow.buildAll();const pp=window.HT.People;
+  await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.openBridge();const pp=window.HT.People;
     await Promise.race([pp.preload(['rosa','nb_pops','nb_kid','nb_gran','nb_marcus','nb_kenji','nb_mei','thug_hoodie','dad_doug','dad_gary']),new Promise(r=>setTimeout(r,20000))]);
     const j=H.jobs.registry.get('overwatch');j.test.give(H.jobs.api);const i=H.jobs.index('overwatch');H.prog.done[H.jobs.index('rosa')]=true;
     for(let k=0;k<60&&H.assets.stream&&!H.assets.stream.idle();k++)await new Promise(r=>setTimeout(r,500));
