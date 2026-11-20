@@ -69,7 +69,7 @@ Set `M.exitOpen=true` when the job is won: "Back to your ride" appears and getti
 | `objs.push([text, done, 'warn'?])` | Objective lines. |
 | `target={x,z,label}` | The marker and minimap route. |
 | `holds.push({x,z,r,o,txt,time,fn})` | Hold-E actions (`o.prog` keeps progress). |
-| *E arbitration* | One action per press and the prompt always names it: a surrendered enemy (zip-tie) > the nearest of your placed holds/taps (a hold in progress keeps E) > `{d}` taps > the interact hook (system handlers yield when the job already has an action) > cars ("Get in" is dropped while a job tap/hold is within its radius + 1.5 m and nearer than the car). |
+| *E arbitration* | One action per press and the prompt always names it: a surrendered enemy (zip-tie) > the nearest hold > the nearest tap (holds win: a big hold radius like Suds Up's scrub must not lose E to a kid walking by) > the interact hook (system handlers yield when the job already has an action) > cars ("Get in" is dropped while a job tap/hold is within its radius + 1.5 m and nearer than the car). |
 | `taps.push({x,z,r,txt,fn})` or `{d,r,txt,fn}` | Press-E actions (`d` = your own distance). |
 | `prompt`, `promptP` | A raw prompt. |
 | `meters.push({...})` | HUD meters (below), max 3. |

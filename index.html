@@ -3812,8 +3812,6 @@ function wmFrame(dt,J){jrHolsterTick();const m=M.def,F={objs:[],target:null,hold
   let hold=null,bd=1e9;if(!VAN.on&&!atRide)for(const h of F.holds){const dd=Math.hypot(h.x-P.pos.x,h.z-P.pos.z);if(dd<(h.r||1.8)&&dd<bd){bd=dd;hold=h}}
   for(const h of F.holds)if(h!==hold&&h.o.prog)h.o.prog=Math.max(0,h.o.prog-dt);
   const busy=hold&&hold.o.prog>0;let prompt=F.prompt,pp=F.promptP;
-  /* nearest wins: a placed tap nearer than the nearest hold takes E (a hold already in progress keeps it) */
-  if(hold&&!busy&&!near){let td=1e9;for(const t of F.taps){if(t.x==null||t.d!=null)continue;/* placed taps only: {d} taps are job-wide actions */const dd=Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td)td=dd}if(td<bd-.05)hold=null}
   if(near&&!busy){prompt=KE+' · Zip-tie';if(useTap){useTap=false;wmCuff(near)}}
   else if(hold){hold.o.prog=hold.o.prog||0;prompt='Hold '+KE+' · '+hold.txt;if(keys.e){hold.o.prog+=dt/hold.time;if(hold.o.prog>=1){hold.o.prog=0;hold.fn()}}else hold.o.prog=Math.max(0,hold.o.prog-dt);pp=hold.o.prog}
   else{let tap=null,td=1e9;for(const t of F.taps){const dd=t.d!=null?t.d:Math.hypot(t.x-P.pos.x,t.z-P.pos.z);if(dd<(t.r||2.6)&&dd<td){td=dd;tap=t}}
