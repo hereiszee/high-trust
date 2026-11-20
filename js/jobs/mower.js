@@ -678,7 +678,9 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return n
   const walk=(x,z,sp)=>{const dx=x-P.pos.x,dz=z-P.pos.z,d=Math.hypot(dx,dz),s=Math.min(d,(sp||6.5)/30),x0=P.pos.x,z0=P.pos.z;P.pos.x+=dx/(d||1)*s;P.pos.z+=dz/(d||1)*s;P.yaw=Math.atan2(-dx,-dz);
     /* a person steps round a crate: if the straight line is blocked, slide sideways for a moment */if((M._side||0)>0){M._side--;P.pos.x+=-dz/(d||1)*s*.9;P.pos.z+=dx/(d||1)*s*.9}a.collide(P.pos,.35,0);if(s>.05&&Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3)M._side=12;return d};
   switch(M.phase){
-  case 'pick':{keysOff();if(a.CV)a.exitCar();const id=o.fail?'zero':(M.mode==='tt'?'estate':'reliable'),e=M.choices[id];if(walk(e.pos.x+1.7,e.pos.z)<.3)a.useTap=true;return null}
+  case 'pick':{keysOff();if(a.CV)a.exitCar();const id=o.fail?'zero':(M.mode==='tt'?'estate':'reliable'),e=M.choices[id];
+    /* in through the gate walkway, then across the infield to the paddock */if(P.pos.z<106.5&&Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)>4){if(P.pos.z<105.6)walk(Math.abs(P.pos.x-92)>.6&&P.pos.z<103?92:92,P.pos.z<103&&Math.abs(P.pos.x-92)>.6?P.pos.z:106.2);else walk(98.8,108.8);return null}
+    if(walk(e.pos.x,e.pos.z)<1.2||Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)<2.2)a.useTap=true;return null}
   case 'toLine':{if(o.fail&&!a.CV){keysOff();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
     if(a.CV!==ride){keysOff();if(walk(ride.pos.x,ride.pos.z)<1.2||Math.hypot(P.pos.x-ride.pos.x,P.pos.z-ride.pos.z)<2.2)a.useTap=true;return null}const c=ride.car;
     if(o.fail){/* gives up: off the mower and out of the gate on foot */if(a.CV)a.exitCar();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
