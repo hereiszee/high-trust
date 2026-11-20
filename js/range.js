@@ -71,7 +71,7 @@ function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.
       const st=new T.Mesh(new T.BoxGeometry(.03,.12,.04),steel);st.position.y=.06;g.add(st);root.add(g);m.castShadow=true;S.hits.push(m);
       const t={mesh:m,g,kind:'plate',dist:25,down:false,ang:0};S.plates.push(t);S.targets.push(t);m.userData.onShot=(hit,gun,w,dir)=>onHit(t,hit,gun,w,dir)}}
   /* gongs: lane 5 @50, lane 6 @100, hanging from a frame */
-  for(const[li,dist,r]of[[4,50,.32],[5,100,.5]]){const x=line-dist,z=L[li],H=1.9;P.box('metal',x-.05,0,z-.8,x+.05,H+.1,z-.7,'#3d4245');P.box('metal',x-.05,0,z+.7,x+.05,H+.1,z+.8,'#3d4245');P.box('metal',x-.06,H,z-.85,x+.06,H+.12,z+.85,'#3d4245');
+  for(const[li,dist,r]of[[4,50,.32],[5,100,.5]]){const x=line-Math.min(dist,98.5)/* the 100 m gong stands just in front of the backstop */,z=L[li],H=1.9;P.box('metal',x-.05,0,z-.8,x+.05,H+.1,z-.7,'#3d4245');P.box('metal',x-.05,0,z+.7,x+.05,H+.1,z+.8,'#3d4245');P.box('metal',x-.06,H,z-.85,x+.06,H+.12,z+.85,'#3d4245');
     const g=new T.Group();g.position.set(x,H,z);const m=new T.Mesh(new T.CylinderGeometry(r,r,.035,28),paint);m.rotation.z=Math.PI/2;m.position.y=-r-.25;g.add(m);
     for(const s of[-1,1]){const c=new T.Mesh(new T.CylinderGeometry(.008,.008,.3,4),steel);c.position.set(0,-.13,s*r*.5);g.add(c)}
     root.add(g);m.castShadow=true;S.hits.push(m);const t={mesh:m,g,kind:'gong',dist,lane:li,swing:0,sv:0};S.gongs.push(t);S.targets.push(t);m.userData.onShot=(hit,gun,w,dir)=>onHit(t,hit,gun,w,dir)}
@@ -195,10 +195,10 @@ function showCard(a,c){closeCard();const el=document.createElement('div');el.cla
   <div class="med"><div class="dot" style="background:${MC[c.medal]}"></div><div><b>${MED[c.medal]}</b> · ${esc(gunName(c.gun))}${S.rent?' (rental)':''}<br><small>${c.rank===1&&c.prev!=null&&c.total>c.prev?'New best with this gun.':c.rank?'#'+c.rank+' on your board for this gun.':''}</small></div></div>
   <div style="padding:0 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.7">Your top runs · ${esc(gunName(c.gun))}</div>
   <ol>${list.map((e,i)=>`<li class="${i===c.rank-1?'me':''}">${e.score} · ${fmtT(e.time)} · ${Math.round(e.acc*100)}% · ${MED[e.medal]}${e.rental?' · rental':''}</li>`).join('')}</ol>
-  <div class="k"><span>${KE()} · run it again at the officer</span><span>Any key · close</span></div></div>`;
+  <div class="k"><span>${KE()} · run it again at the officer</span><span>E / Enter · close</span></div></div>`;
   const close=()=>closeCard();el.addEventListener('click',close);S.card={el,t:0,close};
   try{if(a.HUD&&a.HUD.overlay)a.HUD.overlay('rangeCard',el);else document.body.appendChild(el)}catch(_){document.body.appendChild(el)}
-  setTimeout(()=>{if(S.card&&S.card.el===el)document.addEventListener('keydown',S.card.key=e=>{if(e.code==='Escape'||e.code==='KeyE'||e.code==='Enter'||e.code==='Space'||e.code==='KeyF'){closeCard()}})},350)}
+  setTimeout(()=>{if(S.card&&S.card.el===el)document.addEventListener('keydown',S.card.key=e=>{if(e.code==='KeyE'||e.code==='Enter'||e.code==='Space'||e.code==='KeyF'){closeCard()}})},350)}
 function closeCard(){const c=S.card;if(!c)return;S.card=null;if(c.key)document.removeEventListener('keydown',c.key);try{const a=A();if(a.HUD&&a.HUD.overlay&&a.HUD.overlay('rangeCard'))a.HUD.overlay('rangeCard',null);else c.el.remove()}catch(_){try{c.el.remove()}catch(__){}}}
 R.closeCard=closeCard;
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

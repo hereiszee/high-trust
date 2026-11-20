@@ -209,14 +209,14 @@ function range(P,d){const R=d.range,bx=R.box,line=R.line,lanes=R.lanes,zN=bx.z0+
   const berm=(x0,x1,zc,w,h,top)=>{const g=P.g('earth'),c=C3('#9a9b6a'),c2=C3('#7f7652');const a=[[x0,0,zc-w/2],[x1,0,zc-w/2],[x1,h,zc-top/2],[x0,h,zc-top/2]],b=[[x1,0,zc+w/2],[x0,0,zc+w/2],[x0,h,zc+top/2],[x1,h,zc+top/2]];
     g.quad(a[0],a[1],a[2],a[3],[[x0/4,0],[x1/4,0],[x1/4,1],[x0/4,1]],[c2,c2,c,c],[0,1,-1]);g.quad(b[0],b[1],b[2],b[3],[[x1/4,0],[x0/4,0],[x0/4,1],[x1/4,1]],[c2,c2,c,c],[0,1,1]);
     g.quad(a[3],a[2],b[3],b[2],[[x0/4,0],[x1/4,0],[x1/4,.3],[x0/4,.3]],c,[0,1,0])};
-  berm(bx.x0+4,line-1.5,zN,3.4,2.4,.8);berm(bx.x0+4,line-1.5,zS,3.4,2.4,.8);
-  {const g=P.g('earth'),c=C3('#b39d6c'),c2=C3('#8d7a52'),x=bx.x0+2;   /* backstop: a sand face toward the shooter */
-    g.quad([x+3.4,0,zN-1],[x+3.4,0,zS+1],[x+.6,4.6,zS+1],[x+.6,4.6,zN-1],[[0,0],[8,0],[8,1],[0,1]],[c2,c2,c,c],[1,1,0]);
-    g.quad([x-1.2,0,zS+1],[x-1.2,0,zN-1],[x+.6,4.6,zN-1],[x+.6,4.6,zS+1],[[0,0],[8,0],[8,1],[0,1]],c2,[-1,1,0]);
-    for(const z of[zN-1,zS+1])g.tri([x-1.2,0,z],[x+3.4,0,z],[x+.6,4.6,z],[[0,0],[1,0],[.5,1]],c2,[0,0,z<200?-1:1])}
+  berm(d.bld.bermW.x1,line-1.5,zN,3.4,2.4,.8);berm(d.bld.bermW.x1,line-1.5,zS,3.4,2.4,.8);
+  {const g=P.g('earth'),c=C3('#b39d6c'),c2=C3('#8d7a52'),bw=d.bld.bermW,xf=bw.x1+1,xt=bw.x1-.8,xb=bw.x0-1;   /* backstop: a sand face toward the shooter, over its collider */
+    g.quad([xf,0,zN-1],[xf,0,zS+1],[xt,4.6,zS+1],[xt,4.6,zN-1],[[0,0],[8,0],[8,1],[0,1]],[c2,c2,c,c],[1,1,0]);
+    g.quad([xb,0,zS+1],[xb,0,zN-1],[xt,4.6,zN-1],[xt,4.6,zS+1],[[0,0],[8,0],[8,1],[0,1]],c2,[-1,1,0]);
+    for(const z of[zN-1,zS+1])g.tri([xb,0,z],[xf,0,z],[xt,4.6,z],[[0,0],[1,0],[.5,1]],c2,[0,0,z<200?-1:1])}
   const DB=atlasSplit('dists',4,(x,w,h,i)=>{x.fillStyle=STY.yellow[0];x.fillRect(0,0,w,h);x.strokeStyle='#1a1a1a';x.lineWidth=6;x.strokeRect(5,5,w-10,h-10);x.fillStyle='#1a1a1a';x.font='900 72px '+UI_FONT;x.textAlign='center';x.textBaseline='middle';x.fillText(R.dists[i]+' m',w/2,h/2+3,w*.9)});
   const LB=atlasSplit('lanes',6,(x,w,h,i)=>{x.fillStyle='#f2efe6';x.fillRect(0,0,w,h);x.fillStyle='#1d2a3a';x.font='900 96px '+UI_FONT;x.textAlign='center';x.textBaseline='middle';x.fillText(''+(i+1),w/2,h/2+4)});
-  R.dists.forEach((dist,di)=>{const x=line-dist;P.box('mark',x-1.4,.01,zN+1.5,x+1.4,.025,zS-1.5,'#b8a27a');
+  R.dists.forEach((dist,di)=>{const x=line-Math.min(dist,98.5);P.box('mark',x-1.4,.01,zN+1.5,x+1.4,.025,zS-1.5,'#b8a27a');
     /* distance boards on the north berm */
     P.sign(x,2.9,zN+.35,1.2,1.1,Math.PI,DB[di]);P.cyl('paint',x,1.6,zN+.25,.05,.05,2.6,'#333',6)});
   /* lane lines: low white posts every 10 m between lanes */

@@ -90,6 +90,8 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/jobs/_registry.js"></script>
 <script src="js/base.js"></script><!-- Fort Sensible: the post, the range, the tank, the jet, easter eggs (docs/base.md) -->
 <script src="js/range.js"></script>
+<script src="js/tank.js"></script>
+<script src="js/jet.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -1753,7 +1755,7 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   if(!I.hb)I.st*=1-.38*clamp(Math.abs(v0)/34,0,1);/* less steering authority at speed: quick but controllable */
   const band=carDrive(e,S,B,I);/* car health: slower, weaker brakes, a pull, limp mode, broken down */
   c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
-  const hit=drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});JH.vehicle(e,dt);/* JOBS: tow, g-force, tail */
+  const hit=e.fly?null:drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});JH.vehicle(e,dt);/* JOBS: tow, g-force, tail. e.fly: a vehicle that moves itself (the jet, js/jet.js) skips the ground physics */
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
@@ -2616,7 +2618,7 @@ function updHub(dt){
     if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
   for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
-    if(Math.abs(e.spd)<4){prompt=KE+' · Get out';if(useTap){useTap=false;exitCar()}}
+    if(Math.abs(e.spd)<4&&!e.noExit){prompt=KE+' · Get out';/* e.noExit: the jet in the air (js/jet.js: hold E to eject instead) */if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)&&e.noJobs){/* the tank and the jet (js/tank.js, js/jet.js): jobs say no */prompt=e.noJobs;if(DRV.quipT<=0){DRV.quipT=8;radio(speaker()||'you',e.noJobs)}}
       else if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}

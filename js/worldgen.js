@@ -234,10 +234,10 @@ const pt=(x,z,extra)=>Object.assign({tx:x,tz:z,x:tc(x),z:tc(z)},extra||{});
    Tiles. The fence ring is chain-link ('z'); its gate is where Industrial Way comes through. Buildings are 'A' blocks marked custom
    (solid, on the minimap, colliders at their roofY) that js/base.js draws. Everything else is lot (',' asphalt), walk ('s' concrete)
    or grass. Nothing here moves a tile of rows 0-79 except Industrial Way's two extra rows (78-79) and the tree line it passes through. */
-const BASE_T={fence:[3,84,138,125],gate:[99,103],road:[6,92,136,94],range:[6,96,54,111],shed:[55,97,58,110],apron:[104,104,137,114],runway:[6,115,137,121],
+const BASE_T={fence:[2,84,138,125],gate:[99,103],road:[6,92,136,94],range:[6,96,54,111],shed:[55,97,58,110],apron:[104,104,137,114],runway:[6,115,137,121],
   motor:[104,96,116,103],parade:[66,97,92,109],
   bld:[['b_gate',105,86,106,87,2.9],['b_barracks1',62,86,76,89,5.2],['b_barracks2',80,86,94,89,5.2],['b_tower',131,86,133,88,11],['b_hangar',118,96,134,103,9.5],
-       ['b_range',59,97,63,100,3.4],['b_bermN',6,96,54,96,2.4],['b_bermS',6,111,54,111,2.4],['b_bermW',4,96,5,111,4.5]]};
+       ['b_range',59,97,63,100,3.4],['b_bermN',6,96,54,96,2.4],['b_bermS',6,111,54,111,2.4],['b_bermW',3,97,4,110,4.5]]};
 function stampBase(g,set,rect,buildings){
   for(let z=TOWN_H;z<H;z++)for(let x=0;x<=HOODS.base.tx1;x++)set(x,z,'g');
   /* the old southern tree line stays, with a gap for the road */
