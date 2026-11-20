@@ -34,7 +34,7 @@ const K={
   couchAt:60,couchPct:4,pianoAt:85,pianoPct:8,
   couchSpd:1.35,couchTurn:.75,scuffSpd:.55,
   pianoSpd:1.2,pianoPer:.18,     /* speed bonus per extra lifter */
-  calm0:100,calmTM:1.6,calmShot:1.5,calmLost:10,calmBack:1.4,flinchR:30,calmR:36,
+  calm0:100,calmTM:1.3,calmShot:1.5,calmLost:10,calmBack:1.4,flinchR:30,calmR:36,
   grabT:7,loseD:42,talkT:1.1,tackleD:1.25,
   gold:210,silver:25,
   waveGap:2.2
@@ -434,7 +434,7 @@ function ordersTick(M,dt){const a=A(),k=a.keys,V=S(M);if(k.g&&!V.gDown){V.gDown=
 /* the crew panel: chips per person (tap / click to switch), LIFT! and COVER! buttons, key hints */
 function panel(M,make){const a=A(),V=S(M);if(!V)return;let el=V.panelEl;
   if(make||!el){if(el&&el.parentNode)el.remove();el=document.createElement('div');el.className='mv-root';el.style.pointerEvents='none';V.panelEl=el;
-    el.innerHTML='<style>.mv-crew{position:absolute;right:16px;top:clamp(150px,22vh,190px);display:flex;flex-direction:column;gap:5px;align-items:stretch;width:132px;pointer-events:none;font:600 12px/1 "Barlow Condensed","Barlow",sans-serif;letter-spacing:.04em;text-transform:uppercase}'+
+    el.innerHTML='<style>.mv-crew{position:absolute;right:16px;bottom:clamp(170px,27vh,200px);display:flex;flex-direction:column;gap:5px;align-items:stretch;width:132px;pointer-events:none;font:600 12px/1 "Barlow Condensed","Barlow",sans-serif;letter-spacing:.04em;text-transform:uppercase}'+
       '.mv-crew .chip,.mv-crew .btn{pointer-events:auto;cursor:pointer;border-radius:8px;padding:5px 9px;background:rgba(14,18,24,.66);color:#eef2f6;border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:row;justify-content:space-between;align-items:baseline;gap:6px;backdrop-filter:blur(3px);user-select:none;-webkit-user-select:none}'+
       '.mv-crew .chip b{font-size:13px;letter-spacing:.06em}.mv-crew .chip i{font-style:normal;font-size:11px;opacity:.85}.mv-crew .chip.lift{border-color:#f0a020;background:rgba(80,52,8,.72)}.mv-crew .chip.lift i{color:#ffc35a}.mv-crew .chip.cover i{color:#8fd0ff}'+
       '.mv-crew .btn{flex-direction:row;align-items:center;gap:6px;font-size:13px;min-width:0;padding:8px 10px}.mv-crew .btn kbd{font:700 11px/1 sans-serif;background:rgba(255,255,255,.16);border-radius:4px;padding:3px 5px}.mv-crew .btn.l{border-color:#f0a020}.mv-crew .btn.c{border-color:#5fb0f0}'+
@@ -442,6 +442,7 @@ function panel(M,make){const a=A(),V=S(M);if(!V)return;let el=V.panelEl;
       '<div class="mv-crew"><div class="btn l" data-k="lift"><kbd>G</kbd>Lift!</div>'+CREW.map(id=>'<div class="chip" data-id="'+id+'"><b></b><i></i></div>').join('')+'<div class="btn c" data-k="cover"><kbd>T</kbd>Cover!</div></div>';
     const on=ev=>{const t=ev.target.closest('[data-id],[data-k]');if(!t)return;ev.preventDefault();ev.stopPropagation();const M_=A().M;if(!S(M_))return;if(t.dataset.k)allOrder(M_,t.dataset.k);else cycleOrder(M_,t.dataset.id)};
     el.addEventListener('pointerdown',on);V.panelOn=on;try{a.overlay('moving-crew',el)}catch(_){}}
+  el.style.display=V.ph==='last'||V.ph==='end'?'none':'';
   for(const id of CREW){const ch=el.querySelector('[data-id="'+id+'"]');if(!ch)continue;const c=V.crew[id];ch.style.display=c?'':'none';if(!c)continue;const o=V.orders[id];
     ch.className='chip '+(o==='lift'?'lift':'cover');ch.querySelector('b').textContent=(c.a.name||id).replace(/^Coach /,'');ch.querySelector('i').textContent=o==='lift'?(c.box?'Carrying':'Lifting'):c.a.down?'Down':SHORT[o]}}
 function crewTick(M,dt){const a=A(),V=S(M);let dirty=false;
@@ -554,7 +555,7 @@ function spawnHostile(M,from,kind){const a=A(),V=S(M),sp=L_.spawns[from],q=a.wmS
   if(kind==='A'){/* armed: walks the director lane to the truck, fights whoever is at the corner */const L=V.lanes[from];e.lane=L?(V.waveI%2?L.flank:L.direct).slice(1):[{x:L_.stack.x,z:L_.stack.z}];}
   else{a.equip(e.dude,null);e.gun=null;e.hp=e.maxhp=55;tmStart(M,h,'walk')}
   if(h.andre){e.mvAndre=true;const tag=document.createElement('div');tag.className='tag';tag.textContent='ANDRE';const host=document.getElementById('tags');if(host)host.appendChild(tag);e.tag=tag}
-  e.onCuff=()=>{if(h.andre)V.andre='cuffed';a.addTrust(-2);/* the game's zip-tie gives +4; SPEC3: +2 here */if(!M.replay)V.cuffed=(V.cuffed||0)+1};
+  e.onCuff=()=>{if(h.andre)V.andre='cuffed';V.cuffed=(V.cuffed||0)+1;/* the game's zip-tie gives +4; SPEC3 says +2 here, and only the first six count (a moving day, not a trust farm) */a.addTrust(V.cuffed<=6?-2:-4)};
   V.hostiles.push(h);a.rebuildTargets();return h}
 function postManned(M,from,e){const V=S(M),p=L_.posts[from];if(!p)return false;for(const id in V.crew){const c=V.crew[id];if(V.orders[id]!==from||c.a.down)continue;
     if(Math.hypot(c.a.pos.x-p.x,c.a.pos.z-p.z)<8&&(!e||Math.hypot(e.pos.x-p.x,e.pos.z-p.z)<34))return true}return false}
@@ -620,7 +621,7 @@ function startCouch(M,resume){const a=A(),V=S(M);V.ph='couch';if(!resume)a.CP.ma
   const u=V.truck.userData;if(u&&u.couch)u.couch.visible=false;
   V.couch={mesh:c,x:L_.truck.x+.0,z:L_.rampEnd+1.6,yaw:Math.PI,held:false,partner:null,t:0,lift:0,inT:0,sp:0,set:false};c.position.set(V.couch.x,0,V.couch.z);c.rotation.y=Math.PI/2;
   if(!resume)sayLater(M,.3,LN.couch);music('tension',.5)}
-function couchEnds(C){const fx=-Math.sin(C.yaw),fz=-Math.cos(C.yaw),h=1.25;return{front:{x:C.x+fx*h,z:C.z+fz*h},back:{x:C.x-fx*h,z:C.z-fz*h},fx,fz}}
+function couchEnds(C){const fx=-Math.sin(C.yaw),fz=-Math.cos(C.yaw),h=1.62;return{front:{x:C.x+fx*h,z:C.z+fz*h},back:{x:C.x-fx*h,z:C.z-fz*h},fx,fz}}
 function couchTick(M,dt,F){const a=A(),V=S(M),C=V.couch,P=a.P;if(!C)return;C.t+=dt;
   const E=couchEnds(C);
   /* your partner: the nearest crewman on Lift, else Mr. Adeyemi ("My back. My beautiful back.") */
@@ -846,9 +847,10 @@ function bot(a,t,o){const M=a.M,V=S(M),P=a.P;if(!M||M.state!=='go'||!V)return nu
   if(V.ph==='piano'&&V.piano){const Pn=V.piano;if(Pn.roll<1){walk(L_.stack.x-1,L_.stack.z+2);return null}if(!Pn.on){const seg=Pn.route[1],cur=Pn.route[0],l=Math.hypot(seg.x-cur.x,seg.z-cur.z);const bx_=Pn.x-(seg.x-cur.x)/l,bz=Pn.z-(seg.z-cur.z)/l;if(walk(bx_,bz))a.useTap=true;return null}
     if(Pn.wait){if(Pn.wait.ready)a.keys.e=true;return null}/* stand still at the steps */
     const seg=Pn.route[Pn.k+1];if(seg){const cur=Pn.route[Pn.k],l=Math.hypot(seg.x-cur.x,seg.z-cur.z)||1;P.pos.x+=(seg.x-cur.x)/l*2.2*dt;P.pos.z+=(seg.z-cur.z)/l*2.2*dt}return null}
-  /* the couch */
-  if(V.couch){const C=V.couch;const E=couchEnds(C);
-    if(!C.held){if(walk(E.back.x,E.back.z)){a.keys.e=true}return null}
+  /* the couch (set it down to deal with trouble at the truck, like a person would) */
+  const trouble=V.hostiles.some(h=>h.tm&&h.e.state==='idle'&&(h.tm.st==='run'||h.tm.st==='mischief'&&(V.calm<80||h.tm.kind==='P'&&h.tm.t>4)));
+  if(V.couch&&!trouble){const C=V.couch;const E=couchEnds(C);
+    if(!C.held){walk(E.back.x,E.back.z);if(near(E.back.x,E.back.z,1.7))a.keys.e=true;return null}
     a.keys.e=true;const tg_=L_.couchDrop,dx=tg_.x-C.x,dz=tg_.z-C.z,dd=Math.hypot(dx,dz);
     let want=Math.atan2(-dx,-dz),sp=Math.abs(wrap(want-C.yaw))>.5?1.2:4.3;if(dd<1.4){want=Math.abs(wrap(C.yaw))<Math.PI/2?0:Math.PI;sp=0}
     const err=wrap(want-C.yaw);if(dd<1.4&&Math.abs(err)<.4)return null;/* lined up: hold E, it tilts in */

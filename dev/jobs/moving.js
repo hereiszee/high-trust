@@ -46,6 +46,7 @@ const DBG=!!arg('dbg',false),SHOTS=!!arg('shots',false),FAIL=!!arg('fail',false)
     if(!QUIET&&(f-last>=EVERY||r==='end')){last=f;const i=inf;console.log(i.el+'s '+i.stage+'/'+i.ph+' bar '+i.pct+' calm '+i.calm+(i.frozen?' FROZEN':'')+' w'+i.wave+' you '+i.you+(i.carry?'['+i.carry+']':'')+' me '+i.me+' cuffs '+i.cuffs+' kills '+i.kills+' talked '+i.talked+'\n     crew '+i.crew+'\n     hos '+i.hos+(i.cv?'\n     couch '+JSON.stringify(i.cv):'')+(i.pn?'\n     piano '+JSON.stringify(i.pn):'')+(i.rk?'\n     rick '+i.rk:'')+(i.prompt?'\n     prompt '+JSON.stringify(i.prompt):''))}
     if(SHOTS)for(const[n,c]of WANT){if(taken[n])continue;const ok=await ev(c=>{const H=window.__ht,M=H.M,V=M&&M.mv;if(!V||M.state!=='go')return false;try{return !!eval(c)}catch(e){return false}},c);if(ok){taken[n]=1;await shot(n)}}
     if(r==='end')break}
+  {const i=await ev(()=>window.__T.info());const st=await ev(()=>window.__ht.M&&window.__ht.M.state);if(st==='go')console.log('LAST',JSON.stringify(i))}
   const fin=await ev(()=>{const H=window.__ht;H.step(40);return{state:H.M&&H.M.state,el:H.M&&Math.round(H.M.elapsed),medal:H.M&&H.M.medal,pay:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.label+':'+l.amount):null,acts:Object.keys(H.UIacts||{})}});
   console.log('END',JSON.stringify(fin));await shot(FAIL?'fail':'result');
   console.log('--- transcript ---');const said=await ev(()=>window.__T.said);console.log(said.join('\n'));
