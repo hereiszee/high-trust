@@ -31,9 +31,11 @@ test('at speed it swings wide: the towed yaw lags the kinematic answer',()=>{con
 test('jackknife: a sharp reverse triggers it, a gentle one does not',()=>{let R=rig(),ev=run(R,{thr:-1,st:1},8,{until:e=>e.jack});assert(ev.some(e=>e.jack),'sharp reverse should jackknife');
   R=rig();ev=run(R,(t,R)=>({thr:R.c.spd>-2?-.5:0,st:.08}),5);assert(!ev.some(e=>e.jack),'gentle reverse should not');
   const a=Math.max(...ev.map(e=>Math.abs(e.rel)))/D;console.log('     gentle reverse peak angle '+a.toFixed(1)+' deg')});
-test('a wall at 9+ m/s reports a snap-speed hit on the towed body',()=>{const R=rig();run(R,{thr:1,st:0},1.5);R.c.spd=10;let hit=null;
+test('a sideways hit at 10 m/s reports a snap-speed hit, a brush does not',()=>{const R=rig();run(R,{thr:1,st:0},1.5);R.c.spd=10;let hit=null;
   const wallZ=R.b.z-4;/* a wall line the towed car will meet if the tower teleports past it: simulate by pushing the probes back */
-  const coll=(p,r)=>{if(p.x>R.b.x-.5&&p.x<R.b.x+.5&&!hit)p.x+=.5};R.k.Cp=null;const ev=Tow.step(R.k,R.tw(),DT,{collide:coll});hit=ev.hit;
+  /* the towed body swinging sideways (-x) at 10 m/s into a post: the push-out is +x */
+  const coll=(p,r)=>{if(p.x>R.b.x-.5&&p.x<R.b.x+.5&&!hit)p.x+=.5};R.k.Cp={x:R.b.x+10*DT,z:R.b.z};const ev=Tow.step(R.k,R.tw(),DT,{collide:coll});hit=ev.hit;
+  const R2=rig();run(R2,{thr:1,st:0},1.5);R2.k.Cp={x:R2.b.x+3*DT,z:R2.b.z};const ev2=Tow.step(R2.k,R2.tw(),DT,{collide:(p,r)=>{p.x+=.2}});assert(ev2.hit&&ev2.hit.sp<4,'a gentle brush '+JSON.stringify(ev2.hit));
   assert(ev.hit&&ev.hit.sp>=Tow.T.snap,'hit '+JSON.stringify(ev.hit));assert.strictEqual(Tow.T.snap,9)});
 test('attach geometry: 2.4 m ok, 2.6 m too far; 29 degrees ok, 31 too much; moving no',()=>{const tw={x:0,z:0,yaw:0,spd:0,len:4.9},H=Tow.hitchPoint(tw);
   const at=(d,yaw)=>{const car={len:4.6,yaw},f=Tow.fwd(yaw);car.x=H.x-f[0]*(d+2.3);car.z=H.z-f[1]*(d+2.3);/* bumper d metres behind the hitch along the car's axis */return Tow.check(tw,car)};

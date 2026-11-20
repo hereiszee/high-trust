@@ -73,9 +73,10 @@ function step(k,tw,dt,o){o=o||{};const car=k.car,v=tw.spd||0,H=hitchPoint(tw),ev
   /* the towed body against the world: push it out, keep it on the hitch, report the hit */
   if(o.collide){const f=fwd(k.psi),q=k.len/3;let px=0,pz=0;
     for(const s of[1,-1]){const p={x:C.x+f[0]*q*s,z:C.z+f[1]*q*s},p0={x:p.x,z:p.z};o.collide(p,k.wid/2+.05);px+=p.x-p0.x;pz+=p.z-p0.z}
-    if(px*px+pz*pz>1e-6){const Cx=C.x+px,Cz=C.z+pz,np=yawTo(H.x-Cx,H.z-Cz);const dpsi=wrap(np-k.psi);k.psi=np;k.w*=.3;C=centreFrom(H,k.psi,k.len);
-      const vx=(C.x-(k.Cp?k.Cp.x:C.x))/Math.max(dt,1e-3),vz=(C.z-(k.Cp?k.Cp.z:C.z))/Math.max(dt,1e-3),l=Math.hypot(px,pz),
-        sp=Math.max(Math.abs(vx*px/l+vz*pz/l),Math.abs(v)*Math.min(1,Math.abs(dpsi)*6+.25));
+    if(px*px+pz*pz>1e-6){const l=Math.hypot(px,pz),nx=px/l,nz=pz/l,
+        /* closing speed into the obstacle: the body's own motion this frame (before the push-out) against the push normal */
+        vx=k.Cp?(C.x-k.Cp.x)/Math.max(dt,1e-3):0,vz=k.Cp?(C.z-k.Cp.z)/Math.max(dt,1e-3):0,sp=Math.min(30,Math.max(0,-(vx*nx+vz*nz)));
+      const Cx=C.x+px,Cz=C.z+pz,np=yawTo(H.x-Cx,H.z-Cz);k.psi=np;k.w*=.3;C=centreFrom(H,k.psi,k.len);
       ev.hit={sp,push:{x:px/l,z:pz/l}};rel=wrap(tw.yaw-k.psi);ev.rel=rel}}
   car.x=C.x;car.z=C.z;car.yaw=k.side==='rear'?wrap(k.psi+Math.PI):k.psi;
   k.Cp=C;k.H0=H;k.v0=v;return ev}
@@ -257,8 +258,11 @@ function beacon(e,dt){const r=S.rigs.get(e);if(!r)return;const u=r.g.userData,on
 function hitFx(t,sp){const a=A();try{const h=H_();if(h.FX&&h.FX.impact)h.FX.impact(new THREE.Vector3(t.pos.x,.8,t.pos.z),new THREE.Vector3(0,1,0),'metal',{decal:false})}catch(_){}try{const Au=HT.Audio;if(Au&&Au.ready&&Au.impact)Au.impact('car',{x:t.pos.x,y:.8,z:t.pos.z})}catch(_){}}
 
 /* ---------------- sound: winch whirr, clank, chain rattle and the creak of the hitch (procedural, on the sfx bus if there is one) ---------------- */
-function ac(){const Au=window.HT&&HT.Audio;const c=Au&&Au.state&&Au.state.ctx;return c&&c.state!=='closed'?c:null}
-function sfx(kind){const c=ac();if(!c)return;const t=c.currentTime,g=c.createGain(),out=c.destination;g.connect(out);
+/* HT.Audio keeps its context private: the tow sounds get their own small one, made only once the game's audio is running (after a user gesture) */
+let ACX=null;function ac(){const Au=window.HT&&HT.Audio;if(!Au||!Au.ready||!(Au.state&&Au.state.ctx==='running'))return null;
+  if(!ACX){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;try{ACX=new C();const g=ACX.createGain();g.gain.value=.8;g.connect(ACX.destination);ACX.out=g}catch(_){ACX=null;return null}}
+  if(ACX.state==='suspended')try{ACX.resume()}catch(_){}return ACX.state==='closed'?null:ACX}
+function sfx(kind){const c=ac();if(!c)return;const t=c.currentTime,g=c.createGain(),out=c.out||c.destination;g.connect(out);
   const noise=(dur,f,q,vol,type)=>{const n=c.createBufferSource(),b=c.createBuffer(1,Math.max(1,c.sampleRate*dur|0),c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);n.buffer=b;const bq=c.createBiquadFilter();bq.type=type||'bandpass';bq.frequency.value=f;bq.Q.value=q;const gg=c.createGain();gg.gain.value=vol;n.connect(bq);bq.connect(gg);gg.connect(g);n.start(t);n.stop(t+dur)};
   const ping=(f,dur,vol,dt0)=>{const o=c.createOscillator(),gg=c.createGain();o.type='triangle';o.frequency.value=f;gg.gain.setValueAtTime(vol,t+(dt0||0));gg.gain.exponentialRampToValueAtTime(.001,t+(dt0||0)+dur);o.connect(gg);gg.connect(g);o.start(t+(dt0||0));o.stop(t+(dt0||0)+dur+.05)};
   g.gain.value=.5;
@@ -271,7 +275,7 @@ function sound(k,tw,dt){const c=ac();/* chains rattle on bumps and swings; the h
   if(!c)return;const sw=Math.abs(k.w);if(k.rT<=0&&(sw>.5||Math.abs(tw.spd-(k.sv||0))>.6)&&Math.abs(tw.spd)>1.5){k.rT=.35+Math.random()*.5;sfx('rattle')}k.sv=tw.spd}
 let winch=null;
 function winchSnd(on,p){const c=ac();if(!c){return}if(on&&!winch){const o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain();o.type='sawtooth';o2.type='square';o.frequency.value=95;o2.frequency.value=190;f.type='lowpass';f.frequency.value=900;g.gain.value=0;
-    o.connect(f);o2.connect(f);f.connect(g);g.connect(c.destination);o.start();o2.start();winch={o,o2,g,f}}
+    o.connect(f);o2.connect(f);f.connect(g);g.connect(c.out||c.destination);o.start();o2.start();winch={o,o2,g,f}}
   if(winch){const t=c.currentTime;if(on){winch.g.gain.setTargetAtTime(.05,t,.04);winch.o.frequency.setTargetAtTime(90+p*70,t,.05);winch.o2.frequency.setTargetAtTime(180+p*140,t,.05)}
     else{winch.g.gain.setTargetAtTime(0,t,.05);const w=winch;winch=null;setTimeout(()=>{try{w.o.stop();w.o2.stop()}catch(_){}},400)}}}
 Tow.winch=winchSnd;Tow.sfx=sfx;
@@ -294,16 +298,16 @@ function freeRoamE(e,c,dt){const a=A(),r=action();S.hint=r;if(!r||r.info){if(!a.
 /* missions: the interact hook. A quick tap while hitched still gets you out (to zip-tie somebody, say) */
 function interact(prompt){const a=A();if(!a||!a.CV)return undefined;const r=action();
   if(!r){winchSnd(false);return undefined}
-  if(r.info)return prompt?undefined:r.txt;
-  if(a.keys.e){S.eT+=1/30}else{if(S.eT>0&&S.eT<.22&&S.link){S.eT=0;a.exitCar();return undefined}S.eT=0}
+  if(r.info){winchSnd(false);return undefined}/* line-up hints live in the HUD meter; E stays "Get out" */
+  if(a.keys.e){S.eT+=1/30}else{if(S.eT>0&&S.eT<.22){S.eT=0;winchSnd(false);a.exitCar();return undefined}S.eT=0}
   const o=S.holdO||(S.holdO={prog:0});winchSnd(a.keys.e&&o.prog>0,o.prog);
-  return{txt:r.txt+(S.link?' · tap: get out':''),hold:r.hold,o,fn:()=>{winchSnd(false);r.fn()}}}
+  return{txt:r.txt+' · tap: get out',hold:r.hold,o,fn:()=>{winchSnd(false);r.fn()}}}
 
 /* ---------------- HUD: the line-up meters, the towing meter ---------------- */
 function hud(st){const a=A();if(!a||!a.CV){return}const m=st.meters||(st.meters=[]);if(m.length>=3)return;
   if(S.link){const k=S.link,rel=Math.abs(k.rel||0)/D2R;m.push({id:'tow_angle',label:'Hitch angle',v:Math.min(90,rel),max:90,style:'bands',zones:[[0,35,'good','Tracking'],[35,60,'warn','Swinging'],[60,90,'bad','Jackknife!']],marker:Math.min(90,rel)});return}
   const cd=S.cand;if(!cd)return;const ch=cd.chk;
-  m.push({id:'tow_line',label:'Line up',v:Math.max(0,8-Math.min(8,ch.d)),max:8,style:'bands',zones:[[0,3,'bad','Far'],[3,5.5,'warn','Closer'],[5.5,8,'good','In range']],sub:ch.d.toFixed(1)+' m · '+Math.round(ch.rel/D2R)+'°'+(Math.abs(a.CV.spd)>=T.attachSpd?' · stop':'')});
+  m.push({id:'tow_line',label:'Line up',v:Math.max(0,8-Math.min(8,ch.d)),max:8,style:'bands',zones:[[0,3,'bad','Far'],[3,5.5,'warn','Closer'],[5.5,8,'good','In range']],sub:ch.ok?'Hold E · hitch up':(ch.why==='stop'?'Stop':ch.why==='angle'?'Straighten up · '+Math.round(ch.rel/D2R)+'°':ch.why==='under'?'Too close':ch.d.toFixed(1)+' m')});
   if(a.mode==='hub'&&S.hint&&m.length<3)m.push({id:'tow_e',label:S.hint.info?S.hint.txt:'Hold E · '+S.hint.txt,v:S.hold||0,max:1,style:'bar'})}
 
 /* ---------------- reverse camera: high and behind the hitch while you line up (missions) ---------------- */
