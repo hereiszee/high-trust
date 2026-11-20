@@ -627,9 +627,9 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
   if(a.CV){a.exitCar();return null}
   const goTo=(p,sp)=>{const dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=Math.hypot(dx,dz);if(d<.25){B.stuck=0;return true}const s=Math.min(d,(sp||2.6)/30);const x0=P.pos.x,z0=P.pos.z;
     /* a person walks around a parked car or a passing one: when blocked for half a second, step sideways for a moment */
-    let ux=dx/d,uz=dz/d;if(B.side>0){B.side--;const sx=-uz*B.sideDir,sz=ux*B.sideDir;ux=ux*.3+sx;uz=uz*.3+sz}
+    let ux=dx/d,uz=dz/d;if(B.side>0){B.side--;const sx=-uz*B.sideDir,sz=ux*B.sideDir;ux=ux*.15+sx;uz=uz*.15+sz}
     P.pos.x+=ux*s;P.pos.z+=uz*s;a.collide(P.pos,.35);P.yaw=Math.atan2(-dx,-dz);
-    if(Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3){B.stuck=(B.stuck||0)+1;if(B.stuck>15){B.stuck=0;B.side=20;B.sideDir=B.sideDir===1?-1:1;B.unstuck=(B.unstuck||0)+1}}else B.stuck=0;return false};
+    if(Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3){B.stuck=(B.stuck||0)+1;if(B.stuck>12){B.stuck=0;B.unstuck=(B.unstuck||0)+1;B.side=30+15*(B.unstuck%4);if(B.unstuck%2)B.sideDir=B.sideDir===1?-1:1}/* round a parked van: longer each try, both ways */}else B.stuck=0;return false};
   const route=(pts,sp)=>{B.ri=B.ri||0;while(B.ri<pts.length&&goTo(pts[B.ri],sp))B.ri++;return B.ri>=pts.length};
   if(M.ph==='intro'){B.i=(B.i||0)+1;if(B.i<60)return null;if(!goTo({x:L_.barb.x-.2,z:L_.barb.z+1.6}))return null;if(M.say.length>1)return null;a.useTap=true;return null}
   if(M.ph==='meet'){const mt=M.mt;if(mt.st==='walk'){if(M.seat){a.useTap=true;return null}if(B.mr==null){B.mr=1;B.ri=0}if(route([{x:105.6,z:67.7},{x:L_.podium.x,z:67.7},{x:L_.podium.x,z:L_.podium.z+.2}]))a.useTap=true;return null}
