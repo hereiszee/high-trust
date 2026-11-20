@@ -394,8 +394,16 @@ function intensity(v){const a=AU();try{if(a&&a.setIntensity)a.setIntensity(v)}ca
 
 /* ================= people (Hank at the mart, porch neighbours, kids, the loiterer) ================= */
 const HP=()=>window.HT&&HT.People&&HT.People.ok?HT.People:null;
+/* Hank has no model of his own yet: he borrows the older neighbour ('nb_pops'), registered as a 'hank' role so the giver, the brief's
+   cast preload and the job all resolve to it (otherwise the cast preload asks for people/rocketbox/hank.glb). A real 'hank' model wins. */
+let CAST=false;
+function ensureCast(){const pp=HP();if(CAST||!pp||!pp.roles)return;CAST=true;const keys=pp.keys||[];
+  if(!pp.roles.hank&&!(pp.giverKeys||[]).includes('hank')&&keys.includes('nb_pops'))pp.roles.hank='nb_pops';
+  /* the brief's cast preload asks People for the giver key itself: point 'hank' at his stand-in file (smallest possible shim; see the report) */
+  if(pp.roles.hank==='nb_pops'&&pp.preload&&!pp.preload.__hank){const orig=pp.preload;pp.preload=function(ks){return orig.call(this,(ks||[]).map(k=>k==='hank'?'nb_pops':k))};pp.preload.__hank=true}
+  const want=['nb_pops','nb_kid','nb_teen','nb_gran','nb_sweater','nb_lucia'].filter(k=>keys.includes(k));if(pp.preload&&want.length)try{pp.preload(want).catch(()=>{})}catch(_){}}
 function dude(role,look,o){const a=A(),pp=HP();let d=null;if(pp&&pp.make){try{d=pp.make(role,o||{})}catch(_){d=null}}if(!d)d=a.makeDude(Object.assign({},look||{shirt:'#7a8796',pants:'#2b2f36'},{role}));return d}
-function hankDude(){const a=A(),pp=HP();if(pp&&pp.has&&pp.has('hank'))return dude('hank');const h=a.HOMIES.hank||{};return a.makeDude(Object.assign({},h,{giver:null}))}
+function hankDude(){const a=A(),pp=HP();ensureCast();if(pp&&pp.has&&pp.has('hank'))return dude('hank');const h=a.HOMIES.hank||{};return a.makeDude(Object.assign({},h,{giver:null}))}
 function npcPose(d,dt,o){const pp=HP();if(d&&d.rb&&pp&&pp.pose){try{pp.pose(d,dt,o||{})}catch(_){}}else if(d&&d.legs){const w=o&&o.moving?Math.sin((d.walk=(d.walk||0)+dt*10))*.5:0;d.legs.forEach((l,i)=>l.rotation.x=i?w:-w)}}
 function wave(d){const pp=HP();if(d&&d.rb&&pp&&pp.interact)try{pp.interact(d)}catch(_){}}
 function apron(d){/* Hank's apron: a canvas-printed panel on the chest bone, or on the box dude */const T=T3();const tex=canvasTex(128,160,(g,w,h)=>{g.fillStyle='#b8322a';g.fillRect(0,0,w,h);g.fillStyle='#f6f1e3';g.font='900 26px "Barlow Condensed",sans-serif';g.textAlign='center';g.fillText("HANK'S",w/2,64);g.font='700 15px sans-serif';g.fillText('HARDWARE',w/2,86);g.fillRect(24,104,80,4)});
@@ -416,7 +424,7 @@ function setupStatic(M){const a=A(),W=a.WORLD,S=spots(W),B=bz(M);
   const co=corralModel();co.position.set(S.corral.x,0,S.corral.z);a.wmAdd(co);B.corral=co;a.wmCol({x0:S.corral.x-1.45,x1:S.corral.x+1.35,z0:S.corral.z-.6,z1:S.corral.z+.6});
   const pk=a.makeVehicle('pickup','#9c3b2e')||a.makeVanBox('#9c3b2e');pk.position.set(S.truck.x,a.groundAt(S.truck.x,S.truck.z),S.truck.z);pk.rotation.y=0;a.wmAdd(pk,true);a.wmCol({x0:S.truck.x-2.7,x1:S.truck.x+2.7,z0:S.truck.z-1.1,z1:S.truck.z+1.1});
   const bd=boardModel();bd.position.set(S.table.x-1.35,0,S.table.z+.55);bd.rotation.y=.35;a.wmAdd(bd);
-  const h=hankDude();h.root.position.set(S.hank.x,0,S.hank.z);a.wmAdd(h.root);faceTo(h,S.mart.x,S.mart.z+3);B.hank={d:h,x:S.hank.x,z:S.hank.z};try{tint(h,'#a8402f',.4)}catch(_){}
+  const h=hankDude();h.root.position.set(S.hank.x,0,S.hank.z);a.wmAdd(h.root);faceTo(h,S.mart.x,S.mart.z+3);B.hank={d:h,x:S.hank.x,z:S.hank.z};try{tint(h,'#a8402f',.28)}catch(_){}
   const pp=HP();if(pp&&pp.preload)try{pp.preload(['wife','son','daughter']).catch(()=>{})}catch(_){}}
 function buildFix(M,f){const a=A(),T=T3();let m=null;
   if(f.kind==='picket'){m=fenceModel();m.position.set(f.x,0,f.z);m.rotation.y=f.yaw;fenceState(m,0)}
@@ -540,7 +548,7 @@ function upd(dt,M,F){const a=A(),B=bz(M),P=a.P,S=spots(a.WORLD);if(!B)return;
   if(B.neighT>0)B.neighT-=dt;
   /* kids ride off, cats trot off; a kid waits by each flat bike (the family models stream in, so they appear when ready) */
   B.age=(B.age||0)+dt;const pp=HP();
-  for(const f of B.fix){if(f.kind==='bike'&&!f.kid&&!f.done&&(B.age>5||(pp&&pp.has&&(pp.has('son')||pp.has('daughter'))))){const role=pp&&pp.has&&pp.has('daughter')&&(f.id.length%2||!pp.has('son'))?'daughter':'son';
+  for(const f of B.fix){if(f.kind==='bike'&&!f.kid&&!f.done&&(B.age>5||(pp&&pp.has&&(pp.has('nb_kid')||pp.has('son')||pp.has('daughter'))))){const role=pp&&pp.has&&pp.has('nb_kid')?(f.id.length%2&&pp.has('nb_teen')?'nb_teen':'nb_kid'):pp&&pp.has&&pp.has('daughter')&&(f.id.length%2||!pp.has('son'))?'daughter':'son';
       const kd=dude(role,{shirt:'#ff8ec0',pants:'#2b4a6b'});const kx=f.x+Math.cos(f.yaw)*.9,kz=f.z-Math.sin(f.yaw)*.9;kd.root.position.set(kx,0,kz);if(!kd.rb)kd.root.scale.setScalar(.72);a.wmAdd(kd.root);faceTo(kd,f.x,f.z);f.kid={d:kd,x:kx,z:kz}}if(f.ride&&f.kid){f.ride.t+=dt;const r=f.ride.t;if(r>.6&&r<5){const d=f.kid.d,m=f.mesh,ang=f.yaw;const sp=Math.min(4,(r-.6)*3);const vx=Math.sin(ang+Math.PI/2)*sp*dt,vz=Math.cos(ang+Math.PI/2)*sp*dt;
         m.position.x+=vx;m.position.z+=vz;m.rotation.z=0;d.root.position.set(m.position.x,.18,m.position.z);d.root.rotation.y=Math.atan2(vx,vz);npcPose(d,dt,{mode:'sit'})}else if(r>=5){f.mesh.visible=false;f.kid.d.root.visible=false;f.ride=null}else npcPose(f.kid.d,dt,{})}
     else if(f.kid&&!f.done)npcPose(f.kid.d,dt,{});
@@ -658,16 +666,17 @@ function persistTick(){const a=A();if(!a||!a.L||!a.L.ow||!a.WORLD||a.mode==='hom
   for(const w of want){if(w[0]==='t'){const t=W.tags.find(t=>t.id===w.slice(1));if(t)PL.grp.add(patchMesh(t))}else{const l=W.lamps.find(l=>l.tx+','+l.tz===w.slice(1));if(l)PL.grp.add(lampGlow(lampHead(W,l,true)))}}
   if(a.L.group)a.L.group.add(PL.grp);void live}
 /* teardown when the job is over (result card, quit, retry) */
-function sysHud(){const a=A();if(!a)return;persistTick();
+function sysHud(){const a=A();if(!a)return;if(!CAST)ensureCast();persistTick();
   const live=a.mode==='mission'&&a.M&&a.M.def&&a.M.def.id===ID&&a.M.state==='go';
   if(!live&&HUDL){const keep=HUDL.tally;if(keep){/* leave the tally card up under the result card for a beat */}hudKill();restore()}}
 let SAVEDW=null;
 function restore(){const a=A();if(SAVEDW&&a&&a.P&&a.P.weapons&&!a.P.weapons.length){for(const w of SAVEDW)a.P.weapons.push(w)}SAVEDW=null}
 J.on('hud',sysHud);
+try{ensureCast()}catch(_){}/* People is usually ready when job files load (after Stage A); otherwise the HUD hook installs it */
 
 /* ================= register ================= */
 J.register(ID,{
-  def:{giver:'hank',giverName:'Hank',giverLook:{giver:'hank',role:'thug_brown',shirt:'#9c3b2e',pants:'#3b3f46',apron:true,belly:true,mustache:true,hair:'#8d8d8d',cap:'#b8322a'},
+  def:{giver:'hank',giverName:'Hank',giverLook:{giver:'hank',role:'hank',shirt:'#9c3b2e',pants:'#3b3f46',apron:true,belly:true,mustache:true,hair:'#8d8d8d',cap:'#b8322a'},
     hood:'river',title:'Honey-Do Blitz',role:"Hank · Hank's Hardware",place:'Riverside Flats, around Ramos Corner Mart',
     lines:["I'm running a promotion. Whoever fixes the most stuff in Riverside in three minutes gets ten percent off at Hank's. For life.",
       "Fences, bulbs, graffiti, Mrs. Ramos' carts. There's a cat. There's always a cat.","I supply the tools. You supply the dad energy. Meet me at Ramos'. Bring sneakers."],
@@ -692,7 +701,7 @@ J.register(ID,{
     if(ok&&B.score>TUNE.discount&&!s.flags.hankDiscount){s.flags.hankDiscount=true;try{A().banner("HANK'S DISCOUNT",'Ten percent off at Hank’s Hardware. For life.',3)}catch(_){}}
     if(B.helperJoined)pl.helper=true;try{if(HT.Save.touch)HT.Save.touch('world','flags','jobs')}catch(_){}PL.key=''},
   hud(state){if(state.weapon)state.weapon.holstered=true;if(state.crosshair)state.crosshair.hidden=true;state.weapons=[]},
-  test:{give(a){/* world givers spawn when the hub is entered; a mid-session unlock (the harness) re-enters it so Hank shows up */if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},step:(a,t,o)=>blitzBot(a,t,o),
+  test:{give(a){ensureCast();/* world givers spawn when the hub is entered; a mid-session unlock (the harness) re-enters it so Hank shows up */if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},step:(a,t,o)=>blitzBot(a,t,o),
     sample:()=>({bz:{seed:12345,phase:'count'}})}
 });
 
