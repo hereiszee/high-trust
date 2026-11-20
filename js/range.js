@@ -227,11 +227,17 @@ function fillUp(a){const P=a.P,id=P.cur,w=a.WEAPONS[id],am=P.ammo&&P.ammo[id];if
 /* each new control is shown once (a feed line with the keys); SAVE keeps what was taught */
 function teach(a,id,text){const s=sv();const t=s?(s.taught||(s.taught={})):S.taught;if(t[id])return;t[id]=1;try{a.HUD.feed(text,'info')}catch(_){}}
 
+/* the post's runtime pieces are drawn only within ~170 m of the camera (each child's bounds cached once; checked 3× a second) */
+const _cv=new THREE.Vector3(),_cb=new THREE.Box3(),_cs=new THREE.Sphere();
+function cull(a){S.cullT=(S.cullT||0)-1/30;if(S.cullT>0)return;S.cullT=.33;const c=a.camera.position;
+  for(const o of S.root.children){let sp=o.userData._cs;if(!sp){_cb.setFromObject(o);if(_cb.isEmpty())continue;sp=o.userData._cs=_cb.getBoundingSphere(new THREE.Sphere())}
+    o.visible=c.distanceTo(sp.center)-sp.radius<170}}
 /* ================= per frame (hud hook: runs in free roam and in jobs) ================= */
 const _v=new THREE.Vector3();
 function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const d=B().def();
   if(S.L!==a.L||!S.root)build(a,d);
   if(S.root.parent!==a.L.group)a.L.group.add(S.root);
+  cull(a);
   const dt=Math.min(.1,Math.max(0,a.simT-S.simT));S.simT=a.simT;S.t+=dt;
   /* the target meshes are raycast through L.solids (index.html's rayTargets); a level reset trims L.solids, so put them back */
   S.solT-=dt;if(S.solT<=0){S.solT=.5;if(S.hits.length&&!a.L.solids.includes(S.hits[0])){for(const m of S.hits)a.L.solids.push(m);try{a.rebuildTargets()}catch(_){}}}

@@ -354,6 +354,7 @@ function hud(st){const a=A();if(!a)return;const on=F.on&&a.CV&&a.CV.type==='jet'
 function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const dt=Math.min(.1,Math.max(0,a.simT-(S.simT||a.simT)));S.simT=a.simT;
   if(a.mode==='hub')ensure(a);
   const e=S.e;if(F.on&&(!e||a.CV!==e)){stop(a,e)}
+  if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<240||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
   if(!dt)return;chuteTick(a,dt);familyTick(a,dt);if(!F.on&&!F.chute)farFog(a,false)}
