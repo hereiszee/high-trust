@@ -40,12 +40,13 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* ---- helpers: real keys ---- */
   const log=[];let T=0;
   const sample=async()=>{const s=await ev(()=>{const H=window.__ht,M=H.M;if(!M)return null;const s=H.ui&&H.ui.sub;return{st:M.state,stage:M.stage,ph:M.ph,cov:M.D?Math.round(M.D.cover*100):null,chat:M.chat?M.chat.kind+':'+(M.chat.p&&M.chat.p.id):'',
-      sub:s?(typeof s==='string'?s:(s.speaker||s.who||'')+': '+(s.text||'')):'',dots:M.D?Object.keys(M.D.timers):[],ex:M.D?M.D.excused:0,t:Math.round(M.elapsed)}});if(!s)return s;
-    const k=s.sub;if(k&&log[log.length-1]!==k)log.push(k);return s};
+      sub:s?(typeof s==='string'?s:(s.speaker||s.who||'')+': '+(s.text||'')):'',dots:M.D?Object.keys(M.D.timers):[],ex:M.D?M.D.excused:0,slip:!!M.slip,t:Math.round(M.elapsed)}});if(!s)return s;
+    const k=s.sub;if(k&&log[log.length-1]!==k)log.push(k);
+    /* the hint says the disguise slipped: a player presses G */if(s.slip&&!s.chat&&s.ph!=='fix'){await p.keyboard.press('g');T.fixes=(T.fixes||0)+1}return s};
   const face=(x,z)=>ev(([x,z])=>{const P=window.__ht.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z));P.pitch=-.12},[x,z]);
   const dist=(x,z)=>ev(([x,z])=>{const P=window.__ht.P;return Math.hypot(P.pos.x-x,P.pos.z-z)},[x,z]);
   async function walk(pts,o){o=o||{};for(const q of pts){if(o.until&&await o.until())break;let stuck=0,last=1e9;await face(q.x,q.z);await p.keyboard.down('w');if(o.run)await p.keyboard.down('Shift');
-      for(let i=0;i<900;i++){await face(q.x,q.z);await step(2);T+=2;if(i%15===0)await sample();if(o.until&&i%5===0&&await o.until())break;const d=await dist(q.x,q.z);if(d<(q.r||.6))break;if(d>last-.01){if(++stuck>40)break}else stuck=0;last=Math.min(last,d)}
+      for(let i=0;i<900;i++){await face(q.x,q.z);await step(2);T+=2;if(i%8===0)await sample();if(o.until&&i%5===0&&await o.until())break;const d=await dist(q.x,q.z);if(d<(q.r||.6))break;if(d>last-.01){if(++stuck>40)break}else stuck=0;last=Math.min(last,d)}
       await p.keyboard.up('w');if(o.run)await p.keyboard.up('Shift')}await step(2)}
   const press=async(k,n)=>{await p.keyboard.press(k);await step(n||2)};
   const waitFor=async(fn,arg,max)=>{for(let i=0;i<(max||900);i++){const r=await ev(fn,arg);if(r)return r;await step(2);T+=2;if(i%15===0)await sample()}return null};
@@ -57,7 +58,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const skipLines=async n=>{for(let i=0;i<n;i++){await press('e',6)}};
   const at=(id)=>ev(id=>{const q=window.__ht.M.pp[id];return{x:q.pos.x,z:q.pos.z,yaw:q.yaw}},id);
   /* walk up from the street side (people turn to face somebody who walks up to them) */
-  const front=async(id,r)=>{const q=await at(id);return{x:q.x,z:q.z+(r||1.2),r:.4}};
+  const front=async(id,r)=>{if(id==='dj')return{x:367.6,z:41.9,r:.4};if(id==='denise')return{x:356.6,z:33.6,r:.4};const q=await at(id);return{x:q.x,z:Math.max(q.z+(r||1.2),q.z<37?q.z+1:39.4),r:.4}};
   /* ---- 1. out of the van, and pick a disguise from the back ---- */
   await step(10);if(await ev(()=>!!window.__ht.CV)){await press('e',6);ok(!await ev(()=>!!window.__ht.CV),'E gets out of the van')}
   ok(await ev(()=>{const H=window.__ht,c=H.M.car;return Math.hypot(H.P.pos.x-c.pos.x,H.P.pos.z-c.pos.z)<4}),'the job starts beside the van');
@@ -94,8 +95,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const spr=[{x:362.2,z:42.8},{x:366.5,z:42.9},{x:366.6,z:40.4},{x:362.4,z:40.4}];let dots=null;
   const anyDots=()=>ev(()=>{const M=window.__ht.M;const k=Object.keys(M.D.timers);return k.length?k:null});for(let lap=0;lap<6&&!dots;lap++){await walk(spr,{run:true,until:anyDots});dots=await anyDots()}
   ok(!!dots,'sprinting around people drains cover until somebody starts a politeness timer: '+JSON.stringify(dots));
-  if(dots){const who=dots[0];const q=await at(who);await face(q.x,q.z);await step(2);await shot('08-politeness',[q.x+Math.sin(q.yaw)*3.2+1.2,2.0,q.z+Math.cos(q.yaw)*3.2+1.4,q.x,1.6,q.z]);
-    const fr=await front(who,1.0);await walk([fr]);await face(q.x,q.z);await press('e',6);const ch=await ev(()=>window.__ht.M.chat&&window.__ht.M.chat.p.id);
+  if(dots){const who=await ev(ds=>{const H=window.__ht,P=H.P;return ds.map(id=>[id,Math.hypot(H.M.pp[id].pos.x-P.pos.x,H.M.pp[id].pos.z-P.pos.z)]).sort((a,b)=>a[1]-b[1])[0][0]},dots);const q=await at(who);await face(q.x,q.z);await step(2);await shot('08-politeness',[q.x+Math.sin(q.yaw)*3.2+1.2,2.0,q.z+Math.cos(q.yaw)*3.2+1.4,q.x,1.6,q.z]);
+    console.log('     at the first "…": '+JSON.stringify(await sample()));const fr=await front(who,1.0);await walk([fr]);console.log('     walked up: '+JSON.stringify(await sample()));await face(q.x,q.z);await press('e',6);const ch=await ev(()=>window.__ht.M.chat&&window.__ht.M.chat.p.id);
     const cancelled=await ev(w=>!window.__ht.M.D.timers[w],who);ok(ch===who&&cancelled,'walking up and talking to '+who+' cancels their "…"');await answer();await talkDone()}
   await step(60);
   /* ---- 6. Vince's photo op (a real click when he smiles) ---- */

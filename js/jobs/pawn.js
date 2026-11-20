@@ -75,7 +75,7 @@ const CAST=[
   {id:'kenji',kind:'guest',key:'nb_kenji',name:'Kenji',at:{x:363.2,z:42.6},face:{x:364.6,z:41.9},mood:'friendly',grp:'dance',dancer:true},
   {id:'lucia',kind:'guest',key:'nb_lucia',name:'Lucia',at:{x:365.6,z:42.9},face:{x:364.6,z:41.9},mood:'bored',grp:'dance',dancer:true},
   {id:'jaylen',kind:'guest',key:'thug_red',name:'Jaylen',at:{x:365.9,z:41.0},face:{x:364.6,z:41.9},mood:'defensive',grp:'dance',dancer:true},
-  {id:'tasha',kind:'guest',key:'nb_teen',name:'Tasha',at:{x:363.4,z:40.9},face:{x:364.6,z:41.9},mood:'scared',grp:'dance',dancer:true},
+  {id:'tasha',kind:'guest',key:'nb_teen',name:'Tasha',at:{x:363.9,z:41.35},face:{x:364.6,z:41.9},mood:'scared',grp:'dance',dancer:true},
   {id:'ray',kind:'guest',key:'thug_beanie',name:'Ray',at:{x:366.2,z:39.75},face:{x:364.6,z:39.1},mood:'bored',grp:'raffle'},
   {id:'odette',kind:'guest',key:'thug_f_hood',name:'Odette',at:{x:355.7,z:34.75},face:{x:354.4,z:34.6},mood:'friendly',grp:'shop'},
   {id:'mr_b',kind:'guest',key:'thug_cap',name:'Mr. Benitez',at:{x:360.4,z:34.4},face:{x:360.4,z:32.6},mood:'defensive',grp:'shop'}];
@@ -869,7 +869,8 @@ function objectives(M,F,dt){const a=A(),P=a.P,D=M.D,car=M.car;
   /* talk to anybody close */
   if(M.pp&&!M.chat&&!(M.photo&&M.photo.st==='aim'))for(const id in M.pp){const p=M.pp[id];const d=hyp(p.pos.x-P.pos.x,p.pos.z-P.pos.z),tr=id==='dj'?3.2:K.talkR;if(d>tr)continue;
     const kind=p.mode==='visit'?'visit':CHAT[id]?id:'small';if(p.mode==='event'&&!['dj','kev'].includes(id)&&M.ev&&M.ev.kind==='raffle')continue;
-    F.taps.push({d:id==='dj'?d-.8:d,r:tr,txt:'Talk to '+(ROLE_NAME[id]||p.c.name)+(p.talked&&kind==='small'?' (again)':''),fn:()=>{const pl=a.P;pl.yaw=Math.atan2(-(p.pos.x-pl.pos.x),-(p.pos.z-pl.pos.z));chatOpen(M,p,kind)}})}
+    /* the person you're facing wins over the one who's merely closest */const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),ang=Math.acos(clamp(((p.pos.x-P.pos.x)*fx+(p.pos.z-P.pos.z)*fz)/(d||1),-1,1)),pen=ang*.9;
+    F.taps.push({d:(id==='dj'?d-.8:d)+pen,r:tr+pen,txt:'Talk to '+(ROLE_NAME[id]||p.c.name)+(p.talked&&kind==='small'?' (again)':''),fn:()=>{const pl=a.P;pl.yaw=Math.atan2(-(p.pos.x-pl.pos.x),-(p.pos.z-pl.pos.z));chatOpen(M,p,kind)}})}
   /* the ladder */
   if(M.ladderOn&&!M.archFixed){F.objs.push(["Hold Marco's ladder (hold E)",false]);F.target={x:S.ladder.x+.25,z:S.ladder.z+.85,label:'Ladder'};
     F.holds.push({x:S.ladder.x+.25,z:S.ladder.z+.85,r:1.5,o:M.ladderO,txt:'Hold the ladder',time:K.ladder,fn:()=>ladderDone(M)});

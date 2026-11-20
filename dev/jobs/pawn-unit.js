@@ -39,4 +39,6 @@ test('the tell slips on the disguise schedule',()=>{const D=S.cover({id:'mustach
 test('save / load round trip (the same next timer after load)',()=>{const D=S.cover({id:'cousin',seed:11});D.talk('a');D.cover=.3;D.tick(.1,{seen:one});D.tick(.1,{seen:[]});
   const s=JSON.parse(JSON.stringify(D.save()));const E=S.cover({id:'press',seed:11}).load(s);assert.equal(E.id,'cousin');near(E.cover,D.cover,1e-3);assert.deepEqual(E.met,D.met);assert.equal(E.started,D.started);
   assert.equal(E.nextSlip(),D.nextSlip())});
+test('at most two timers at once, nearest first; timers wait during a conversation',()=>{const D=S.cover({id:'press',seed:2});D.cover=.3;const seen=[{id:'a',d:8},{id:'b',d:2},{id:'c',d:4}];
+  const r=D.tick(.01,{seen});assert.deepEqual(r.events.map(e=>e.id).sort(),['b','c']);const t0=D.timers.b.t;D.tick(1,{seen,talking:true,zone:'staff'});near(D.timers.b.t,t0)});
 test('Small Talk still loads the same engine (no clobbering)',()=>{assert.ok(S.convo&&S.check&&S.TABLE.bored.joke[0]===18)});
