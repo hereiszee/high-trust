@@ -173,7 +173,7 @@ J.register('overwatch',{
     if(O.roof.on){P.pos.y=Math.max(P.pos.y,R.y-.02);keepOnRoof(M)}
     rifleStep(dt,M);projStep(dt,M);dougStep(dt,M);propsStep(dt,M);
     if(O.esc){O.esc.step(dt,{threat:escortHeld(M),pose,face:threatFace(M)});wit(M)}
-    civStep(dt,M);threatStep(dt,M,F);kevinStep(dt,M);carStep(dt,M);musicStep(M);
+    civStep(dt,M);threatStep(dt,M,F);kevinStep(dt,M);carStep(dt,M);musicStep(M);garyWatch(M);
     stageStep(dt,M,F);
     hudFill(M,F)},
 
@@ -204,7 +204,7 @@ J.register('overwatch',{
 /* ---------------- stages ---------------- */
 function stageStep(dt,M,F){const a=A(),O=M.ow,P=a.P,R=roofInfo();
   if(O.pendingLoad){O.pendingLoad=false;if(O.loadRoof){climb(M,true,true);P.pos.set(O.loadRoof.x,R.y,O.loadRoof.z)}if(O.stage!=='ladder')beginEscort(M,true)}
-  if(M.exitOpen){F.objs.push([O.roof.on?'Climb down the ladder':'Back to your ride',false]);if(O.roof.on)F.target={x:R.top.x,z:R.top.z,label:'Ladder'};return}
+  if(M.exitOpen){if(O.roof.on)F.objs.push(['Climb down the ladder',false]);if(O.roof.on)F.target={x:R.top.x,z:R.top.z,label:'Ladder'};return}
   if(O.stage==='ladder'){
     if(!O.roof.on){F.objs.push(['Climb the ladder on the east wall',false]);F.target={x:R.bottom.x,z:R.bottom.z,label:'Ladder'};return}
     if(!O.sight.done){O.sight.t+=dt;F.objs.push(['Sight in: hit the scarecrow in Rosa\'s garden with a beanbag',false]);F.objs.push(['Right mouse: scope · Shift: hold breath · Z: zoom',false]);
@@ -241,7 +241,7 @@ function releaseStop(M){const O=M.ow;if(O.esc&&O.esc.release()){O.stopT=0;O.stop
 function interactions(M){const a=A(),O=M.ow,P=a.P,R=roofInfo();if(O.roof.fade>0)return null;
   if(!O.roof.on){if(Math.hypot(P.pos.x-R.bottom.x,P.pos.z-R.bottom.z)<1.8)return{txt:'Climb the ladder',hold:.7,fn:()=>climb(M,true)};return null}
   if(Math.hypot(P.pos.x-R.top.x,P.pos.z-R.top.z)<1.6&&(M.exitOpen||O.stage==='ladder'||!O.esc))return{txt:'Climb down',hold:.7,fn:()=>climb(M,false)};
-  if(Math.hypot(P.pos.x-R.green.x,P.pos.z-R.green.z)<1.5){const b=O.rifle.box.bean;if(b.res<TUNE.bean.res)return{txt:'Beanbags from the green box',fn:()=>{b.res=TUNE.bean.res;a.snd&&a.snd('cuff',.3);say('doug',"Take a handful. They're on the house. The house is my house.",true)}}}
+  if(!scoped(M)&&Math.hypot(P.pos.x-R.green.x,P.pos.z-R.green.z)<1.5){const b=O.rifle.box.bean;if(b.res<TUNE.bean.res)return{txt:'Beanbags from the green box',fn:()=>{b.res=TUNE.bean.res;a.snd&&a.snd('cuff',.3);say('doug',"Take a handful. They're on the house. The house is my house.",true)}}}
   const E=O.esc;if(E&&E.state==='stop'&&O.stage!=='car')return{txt:'Radio Rosa: "Clear"',fn:()=>callClear(M)};
   return null}
 function callClear(M){const a=A(),O=M.ow,E=O.esc;O.clearCalls++;const ahead=lurkersAhead(M),marked=ahead.filter(t=>t.marked);
@@ -439,7 +439,7 @@ function lurkersAhead(M){const O=M.ow,E=O.esc;if(!E)return[];return O.threats.fi
 function threatStep(dt,M,F){const a=A(),O=M.ow,E=O.esc;
   for(const t of O.threats){if(t.st==='pending'){if(t.delay!=null){t.delay-=dt;if(t.delay<=0)spawnThreat(M,t)}continue}
     const e=t.e;if(!e)continue;t.t+=dt;
-    if(e.state==='dead'){if(!t.counted){t.counted=true;t.st='gone';O.stats.lethal++;a.addTrust(-10,'river');a.feed('Lethal force','bad','−10 Riverside trust');say('doug',pick(LINES.lethal),true);M.clean=false;gary(M,null)}poseAt(t,dt,{mode:'down'});continue}
+    if(e.state==='dead'){if(t.fled){t.st='gone';continue}if(!t.counted){t.counted=true;t.st='gone';O.stats.lethal++;a.addTrust(-10,'river');a.feed('Lethal force','bad','−10 Riverside trust');say('doug',pick(LINES.lethal),true);M.clean=false;gary(M,null)}poseAt(t,dt,{mode:'down'});continue}
     if(e.state==='cuffed'){if(!t.cuffed){t.cuffed=true;t.st='gone'}poseAt(t,dt,{mode:'kneel'});continue}
     if(e.state==='surrender'){if(!t.surr){t.surr=true;t.st='surr';O.stats.beaned+=t.bean?1:0;if(t.y>1){/* nobody goes up a roof for him: he sits tight till Dee's deacons fetch him */later(M,2.2,()=>{e.state='cuffed';O.stats.cuffed++;a.addTrust(4,'river');a.feed('He\'s staying put on that roof','trust','+4 Riverside trust');say('gary',"I'm not going up a roof. He can sit there and think about his choices. Deacon Lou's got a ladder.",true)})}else gary(M,t)}
       if(t.y)e.dude.root.position.y=t.y;continue}
@@ -456,6 +456,7 @@ function threatStep(dt,M,F){const a=A(),O=M.ow,E=O.esc;
       if(t.st==='fire'){t.fireT-=dt;if(t.fireT<=0){t.fireT=TUNE.fireGap*(.85+Math.random()*.3);enemyShot(M,t,wit)}}
       /* Doug repeats the callout if you haven't found him */
       if(!t.marked&&t.fuseT>3.5&&!t.recall){t.recall=1;callout(M,t,true)}}}}
+function garyWatch(M){const O=M.ow;if(!O.esc||O.garyBusy)return;const t=O.threats.find(t=>t.e&&t.e.state==='surrender'&&!(t.y>1));if(t)gary(M,t)}
 function musicStep(M){const O=M.ow,hot=O.threats.some(t=>t.e&&t.e.state==='idle'&&(t.st==='aim'||t.st==='fire'||t.st==='dash'))||O.car&&!O.car.done;const want=hot?'combat':'tension';if(O.mus!==want&&!O.end){O.mus=want;music(want,hot?.7:.3)}}
 function poseAt(t,dt,o){const e=t.e;e.dude.root.position.set(e.pos.x,(t.y||0)+(e.state==='dead'?0:0),e.pos.z);e.dude.root.rotation.y=e.yaw;pose(e.dude,0,o)}
 function reveal(M,t){const a=A(),O=M.ow,e=t.e;t.st='aim';t.fuseT=0;a.equip(e.dude,'pistol');e.gun='pistol';if(t.prop&&t.prop.parent)t.prop.parent.remove(t.prop);t.sit=false;music('combat',.6);callout(M,t,false)}
@@ -482,8 +483,8 @@ function hitThreat(M,t,p,h){const a=A(),O=M.ow,e=t.e,head=!!(h.object&&h.object.
       later(M,0.35,()=>{say(cap(t.desc||'Hoodie'),pick(LINES.beanHit),true)});if(head&&!O.say.face){O.say.face=1;later(M,1.5,()=>{say('doug',"Centre mass with the beans, Hawk. Not the face. He's got a face.",true)})}}}
   else{if(H.hurtEnemy)H.hurtEnemy(e,999,'player',{gun:'hunter',head});else{e.state='dead'}}}
 /* Gary jogs over and zip-ties anyone who gave up on the street (the chain waits a beat while he's gone) */
-function gary(M,t){const a=A(),O=M.ow,E=O.esc;if(!E||!t)return;const g=E.member('gary');O.cuffQ=O.cuffQ||[];if(!O.cuffQ.includes(t))O.cuffQ.push(t);if(g.free)return;garyNext(M)}
-function garyNext(M){const a=A(),O=M.ow,E=O.esc,g=E.member('gary');const t=(O.cuffQ||[]).shift();if(!t){E.rejoin('gary');return}
+function gary(M,t){const a=A(),O=M.ow,E=O.esc;if(!E||!t)return;const g=E.member('gary');O.cuffQ=O.cuffQ||[];if(!O.cuffQ.includes(t))O.cuffQ.push(t);if(O.garyBusy)return;garyNext(M)}
+function garyNext(M){const a=A(),O=M.ow,E=O.esc,g=E.member('gary');O.garyBusy=false;const t=(O.cuffQ||[]).shift();if(!t){E.rejoin('gary');return}O.garyBusy=true;
   const e=t.e;if(e.state!=='surrender'){garyNext(M);return}
   E.detach('gary',{x:e.pos.x+.7,z:e.pos.z+.4},3.6,()=>{if(A().M!==M)return;if(e.state==='surrender'){e.state='cuffed';if(e.tag){e.tag.remove();e.tag=null}O.stats.cuffed++;a.addTrust(4,'river');a.snd&&a.snd('cuff');a.feed('Zip-tied','trust','+4 Riverside trust');say('gary',pick(LINES.gary),true)}
     later(M,0.7,()=>{garyNext(M)})})}
@@ -555,11 +556,12 @@ function scopeCam(dt,M){const a=A(),O=M.ow,R=O.rifle,P=a.P,cam=a.camera;const sc
   if(cam.aspect<1)fov=Math.min(60,2*Math.atan(Math.tan(fov*Math.PI/360)/cam.aspect)*180/Math.PI*.9);
   cam.fov=fov;cam.updateProjectionMatrix();if(P.dude)P.dude.root.visible=false;return true}
 function hideGameScope(){const s=document.getElementById('scope');if(s&&s.style.display!=='none')s.style.display='none'}
-let OV=null;
+let OV=null,UIF=null;
+/* canvas fonts can't use CSS variables: resolve the HUD's --ui family once */
+function uiFont(){if(UIF)return UIF;let f='';try{f=getComputedStyle(document.documentElement).getPropertyValue('--ui').trim()||getComputedStyle(document.body).getPropertyValue('--ui').trim()}catch(_){}return UIF=f||'sans-serif'}
 function overlay(){if(OV)return OV;if(!document.getElementById('ow-style')){const st=document.createElement('style');st.id='ow-style';
-    st.textContent='.ht-cmp,.ht-me,.ht-wi,.ht-obj,.ht-tr,.ht-gd{transition:opacity .18s}body.ow-scoped .ht-cmp,body.ow-scoped .ht-me,body.ow-scoped .ht-wi,body.ow-scoped .ht-obj,body.ow-scoped .ht-tr,body.ow-scoped .ht-tag{opacity:0!important}';document.head.appendChild(st)}const d=document.createElement('div');d.className='ow-scope';d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';
-  const blur=document.createElement('div');blur.style.cssText='position:absolute;inset:0;backdrop-filter:blur(1.6px);-webkit-backdrop-filter:blur(1.6px)';d.appendChild(blur);
-  const c=document.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';d.appendChild(c);OV={el:d,c,g:c.getContext('2d'),blur,w:0,h:0,on:false};return OV}
+    st.textContent='.ht-cmp,.ht-me,.ht-wi,.ht-obj,.ht-tr,.ht-gd{transition:opacity .18s}body.ow-scoped .ht-cmp,body.ow-scoped .ht-me,body.ow-scoped .ht-wi,body.ow-scoped .ht-obj,body.ow-scoped .ht-tr,body.ow-scoped .ht-tag,body.ow-scoped .ht-gd{opacity:0!important}';document.head.appendChild(st)}const d=document.createElement('div');d.className='ow-scope';d.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2';
+  const c=document.createElement('canvas');c.style.cssText='position:absolute;inset:0;width:100%;height:100%';d.appendChild(c);OV={el:d,c,g:c.getContext('2d'),w:0,h:0,on:false};return OV}
 /* People animate far characters at 1/2..1/8 rate by camera distance, which a 4-8x scope makes visible: inside the lens,
    characters are stepped every frame (the zoom-aware LOD belongs in js/people.js; reported to the framework) */
 function lensLod(M){const a=A(),O=M.ow,cam=a.camera,fw=aimDir(M),e=cam.position,cosLim=Math.cos(cam.fov*Math.PI/180*.6);
@@ -575,8 +577,7 @@ function hudHook(M,st){const a=A(),O=M.ow,R=O.rifle,sc=scoped(M)&&R.scopeT>.05;i
   if(ov.on)drawOverlay(M,sc)}
 function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=Math.min(1.5,window.devicePixelRatio||1),W=innerWidth,H=innerHeight;
   if(ov.w!==W||ov.h!==H){ov.w=W;ov.h=H;c.width=W*dpr;c.height=H*dpr}g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
-  const k=sc?smooth(R.scopeT):0;ov.blur.style.display=k>.5?'':'none';
-  if(k>.5){const Rl=Math.min(W,H)*.47,mk=`radial-gradient(circle at 50% 50%,transparent ${Rl*.8}px,black ${Rl}px)`;ov.blur.style.maskImage=mk;ov.blur.style.webkitMaskImage=mk}
+  const k=sc?smooth(R.scopeT):0;
   if(!sc){drawMarks(M,g,W,H,false);return}
   const cx=W/2,cy=H/2,Rl=Math.min(W,H)*.47*(.9+.1*k);
   /* eye box: the shadow ring slides with how fast the sight is moving */
@@ -594,7 +595,7 @@ function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=
   const ink='rgba(12,13,14,.92)',halo='rgba(255,255,255,.16)';
   for(const[w,col]of[[5.5,halo],[3.4,ink]]){line(cx-Rl,cy,cx-post,cy,w,col);line(cx+post,cy,cx+Rl,cy,w,col);line(cx,cy+post,cx,cy+Rl,w,col);line(cx,cy-Rl,cx,cy-post,w*.7,col)}
   for(const[w,col]of[[2.6,halo],[1.1,ink]]){line(cx-post,cy,cx+post,cy,w,col);line(cx,cy-post,cx,cy+post,w,col)}
-  if(R.type==='bean'){g.font='600 10px var(--ui,sans-serif)';g.textBaseline='middle';
+  if(R.type==='bean'){g.font='600 10px '+uiFont();g.textBaseline='middle';
     for(const d of R.zoomK?[25,50,75,100]:[50,75,100]){const T=TUNE.bean,t=d/T.v,drop=.5*T.g*t*t,ang=Math.atan2(drop,d);const y=cy+Math.tan(Math.max(0,ang))*pxPerRad;if(y-cy<3||y>cy+post)continue;
       const hw=d===100?14:d===50?11:8;line(cx-hw,y,cx+hw,y,3,halo);line(cx-hw,y,cx+hw,y,1.6,'#ff8a1e');g.fillStyle='#ffb067';g.fillText(String(d),cx+hw+4,y)}}
   else{for(let m=-4;m<=4;m++){if(!m)continue;const off=m*.005*pxPerRad;if(Math.abs(off)>post)continue;g.fillStyle=ink;g.beginPath();g.arc(cx+off,cy,1.6,0,6.3);g.fill();g.beginPath();g.arc(cx,cy+off,1.6,0,6.3);g.fill()}}
@@ -606,7 +607,7 @@ function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=
     g.lineWidth=2.5;g.strokeStyle=done?(R.look.kind==='threat'?'rgba(255,70,50,.9)':R.look.kind==='kevin'?'rgba(80,170,255,.9)':'rgba(110,220,130,.9)'):'rgba(255,255,255,.75)';g.beginPath();g.arc(cx,cy,22,-Math.PI/2,-Math.PI/2+f*Math.PI*2);g.stroke()}
   drawMarks(M,g,W,H,true,cx,cy,Rl);
   /* readouts along the bottom of the lens */
-  g.textAlign='center';g.textBaseline='alphabetic';g.font='600 12px var(--ui,sans-serif)';
+  g.textAlign='center';g.textBaseline='alphabetic';g.font='600 12px '+uiFont();
   const B=R.box[R.type],rng=R.range!=null?Math.round(R.range)+' m':'— m';
   const items=[[R.type==='bean'?'BEAN':'LIVE',R.type==='bean'?'#ffb067':'#ff6a5a'],[B.mag+' | '+B.res,'#e8e4da'],[TUNE.zoom[R.zoomK]+'×','#e8e4da'],['RNG '+rng,'#e8e4da']];if(R.braced)items.push(['BRACED','#9fe0a8']);
   if(O.esc){items.push(['FERREIRA '+O.witHp,O.witHp<40?'#ff6a5a':'#9fe0a8']);if(O.esc.pinT>.5)items.push(['PINNED '+Math.ceil(PIN_LIMIT-O.esc.pinT)+'s','#ff6a5a'])}
@@ -615,18 +616,18 @@ function drawOverlay(M,sc){const a=A(),O=M.ow,R=O.rifle,ov=OV,c=ov.c,g=ov.g,dpr=
   /* breath: where you are in the cycle, and the held-breath reserve */
   const bx=cx-Rl*.72,by=cy+Rl*.42;g.lineWidth=2;g.strokeStyle='rgba(255,255,255,.25)';g.beginPath();g.arc(bx,by,14,0,6.3);g.stroke();
   const T=TUNE.breath,cyc=T.inn+T.out+T.pause,f=R.breath.held?R.breath.left:(R.breath.t/cyc);g.strokeStyle=R.breath.held?(R.breath.holdT>T.hold?'#ff6a5a':'#9fe0a8'):R.still?'#ff6a5a':'rgba(255,255,255,.7)';
-  g.beginPath();g.arc(bx,by,14,-Math.PI/2,-Math.PI/2+f*Math.PI*2);g.stroke();g.font='600 9px var(--ui,sans-serif)';g.fillStyle='rgba(255,255,255,.7)';g.fillText(R.breath.held?'HOLD':R.still?'STILL':R.breath.recover>0?'GASP':'BREATHE',bx,by+28);
+  g.beginPath();g.arc(bx,by,14,-Math.PI/2,-Math.PI/2+f*Math.PI*2);g.stroke();g.font='600 9px '+uiFont();g.fillStyle='rgba(255,255,255,.7)';g.fillText(R.breath.held?'HOLD':R.still?'STILL':R.breath.recover>0?'GASP':'BREATHE',bx,by+28);
   g.restore()}
 function drawMarks(M,g,W,H,sc,cx,cy,Rl){const a=A(),O=M.ow,cam=a.camera;const P=a.P;
   const proj=(x,y,z)=>{const v=new (a.THREE.Vector3)(x,y,z).project(cam);return{x:(v.x*.5+.5)*W,y:(-v.y*.5+.5)*H,ok:v.z<1&&v.z>-1}};
   const inLens=p=>!sc||Math.hypot(p.x-cx,p.y-cy)<Rl*.96;
-  g.save();g.font='600 11px var(--ui,sans-serif)';g.textAlign='center';
+  g.save();g.font='600 11px '+uiFont();g.textAlign='center';
   for(const t of O.threats){if(!t.marked||!t.e||t.st==='gone'||t.e.state==='dead'||t.e.state==='cuffed')continue;const e=t.e,y=(t.y||0)+(e.state==='surrender'?1.2:1.15);const p=proj(e.pos.x,y,e.pos.z);if(!p.ok||!inLens(p))continue;
     const d=Math.hypot(e.pos.x-P.pos.x,e.pos.z-P.pos.z),s=sc?clamp(900/d*(TUNE.zoom[O.rifle.zoomK]/4),10,60):7,surr=e.state==='surrender';g.strokeStyle=surr?'rgba(255,210,80,.95)':'rgba(255,70,50,.95)';g.lineWidth=2;
     if(sc){const L_=s*.35;for(const[sx,sy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){g.beginPath();g.moveTo(p.x+sx*s,p.y+sy*s-sy*L_);g.lineTo(p.x+sx*s,p.y+sy*s);g.lineTo(p.x+sx*s-sx*L_,p.y+sy*s);g.stroke()}
       g.fillStyle=surr?'rgba(255,210,80,.95)':'rgba(255,90,70,.95)';g.fillText(surr?'HANDS UP':(t.st==='lurk'?'MARKED':'ARMED')+' · '+Math.round(d)+' m',p.x,p.y-s-6)}
     else{g.beginPath();g.moveTo(p.x,p.y-s-14);g.lineTo(p.x+s,p.y-14);g.lineTo(p.x,p.y+s-14);g.lineTo(p.x-s,p.y-14);g.closePath();g.fillStyle=surr?'rgba(255,210,80,.9)':'rgba(255,70,50,.9)';g.fill();g.fillStyle='#fff';g.fillText(Math.round(d)+' m',p.x,p.y-24)}}
-  const E=O.esc;if(E){const w=E.member('ferreira');if(w){const p=proj(w.pos.x,2.1,w.pos.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.95)';g.beginPath();g.moveTo(p.x-6,p.y-8);g.lineTo(p.x+6,p.y-8);g.lineTo(p.x,p.y);g.closePath();g.fill();if(!sc){g.fillStyle='#e8ffe9';g.fillText('Mr. Ferreira · '+O.witHp,p.x,p.y-12)}}}}
+  const E=O.esc;if(E){const w=E.member('ferreira');if(w){const p=proj(w.pos.x,2.1,w.pos.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.95)';g.beginPath();g.moveTo(p.x-6,p.y-8);g.lineTo(p.x+6,p.y-8);g.lineTo(p.x,p.y);g.closePath();g.fill();if(!sc){g.fillStyle='#e8ffe9';g.fillText('Mr. Ferreira',p.x,p.y-12)}}}}
   if(O.kevin&&O.kevin.ided&&O.kevin.d&&O.kevin.st!=='gone'){const p=proj(O.kevin.x,1.6,O.kevin.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(80,170,255,.95)';g.fillText('KEVIN · HOLD FIRE',p.x,p.y-6)}}
   for(const c of O.civs){if(!c.ided||!c.d||c.gone||!sc)continue;const p=proj(c.x,2,c.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.85)';g.fillText('FRIENDLY',p.x,p.y-4)}}
   /* the car's tyres once Doug's called it */const C=O.car;if(C&&!C.done&&sc){for(const w of wheels(C)){const p=proj(w.x,w.y,w.z);if(!p.ok||!inLens(p))continue;g.strokeStyle=C.flats[w.i]?'rgba(255,210,80,.8)':'rgba(255,255,255,.55)';g.lineWidth=1.5;g.beginPath();g.arc(p.x,p.y,6,0,6.3);g.stroke()}}
@@ -636,7 +637,7 @@ function hudFill(M,F){const a=A(),O=M.ow,E=O.esc,R=O.rifle;
   if(E&&E.pinT>.5)F.meters.push({id:'pin',label:'Pinned',v:E.pinT,max:PIN_LIMIT,style:'bar',warn:PIN_LIMIT*.66,icon:'clock'});
   if(scoped(M))F.meters.push({id:'breath',label:'Breath',v:R.breath.left,max:1,style:'bar',warn:.25,warnBelow:true,icon:'bolt'});
   const tot=O.threats.length,h=O.threats.filter(t=>t.st==='gone'||t.e&&t.e.state!=='idle').length;if(tot)F.widgets.push({id:'threats',kind:'score',label:'Handled',v:h,max:tot});
-  if(O.esc&&!M.exitOpen){const w=E.member('ferreira');if(!O.roof.on)F.target={x:roofInfo().bottom.x,z:roofInfo().bottom.z,label:'Ladder'};else F.target={x:w.pos.x,z:w.pos.z,label:'Mr. Ferreira'}}}
+  if(O.esc&&!M.exitOpen){const w=E.member('ferreira');/* on the roof there is no route to walk (and a route search from a roof tile to a far target is expensive): the lens and roof markers show him */if(!O.roof.on)F.target={x:roofInfo().bottom.x,z:roofInfo().bottom.z,label:'Ladder'}}}
 
 /* ---------------- input: Z zoom, Q rounds, wheel zoom while scoped, touch chips ---------------- */
 function onRoofJob(){const a=A(),M=a&&a.M;return M&&M.state==='go'&&M.def&&M.def.id==='overwatch'&&M.ow&&M.ow.roof.on?M:null}
@@ -667,18 +668,18 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ow)return null;c
   if(!O.roof.on){P.pos.set(R.bottom.x,0,R.bottom.z);a.keys.e=true;return null}
   if(o.fail){P.aim=false;return null}/* sit on your hands: the walk gets pinned */
   /* vantage: braced on the north-west corner for the street, the west parapet for the garden */
-  const tgt=botTarget(M,o);const want=tgt&&tgt.z>62?{x:R.r.x0+.6,z:R.r.z1-1.2}:{x:R.r.x0+.6,z:R.r.z0+.7};P.pos.x=want.x;P.pos.z=want.z;P.pos.y=R.y;P.crouch=true;
+  const tgt=botTarget(M,o);const want=tgt&&tgt.kind==='tyre'&&tgt.x>420?{x:R.r.x1-.6,z:R.r.z0+.7}:tgt&&tgt.z>62?{x:R.r.x0+.6,z:R.r.z1-1.2}:{x:R.r.x0+.6,z:R.r.z0+.7};P.pos.x=want.x;P.pos.z=want.z;P.pos.y=R.y;P.crouch=true;
   if(!tgt){P.aim=o.human&&O.esc&&O.esc.state==='stop'&&O.stopT<5;B.hold=0;if(O.esc&&O.esc.state==='stop'&&O.stopT>(o.human?5.5:2.5)&&!lurkersAhead(M).length)a.useTap=true;if(O.rifle.box.bean.mag+O.rifle.box.bean.res<4&&!O.esc){}return null}
   /* the right rounds for the target */if((tgt.kind==='tyre')!==(O.rifle.type==='live'))switchRounds(M);
   /* human-ish: a reaction delay on each new target, the aim slews over instead of snapping, and a little error that breathing hides */
   const key=tgt.kind+(tgt.o?tgt.o.id||'':'');if(key!==B.key){B.key=key;B.react=o.human?.9+Math.random()*1.1:0;B.err={y:o.human?(Math.random()-.5)*.004:0,p:o.human?(Math.random()-.5)*.003:0};B.hold=0}
   if(B.react>0){B.react-=1/30;P.aim=o.human?false:true;return null}
   P.aim=true;const sol=solveAim(M,tgt);if(!sol)return null;const wy=sol.yaw-O.rifle.sw.y+B.err.y,wp=sol.pitch-O.rifle.sw.p-O.rifle.kick+B.err.p;
-  if(o.human){let dy=wy-P.yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;const k=.16;P.yaw+=dy*k;P.pitch+=(wp-P.pitch)*k;B.err.y*=.97;B.err.p*=.97;if(Math.abs(dy)>.004){B.hold=0;return null}}else{P.yaw=wy;P.pitch=wp}
+  if(o.human){let dy=wy-P.yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;const k=.16;P.yaw+=dy*k;P.pitch+=(wp-P.pitch)*k;B.err.y*=.97;B.err.p*=.97;const mov=Math.hypot(tgt.vx||0,tgt.vz||0)>.5;if(Math.abs(dy)>(mov?.012:.004)){if(!mov)B.hold=0;return null}}else{P.yaw=wy;P.pitch=wp}
   a.keys.shift=O.rifle.scopeT>.9&&B.hold>(o.human?.6:.2);B.hold+=1/30;
   const need=tgt.kind==='kevin'?1.2:tgt.kind==='threat'&&!tgt.o.marked?.75:.3;
   if(tgt.kind==='kevin')return null;/* look, don't shoot */
-  if(B.hold>need&&O.rifle.scopeT>=1&&O.rifle.boltT<=0&&!P.rl&&(O.rifle.still||O.rifle.breath.held)){H.mouse=true;B.hold=need*.5}
+  if(B.hold>need&&O.rifle.scopeT>=1&&O.rifle.boltT<=0&&!P.rl&&(O.rifle.still||O.rifle.breath.held||Math.hypot(tgt.vx||0,tgt.vz||0)>.5)){H.mouse=true;B.hold=need*.5}
   return null}
 function botTarget(M,o){const O=M.ow,E=O.esc,hu=o&&o.human;if(!O.sight.done&&O.scare)return{kind:'scare',x:O.scare.x,y:1.45,z:O.scare.z,vx:0,vz:0};
   if(O.kevin&&O.kevin.st==='aim'&&!O.kevin.ided&&O.kevin.d)return{kind:'kevin',o:O.kevin,x:O.kevin.x,y:.8,z:O.kevin.z,vx:0,vz:0};
