@@ -252,7 +252,10 @@ function person(M,key,o){o=o||{};const pp=PPL();let d=null;try{d=pp?pp.make(key,
 
 /* ---------------- the trail: where the dad walked (the kids walk it too) ---------------- */
 function trailNew(){return{pts:[],run:0,runs:{}}}
-function trailPush(M,x,z,force){const T=M.cg.trail,p=T.pts,last=p[p.length-1];if(last&&!force&&hyp(x-last.x,z-last.z)<.35)return;
+/* a step onto the lip of the street (around a lamp post) isn't a crossing: the kids' trail stays on the kerb */
+function kerbSide(x,z){if(!isRoad(x,z))return null;const deep=roadTile(x+1.4,z)&&roadTile(x-1.4,z)&&roadTile(x,z+1.4)&&roadTile(x,z-1.4);if(deep)return null;
+  for(let r=.5;r<=1.6;r+=.25)for(let i=0;i<8;i++){const a=i*Math.PI/4,qx=x+Math.cos(a)*r,qz=z+Math.sin(a)*r;if(!isRoad(qx,qz)&&!roadTile(qx,qz))return{x:qx,z:qz}}return null}
+function trailPush(M,x,z,force){const T=M.cg.trail,p=T.pts;const ks=kerbSide(x,z);if(ks){x=ks.x;z=ks.z}const last=p[p.length-1];if(last&&!force&&hyp(x-last.x,z-last.z)<.35)return;
   const s=last?last.s+hyp(x-last.x,z-last.z):0,road=isRoad(x,z);let run=0;if(road){if(!last||!last.road){T.run++;T.runs[T.run]={s0:s,s1:s,ok:0,okT:0,xing:xingAt(x,z)}}run=T.run;T.runs[run].s1=s;if(!T.runs[run].xing)T.runs[run].xing=xingAt(x,z)}
   /* shortcuts: back near an earlier point (fetching a stray, a step into the road and back) -> the kids skip the loop */
   if(!road)for(let j=p.length-6;j>=0&&j>p.length-260;j--){const q=p[j];if(q.road)continue;const d=hyp(q.x-x,q.z-z);if(d<2.2&&s-q.s>2*d+2.5&&!isRoad((q.x+x)/2,(q.z+z)/2)){trailCut(M,j);return trailPush(M,x,z,true)}}
@@ -269,7 +272,7 @@ function trailAt(M,s){const p=M.cg.trail.pts;if(!p.length)return{x:0,z:0,dx:0,dz
 /* the kerb: the first road point after s (up to sMax) whose stretch of road nobody has waved this kid across */
 function kerbAhead(M,s,sMax,kid){const T=M.cg.trail,p=T.pts;let i=trailIdx(p,s);if(i<0)return null;if(p[i].s<s)i++;
   for(;i<p.length&&p[i].s<=sMax+.01;i++){const q=p[i];if(!q.road)continue;const r=T.runs[q.run];if(r&&r.ok&&r.okFor&&r.okFor[kid.id]&&M.cg.clock<r.okT){i=Math.max(i,trailIdx(p,r.s1));continue}return{s:q.s,run:q.run}}return null}
-function onRoadKid(k){return k.d&&isRoad(k.x,k.z)}
+function onRoadKid(k){return k.d&&isRoad(k.x,k.z)}if(typeof window!=='undefined')window.__onR=k=>onRoadKid(k);
 /* rebuild a straight-ish trail behind a point (start, checkpoint) from a list of points, oldest first */
 function trailSeed(M,pts){M.cg.trail=trailNew();for(const q of pts)trailPush(M,q[0],q[1],true)}
 
@@ -302,6 +305,8 @@ function chainStep(dt,M){const C=M.cg,P=A().P,head=trailHead(M),first=trailFirst
     if(k.pass>0&&i>0&&line[i-1].def.trait==='twin'){k.pass-=dt;ref=i>1?line[i-2].s:head;gap=i>1?TUNE.gap*.55:TUNE.gap0}
     let tgt=Math.min(ref-gap,head-.4);if(C.waitAll&&k.waitS!=null)tgt=Math.min(tgt,k.waitS);
     const kb=kerbAhead(M,k.s,tgt+.2,k);k.kerb=null;if(kb){const ks=kb.s-TUNE.kerb;if(tgt>=ks-.05){tgt=ks;k.kerb=kb}}
+    /* waved across but the dad isn't right there: look both ways before stepping off the kerb */
+    if(!kb&&tgt>k.s){const nx=trailAt(M,Math.min(tgt,k.s+.7));if(isRoad(nx.x,nx.z)&&!isRoad(k.x,k.z)&&hyp(P.pos.x-k.x,P.pos.z-k.z)>7&&carNear(M,nx.x,nx.z)){tgt=k.s;k.look=1}else k.look=0}
     if(k.fz>0)tgt=k.s;
     /* the crack-avoider hops: tiny pauses every ~0.75 m */
     let max=k.def.trait==='cracks'?2.5:k.def.trait==='tired'?3.5:k.def.trait==='cool'?4.2:TUNE.kidRun;
@@ -310,8 +315,9 @@ function chainStep(dt,M){const C=M.cg,P=A().P,head=trailHead(M),first=trailFirst
     k.s=Math.min(Math.max(tgt,k.s),k.s+k.v*dt);if(k.s<first)k.s=first;
     prevS=k.s;prevMov=k.v>.3;prevId=k.id;
     /* to world: on the trail, a little to the side (more when bunched up) */
-    const tp=trailAt(M,k.s),tight=!prevMov||shield;const side=k.side*(tight?1.6:1)+Math.sin(C.clock*.7+k.ph)*.1+(k.pass>0?.45:0);
-    let tx=tp.x+tp.dz*side,tz=tp.z-tp.dx*side;if(isRoad(tx,tz)&&!isRoad(tp.x,tp.z)){tx=tp.x;tz=tp.z}const mv=hyp(tx-k.x,tz-k.z);k.x+=(tx-k.x)*Math.min(1,dt*10);k.z+=(tz-k.z)*Math.min(1,dt*10);
+    const tp=trailAt(M,k.s),tight=!prevMov||shield,tpRoad=isRoad(tp.x,tp.z);let side=k.side*(tight?1.6:1)+Math.sin(C.clock*.7+k.ph)*.1+(k.pass>0?.45:0);if(tpRoad)side=clamp(side,-.3,.3);
+    let tx=tp.x+tp.dz*side,tz=tp.z-tp.dx*side;if(isRoad(tx,tz)&&!tpRoad){tx=tp.x;tz=tp.z}const mv=hyp(tx-k.x,tz-k.z);k.x+=(tx-k.x)*Math.min(1,dt*10);k.z+=(tz-k.z)*Math.min(1,dt*10);
+    if(!tpRoad&&isRoad(k.x,k.z)){k.x=tp.x;k.z=tp.z}/* never drift off the kerb on your own */
     if(k.v>.25&&mv>.01)k.yaw=turn(k.yaw,yawTo(tp.dx,tp.dz),dt*8);else k.yaw=turn(k.yaw,yawTo(P.pos.x-k.x,P.pos.z-k.z),dt*2.5);
     k.mov=k.v>.2;k.spd=k.v}
   /* twins: every so often the one behind sneaks past the other (and the dad's count goes sideways) */
@@ -333,13 +339,13 @@ function freeStep(dt,M){const C=M.cg,a=A(),P=a.P;
       else if(f.mode==='back'){joinLine(M,k)}}
     /* anybody waiting on their own comes back when the dad is right there */
     if(k.state==='free'&&f&&f.gatherable&&hyp(P.pos.x-k.x,P.pos.z-k.z)<TUNE.gatherR)gather(M,k)}}
-function errand(M,k,o){k.state='free';k.free=Object.assign({mode:'go',speed:2.4,t:0,gatherable:true},o);k.v=0}
+function errand(M,k,o){k.hist=(k.hist||'')+'E'+(o.kind||o.mode||'')+';';k.state='free';k.free=Object.assign({mode:'go',speed:2.4,t:0,gatherable:true},o);k.v=0}
 /* back in line: walk to the nearest trail point (behind the dad), then the chain takes over */
 function rejoin(M,k,quick){const C=M.cg,p=C.trail.pts,head=trailHead(M);let best=null,bd=1e9;
   for(let i=p.length-1;i>=0&&head-p[i].s<90;i--){const q=p[i];if(q.road||head-q.s<1.2)continue;const d=hyp(q.x-k.x,q.z-k.z);if(d<bd){bd=d;best=q}}
   if(!best){k.state='line';k.s=Math.max(trailFirst(M),head-3);return}
   k.state='free';k.free={mode:'back',x:best.x,z:best.z,speed:quick?3.6:2.6,s:best.s,gatherable:false}}
-function joinLine(M,k){const f=k.free;k.state='line';k.s=f&&f.s!=null?f.s:trailHead(M)-2;k.free=null;k.v=1;k.fz=0}
+function joinLine(M,k){k.hist=(k.hist||'')+'J@'+k.x.toFixed(1)+','+k.z.toFixed(1)+';';const f=k.free;k.state='line';k.s=f&&f.s!=null?f.s:trailHead(M)-2;k.free=null;k.v=1;k.fz=0}
 function gather(M,k,whistle){if(k.state!=='free'||!k.free||!k.free.gatherable)return false;if(k.free.onGather&&k.free.onGather(k)===false)return false;M.cs.gathered++;
   if(!whistle&&Math.random()<.6)say(M,'you',pick(L_.gather));rejoin(M,k,true);return true}
 /* the personalities: who wanders off where */
@@ -474,7 +480,7 @@ function removeCar(M,c){if(c.obj&&c.obj.parent)c.obj.parent.remove(c.obj);if(c.c
 function driverLine(M,c){const C=M.cg;if(c.phone){say(M,'you',pick(L_.phone));return}
   if(!M.cs.garySaid&&C.stageN>=3){M.cs.garySaid=1;say(M,'Driver',"Is that a real stop sign?");say(M,'you',"It's real enough for you, Gary.");say(M,'gary',"Sorry! Sorry.");return}
   if(Math.random()<.5)say(M,'Driver',pick(L_.driver))}
-function nearMiss(M,c,k){const C=M.cg;C.nearMiss=true;if(typeof window!=='undefined')window.__cgNM={kid:k.id,st:k.state,k:[+k.x.toFixed(2),+k.z.toFixed(2)],car:[+c.x.toFixed(1),+c.z.toFixed(1),c.lane.id,+c.v.toFixed(1)],road:roadTile(k.x,k.z)};M.cs.nearMiss++;screech();horn('long');c.v=Math.min(c.v,1.5);
+function nearMiss(M,c,k){const C=M.cg;C.nearMiss=true;if(typeof window!=='undefined')window.__cgNM={kid:k.id,st:k.state,k:[+k.x.toFixed(2),+k.z.toFixed(2)],car:[+c.x.toFixed(1),+c.z.toFixed(1),c.lane.id,+c.v.toFixed(1)],road:roadTile(k.x,k.z),tp:(q=>[+q.x.toFixed(2),+q.z.toFixed(2),isRoad(q.x,q.z)])(trailAt(M,k.s)),dad:[+A().P.pos.x.toFixed(1),+A().P.pos.z.toFixed(1)],kerb:!!k.kerb,v:+k.v.toFixed(2),hist:k.hist};M.cs.nearMiss++;screech();horn('long');c.v=Math.min(c.v,1.5);
   /* the car stops short of the kid, every time: nothing happens to anyone, but that was too close */
   const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(k.x-c.x)*fx+(k.z-c.z)*fz,stopAt=ah-TUNE.car.len/2-1;if(stopAt<0)c.s+=stopAt;c.v=0;c.stopS=c.s;
   k.fz=3;kidSay(M,k,"!!",{radio:false,bub:'!!'});say(M,'you',"WHOA. WHOA. Everybody stop.",{now:true});
@@ -628,12 +634,15 @@ function crossStep(dt,M,F){const C=M.cg,a=A(),P=a.P;const line=lineKids(M);
   const onRoad=C.kids.filter(k=>(k.state==='line'||k.state==='hand')&&onRoadKid(k));
   if(onRoad.length&&!C.cross&&C.clock-(C.crossEnd||-9)<2.5&&C.lastCross){C.cross=C.lastCross;C.cross.clear=0}
   if(onRoad.length&&!C.cross){const k=onRoad[0],p=C.trail.pts[trailIdx(C.trail.pts,k.s)];const run=p&&p.run?p.run:0;const r=C.trail.runs[run];C.cross={run,xing:r&&r.xing||xingAt(k.x,k.z),t:0,honks:M.cs.honks,fz:M.cs.frozen,sign:0,cars:0};music('tension',.45)}
+  const runOf=k=>{const p=C.trail.pts[trailIdx(C.trail.pts,k.s)];return p&&p.run?p.run:0};
+  if(C.cross&&C.cross.run){const mine=onRoad.filter(k=>k.state==='hand'||runOf(k)===C.cross.run||!runOf(k));if(mine.length<onRoad.length&&!mine.length)C.cross.clear=9}
   if(C.cross){const X=C.cross;X.t+=dt;if(C.sign.up)X.sign+=dt;if(C.traffic)X.cars=Math.max(X.cars,C.traffic.cars.filter(c=>c.v<.3&&hyp(c.x-P.pos.x,c.z-P.pos.z)<30).length);
     F.widgets.push({id:'xing',kind:'timer',label:'Crossing',v:X.t,hot:X.t>12});
-    X.clear=onRoad.length?0:(X.clear||0)+dt;
+    X.clear=X.clear>=9?X.clear:onRoad.length?0:(X.clear||0)+dt;
     if(X.clear>1.1&&X.t>.8){const clean=M.cs.honks===X.honks&&M.cs.frozen===X.fz;const name=X.xing?(XINGS.find(x=>x.id===X.xing)||{}).name:null;
       M.cs.xings.push({id:X.xing||'street',t:+X.t.toFixed(1),clean:clean?1:0});
       a.feed('Crossing'+(name?' · '+name:''),clean?'trust':'info',X.t.toFixed(1)+' s'+(X.cars?' · '+X.cars+' car'+(X.cars>1?'s':'')+' waited':'')+(clean?' · clean':''));if(clean)chime();C.lastCross=null;C.crossEnd=C.clock;C.cross=null;music('hub',.35)}}}
+function carNear(M,x,z){const C=M.cg;if(!C.traffic)return false;for(const c of C.traffic.cars){if(c.v<1)continue;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);if(ah>-2&&ah<30&&lat<5.5)return true}return false}
 /* is it safe to wave them across? (no car still rolling toward the crossing) — for the HUD line and the test player */
 function carsComing(M,x,z){const C=M.cg;if(!C.traffic)return 0;let n=0;for(const c of C.traffic.cars){const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw),ah=(x-c.x)*fx+(z-c.z)*fz,lat=Math.abs((x-c.x)*fz-(z-c.z)*fx);
     if(ah>-1&&ah<34&&lat<6&&(c.v>.6||c.why==='dad')&&!c.forSign&&!(c.why==='car'||c.why==='kid'||c.why==='kidfar'||c.why==='sign'))n++}return n}
@@ -902,7 +911,7 @@ function botCross(a,M,B,s){const C=M.cg,P=a.P;const line=lineKids(M);
     const arrived=go(a,{x:s.to[0],z:s.to[1]},false,true);if(waiting&&B.t>2&&C.atKerb){a.keys.e=carsComing(M,s.from[0],s.from[1])===0}
     if(arrived&&!waiting&&B.t>1){B.ph='clear';B.t=0}return null}
   if(B.ph==='clear'){P.aim=true;const vx=s.to[0]-s.mid[0],vz=s.to[1]-s.mid[1];const onR=C.kids.some(k=>(k.state==='line'||k.state==='hand')&&(onRoadKid(k)||(k.x-s.mid[0])*vx+(k.z-s.mid[1])*vz<0));const nx=ROUTE[B.i+1]||{};const tgt=nx.x!=null?nx:nx.from?{x:nx.from[0],z:nx.from[1]}:null;
-    if(tgt&&hyp(P.pos.x-s.to[0],P.pos.z-s.to[1])<6)go(a,tgt,false,true);if(!onR&&B.t>.5||B.t>25){B.ph='';B.i++;B.t=0;P.aim=false}return null}}
+    if(tgt&&hyp(P.pos.x-s.to[0],P.pos.z-s.to[1])<14)go(a,tgt,false,true);if(!onR&&B.t>.5||B.t>25){B.ph='';B.i++;B.t=0;P.aim=false}return null}}
 /* walk toward a point (the game's own movement: face it, hold W); true when there */
 function go(a,p,run,slow){const P=a.P,dx=p.x-P.pos.x,dz=p.z-P.pos.z,d=hyp(dx,dz);if(d<.45)return true;const U=go.u||(go.u={x:0,z:0,t:0,side:0,sideT:0});
   /* unstick: no progress for half a second (a lamp post, a stoop) -> sidestep for a moment */
