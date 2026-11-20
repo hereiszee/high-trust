@@ -4,7 +4,8 @@
    Chain Reaction (a tail on foot: same meter, a person instead of a car).
 
    const T = HT.Tail.create({bands:{close:15,ideal:[15,60],losing:110,lost:160}, lostT:12});
-   const r = T.tick(dt, ctx)     ctx = {t:{x,z,yaw,spd,stopped,light}, p:{x,z,yaw,spd}, carId, carType, los, ahead, horn, bump}
+   const r = T.tick(dt, ctx)     ctx = {t:{x,z,yaw,spd,stopped,light}, p:{x,z,yaw,spd}, carId, carType, los, sight, ahead}
+     (los: his mirror can see you, traffic included; sight: you can see him past buildings, traffic ignored. Default sight = los)
      -> {band:'close'|'ideal'|'losing'|'lost', d, sus:0..100, fam:0..1, lose:0..lostT, made, spooked, lost, cone, why}
    T.swap(newCarId, carType, seenSwap)   familiarity for the new car starts at 0 (0.5 if the target saw the swap within 30 m)
    T.turn(node, outYaw)                  the target just turned at a node: the follower copying it raises a streak
@@ -57,7 +58,7 @@ function create(o){o=o||{};const bands=Object.assign({close:K.close,ideal:[K.clo
   const band=d=>d<bands.close?'close':d<=bands.ideal[1]?'ideal':d<=bands.losing?'losing':'lost';
   const add=(v,why)=>{if(v>0&&S.made[S.carId])v*=K.madeMul;S.sus=clamp(S.sus+v,0,100);if(v>0&&why)S.why=why};
   T.tick=(dt,c)=>{const t=c.t,p=c.p;if(c.carId)S.carId=c.carId;if(c.carType)S.carType=c.carType;
-    const d=Math.hypot(p.x-t.x,p.z-t.z),b=band(d),inCone=cone(t,p),ahead=c.ahead!=null?c.ahead:front(t,p),los_=c.los!==false;S.why=null;
+    const d=Math.hypot(p.x-t.x,p.z-t.z),b=band(d),inCone=cone(t,p),ahead=c.ahead!=null?c.ahead:front(t,p),los_=c.los!==false,sight=c.sight!=null?c.sight!==false:los_;S.why=null;
     let gain=0;const lm=t.light?K.lightMul:1;
     if(S.spooked||S.lost)return T.result(d,b,inCone);
     if(d<bands.close){gain+=(ahead&&!inCone?K.susAhead:(inCone&&los_&&d<K.mirrorD?K.susCloseMirror:K.susClose))*lm;S.why=ahead&&!inCone?'ahead':'close'}
@@ -71,11 +72,12 @@ function create(o){o=o||{};const bands=Object.assign({close:K.close,ideal:[K.clo
     if(d<K.famD&&inCone&&los_){f+=dt/K.famT*mul;S.behindT+=dt}else{f-=dt*K.famHide;S.behindT=Math.max(0,S.behindT-dt*2)}
     f=clamp(f,0,1);S.fam[id]=f;if(f>=1&&!S.made[id]){S.made[id]=true;S.madeNow=id}
     /* losing him */
-    if(b==='losing')S.lose+=dt*(K.loseLosing+(los_?0:K.loseNoLos));
+    /* (sight = the view without traffic: a car between you is cover, not a lost target) */
+    if(b==='losing')S.lose+=dt*(K.loseLosing+(sight?0:K.loseNoLos));
     else if(b==='lost')S.lose+=dt*K.loseLost;
-    else if(!los_&&d>30)S.lose+=dt*.35;   /* + a parallel street: a slow drain, not a loss */
+    else if(!sight&&d>30)S.lose+=dt*.35;   /* + a parallel street: a slow drain, not a loss */
     else S.lose=Math.max(0,S.lose-dt*K.loseBack);
-    if(los_)S.seenT=0;else S.seenT+=dt;
+    if(sight)S.seenT=0;else S.seenT+=dt;
     /* turns he made: did we copy them? */
     for(let i=S.turns.length-1;i>=0;i--){const q=S.turns[i];q.age+=dt;const dn=Math.hypot(p.x-q.x,p.z-q.z);
       if(dn<9)q.at=true;else if(q.at&&dn>13){const same=Math.abs(wrap((p.yaw||0)-q.out))<.6;S.turns.splice(i,1);
