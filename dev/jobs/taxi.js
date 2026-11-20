@@ -12,7 +12,8 @@ const SHOTS=!!arg('shots'),DIR=path.join(__dirname,'../../docs/screenshots/jobs/
   const o={fail:!!arg('fail'),zip:!!arg('zip'),skipItem:!!arg('skip-item'),max:+arg('max')||13};
   const st=await ev(([o,item,carT])=>{const H=window.__ht,a=H.jobs.api;
     if(carT){const c=a.L.cars.find(c=>c.type===carT);if(c){c.pos.set(a.VAN.pos.x+6,0,a.VAN.pos.z);a.syncCar(c);window.__car=c}}
-    H.jobs.start('taxi');H.step(2);const M=a.M;if(item&&M.live){const I={shin:1,card:2,retainer:3,trombone:4}[item];M.item.k=I;const ids=['','shin','card','retainer','trombone'];
+    if(window.__viaRing){const i=H.jobs.index('taxi'),d=H.L.dests[i];H.JOB=i}
+    if(!window.__viaRing){H.jobs.start('taxi');H.step(2)}const M=a.M;if(!M)return{err:'no M'};if(item&&M.live){const I={shin:1,card:2,retainer:3,trombone:4}[item];M.item.k=I;const ids=['','shin','card','retainer','trombone'];
       H.jobs.registry.get('taxi').test.item(M,ids[I])}
     window.__T={o,log:[],shots:{}};return{id:M&&M.def.id,stops:M.live.S.stops.map(s=>s.name+'@'+s.target+(s.hard?'+'+s.hard:'')),clock:M.live.S.clockStr(0),item:M.item.id,car:M.car&&M.car.type}},[o,arg('item'),arg('car')]);
   console.log('start',JSON.stringify(st));

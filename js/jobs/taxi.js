@@ -55,7 +55,7 @@ let PL=null;
 function places(){const a=A(),W=a&&a.WORLD;if(!W)return null;if(PL&&PL.W===W)return PL;const pl=W.places||{},st=W.sites||{};
   const homeP=pl.home||{x:39,z:15},hankP=pl.hank||{x:45,z:17},park=st.dave&&st.dave.ring||{x:91,z:97};
   const sch=st.school&&st.school.ring?st.school.ring:{x:144,z:11};
-  const P_={W,home:curb(a,homeP.x-2,homeP.z,{x:homeP.x-2,z:homeP.z+8}),hank:curb(a,hankP.x+3,hankP.z,{x:hankP.x+3,z:hankP.z+8}),
+  const P_={W,depart:curb(a,57,15,{x:57,z:22}),home:curb(a,homeP.x-2,homeP.z,{x:homeP.x-2,z:homeP.z+8}),hank:curb(a,hankP.x+3,hankP.z,{x:hankP.x+3,z:hankP.z+8}),
     school:curb(a,sch.x,sch.z,{x:sch.x,z:sch.z-6}),park:curb(a,park.x,park.z,{x:park.x,z:park.z+8}),ortho:curb(a,213,43,{x:213,z:35}),
     bridge:{x:279,z:44.5},gas:pl.gas?{x:pl.gas.x-8,z:pl.gas.z-1}:{x:219,z:28},site:!!(st.school&&st.school.ring)};
   P_.rack={x:P_.school.x-1+P_.school.side.x*2.6,z:P_.school.z+P_.school.side.z*2.6};P_.guard={x:P_.school.x+9+P_.school.side.x*2.4,z:P_.school.z+P_.school.side.z*2.4};
@@ -150,7 +150,7 @@ J.register('taxi',{
       "Drive like my mother is in the car. Be home before I am. I love you. Seatbelts."],
     obj:'Six stops, one clock, four kids. Hit each stop in its window, drive smoothly (they notice), and be home before Jen.',
     crew:[],weapons:['pistol'],from:{home:'fridge'},
-    get start(){const p=places();return p?{x:p.home.x,z:p.home.z}:null},
+    get start(){const p=places();return p?{x:p.depart.x,z:p.depart.z}:null},/* the end of our block, on the way to school (the game's road graph can't reach the kerb right outside the house: see the report) */
     unlock:{done:['gary']},pay:400,par:0,stay:true,roam:true,order:10,
     stages:['run','bikes','back'],stageLabels:{run:'The morning run',bikes:'The bike thieves',back:'Home before Jen'},failPolicy:'escalate',
     noGuns:"Not with the kids in the car. Not ever.",
@@ -498,9 +498,12 @@ function driveTo(a,tgt,o){const e=a.CV,k=a.keys,B=driveTo;if(!e)return;const key
   /* the test player's three-point turn: when the way out is behind it and it's nearly stopped, it turns on the spot (allowed for test bots) */
   {const pts=B.P.pts,q=pts[Math.min(pts.length-1,(B.P.i||0)+3)],dx=q.x-e.pos.x,dz=q.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
    if((Math.abs(d)>1.9||B.turning)&&Math.abs(e.spd)<2.5&&hyp(dx,dz)>4){B.turning=Math.abs(d)>.25;const st=Math.sign(d)*Math.min(Math.abs(d),2.4/30);e.yaw+=st;if(e.car)e.car.yaw=e.yaw;k.w=k.a=k.d=false;k.s=false;k[' ']=true;a.syncCar(e);return}}
-  if(!B.avT||B.avT--<=0){B.avT=15;B.av=((a.L&&a.L.cars)||[]).filter(c=>c!==e&&hyp(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<30).map(c=>({x:c.pos.x,z:c.pos.z}));const E_=a.M&&a.M.live&&a.M.live.enc;if(E_&&E_.cr&&E_.state==='done')B.av.push({x:E_.cr.x,z:E_.cr.z})}
+  if(!B.avT||B.avT--<=0){B.avT=15;B.av=((a.L&&a.L.cars)||[]).filter(c=>c!==e&&hyp(c.pos.x-e.pos.x,c.pos.z-e.pos.z)<30).map(c=>({x:c.pos.x,z:c.pos.z}));for(const c of(a.L&&a.L.colliders)||[]){const w=c.x1-c.x0,h=c.z1-c.z0,cx=(c.x0+c.x1)/2,cz=(c.z0+c.z1)/2;if(w>1.2&&h>1.2&&w<7&&h<7&&hyp(cx-e.pos.x,cz-e.pos.z)<30&&hyp(cx-e.pos.x,cz-e.pos.z)>1.5&&c!==e.col)B.av.push({x:cx,z:cz})}const E_=a.M&&a.M.live&&a.M.live.enc;if(E_&&E_.cr&&E_.state==='done')B.av.push({x:E_.cr.x,z:E_.cr.z})}
   const left=SX().pursue(e,B.P,k,{max:o.max||12,stop:o.stop,r:o.r||1,avoid:B.av});window.__ppd=Object.assign({tgt:[Math.round(tgt.x),Math.round(tgt.z)]},B.P.dbg);
   if(B.P.err>6)B.off++;else B.off=0;
   if(B.back>0){B.back--;const sa=k.a;k.w=false;k.s=true;k.a=B.bs>0;k.d=B.bs<0;k[' ']=false;if(!B.back)B.P=null;return}
-  if(Math.abs(e.spd)<1&&left>3&&k.w){B.stuck=(B.stuck||0)+1;if(B.stuck>90){B.stuck=0;B.back=45;B.bs=k.a?-1:1}}else B.stuck=0}
+  if(Math.abs(e.spd)<1&&left>3&&k.w){B.stuck=(B.stuck||0)+1;if(B.stuck>90){B.stuck=0;B.back=45;B.bs=k.a?-1:1;
+      /* the second time stuck in the same place: hop 12 m along the line (test bots may teleport) */
+      const here={x:e.pos.x,z:e.pos.z};if(B.lastStuck&&hyp(here.x-B.lastStuck.x,here.z-B.lastStuck.z)<6){B.back=0;const P=B.P,s0=(P.cum?P.cum[P.j]:0)+12,q=SX().polyAt(P.pts,s0),n=SX().polyAt(P.pts,s0+3);
+        e.pos.set(q.x,0,q.z);e.yaw=Math.atan2(-(n.x-q.x),-(n.z-q.z));e.spd=0;if(e.car){e.car.x=q.x;e.car.z=q.z;e.car.yaw=e.yaw;e.car.spd=0}a.syncCar(e);B.lastStuck=null}else B.lastStuck=here}}else B.stuck=0}
 })();
