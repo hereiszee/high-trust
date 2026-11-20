@@ -139,7 +139,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     /* the circuit: north over Maple Heights, low and fast over the house (the family comes out), a sonic boom */
     await fly({to:[250,120],alt:80,max:300,until:q=>Math.hypot(q.x-250,q.z-120)<60});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
-    await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:105,ab:true,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
+    await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:78,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
     await fly({to:[home.x+260,home.z+40],alt:45,spd:100,ab:true,max:120});
     await shot('jet-maple');await perf('jet over Maple Heights');
     j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz,'buzzed the house: the family came out ('+j.fam+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
