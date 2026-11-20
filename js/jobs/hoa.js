@@ -261,7 +261,7 @@ J.register('hoa',{
   medal(M){const b=M.board,n2=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=2).length,n3=ITEMS.filter(it=>b[it.id]&&b[it.id].stars>=3).length;return n3>=6?3:n2>=6?2:1},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV&&a.SV();if(!s)return;s.flags=s.flags||{};s.flags.hoaWalnut=true;if(M.flags.summer)s.flags.lookoutMows=true},
   camera(dt){const M=A().M;if(!M)return;if(M.mt&&M.mt.st==='talk')return meetCam(dt,M);if(!M.seat)return;return seatCam(dt)},
-  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;/* js/hud.js findRoute can loop forever on some routes (Float32 distances re-push in its Dijkstra): no minimap route for this job until that is fixed; the marker still shows */st.routeTo=null;if(M.mt&&M.mt.st==='talk')st.crosshair=Object.assign({},st.crosshair,{hidden:true});hudExtras(M,st)},
+  hud(st){const a=A(),M=a.M;if(!M||M.state!=='go')return;if(M.mt&&M.mt.st==='talk')st.crosshair=Object.assign({},st.crosshair,{hidden:true});hudExtras(M,st)},
   test:{give(a){const H=window.__ht;if(!H)return;const i=H.jobs.index('gary');if(i>=0)H.prog.done[i]=true;const s=a.SV();if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,'gary').done=true;if(H.mode==='hub'&&!H.M){H.enterHub();H.step(2)}},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ph:'stake',board:{},susMax:0,flashes:0,shots:0,item:'phone'})}
