@@ -110,12 +110,12 @@ module.exports=[
     /* dropped box: walk into reach */
     P.pool[t]=20;H.pickups.slice().forEach(()=>{});const box=H.dropAt('pistol',s.x+2.6,s.z);/* a pistol drop of a carried type */
     const before=P.pool[t];H.keys.w=true;M_.run(30);H.keys.w=false;M_.run(12);out.gun={before,after:P.pool[t],left:H.pickups.includes(box)};
-    out.toast=[...document.querySelectorAll('.ht-fi span')].map(d=>d.textContent);
+    out.toast=[...document.querySelectorAll('.ht-at,.ht-fi span')].map(d=>d.textContent.trim());
     /* ammo bag tile 'a' */
     const bag=L.ammo.find(a=>!a.got);P.pool[t]=10;M_.place(bag.x-2.2,bag.z);M_.face(1,0);H.keys.w=true;M_.run(40);H.keys.w=false;M_.run(14);out.bag={got:bag.got,pool:P.pool[t],inScene:!!bag.mesh.parent};
     /* full: nothing taken, one message */
-    P.pool[t]=H.AMMO[t].cap;P.fullSaid=null;const g2=H.dropAt('pistol',P.pos.x+.6,P.pos.z);for(const d of document.querySelectorAll('.ht-fi span'))d.remove();M_.run(30);
-    out.full={stays:H.pickups.includes(g2),msgs:[...document.querySelectorAll('.ht-fi span')].map(d=>d.textContent)};
+    P.pool[t]=H.AMMO[t].cap;P.fullSaid=null;const g2=H.dropAt('pistol',P.pos.x+.6,P.pos.z);for(const d of document.querySelectorAll('.ht-at,.ht-fi span'))d.remove();M_.run(30);
+    out.full={stays:H.pickups.includes(g2),msgs:[...document.querySelectorAll('.ht-at,.ht-fi span')].map(d=>d.textContent.trim())};
     /* an ammo box of a type you have room for */
     P.pool[t]=50;const ab=H.pickups.length;H.L.pickups;const o={ammo:{type:t,n:17},x:P.pos.x+1.0,z:P.pos.z+.2,src:'crate'};
     return out});
@@ -125,8 +125,10 @@ module.exports=[
   ok('full pouch: pickup stays and says "9mm full" once',r.full.stays&&r.full.msgs.filter(m=>m==='9mm full').length===1,r.full);
   const r2=await p.evaluate(()=>{const H=__ht,P=H.P;P.pool['9mm']=40;P.fullSaid=null;
     /* a non-carried gun still needs hold-E */
-    const g=H.dropAt('rifle',P.pos.x+.5,P.pos.z);M_.run(20);return{stays:H.pickups.includes(g),weapons:P.weapons.slice()}});
-  ok('a gun you do not carry is not auto-taken (hold E prompt)',r2.stays&&!r2.weapons.includes('rifle'),r2);
+    /* saved loadouts may already own the carbine: pick any gun the dad does not carry */
+    const id=Object.keys(H.WEAPONS).find(k=>!P.weapons.includes(k)&&k!=='beanbag')||'hunter';
+    const g=H.dropAt(id,P.pos.x+.5,P.pos.z);M_.run(20);return{id,stays:H.pickups.includes(g),weapons:P.weapons.slice()}});
+  ok('a gun you do not carry is not auto-taken (hold E prompt)',r2.stays&&!r2.weapons.includes(r2.id),r2);
   if(__SHOTS)await shot('ammo_toast',()=>{const H=__ht,P=H.P;H.startMission(0);M_.calm();P.fp=false;H.step(100);
     const L=H.L;let s=null;for(let z=3;z<L.H-3&&!s;z++)for(let x=3;x<L.W-3&&!s;x++){const X=x*2+1,Z=z*2+1;if(!H.solidAt(X,Z,4,0))s={x:X,z:Z}}
     M_.place(s.x,s.z);M_.face(1,.3);P.pitch=-.2;P.pool['9mm']=30;for(const d of document.querySelectorAll('.ht-fi span'))d.remove();

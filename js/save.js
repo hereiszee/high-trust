@@ -267,6 +267,10 @@ function sanitizeGarage(s){const g=s.garage,G=HT.Garage,def=defGarage();
   if(!isObj(g.hp))g.hp={};
   for(const k in g.hp)if(!g.owned.includes(k))delete g.hp[k];
   for(const t of g.owned){const mx=vehMaxHp(t,g);g.hp[t]=clampN(num(g.hp[t],mx),0,mx)}
+  /* wear the HP bar can't show: smashed lamps [front A, front B, rear A, rear B] and a flat tyre, per owned vehicle; Sal's tab (an unpaid tow) */
+  if(!isObj(g.wear))g.wear={};for(const k in g.wear)if(!g.owned.includes(k))delete g.wear[k];
+  for(const t of g.owned){const w=isObj(g.wear[t])?g.wear[t]:{};g.wear[t]={lamps:[0,1,2,3].map(i=>Array.isArray(w.lamps)&&w.lamps[i]?1:0),tyre:w.tyre?1:0}}
+  g.tab=Math.max(0,Math.round(num(g.tab,0)));g.patchAt=Math.max(0,Math.floor(num(g.patchAt,0)));
   g.util=deepMerge(def.util,g.util);for(const k in g.util)g.util[k]=!!g.util[k];
   g.purchases=Math.max(0,Math.floor(num(g.purchases,0)));g.dirt=clampN(num(g.dirt,0),0,100);
   const SN=G?G.COSMETICS.stickers.length:12,okSt=i=>Number.isInteger(i)&&i>=0&&i<SN;
@@ -471,7 +475,7 @@ function garPrice(kind,id,s){const G=HT.Garage;if(!G)return 0;const C=G.COSMETIC
   if(kind==='gar'){const it=G.CATALOG.find(c=>c.id===id);return it?it.price:0}
   if(kind==='car')return G.VEH[id]&&G.VEH[id].price||0;
   if(kind==='stick')return C.sticker;
-  if(kind==='rep'){const g=s.garage;return Math.ceil(Math.max(0,vehMaxHp(g.active,g)-g.hp[g.active])*2)}
+  if(kind==='rep')return repPrice(id,s);
   const[gp,o]=id.split(':');
   if(gp==='paint')return(C.paint[o]||{}).price||0;if(gp==='rims')return C.rims[o]||0;if(gp==='tint')return(C.tint[o]||[0,0])[1];
   if(gp==='lightBar')return C.lightBar.amber.price;if(gp==='spoiler')return C.spoiler;if(gp==='horn')return(G.HORNS[o]||{}).price||0;return 0}
@@ -480,7 +484,11 @@ function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);c
     if(G.ownedIds(g).includes(id))return set(it.group==='vehicle'?'owned':'equipped');
     const r=G.req(id,garCtx(s));if(r)set('locked',r);return}
   if(kind==='car'){out.item=G.VEH[id];if(g.owned.includes(id))return set(g.active===id?'equipped':'owned');const r=G.req('v_'+id,garCtx(s));if(r)set('locked',r);return}
-  if(kind==='rep'){const mx=vehMaxHp(g.active,g);out.hp=g.hp[g.active];out.maxHp=mx;if(g.hp[g.active]>=mx)set('maxed','Not a scratch on her');return}
+  if(kind==='rep'){const q=repairQuote(s);out.hp=q.hp;out.maxHp=q.maxHp;out.car=q.car;
+    if(!q.total)return set('maxed',q.car.own?'Not a scratch on her':'Not a scratch on it. '+q.car.owner+' will never know.');
+    if(id==='lights'&&!q.rows.some(r=>r.id==='lights'))return set('maxed','Every lamp works');
+    if(id==='tyre'&&!q.rows.some(r=>r.id==='tyre'))return set('maxed','Four round tyres');
+    if(id==='patch'&&out.price<2)return set('locked','Sal needs at least $2 to pick up a hammer');return}
   if(kind==='stick'){const i=+id;if(g.stickers.includes(i))return set('equipped');if(g.ownedStickers.includes(i))return set('owned');
     const q=STICKER_REQ[i];if(q){if(q.mart&&store!=='mart')return set('locked','Only at Ramos Corner Mart');const r=cosReq(q,s);if(r)set('locked',r)}return}
   const[gp,o]=id.split(':'),C=G.COSMETICS;
@@ -490,17 +498,51 @@ function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);c
   if(gp==='spoiler'){if(v.spoiler||v.perf.sport)return set('equipped',v.perf.sport&&!v.spoiler?'Comes with Sport Mode':null);return}
   if(gp==='horn'){if(g.horn===o)return set('equipped');if(g.ownedHorns.includes(o))return set('owned');if(o==='entertainer'){const r=cosReq({done:['benny']},s);if(r)set('locked',r)}return}}
 /* applies a paid purchase (status already checked) */
-function garApply(kind,id,s){const G=HT.Garage,g=s.garage,v=actV(s);
+function garApply(kind,id,s,st){const G=HT.Garage,g=s.garage,v=actV(s);
   if(kind==='gar'||kind==='car'){const before=vehMaxHp(g.active,g);const r=G.buy(g,kind==='car'?'v_'+id:id,Object.assign(garCtx(s),{cash:1e12}));
     if(r.ok&&kind==='gar'){const after=vehMaxHp(g.active,g);g.hp[g.active]=Math.min(after,(g.hp[g.active]||before)+(after-before))}
     return}
   g.purchases=(g.purchases||0)+(kind==='rep'?0:1);
-  if(kind==='rep'){g.hp[g.active]=vehMaxHp(g.active,g);return}
+  if(kind==='rep'){repApply(id,s,st);return}
   if(kind==='stick'){const i=+id;g.ownedStickers.push(i);putSticker(g,i);return}
   const[gp,o]=id.split(':');
   if(gp==='paint'||gp==='rims'||gp==='tint'){g.ownedCos[gp].push(o);v[gp]=o}
   else if(gp==='lightBar')v.lightBar=true;else if(gp==='spoiler')v.spoiler=true;
   else if(gp==='horn'){g.ownedHorns.push(o);g.horn=o}}
+/* ---------- repairs: whichever car the dad pulls in with ----------
+   The game hands Dad's Auto the car being driven with Economy.setRepairCar(t) (a borrowed neighbour's car); without one the
+   active owned vehicle is repaired straight in SAVE.garage (hp + wear). t = {name, owner, type, own, hp, maxHp, lamps:[4], tyre, color, onRepair(fix, info)}.
+   Prices: $2 per HP (dents above 50% are body work, below it the engine), $30 a lamp, $45 a tyre; Dad's Auto's family discount applies. */
+let REPAIR_CAR=null;
+function setRepairCar(t){REPAIR_CAR=t||null}
+function repCar(s){if(REPAIR_CAR)return REPAIR_CAR;const g=s.garage,w=(g.wear&&g.wear[g.active])||{lamps:[0,0,0,0],tyre:0};
+  return{own:true,type:g.active,name:HT.Garage&&HT.Garage.VEH[g.active]?HT.Garage.VEH[g.active].name:g.active,hp:g.hp[g.active],maxHp:vehMaxHp(g.active,g),lamps:w.lamps,tyre:w.tyre}}
+const REP_LAMP=30,REP_TYRE=45;
+function repairQuote(s){s=S(s);const t=repCar(s),mx=t.maxHp||100,hp=clampN(num(t.hp,mx),0,mx),D=mx-hp,eng=Math.max(0,Math.min(D,mx*.5-hp)),body=D-eng,
+    lamps=(t.lamps||[]).filter(Boolean).length,tyre=t.tyre?1:0,rows=[];
+  if(body>.5)rows.push({id:'body',label:'Body work',detail:Math.round(body)+' HP of dents, scrapes and a bumper held on by hope',price:Math.ceil(body*2)});
+  if(eng>.5)rows.push({id:'engine',label:'Engine & radiator',detail:hp<=0?"Broken down. Sal: \"She's not dead. She's resting.\"":Math.round(eng)+' HP · steam, smoke, the noise',price:Math.ceil(eng*2)});
+  if(lamps)rows.push({id:'lights',label:'Lights',detail:lamps+' smashed lamp'+(lamps>1?'s':''),price:lamps*REP_LAMP});
+  if(tyre)rows.push({id:'tyre',label:'Tyre',detail:'Flat. Thump, thump, thump.',price:REP_TYRE});
+  return{car:t,rows,total:rows.reduce((a,r)=>a+r.price,0),hp,maxHp:mx}}
+function repPrice(id,s){const q=repairQuote(s),row=k=>(q.rows.find(r=>r.id===k)||{price:0}).price;
+  if(id==='lights'||id==='tyre')return row(id);
+  if(id==='patch'){const d=discountFor('auto',s);return Math.max(0,Math.min(q.total-1,Math.floor(s.cash/(1-d)/2)*2))}
+  return q.total}
+/* what a repair job leaves the car at: {hp, lamps, tyre} */
+function repFix(id,s,st){const q=repairQuote(s),t=q.car,f={hp:q.hp,lamps:(t.lamps||[0,0,0,0]).slice(0,4),tyre:t.tyre?1:0};
+  if(id==='lights')f.lamps=[0,0,0,0];else if(id==='tyre')f.tyre=0;
+  else if(id==='patch')f.hp=Math.min(q.maxHp,q.hp+(st?st.base:repPrice('patch',s))/2);/* the engine first: it is the bottom of the bar */
+  else{f.hp=q.maxHp;f.lamps=[0,0,0,0];f.tyre=0}
+  return f}
+function repApply(id,s,st){const t=repCar(s),f=repFix(id,s,st),g=s.garage;
+  if(t.own&&!REPAIR_CAR){g.hp[g.active]=f.hp;g.wear=g.wear||{};g.wear[g.active]={lamps:f.lamps,tyre:f.tyre}}
+  else{t.hp=f.hp;t.lamps=f.lamps;t.tyre=f.tyre}
+  if(t.onRepair)try{t.onRepair(f,{id})}catch(e){console.error(e)}
+  return f}
+/* a tow from Dad's Auto: paid in cash, or the rest goes on Sal's tab (paid off from the next payout) */
+function towCharge(fee,s){s=S(s);const old=s.cash,paid=Math.min(fee,Math.max(0,s.cash)),owe=fee-paid;s.cash-=paid;s.stats.spent+=paid;s.garage.tab=(s.garage.tab||0)+owe;
+  if(mine(s)){if(paid)emit('cash',s.cash,old);Save.touch('garage','stats')}return{paid,tab:owe,owed:s.garage.tab}}
 function putSticker(g,i){if(g.stickers.includes(i))return;const e=g.stickers.indexOf(null);if(e>=0)g.stickers[e]=i;else{g.stickers.shift();g.stickers.push(i)}}
 /* free actions on things you already own: drive another car, re-apply a cosmetic, (un)stick a sticker */
 function garUse(kind,id,s){s=S(s);const g=s.garage,v=actV(s);
@@ -528,7 +570,7 @@ function buy(kind,id,store,s){s=S(s);store=store||'hardware';
   else if(kind==='att'){s.owned.att.push(id);ev='boughtAttachment';autoAttach(id,s)}
   else if(kind==='furn'){s.furniture.owned[id]=(s.furniture.owned[id]||0)+1;ev='boughtFurniture'}
   else if(kind==='sup'){s.flags[SUPPLIES[id].flag]=true}
-  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s);if(kind!=='rep')ev='boughtCar'}
+  else if(GARAGE_KINDS.includes(kind)){garApply(kind,id,s,st);if(kind!=='rep')ev='boughtCar'}
   if(ev)s.events.push(ev);
   if(mine(s)){emit('cash',s.cash,oldCash);Save.touch('owned','pending','furniture','garage','flags','loadout','attOn','events','stats')}
   return{ok:true,price:st.price,delivered:deliverLater?'pending':'now',status:st}}
@@ -664,12 +706,14 @@ function computePayout(r,s){r=r||{};
 
 /* Credit a payout to the save and queue the home event (SPEC D.2) */
 function applyPayout(p,s){s=S(s);const old=s.cash;s.cash+=p.total;s.stats.earned+=p.total;s.events.push(p.ok?'win_'+p.mission:'fail');
-  if(mine(s)){emit('cash',s.cash,old);Save.touch('stats','events')}return s.cash}
+  const g=s.garage;if(g&&g.tab>0){const pay=Math.min(g.tab,s.cash);s.cash-=pay;g.tab-=pay;s.stats.spent+=pay;p.tabPaid=pay}
+  if(mine(s)){emit('cash',s.cash,old);Save.touch('stats','events','garage')}return s.cash}
 
 const resultLines=p=>p.lines.map(l=>({label:l.label,text:(l.amount<0?'−$':'+$')+Math.abs(l.amount).toLocaleString('en-US'),neg:l.amount<0,kind:l.kind,note:l.note||''}));
 
 const Economy={money,missionOf,condReason,gunAvail,priceOf,basePrice,discountFor,status,canAfford,buy,sell,sellValue,deliverPending,collectGun,
-  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS};
+  setLoadout,swapPrimaries,setAttachment,weaponStats,gunBars,vehicleStats,vanBars,vanStatsWith,garUse,doneIds,GARAGE_KINDS,ammoFor,computePayout,applyPayout,resultLines,BAR_DEFS,
+  setRepairCar,repairQuote,towCharge,vehMaxHp:(t,s)=>{s=S(s);return vehMaxHp(t||s.garage.active,s.garage)}};
 HT.Economy=Economy;
 
 /* =====================================================================
@@ -1049,7 +1093,12 @@ function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')retur
   if(kind==='car')return{name:G?G.VEH[id].name:id,blurb:VEH_BLURB[id]};
   if(kind==='cos'){const[g,o]=id.split(':');const t=(COS_TXT[g]||{})[o]||[o,''];return{name:t[0],blurb:t[1]}}
   if(kind==='stick')return{name:'"'+(G?G.COSMETICS.stickers[+id]:id)+'"',blurb:'Bumper sticker. Three slots on the back. Peel one off anytime, Sal has a razor blade.'};
-  if(kind==='rep')return{name:'Body Work',blurb:'Sal hammers out the dents, tapes the mirror, and does not ask what happened. $2 a hit point.'};
+  if(kind==='rep'){const t=repCar(Save.data);
+    if(id==='lights')return{name:'New Lamps',blurb:'Bulbs, lenses, a bead of silicone. Sal stopped using tape in 2009.'};
+    if(id==='tyre')return{name:'Fresh Tyre',blurb:'Sal swaps the flat and checks the other three. Thump-free driving.'};
+    if(id==='patch')return{name:'Patch What You Can Afford',blurb:'Sal starts with whatever is smoking and works outward until the money runs out.'};
+    if(!t.own)return{name:'Fixing '+t.name+' before '+t.owner+' notices',blurb:'Sal knows '+t.owner+'. Sal will not tell '+t.owner+'. Dents, lamps, the works, $2 a hit point. Bring it back looking like this and '+t.owner+' might even say thanks.'};
+    return{name:'Full Repair',blurb:'Sal hammers out the dents, tapes the mirror, and does not ask what happened. $2 a hit point.'}}
   return{}}
 /* which vehicle (and look) a tile or the hero should show; null = not a vehicle picture */
 function vehicleFor(kind,id,hero){const G=HT.Garage;if(!G)return null;const g=Save.data.garage;
@@ -1077,7 +1126,9 @@ function shopEntries(store,tab){
     for(const o in G.HORNS)E.push({kind:'cos',id:'horn:'+o,sec:'Horn'});C.stickers.forEach((t,i)=>{if(!(STICKER_REQ[i]&&STICKER_REQ[i].mart))E.push({kind:'stick',id:String(i),sec:'Bumper stickers'})})}
   else if(tab==='stick'){G.COSMETICS.stickers.forEach((t,i)=>E.push({kind:'stick',id:String(i)}))}
   else if(tab==='cars'){for(const t of['minivan','workvan','pickup','suv'])E.push({kind:'car',id:t})}
-  else if(tab==='repair'){E.push({kind:'rep',id:'active'})}
+  else if(tab==='repair'){const s=Save.data,q=repairQuote(s);E.push({kind:'rep',id:'active',sec:q.car.own?null:'Borrowed'});
+    if(q.total&&s.cash<Math.round(q.total*(1-discountFor('auto',s)))&&s.cash>=2)E.push({kind:'rep',id:'patch'});
+    if(q.rows.some(r=>r.id==='lights')&&q.rows.length>1)E.push({kind:'rep',id:'lights'});if(q.rows.some(r=>r.id==='tyre')&&q.rows.length>1)E.push({kind:'rep',id:'tyre'})}
   for(const e of E){e.key=e.kind+':'+e.id}
   return E}
 function entryName(kind,id){const d=itemData(kind,id);return d&&d.name||id}
@@ -1092,7 +1143,10 @@ function entrySub(kind,id){const G=HT.Garage;
   if(kind==='car'){const v=G.VEH[id];return v.seats+' seats · '+v.hp+' HP'+(v.cargo?' · +'+v.cargo+' mags':'')}
   if(kind==='cos'){const[g]=id.split(':');return COS_GROUP[g]}
   if(kind==='stick')return'Bumper sticker';
-  if(kind==='rep'){const g=Save.data.garage;return G.VEH[g.active].name+' · '+Math.round(g.hp[g.active])+' / '+vehMaxHp(g.active,g)+' HP'}
+  if(kind==='rep'){const q=repairQuote(Save.data),n=q.rows.length;
+    if(id==='lights'||id==='tyre')return(q.rows.find(r=>r.id===id)||{detail:''}).detail;
+    if(id==='patch')return'+'+Math.round(repPrice('patch',Save.data)/2)+' HP · engine first';
+    return esc(q.car.name)+' · '+Math.round(q.hp)+' / '+q.maxHp+' HP'+(n?' · '+n+' thing'+(n>1?'s':'')+' wrong':'')}
   return''}
 
 function tagHTML(st){
@@ -1132,7 +1186,7 @@ function stampHTML(st,store){
   if(st.state==='maxed'&&st.kind==='rep')return`<span class="htm-stamp s-own">Like new</span>`;
   return''}
 
-function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':''}"></i></div></div>`}
+function hpBar(cur,max,label){return`<div class="htm-hp"><div class="htm-hph"><span>${esc(label)}</span><b>${Math.round(cur)} / ${max} HP</b></div><div class="htm-hpt"><i style="width:${100*cur/max}%" class="${cur<max*.3?'low':cur<max*.7?'mid':''}"></i></div></div>`}
 function shopDetail(m,e){
   const s=Save.data,st=status(e.kind,e.id,m.store),d=itemData(e.kind,e.id)||{},armed=m.armed===e.key,G=HT.Garage;
   let kicker='',body='',name=entryName(e.kind,e.id),blurb=d.blurb||'',fx='';
@@ -1178,7 +1232,9 @@ function shopDetail(m,e){
     if(cur!=null)body+=factsHTML([['On it now',esc(((COS_TXT[gp]||{})[cur]||[cur])[0])],gp==='horn'?['Collected',s.garage.ownedHorns.length+' of '+Object.keys(G.HORNS).length]:['Preview','Live on the van above']])}
   else if(G&&e.kind==='stick'){const g=s.garage;kicker='Bumper sticker · '+g.stickers.filter(x=>x!=null).length+' of 3 slots used';
     body=`<div class="htm-stickers">${g.stickers.map(i=>`<span class="${i==null?'empty':''}">${i==null?'Empty slot':esc(G.COSMETICS.stickers[i])}</span>`).join('')}</div>`}
-  else if(G&&e.kind==='rep'){const g=s.garage;kicker=G.VEH[g.active].name+' · Repair';body=hpBar(g.hp[g.active],vehMaxHp(g.active,g),'Body')+`<div class="htm-note left">Free partial repair at home: Tyler hammers it back to 60%. Mostly.</div>`}
+  else if(G&&e.kind==='rep'){const q=repairQuote(s),t=q.car;kicker=t.name+(t.own?'':' · borrowed from '+t.owner)+' · Repair';
+    body=hpBar(q.hp,q.maxHp,t.own?'Health':t.owner+"'s car")+(q.rows.length?`<ul class="htm-reprows">${q.rows.map(r=>`<li><span><b>${esc(r.label)}</b><small>${esc(r.detail)}</small></span><em>${money(r.price)}</em></li>`).join('')}</ul>`:'')+
+      `<div class="htm-note left">${t.own?(s.garage.tab?'Sal\'s tab: '+money(s.garage.tab)+' (comes out of your next payout). ':'')+'Free patch-up at home after a job: Tyler hammers it back to 60%. Mostly.':'Paying for it yourself keeps '+esc(t.owner)+' happy. Bringing it back wrecked costs trust.'}</div>`}
   const sellV=(e.kind==='gun'||e.kind==='att')&&(st.state==='owned')?sellValue(e.kind,e.id):e.kind==='furn'&&m.canSell?sellValue('furn',e.id):0;m.canSell=false;
   return`<div class="htm-hero t-${e.kind}"><div class="htm-heroimg">${thumbHTML(e.kind,e.id,vehicleFor(e.kind,e.id,true)||gunFor(e.kind,e.id,m.attTarget))}</div>${stampHTML(st,m.store)}</div>
     <div class="htm-dscroll"><div class="htm-kicker">${esc(kicker)}</div><h3 class="htm-name">${esc(name)}</h3>
@@ -1242,13 +1298,17 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
     const renderBay=()=>{if(!bay)return;const G=HT.Garage;if(!G){bay.innerHTML='<div class="htm-baytx"><div class="htm-kicker">Dad\'s Auto</div><p class="htm-blurb">Sal is out. (js/carai.js is not loaded.)</p></div>';return}
       const e=m.sel&&entries().find(x=>x.key===m.sel);let pv=null;
       if(e&&(e.kind==='cos'||e.kind==='gar'||e.kind==='stick')&&!(e.kind==='gar'&&e.id.startsWith('v_'))&&!(e.kind==='cos'&&e.id.startsWith('horn'))){const st=status(e.kind,e.id,store);if(st.state!=='equipped')pv=vanStatsWith(e.kind,e.id)}
+      if(REPAIR_CAR&&!REPAIR_CAR.own&&m.tab==='repair'){/* fixing a borrowed car: it's the one on the lift */const t=REPAIR_CAR,q=repairQuote(Save.data);
+        bay.innerHTML=`<div class="htm-bayvan">${thumbHTML('car',t.type,{type:t.type,opts:{color:t.color,upgrades:{}}})}</div><div class="htm-baytx"><div class="htm-kicker">${esc(t.name)} · borrowed</div>
+          <p class="htm-blurb">${q.total?esc(t.owner)+' lent you this in good faith. Sal can make it look like it never happened.':'Good as the day '+esc(t.owner)+' lent it to you.'}</p>${hpBar(q.hp,q.maxHp,t.owner+"'s car")}</div>`;
+        if(lastPrev!==null){lastPrev=null;if(m.onPreview)try{m.onPreview(null)}catch(err){}}return}
       const now=vehicleStats(),vs=pv||now,g=Save.data.garage,bars=vanBars(vs),b0=vanBars(now);
       const inst=G.ownedIds(g).map(id=>garItem(id)).filter(c=>c.group!=='vehicle').map(c=>c.name);
       const veh={type:vs.type,opts:vs.makeOpts,stats:vs};
       bay.innerHTML=`<div class="htm-bayvan">${thumbHTML('car',vs.type,veh)}${pv?'<span class="htm-prev">Preview</span>':''}</div><div class="htm-baytx">
         <div class="htm-kicker">${esc(G.VEH[g.active].name)} · ${esc(((COS_TXT.paint[vs.paint.id]||[vs.paint.id])[0]))}</div>
         <div class="htm-baybars">${bars.map((b,i)=>`<div class="${b.v>b0[i].v+.01?'up':''}"><span>${b.label}</span><i><b style="width:${b.v*10}%"></b></i></div>`).join('')}</div>
-        ${hpBar(g.hp[g.active],vehMaxHp(g.active,g),'Body')}
+        ${(()=>{const q=repairQuote(Save.data);return hpBar(q.hp,q.maxHp,q.car.own?'Health':q.car.name)})()}
         <div class="htm-bayinst">${inst.length?inst.map(x=>`<em>${esc(x)}</em>`).join(''):'<em class="none">Bone stock. Like the day you drove it off the lot.</em>'}</div></div>`;
       const key=pv?JSON.stringify(pv.makeOpts):null;if(key!==lastPrev){lastPrev=key;if(m.onPreview)try{m.onPreview(pv?{type:pv.type,opts:pv.makeOpts}:null)}catch(err){console.error(err)}}};
     m.renderGrid=(keepFocus)=>{renderBay();const list=entries();let html='',sec=null;
@@ -1284,7 +1344,7 @@ const Shop={thumbRenderer:null,sfx:null,gltfThumbs,
           m.renderGrid(true);m.renderDetail();if(m.onBuy)try{m.onBuy({kind:e.kind,id:e.id,price:0,store,delivered:'now',use:true})}catch(err){console.error(err)}}else{sfx('error');toast(m,r.reason,'bad')}return}
       sfx('error');shake(btn||ui.detail.querySelector('[data-act=primary]')||ui.detail);
       if(st.state==='poor')toast(m,'Not enough cash. Run a job, or rerun one for half pay.','bad');else if(st.state==='locked')toast(m,st.reason,'bad')};
-    const thanks=e=>store==='auto'?(e.kind==='rep'?'Sal: "Good as new. Better, actually. Don\'t tell her I said that."':pick(['Sal: "Installed. Drives like a dream. A minivan dream."','Sal: "She purrs now. Don\'t make her growl."','Sal: "Done. Topped up your wiper fluid. On the house."'])):
+    const thanks=e=>store==='auto'?(e.kind==='rep'?(REPAIR_CAR&&!REPAIR_CAR.own?'Sal: "'+REPAIR_CAR.owner+' will never know. I will know. I\'ll take it to my grave."':'Sal: "Good as new. Better, actually. Don\'t tell her I said that."'):pick(['Sal: "Installed. Drives like a dream. A minivan dream."','Sal: "She purrs now. Don\'t make her growl."','Sal: "Done. Topped up your wiper fluid. On the house."'])):
       pick(['Thanks for shopping local!','Bag? No? Good man.','Receipt is in the bag. Jen will find it.','Pleasure doing business, neighbor.']);
     m.input=(a,d)=>{const f=document.activeElement;
       if(a==='nav'){if(m.sheet&&!ui.detail.contains(f)){m.sheetOpen(false)}const scope=m.sheet?ui.detail:ui.el;const n=navMove(scope,d,scope.contains(f)?f:null);if(n)focusEl(m,n);return}

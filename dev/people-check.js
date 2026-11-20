@@ -9,7 +9,7 @@ const argv=process.argv.slice(2);const SHOTS=argv.includes('--shots');const only
 const want=k=>!only.length||only.includes(k);
 /* no --only: run the blocks in separate browsers (one page through every mission and shot set outgrows the headless renderer's memory) */
 if(!only.length&&!process.env.PC_CHILD){const {spawnSync}=require('child_process');let bad=0;
-  for(const g of['combat','ground','missions,perf','roster,fallback,lowq','shots,boss','ik,polish,caps']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
+  for(const g of['combat','ground','missions,perf','roster,fallback,lowq','shots,boss','ik,polish,caps,bossaim']){if(!SHOTS&&/^(shots,boss|ik,polish)$/.test(g))continue;
     console.log('--- '+g);const r=spawnSync(process.execPath,[__filename,'--only='+g,...(SHOTS?['--shots']:[])],{stdio:'inherit',env:Object.assign({},process.env,{PC_CHILD:'1'})});if(r.status!==0)bad++}
   console.log(bad?bad+' block(s) failed':'all blocks passed');process.exit(bad?1:0)}
 const MIME={'.html':'text/html','.js':'application/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.json':'application/json','.woff2':'font/woff2'};
@@ -84,7 +84,9 @@ function helpers(){
   const st=await p.evaluate(()=>({ok:HT.People.ok,failed:__ht.assets.failed,player:!!__ht.P.dude.rb}));
   ok('people loaded and the player is skinned',st.ok&&st.player,st);
   if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
-  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on');for(const id of['cResult','cBrief','cPause'])if(document.getElementById(id))document.getElementById(id).hidden=true});await p.evaluate(fn||(()=>__ht.draw()),arg);await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
+  const shot=async(n,fn,arg)=>{if(!SHOTS)return;await p.evaluate(()=>{const b=document.getElementById('banner');if(b)b.classList.remove('on');for(const id of['cResult','cBrief','cPause'])if(document.getElementById(id))document.getElementById(id).hidden=true});await p.evaluate(fn||(()=>__ht.draw()),arg);
+    /* open world: let chunks around the camera stream in, then render again from the same camera */
+    for(let k=0;k<4;k++){await p.waitForTimeout(400);await p.evaluate(()=>{const H=__ht,g=H.dude.groundPass;if(g)g(1);H.render.draw();if(g)g(-1)})}await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:86});console.log('       wrote',n+'.jpg')};
 
   if(want('combat')){
     await p.evaluate(()=>__ht.startMission(0));
@@ -142,8 +144,8 @@ function helpers(){
       H.dude.equip(P.dude,'rifle');P.cur='rifle';P.aim=true;const hy=pv=>{P.pitch=pv;H.step(30);return P.dude.body.getObjectByName('Bip01_R_Hand').getWorldPosition(new THREE.Vector3()).y};
       out.handRise=+(hy(.6)-hy(-.6)).toFixed(3);
       /* barrel vs view direction (third person, rifle and pistol) */
-      out.barrelErr={};const yp=out;for(const g of['rifle','pistol']){H.dude.equip(P.dude,g);P.cur=g;for(const pv of[-.6,0,.6]){P.pitch=pv;H.step(30);H.scene.updateMatrixWorld();
-        const q=P.dude.gun.getWorldQuaternion(new THREE.Quaternion());const bd=new THREE.Vector3(0,0,1).applyQuaternion(q);const cf=new THREE.Vector3(-Math.sin(P.yaw)*Math.cos(pv),Math.sin(pv),-Math.cos(P.yaw)*Math.cos(pv));
+      out.barrelErr={};const yp=out;for(const g of['rifle','pistol','revolver','shotgun']){H.give(g);H.dude.equip(P.dude,g);P.cur=g;for(const pv of[-.6,0,.6]){P.pitch=pv;H.step(30);H.scene.updateMatrixWorld();
+        const q=P.dude.gun.getWorldQuaternion(new THREE.Quaternion());const bd=(P.dude.gun.userData.rbAxis||new THREE.Vector3(0,0,1)).clone().applyQuaternion(q);const cf=new THREE.Vector3(-Math.sin(P.yaw)*Math.cos(pv),Math.sin(pv),-Math.cos(P.yaw)*Math.cos(pv));
         out.barrelErr[g+pv]=+(bd.angleTo(cf)).toFixed(2);if(pv===0)yp['yawpitch_'+g]=[+(Math.atan2(bd.x,bd.z)-Math.atan2(cf.x,cf.z)).toFixed(3),+(Math.asin(bd.y)-Math.asin(cf.y)).toFixed(3)]}}
       /* the over-the-shoulder camera must never sit inside the dad's head: either it is clear of the head or the body is hidden */
       P.aim=false;let worst=9;for(const aim of[false,true])for(let pv=-1.25;pv<=1.25;pv+=.25){P.aim=aim;P.pitch=pv;H.step(8);H.draw();if(!P.dude.root.visible)continue;
@@ -301,7 +303,17 @@ function helpers(){
     ok('at least 10 street-crew variants',r.thugs.length>=10,r.thugs.join(','));
     const v=await p.evaluate(()=>{const H=__ht;H.startMission(3);const ks=H.enemies.map(e=>e.dude.rb&&e.dude.rb.key);let rep=0;for(let i=1;i<ks.length;i++)if(ks[i]===ks[i-1])rep++;return{ks,rep,distinct:new Set(ks).size}});
     ok('spawns spread over the pool, no two in a row alike',v.rep===0&&v.distinct>=Math.min(8,v.ks.length-2),v);
-    if(SHOTS){await p.evaluate(()=>{const H=__ht;H.startMission(3);H.P.fp=false;for(const e of H.enemies)e.pos.x+=400;for(const a of H.allies)a.pos.x+=400;H.step(3);H.P.dude.root.visible=false});
+    /* draw budget per character: body+head atlas merged, materials sane, gun one draw when far */
+    const db=await p.evaluate(()=>{const H=__ht,D=H.dude,PP=HT.People;const out={bad:[],per:{}};
+      for(const k of PP.keys.filter(k=>!/^(wife|son|daughter)$/.test(k))){const d=PP.make(k);if(!d){out.bad.push(k+': not made');continue}D.equip(d,'shotgun');
+        let body=0,draws=0;const nm=[];d.root.traverse(o=>{if(!o.isMesh||(o.userData&&o.userData.hitbox))return;let v=true;for(let q=o;q;q=q.parent)if(!q.visible)v=false;if(!v||o.material.visible===false||!o.geometry.attributes.position||!o.geometry.attributes.position.count)return;
+          if(d.gun&&(()=>{for(let q=o;q;q=q.parent)if(q===d.gun)return true})())return;draws++;nm.push((o.name||'?')+'/'+(o.material.name||o.material.type));if(o.isSkinnedMesh&&/bodyhead/.test(o.material.name))body++;
+          if(o.material.vertexColors&&!o.geometry.attributes.color)out.bad.push(k+': vertexColors without colour data on '+o.name);if(o.material.map&&!o.material.map.image)out.bad.push(k+': map without image')});
+        if(body!==1)out.bad.push(k+': body+head not merged');const L=d.gun&&d.gun.userData.rbLod;if(!L)out.bad.push(k+': no far gun');
+        out.per[k]=draws;if(draws>4)out.bad.push(k+': '+draws+' body draws '+nm.join(' '))}
+      return out});
+    ok('draw budget: every character body+head atlas-merged, ≤4 body draws, one-draw far gun, materials sane',db.bad.length===0,db.bad.length?db.bad.slice(0,6):db.per);
+    if(SHOTS){await p.evaluate(()=>{const H=__ht;H.enterHub();H.P.fp=false;H.step(3);for(const a of H.allies)a.dude.root.visible=false;H.P.dude.root.visible=false});
       await shot('roster_street_crews',()=>{const H=__ht,P=H.P;T_.lineup(HT.People.roles.thug.map((v,i)=>({role:'thug',variant:v,gun:i%3?'rifle':'pistol'})),{dist:6.2,spacing:.78,steps:40});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.45,P.pos.z,P.pos.x-Math.sin(P.yaw)*6.2,1.05,P.pos.z-Math.cos(P.yaw)*6.2)});
       await shot('roster_crew_unchanged',()=>{const H=__ht,P=H.P;T_.lineup(['you','gary','rick','dave','doug'].map(r=>({role:r})),{dist:5.6,spacing:.8,steps:40});P.dude.root.visible=false;
@@ -316,6 +328,10 @@ function helpers(){
       await shot(n,([turn])=>{const H=__ht,P=H.P;T_.lineup([{role:'you',turn},{role:'rick',turn}],{dist:1.25,spacing:.5,steps:30});P.dude.root.visible=false;
         T_.cam(P.pos.x,1.72,P.pos.z,P.pos.x-Math.sin(P.yaw)*1.25,1.66,P.pos.z-Math.cos(P.yaw)*1.25)},[turn]);
   }
+
+  if(SHOTS&&want('bossaim')){await p.evaluate(()=>{const H=__ht;H.enterHub();H.P.fp=false;H.step(3);for(const a of H.allies)a.dude.root.visible=false});
+    await shot('boss_aim_lineup',()=>{const H=__ht,P=H.P;T_.lineup([{role:'boss',gun:'revolver',aim:1},{role:'boss',gun:'pistol',aim:1},{role:'thug',variant:'thug_red',gun:'revolver',aim:1}],{dist:3.2,spacing:1.1,steps:30});P.dude.root.visible=false;
+      T_.cam(P.pos.x,1.6,P.pos.z,P.pos.x-Math.sin(P.yaw)*3.2,1.3,P.pos.z-Math.cos(P.yaw)*3.2)})}
 
   if(want('perf')){
     const r=await p.evaluate(()=>{const H=__ht;H.startMission(3);const n=H.enemies.length+H.allies.length+1;
@@ -340,7 +356,7 @@ function helpers(){
     const q=await ctx3.newPage();const e3=[];q.on('console',m=>{if(m.type()==='warning'&&/people/.test(m.text()))e3.push(m.text().slice(0,300))});q.on('pageerror',e=>e3.push(e.message));q.on('console',m=>{if(m.type()==='error')e3.push(m.text())});
     await q.addInitScript(()=>{window.requestAnimationFrame=()=>0;try{localStorage.setItem('ht-cfg',JSON.stringify({gfx:'low'}))}catch(e){}});await q.goto('http://repo.local/index.html');
     await q.waitForFunction(()=>window.__ht&&__ht.assets.done,null,{timeout:180000,polling:500});await startGame(q);
-    const r=await q.evaluate(()=>{const H=__ht;H.startMission(3);H.step(3);H.draw();let maxMap=0,maxOther=0;if(!H.P.dude.body)return{q:H.render.q,people:HT.People.ok,failed:HT.People.failed};H.P.dude.body.traverse(o=>{if(o.isSkinnedMesh){const m=o.material;if(m.map)maxMap=Math.max(maxMap,m.map.image.width);for(const t of[m.normalMap,m.roughnessMap])if(t)maxOther=Math.max(maxOther,t.image.width)}});return{q:H.render.q,maxMap,maxOther}});
+    const r=await q.evaluate(()=>{const H=__ht;H.startMission(3);H.step(3);H.draw();let maxMap=0,maxOther=0;if(!H.P.dude.body)return{q:H.render.q,people:HT.People.ok,failed:HT.People.failed};H.P.dude.body.traverse(o=>{if(o.isSkinnedMesh){const m=o.material;/* body+head share a side-by-side atlas: judge by height (one half) */if(m.map)maxMap=Math.max(maxMap,m.map.image.height);for(const t of[m.normalMap,m.roughnessMap])if(t)maxOther=Math.max(maxOther,t.image.height)}});return{q:H.render.q,maxMap,maxOther}});
     ok('low quality caps character textures',r.q==='low'&&r.maxMap<=512&&r.maxOther<=256&&e3.length===0,Object.assign(r,{errors:e3.slice(0,3)}));await ctx3.close()}
   await b.close();
   const fail=results.filter(r=>!r[1]).length;console.log(fail?fail+' of '+results.length+' failed':'all '+results.length+' passed');process.exitCode=fail?1:0;
