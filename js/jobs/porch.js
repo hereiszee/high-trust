@@ -111,6 +111,7 @@ J.register(ID,{
   load(M,s){const a=A();M.porches.forEach((p,k)=>{p.state=s.porches[k]||'wait';if(p.state==='porch'){p.mesh=parcel();a.wmAdd(p.mesh);p.mesh.position.set(p.x,0,p.z)}});M.lost=s.lost||0;
     if(s.chair){M.chair.placed=true;M.chair.x=s.chair.x;M.chair.z=s.chair.z;M.chair.mesh.position.set(s.chair.x,0,s.chair.z)}
     if(s.truck){M.truck.done=true;M.truck.obj.visible=false}M.spawned=0;M.spawnT=4},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout:(M,ok)=>ok?[['Parcels saved ×'+M.saved,15*M.saved],...(M.talked?[['A word first ×'+M.talked,10*M.talked]]:[]),...(M.caught?[['Pirates zip-tied ×'+M.caught,0]]:[]),...(ok&&!M.lost&&!M.hurt?[['Not a scratch on a single box',40]]:[])]:[],
   medal:M=>{const soft=M.deterred+M.talked+M.blocked,all=M.npir+(M.carPir?1:0);M.score=M.porches.filter(p=>p.state==='porch').length;return M.lost?1:(!M.hurt&&soft>=all)?3:2},
   end(M,ok){const s=SV();if(!s||!ok)return;const pl=plan(s);pl.runs=(pl.runs|0)+1;try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
@@ -215,13 +216,11 @@ function parcels(M,F){const a=A(),P=a.P;
   const c=a.P.carry;if(c&&c.kind==='box'){const t=c.it;F.target={x:t.x,z:t.z,label:'Porch'};F.objs.push(['Carry the parcel back to its porch',false]);
     F.taps.push({x:t.x,z:t.z,r:2.2,txt:'Put the parcel back',fn:()=>{const mesh=c.mesh;a.wmDrop();a.wmAdd(mesh);mesh.position.set(t.x,0,t.z);t.state='porch';a.radio('you',pick(LINES.ret).replace('{c}',t.what),true);a.radio('Neighbour',pick(LINES.thanks));a.feed('Parcel returned','trust','+0.5 trust')}})}}
 /* ---------- the result card: a porch's numbers ---------- */
-J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!==ID||!M.pc||M.state==='go'||M.resDone||typeof document==='undefined')return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
-  const n=M.porches.length,safe=M.porches.filter(p=>p.state==='porch').length;const h=r.querySelector('h2');
-  if(h&&M.state==='won')h.textContent=M.lost?'Most of the parcels made it.':M.talked?'A word first. Every time.':M.deterred>=M.npir?'Nobody even tried. Lawn chair.':'Every box home.';
-  const cells=[...r.querySelectorAll('.ht-stats > div')];const set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
-  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
-  set(by('neutralized'),'Parcels safe',safe+'/'+n,M.pc.hood==='river'?'Riverside block':'Maple Heights');set(by('zip-tied'),'A word first',String(M.talked),M.caught?M.caught+' zip-tied after running':'nobody had to run');
-  set(by('time'),'Scared off',String(M.deterred+M.blocked),'by a lawn chair'+(M.blocked?' and a dad in the road':''));set(by('trust'),'Lost',String(M.lost),M.lost?'Doug is drafting a post':'not one box')});
+/* through the registry's result(M,ok,res) hook (see the register call): no DOM patching */
+function resultCard(M,ok,res){if(!M.pc)return;const n=M.porches.length,safe=M.porches.filter(p=>p.state==='porch').length;
+  if(ok)res.title=M.lost?'Most of the parcels made it.':M.talked?'A word first. Every time.':M.deterred>=M.npir?'Nobody even tried. Lawn chair.':'Every box home.';
+  res.stats=[['Parcels safe',safe+'/'+n,M.pc.hood==='river'?'Riverside block':'Maple Heights'],['A word first',String(M.talked),M.caught?M.caught+' zip-tied after running':'nobody had to run'],
+    ['Scared off',String(M.deterred+M.blocked),'by a lawn chair'+(M.blocked?' and a dad in the road':'')],['Lost',String(M.lost),M.lost?'Doug is drafting a post':'not one box']].concat((res.stats||[]).filter(r=>/^(Medal|Payout)$/.test(r[0])))}
 /* free the job's own geometry when it ends */
 J.on('pose',()=>{const a=A();if(!a)return;const M=a.M;if(a.mode==='mission'&&M&&M.def&&M.def.id===ID&&M.state==='go')return;if(M&&M.pc&&M.pc.sit)standUp(M);if(M&&M.pc&&M.pc.talk){try{a.overlay('porch-talk',null)}catch(_){}M.pc.talk=null}if(RESL.length||RESO.length)freeRes()});
 

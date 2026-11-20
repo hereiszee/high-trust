@@ -838,7 +838,7 @@ J.register('heist',{
       "So we plan it. We scope it, we gear up, we pick roles, and then we steal everybody's stuff back. Politely."],
     obj:"Scope the storage lot, gather gear around Maple, plan the crew's roles and approach, then load the twelve stolen things into Ron's truck and drive them home.",
     crew:[],weapons:['pistol'],from:{place:'g_gary'},start:{x:S_.ring.x,z:S_.ring.z},site:'storage',
-    unlock:{done:['talk']},pay:K.pay.base,par:900,winTrust:16,roam:true,night:false,order:40,
+    unlock:{done:['talk']},pay:K.pay.base,payLabel:'Lost & found reward',par:900,winTrust:16,roam:true,night:false,order:40,
     noGuns:L.noGunsDay,
     stages:['scope','gear','plan','job','getaway'],
     stageLabels:{scope:'Scope the place',gear:'Gear up',plan:'The plan',job:'The job',getaway:'Get it home'},failPolicy:'escalate',
@@ -864,6 +864,7 @@ J.register('heist',{
     truckIn:!!M.truckIn,gateOpen:!!M.gateOpen,loud:!!M.loud,ghost:M.ghost!==false,clock:Math.round(M.clock||0),laser:M.laser,ties:M.ties||0,rgK:M.rg?M.rg.k:0,
     truck:M.truck&&M.stage0==='getaway'?{x:+M.truck.pos.x.toFixed(2),z:+M.truck.pos.z.toFixed(2),yaw:+M.truck.yaw.toFixed(3)}:null}},
   load(M,s){if(!s)return;M.loadState=s},
+  result:(M,ok,res)=>resultStats(M,ok,res),
   payout(M,ok){if(!ok)return[];const out=[],n=M.loaded||0,perk=hasPerk();
     out.push(['Recovered things ×'+n+(perk?' (Itemised +15%)':''),Math.round(K.pay.item*n*(perk?1.15:1))]);
     if(M.ghost)out.push(['Ghost · nobody raised the alarm',K.pay.ghost]);
@@ -909,14 +910,14 @@ function applyLoad(M,s){const a=A();M.tags=s.tags||{};M.weird=s.weird||0;M.weird
 /* =====================================================================
    AFTERWARDS: the result card (a Lost & Found list) and the porches in free roam
    ===================================================================== */
+/* stats and headline through the registry's result(M,ok,res) hook; the Lost & Found list (real content, not stats) is added to the card here */
+function resultStats(M,ok,res){const n=M.loaded||0,secs=Math.round(M.elapsed||0);
+  if(ok)res.title=n>=12?(M.ghost?'Nobody saw a thing. Everybody gets their stuff back.':'Loud, but everything came home.'):n+' of 12 came home. Gary has the rest on a spreadsheet.';
+  const crew=M.plan?['lookout','driver','lifter','distraction'].map(k=>M.plan.assign[k]?DADNAME[M.plan.assign[k]]+' '+'★'.repeat(starsOf(M,k,M.plan.assign[k])):'').filter(Boolean).join(' · '):'';
+  res.stats=[['Recovered',n+'/12',n>=12?'every last one':''],['Approach',M.app==='bluff'?'The bluff':M.app==='loud'?'Loud':M.app?'Quiet':'—',M.loud&&M.app!=='loud'?'it went loud':M.ghost&&M.app?'no alarm':''],
+    ['Crew',M.plan?'4 dads':'—',crew],['Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),'']].concat((res.stats||[]).filter(r=>!/^(Neutralized|Zip-tied|Time|Trust)$/.test(r[0])))}
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='heist'||M.state==='go'||M.resDone)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
-  const won=M.state==='won',n=M.loaded||0;const h2=r.querySelector('h2');
-  if(h2&&won)h2.textContent=n>=12?(M.ghost?'Nobody saw a thing. Everybody gets their stuff back.':'Loud, but everything came home.'):n+' of 12 came home. Gary has the rest on a spreadsheet.';
-  const stt=r.querySelector('.ht-stats');if(stt){const medal=[...stt.children].filter(c=>{const b=c.querySelector('b');return b&&!/^(Neutralized|Zip-tied|Time|Trust)$/.test(b.textContent.trim())}).map(c=>c.outerHTML).join('');const secs=Math.round(M.elapsed||0);
-    const crew=M.plan?['lookout','driver','lifter','distraction'].map(k=>M.plan.assign[k]?DADNAME[M.plan.assign[k]]+' '+'★'.repeat(starsOf(M,k,M.plan.assign[k])):'').filter(Boolean).join(' · '):'';
-    const cell=(k,v,s)=>`<div><b>${k}</b><span class="ht-num">${v}</span>${s?`<small>${s}</small>`:''}</div>`;
-    stt.innerHTML=cell('Recovered',n+'/12',n>=12?'every last one':'')+cell('Approach',M.app==='bluff'?'The bluff':M.app==='loud'?'Loud':M.app?'Quiet':'—',M.loud&&M.app!=='loud'?'it went loud':M.ghost&&M.app?'no alarm':'')+
-      cell('Crew',M.plan?'4 dads':'—',crew)+cell('Time',Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),'')+medal}
+  const won=M.state==='won',n=M.loaded||0;
   if(won&&n){const w=document.createElement('div');w.className='htp-lf';const rows=ITEMS.map(it=>{const got=(M.loadedIds||[]).includes(it.id);return`<li class="${got?'ok':''}"><i></i><span>${it.label}</span><em>${it.owner}</em></li>`}).join('');
     w.innerHTML='<div class="hk">Lost &amp; Found · Gary\'s driveway, Sunday</div><ul>'+rows+'</ul>';const pay=r.querySelector('.ht-payout');r.insertBefore(w,pay||r.querySelector('.ht-btns'))}});
 /* warm the cast while the job is on offer (neighbour models load on demand) */

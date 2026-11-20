@@ -317,12 +317,11 @@ function hudTick(M,dt){if(!HUDL)return;const a=A(),P_=pt(M),P=a.P;const W=innerW
   for(;k<HUDL.pool.length;k++)HUDL.pool[k].style.display='none'}
 /* result card: a patrol's numbers */
 function stars(M){const P_=pt(M);if(!P_)return 1;const nEv=P_.stops.filter(s=>s.ev).length+(P_.trouble?1:0);const max=40+12*nEv+15;const pts=40*P_.checked/P_.stops.length+12*P_.handled-8*P_.wrong+5*Math.min(3,P_.goodChats);return clamp(Math.round(pts/max*5),1,5)}
-function resultCard(M){if(M.resDone||typeof document==='undefined')return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const P_=pt(M);const st=stars(M);
-  const h=r.querySelector('h2');if(h)h.textContent=M.state==='won'?'★'.repeat(st)+'☆'.repeat(5-st)+'  Patrol rating':'The window closed.';
-  const cells=[...r.querySelectorAll('.ht-stats > div')];const set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp_=document.createElement('span');b.textContent=k;sp_.className='ht-num';sp_.textContent=v;d.appendChild(b);d.appendChild(sp_);if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
-  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});
-  set(by('neutralized'),'Porches',P_.checked+'/'+P_.stops.length,P_.variant.night?'evening patrol':P_.variant.river?'Riverside':'Maple Heights');set(by('zip-tied'),'Handled',String(P_.handled),P_.wrong?P_.wrong+' judgement calls to think about':'good calls');
-  set(by('time'),'Chats',String(P_.chats),P_.goodChats?P_.goodChats+' went well':'');set(by('trust'),'Rating',st+'/5',LINES.rating[st-1].replace(/^Doug: /,''));
+/* stats and headline through the registry's result(M,ok,res) hook; the patrol log (real content, not stats) is added to the card here */
+function resultStats(M,ok,res){const P_=pt(M);if(!P_)return;const st=stars(M);res.title=ok?'★'.repeat(st)+'☆'.repeat(5-st)+'  Patrol rating':'The window closed.';
+  res.stats=[['Porches',P_.checked+'/'+P_.stops.length,P_.variant.night?'evening patrol':P_.variant.river?'Riverside':'Maple Heights'],['Handled',String(P_.handled),P_.wrong?P_.wrong+' judgement calls to think about':'good calls'],
+    ['Chats',String(P_.chats),P_.goodChats?P_.goodChats+' went well':''],['Rating',st+'/5',LINES.rating[st-1].replace(/^Doug: /,'')]].concat((res.stats||[]).filter(r=>/^(Medal|Payout)$/.test(r[0])))}
+function resultCard(M){if(M.resDone||typeof document==='undefined')return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const P_=pt(M);
   const L=document.createElement('div');L.style.cssText='margin:8px 0 2px;padding:8px 10px;background:#fffbe6;color:#1d2a4a;border-radius:6px;font:600 13px/1.45 "Comic Sans MS",sans-serif;max-height:132px;overflow:hidden';
   L.innerHTML=P_.log.slice(-5).map(l=>'<div><b style="font:800 11px var(--ht-ui,sans-serif);color:#6b7a99">'+l.ts+'</b> '+l.text.replace(/</g,'&lt;')+'</div>').join('');const pay=r.querySelector('.ht-payout');r.insertBefore(L,pay||r.querySelector('.ht-btns'))}
 /* the result card is drawn while the game is paused, when only the HUD hook runs: fill it from there */
@@ -345,12 +344,13 @@ J.register(ID,{
       "No guns. The Watch doesn't carry. The Watch waves. If somebody's up to something, a word first. Always a word first."],
     obj:'Walk the watch route: check every porch (look from the sidewalk or knock), handle what you find with good judgement.',
     crew:[],weapons:[],noGuns:LINES.noGuns,get start(){const v=today(),c=centre(v.river);return{x:c.x,z:c.z}},
-    unlock:{done:['tail']},repeatable:true,pay:TUNE.pay,par:0,winTrust:0,roam:true,order:96,stages:['route'],stageLabels:{route:'The route'},failPolicy:'soft',
+    unlock:{done:['tail']},repeatable:true,pay:TUNE.pay,payLabel:'The watch\'s coffee can',par:0,winTrust:0,roam:true,order:96,stages:['route'],stageLabels:{route:'The route'},failPolicy:'soft',
     medals:['Finished the route','Four-star patrol','Five-star patrol (every porch, every call right)'],
     radio:[['doug',"Clipboard's in your seat. Start where the route starts."]],endLine:"The porches are checked, the bins are up, and somebody's dog is home. The neighbourhood got watched. Nicely."},
   start(M,o){if(RES)disposeRes();hudKill();setupRun(M,o);M.score=0;const a=A();if(a.P.dude)a.equip(a.P.dude,null)},
   upd,
   save:M=>{const P_=M.pt||{},v=P_.variant||{};return{seed:(P_.seed)>>>0,v:{r:v.river?1:0,n:v.night?1:0,k:v.n|0}}},load(M,s){},
+  result:(M,ok,res)=>resultStats(M,ok,res),
   payout(M,ok){const P_=pt(M);if(!ok||!P_)return[];const l=[['Things handled ×'+P_.handled,TUNE.perEv*P_.handled]];if(P_.proportionate)l.push(['A word first: proportionate',25]);if(P_.goodChats)l.push(['Neighbours charmed ×'+P_.goodChats,0]);return l},
   medal(M){const s=stars(M);M.score=s;return s>=5?3:s>=4?2:1},
   end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);if(!ok)return;pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBOURHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},

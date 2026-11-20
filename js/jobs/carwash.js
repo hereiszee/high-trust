@@ -881,22 +881,20 @@ function persistTick(dt){const a=A();if(!a)return;const s=SV();const near=a.mode
           for(const sd of[-1,1]){const p=plane(2.6,.65,tex,0,1.25,sd*1.02,null,sd<0?Math.PI:0,{tr:true});van.add(p)}}}
       if(pl.raised>=TUNE.goals[1]){const b=bannerModel();b.position.set(330,5.4,31.85);a.L.group.add(b);objs.push(b)}}catch(e){console.warn('carwash persist',e)}PERS={L:a.L,raised:pl.raised,objs,res:RES};RES=keep}}
 /* the result card is drawn while the game is paused, when only the HUD hook runs: fill it from there */
-J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!==ID||!M.cw||M.state==='go'||a.mode!=='mission')return;resultCard(M)});
+
 /* lifecycle: the HUD layer, the hose sound and the resources go when the job ends (won, failed, quit, retried, replayed) */
 let WAS=false;
 J.on('pose',dt=>{const a=A();if(!a)return;const M=a.M,mine=!!(M&&M.def&&M.def.id===ID&&M.cw&&a.mode==='mission');
   if(mine&&M.state==='go'){WAS=true;return}
-  if(mine&&M.state!=='go'){if(HUDL)HUDL.r.style.display='none';if(M.cw.talk){try{a.overlay('cw-talk',null)}catch(_){}M.cw.talk=null}hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false;resultCard(M);return}
+  if(mine&&M.state!=='go'){if(HUDL)HUDL.r.style.display='none';if(M.cw.talk){try{a.overlay('cw-talk',null)}catch(_){}M.cw.talk=null}hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false;return}
   if(WAS||HUDL){WAS=false;hudKill();hoseSoundKill();INPUT.lmb=INPUT.r=INPUT.touch=false}if(TUFT.saved.length&&!mine)tuftsRestore()
   if(RES&&!mine)disposeRes();persistTick(dt||1/60)});
 /* the result card: a fundraiser's numbers */
 const HEADS=['Not enough to count. The kids had fun, though.','A good, wet Saturday.','Somebody hug the hose guy.','The best Saturday this lot has ever seen.'];
-function resultCard(M){if(M.resDone||typeof document==='undefined')return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const C=M.cw;
-  const h=r.querySelector('h2');if(h)h.textContent=M.state==='won'?HEADS[clamp(M.medal||1,1,3)]:HEADS[0];
-  const cells=[...r.querySelectorAll('.ht-stats > div')];const set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);if(sub){const sm=document.createElement('small');sm.textContent=sub;d.appendChild(sm)}};
-  const by=k=>cells.find(d=>{const b=d.querySelector('b');return b&&b.textContent.trim().toLowerCase()===k});const pl=plan(),g=goalOf(pl.raised);
-  set(by('neutralized'),'Raised',money(C.raised),'for the youth group');set(by('zip-tied'),'Cars washed',String(C.carsDone),C.spotless?C.spotless+' spotless':'');set(by('time'),'Trouble',C.troubleStopped+' stopped',C.troubleWon?C.troubleWon+' got through':'nothing got through');
-  set(by('trust'),'Thermometer',money(pl.raised+(M.replay?0:0)),g.done?'goal met: '+g.label:'of '+money(g.goal)+' · '+g.label)}
+/* through the registry's result(M,ok,res) hook (see the register call): no DOM patching */
+function resultCard(M,ok,res){const C=M.cw;if(!C)return;res.title=ok?HEADS[clamp(M.medal||1,1,3)]:HEADS[0];const pl=plan(),g=goalOf(pl.raised);
+  res.stats=[['Raised',money(C.raised),'for the youth group'],['Cars washed',String(C.carsDone),C.spotless?C.spotless+' spotless':''],['Trouble',C.troubleStopped+' stopped',C.troubleWon?C.troubleWon+' got through':'nothing got through'],
+    ['Thermometer',money(pl.raised),g.done?'goal met: '+g.label:'of '+money(g.goal)+' · '+g.label]].concat((res.stats||[]).filter(r=>/^(Medal|Payout)$/.test(r[0])))}
 
 /* ================= register ================= */
 J.register(ID,{
@@ -908,7 +906,7 @@ J.register(ID,{
     crew:[],weapons:[],noGuns:"No guns. Not here. Not with kids around. You've got a hose.",
     start:{x:SPOT.ring.x,z:SPOT.ring.z},
     unlock:{done:['crossing'],when:()=>{/* SPEC3 3.3: after Crossing Guard; the first run any day, then Saturdays (day 1 is a Saturday) */const s=SV();if(!s)return true;const r=s.jobs&&s.jobs[ID];if(!r||!r.runs)return true;return((s.day||1)-1)%7===0}},
-    repeatable:true,pay:40,par:0,winTrust:0,roam:false,order:95,stages:['setup','wash'],stageLabels:{setup:'Setting up',wash:'The car wash'},failPolicy:'soft',
+    repeatable:true,pay:40,payLabel:'Youth group thank-you',par:0,winTrust:0,roam:false,order:95,stages:['setup','wash'],stageLabels:{setup:'Setting up',wash:'The car wash'},failPolicy:'soft',
     medals:['Raise $'+TUNE.bronze+' (it counts)','Raise $'+TUNE.silver,'Raise $'+TUNE.gold+' and let no trouble through'],
     radio:[['dee',"We're on the church lawn. Park on Ash St, the kids are already soapy."]],
     endLine:"The thermometer went up. The kids are soaked. Somebody's car still says WASH ME, faintly, and that's okay."},
@@ -919,6 +917,7 @@ J.register(ID,{
   load(M,s){const C=M.cw;if(!C||!s)return;if((s.seed>>>0)!==C.seed){const nc=newState(M,s.seed>>>0);nc.thermo=C.thermo;nc.rope=C.rope;nc.drops=C.drops;nc.wet=C.wet;nc.rings=C.rings;nc.rivalSet=C.rivalSet;nc.bayCol=C.bayCol;nc.bk=C.bk;nc.aframe=C.aframe;nc.reel=C.reel;nc.boxMesh=C.boxMesh}
     const N=M.cw;if(s.stage==='wash'){N.startPhase='open';N.buckets=[1,1];N.bk.forEach(b=>setBucket(b,1));N.hose.held=true;nozzleOn(M,true);N.tut=4;
       for(const k of KIDS)k._st=k.id==='jaylen'?'sign':k.st}},
+  result:(M,ok,res)=>resultCard(M,ok,res),
   payout(M,ok){const C=M.cw;if(!C)return[];const l=[['Raised for the youth group · '+money(C.raised)+' (it all goes on the thermometer)',0]];if(ok)l.push(["Dee's gas money · "+C.carsDone+' cars',Math.min(60,C.carsDone*4)]);
     if(C.cuffs)l.push(['Kev zip-tied, away from the kids',0]);return l},
   medal:M=>{const C=M.cw;if(!C)return 1;const n=C.raised;return n>=TUNE.gold&&!C.troubleWon?3:n>=TUNE.silver?2:1},
