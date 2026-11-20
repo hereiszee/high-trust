@@ -455,7 +455,7 @@ function trafficStep(dt,M){const C=M.cg,a=A(),P=a.P,Tr=C.traffic;if(!Tr)return;
         if((!c.phone||c.signSeen>=TUNE.phoneT)&&(c.signOk||need<5.2)){c.signOk=true;if(g<d){d=g;why='sign'}c.forSign=true}}else{c.signSeen=Math.max(0,c.signSeen-dt*.5);if(ah<half)c.signOk=false}}
     else{c.signSeen=Math.max(0,c.signSeen-dt*.5);c.signOk=false}
     /* one car at a time through an intersection */
-    for(const b of Tr.boxes){if(b.occ===c||!b.occ||b.occ.lane.st===L.st)continue;const cx=(b.r[0]+b.r[2])/2,cz=(b.r[1]+b.r[3])/2,rx=cx-c.x,rz=cz-c.z,ah=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx);
+    if(!c.rick)for(const b of Tr.boxes){if(b.occ===c||!b.occ||b.occ.lane.st===L.st)continue;const cx=(b.r[0]+b.r[2])/2,cz=(b.r[1]+b.r[3])/2,rx=cx-c.x,rz=cz-c.z,ah=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx);
       if(ah>0&&ah<14&&lat<3.5&&!inRect(c.x,c.z,b.r,.3)){const g=ah-3.6-half;if(g<d){d=g;why='box'}}}
     const need=c.v*c.v/(2*Math.max(.05,d));c.why=d<30?why:null;
     if(why==='kid'&&kidHit&&c.v>2.5&&need>TUNE.nearMissDecel&&!C.nearMiss){nearMiss(M,c,kidHit)}
@@ -563,7 +563,8 @@ function talkClose(M){const C=M.cg;if(!C||!C.talking)return;if(C.talking.kit)try
 /* Coach Rick: one phone call, his minivan, his whistle. It ends the flare-up (and the gold medal) */
 function callRick(M){const C=M.cg;if(M.cs.rick||!C.crews||C.stageN<2)return;const live=['A','B'].some(id=>crewPresent(C.crews[id]));if(!live)return;M.cs.rick=1;
   say(M,'you',"Rick. It's me. 2nd St, between Ash and Mill. Bring the whistle.",{now:true});say(M,'rick',"Say no more. I'm two blocks out. I was ALREADY wearing the whistle.");
-  const L=LANE['2ndN'];const pr=laneProj(L,FC.x,FC.z);const car=spawnCar(M,L,Math.max(0,pr.s-70),{type:'minivan',color:'#3d5a80',rick:true,phone:false,stopS:pr.s-1,v:8});if(car)C.rickCar=car;C.rickT=0}
+  const L=LANE['2ndN'];const pr=laneProj(L,FC.x,FC.z);for(const o of C.traffic.cars)if(o.lane===L&&o.s>pr.s-48&&o.s<pr.s+4)o.gone=true;/* he's coming up 2nd St: the lane clears for the coach */
+  const car=spawnCar(M,L,Math.max(0,pr.s-46),{type:'minivan',color:'#3d5a80',rick:true,phone:false,stopS:pr.s-1,v:8});if(car)C.rickCar=car;C.rickT=0}
 function rickStep(dt,M){const C=M.cg,c=C.rickCar;if(!c)return;C.rickT+=dt;
   if(!c.arrived&&c.v<.2&&c.stopS!=null&&c.s>c.stopS-1.5){c.arrived=true;horn('triple');whistleSnd();later(M,.5,whistleSnd);say(M,'rick',L_.rick[0],{now:true});say(M,'rick',L_.rick[1]);
     later(M,1.6,()=>{for(const id of['A','B']){const g=C.crews[id];if(g.state==='gone'||g.state==='down')continue;g.state='scatter';g.members.forEach((m,i)=>{m.away={x:m.home.x,z:id==='A'?66.2-i*.9:112+i*.9}})}say(M,'Coupon Boys',pick(L_.rickCrew))});
@@ -799,7 +800,7 @@ function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return
 
 /* ---------------- cleanup: whatever ends the job (win, fail, quit, retry) ---------------- */
 let LAST=null;
-function cleanup(M){const C=M&&M.cg;if(!C||C.dead)return;C.dead=true;const a=A();
+function cleanup(M){const C=M&&M.cg;if(!C||C.dead)return;C.dead=true;if(C.talking)talkClose(M);const a=A();
   try{a.overlay('crossing',null)}catch(_){}try{a.overlay('crossing-talk',null)}catch(_){}
   if(C.traffic)for(const c of C.traffic.cars)removeCar(M,c);
   if(C.crews)for(const id in C.crews)for(const m of C.crews[id].members)if(m.col)Object.assign(m.col,{x0:-1e4,z0:-1e4,x1:-1e4,z1:-1e4});
@@ -807,7 +808,8 @@ function cleanup(M){const C=M&&M.cg;if(!C||C.dead)return;C.dead=true;const a=A()
   const P=a.P;if(C.vest&&C.vest.parent)C.vest.parent.remove(C.vest);
   if(C.root&&C.root.parent)C.root.parent.remove(C.root);
   for(const o of C.dis||[])try{o.dispose&&o.dispose()}catch(_){}
-  C.dis=[];C.people=[];C.kids=[];C.traffic=null;C.crews=null;C.root=null;C.signObj=null;C.vest=null;C.hudEl=null;C.chips=null;C.bubs=null;
+  /* drop every reference to the disposed scene (the result card keeps M alive for a while) */
+  M.cg={dead:true,clock:C.clock,later:[],trail:trailNew(),kids:[]};
   try{a.setNight(0)}catch(_){}}
 J.on('hud',()=>{hookTouch();const a=A();if(!a)return;const M=a.M;if(LAST&&(LAST!==M||M.state!=='go')){const L0=LAST;LAST=null;try{cleanup(L0)}catch(e){console.warn('[crossing] cleanup',e)}}
   if(M&&M.state==='go'&&M.def&&M.def.id==='crossing'&&M.cg)LAST=M});
@@ -893,6 +895,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.cg)return null;c
   if(step.home){const k=C.kids.find(k=>k.id===step.home);if(!k||k.state==='home'||k.state==='homeward'){B.i++;B.t=0;return null}const h=k.home;if(!h){B.i++;return null}
     const sx=h.x+(B.dir||1)*1.4,sz=h.z+h.fz*.72;if(hyp(sx-P.pos.x,sz-P.pos.z)>.6&&B.t<25){P.aim=false;if(lag<9||hyp(sx-P.pos.x,sz-P.pos.z)>12)go(a,{x:sx,z:sz},false,true);return null}
     if(B.t>40){B.i++;B.t=0}return null}
+  if(step.talk&&o.rick){if(!M.cs.rick){P.aim=false;callRick(M);return null}if(['A','B'].some(id=>crewPresent(C.crews[id]))){P.aim=true;return null}B.i++;B.t=0;return null}
   if(step.talk){const g=C.crews[step.id||step.talk];if(!g||g.state==='down'||g.state==='gone'||g.state==='scatter'||M.cs.talked[step.talk]){if(step.back&&B.ph!=='back'&&B.ph!=='done'&&B.went){B.ph='back';B.k=0}
       if(B.ph==='back'){const w=step.back[B.k];if(!w){B.ph='done'}else{if(go(a,{x:w[0],z:w[1]}))B.k++;return null}}B.i++;B.t=0;B.ph='';B.went=false;B.k=0;return null}
     P.aim=false;if(step.via&&!B.went){const w=step.via[B.k||0];if(w){if(go(a,{x:w[0],z:w[1]}))B.k=(B.k||0)+1;return null}B.went=true;B.k=0}

@@ -22,7 +22,7 @@ const OUT=path.join(__dirname,'../../docs/screenshots/jobs/crossing');const ONLY
     const e0=A.endMission;A.endMission=(ok,why,ti)=>{L.push([+(H.M&&H.M.elapsed||0).toFixed(1),'END',String(ok),why||'']);return e0(ok,why,ti)}});
   await ev(()=>window.__ht.step(20));
   if(!ONLY||ONLY==='01-church'){await shot('01-church',()=>{const H=window.__ht;H.step(30)});if(ONLY){await b.close();process.exit(0)}}
-  const opts={fail:has('fail'),human:has('human')};let t=0,last='',lastLog=0,shots={};const T0=Date.now();
+  const opts={fail:has('fail'),human:has('human'),rick:has('rick')};let t=0,last='',lastLog=0,shots={};const T0=Date.now();
   while(t<MAX){const r=await ev(([n,o,t0])=>{const H=window.__ht,j=H.jobs.registry.get('crossing'),a=H.jobs.api;let t=t0;
       for(let k=0;k<n&&H.M&&H.M.state==='go';k++,t++){j.test.step(a,t,o);H.P.hp=Math.max(H.P.hp,60);H.step(1)}
       const M=H.M,C=M&&M.cg;const kid=k=>k.id.slice(0,3)+':'+k.state[0]+(k.fz>0?'*':'')+(k.kerb?'k':'');
