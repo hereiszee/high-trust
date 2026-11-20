@@ -146,8 +146,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     j=await js();const ach=await ev(()=>{const s=HT.Jobs.api.SV();return s.base.jet});ok(ach.buzz,'buzzed the house: the family came out ('+j.fam+' waving)');ok(ach.boom,'sonic boom over the neighborhood');
     /* the High Bridge: north along the river, under the deck */
     const HB=await ev(()=>HT.Jet.HB);
-    await fly({to:[294,210],alt:60,spd:70,max:500,until:q=>Math.hypot(q.x-294,q.z-210)<40});
-    await fly({to:[294,-400],alt:q=>q.z<130?8:45,spd:62,max:600,until:q=>q.z<HB.z-30||!q.on});
+    await fly({to:[294,330],alt:60,spd:70,max:500,until:q=>Math.hypot(q.x-294,q.z-330)<60});
+    await fly({to:q=>[294,Math.min(q.z,300)-150],alt:45,spd:62,max:400,until:q=>q.z<150&&Math.abs(q.x-294)<4&&Math.abs(q.hdg)<.08});/* line up on the river, look-ahead 150 m */
+    await fly({to:q=>[294,q.z-150],alt:q=>q.z<130?8:45,spd:62,max:600,until:q=>q.z<HB.z-30||!q.on});
     await shot('jet-bridge');j=await js();const ach2=await ev(()=>HT.Jobs.api.SV().base.jet);ok(ach2.bridge,'flew under the High Bridge ('+(j.on?'still flying':'crashed')+')');
     /* back to Fort Sensible: around to the east, line up with runway 27, gear down, land heading west */
     if(!j.on){say('  (back to the jet for the landing)');await ev(()=>{const P=window.__ht.P;P.pos.set(256,0,215.6)});await step(4);await press('e')}
