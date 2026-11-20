@@ -6,6 +6,14 @@ await ev(()=>{const h=__ht;window.T={h,
   clear(){for(const k in h.keys)h.keys[k]=false},
   get(e){h.P.pos.set(e.pos.x,0,e.pos.z);return h.enterVehicle(e)},
   insideBuilding(x,z){const L=h.L;for(const hs of L.houses||[])if(x>hs.x0+.3&&x<hs.x1-.3&&z>hs.z0+.3&&z<hs.z1-.3)return 'house';const g=L.g[Math.floor(z/2)];const c=g&&g[Math.floor(x/2)];if(c==='h'||c==='#')return 'tile '+c;if(x<0||z<0||x>L.W*2||z>L.H*2)return 'outside';return null}}});
+// the open world parks only sedans and hatchbacks for the neighbours: register the other types on road nodes near the player (12 m apart, right lane)
+R.added=await ev(()=>{const h=T.h,api=h.jobs&&h.jobs.api,G=h.ow&&h.ow.roads();if(!api||!api.makeVehicle||!G)return 'no api';const used=[],out=[];
+  const nodes=G.nodes.filter(n=>n.e.length).map(n=>({n,d:Math.hypot(n.x-h.P.pos.x,n.z-h.P.pos.z)})).filter(o=>o.d>10).sort((a,b)=>a.d-b.d);
+  for(const t of['minivan','hatch','sedan','suv','pickup','workvan']){if(T.car(t,t==='minivan'))continue;
+    const o=nodes.find(o=>used.every(u=>Math.hypot(u.x-o.n.x,u.z-o.n.z)>12)&&h.vehicles.every(v=>Math.hypot(v.pos.x-o.n.x,v.pos.z-o.n.z)>12));if(!o){out.push(t+':no spot');continue}
+    const n=o.n,e=n.e[0],x=n.x-e.dir[1]*1.5,z=n.z+e.dir[0]*1.5,yaw=Math.atan2(-e.dir[0],-e.dir[1]);used.push({x,z});
+    const v=api.makeVehicle(t,'#7b8a99');if(!v){out.push(t+':no model');continue}v.position.set(x,0,z);v.rotation.y=yaw+Math.PI/2;h.L.group.add(v);const r=h.registerCar(v,x,z);out.push(t+(r?'@'+Math.round(x)+','+Math.round(z):':not registered'))}return out});
+console.log('added',JSON.stringify(R.added));
 // B: enter / exit / collider / re-enter for each type
 R.enterExit=await ev(()=>{const h=T.h,out={};for(const t of['minivan','hatch','sedan','suv','pickup','workvan']){const e=T.car(t,t==='minivan');T.clear();const ok1=T.get(e);const lod=e.obj.userData.lod;
   h.keys.w=true;h.step(30);h.keys.w=false;h.keys[' ']=true;h.step(45);h.keys[' ']=false;h.step(5);const at={x:e.pos.x,z:e.pos.z};h.use=true;h.step(1);
