@@ -727,15 +727,18 @@ function mergeGeos(gs){gs=gs.filter(Boolean);if(!gs.length)return null;const g=n
     g.setAttribute(k,new T.BufferAttribute(arr,n))}
   g.computeBoundingSphere();g.computeBoundingBox();return g}
 /* the per-car multi material (cheap: one shared shader program) */
-function multiMat(){const A=atlas(),U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uLamp:{value:new T.Vector4(1,1,1,1)},uSpin:{value:0},uSteer:{value:0},uPaint:{value:new T.Color(1,1,1)}};
+function multiMat(){const A=atlas(),U={uCh:{value:[0,0,.08,.1,.3,1.6,.25,0]},uLamp:{value:new T.Vector4(1,1,1,1)},uSpin:{value:0},uSteer:{value:0},uPaint:{value:new T.Color(1,1,1)},uFlat:{value:new T.Vector4(0,0,0,0)}};
   const m=new T.MeshStandardMaterial({vertexColors:true,map:A.map,normalMap:A.normal,roughness:1,metalness:1});m.userData.U=U;
   m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.U);
     sh.vertexShader=sh.vertexShader.replace('#include <common>',`#include <common>
 attribute vec2 pbr;attribute vec3 em;attribute float ech;attribute float pnt;attribute vec4 wheel;uniform float uCh[8];uniform vec4 uLamp;uniform float uSpin;uniform float uSteer;uniform vec3 uPaint;
 varying vec2 vPbr;varying vec3 vEm;
-vec3 wrot(vec3 p){if(wheel.w>1.5){float s=sin(uSpin),c=cos(uSpin);p=vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);if(wheel.w>2.5){float s2=sin(uSteer),c2=cos(uSteer);p=vec3(c2*p.x+s2*p.z,p.y,-s2*p.x+c2*p.z);}}return p;}`)
+vec3 wrot(vec3 p){if(wheel.w>1.5){float s=sin(uSpin),c=cos(uSpin);p=vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);if(wheel.w>2.5){float s2=sin(uSteer),c2=cos(uSteer);p=vec3(c2*p.x+s2*p.z,p.y,-s2*p.x+c2*p.z);}}return p;}
+uniform vec4 uFlat;/* deflated tyres 0..1 [front +z, front -z, rear +z, rear -z]: the rim drops, the tread flattens on the ground, the sidewall bulges */
+vec3 wflat(vec3 q){float f=wheel.x>0.?(wheel.z>0.?uFlat.x:uFlat.y):(wheel.z>0.?uFlat.z:uFlat.w);if(f<=0.)return q;q.y-=f*.075;float y=q.y+wheel.y;
+  if(y<.012){q.z+=sign(q.z)*(.012-y)*.7;q.y=.012-wheel.y;}float b=clamp(1.-(q.y+wheel.y)/(wheel.y*.75),0.,1.)*f;q.z*=1.+b*.16;return q;}`)
       .replace('#include <beginnormal_vertex>','vec3 objectNormal=wrot(vec3(normal));')
-      .replace('#include <begin_vertex>','vec3 transformed=wheel.w>1.5?wrot(position-wheel.xyz)+wheel.xyz:vec3(position);')
+      .replace('#include <begin_vertex>','vec3 transformed=wheel.w>1.5?wflat(wrot(position-wheel.xyz))+wheel.xyz:vec3(position);')
       .replace('#include <color_vertex>',`#include <color_vertex>
 vPbr=pbr;int ci=int(ech+.5);float k=0.;for(int i=0;i<8;i++){if(i==ci)k=uCh[i];}if(ci==1||ci==5)k*=position.z>0.?uLamp.y:uLamp.x;else if(ci==2||ci==3||ci==7)k*=position.z>0.?uLamp.w:uLamp.z;vEm=em*k;
 #ifdef USE_COLOR
@@ -959,11 +962,11 @@ function makeMower(opts){shared();const paintHex=opts.color||'#3e8a35',u=opts.up
 function make(type='minivan',opts={}){if(type==='mower')return makeMower(opts);if(!TYPES[type])type='minivan';opts=Object.assign({},opts);
   const{root,ud}=build(type,opts);root.name='vehicle_'+type;root.userData=ud;api(root,type,opts);applyLights(root,false);return root}
 function api(root,type,opts){const ud=root.userData;
-  ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,lamps=ud.lamps,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
+  ud.setUpgrades=(u={})=>{opts.upgrades=Object.assign({},u);const keep=ud._s,dmg=ud.damage,lamps=ud.lamps,dfl=ud.deflate,cast=[];root.traverse(o=>{if(o.isMesh)cast.push(o.castShadow)});
     disposeOwn(ud);for(const c of root.children.slice())root.remove(c);
     const{root:nr,ud:nu}=build(type,opts);for(const c of nr.children.slice())root.add(c);nu._s=Object.assign(keep,{roll:0,pitch:0});
     const own={};for(const k in ud){const v=ud[k];if(!(k in nu)&&(typeof v==='boolean'||typeof v==='number'||typeof v==='string'))own[k]=v}/* keep only the plain flags the game set on userData (mod, fxAttach): never old geometry/material references */
-    for(const k in ud)delete ud[k];Object.assign(ud,nu,own);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);if(lamps)ud.setLamps(lamps);applyLights(root,false)};
+    for(const k in ud)delete ud[k];Object.assign(ud,nu,own);api(root,type,opts);if(cast.some(Boolean))root.traverse(o=>{if(o.isMesh)o.castShadow=true});if(dmg)ud.setDamage(dmg);if(lamps)ud.setLamps(lamps);if(dfl)ud.setDeflate(dfl);applyLights(root,false)};
   ud.setColor=hex=>{opts.color=hex;const u=ud.upgrades;if(u.paint!=null&&!FINISHES[u.paint])u.paint=hex;ud.color=hex;const c=col(hex);ud.material.userData.U.uPaint.value.copy(c);
     if(ud.body[0]){ud.body[0].color.copy(c);if(ud.body[1]!==ud.body[0]&&u.paint!=='twotone')ud.body[1].color.copy(c)}};
   ud.setLights=on=>{ud._s.head=!!on;applyLights(root,false)};
@@ -972,6 +975,12 @@ function api(root,type,opts){const ud=root.userData;
   ud.setLamps=a=>{a=a||[];ud.lamps=[0,1,2,3].map(i=>a[i]?1:0);ud.material.userData.U.uLamp.value.set(a[0]?0:1,a[1]?0:1,a[2]?0:1,a[3]?0:1)};
   ud.setHazard=on=>{ud._s.haz=!!on;applyLights(root,false)};
   ud.setDamage=f=>{f=clamp(+f||0,0,1);ud.damage=f;for(const m of new Set(ud.body)){m.roughness=lerp(m.userData.r0??(m.userData.r0=m.roughness),.8,f);m.clearcoat=lerp(1,.15,f)}};
+  /* deflated tyres (Sign of the Times): f = [front +z, front -z, rear +z, rear -z] 0..1 (or one number for all four). The tyre squashes in the
+     shader and the body sinks up to 8 cm at that wheel (roll and pitch toward it); setDeflate(0) puts it back */
+  ud.setDeflate=f=>{const a=Array.isArray(f)?[0,1,2,3].map(i=>clamp(+f[i]||0,0,1)):[0,0,0,0].map(()=>clamp(+f||0,0,1));ud.deflate=a;ud.material.userData.U.uFlat.value.set(a[0],a[1],a[2],a[3]);
+    const S=prep(TYPES[type]),wb=Math.max(.5,S.axles[0]-S.axles[1]),tw=Math.max(.5,S.hwF(0)*2-S.tw),D=.08,s=ud._s;
+    s.fRoll=D*((a[0]+a[2])-(a[1]+a[3]))/2/tw;s.fPitch=-D*((a[0]+a[1])-(a[2]+a[3]))/2/wb;ud.bodyRoot.position.y=-D*(a[0]+a[1]+a[2]+a[3])/4;
+    ud.bodyRoot.rotation.x=s.roll+s.fRoll;ud.bodyRoot.rotation.z=s.pitch+s.fPitch};
   ud.dispose=()=>{disposeOwn(ud)};}
 function disposeOwn(ud){for(const g of ud._own||[])g.dispose();for(const m of ud._mats||[])if(m&&m.dispose)m.dispose()}
 /* night (index.html setNight): headlights come on by themselves on cars being driven, and lamp channels are scaled
@@ -986,7 +995,7 @@ function update(v,o={}){const d=v.userData;if(!d||!d.wheels)return;const dt=Math
   for(const p of d.steer)p.rotation.y+=(st*.55-p.rotation.y)*Math.min(1,dt*12||1);
   if(dt>0){const acc=clamp((sp-s.last)/dt,-15,15);s.last=sp;s.acc+=(acc-s.acc)*Math.min(1,dt*4);
     const rollT=clamp(st*sp*Math.abs(sp)*.00045,-.045,.045),pitchT=clamp(s.acc*.0045+(o.braking&&Math.abs(sp)>.5?-.022*Math.sign(sp):0),-.04,.035);
-    s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);if(!d.lod){d.bodyRoot.rotation.x=s.roll;d.bodyRoot.rotation.z=s.pitch}}
+    s.roll+=(rollT-s.roll)*Math.min(1,dt*5);s.pitch+=(pitchT-s.pitch)*Math.min(1,dt*5);if(!d.lod){d.bodyRoot.rotation.x=s.roll+(s.fRoll||0);d.bodyRoot.rotation.z=s.pitch+(s.fPitch||0)}}
   if(o.headlights!=null)s.head=!!o.headlights||(NIGHT_AUTO&&o.auto!==false);s.rev=sp<-.3;s.t+=dt;if(s.flash>0)s.flash=Math.max(0,s.flash-dt);applyLights(v,!!o.braking);
   const U=d.material.userData.U;U.uSpin.value=d.wheels[0].rotation.z;U.uSteer.value=d.steer[0].rotation.y}
 
