@@ -533,9 +533,9 @@ function binoCam(M,dt){const a=A(),e=a.CV,P=a.P;const can=e&&(M.ph==='drop'||M.p
   const cf=[-Math.sin(P.yaw)*Math.cos(P.pitch),Math.sin(P.pitch),-Math.cos(P.yaw)*Math.cos(P.pitch)];M.camInfo={x:cam.position.x,y:cam.position.y,z:cam.position.z,f:cf};
   vfOn(M);if(M.handoff&&M.handoff!=='done'&&M.handoff!=='wait')spotItems(M,M.camInfo);
   if(M.vf){const g=grade(M),pl=plateWorld();let br=null;if(g.inFrame){const p0=a.project(pl.x,pl.y+.6,pl.z),p1=a.project(pl.x,pl.y-.5,pl.z),hh=Math.max(30,Math.abs(p1.y-p0.y)),ww=hh*1.6;br={x:p0.x-ww/2,y:p0.y,w:ww,h:hh,label:g.ok?'PLATE':'PLATE · '+g.why,ok:g.ok}}
-    M.vf.set({zoom:'6×',label:'BINOCULARS · Doug\'s',bracket:M.handoff==='done'||M.photo?br:null,stars:M.handoff==='done'&&g.ok?g.stars:null,hint:M.handoff==='done'?'[E] Photo · [RMB] Lower':'Watch the handoff · [RMB] Lower',rec:false,flash:!!M.flash});M.flash=false}
+    const vfo={zoom:'6×',label:'BINOCULARS · Doug\'s',bracket:M.handoff==='done'||M.photo?br:null,stars:M.handoff==='done'&&g.ok?g.stars:null,hint:M.handoff==='done'?'[E] Photo · [RMB] Lower':'Watch the handoff · [RMB] Lower',rec:false,flash:!!M.flash};const key=JSON.stringify(vfo);if(key!==M.vfKey){M.vfKey=key;M.vf.set(vfo)}M.flash=false}
   return true}
-function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;const HD=a.HUD;if(!M.vf&&HD&&HD.kit&&HD.kit.viewfinder){M.vf=HD.kit.viewfinder()}if(M.vf){a.overlay('tail-vf',M.vf.el);res().ov['tail-vf']=1}
+function vfOn(M){const a=A();if(M.vfOn)return;M.vfOn=true;M.vfKey=null;const HD=a.HUD;if(!M.vf&&HD&&HD.kit&&HD.kit.viewfinder){M.vf=HD.kit.viewfinder()}if(M.vf){a.overlay('tail-vf',M.vf.el);res().ov['tail-vf']=1}
   if(!M.said.binoUp&&M.ph==='drop'){M.said.binoUp=1;say(M,"There. Truck's open. Count what comes out of that trunk. Out loud. I'll count too. We'll compare.",{chatter:true})}}
 function vfOff(M){const a=A();if(!M.vfOn)return;M.vfOn=false;if(M.near0!=null){a.camera.near=M.near0;a.camera.updateProjectionMatrix()}try{a.overlay('tail-vf',null)}catch(_){}if(M.vf&&M.vf.close)try{M.vf.close()}catch(_){}M.vf=null;
   const e=a.CV;if(a.P.dude&&!e)a.P.dude.root.visible=true}

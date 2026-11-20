@@ -39,7 +39,7 @@ const FAILAT=arg('failat',''),SHOTS=!!arg('shots',false),FR=+arg('frames',14000)
     const r=await ev(([n,fail])=>{const H=window.__ht,j=H.jobs.registry.get('tail'),a=H.jobs.api,T=window.__T;let i=0;
       for(;i<n&&H.M&&H.M.state==='go';i++){j.test.step(a,T.t++,{fail});H.P.hp=Math.max(H.P.hp,60);H.step(1)}
       const M=H.M;if(!M)return{done:true};const tg=M.tg&&M.tg.rail,e=H.CV,S=M.T&&M.T.S;
-      return{state:M.state,ph:M.ph,stage:M.stage,el:+M.elapsed.toFixed(1),ts:tg?Math.round(tg.s):0,tv:tg?+tg.v.toFixed(1):0,hold:tg&&tg.holding?tg.holding.kind:'',
+      return{heap:performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):-1,state:M.state,ph:M.ph,stage:M.stage,el:+M.elapsed.toFixed(1),ts:tg?Math.round(tg.s):0,tv:tg?+tg.v.toFixed(1):0,hold:tg&&tg.holding?tg.holding.kind:'',
         d:tg&&e?Math.round(Math.hypot(tg.x-e.pos.x,tg.z-e.pos.z)):-1,sus:S?Math.round(S.sus):0,max:S?Math.round(S.maxSus):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,lose:S?+S.lose.toFixed(1):0,los:M.los,why:S?S.why:null,streak:S?S.streak:0,
         x:e?Math.round(e.pos.x):0,z:e?Math.round(e.pos.z):0,yaw:e?+e.yaw.toFixed(2):0,wp:M.bot&&M.bot.wp,g:M.bot&&M.bot.g!=null?Math.round(M.bot.g):null,want:M.bot&&M.bot.want!=null?+M.bot.want.toFixed(1):null,car:e?(e===H.VAN?'van':e.name+':'+e.type):'foot',spd:e?+(e.car?e.car.spd:0).toFixed(1):0,cov:(M.covers||[]).length,onc:(M.oncoming||[]).length,items:Object.keys(M.items||{}).length,ho:M.handoff||'',vf:!!M.vfOn,photo:!!M.photo}},[EVERY,failNow]);
     if(r.done)break;console.log(JSON.stringify(r));
