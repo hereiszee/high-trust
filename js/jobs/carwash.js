@@ -13,7 +13,7 @@
    ===================================================================== */
 (function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;
 const ID='carwash';
-const TUNE={shift:240,bronze:50,silver:100,gold:150,price:5,tipBase:2,tipShine:8,tipFast:4,spotless:2,
+const TUNE={shift:240,bronze:40,silver:90,gold:140,price:5,tipBase:2,tipShine:8,tipFast:4,spotless:2,
   needClean:.8,foamLeft:.2,scrubOnly:.3,soapRate:1/11,soap2:1.65,youScrub:1/8,dryRate:1/6.5,youDry:1/5.5,wetLeave:24,
   bucketUse:.03,bucketFill:.5,hoseNodes:34,hoseSeg:.8,speed:12.5,kinkSpeed:3.4,eraseR:.58,eraseK:13,
   gap:[15,20],gapMin:9,signMul:.62,freeMul:.55,patience:95,queueMax:4,kidR:14,catchR:1.35,thiefLost:52,
@@ -905,8 +905,7 @@ J.register(ID,{
     obj:'Run the car wash for four minutes. Kids soap and dry, you rinse with the hose. Keep the Coupon Boys from ruining it. Raise $'+TUNE.bronze+' to count.',
     crew:[],weapons:[],noGuns:"No guns. Not here. Not with kids around. You've got a hose.",
     start:{x:SPOT.ring.x,z:SPOT.ring.z},
-    unlock:{done:['dee'],when:p=>{/* SPEC3: after Crossing Guard (when that job is in the game); first run any day, then Saturdays (day 1 is a Saturday) */try{const cr=J.get('crossing');if(cr&&!cr.builtin){const d=p&&p.done;const ok=typeof d==='function'?d('crossing'):d&&(d.has?d.has('crossing'):d.crossing);if(!ok)return false}}catch(_){}
-      const s=SV();if(!s)return true;const r=s.jobs&&s.jobs[ID];if(!r||!r.runs)return true;return((s.day||1)-1)%7===0}},
+    unlock:{done:['crossing'],when:()=>{/* SPEC3 3.3: after Crossing Guard; the first run any day, then Saturdays (day 1 is a Saturday) */const s=SV();if(!s)return true;const r=s.jobs&&s.jobs[ID];if(!r||!r.runs)return true;return((s.day||1)-1)%7===0}},
     repeatable:true,pay:40,par:0,winTrust:0,roam:false,order:95,stages:['setup','wash'],stageLabels:{setup:'Setting up',wash:'The car wash'},failPolicy:'soft',
     medals:['Raise $'+TUNE.bronze+' (it counts)','Raise $'+TUNE.silver,'Raise $'+TUNE.gold+' and let no trouble through'],
     radio:[['dee',"We're on the church lawn. Park on Ash St, the kids are already soapy."]],
