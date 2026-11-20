@@ -1597,7 +1597,7 @@ const TOW_LINES=["{n}'s {t} arrived home on a flatbed.","{n} watched the tow tru
 const FIXED_LINES=["Did you... get it detailed? It's nicer than when I lent it to you.","Sal called. You paid for the bodywork? You're a good egg.","It's got new headlights! I've been meaning to do that since 2017."];
 const BUMP_LINES=["Hey! That's my {t}!","I SAW that. I'm writing it in the newsletter.","Not the {t}! It's paid off!"];
 function carSave(e){if(e!==VAN)return null;try{const s=SV();return s&&s.garage&&s.garage.hp?s.garage:null}catch(_){return null}}
-function carHpMax(e){if(!e)return 100;if(e===VAN){if(VAN._mx)return VAN._mx;const vs=vanStats();return VAN._mx=vs&&vs.hp||100}/* cached; vanApply clears it */
+function carHpMax(e){if(!e)return 100;if(e===VAN){/* cached briefly only: upgrades, a loaded save or a vehicle swap must never leave a stale maximum (a full repair is clamped to it) */const now=performance.now();if(VAN._mx&&now-(VAN._mxAt||0)<400)return VAN._mx;const vs=vanStats();if(!(vs&&vs.hp))return 100;VAN._mxAt=now;return VAN._mx=vs.hp}/* cached; vanApply clears it */
   if(!e.obj&&e.stats&&e.stats.hp)return e.stats.hp;if(e._mx&&e._mxT===e.type)return e._mx;let m=100;const G=HTM('Garage');try{if(G&&G.VEH[e.type])m=G.apply(e.type).hp}catch(_){}e._mxT=e.type;return e._mx=m}
 function carHp(e){if(!e)return 0;const g=carSave(e);if(g){const v=g.hp[g.active];return v==null?carHpMax(e):v}if(e.hp==null)e.hp=carHpMax(e);return e.hp}
 function carFrac(e){const m=carHpMax(e);return m>0?clamp(carHp(e)/m,0,1):1}
@@ -1832,9 +1832,12 @@ function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock
 let castWait=null;
 /* a cast id -> a People model key: its role (People.roles, a string key), the key itself, or null (unknown: skipped, never fetched) */
 function castKey(pm,c){const r=pm.roles&&pm.roles[c];if(typeof r==='string'&&(pm.keys||[]).includes(r))return r;return(pm.keys||[]).includes(c)?c:null}
+/* the People models a job waits for before it starts (crew, Riverside giver, the four thug looks, the boss): also used by the job harness */
+function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok||!pm.preload)return[];const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
+  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=pm&&pm.ok&&pm.preload?[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k)):[];
+  const keys=castKeysFor(i);
   if(!keys.length){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
   castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
@@ -2741,7 +2744,7 @@ function furnSync(){const s=SV();if(!s||!HOMEM)return 0;const f=s.furniture;let 
   for(const id in f.seen)if(!(id in f.owned))delete f.seen[id];
   if(n){SAVEM.touch('furniture');if(HOME3)HOME3.setLayout({items:f.placed})}return n}
 function openShop(kind,opt){/* Dad's Auto repairs whichever car you pulled in with (a borrowed one included) and opens on Repair when it's hurt */
-  const car=kind==='auto'&&CV?CV:null,hurt=car&&(carFrac(car)<.999||carWear(car).lamps.some(Boolean)||carWear(car).tyre);
+  const car=kind==='auto'&&CV?CV:null,hc=kind==='auto'?(CV||VAN):null/* on foot it is your own van on the lift */,hurt=hc&&(carFrac(hc)<.999||carWear(hc).lamps.some(Boolean)||carWear(hc).tyre);
   if(kind==='auto'&&ECON&&ECON.setRepairCar)ECON.setRepairCar(carRepairTarget(car));
   return openMenu(o=>HT.Shop.open(Object.assign(o,{kind,onBuy:r=>metaOnBuy(r),onPreview:p=>vanPreview(p)},hurt?{tab:'repair'}:null,opt||null)))}
 function openLocker(tab){return openMenu(o=>HT.Locker.open(Object.assign(o,{tab,onChange:()=>{metaSave()}})))}
@@ -2751,7 +2754,7 @@ function metaOnBuy(r){
     if(r.price!=null)HUD.feed('Receipt · '+nm,'cash',(r.price?'-$'+Math.round(r.price).toLocaleString('en-US'):'free')+(r.delivered==='pending'?' · on the porch after your next job':''))}catch(e){}
   if(r.kind==='gun'&&r.delivered!=='pending'){const g=HT.CATALOG.guns[r.id];HUD.feed((g?g.name:r.id)+' is in your gun locker','info')}
   if(/^(car|gar|cos|stick)$/.test(r.kind))vanApply();
-  if(r.kind==='rep'&&(!CV||CV===VAN)){/* the save's own vehicle was repaired: fresh body, lamps, engine back on */carRepair(VAN,0,{fresh:false});if(carFrac(VAN)>=.999)carFresh(VAN);carLook(VAN);carRedent(VAN);DRV.bandQ=carBand(VAN)}
+  if(r.kind==='rep'&&(!CV||CV===VAN)){VAN._mx=null;/* the save's own vehicle was repaired: fresh body, lamps, engine back on */carRepair(VAN,0,{fresh:false});if(carFrac(VAN)>=.999)carFresh(VAN);carLook(VAN);carRedent(VAN);DRV.bandQ=carBand(VAN)}
   if(r.kind==='rep'&&CV&&CV!==VAN)HUD.feed('Fixed '+CV.name+"'s "+feel(CV).label+' before '+CV.name+' notices','info');
   metaSave()}
 /* 3D shop thumbnails from the real models, once the gun and vehicle modules are in */
@@ -4245,7 +4248,10 @@ if(JR){MISSIONS.forEach(m=>{const w=WJ[m.id];JR.wrap(m.id,m,w?{start:(M_,o)=>w.s
     /* holster(true): the gun goes away (no first-person or third-person gun, no aim pose, firing blocked); holster(false) brings it back */
     /* a new vehicle type: its handling row (CAR_FEEL: label, seats, max, acc, turn, cam...) on top of the minivan's, and its seats [fwd,hip,right,turn] */
     carFeel:(type,row,seats)=>{if(!type)return null;CAR_FEEL[type]=Object.assign({},CAR_FEEL[type]||CAR_FEEL.minivan,row||{});if(seats&&seats.length)SEATS[type]=seats;return CAR_FEEL[type]},CAR_FEEL,SEATS,
-    registerCar:(obj,x,z)=>registerCar(obj,x,z),/* a borrowable car in the current level (free roam): returns its entry */
+    registerCar:(obj,x,z)=>registerCar(obj,x,z),
+    pose:(d,dt,o)=>pose(d,dt,o||{}),/* animate a character made with makeDude/People (moving, aim, mode:'kneel'|'crouch'...) */
+    give:(id,o)=>{o=o||{};if(!WEAPONS[id])return null;const w=WEAPONS[id];return takeGun(id,o.mag!=null?o.mag:w.mag,o.extra||0,{auto:o.auto!==false,slot:o.slot||null})},
+    swap:(id,force)=>swap(id,force),reload:()=>reload(),hurtEnemy:(e,dmg,by,opt)=>hurtEnemy(e,dmg,by||'player',opt||{}),/* a borrowable car in the current level (free roam): returns its entry */
     holster:on=>{if(!M)return;M.holster=!!on;if(on){M.noGuns=M.noGuns||true;equip(P.dude,null)}else{if(M.noGuns===true)M.noGuns=false;equip(P.dude,P.cur)}},CarAI:()=>HTM('CarAI'),roads:()=>OW()&&OW().roads(),setNight:k=>{if(typeof setNight==='function')setNight(k)},SV,save:()=>metaSave(),
     HUD,overlay:(id,el)=>HUD.overlay&&HUD.overlay(id,el),get stage(){return M&&M.stage}}}
 
@@ -4328,6 +4334,7 @@ metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
   lock:id=>{const i=MISSIONS.findIndex(m=>m.id===id);return i<0?'no such job':jobLock(i)},calendar:openCalendar,calEntries,replay:id=>jrReplay(MISSIONS.findIndex(m=>m.id===id)),spotted:jobSpotted,
+  castKeys:id=>castKeysFor(MISSIONS.findIndex(m=>m.id===id)),get castWait(){return castWait},
   homeUse:id=>JH.home(id),openBrief:(id,o)=>openBrief(MISSIONS.findIndex(m=>m.id===id),o),finish:(ok,why)=>endMission(ok,why)};
 ASSETS.ready.then(()=>setTimeout(jrLoadFiles,1200));
 /* the house loads on demand (docs/PERF.md); tests that need it start it explicitly */

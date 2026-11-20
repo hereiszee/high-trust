@@ -24,4 +24,8 @@ test('GPS: path exists with the bridge open, none with it closed, avoids solids,
   assert(g&&g.tiles.length>100);for(const t of g.tiles.slice(0,-1))assert(!def.solid.includes(def.map[t.tz][t.tx]));assert(ms<200,ms+'ms');
   assert.strictEqual(R.gps(defC,defC.vanStart,defC.sites.earl.ring),null);assert(g.points.length<g.tiles.length/4,'simplified')});
 test('GPS prefers roads: most of the route is asphalt',()=>{const g=R.gps(def,def.vanStart,def.sites.duke.ring);const asph=g.tiles.filter(t=>',=V'.includes(def.map[t.tz][t.tx])).length;assert(asph/g.tiles.length>.8)});
+test('GPS is bounded: from a roof, off the map, NaN, or to an enclosed tile it answers fast and never stalls',()=>{const c=def.places.center,far=def.sites.duke.ring;
+  const t0=Date.now();const a=R.gps(def,{x:c.x,z:c.z},far);assert(a&&a.points.length>1,'from inside the community center');
+  assert.strictEqual(R.gps(def,{x:NaN,z:0},far),null);const b=R.gps(def,{x:-50,z:-50},far);assert(b===null||b.points.length>0,'off the map clamps');
+  const n=R.gps(def,def.vanStart,far,{budget:50});assert.strictEqual(n,null,'tiny budget gives up');assert(Date.now()-t0<3000,'took '+(Date.now()-t0)+' ms')});
 if(require.main===module)done();
