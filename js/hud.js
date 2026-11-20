@@ -544,20 +544,30 @@ function reveal(px,pz){if(!MM.fog)return;const T=MM.tile,tx=Math.floor(px/T),tz=
       if(!MM.seen[k]){MM.seen[k]=1;rc.drawImage(MM.base,cx*P,cz*P,P,P,cx*P,cz*P,P,P);MAP.dirty=true}
       /* also reveal the wall ring around a seen cell so rooms read as closed shapes */
       if(isSolidCh(MM.grid[cz][cx]))break;if(Math.hypot(cx+.5-tx-.5,cz+.5-tz-.5)>R0)break;x+=dx*.34;z+=dz*.34}}}
-/* road-preferring route on the tile grid (Dijkstra). from/to in world metres. returns [{x,z}] */
+/* road-preferring route on the tile grid (Dijkstra). from/to in world metres. returns [{x,z}] ([] when there is no route).
+   Bounded: the cost grid and the search buffers are built once per level (and drive/walk mode), a start or end on a solid tile
+   (a roof, inside a building) snaps to the nearest walkable tile within 16 tiles, and the search gives up after a node budget,
+   so a far or unreachable target can never stall the page. */
+const RT={key:null,cost:null,dist:null,prev:null,hd:null,hi:null,stats:{runs:0,pops:0,gaveUp:0,ms:0}};
+function routeCost(drive){const g=MM.grid,W=MM.W,Hh=MM.H,o=MM.opts||{},key=W+'x'+Hh+':'+(drive?1:0);
+  if(RT.key===key&&RT.grid===g)return RT.cost;const cost=new Float32Array(W*Hh);
+  for(let z=0;z<Hh;z++){const row=g[z];for(let x=0;x<W;x++){const ch=row[x];const k=cellClass(ch,o),gr=groundOf(ch,o);
+    cost[z*W+x]=(k==='wall'||k==='building'||k==='tree'||k==='hedge'||k==='crate')?Infinity:gr==='road'?1:gr==='parking'?1.2:gr==='walk'?(drive?3:1.4):gr==='floor'?1:(drive?8:2.5)}}
+  RT.key=key;RT.grid=g;RT.cost=cost;const n=W*Hh;if(!RT.dist||RT.dist.length!==n){RT.dist=new Float32Array(n);RT.prev=new Int32Array(n);RT.hd=new Float32Array(n*4+16);RT.hi=new Int32Array(n*4+16)}return cost}
+function routeSnap(cost,W,Hh,x,z){if(cost[z*W+x]!==Infinity)return z*W+x;for(let r=1;r<=16;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;
+    const X=x+dx,Z=z+dz;if(X<0||Z<0||X>=W||Z>=Hh)continue;if(cost[Z*W+X]!==Infinity)return Z*W+X}return -1}
 function findRoute(from,to,opt={}){
-  if(!MM.grid)return[];const T=MM.tile,W=MM.W,Hh=MM.H,g=MM.grid,o=MM.opts||{};
+  if(!MM.grid||!from||!to||!isFinite(from.x)||!isFinite(to.x))return[];const t0=now(),T=MM.tile,W=MM.W,Hh=MM.H,cost=routeCost(!!opt.drive);RT.stats.runs++;
   const sx=clamp(Math.floor(from.x/T),0,W-1),sz=clamp(Math.floor(from.z/T),0,Hh-1),ex=clamp(Math.floor(to.x/T),0,W-1),ez=clamp(Math.floor(to.z/T),0,Hh-1);
-  const cost=new Float32Array(W*Hh);for(let i=0;i<W*Hh;i++){const ch=g[(i/W)|0][i%W];const k=cellClass(ch,o),gr=groundOf(ch,o);
-    cost[i]=(k==='wall'||k==='building'||k==='tree'||k==='hedge'||k==='crate')?Infinity:gr==='road'?1:gr==='parking'?1.2:gr==='walk'?(opt.drive?3:1.4):gr==='floor'?1:(opt.drive?8:2.5)}
-  cost[sz*W+sx]=1;cost[ez*W+ex]=1;
-  const dist=new Float32Array(W*Hh).fill(Infinity),prev=new Int32Array(W*Hh).fill(-1),heap=[];
-  const push=(i,d)=>{heap.push([d,i]);let k=heap.length-1;while(k){const p=(k-1)>>1;if(heap[p][0]<=heap[k][0])break;[heap[p],heap[k]]=[heap[k],heap[p]];k=p}};
-  const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let k=0;for(;;){const l=2*k+1,r=l+1;let m=k;if(l<heap.length&&heap[l][0]<heap[m][0])m=l;if(r<heap.length&&heap[r][0]<heap[m][0])m=r;if(m===k)break;[heap[m],heap[k]]=[heap[k],heap[m]];k=m}}return top};
-  const s=sz*W+sx,e=ez*W+ex;dist[s]=0;push(s,0);
-  while(heap.length){const[d,i]=pop();if(i===e)break;if(d>dist[i])continue;const x=i%W,z=(i/W)|0;
-    for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=Hh)continue;const j=nz*W+nx;const nd=d+cost[j];if(nd<dist[j]){dist[j]=nd;prev[j]=i;push(j,nd)}}}
-  if(prev[e]<0&&e!==s)return[];const pts=[];for(let i=e;i!==-1;i=i===s?-1:prev[i])pts.push(i);pts.reverse();
+  const s=routeSnap(cost,W,Hh,sx,sz),e=routeSnap(cost,W,Hh,ex,ez);if(s<0||e<0)return[];
+  const dist=RT.dist,prev=RT.prev,hd=RT.hd,hi=RT.hi,cap=hd.length;dist.fill(Infinity);prev.fill(-1);
+  let n=0;const push=(i,d)=>{if(n>=cap)return false;let k=n++;while(k){const p=(k-1)>>1;if(hd[p]<=d)break;hd[k]=hd[p];hi[k]=hi[p];k=p}hd[k]=d;hi[k]=i;return true};
+  const budget=opt.budget||Math.min(W*Hh*2,120000);let pops=0,found=false;dist[s]=0;push(s,0);
+  while(n){const d=hd[0],i=hi[0];/* pop */n--;if(n){const ld=hd[n],li=hi[n];let k=0;for(;;){const l=2*k+1,r=l+1;let m=-1,md=ld;if(l<n&&hd[l]<md){m=l;md=hd[l]}if(r<n&&hd[r]<md)m=r;if(m<0)break;hd[k]=hd[m];hi[k]=hi[m];k=m}hd[k]=ld;hi[k]=li}
+    if(i===e){found=true;break}if(d>dist[i])continue;if(++pops>budget){RT.stats.gaveUp++;break}const x=i%W,z=(i/W)|0;
+    for(let q=0;q<4;q++){const nx=x+(q===0?1:q===1?-1:0),nz=z+(q===2?1:q===3?-1:0);if(nx<0||nz<0||nx>=W||nz>=Hh)continue;const j=nz*W+nx;const nd=d+cost[j];if(nd<dist[j]){dist[j]=nd;prev[j]=i;if(!push(j,nd))break}}}
+  RT.stats.pops+=pops;RT.stats.ms=Math.round((now()-t0)*1e4)/10;if(!found&&e!==s)return[];
+  const pts=[];for(let i=e,g=0;i!==-1&&g<W*Hh;i=i===s?-1:prev[i],g++)pts.push(i);pts.reverse();
   /* collapse straight runs */
   const out=[];for(let k=0;k<pts.length;k++){const i=pts[k];if(k>0&&k<pts.length-1){const a=pts[k-1],b=pts[k+1];if((i%W-a%W===b%W-i%W)&&(((i/W)|0)-((a/W)|0)===((b/W)|0)-((i/W)|0)))continue}out.push({x:(i%W+.5)*T,z:(((i/W)|0)+.5)*T})}
   if(out.length){out[0]={x:from.x,z:from.z};out[out.length-1]={x:to.x,z:to.z}}return out}
@@ -796,7 +806,7 @@ function update(st,dt=1/60){
   if(st.banner){const k=st.banner.id||JSON.stringify(st.banner);if(k!==BN.key){BN.key=k;banner(st.banner)}}
   if(BN.t>0&&now()>=BN.end){BN.t=0;R.bn.classList.remove('lbx');cls(R.hud,'cine',false)}
   sty(R.vig,'display',mode==='drive'?'none':'');
-  if(st.routeTo&&H.player){const T=now();if(T-MM.routeAt>.6||MM.routeTo!==st.routeTo){MM.routeAt=T;MM.routeTo=st.routeTo;MM.route=findRoute(H.player,st.routeTo,{drive:mode==='drive'})}}
+  if(st.routeTo&&H.player){const T=now();/* at most ~3 searches a second, however often the target object changes */if(T-MM.routeAt>.6||(MM.routeTo!==st.routeTo&&T-MM.routeAt>.3)){MM.routeAt=T;MM.routeTo=st.routeTo;MM.route=findRoute(H.player,st.routeTo,{drive:mode==='drive'})}}
   else if(st.routeTo===null)MM.route=null;
   if(H.player)reveal(H.player.x,H.player.z);
   mmAcc+=dt;if(mmAcc>=1/30){mmAcc=0;if(!home)drawMinimap(st);if(MAP.open)drawMap(st)}
@@ -1132,7 +1142,7 @@ const HUD={
   kit:{viewfinder:kitViewfinder,choices:kitChoices,roles:kitRoles},
   show:showScreen,hide:hideScreen,set:setScreen,
   get screen(){return SCR.cur},
-  minimap:{setRegions(r){MM.regions=r||null;MAP.dirty=true},setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},overlay(fn){MM.overlay=fn||null;MAP.dirty=true},
+  minimap:{routeStats:()=>Object.assign({},RT.stats),setRegions(r){MM.regions=r||null;MAP.dirty=true},setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},overlay(fn){MM.overlay=fn||null;MAP.dirty=true},
     openMap:()=>MAP.openMap(),closeMap:()=>MAP.close(),toggleMap:()=>MAP.toggle(),get mapOpen(){return MAP.open},onFastTravel(fn){MAP.onTravel=fn},zoom(z){MM.zoom=z},reveal(x,z){reveal(x,z)}},
   touch:{
     /* stick visuals: x,y in -1..1, active flag, optional screen origin {ox,oy} for a floating stick */

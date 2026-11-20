@@ -935,11 +935,12 @@ const GAR_ICONS={
   sport:()=>ground(48)+P('M30 70a50 50 0 0 1 100 0z','#2c3036')+P('M40 70a40 40 0 0 1 80 0',null)+`<path d="M104 40a40 40 0 0 1 16 30" stroke="${RED}" stroke-width="6" fill="none"/>`+P('M80 70l30-26',null)+Ci(80,70,6,SUN)+T(80,90,11,'SPORT',SUN),
   panels:()=>ground(40)+P('M80 10l40 14v26c0 22-18 36-40 42-22-6-40-20-40-42V24z',POLO)+P('M80 20l30 10v20c0 16-12 26-30 32z','#4a78bd')+P('M66 50l10 10 20-20',null),
   gunRack:()=>ground(54)+R(24,24,112,10,WD,3)+R(24,60,112,10,WD,3)+P('M40 34v26M80 34v26M120 34v26',null)+P('M30 46h92l8-4v8l-8-2H30z',DK)+P('M36 46l-8 6 8 6',WL)+R(56,40,40,8,MT,2)+T(80,86,10,'SLOT 4',K),
+  hitch:()=>ground(56)+R(22,30,70,26,'#3a3f46',4)+R(30,36,54,14,'#5b636e',3)+R(84,38,30,10,MT,2)+R(108,34,8,18,DK,2)+Ci(126,34,12,'#c8ccd0')+R(120,42,12,10,'#9aa1a9',2)+P('M40 64c10 10 30 10 40 0',null)+hi('M30 34h50'),
   medkit:()=>ground(50)+R(34,24,92,62,RED,8)+R(64,14,32,12,DK,4)+R(70,36,20,40,PAP)+R(60,46,40,20,PAP)+hi('M42 32h76'),
   repair:()=>ground(46)+P('M46 78l42-42c-4-12 2-24 14-26l-8 12 6 8 10-4c2 12-8 22-22 18L46 86z','#9aa1a9')+Ci(52,82,4,DK)};
 const GAR_MAP={eng1:()=>GAR_ICONS.engine(1),eng2:()=>GAR_ICONS.engine(2),eng3:()=>GAR_ICONS.engine(3),tyre1:GAR_ICONS.tyres,tyre2:GAR_ICONS.tyres,brk1:GAR_ICONS.brakes,brk2:GAR_ICONS.brakes,
   sport:GAR_ICONS.sport,bull:()=>carSVG('minivan','#35577d','steel',{bullBar:true}),armor1:GAR_ICONS.panels,armor2:GAR_ICONS.panels,cargo:()=>carSVG('minivan','#35577d','steel',{cargo:true}),
-  rack:GAR_ICONS.gunRack,aid:GAR_ICONS.medkit};
+  rack:GAR_ICONS.gunRack,aid:GAR_ICONS.medkit,hitch:GAR_ICONS.hitch};
 function stickerSVG(txt){const words=String(txt).split(' ');const lines=[];let cur='';for(const w of words){if((cur+' '+w).trim().length>16){lines.push(cur.trim());cur=w}else cur+=' '+w}lines.push(cur.trim());
   return ground(60,84)+`<g transform="rotate(-4 80 50)">`+R(14,26,132,48,'#fffdf7',4)+R(14,26,10,48,'#2f5d9e',2)+lines.slice(0,3).map((l,i)=>T(86,46+i*13-(lines.length-1)*6,12,l.replace(/&/g,'&amp;').replace(/</g,'&lt;').toUpperCase(),K)).join('')+`</g>`}
 const SUP_ICONS={
@@ -1175,7 +1176,8 @@ function garFx(it){const G=HT.Garage;if(!it)return'';const n=v=>(v>=1?'×':'×')
   if(it.slot==='armor'){const a=G.ARMOR[it.lvl];return'Van HP +'+a.hp+', bullet damage '+n(a.bul)}
   return{sport:'Press N (or SPORT): '+G.SPORT.dur+' s burst, acceleration ×'+G.SPORT.accMul+', top speed boost +'+G.SPORT.maxAdd+' m/s, '+G.SPORT.cool+' s recharge. Spoiler included.',
     bullBar:'Front ram damage ×2, front impact damage ×0.5',cargo:'+2 reserve mags of every carried ammo type at each mission start',
-    rack:'A 4th loadout slot (key 4) for another primary',aid:'Once per job: get back up at 50 HP instead of going down. Or instantly revive a downed buddy.'}[it.slot]||''}
+    rack:'A 4th loadout slot (key 4) for another primary',aid:'Once per job: get back up at 50 HP instead of going down. Or instantly revive a downed buddy.',
+    hitch:"Tow broken-down cars (and anything else that holds still). Hold E behind a car's front bumper."}[it.slot]||''}
 function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')return ATTACHMENTS[id];if(kind==='furn')return FURNITURE[id];if(kind==='sup')return SUPPLIES[id];if(kind==='gad')return GADGETS[id];
   const G=HT.Garage;
   if(kind==='gar'){const it=garItem(id)||{};return it.group==='vehicle'?{name:it.name,blurb:VEH_BLURB[it.type]||it.blurb}:{name:it.name,blurb:it.blurb}}
@@ -1208,7 +1210,7 @@ function shopEntries(store,tab){
   else if(tab==='sup'){for(const id in SUPPLIES)E.push({kind:'sup',id})}
   else if(tab==='gad'){for(const id of GADGET_ORDER)E.push({kind:'gad',id})}
   else if(!G){}
-  else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tyres',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility'};
+  else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tyres',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility',hitch:'Utility'};
     for(const c of G.CATALOG)if(c.group===tab)E.push({kind:'gar',id:c.id,sec:secN[c.slot]})}
   else if(tab==='looks'){const C=G.COSMETICS;
     for(const o in C.paint)E.push({kind:'cos',id:'paint:'+o,sec:'Paint'});for(const o in C.rims)E.push({kind:'cos',id:'rims:'+o,sec:'Wheels'});

@@ -274,3 +274,23 @@ slower than GitHub Pages' HTTP/2.
 - **Headless numbers.** Frame times from SwiftShader say nothing about GPU cost; GPU cost was reasoned from draw
   calls, triangles, passes and resolution. A check on a real integrated-GPU laptop is still worth doing.
 
+
+## Canvas text: never `var()` in `ctx.font`
+
+`CanvasRenderingContext2D.font` does not understand CSS custom properties. `ctx.font='700 20px var(--ui)'` is silently rejected (the
+context keeps its previous font, usually `10px sans-serif`), and code that retries or re-measures text every frame then burns time on
+it. Resolve the variable once, when the canvas is created, and cache the string:
+
+```js
+const UI_FONT=getComputedStyle(document.documentElement).getPropertyValue('--ui').trim()||'"Barlow", Arial, sans-serif';
+ctx.font='700 20px '+UI_FONT;
+```
+
+The same applies to sign and label textures (`wmSign`, job props): build the font string once per texture, not per frame.
+
+## Route searches are bounded
+
+The HUD minimap route (`js/hud.js` `findRoute`) and the GPS (`HT.Roads.gps`) are Dijkstra searches over the whole tile grid. Both are
+bounded: cached cost grid and buffers, start/end snapped to the nearest walkable tile, a node budget, and at most ~3 minimap searches a
+second however often `routeTo` changes. Jobs that set `F.target` every frame are fine; do not call `HUD.minimap.findRoute` per frame
+yourself. Check: `node dev/route-check.js`.

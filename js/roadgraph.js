@@ -12,7 +12,7 @@
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
 const TILE=2,tc=i=>i*TILE+TILE/2,tx=m=>Math.floor(m/TILE);
-const LANE=1.5,ARC=4.5,DRIVE=',=Vl';
+const LANE=1.5,ARC=4.5,DRIVE=',=VlD';/* D: the minivan's spot on Oak St is road too */
 
 function build(def){
   const g=def.map,roads=def.roads;
@@ -73,12 +73,14 @@ function build(def){
 /* ---------- GPS on the tile grid (SPEC2 A.10) ---------- */
 const COST={',':1,'=':1,'V':1,s:3,p:3,l:3,D:1,U:1,g:8,b:8,'1':8,'2':8,'3':8,'4':8,H:8,R:8,P:3};
 function gps(def,from,to,opts){opts=opts||{};const W=def.W,H=def.H,g=def.map,solid=def.solid;
-  const s=[tx(from.x),tx(from.z)],t=[tx(to.x),tx(to.z)],N=W*H,dist=new Float64Array(N).fill(Infinity),prev=new Int32Array(N).fill(-1);
+  if(!from||!to||!isFinite(from.x)||!isFinite(from.z)||!isFinite(to.x)||!isFinite(to.z))return null;const cl=(v,m)=>Math.max(0,Math.min(m-1,v));
+  const s=[cl(tx(from.x),W),cl(tx(from.z),H)],t=[cl(tx(to.x),W),cl(tx(to.z),H)],N=W*H,dist=new Float64Array(N).fill(Infinity),prev=new Int32Array(N).fill(-1);
   const cost=(x,z)=>{const c=g[z][x];if(c==='!'&&!def.bridgeOpen)return Infinity;if(solid.includes(c))return Infinity;return COST[c]||4};
   const heap=[],push=(k,d)=>{heap.push([d,k]);let i=heap.length-1;while(i>0){const p=(i-1)>>1;if(heap[p][0]<=heap[i][0])break;[heap[p],heap[i]]=[heap[i],heap[p]];i=p}},
     pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){heap[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<heap.length&&heap[l][0]<heap[m][0])m=l;if(r<heap.length&&heap[r][0]<heap[m][0])m=r;if(m===i)break;[heap[m],heap[i]]=[heap[i],heap[m]];i=m}}return top};
   const sk=s[1]*W+s[0],tk=t[1]*W+t[0];dist[sk]=0;push(sk,0);
-  while(heap.length){const[d,k]=pop();if(d>dist[k])continue;if(k===tk)break;const x=k%W,z=(k/W)|0;
+  let pops=0;const budget=opts.budget||N*2;/* bounded: an unreachable target gives up instead of stalling the page */
+  while(heap.length){const[d,k]=pop();if(d>dist[k])continue;if(k===tk)break;if(++pops>budget)return null;const x=k%W,z=(k/W)|0;
     for(const[dx,dz]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(nx<0||nz<0||nx>=W||nz>=H)continue;const nk=nz*W+nx;
       const c=nk===tk?1:cost(nx,nz);if(!isFinite(c))continue;const nd=d+c;if(nd<dist[nk]){dist[nk]=nd;prev[nk]=k;push(nk,nd)}}}
   if(!isFinite(dist[tk]))return null;

@@ -51,7 +51,7 @@ test('job files: every SPEC3 file exists, a missing one is skipped, stubs regist
   for(const id of ['taxi','blitz','talk','mower','overwatch','sabotage','hoa','tail','tow','cargo','crossing','pawn','cones','moving','arrest','brake','roundup','bike','heist','patrol','porch','carwash','finale'])assert.ok(J.FILES.includes(id),id);
   assert.ok(J.get('porch'),'porch registers');assert.ok(!J.FILES.includes('_template'),'the template never loads in the game')});
 test('[CP] every registered job file round-trips its checkpoint state (save -> JSON -> load -> save)',()=>{loadFiles();let n=0;
-  for(const j of J.list(j=>!j.builtin)){if(!j.save)continue;const M=j.test&&j.test.sample?j.test.sample():null;assert.ok(M,j.id+': provide test.sample() -> a mid-job M for the round trip');
+  for(const j of J.list(j=>!j.builtin)){if(!j.save||(j.test&&j.test.cpNode===false))continue;/* cpNode:false = load() needs the game; dev/jobs-check.js --retry round-trips it in the browser */const M=j.test&&j.test.sample?j.test.sample():null;assert.ok(M,j.id+': provide test.sample() -> a mid-job M for the round trip');
     const r=J.roundTrip(j,M);assert.ok(r.ok,j.id+': '+r.why);n++}assert.ok(n>=1)});
 test('the template job is a valid registration',()=>{bind({M:null});const ctx=vm.createContext({HT:global.HT,console});ctx.window=ctx;
   vm.runInContext(fs.readFileSync(path.join(ROOT,'js/jobs/_template.js'),'utf8'),ctx);const j=J.get('template');assert.ok(j&&j.def.stages.length===2&&j.def.obj);
