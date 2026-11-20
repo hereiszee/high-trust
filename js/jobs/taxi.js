@@ -392,12 +392,16 @@ function choiceCard(M){const a=A(),L_=M.live,E=L_.enc,p=L_.panel,car=M.rideCar;i
   else if(E.choiceT>14){say(M,'Rick',"I'll take that as a zip-tie.",{prio:3});choose(M,'zip')}}
 function choose(M,c){const a=A(),L_=M.live,E=L_.enc,K=L_.K,car=M.rideCar,P_=places();if(E.state!=='choice')return;E.state='resolve';M.st.choice=c;const sl=L_.panel&&L_.panel.slot('choice');if(sl){sl._h='';sl.innerHTML=''}
   try{const au=window.HT&&HT.Audio;au&&au.ui&&au.ui('click')}catch(_){}
-  const done=()=>{const rc=L_.panel&&L_.panel.slot('rec');if(rc){rc._h='';rc.innerHTML=''}E.state='done';rickDrive(M);M.st.phase='back';L_.ringCur&&(L_.ringCur.visible=true);a.CP.mark('back');try{L_.R.apply()}catch(_){}};
+  const done=()=>{const rc=L_.panel&&L_.panel.slot('rec');if(rc){rc._h='';rc.innerHTML=''}rebase(M);E.state='done';rickDrive(M);M.st.phase='back';L_.ringCur&&(L_.ringCur.visible=true);a.CP.mark('back');try{L_.R.apply()}catch(_){}};
   if(c==='zip'){for(const r of E.thieves){r.mode='kneel';a.addTrust(2);a.feed('Zip-tied by Rick','trust','+2 trust')}try{window.HT.Audio.zipTie&&window.HT.Audio.zipTie()}catch(_){}
     sayAll(M,[['Rick',"Two zip-ties, zero drama. They can ride in the back with the bikes and think about it."],['Kid in the passenger seat',"Can you not post that?"],['Maddie',"It already has "+M.st.video+" views."]],{prio:3});
     setTimeout0(M,2.2,()=>{for(const r of E.thieves){r.state='off';r.d.root.visible=false}E.thieves.forEach((r,i)=>{r.bed=i});done()})}
   else{let n=0;sayAll(M,[['you',"Get in. Back row. Seatbelts. I'm not asking."],['Kid driving',"Is this a kidnapping?"],['Maddie',"It's a carpool."]],{prio:3});
     for(const r of E.thieves){r.mode=null;r.prefer=[5,6,4];K.board(r,{x:r.x,z:r.z},car,()=>{if(++n>=2){sayAll(M,[['Tyler',"Do you guys want a granola bar?"],['Kid in the passenger seat',"...What kind?"]],{prio:2,ttl:20});done()}})}}}
+/* the thieves' delay isn't the driver's fault: if the school is now out of reach, its target (and home's) moves to "a fair drive from here" */
+function rebase(M){const a=A(),S=M.live.S,s5=S.stops[4],s6=S.stops[5],car=M.rideCar;if(!car||s5.done)return;
+  const fair=M.elapsed+SX().legTime(a,{x:car.pos.x,z:car.pos.z},{x:s5.x,z:s5.z},{v:T.v,turn:T.turn,pad:T.pad}).t+(M.st.choice==='ride'?4:0)+6,sh=Math.round(fair-s5.target);
+  if(sh>0){s5.target+=sh;s6.target+=sh;M.st.rebased=sh}}
 /* Rick takes the pickup and the bikes back to the school */
 function rickDrive(M){const a=A(),L_=M.live,E=L_.enc,P_=places(),S=SX(),cr=E.cr;if(E.rick){E.rick.state='off';E.rick.d.root.visible=false}
   const dst=P_.rickPark;/* by the rack, up on the pad, like every school-run dad */const pts=S.laneRoute(a,{x:cr.x,z:cr.z},dst,1.5,5);const nc=S.cruiser({obj:cr.obj,points:pts,speed:9,accel:3.5,len:5.6,wid:2.05,col:cr.col});nc.spd=0;E.cr=nc;E.rickDriving=true;
