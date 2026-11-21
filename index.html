@@ -812,7 +812,7 @@ function makeDude(o){
   return boxDude(o)}
 /* the old box figure: only for looks People has no model for, or (via People.boxFallback) after its long retry ceiling */
 function boxDude(o){
-  const root=new THREE.Group();const meshes=[];
+  const root=new THREE.Group();root.userData.boxDude=true;const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
   const skin=o.skin||pick(SKIN);
   const legs=[];
