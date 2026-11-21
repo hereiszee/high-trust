@@ -11,7 +11,7 @@
    Shared helper: js/jobs/_escort.js (HT.Escort). Test player: test.step below; dev/jobs/overwatch.js for the shots.
    Owner rules: no family members in this job; failPolicy escalate; Riverside's change is people coming back and staying.
    ===================================================================== */
-(function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;const ES=()=>window.HT&&HT.Escort;
+(function(){'use strict';const J=window.HT&&HT.Jobs;if(!J)return;const A=()=>J.api;const prot=d=>!!(window.HT&&HT.People&&HT.People.isProtected&&HT.People.isProtected(d));const ES=()=>window.HT&&HT.Escort;
 /* game surface this job needs beyond HT.Jobs.api (reported to the framework: pose, give/swap, hurtEnemy) */
 const G=()=>window.__ht||{};
 const pose=(d,dt,o)=>{const D=G().dude;if(D&&D.pose&&d)D.pose(d,dt,o)};
@@ -221,7 +221,7 @@ J.register('overwatch',{
   end(M,ok){returnRifle(M);if(!ok)return;const s=A().SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'ferreira')}catch(_){}try{SV.perk(s,'doug',true)}catch(_){}s.flags=s.flags||{};s.flags.ferreira=true}},
 
-  test:{give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
+  test:{roof:()=>{const M=A().M;if(M&&M.ow){climb(M,true,true);M.ow.roof.fade=0}},friendly:()=>{const M=A().M;return!!(M&&M.ow&&friendlyInLine(M))},give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ow:{stage:'court',rifle:{type:'bean',box:{bean:{mag:3,res:9},live:{mag:5,res:5}}},stats:{beaned:2,cuffed:2,lethal:0,spooked:0,civ:0,shots:3,hits:2,kevin:0,flats:0},sight:{done:true},roof:{on:false},
       witHp:87,esc:null,escSaved:{s:40.5,state:'walk',stopK:-1,stopsDone:[4],revived:0,hp:[100,87,100],fired:[0,0]}}})}
@@ -347,7 +347,7 @@ function rifleStep(dt,M){const a=A(),O=M.ow,R=O.rifle,P=a.P,B=R.breath,T=TUNE.br
   R.sw.vp=(sp-R.sw.p)/Math.max(dt,1e-3);R.sw.vy=(sy-R.sw.y)/Math.max(dt,1e-3);R.sw.p=sp;R.sw.y=sy;
   /* sensitivity follows the zoom (the game scales look by the gun's ads.zoom) */
   if(O.roof.on)a.WEAPONS.hunter.ads.zoom=1.2/TUNE.zoom[R.zoomK];
-  if(sc)rangeStep(dt,M);idStep(dt,M)}
+  if(sc)rangeStep(dt,M);idStep(dt,M);lowerStep(dt,M)}
 function smooth(x){x=clamp(x,0,1);return x*x*(3-2*x)}
 function gasp(){const Au=AUD();try{Au&&Au.voice&&Au.voice('you','exhale')}catch(_){}}
 function switchRounds(M){const a=A(),O=M.ow,R=O.rifle;if(!O.roof.on)return;R.type=R.type==='bean'?'live':'bean';syncRounds(M);R.boltT=Math.max(R.boltT,.9);
@@ -362,6 +362,7 @@ function eyePos(M){const a=A(),P=a.P;return new (a.THREE.Vector3)(P.pos.x,(P.vis
 function sightPos(M){const a=A(),P=a.P,e=eyePos(M);if(!M.ow.roof.on)return e;e.x+=-Math.sin(P.yaw)*.7;e.z+=-Math.cos(P.yaw)*.7;e.y+=P.crouch?.08:0;return e}
 function shoot(M){const a=A(),O=M.ow,R=O.rifle,P=a.P,box=R.box[R.type];
   if(R.boltT>0||P.rl||P.equipT>0||O.roof.fade>0)return;
+  if(friendlyInLine(M)){holdFire(M);return}
   if(box.mag<=0){a.snd&&a.snd('click');R.boltT=.3;if(box.res>0&&G().reload)G().reload();else if(R.type==='bean'&&!O.say.empty){O.say.empty=1;say('doug',"Green box, Hawk. Next to me. Where it's been all day.",true)}return}
   box.mag--;R.boltT=TUNE.bolt;O.stats.shots++;
   const dir=aimDir(M),eye=sightPos(M),T=TUNE[R.type],sc=scoped(M);
@@ -386,12 +387,12 @@ function projStep(dt,M){const a=A(),O=M.ow,T=a.THREE;if(!_ray.r)_ray.r=new T.Ray
     p.pos.copy(to);p.mesh.position.copy(to);const v=p.vel.clone().normalize();p.mesh.lookAt(to.clone().sub(v));const len=Math.min(p.type==='bean'?2.2:9,p.t*p.vel.length()*.5);p.mesh.userData.tail.scale.set(1,1,Math.max(.01,len));p.mesh.userData.tail.position.z=0;
     if(p.t>3||to.y<-5){removeProj(p);O.proj.splice(i,1)}}}
 function removeProj(p){if(p.mesh&&p.mesh.parent)p.mesh.parent.remove(p.mesh)}
-/* what a round meets between two points: threats (hitboxes), Kevin, the car's tyres and body, the scarecrow, the world, the ground */
+/* what a round meets between two points: threats (hitboxes), the car's tyres and body, the scarecrow, the world, the ground */
 function segHit(M,p,from,to){const a=A(),O=M.ow,T=a.THREE,ray=_ray.r,dir=to.clone().sub(from),L=dir.length();if(L<1e-4)return null;dir.multiplyScalar(1/L);
   ray.set(from,dir);ray.near=0;ray.far=L;let best=null;const take=h=>{if(h&&(!best||h.distance<best.distance))best=h};
   const meshes=[],own=new Map();
-  for(const t of O.threats){const e=t.e;if(!e||e.state==='dead'||e.state==='cuffed'||t.st==='gone')continue;if(segDist(from,to,e.pos.x,(t.y||0)+1,e.pos.z)>3)continue;for(const m of e.dude.meshes){meshes.push(m);own.set(m,{kind:'threat',t})}}
-  if(O.kevin&&O.kevin.d&&O.kevin.st!=='gone'&&segDist(from,to,O.kevin.x,.8,O.kevin.z)<3)for(const m of O.kevin.d.meshes){meshes.push(m);own.set(m,{kind:'kevin'})}
+  for(const t of O.threats){const e=t.e;if(!e||e.state==='dead'||e.state==='cuffed'||t.st==='gone'||prot(e.dude))continue;if(segDist(from,to,e.pos.x,(t.y||0)+1,e.pos.z)>3)continue;for(const m of e.dude.meshes){meshes.push(m);own.set(m,{kind:'threat',t})}}
+  /* Kevin is never in this list: a child can't be hit by anything (owner rule), the round flies on to whatever is behind him */
   if(meshes.length){const h=ray.intersectObjects(meshes,false)[0];if(h){h.who=own.get(h.object);take(h)}}
   /* near misses: civilians flinch, threats might bolt */
   for(const c of O.civs){if(!c.d||c.gone)continue;const d=segDist(from,to,c.x,1,c.z);if(d<TUNE.civNear&&!p.near.has(c)){p.near.add(c);p.nearCiv=c}}
@@ -409,14 +410,13 @@ function segCyl(o,d,L,cx,cz,r,y0,y1){/* vertical cylinder: first entry distance 
 function impact(M,p,h){const a=A(),O=M.ow,F_=FX(),pt=h.point,who=h.who,dir=p.vel.clone().normalize();O.lastHit={k:who?who.kind:h.ground?'ground':'world',x:+pt.x.toFixed(1),y:+pt.y.toFixed(1),z:+pt.z.toFixed(1),t:+p.t.toFixed(2)};
   const Au=AUD();
   if(who&&who.kind==='threat'){hitThreat(M,who.t,p,h);try{F_&&F_.impact(pt,dir.clone().negate(),'cloth',{big:p.type==='live',color:p.type==='bean'?[1,.55,.15]:[.35,.45,.6]})}catch(_){}try{Au&&Au.impact(p.type==='bean'?'beanbag':'cloth',pt)}catch(_){}}
-  else if(who&&who.kind==='kevin'){kevinShot(M,p)}
   else if(who&&who.kind==='scare'){O.scare.wob=1.2;O.sight.done=true;O.stats.hits++;try{F_&&F_.impact(pt,dir.clone().negate(),'wood',{color:[.9,.8,.4]})}catch(_){}
     const d=Math.round(Math.hypot(pt.x-a.P.pos.x,pt.z-a.P.pos.z));say('doug',p.type==='bean'?pick(["Sweet corn. You're zeroed.","Right in the flannel. "+ESw(d)+" metres, and you held over like you meant it.","Scarecrow's had a day. You're zeroed."]):"That was a live round into Rosa's scarecrow. She's going to want a word. You're zeroed, though.",true)}
   else if(who&&who.kind==='tyre'){tyre(M,who,p)}
   else if(who&&who.kind==='car'){try{F_&&F_.impact(pt,dir.clone().negate(),'metal',{})}catch(_){}try{Au&&Au.impact('metal',pt)}catch(_){}if(p.type==='bean'&&!O.say.beanCar){O.say.beanCar=1;say('doug',"Beans bounce off cars, Hawk. Red box. Tyres.",true)}}
   else{try{if(F_){if(h.object&&h.face)F_.hit(h,{big:p.type==='live'});else F_.impact(pt,new (a.THREE.Vector3)(0,1,0),h.ground?'dirt':'concrete',{big:p.type==='live'})}}catch(_){}try{Au&&Au.impact(h.ground?'dirt':'concrete',pt)}catch(_){}}
   /* a miss counts as a spook: anyone within 2 m of where it landed, or who heard it go past, might bolt */
-  if(!(who&&(who.kind==='threat'||who.kind==='kevin'))){for(const t of O.threats){if(!t.e||t.e.state!=='idle'||t.st==='gone'||t.st==='run'&&t.fled)continue;
+  if(!(who&&who.kind==='threat')){for(const t of O.threats){if(!t.e||t.e.state!=='idle'||t.st==='gone'||t.st==='run'&&t.fled)continue;
       const d=Math.hypot(t.e.pos.x-pt.x,t.e.pos.z-pt.z);if(d<TUNE.spookR||p.near.has(t))spook(M,t)}}
   if(p.nearCiv||O.civs.some(c=>c.d&&!c.gone&&Math.hypot(c.x-pt.x,c.z-pt.z)<TUNE.civNear+.4))civScare(M,p.nearCiv||O.civs.find(c=>c.d&&!c.gone&&Math.hypot(c.x-pt.x,c.z-pt.z)<TUNE.civNear+.4));
   const OW_=OWm();if(OW_&&OW_.neighbourCower)try{OW_.neighbourCower(pt.x,pt.z,12)}catch(_){}}
@@ -518,15 +518,24 @@ function garyNext(M){const a=A(),O=M.ow,E=O.esc,g=E.member('gary');O.garyBusy=fa
 /* ---------------- Kevin, his Super Soaker, and the neighbours ---------------- */
 function kevin(M,o){const O=M.ow;O.kevin={x:o.x,z:o.z,st:'pending',delay:o.delay,t:0,ided:false}}
 function kevinStep(dt,M){const a=A(),O=M.ow,K=O.kevin;if(!K||K.st==='gone')return;
-  if(K.st==='pending'){K.delay-=dt;if(K.delay>0)return;K.d=dude({role:'neighbour',variant:'nb_kid',shirt:'#3a7bd5',pants:'#444'});a.equip(K.d,'beanbag');if(K.d.gun)K.d.gun.visible=false;
+  if(K.st==='pending'){K.delay-=dt;if(K.delay>0)return;K.d=dude({role:'neighbour',variant:'nb_kid',shirt:'#3a7bd5',pants:'#444'});K.d.protected=true;a.equip(K.d,null);
     const toy=soaker();if(K.d.gunHold){K.d.gunHold.add(toy);toy.position.set(0,.02,-.05)}else toHand(K.d,toy,'R');K.st='aim';K.t=0;
     later(M,0.5,()=>{if(K.st==='aim'){say('kevin',"Pew! Pew pew! PEW!",true);say('rosa',"Contact! Small guy, behind the fence, he's pointing something at Gary!",true)}})}
   K.t+=dt;const E=O.esc,g=E&&E.member('gary');
   if(K.st==='aim'){const tx=g?g.pos.x:K.x,tz=g?g.pos.z:K.z+5;const yaw=Math.atan2(-(tx-K.x),-(tz-K.z));K.d.root.position.set(K.x,a.groundAt(K.x,K.z),K.z);K.d.root.rotation.y=yaw+Math.PI;pose(K.d,dt,{aim:true,moving:false});
     if(K.t>22){K.st='leave';say('gary',"Kevin? Kevin, is that you? Go home, buddy. Tell your mom I said hi.",true);later(M,1.5,()=>{say('kevin',"Aww.")})}}
   else if(K.st==='leave'){K.x+=-1.6*dt*1.3;K.z-=1.6*dt*.4;K.d.root.position.set(K.x,a.groundAt(K.x,K.z),K.z);K.d.root.rotation.y=Math.atan2(1.3,.4)+Math.PI;pose(K.d,dt,{moving:true,speed:1.1,aim:false});if(K.t>30||K.x<380){K.st='gone';if(K.d.root.parent)K.d.root.parent.remove(K.d.root)}}}
-function kevinShot(M,p){const a=A(),O=M.ow,K=O.kevin;O.stats.kevin=-1;a.addTrust(-10,'river');K.st='gone';
-  a.endMission(false,p.type==='bean'?"You beanbagged Kevin. Kevin is nine. Kevin's mom is on her way. Okay. Let's take a breath and start over.":"Doug took the rifle off you before you could do anything else. Okay. Let's take a breath and start over.","Hold fire. That was Kevin.")}
+/* owner rule: a child can never be shot. Any shot whose line passes within KID_R m of Kevin is refused: the dad lowers the rifle
+   (the scope drops) and Doug says so. The scope labels him FRIENDLY · HOLD FIRE whenever he's in the lens. */
+const KID_R=3;
+function friendlyInLine(M){const O=M.ow,K=O.kevin;if(!K||!K.d||K.st==='gone'||K.st==='pending')return false;
+  const eye=sightPos(M),dir=aimDir(M),to=eye.clone().addScaledVector(dir,400);return segDist(eye,to,K.x,.8,K.z)<KID_R||segDist(eye,to,K.x,1.4,K.z)<KID_R}
+function holdFire(M){const a=A(),O=M.ow,R=O.rifle;R.lowerT=1.2;R.boltT=Math.max(R.boltT,.5);a.P.aim=false;O.stats.holdFire=(O.stats.holdFire||0)+1;
+  if(!O.say.hold||a.simT-O.say.hold>6){O.say.hold=a.simT;say('doug',O.kevin&&O.kevin.ided?"That's Kevin. Rifle down, Hawk. Not even close to him.":"Rifle down. That's a kid. Hold fire.",true)}
+  a.feed('Friendly · hold fire','info','A kid is in the line of fire')}
+function lowerStep(dt,M){const a=A(),R=M.ow.rifle;if(R.lowerT>0){R.lowerT-=dt;a.P.aim=false}
+  /* resting the crosshair on Kevin for a moment lowers the rifle too */
+  if(scoped(M)&&friendlyInLine(M)){R.onKid=(R.onKid||0)+dt;if(R.onKid>1.4){R.onKid=0;holdFire(M)}}else R.onKid=0}
 function civ(M,o){const O=M.ow;const c=Object.assign({x:o.path[0].x,z:o.path[0].z,k:0,t:0,st:'pending',d:null},o);O.civs.push(c);return c}
 function civStep(dt,M){const a=A(),O=M.ow;for(const c of O.civs){if(c.gone)continue;
     if(c.st==='pending'){c.delay=(c.delay||0)-dt;if(c.delay>0||!O.cast&&c.delay>-4)continue;c.d=dude({role:c.role||'neighbour',variant:c.key,shirt:'#9a8',pants:'#444'});a.equip(c.d,null);
@@ -654,7 +663,8 @@ function drawMarks(M,g,W,H,sc,cx,cy,Rl){const a=A(),O=M.ow,cam=a.camera;const P=
       g.fillStyle=surr?'rgba(255,210,80,.95)':'rgba(255,90,70,.95)';g.fillText(surr?'HANDS UP':(t.st==='lurk'?'MARKED':'ARMED')+' · '+Math.round(d)+' m',p.x,p.y-s-6)}
     else{g.beginPath();g.moveTo(p.x,p.y-s-14);g.lineTo(p.x+s,p.y-14);g.lineTo(p.x,p.y+s-14);g.lineTo(p.x-s,p.y-14);g.closePath();g.fillStyle=surr?'rgba(255,210,80,.9)':'rgba(255,70,50,.9)';g.fill();g.fillStyle='#fff';g.fillText(Math.round(d)+' m',p.x,p.y-24)}}
   const E=O.esc;if(E){const w=E.member('ferreira');if(w){const p=proj(w.pos.x,2.1,w.pos.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.95)';g.beginPath();g.moveTo(p.x-6,p.y-8);g.lineTo(p.x+6,p.y-8);g.lineTo(p.x,p.y);g.closePath();g.fill();if(!sc){g.fillStyle='#e8ffe9';g.fillText('Mr. Ferreira',p.x,p.y-12)}}}}
-  if(O.kevin&&O.kevin.ided&&O.kevin.d&&O.kevin.st!=='gone'){const p=proj(O.kevin.x,1.6,O.kevin.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(80,170,255,.95)';g.fillText('KEVIN · HOLD FIRE',p.x,p.y-6)}}
+  if(O.kevin&&O.kevin.d&&O.kevin.st!=='gone'&&O.kevin.st!=='pending'&&(sc||O.kevin.ided)){const p=proj(O.kevin.x,1.6,O.kevin.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.95)';g.fillText('FRIENDLY · HOLD FIRE',p.x,p.y-6);
+    if(sc&&friendlyInLine(M)){g.font='700 14px '+uiFont();g.fillStyle='rgba(110,220,130,.95)';g.fillText('KID IN THE LINE OF FIRE · RIFLE DOWN',cx,cy-Rl*.55);g.font='600 11px '+uiFont()}}}
   for(const c of O.civs){if(!c.ided||!c.d||c.gone||!sc)continue;const p=proj(c.x,2,c.z);if(p.ok&&inLens(p)){g.fillStyle='rgba(110,220,130,.85)';g.fillText('FRIENDLY',p.x,p.y-4)}}
   /* the car's tyres once Doug's called it */const C=O.car;if(C&&!C.done&&sc){for(const w of wheels(C)){const p=proj(w.x,w.y,w.z);if(!p.ok||!inLens(p))continue;g.strokeStyle=C.flats[w.i]?'rgba(255,210,80,.8)':'rgba(255,255,255,.55)';g.lineWidth=1.5;g.beginPath();g.arc(p.x,p.y,6,0,6.3);g.stroke()}}
   g.restore()}
