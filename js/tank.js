@@ -175,6 +175,8 @@ function people(a){const out=[];const add=p=>{if(p)out.push({x:p.x,z:p.z})};for(
   try{const R=HT.Range&&HT.Range.S;if(R&&R.people)for(const k in R.people){const pe=R.people[k];if(pe.d)add(pe.d.root.position)}}catch(_){}
   if(S.sarge&&S.sarge.d)add(S.sarge.d.root.position);
   try{const ow=RO().OWS;if(ow&&ow.nb)for(const n of ow.nb)if(n.d&&n.d.root.visible)add(n.d.root.position)}catch(_){}
+  /* every live character model in the world (porch neighbours, kids, the family, job casts) */
+  try{const PP=HT.People;if(PP&&PP.live){const v=new THREE.Vector3();for(const d of PP.live)if(d.root.parent&&d.root.visible){d.root.getWorldPosition(v);add({x:v.x,z:v.z})}}}catch(_){}
   for(const q of a.enemies||[])if(q.state!=='dead')add(q.pos);
   if(a.P&&a.CV)void 0;return out}
 function land(a,s){const p=s.to;s.mesh.parent&&s.mesh.parent.remove(s.mesh);s.mesh.geometry.dispose();

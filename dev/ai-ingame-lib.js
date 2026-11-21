@@ -15,6 +15,7 @@ async function open(o={}){
   if(o.before)await o.before(p);
   await p.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);window.__rafOn=true;
     window.requestAnimationFrame=cb=>{if(window.__rafOn)return raf(cb);window.__rafPending=cb;return 0}});
+  if(o.init)await p.addInitScript(o.init);
   const t0=Date.now();await p.goto('http://ht.local/index.html');
   await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:90000});
   await p.evaluate(()=>{window.__rafOn=false});await p.waitForTimeout(300);
