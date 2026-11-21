@@ -1894,14 +1894,12 @@ function endMission(ok,why,title){
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust),tr=Math.round(prog.trustR||0),both=MISSIONS.length>4,good=both?t>=70&&tr>=70:t>=70;
-  HUD.show('result',{stamp:(both?'Maple Heights & Riverside Flats':'Maple Heights')+' · One month later',title:good?'Doors unlocked.':'Quiet, anyway.',goLabel:'New Saturday',canRetry:both,retryLabel:'Keep driving',
+  HUD.show('result',{stamp:(both?'Maple Heights & Riverside Flats':'Maple Heights')+' · One month later',title:good?'Doors unlocked.':'Quiet, anyway.',goLabel:'Keep driving',canRetry:false,/* this card never wipes the campaign any more: there are dozens of jobs beyond the first nine; a new game lives in the title and pause menus */
     text:(both?(good?"Kids bike to school on both sides of the river. The chop shop is a climbing gym and the scrapyard is the Second Gear Auto School; the Duke changes the oil. ":"The dens are gone on both sides of the river. People wave, a little carefully. Trust takes longer to rebuild than a fence. ")
       +"Rosa still won't wear the polo. Earl's bike library has a waiting list. The guys still meet Saturdays. Mostly they just grill."
       :(t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence.")+' The guys still meet Saturdays. Mostly they just grill.'),
     stats:[['Maple trust',t+'%'],...(both?[['Riverside trust',tr+'%']]:[]),['Zip-tied',prog.cuffed||'Nobody',prog.cuffed?(prog.cuffed===1?'person':'people')+' who got a second chance':'this time'],['Regrets',prog.shotSurr||'None',prog.shotSurr?'you think about at night':'you can name']]});
-  UI.acts={'result:go':()=>{Object.assign(prog,{done:prog.done.map(()=>false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0});WM.finaleSeen=false;WM.beat=false;const s=SV();if(s){s.flags.act2Intro=false;s.flags.finale2=false;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}
-      HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()},
-    'result:retry':()=>{WM.finaleSeen=true;const s=SV();if(s){s.flags.finale2=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
+  UI.acts={'result:go':()=>{WM.finaleSeen=true;const s=SV();if(s){s.flags.finale2=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
 function setObj(t,lines){if(mode==='mission'&&M&&M.leaveLine)lines=[...lines,M.leaveLine];UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?{text:l}:{text:l[0],done:!!l[1],warn:l[2]==='warn'})}}
 
 /* ================= INPUT ================= */
