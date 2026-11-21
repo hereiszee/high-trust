@@ -2015,7 +2015,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k===' '&&!VAN.on)P.jumpBuf=MOVE.buf;
   if(k==='r')reload();if(k==='v')P.fp=!P.fp;if(k==='c'||k==='control')P.crouch=!P.crouch;
   if(k==='1'||k==='2'||k==='3'){const w=P.loadout[SLOT_KEYS[+k-1]];if(w)swap(w)}
-  if(k==='q')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);
+  if(k==='q'&&!(CV&&CV.type==='jet'))swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);/* in the jet Q is nose down (js/jet.js) */
   if(k==='h'&&VAN.on)honk();
   if(k==='f')nightToggle('flash');if(k==='n')nightToggle('nvg');/* flashlight, night-vision goggles (SKY + ENVIRONMENT: NIGHT) */
   if(k==='e')useTap=true});

@@ -164,7 +164,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     else{await fly({to:[520,d.runway.z],alt:90,spd:70,max:500,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
       await fly({to:[720,d.runway.z],alt:40,spd:60,max:300,until:q=>q.x>680});/* out past the threshold, then a long final */
       await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:400,until:q=>q.x<480&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
-      await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
+      j=await js();const autoG=j.gear===1;if(!autoG)await press('g');j=await js();ok(j.gear===1,'gear down for landing ('+(autoG?'came down by itself on the approach':'G')+')');
       await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
       for(let i=0;i<10;i++)await p.keyboard.press('s');/* taps to idle: idle on the ground brakes on its own */for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
