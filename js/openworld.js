@@ -1420,7 +1420,14 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     trSep(t,obs);t.seen=seen(c.x,c.z);
     trSync(t,lvl,t.cap<.8||Math.abs(c.spd)<.3&&cap!==Infinity,dt);
     const gone=Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off||(t.wait>=TR.gone||t.reroutes>=2&&t.wait>8||t.wreck&&t.wreckT>90)&&!seen(c.x,c.z);
-    if(gone){if(!o.off&&(t.wait>=TR.gone||t.reroutes>=2||t.wreck))log(t,'despawn',{wait:+t.wait.toFixed(1),wreck:!!t.wreck});trDrop(T,lvl,t);T.cars.splice(i,1)}}};
+    if(gone){if(!o.off&&(t.wait>=TR.gone||t.reroutes>=2||t.wreck))log(t,'despawn',{wait:+t.wait.toFixed(1),wreck:!!t.wreck});trDrop(T,lvl,t);T.cars.splice(i,1)}}
+  /* 5. jams of three (a shove into a queue): split what is left between the traffic cars, fixed things push fully; a few rounds */
+  const fixed=obs.filter(q=>!q.ref&&q.k!=='prop');
+  for(let it=0;it<3;it++){let any=false;const B=T.cars.map(trBox);
+    for(let a=0;a<B.length;a++){for(let b=a+1;b<B.length;b++){if(Math.abs(B[a].x-B[b].x)>9||Math.abs(B[a].z-B[b].z)>9)continue;const h=obbSat(B[a],B[b]);if(!h||h.d<.001)continue;any=true;
+        const ca=T.cars[a].c,cb=T.cars[b].c,k=h.d/2;ca.x+=h.nx*k;ca.z+=h.nz*k;cb.x-=h.nx*k;cb.z-=h.nz*k;B[a].x=ca.x;B[a].z=ca.z;B[b].x=cb.x;B[b].z=cb.z}
+      for(const q of fixed){if(Math.abs(q.x-B[a].x)>9||Math.abs(q.z-B[a].z)>9)continue;const h=obbSat(B[a],q);if(!h||h.d<.001)continue;any=true;const ca=T.cars[a].c;ca.x+=h.nx*h.d;ca.z+=h.nz*h.d;B[a].x=ca.x;B[a].z=ca.z}}
+    if(!any)break;for(const t of T.cars)trSync(t,lvl,t.cap<.8,0)}};
 /* push this traffic car (only it) out of anything it overlaps */
 function trSep(t,obs){const c=t.c;for(let pass=0;pass<4;pass++){const A=trBox(t);let any=false;
   for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
