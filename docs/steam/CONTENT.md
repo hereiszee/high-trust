@@ -4,15 +4,71 @@ Audit date: 2026-11-21. Read-only sweep of `index.html`, `js/*.js`, `js/jobs/*.j
 
 Severity key: **HIGH** = fix before submission (legal or content-rule risk, or a stated design rule is broken). **MED** = fix, or accept it knowingly. **LOW** = noted, probably fine.
 
+## State after the release-content pass (2026-11-21, branch `work/release-content`)
+
+The findings below are the original audit notes. This section says what changed since. Job ids and save keys are unchanged.
+
+Owner's scope for brands and originality: change only what is a real legal or store-review risk (copied trade dress or logos, a real organisation or person shown doing wrong or disparaged, a real mark reproduced as artwork on a sign or texture, a real vehicle badge as the name of a drivable vehicle). Ordinary passing mentions in dialogue stay.
+
+### Changed (real risk)
+
+| Old | New | Why | Where |
+|---|---|---|---|
+| Dadazon trade dress: navy `#232f3e`, orange `#ff9900` wordmark, `#ffa41c` stars, `#b12704` prices, blue smile stripe on porch boxes, orange stickers/uniform, navy van | Name kept. Lawn-green `#2e5e3e` header, cream serif wordmark, tagline "IT'S HERE WHEN IT'S HERE", blue stars, green prices; a small green stamp instead of the stripe; green stickers, courier uniform and delivery van; the shop icon shows a little house instead of the curved mark | copied trade dress | home.js, index.html, save.js, porch.js, patrol.js |
+| Rotary Club / ROTARY vest (25% of runs make that collector the fraudster) | the Golden Spatula Club / SPATULA vest ("Flip for it!") | real organisation shown as a fraudster | arrest.js, SPEC3.md |
+| Riverside Scouts / SCOUTS vest (same random fraudster pick) | Riverside Trail Club / TRAIL CLUB | same | arrest.js |
+| Shop sign QUIKSTOP · OPEN 24 HOURS | QUICK-ISH · OPEN 24-ISH HOURS | real chain name as sign artwork | buildings.js |
+| Shop sign SAV-MOR · BEER · SNACKS · ICE | CENT-SIBLE · SNACKS · ICE · ROOT BEER (also drops the only beer sign) | same | buildings.js |
+| Poster "live · Elks Lodge · Fri" | "live · Maple Social Club · Fri" | real organisation's name on poster artwork | world.js |
+| Shop item "NightOwl Gen-1 Goggles" | "Hoot-Vision Gen-1 Goggles" | real optics brand as an in-game product name | save.js, dev/save.test.js |
+| Weekend Nailer yellow + black | purple + black | DeWalt colour trade dress on a 3D model | guns.js |
+
+### Reviewed, low risk, kept
+
+Each was checked for disparagement or implied endorsement; none is shown doing wrong, and none is a logo, sign artwork or a drivable vehicle's name.
+
+| Mention | Where | Verdict |
+|---|---|---|
+| Costco ×5 ("You lost, Costco?", "Wrong car, Costco.", "Mine is Costco.", "the Costco on Route 9", "Wore it to Costco") | index.html, openworld.js, pawn.js, talk.js | passing mention, kept |
+| Walgreens parking lot | talk.js | kept |
+| Gatorade | crossing.js | kept |
+| Buick (Barb's sister's car; Pam's car label in Cone Zone; neither is drivable) | hoa.js, cones.js | kept |
+| Sienna, Corolla | ai.js, taxi.js | kept |
+| Super Soaker (Kevin's toy) | overwatch.js | kept |
+| Mario Kart, Minecraft, Disney strap, Roomba, crockpot, Rocket Pop, Little League | home.js, patrol.js, heist.js, tank.js, jet.js, index.html, taxi.js | kept |
+| Obama ("a granola bar from the Obama administration"), Springsteen ("It's mostly Springsteen.") | eggs.js, home.js | neutral real-person references, kept |
+| "You can't stop Prime Day!" | ai.js | kept (owner) |
+| KIDZ 98 "All bop, all day", SMOOTH 88.3 | _stops.js | parody station names, kept |
+| BENNY'S BRAIN FREEZE (truck, depot sign, job title) | openworld.js, worldgen.js, _finale-street.js, index.html | common phrase, kept |
+| The Suburbanite, SUBURBAN PRIDE, Spin City, LAWN ORDER | carai.js, vehicles.js, worldgen.js, tank.js | ordinary words or puns, kept |
+
+A fresh grep for ~100 common brands, vehicle makes and products over `js/` and `index.html` finds nothing else. All sign and vehicle lettering is procedural canvas text; the only image texture with content (tex2/interiors.jpg) carries no lettering. No vehicle a player drives carries a real make or model name.
+
+### Originality
+- "End of the Line" is **kept** (a common phrase; titles are not protected).
+- The heat meter, TURF WAR banner and turf map are **kept as they were**: they reuse no asset from another game. (A restyle was tried on this branch and reverted.)
+
+### Enemy presentation (owner rules)
+- Every encounter draws from the balanced pool: the four looks loaded first (and preloaded by the Maple raids and by Brake Check, Cone Zone, Heavy Lifting, Following Distance and Hitch Happens) are now `thug_hoodie`, `thug_red`, `thug_cap`, `thug_jacket` (2 darker, 2 lighter by the albedo estimate in section 7). The shuffle bag for the `thug` role now alternates the two halves of the 10-look pool (darker half: hoodie, cap, track, fro, beanie), so consecutive spawns never stack one way. Named pairs fixed: Brake Check ATM thieves (hoodie + jacket), Exhibit HOA crew (driver hoodie, loaders track + jacket, buyer red, lookout brown), Watch Your Step porch pirate (red).
+- Allies, crew and family untouched. Nobody gains religious dress or symbols. The church building is unchanged (owner's call).
+- "Hoodie" caption on every enemy bark → **"Crew"** (overwatch fallback too). Callouts "Twelve o'clock, hoodie!" → "Twelve o'clock, one guy!", "Hoodie {where}!" → "Somebody {where}!", "Bring the good hoodies!" → "Bring the cousins!", "My good hoodie!" → "My good jacket!". The porch-pirate description "Gray hoodie. Tote bag." → "Tote bag. Fast walk." (porch.js, patrol.js). Overwatch target descriptions say "zip-up" instead of "hoodie".
+- Shop text "from thugs" → **"from crooks"** (save.js, both places). Internal `thug_*` keys are not renamed (not user-visible; renaming would touch save data and every job).
+- Fellowship Hall lookouts Marcus / Andre / DeShawn → **Owen, Mateo, Jayden**.
+- Graffiti: KINGZ → ZOOM, PPK (also a pistol model name) → WAFFLE, NO SNITCH → BLOOP; the crowned DUKE tag → FIZZ with bubbles instead of a crown.
+
+Not in this pass (other workers or owner decisions): Kevin in *Higher Ground* and the free-roam 25 m rule (fix list 1-2), more than one neighbour-child model, the church cross, the two "Families are …" lines, store copy, Doug's uniform check.
+
+Screenshots: `docs/screenshots/release-content/`.
+
 ## Design-rule verdicts
 
 | Rule | Verdict | Evidence |
 |---|---|---|
 | No guns drawn within 25 m of family or children | **VIOLATED in 2 places**, partially elsewhere | Enforced in `arrest.js:30/648/807`, `bike.js:28/526`, `moving.js:28/521`, `_finale-street.js:118/207/226`, and in whole-job `noGuns` jobs. **Not enforced:** (1) *Higher Ground*: Kevin (9, `nb_kid`) is a valid rifle and beanbag target (`js/jobs/overwatch.js:394`, `412`, `528-529`). (2) Riverside free roam: `frDraw` (`index.html:3281-3290`) never checks distance to `nb_kid`/`nb_teen` porch neighbours or the chalk/bike kids (`js/openworld.js:1290-1312`). Minor: fleeing 12-year-old lookouts as the *Fellowship Hall* raid starts (`index.html:3955`, `3967`). Narrative only: "Families are behind the bounce house" (`index.html:1001`) and "Families are in the church hall" (`index.html:3598`) during wave gunfights. |
-| Enemy cast is a mixed pool, no group in the majority | **Pool passes, presentation fails** | The 10 street-crew variants are about evenly split darker/lighter (heuristic from head-texture albedo; confirm by eye). But the 4 looks that load first and fill the 4 Maple raids (`index.html:154`) are 3 darker to 1 lighter. The darkest model is the one keyed `thug_hoodie`. All 5 dads and the family are light-skinned. Every enemy bark is captioned **"Hoodie"** (`index.html:2325`). Child lookouts are named "Marcus", "Andre" and "DeShawn" (`index.html:3940`). |
+| Enemy cast is a mixed pool, no group in the majority | **Fixed 2026-11-21** (balanced draws, Crew caption, new lookout names). Original: **Pool passes, presentation fails** | The 10 street-crew variants are about evenly split darker/lighter (heuristic from head-texture albedo; confirm by eye). But the 4 looks that load first and fill the 4 Maple raids (`index.html:154`) are 3 darker to 1 lighter. The darkest model is the one keyed `thug_hoodie`. All 5 dads and the family are light-skinned. Every enemy bark is captioned **"Hoodie"** (`index.html:2325`). Child lookouts are named "Marcus", "Andre" and "DeShawn" (`index.html:3940`). |
 | No religious dress or symbols on anyone | **Passes for people.** Fails if the rule covers buildings | Pastor Dee wears a plain suit (no collar or cross). The Riverside church **steeple has a cross** (`js/openworld.js:554`). `crossing.js:15` restates the rule. Decide whether buildings count; the simplest fix is a plain steeple or a "community hall". |
-| Signage and graffiti generic | **3 violations** | Graffiti "NO SNITCH" and "KINGZ" (`js/world.js:99`), and a crown drawn over "DUKE" (`js/openworld.js:153`), are gang-coded. Signs "QUIKSTOP" and "SAV-MOR" (`js/buildings.js:1141`) are real chain names, and the poster "Elks Lodge" (`js/world.js:111`) is a real organisation. |
-| Original (no recreation of a specific game) | **Mostly passes.** One exact name clash, two system echoes | "End of the Line" (`index.html:3573`, `js/save.js:26`) is the title of the final *GTA: San Andreas* mission; rename it (e.g. "Last Stop", which suits Earl, a retired bus driver). The 0–5 Heat meter with escalating responders and "TURF WAR" banners, plus coloured gang turf on the map, sit close to GTA wanted stars and San Andreas territories. Parody radio stations are a genre convention. No "Wasted", "Busted", "Mission Passed", Pay 'n' Spray or star icons. Music is procedural and original; horn tunes are public domain. |
+| Signage and graffiti generic | **Fixed 2026-11-21** (graffiti tags, QUIKSTOP, SAV-MOR, Elks poster). Original: **3 violations** | Graffiti "NO SNITCH" and "KINGZ" (`js/world.js:99`), and a crown drawn over "DUKE" (`js/openworld.js:153`), are gang-coded. Signs "QUIKSTOP" and "SAV-MOR" (`js/buildings.js:1141`) are real chain names, and the poster "Elks Lodge" (`js/world.js:111`) is a real organisation. |
+| Original (no recreation of a specific game) | **Passes (owner, 2026-11-21):** no copied assets; the title and the heat/turf systems stay. Original note: **Mostly passes.** One exact name clash, two system echoes | "End of the Line" (`index.html:3573`, `js/save.js:26`) is the title of the final *GTA: San Andreas* mission; rename it (e.g. "Last Stop", which suits Earl, a retired bus driver). The 0–5 Heat meter with escalating responders and "TURF WAR" banners, plus coloured gang turf on the map, sit close to GTA wanted stars and San Andreas territories. Parody radio stations are a genre convention. No "Wasted", "Busted", "Mission Passed", Pay 'n' Spray or star icons. Music is procedural and original; horn tunes are public domain. |
 
 ## Fix list, in priority order
 

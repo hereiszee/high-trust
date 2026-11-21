@@ -1,0 +1,19 @@
+Evidence: assets/guns/oga_m4a1.glb
+Checked: 2026-11-21, https://opengameart.org/content/m4a1-assault-rifle (HTTP 200)
+
+Lines read from the page:
+  Title:      M4A1 Assault Rifle
+  Author:     nisu
+  Submitted:  Sunday, April 24, 2022
+  License(s): CC0
+  Collection: 3D Assets (CC0)
+  Note:       "Public Domain (CC0) M4A1 Assault Rifle from: https://www.3dmodelscc0.com/model/m4a1-assault-rifle"
+  File:       m4a1.zip (3.6 MB)
+
+The earlier credit "BigWhyaaa" was wrong: that account only left a comment on the page (2025-07-17).
+The upstream 3dmodelscc0.com page now returns 404. Wayback snapshots exist (not opened through the proxy):
+  http://web.archive.org/web/20251105164916/https://opengameart.org/content/m4a1-assault-rifle
+  http://web.archive.org/web/20250717215014/https://www.3dmodelscc0.com/model/m4a1-assault-rifle
+
+Match with the repo file: all 15 node names (Magazine, Charging_Handle, Firemode_Selector, Ejector_Lid, ...)
+appear in the zip's M4A1.fbx; the repo normal map matches M4A1_Normal.png (mean difference 0.39/255).

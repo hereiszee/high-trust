@@ -51,7 +51,7 @@ function street(hood,seed){const k=hood+':'+(seed>>>0);if(STREETS[k])return STRE
   return STREETS[k]={hood,porches,cx,cz,road:{x:cx,z:cz+face*7},face}}
 /* ================= props ================= */
 function parcel(){const a=A(),g=new a.THREE.Group();a.box(.46,.3,.36,'#b8874f',0,.15,0,g);a.box(.47,.035,.08,'#d9c9a0',0,.3,0,g);a.box(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);
-  a.box(.06,.004,.06,'#f0a020',-.14,.302,.11,g);return g}
+  a.box(.06,.004,.06,'#3f8f5a',-.14,.302,.11,g);return g}
 function lawnChair(){const a=A(),g=new a.THREE.Group(),al='#c8ccd0';
   for(const s of[-1,1]){a.box(.03,.03,.62,al,s*.27,.36,0,g);a.box(.03,.42,.03,al,s*.27,.18,.28,g);a.box(.03,.42,.03,al,s*.27,.18,-.24,g);const back=a.box(.03,.62,.03,al,s*.27,.62,.34,g);back.rotation.x=-.25;a.box(.03,.03,.36,al,s*.27,.58,-.02,g)}
   for(let i=0;i<5;i++){a.box(.54,.012,.07,i%2?'#2f8f5a':'#f4f1ea',0,.37,-.24+i*.12,g)}
@@ -60,15 +60,15 @@ function lawnChair(){const a=A(),g=new a.THREE.Group(),al='#c8ccd0';
 /* the watch radius on the ground: shows where the chair scares pirates off (while you carry it, and faintly while you sit) */
 function ringModel(){const a=A(),T=a.THREE,g=new T.RingGeometry(.94,1,64),m=new T.MeshBasicMaterial({color:new T.Color('#ffd23f').convertSRGBToLinear(),transparent:true,opacity:.55,depthWrite:false,side:T.DoubleSide});
   RESL.push(g,m);const r=new T.Mesh(g,m);r.rotation.x=-Math.PI/2;r.position.y=.05;r.renderOrder=2;a.wmAdd(r);return r}
-function truckModel(){const a=A();const o=a.makeVehicle('workvan','#2e4a6b')||a.makeVanBox('#2e4a6b');a.wmAdd(o);if(o.userData&&o.userData.dispose)RESO.push(o);return o}
+function truckModel(){const a=A();const o=a.makeVehicle('workvan','#2e5e3e')||a.makeVanBox('#2e5e3e');a.wmAdd(o);if(o.userData&&o.userData.dispose)RESO.push(o);return o}
 let RESL=[],RESO=[];function freeRes(){for(const r of RESL)try{r.dispose()}catch(_){}for(const o of RESO)try{o.userData.dispose()}catch(_){}RESL=[];RESO=[]}
 
 /* ================= the job ================= */
 J.register(ID,{
-  def:{giver:'dadazon',giverName:'Dadazon Tracking',giverLook:{shirt:'#f0a020',pants:'#2a2a2a',cap:'#f0a020'},hood:'maple',title:'Porch Light',
+  def:{giver:'dadazon',giverName:'Dadazon Tracking',giverLook:{shirt:'#3f8f5a',pants:'#2a2a2a',cap:'#3f8f5a'},hood:'maple',title:'Porch Light',
     role:'Dadazon · Out for delivery today',place:'A delivery street',
     lines:["OUT FOR DELIVERY: parcels on one street today. Estimated arrival: between 9:00 am and the heat death of the universe.",
-      "Doug's group chat says the porch pirates are back. Gray hoodie. Tote bag. And somebody's been cruising in a sedan.",
+      "Doug's group chat says the porch pirates are back. Tote bag. Fast walk. And somebody's been cruising in a sedan.",
       "Grab the lawn chair, set it up where you can see the porches, and SIT in it. A dad in a lawn chair is the most powerful deterrent known to science."],
     obj:'Guard the porches while the truck delivers: set up the lawn chair and sit in it. A word first if a pirate takes a parcel; run him down only if he runs.',
     crew:[],weapons:[],noGuns:LINES.noGuns,from:{home:'laptop'},
@@ -160,7 +160,7 @@ function pirates(dt,M,F){const a=A(),P=a.P;if(M.stage!=='pirates')return;
 function spawnPirate(M){const a=A(),ex=M.exitsP[M.spawned%2],q=a.wmSnap(ex.x,ex.z),e=a.spawnEnemy(q.x,q.z,false);a.equip(e.dude,null);e.gun=null;e.noLeash=true;e.hp=e.maxhp=40;
   const tag=document.createElement('div');tag.className='tag';tag.textContent='PORCH PIRATE';const host=document.getElementById('tags');if(host)host.appendChild(tag);e.tag=tag;
   const p={e,st:'walk',t:-1,exit:M.exitsP[(M.spawned+1)%2],from:null};M.pir.push(p);M.spawned++;retarget(M,p);a.rebuildTargets();
-  if(M.spawned===1)a.radio('you',"Gray hoodie. Tote bag. There he is.",true)}
+  if(M.spawned===1)a.radio('you',"Tote bag. Fast walk. There he is.",true)}
 function retarget(M,p,avoid){const D=deterR(M),e=p.e;let best=-1,bd=1e9;M.porches.forEach((t,k)=>{if(t.state!=='porch')return;if(avoid&&Math.hypot(t.x-D.x,t.z-D.z)<D.r)return;const d=Math.hypot(t.x-e.pos.x,t.z-e.pos.z);if(d<bd){bd=d;best=k}});
   if(best<0){if(!avoid){p.st='leave';go(e,p.exit,3.4,()=>vanish(M,p))}return false}p.t=best;/* never leave him without a script: the combat AI would take over an unarmed man */go(e,M.porches[best],3.6,()=>grab(M,p));return true}
 function go(e,t,speed,then){e.script={kind:'to',x:t.x,z:t.z,speed,then}}

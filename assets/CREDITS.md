@@ -17,6 +17,10 @@ All files below are CC0 (public domain); no attribution required, credited anywa
 | tex/grass_{col,nrm,rgh}.jpg | Grass004 | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/view?id=Grass004 |
 | tex/siding_{col,nrm,rgh}.jpg | WoodSiding009 | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/view?id=WoodSiding009 |
 | tex/fence_{col,nrm,rgh,alpha}.jpg | Fence001 (chain-link) | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/view?id=Fence001 |
+| tex/mulch_{col,nrm,rgh}.jpg | Brown Mud Leaves 01 | Poly Haven (Rob Tuytel) | CC0 | https://polyhaven.com/a/brown_mud_leaves_01 (identified 2026-11-21 by image match against all Poly Haven textures) |
+| tex/paintwall_{col,nrm,rgh}.jpg | Painted Plaster Wall | Poly Haven (Amal Kumar) | CC0 | https://polyhaven.com/a/painted_plaster_wall (identified 2026-11-21) |
+| tex/pavers_{col,nrm,rgh}.jpg | Concrete Pavement | Poly Haven (Charlotte Baglioni) | CC0 | https://polyhaven.com/a/concrete_pavement (identified 2026-11-21) |
+| tex/plywood_{col,nrm,rgh}.jpg | Plywood | Poly Haven (Rob Tuytel) | CC0 | https://polyhaven.com/a/plywood (identified 2026-11-21) |
 | sky/sky_1k.hdr, sky/sky_2k.jpg (tonemapped) | Kloofendal 48d Partly Cloudy (Pure Sky) | Poly Haven (Greg Zaal, Jarod Guest) | CC0 | https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky |
 
 ## Characters (assets/chars/)
@@ -26,11 +30,6 @@ All character models and animations: **Ultimate Modular Men** pack ("Ultimate Mo
 | File | Source outfit | Source URL | License | Author |
 |---|---|---|---|---|
 | chars/dad_casual.glb (+ all 24 animation clips) | Male/Casual_2 | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Casual_2.glb | CC0 | Quaternius |
-| chars/dad_beard.glb | Male/Adventurer (backpack removed) | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Adventurer.glb | CC0 | Quaternius |
-| chars/dad_worker.glb | Male/Worker | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Worker.glb | CC0 | Quaternius |
-| chars/thug_hoodie.glb | Male/Casual_Hoodie | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Casual_Hoodie.glb | CC0 | Quaternius |
-| chars/thug_punk.glb | Male/Punk | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Punk.glb | CC0 | Quaternius |
-| chars/boss_suit.glb | Male/Suit (includes Pistol mesh) | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Suit.glb | CC0 | Quaternius |
 
 ## Vehicles, weapons and props (assets/props/)
 
@@ -39,7 +38,6 @@ All CC0 (public domain); no attribution required, credited anyway. Poly Haven it
 | Local file(s) | Source asset | Author | License | Source URL |
 |---|---|---|---|---|
 | props/car_van.glb, car_suv.glb, car_sedan.glb, car_hatchback.glb | Car Kit 3.1 (van, suv, sedan, hatchback-sports) | Kenney | CC0 | https://kenney.nl/assets/car-kit (via mirror https://github.com/Arslan12216775/kenney_car-kit) |
-| props/gun_pistol.glb, gun_shotgun.glb, gun_rifle.glb | Ultimate Gun Pack (Pistol_1, Shotgun_2, AssaultRifle2_1) | Quaternius | CC0 | https://opengameart.org/content/low-poly-guns-pack |
 | props/tree_oak.glb, tree_tall.glb, tree_pine.glb, bush.glb | Stylized Nature MegaKit, standard (CommonTree_1, CommonTree_3, Pine_2, Bush_Common) | Quaternius | CC0 | https://opengameart.org/content/stylized-nature-megakit |
 | props/crate.glb, crate_long.glb, crate_slat.glb, pallet.glb | CC0 Crates & Wooden Pallet (Crate1-3, WoodenPallet) | lucian-pavel | CC0 | https://opengameart.org/content/cc0-crates-wooden-pallet |
 | props/mailbox.glb | Low Poly Textured Mailbox | braveo | CC0 | https://opengameart.org/content/low-poly-textured-mailbox |
@@ -56,7 +54,7 @@ All CC0 (public domain); no attribution required, credited anyway. Poly Haven it
 | props/cardboard_box.glb | Cardboard Box 01 | Poly Haven (Rahul Chaudhary) | CC0 | https://polyhaven.com/a/cardboard_box_01 |
 | props/chest_wood.glb | Wooden Crate 02 | Poly Haven (James Ray Cock, Jurita Burger) | CC0 | https://polyhaven.com/a/wooden_crate_02 |
 
-## Family, home decor and extra guns (assets/family/, assets/home/, assets/guns2/)
+## Family and home decor (assets/family/, assets/home/)
 
 All files below are CC0 1.0 (public domain); no attribution required, credited anyway. Poly Haven items: 1k glTF, textures resized to 512px JPG (Sofa_01 kept at 1k), packed to GLB with glTF-Transform (dedup, prune, KHR_mesh_quantization; bench_vice_01 not quantized because it is skinned). Kenney furniture: KHR_materials_unlit removed so it takes scene lighting, wrapped in a x2 scale node (meters). Quaternius guns: wrapped in a "Gun" node scaled to meters, muzzle along -Z (same convention as props/gun_*.glb). Family characters use the same 62-bone Quaternius rig as chars/ (animations stripped; share chars/dad_casual.glb clips); kids are adult rigs under a "KidScale" node (0.62 / 0.66). Mirror used for Quaternius animals/guns, Kenney kits and the CodePawl models: https://github.com/series-ai/jam-ready-assets (each pack ships its own CC0 License.txt).
 
@@ -66,8 +64,7 @@ All files below are CC0 1.0 (public domain); no attribution required, credited a
 | family/kid_daughter.glb | Ultimate Modular Women, Female/Adventurer | Quaternius | CC0 | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Female/Adventurer.glb |
 | family/kid_son.glb | Ultimate Modular Men, Male/Beach | Quaternius | CC0 | https://cdn.jsdelivr.net/gh/LuanDucate/Ducz.CharacterCreator@main/public/models/Male/Beach.glb |
 | family/dog_shiba.glb | Ultimate Animated Animals, ShibaInu | Quaternius | CC0 | https://quaternius.com/packs/ultimateanimatedanimals.html (glb via https://github.com/Dustyluc123/goblo/tree/main/client/assets/quaternius/ultimate-animated-animals) |
-| guns2/revolver.glb, smg.glb, hunting_rifle_scoped.glb, shotgun_sawedoff_db.glb, shotgun_pump_wood.glb | Ultimate Gun Pack (Revolver_2, SubmachineGun_1, SniperRifle_6, Shotgun_SawedOff, Shotgun_4) | Quaternius | CC0 | https://quaternius.com/packs/ultimategun.html |
-| guns2/nail_gun_pixel.glb, flare_gun_pixel.glb; home/pixel_*.glb (barbecue_grill, doghouse, pet_bed, combination_safe, footlocker, tall_trophy_cup, award_plaque) | Pixel Art Atlas GLB models | CodePawl, from Pixel Art Atlas by Angais | CC0 | https://huggingface.co/datasets/codepawl/pixel-atlas-glb |
+| home/pixel_*.glb (barbecue_grill, doghouse, pet_bed, combination_safe, footlocker, tall_trophy_cup, award_plaque) | Pixel Art Atlas GLB models | CodePawl, from Pixel Art Atlas by Angais | CC0 | https://huggingface.co/datasets/codepawl/pixel-atlas-glb (listed by the dataset as AI-generated: see docs/steam/LICENCES.md B5) |
 | home/kenney_{televisionModern,cabinetTelevision,rugRounded,rugRectangle,lampRoundFloor,bedDouble,kitchenFridgeLarge,kitchenCabinet,kitchenSink,kitchenStove}.glb | Furniture Kit 2.1 | Kenney | CC0 | https://kenney.nl/assets/furniture-kit |
 | home/kenney_trophy.glb | Mini Arena (trophy) | Kenney | CC0 | https://kenney.nl/assets/mini-arena |
 | home/Sofa_01.glb | Sofa 01 | Poly Haven (Kirill Sannikov) | CC0 | https://polyhaven.com/a/Sofa_01 |
@@ -136,3 +133,20 @@ See assets/credits/guns.md.
 ## Vehicles (js/vehicles.js)
 
 No third-party vehicle models are used. A search for redistributable realistic car models (CC0 / CC-BY / MIT, glb/gltf/obj/fbx) turned up only paid, editorial-only, low-poly/stylised or machine-generated assets, so all six vehicle types (minivan, sedan, SUV, hatchback, pickup, work van) are generated procedurally at runtime by `js/vehicles.js` (original code, same license as the game). Tyre tread, grille, licence-plate, LED and bumper-sticker textures are drawn at runtime on canvases. The test page `dev/vehicles.html` uses the existing CC0 sky HDR and asphalt textures listed above.
+
+## World props and decals (assets/world/)
+
+All CC0 1.0. Provenance re-established on 2026-11-21: each file was compared with the official download (models: node names, vertex counts and bounding boxes; decals: alpha/colour correlation with the source maps).
+
+| Local file | Source asset | Author | License | Source URL |
+|---|---|---|---|---|
+| world/grass_medium_02.glb | Grass Medium 02 (1k glTF, unmodified) | Poly Haven (Rico Cilliers) | CC0 | https://polyhaven.com/a/grass_medium_02 |
+| world/shrub_02.glb | Shrub 02 (1k glTF, unmodified) | Poly Haven (Rico Cilliers) | CC0 | https://polyhaven.com/a/shrub_02 |
+| world/shrub_04.glb | Shrub 04 (separate export of the asset credited under home/) | Poly Haven contributors | CC0 | https://polyhaven.com/a/shrub_04 |
+| world/pull_chain_light_socket.glb | Pull Chain Light Socket (1k glTF, unmodified) | Poly Haven (Josh Dean) | CC0 | https://polyhaven.com/a/pull_chain_light_socket |
+| world/hanging_industrial_lamp.glb | Hanging Industrial Lamp (separate export of the asset credited under home/) | Poly Haven contributors | CC0 | https://polyhaven.com/a/hanging_industrial_lamp |
+| world/wooden_picnic_table.glb | Wooden Picnic Table | Poly Haven contributors | CC0 | https://polyhaven.com/a/wooden_picnic_table |
+| world/asphalt_patch.png | Asphalt Damage 001 (colour + opacity, 512 px) | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/a/AsphaltDamage001 |
+| world/leak_a.png | Leaking 012 A (alpha from the inverted colour map, flat brown fill) | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/a/Leaking012A |
+| world/leak_b.png | Leaking 016 A (same treatment) | ambientCG (Lennart Demes) | CC0 | https://ambientcg.com/a/Leaking016A |
+| home/potted_plant_02.glb | Potted Plant 02 (simplified and quantized with glTF-Transform, textures 512 px) | Poly Haven (Rico Cilliers) | CC0 | https://polyhaven.com/a/potted_plant_02 |

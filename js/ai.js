@@ -87,7 +87,7 @@ AI.buildNav=function(grid,opts){
   nav.walkAt=(x,z)=>{const i=nav.cellOf(x,z);return i>=0&&walk[i]===1};
 
   /* line of sight, sampled every 0.5 m like the game's losClear(). High blockers always block. Low cover (crates, hedges)
-     only hides a crouched man it is close to: a crate next to a standing dad 15 m away doesn't hide a crouched hoodie,
+     only hides a crouched man it is close to: a crate next to a standing dad 15 m away doesn't hide a crouched man,
      the dad's eye (and camera) look straight over it. crouch: 'a' or 'b' = that end is crouched, true = both, falsy = neither */
   const LR=o.lowReach,LB=o.lowBox||{},HB=o.hiBox||{};
   /* exact segment vs. the prop's box in cell k: [t0,t1] along a->b, or null */
@@ -281,7 +281,7 @@ AI.BARKS={
   flanking:["I'm going around!","I'll get behind him!","Taking the side, keep him busy!"],
   suppress:["Keep his head down!","Covering fire!","Light him up, I'm moving!"],
   advance:["Moving up!","Pushing!","Going forward, cover me!"],
-  hit:["Ow! Ow!","He got me!","That's gonna bruise!","My good hoodie!"],
+  hit:["Ow! Ow!","He got me!","That's gonna bruise!","My good jacket!"],
   friendDown:["Man down!","They got him!","Oh no. Oh no no no.","Bro's down!"],
   surrender:["Okay! Okay! I give up!","Don't shoot! I got a mom!","I'm done, I'm done!","Hands up! See? Hands!"],
   searching:["Where'd he go?","Come out, dad-guy.","Check behind the minivan.","I can smell sunscreen. He's close."],
@@ -291,15 +291,15 @@ AI.BARKS={
   flanked:["He's on our side!","He's flanking!","Where's he shooting from?!"],
   minivan:["They brought a minivan. To a raid.","Is that a Sienna? Respect.","Nobody touch the minivan, it's got car seats."],
   taunt:["Every porch in Maple Heights pays tribute!","You can't stop Prime Day!","Signature required, dad!","Your doorbell camera can't save you now!","I've got your packages AND your HOA dues!"],
-  bossCall:["Boys! Get in here!","Reinforcements! Bring the good hoodies!"],
+  bossCall:["Boys! Get in here!","Reinforcements! Bring the cousins!"],
   bossRetreat:["Fall back to the office!","You'll never take my package room!"],
  },
  ally:{
-  contactFront:["Contact front!","Twelve o'clock, hoodie!"],
+  contactFront:["Contact front!","Twelve o'clock, one guy!"],
   contactLeft:["Contact left!","Left side! Left side!"],
   contactRight:["Contact right!","On your right, buddy!"],
   contactBehind:["Behind us!","Check six! Like the minivan mirrors!"],
-  contactRoom:["Contact, {where}!","One {where}!","Hoodie {where}!"],
+  contactRoom:["Contact, {where}!","One {where}!","Somebody {where}!"],
   covering:["Covering you!","Go, I got you!","Reload, I've got this side."],
   reloading:["Reloading!","Changing mags, cover me!","Hang on, reloading."],
   enemyReloading:["He's reloading, push!","He's dry! Go!"],

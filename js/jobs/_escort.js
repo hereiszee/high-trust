@@ -2,7 +2,7 @@
    HT.Escort: the walking escort helper (SPEC3 4.9, built for Higher Ground, reused by Crossing Guard and the finale).
    A protected party walks a polyline route in a chain, stops at marked corners until released, freezes and takes cover while
    a threat is live, counts how long it has been pinned, tracks a protected member's health with one revive, fires triggers as
-   the lead passes distances along the route, and writes radio callouts ("two o'clock, grey hoodie, behind the dumpster").
+   the lead passes distances along the route, and writes radio callouts ("two o'clock, red jacket, behind the dumpster").
    Pure logic plus an optional pose callback, so it runs in Node (dev/jobs-registry.test.js) and in the game.
 
    const E=HT.Escort.create({
