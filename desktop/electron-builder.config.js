@@ -21,5 +21,6 @@ module.exports = {
   win: { target: [{ target: 'dir', arch: ['x64'] }, { target: 'zip', arch: ['x64'] }], icon: 'build/icon.png' },
   linux: { target: [{ target: 'dir', arch: ['x64'] }, { target: 'tar.gz', arch: ['x64'] }], category: 'Game', icon: 'build/icon.png' },
   mac: { target: [{ target: 'dir', arch: ['x64', 'arm64'] }], category: 'public.app-category.action-games', icon: 'build/icon.png', identity: null },
+  publish: null, /* Steam delivers updates */
   npmRebuild: false /* steamworks.js ships prebuilt N-API binaries for every platform */
 };

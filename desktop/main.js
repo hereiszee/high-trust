@@ -66,7 +66,7 @@ function serve(req) {
   if (rel === '/sw.js') return new Response('', { status: 404 });
   const file = path.normalize(path.join(GAME_ROOT, rel));
   if (!file.startsWith(GAME_ROOT + path.sep)) return new Response('forbidden', { status: 403 });
-  let st; try { st = fs.statSync(file) } catch (e) { return new Response('not found', { status: 404 }) }
+  let st; try { st = fs.statSync(file) } catch (e) { log('[app] 404', rel); return new Response('not found', { status: 404 }) }
   if (!st.isFile()) return new Response('not found', { status: 404 });
   const headers = { 'content-type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'content-length': String(st.size), 'cache-control': 'no-cache', 'access-control-allow-origin': '*' };
   return new Response(Readable.toWeb(fs.createReadStream(file)), { status: 200, headers });

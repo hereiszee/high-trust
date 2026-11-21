@@ -973,3 +973,7 @@ html.ht-pad #lock{display:none!important}
 .ht-kc.dim.pad-g{background:var(--pg,rgba(255,255,255,.18));color:var(--fg)}
 html.ht-pad .pad-focus{outline:3px solid var(--sun,#ffc94a)!important;outline-offset:2px;box-shadow:0 0 0 6px rgba(255,201,74,.22)!important}
 html.ht-pad body{cursor:none}
+/* short screens (720p windows, Steam Deck 800p): the pause column has up to nine buttons */
+@media (max-height:820px){.ht-root:not(.compact) .ht-pause .wrap{padding-top:calc(var(--sa-t) + 28px)}
+  .ht-root:not(.compact) .ht-pause .nav h2{margin:6px 0 12px;font-size:clamp(30px,6vh,44px)}
+  .ht-root:not(.compact) .ht-pause .nav .ht-btn{height:40px}.ht-root:not(.compact) .ht-pause .nav .sep{margin:6px 0}}

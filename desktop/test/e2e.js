@@ -83,6 +83,7 @@ const { FAKE_PAD } = require('./fake-pad.js');
   ok(await hold({ buttons: { 7: 1 } }, () => window.HT.Input.stick.y < -.9 && (window.__ht.step(30), true)) && await p.evaluate(() => Math.abs((window.__ht.CV || window.__ht.VAN).spd || 0)) > .5,
     'RT is the throttle (van at ' + (await p.evaluate(() => Math.abs((window.__ht.CV || window.__ht.VAN).spd || 0))).toFixed(1) + ' m/s)');
   await shot(p, 'controller-driving');
+  await p.evaluate(() => { const H = window.__ht, e = H.CV || H.VAN; e.spd = 0; if (e.car) e.car.spd = 0; H.step(5) }); /* you can't step out at speed */
   ok(await hold({ buttons: { 3: 1 } }, () => !window.__ht.VAN.on), 'Y gets out of the van');
   /* Menu opens pause; the D-pad moves a focus ring; B closes it */
   ok(await hold({ buttons: { 9: 1 } }, () => window.HT.Input.paused), 'Menu pauses');
@@ -102,7 +103,8 @@ const { FAKE_PAD } = require('./fake-pad.js');
   ok(L.remote.length === 0, 'zero remote requests' + (L.remote.length ? ': ' + L.remote.slice(0, 5).join(' ') : ''));
   const blocked = L.out.join('').split('\n').filter(l => l.includes('[net] blocked'));
   ok(blocked.length === 0, 'main process blocked nothing' + (blocked.length ? ': ' + blocked.slice(0, 3).join(' ') : ''));
-  console.log('     steam: ' + (L.out.join('').split('\n').find(l => l.startsWith('[steam]')) || '?'));
+  { let lg = ''; try { lg = fs.readFileSync(path.join(PROFILE, 'high-trust.log'), 'utf8') } catch (e) { } const nf = lg.split('\n').filter(l => l.startsWith('[app] 404')); ok(nf.length === 0, 'no missing game files' + (nf.length ? ': ' + nf.slice(0, 5).join(' ') : '')) }
+  { let lg = ''; try { lg = fs.readFileSync(path.join(PROFILE, 'high-trust.log'), 'utf8') } catch (e) { } console.log('     ' + (lg.split('\n').find(l => l.startsWith('[steam]')) || 'steam: no log line')) }
   await p.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))); await p.waitForTimeout(400);
   const closed = new Promise(r => app.process().once('exit', code => r(code)));
   await p.click('.ht-pause [data-act=quitDesktop]');
