@@ -9,10 +9,10 @@ const D=document;
 const LOOP=[{x:443,z:99},{x:443,z:71},{x:315,z:71},{x:315,z:127},{x:443,z:127}];
 const CK={max:13,far:70,near:22,lostD:170,lostT:7,callD:32,boxT:3,inR:2.6,behind:[3.5,13],lat:2.6,crumb:2,gap:9,startT:9};
 function chasePath(){const pts=[{x:W.sedan.x,z:W.sedan.z}];for(let lap=0;lap<3;lap++)for(const p of LOOP)pts.push(p);pts.push(LOOP[0]);return FN.route(pts)}
-FN.chasePath=chasePath;
+FN.chasePath=()=>FN.avoidCars(chasePath());
 const CREWCAR={rick:['sedan','#a8322d'],benny:['workvan','#f5d0e0'],sal:['pickup','#2f4f6f'],dave:['pickup','#5a7a3a'],gary:['suv','#4b5d6b'],doug:['suv','#6b6b4b'],hank:['pickup','#b23a2a'],earl:['workvan','#e3a32a'],rosa:['hatch','#3f8f86'],dee:['minivan','#7a5aa8']};
 FN.stages.chase={
-  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,2);const path=chasePath();S.path=path;S.P=FN.polyOf(path);S.rail=FN.rail(path,{max:CK.max,len:4.9,gap:4});S.rail.place(0);
+  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,2);const path=FN.avoidCars(chasePath());S.path=path;S.P=FN.polyOf(path);S.rail=FN.rail(path,{max:CK.max,len:4.9,gap:4});S.rail.place(0);
     S.sed=FN.car('sedan','#1b1d22',W.sedan.x,W.sedan.z,W.sedan.yaw);S.t=0;S.box={t:0};S.called=false;S.lostT=0;S.go=false;S.crumbs=[];
     /* your van on 2nd St, nose south, keys in it */
     const V=a.VAN;if(!a.CV){V.pos.set(347.4,0,54);V.yaw=Math.PI;V.spd=0;if(V.car)V.car.spd=0;try{G().syncVan&&G().syncVan()}catch(_){}}
@@ -102,6 +102,9 @@ FN.stages.handsup={
       if(S.tie)F.holds.push({x:S.spot.x,z:S.spot.z,r:2.4,o:S,txt:'Zip-tie The Wholesaler',time:1.2,fn:()=>tie(M)});
       F.objs.push([S.tie?'Zip-tie him: hold E next to him':'Take the zip-tie from Malik (E)',false]);F.target=S.tie?{x:S.spot.x,z:S.spot.z,label:'Zip-tie'}:m?{x:m.x,z:m.z,label:'Malik'}:null;return}
     if(S.ph==='done'){S.endT-=dt;F.objs.push(['That\'s it. That\'s the whole thing.',true]);if(S.endT<=0&&!S.faded){S.faded=true;fade(M,()=>advance(M,'festival'),{out:1.2,hold:1.6,inT:1.4,txt:'That evening'})}}},
+  /* the zip-tie moment gets a camera of its own: down the road, the crowd behind him, for four seconds */
+  camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='done'||!(S.endT>4.6))return false;const cam=a.camera,k=clamp((9-S.endT)/4.4,0,1);
+    const cx=S.spot.x-S.f.x*(7.5-k*1.5)-S.rt.x*1.2,cz=S.spot.z-S.f.z*(7.5-k*1.5)-S.rt.z*1.2;cam.position.set(cx,2.6-k*.6,cz);cam.lookAt(S.spot.x,1.1,S.spot.z);cam.fov=55;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
   clear(M){const a=A(),S=M.fn.sub;M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null);S.ch=null}for(const p of(S.ring||[]).concat([S.w,S.malik]))unperson(p)},
   bot(a,t,o,M,B){const S=M.fn.sub,P=a.P;if(a.CV){a.exitCar();return}if(S.ph==='walk'){P.pos.set(S.spot.x+S.rt.x*2,0,S.spot.z+S.rt.z*2);if(t%6===0)a.useTap=true;return}
     if(S.ph==='talk'){if(t%12===6&&S.ch)S.ch.pick(0);return}
