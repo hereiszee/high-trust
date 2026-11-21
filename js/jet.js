@@ -183,7 +183,7 @@ const _rc=new THREE.Raycaster(),_dn=V(0,-1,0);
 function groundY(a,x,z){const def=a.WORLD;if(def&&x>0&&z>0&&x<def.W*2&&z<def.H*2)return 0;
   F.gyT=(F.gyT||0);if(F.gyAt&&Math.hypot(F.gyAt.x-x,F.gyAt.z-z)<6)return F.gyV;const meshes=[];const O=OWm();
   try{const ws=a.L.ow;for(const u of ws.units)if(u.sp&&u.sp.id==='backdrop'&&u.group)u.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)meshes.push(m)})}catch(_){}
-  if(F.far)meshes.push(F.far);_rc.set(V(x,400,z),_dn);_rc.far=800;const h=_rc.intersectObjects(meshes,false)[0];F.gyAt={x,z};F.gyV=h?h.point.y:0;return F.gyV}
+  if(F.far)meshes.push(F.far.isMesh?F.far:F.far.children[0]);_rc.set(V(x,400,z),_dn);_rc.far=800;const h=_rc.intersectObjects(meshes,false)[0];F.gyAt={x,z};F.gyV=h?h.point.y:0;return F.gyV}
 function hitSolid(a,x,z,r,y){const L=a.L;if(!L||!L.cnear)return false;for(const c of L.cnear(x,z,8)){if(c.off||!(c.ph>0))continue;if(c.k==='fence'||c.k==='tree'&&y!=null&&y>3.5)continue;
     if(y!=null&&y>c.ph)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r){if(S.e&&c===S.e.col)continue;return true}}return false}
 function crash(a,e,why){const s=sv();if(s&&s.jet)s.jet.crashes=(s.jet.crashes|0)+1;
@@ -273,14 +273,17 @@ function farFog(a,on){const sc=a.scene,cam=a.camera;if(on){if(!FOG0&&sc.fog)FOG0
 /* the flight draw radius grows with altitude (low: less sky-line to fill, so fewer draw calls); beyond it the painted ground map
    (OW.groundMap: streets, roofs, trees, cars) lies under the streamed ground so the town still reads */
 const flightR=y=>y<45?420:y<130?620:900;
-function flight(on){const R=on?flightR(F.pos.y):0;if(on===F.fly&&R===F.flyR)return;F.fly=on;F.flyR=R;const O=OWm();if(O&&O.flight)O.flight(on?{R,blod:70}:null);groundMap(on)}
+function flight(on){const R=on?flightR(F.pos.y):0;if(on===F.fly&&R===F.flyR)return;F.fly=on;F.flyR=R;const O=OWm();if(O&&O.flight)O.flight(on?{R,blod:70}:null);groundMap(on);farHouses(on)}
+/* the backdrop's ring of far houses (world.js backdrop(), named bd:* in openworld.js) sells "the town carries on" from the street; from
+   the air they are lone houses on bare hills, so they step aside while you fly (the ground view is untouched) */
+function farHouses(on){if(!F.fh||!F.fh.length){F.fh=[];try{for(const q of OWm().units())if(q.sp&&q.sp.id==='backdrop'&&q.group)q.group.traverse(m=>{if(m.isMesh&&/bd:(siding|roof|found|glass)$/.test(m.name))F.fh.push(m)})}catch(_){}}
+  for(const m of F.fh)m.visible=!on}
 function groundMap(on){const a=A();if(!a||!a.L)return;if(on&&!F.gm){const O=OWm(),tx=O&&O.groundMap&&O.groundMap(),def=a.WORLD;if(!tx||!def)return;const T=T3(),w=def.W*2,h=def.H*2;
     const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({map:tx}));m.rotation.x=-Math.PI/2;m.position.set(w/2,-1.2,h/2);m.name='groundMap'/* under the river's water (-0.85) and the roads (-0.12) */;m.receiveShadow=false;F.gm=m}
   if(F.gm){if(on&&F.gm.parent!==a.L.group)a.L.group.add(F.gm);F.gm.visible=!!on}}
 
 /* ================= far terrain: fields and low hills out to the horizon (built on the first flight) ================= */
 function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;const Wm=def.W*2,Hm=def.H*2,cx=Wm/2,cz=Hm/2;
-  const N=56,R0=Math.max(Wm,Hm)/2+180,R1=5200;const P=[],C=[],I=[],UV=[],IN=[];const rings=22;
   const hgt=(x,z,d)=>{const n=Math.sin(x*.004)*Math.cos(z*.0047)+.5*Math.sin(x*.011+1.3)*Math.sin(z*.009+.7)+.25*Math.sin(x*.023+z*.017);return clamp((d-100)/160,0,1)*(9+24*clamp(n*.5+.5,0,1))+clamp((d-500)/1200,0,1)*60*Math.max(0,n+.3)-2};
   /* no seam with the backdrop (world.js backdrop(): the map plus 260 m): sample its height along its border and blend out from there */
   const bm=[];try{for(const q of OWm().units())if(q.sp&&q.sp.id==='backdrop'&&q.group){q.group.updateMatrixWorld(true);q.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)bm.push(m)})}}catch(_){}
@@ -290,17 +293,53 @@ function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;c
   for(const m of bm){const pa=m.geometry.attributes.position;if(!pa)continue;const mw=m.matrixWorld;for(let i=0;i<pa.count;i++){_v.set(pa.getX(i),pa.getY(i),pa.getZ(i)).applyMatrix4(mw);
     const gx=Math.round((_v.x-bx0)/CS),gz=Math.round((_v.z-bz0)/CS);if(gx<0||gz<0||gx>=GW||gz>=GH||_v.y>200)continue;const k=gz*GW+gx;GS[k]+=_v.y;GN[k]++}}
   const bh=(x,z)=>{if(!bm.length)return null;const gx=Math.round((x-bx0)/CS),gz=Math.round((z-bz0)/CS);for(let r=0;r<4;r++){let s2=0,n=0;for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const xx=gx+dx,zz=gz+dz;if(xx<0||zz<0||xx>=GW||zz>=GH)continue;const k=zz*GW+xx;if(GN[k]){s2+=GS[k]/GN[k];n++}}if(n)return s2/n}return null};
-  for(let j=0;j<=rings;j++){const t=j/rings,r=R0*.8+(R1-R0*.8)*t*t;for(let i=0;i<N;i++){const ang=i/N*Math.PI*2;let x=cx+Math.cos(ang)*r*1.15,z=cz+Math.sin(ang)*r*.75*(1+t*.6);
-      const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);let y=hgt(x,z,d);
-      const out=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0);const eh=bh(clamp(x,bx0+4,bx1-4),clamp(z,bz0+4,bz1-4));
-      IN.push(out<=0?1:0);if(eh!=null){if(out<=0)y=eh-4;else{const k=clamp(out/350,0,1),sk=k*k*(3-2*k);y=eh-.6+(y-eh+.6)*sk}}P.push(x,y,z);
-      const fld=(Math.floor(x/140)+Math.floor(z/110))%4,tint=[[.96,1,1.04],[1.04,1.02,.94],[1.1,1,.86],[.9,.96,1]][(fld+4)%4],out2=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0),v=.74*(1-.25*clamp(out2/600,0,1))*(1-t*.15),ft=clamp((out2-150)/500,0,1)/* fields fade in away from the backdrop */;
-      C.push(v*(.96+(tint[0]-.96)*ft),v*(1+(tint[1]-1)*ft),v*(1.04+(tint[2]-1.04)*ft));UV.push(x/9,z/9)}}
-  for(let j=0;j<rings;j++)for(let i=0;i<N;i++){const a0=j*N+i,a1=j*N+(i+1)%N,b0=(j+1)*N+i,b1=(j+1)*N+(i+1)%N;if(IN[a0]&&IN[a1]&&IN[b0]&&IN[b1])continue;/* under the backdrop: not drawn (no overdraw) */I.push(a0,a1,b0,a1,b1,b0)}/* wound to face up (the backdrop's material is single-sided) */
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
+  /* a grid (not rings) so the river valley, Route 9 and field edges line up: 80 m cells to 5.2 km, flat-shaded per cell (fields) */
+  const sstep=(e0,e1,x)=>{const t=clamp((x-e0)/(e1-e0),0,1);return t*t*(3-2*t)};
+  const RX=294,RW=10/* river: x 284..304 (openworld.js 'river') */,RZ0=-420,RZ1=Hm+420,R9Z=43/* Route 9: tile row 20..22 */,EXT=5200,S=80;
+  const fh=(x,z)=>{const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);let y=hgt(x,z,d);
+    const out=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0);const eh=bh(clamp(x,bx0+4,bx1-4),clamp(z,bz0+4,bz1-4));
+    if(eh!=null){if(out<=0)y=eh-4;else{const k=clamp(out/350,0,1),sk=k*k*(3-2*k);y=eh-.6+(y-eh+.6)*sk}}
+    /* the river valley runs on to the horizon, and so does Route 9 (both carved flat) */
+    {const kr=sstep(34,170,Math.abs(x-RX));if(z<0||z>Hm)y=-2.4+(y+2.4)*kr}/* inside corners of cells on the backdrop edge too (they would cover the river) */
+    if(out>0){if(x<bx0||x>bx1){const kh=sstep(40,170,Math.abs(z-R9Z));y=-.2+(y+.2)*kh}}return y};
+  const FC=[[.96,1,1.04],[1.18,1.14,.8]/* hay */,[1.7,1.3,.42]/* wheat */,[.78,.92,.74]/* pasture */,[1.3,.92,.62]/* plough */,[.55,.74,.55]/* woodlot */];
+  const fieldOf=(x,z)=>{const fx=Math.floor((x+((Math.floor(z/200)&1)?120:0))/240),fz=Math.floor(z/200);const hsh=((fx*73856093)^(fz*19349663))>>>0;return hsh%FC.length};
+  const P=[],C=[],UV=[],trees=[];
+  for(let z=-EXT;z<Hm+EXT;z+=S)for(let x=-EXT;x<Wm+EXT;x+=S){const x1=x+S,z1=z+S;
+    if(x>=bx0&&x1<=bx1&&z>=bz0&&z1<=bz1)continue;/* under the backdrop: not drawn */
+    const mx=x+S/2,mz=z+S/2,out=Math.max(bx0-mx,mx-bx1,bz0-mz,mz-bz1,0),ft=clamp((out-30)/150,0,1);
+    const nearR=Math.abs(mx-RX)<120,nearH=(mx<bx0||mx>bx1)&&Math.abs(mz-R9Z)<120,fi=nearR||nearH?0:fieldOf(mx,mz),tn=FC[fi],far=Math.hypot(mx-cx,mz-cz),v=.74*(1-.2*clamp(far/3000,0,1))*(.94+((Math.floor(mx/S)*7+Math.floor(mz/S)*13)%5)*.03);
+    const col=[v*(.96+(tn[0]-.96)*ft),v*(1+(tn[1]-1)*ft),v*(1.04+(tn[2]-1.04)*ft)];
+    const q=[[x,z],[x1,z],[x1,z1],[x,z1]].map(([px,pz])=>[px,fh(px,pz),pz]);
+    for(const k of[0,2,1,0,3,2]){const p=q[k];P.push(p[0],p[1],p[2]);C.push(col[0],col[1],col[2]);UV.push(p[0]/9,p[2]/9)}
+    /* woodlots, and tree belts on the hills */
+    const r1=Math.abs(Math.sin(mx*12.9898+mz*78.233)*43758.5453)%1,hill=q[0][1]>16;
+    if(ft>0&&!nearR&&!nearH&&far<3200&&(fi===5||hill&&r1<.45)){const n=fi===5?9:4;for(let t=0;t<n;t++){const a2=Math.abs(Math.sin((mx+t*31.7)*3.1+mz*.7)*9137.1)%1,b2=Math.abs(Math.sin((mz-t*17.3)*2.3+mx*.3)*5711.9)%1;
+      const tx=x+a2*S,tz=z+b2*S;trees.push(tx,fh(tx,tz),tz,.8+((a2*7+b2*3)%1)*.6)}}}
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.computeVertexNormals();
   /* the backdrop's own grass material (same texture, same 9 m tiling, vertex colours like its own): no colour seam at its edge */
   let bmat=null;for(const q of bm)if(q.material&&q.material.map&&q.material.vertexColors&&(!bmat||q.geometry.attributes.position.count>bmat.n))bmat={m:q.material,n:q.geometry.attributes.position.count};
-  const m=new T.Mesh(g,bmat?bmat.m:new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
+  const root=new T.Group();root.name='farTerrain';
+  const m=new T.Mesh(g,bmat?bmat.m:new T.MeshLambertMaterial({vertexColors:true}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;root.add(m);
+  /* the river and Route 9 beyond the map: one vertex-coloured strip mesh (water blue, asphalt with a yellow centre line) */
+  {const SP=[],SC=[];const quad=(a0,b0,c0,d0,c)=>{for(const p of[a0,b0,c0,a0,c0,d0]){SP.push(p[0],p[1],p[2]);SC.push(c[0],c[1],c[2])}};const WC=[.06,.16,.24],AC=[.07,.07,.075],YC=[.55,.38,.05];
+    /* the river: the river set piece's own water material on a ribbon (same look, normal map scrolling with it), dark banks either side */
+    let wm=null;try{for(const q of OWm().units())if(q.sp&&q.sp.id==='river'&&q.group)q.group.traverse(o=>{if(!wm&&o.isMesh&&o.material&&o.material.normalMap&&o.material.transparent)wm=o.material})}catch(_){}
+    const BK=[.1,.095,.07],WP=[],WU=[];
+    for(const[za,zb]of[[-EXT,RZ0+2],[RZ1-2,Hm+EXT]])for(let z=za;z<zb;z+=40){const z2=Math.min(zb,z+40);
+      if(wm){for(const[px,pz,u,v]of[[RX-RW,z,0,z],[RX+RW,z2,1,z2],[RX+RW,z,1,z],[RX-RW,z,0,z],[RX-RW,z2,0,z2],[RX+RW,z2,1,z2]]/* wound to face up */){WP.push(px,-.85,pz);WU.push(u,v/27.5)}}else quad([RX-RW,-1.0,z],[RX+RW,-1.0,z],[RX+RW,-1.0,z2],[RX-RW,-1.0,z2],WC);
+      for(const sd of[-1,1])quad([RX+sd*RW,-.95,z],[RX+sd*(RW+4),-.4,z],[RX+sd*(RW+4),-.4,z2],[RX+sd*RW,-.95,z2],BK)}
+    if(wm){const wg=new T.BufferGeometry();wg.setAttribute('position',new T.Float32BufferAttribute(WP,3));wg.setAttribute('uv',new T.Float32BufferAttribute(WU,2));wg.computeVertexNormals();const wr=new T.Mesh(wg,wm);wr.frustumCulled=false;wr.renderOrder=1;root.add(wr)}
+    const ry=(x)=>{const inB=x>=bx0&&x<=bx1;if(inB){const e=bh(x,R9Z);return(e==null?0:e)+.35}return fh(x,R9Z)+.12};
+    for(const[xa,xb]of[[-EXT,0],[Wm,Wm+EXT]])for(let x=xa;x<xb;x+=8){const x2=Math.min(xb,x+8),y1=ry(x),y2=ry(x2);quad([x,y1,R9Z-4],[x2,y2,R9Z-4],[x2,y2,R9Z+4],[x,y1,R9Z+4],AC);
+      if(((x/8)|0)%3)quad([x,y1+.02,R9Z-.12],[x2,y2+.02,R9Z-.12],[x2,y2+.02,R9Z+.12],[x,y1+.02,R9Z+.12],YC)}
+    const sg=new T.BufferGeometry();sg.setAttribute('position',new T.Float32BufferAttribute(SP,3));sg.setAttribute('color',new T.Float32BufferAttribute(SC,3));sg.computeVertexNormals();
+    const sm=new T.Mesh(sg,new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));sm.frustumCulled=false;sm.renderOrder=-1;root.add(sm)}
+  /* the trees: one instanced low-poly crown (cone) */
+  {if(trees.length/4>6000){const k=Math.ceil(trees.length/4/6000),t2=[];for(let i=0;i<trees.length/4;i+=k)t2.push(trees[i*4],trees[i*4+1],trees[i*4+2],trees[i*4+3]);trees.length=0;trees.push(...t2)}/* at most 6000 */
+   const n=trees.length/4;if(n){const cg=new T.ConeGeometry(3.6,10,6,1,true);/* open: no base (6 triangles a tree) */cg.translate(0,5,0);const im=new T.InstancedMesh(cg,new T.MeshLambertMaterial({color:new T.Color('#2f5a24').convertSRGBToLinear()}),n);const M=new T.Matrix4(),Q=new T.Quaternion(),SC3=V(1,1,1);
+    for(let i=0;i<n;i++){const s2=trees[i*4+3];SC3.set(s2,s2*(.9+(i%5)*.06),s2);M.compose(V(trees[i*4],trees[i*4+1]-.5,trees[i*4+2]),Q,SC3);im.setMatrixAt(i,M)}im.frustumCulled=false;root.add(im)}}
+  a.scene.add(root);F.far=root}
 /* lids: flat roofs over interiors drawn without one (mission sites' '.' floors), shown only while you fly so ground play and the planning views never see them */
 function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.name='airLids';const m=new T.MeshStandardMaterial({color:new T.Color('#6d6f70').convertSRGBToLinear(),roughness:.95});
     const boxes=[],seen=new Uint8Array(def.W*def.H),W=def.W,H=def.H,mp=def.map,inside=c=>c==='.'||c==='I'||c==='T'||c==='i'||c==='a'||c==='E'||c==='B'||c==='S'||c==='k'||c==='Q';const geo=new T.BoxGeometry(1,1,1);
@@ -421,5 +460,5 @@ function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.ya
 Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};
 Jet.HB=HB;Jet.camera=dt=>camera(dt);Jet.family=()=>family(A());/* test hook: the family comes out as if you buzzed the house */
 /* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
-Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
+Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;farHouses(!!on);if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
 })();

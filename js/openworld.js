@@ -924,7 +924,7 @@ SETPIECES.push({id:'backdrop',box:def=>({x0:-400,z0:-400,x1:def.W*TILE+400,z1:de
    const cap=new THREE.Mesh(new THREE.ConeGeometry(4.8,2.2,28),stdMat('tankcap',{color:'#e9ebe8',roughness:.5,metalness:.3}));cap.position.set(tx_,26.6,tz_);u.group.add(cap);
    const bot=new THREE.Mesh(new THREE.SphereGeometry(4.6,28,8,0,Math.PI*2,Math.PI/2,Math.PI/2),stdMat('tankcap',{}));bot.position.set(tx_,20.5,tz_);u.group.add(bot);
    const pts=[];for(let x=-40;x<def.W*TILE+60;x+=31)pts.push([x,def.H*TILE+7,Math.PI/2]);W_.utilityLine(B,pts)}
-  for(const key in B.gb){const gb=B.gb[key];if(!gb.n)continue;const m=new THREE.Mesh(gb.geo(),W_.matFor(B,key));m.receiveShadow=true;m.castShadow=false;u.group.add(m)}
+  for(const key in B.gb){const gb=B.gb[key];if(!gb.n)continue;const m=new THREE.Mesh(gb.geo(),W_.matFor(B,key));m.name='bd:'+key;/* named so the jet can find the far-house ring (js/jet.js) */m.receiveShadow=true;m.castShadow=false;u.group.add(m)}
   W_.buildInst(B);for(const l of B.lod)ws.lod.push(l)}});
 
 /* ================= Riverside dressing (SPEC2 A.7): built per chunk, toggled by trust ================= */
