@@ -19,14 +19,15 @@ const FIXED=[['Switch gun','1 2 3 · Wheel'],['Pause','Esc · P'],['Drive','Same
 const RESERVED=new Set(['escape','p','1','2','3','enter','tab','meta','alt','f11','f12','contextmenu']);
 const STORE=()=>window.HTDesktop?HTDesktop.storage:window.localStorage;
 /* Aim: Toggle (default, owner rule: on keyboard/mouse every aim / raise mode is a toggle; the view holds until you click again) or Hold.
-   One setting for Mouse 2, the controller's LT, the Higher Ground scope and hold-breath (Shift), binoculars and the job camera. */
-let B={},AIM='toggle';
-try{const o=JSON.parse(STORE().getItem('ht-keys')||'{}')||{};AIM=o.__aim==='hold'?'hold':'toggle';delete o.__aim;B=o}catch(e){B={}}
+   One setting for Mouse 2, the controller's LT, the Higher Ground scope and hold-breath (Shift), binoculars and the job camera.
+   Until the player picks one, the controller's LT keeps the console convention (hold); once picked, it follows the setting too. */
+let B={},AIM='toggle',AIM_SET=false;
+try{const o=JSON.parse(STORE().getItem('ht-keys')||'{}')||{};AIM_SET=o.__aim==='hold'||o.__aim==='toggle';AIM=o.__aim==='hold'?'hold':'toggle';delete o.__aim;B=o}catch(e){B={}}
 const def=id=>ACTIONS.find(a=>a.id===id).k;
 const get=id=>B[id]||def(id);
 let T={};
 function build(){T={};for(const a of ACTIONS){const c=get(a.id);if(c!==a.k)T[c]=a.k}for(const a of ACTIONS)if(get(a.id)!==a.k&&!(a.k in T))T[a.k]=null}
-function save(){try{STORE().setItem('ht-keys',JSON.stringify(Object.assign({},B,AIM==='hold'?{__aim:'hold'}:{})))}catch(e){}build();try{HT.Pad&&HT.Pad.swapGlyphs&&HT.Pad.swapGlyphs()}catch(e){}}
+function save(){try{STORE().setItem('ht-keys',JSON.stringify(Object.assign({},B,AIM_SET?{__aim:AIM}:{})))}catch(e){}build();try{HT.Pad&&HT.Pad.swapGlyphs&&HT.Pad.swapGlyphs()}catch(e){}}
 build();
 const NAMES={' ':'Space',shift:'Shift',control:'Ctrl',arrowup:'↑',arrowdown:'↓',arrowleft:'←',arrowright:'→',backspace:'Bksp',capslock:'Caps',
   mouse1:'Mouse 1',mouse2:'Mouse 2',mouse3:'Mouse 3',mouse4:'Mouse 4',mouse5:'Mouse 5'};
@@ -100,10 +101,10 @@ function bind(pane,rerender){
       if(RESERVED.has(k)||!k){if(note)note.textContent=name(k||'?')+' is reserved. Pick another, or Esc to cancel.';return}
       const swapped=assign(id,k);done();const n=pane.querySelector('.ht-rb-note');if(n&&swapped)n.textContent='Swapped: '+swapped+' is now on '+name(get(ACTIONS.find(a=>a.l===swapped).id))+'.'};
     capture.mouseOk=id==='fire'||id==='aim';/* for the rest, a left click elsewhere cancels */});
-  const r=pane.querySelector('[data-rebind-reset]');if(r)r.onclick=e=>{e.stopPropagation();B={};AIM='toggle';save();rerender()};
-  pane.querySelectorAll('[data-aim] button').forEach(x=>x.onclick=e=>{e.stopPropagation();AIM=x.dataset.v;save();rerender()})}
+  const r=pane.querySelector('[data-rebind-reset]');if(r)r.onclick=e=>{e.stopPropagation();B={};AIM='toggle';AIM_SET=false;save();rerender()};
+  pane.querySelectorAll('[data-aim] button').forEach(x=>x.onclick=e=>{e.stopPropagation();AIM=x.dataset.v;AIM_SET=true;save();rerender()})}
 
-HT.Keys={ACTIONS,get:get,relabel,table,bind,name,get changed(){return Object.keys(B).length>0},get aimMode(){return AIM},set aimMode(v){AIM=v==='hold'?'hold':'toggle';save()},aimHold:()=>AIM==='hold',
+HT.Keys={ACTIONS,get:get,relabel,table,bind,name,get changed(){return Object.keys(B).length>0},get aimMode(){return AIM},set aimMode(v){AIM=v==='hold'?'hold':'toggle';AIM_SET=true;save()},aimHold:()=>AIM==='hold',get padAimMode(){return AIM_SET?AIM:'hold'},
   set(id,k){if(!ACTIONS.some(a=>a.id===id))return false;k=String(k).toLowerCase();if(RESERVED.has(k))return false;assign(id,k);return true},
-  reset(){B={};AIM='toggle';save()},get map(){return Object.assign({},T)}};
+  reset(){B={};AIM='toggle';AIM_SET=false;save()},get map(){return Object.assign({},T)}};
 })();
