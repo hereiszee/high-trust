@@ -1218,7 +1218,7 @@ OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY
 const TRAFFIC_TYPES=['sedan','hatch','suv','pickup','workvan','sedan'],TRAFFIC_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#6d7378','#7a5a3a','#c9b48a'];
 /* tuning (metres, seconds, m/s, m/s^2) */
 const TR={look:30,plan:4.5,sg0:2.6,sg1:4,sgK:.14,margin:.3,honk1:2,honkGap:[4,6],honkLong:9,bark1:3,barkGap:12,barkCd:7,haz:10,round:6,roundSpd:4.5,roundOff:3.1,roundClear:45,
-  rev:25,gone:40,box:6.5,stopLine:8,yieldR:18};
+  rev:25,gone:40,box:6.5,stopLine:9.5,yieldR:18};
 OW.trafficTune=TR;
 const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
 const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
@@ -1254,15 +1254,18 @@ function trAlarm(t,cam){const A=HT.Audio;if(!A||!A.tone||!cam||Math.hypot(t.c.x-
 const TR_PROPS=new Set();function trWrapProps(){const H=HT.Props;if(!H||H._trWrapped||!H.create)return;const mk=H.create;H.create=function(){const S=mk.apply(this,arguments);if(S)TR_PROPS.add(S);const d=S&&S.dispose;if(d)S.dispose=function(){TR_PROPS.delete(S);return d.apply(this,arguments)};return S};H._trWrapped=true}
 /* look ahead along the car's lane: samples every metre from the car's centre; for each sample the obstacle boxes are measured in the sample's
    frame (along / across the lane). off(d): metres left of the lane centre at distance d (going round). Returns {gap (front bumper to the obstacle), ob, u (its speed along the lane)} */
-function trSweep(t,obs,len,offA,offB,skip){const c=t.c,ai=c.ai,pts=ai&&ai.pts;if(!pts||pts.length<2)return null;const hl=c.stats.len/2,hw=c.stats.wid/2+TR.margin;
-  let k=Math.max(0,Math.min(ai.tr?ai.tr.i:0,pts.length-2)),A=pts[k],B=pts[k+1],sl=Math.hypot(B.x-A.x,B.z-A.z)||1e-3,tx=(B.x-A.x)/sl,tz=(B.z-A.z)/sl;
+function trSweep(t,obs,len,offA,offB,skip){const c=t.c,ai=c.ai,own=t.lookPts&&t.mode!=='round',pts=own?t.lookPts:ai&&ai.pts;if(!pts||pts.length<2)return null;const hl=c.stats.len/2,hw=c.stats.wid/2+TR.margin;
+  let k=Math.max(0,Math.min(ai.tr?ai.tr.i:0,pts.length-2));
+  if(own){let bd=1e9;for(let i=0;i<Math.min(pts.length-1,12);i++){const P=pts[i],Q=pts[i+1],dx=Q.x-P.x,dz=Q.z-P.z,l2=dx*dx+dz*dz||1,u=Math.max(0,Math.min(1,((c.x-P.x)*dx+(c.z-P.z)*dz)/l2)),d=Math.hypot(P.x+dx*u-c.x,P.z+dz*u-c.z);if(d<bd){bd=d;k=i}}}
+  let A=pts[k],B=pts[k+1],sl=Math.hypot(B.x-A.x,B.z-A.z)||1e-3,tx=(B.x-A.x)/sl,tz=(B.z-A.z)/sl;
   let u=Math.max(0,Math.min(sl,(c.x-A.x)*tx+(c.z-A.z)*tz)),qx=A.x+tx*u,qz=A.z+tz*u,ext=0,best=null;const near=[];
   if(offA==null)offA=(c.x-qx)*tz-(c.z-qz)*tx;/* null: where the car actually is, left of its lane */
   for(const o of obs){if(o===skip||o.ref===t)continue;const r=len+hl+o.hl+o.hw+4;if(Math.abs(o.x-c.x)<r&&Math.abs(o.z-c.z)<r)near.push(o)}if(!near.length)return null;
   for(let d=0;d<=len+hl;d+=1){
     if(d>=hl-1){const off=offA+(offB-offA)*Math.min(1,d/7),sx=qx+tz*off,sz=qz-tx*off;
       for(const o of near){const dx=o.x-sx,dz=o.z-sz,a=dx*tx+dz*tz,cc=dx*-tz+dz*tx,ea=o.hl*Math.abs(o.fx*tx+o.fz*tz)+o.hw*Math.abs(-o.fz*tx+o.fx*tz),ec=o.hl*Math.abs(-o.fx*tz+o.fz*tx)+o.hw*Math.abs(o.fz*tz+o.fx*tx);
-        if(Math.abs(cc)>=ec+hw||a-ea>=1||a+ea<=-.5)continue;const gap=Math.max(0,d-hl+Math.max(0,a-ea));if(!best||gap<best.gap)best={gap,ob:o,u:(o.vx||0)*tx+(o.vz||0)*tz,tx,tz}}
+        if(Math.abs(cc)>=ec+hw||a-ea>=1||a+ea<=-.5)continue;
+        if(o.k==='traffic'&&o.fx*tx+o.fz*tz<-.7&&Math.abs(cc)>=ec+hw-TR.margin-.1)continue;/* oncoming traffic in the other lane: no safety margin, they pass a metre apart */const gap=Math.max(0,d-hl+Math.max(0,a-ea));if(!best||gap<best.gap)best={gap,ob:o,u:(o.vx||0)*tx+(o.vz||0)*tz,tx,tz}}
       if(best&&d-hl>best.gap+1)break}
     /* advance 1 m along the polyline (straight on past its end, at most 8 m) */
     let rem=1;while(rem>0){const left=sl-u;
@@ -1296,21 +1299,39 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     if(cand.length){T.seed=(T.seed*1103515245+12345)&0x7fffffff;const n=cand[T.seed%cand.length],e=n.e[T.seed%n.e.length],k=T.seed>>3;
       const ty=TRAFFIC_TYPES[k%TRAFFIC_TYPES.length],co=TRAFFIC_COLS[(k>>3)%TRAFFIC_COLS.length],v=C.makeVehicle(ty,co,{lod:1});
       if(v){v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});const yaw=Math.atan2(-e.dir[0],-e.dir[1]);const c=CA.make(v.userData.type||'sedan',{x:n.x-e.dir[1]*1.5,z:n.z+e.dir[0]*1.5,yaw});
-        CA.wander(c,G,{max:10+(k%4),seed:k});T.g.add(v);T.cars.push({c,v,ty:v.userData.type||ty,co,id:++T.id,wait:0,free:0,honkN:0,nextHonk:TR.honk1,barkAt:TR.bark1,
+        CA.wander(c,G,{max:10+(k%4),seed:k});
+        {const ni=G.nodes.indexOf(n),ai=c.ai;ai.prev=-1;ai.cur=ni;ai.next=e.to;ai.pts=[{x:c.x,z:c.z},...G.lane([ni,e.to]).slice(1)];ai.tr={i:0}}/* start along the edge whose lane it was put on (not a random other way, cutting across the road) */
+        T.g.add(v);T.cars.push({c,v,ty:v.userData.type||ty,co,id:++T.id,wait:0,free:0,honkN:0,nextHonk:TR.honk1,barkAt:TR.bark1,
           hornF:330+((k*37)%9)*22,offNow:0,offT:0,mode:null,sg:TR.sg0,reroutes:0,res:-1})}}}
-  const statics=(q,r)=>{for(const k of lvl.cnear(q.x,q.z,r+3))if(k.ph!==undefined&&q.x+r>k.x0&&q.x-r<k.x1&&q.z+r>k.z0&&q.z-r<k.z1){const ox1=q.x+r-k.x0,ox2=k.x1-(q.x-r),oz1=q.z+r-k.z0,oz2=k.z1-(q.z-r);if(Math.min(ox1,ox2)<Math.min(oz1,oz2))q.x+=ox1<ox2?-ox1:ox2;else q.z+=oz1<oz2?-oz1:oz2}};
+  /* the probe is a circle: pushed out of a box along the nearest point (a square probe snagged turning cars on corner lamp posts) */
+  const statics=(q,r0)=>{for(const k of lvl.cnear(q.x,q.z,r0+3)){const r=k.x1-k.x0<.6&&k.z1-k.z0<.6?r0*.7:r0;/* thin poles (lamps, signs): the probe circle overstates the car's corners */
+    if(!(k.ph!==undefined&&q.x+r>k.x0&&q.x-r<k.x1&&q.z+r>k.z0&&q.z-r<k.z1))continue;const nx=Math.max(k.x0,Math.min(k.x1,q.x)),nz=Math.max(k.z0,Math.min(k.z1,q.z)),dx=q.x-nx,dz=q.z-nz,d=Math.hypot(dx,dz);
+    if(d>1e-6){if(d<r){q.x+=dx/d*(r-d);q.z+=dz/d*(r-d)}continue}/* centre inside the box: out along the shallowest side */
+    const ox1=q.x+r-k.x0,ox2=k.x1-(q.x-r),oz1=q.z+r-k.z0,oz2=k.z1-(q.z-r);if(Math.min(ox1,ox2)<Math.min(oz1,oz2))q.x+=ox1<ox2?-ox1:ox2;else q.z+=oz1<oz2?-oz1:oz2}};
   T.statics=statics;
   /* junction reservations: drop holders that are gone */
   for(const[n,h]of T.res)if(!T.cars.includes(h))T.res.delete(n);
   const pvMover=pv&&{x:pv.x,z:pv.z,vx:obs[0].vx,vz:obs[0].vz,spd:Math.abs(pv.spd)};
   for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai,S=c.stats;const f=trFwd(c.yaw),hl=S.len/2;
     /* shoved (index.html trafficContact): slide, the driver stands on the brake */
-    if(t.push){c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-9*dt)/(sp||1);t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
+    if(t.push){c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-(4+.5*sp)*dt)/(sp||1);/* the driver is on the brake, but a minivan can still shove it */t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
     if(t.shoveT>0)t.shoveT-=dt;if(t.hazT>0)t.hazT-=dt;
     let cap=Infinity,blk=null;
+    /* 0. plan the turn after the next node early (CarAI picks it only 5 m out) so the look-ahead can follow the lane round the corner
+       (t.lookPts); steering still uses CarAI's own path, which takes the planned road when it gets there. t.planAt/planTo = node -> next road */
+    if(ai&&ai.mode==='wander'&&ai.next>=0&&ai.cur>=0&&!t.wreck&&t.mode!=='rev'){const nn=G.nodes[ai.next];
+      if(t.planAt===ai.cur&&ai.next!==t.planTo&&ai.prev>=0&&t.planTo!==ai.prev){ai.next=t.planTo;ai.pts=G.lane([ai.prev,ai.cur,ai.next]);ai.tr={i:0}}/* arrived: keep the planned road */
+      else if(Math.hypot(nn.x-c.x,nn.z-c.z)<14&&t.planned!==ai.next){if(t.planAt!==ai.next){let op=nn.e.filter(e=>e.to!==ai.cur);if(!op.length)op=nn.e;const lv=op.filter(e=>G.nodes[e.to].e.length>1),pick=lv.length?lv:op;t.planTo=pick[Math.floor(ai.rnd()*pick.length)%pick.length].to;t.planAt=ai.next}
+        t.planned=ai.next;t.lookPts=[{x:c.x,z:c.z},...G.lane([ai.cur,ai.next,t.planTo]).slice(1)]}}
+    if(t.planned!==ai.next)t.lookPts=null;
     /* 1. look ahead along the lane */
     const look=Math.max(12,TR.look*Math.min(1,.45+Math.abs(c.spd)/14));
-    const hit=trSweep(t,obs,look,t.mode==='round'||t.wreck?null:t.offNow,t.offT,null);
+    /* two cars that block each other (one slightly out of its lane after going round, a U-turn): the one further off its lane creeps past
+       the other at walking pace; trSep still stops it if they really touch */
+    let skip=null;const q0=t.blkRef;if(q0&&q0.blkRef===t&&t.wait>1.5&&q0.wait>1.5&&!q0.wreck){const dev=u=>{const a=u.c.ai,pp=a&&a.pts,k=pp?Math.min(a.tr?a.tr.i:0,pp.length-2):0;if(!pp||pp.length<2)return 0;const A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;return Math.abs(((u.c.x-A.x)*(B.z-A.z)-(u.c.z-A.z)*(B.x-A.x))/l)};
+      const mine=dev(t),theirs=dev(q0);if(mine>theirs+.05||Math.abs(mine-theirs)<=.05&&t.id>q0.id){t.skipT=q0;t.creep=4}}
+    if(t.creep>0){t.creep-=dt;if(t.skipT&&T.cars.includes(t.skipT))skip=t.skipT.ob}else t.skipT=null;
+    const hit=trSweep(t,obs,look,t.mode==='round'||t.wreck?null:t.offNow,t.offT,skip);
     if(hit){const sgW=Math.min(TR.sg1,Math.max(TR.sg0,TR.sg0+TR.sgK*Math.abs(c.spd)));if(hit.gap>t.sg+6||!t.hadHit)t.sg=sgW;else t.sg=Math.max(t.sg,Math.min(sgW,TR.sg1));t.hadHit=true;
       const u=Math.max(0,hit.u),room=hit.gap-t.sg;cap=room>0?Math.sqrt(2*TR.plan*room+u*u):u*Math.max(0,Math.min(1,1+room/1.5));blk=hit.ob}
     else t.hadHit=false;
@@ -1322,7 +1343,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
         let busy=false,by=null;const inBox=(x,z)=>Math.hypot(x-nn.x,z-nn.z)<TR.box;
         if(!busy&&T.res.has(ai.next)){busy=true;by=T.res.get(ai.next).ob}
         if(!busy)for(const q of tro)if(q.ref!==t&&inBox(q.x,q.z)){busy=true;by=q;break}
-        if(!busy&&pvMover){const dp=Math.hypot(pvMover.x-nn.x,pvMover.z-nn.z);if(dp<TR.box+1.5||dp<TR.yieldR&&pvMover.spd>2&&(nn.x-pvMover.x)*pvMover.vx+(nn.z-pvMover.z)*pvMover.vz>0){busy=true;by=obs[0]}}
+        if(!busy&&pvMover){const dp=Math.hypot(pvMover.x-nn.x,pvMover.z-nn.z);if(dp<TR.box+1.5||dp<Math.max(TR.yieldR,pvMover.spd*3)&&pvMover.spd>2&&/* he gets there within ~3 s */(nn.x-pvMover.x)*pvMover.vx+(nn.z-pvMover.z)*pvMover.vz>0){busy=true;by=obs[0]}}
         if(!busy)for(const q of obs)if(q.k==='other'&&Math.hypot(q.x-nn.x,q.z-nn.z)<TR.yieldR){busy=true;by=q;break}
         if(!busy&&dn<TR.stopLine+3){T.res.set(ai.next,t);t.res=ai.next}
         else if(busy){const jc=Math.sqrt(2*TR.plan*Math.max(0,dn-TR.stopLine));if(jc<cap){cap=jc;blk=by||{k:'junction'}}}}
@@ -1333,11 +1354,11 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     if(stopped&&blk){if(!t.wait)log(t,'stop',{by:blk.k,gap:hit?+hit.gap.toFixed(2):null});t.wait+=dt;t.free=0}else if(Math.abs(c.spd)>2||!blk){t.free+=dt;if(t.free>1.2&&t.wait){t.wait=0;t.honkN=0;t.nextHonk=TR.honk1;t.barkAt=TR.bark1;if(!t.wreck)t.hazOn=false}}
     const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'),stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
     if(t.wait>0&&!t.wreck){
-      if(qHead&&atPlayer&&t.wait>=t.nextHonk&&T.honkT<=0){const n=t.honkN++,long=n===2||n>=4&&n%2===0;
+      if(qHead&&atPlayer&&t.wait>=t.nextHonk&&T.honkT<=0&&T.clock-(t.lastHonk||-9)>=4){t.lastHonk=T.clock;const n=t.honkN++,long=n===2||n>=4&&n%2===0;
         trHorn(t,long?.85:.22,cam,long?null:n===1?[[0,.12],[.2,.14]]:null);T.honkT=.5;log(t,'honk',{long,at:+t.wait.toFixed(2)});t.nextHonk=t.wait+(t.wait>14?6+Math.random()*3:TR.honkGap[0]+Math.random()*(TR.honkGap[1]-TR.honkGap[0]))}
-      if(!qHead&&t.wait>12&&!t.qHonk){t.qHonk=true;if(Math.random()<.3&&T.honkT<=0){trHorn(t,.18,cam);T.honkT=.5;log(t,'honk',{queue:true,at:+t.wait.toFixed(2)})}}
+      if(blk&&!qHead&&t.wait>12&&!t.qHonk){t.qHonk=true;if(Math.random()<.3&&T.honkT<=0&&T.clock-(t.lastHonk||-9)>=4){t.lastHonk=T.clock;trHorn(t,.18,cam);T.honkT=.5;log(t,'honk',{queue:true,at:+t.wait.toFixed(2)})}}
       if(qHead&&atPlayer&&t.wait>=t.barkAt){t.barkAt=t.wait+TR.barkGap+Math.random()*6;const near=Math.hypot(c.x-p.x,c.z-p.z)<32;
-        if(near&&T.barkT<=0&&o.say&&Math.random()<(t.honkN<=2?.65:.35)){T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line})}}
+        if(near&&T.barkT<=0&&o.say&&(!t.barkN||Math.random()<.35)){/* the first one always: dads always say something */T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line})}}
       if(t.wait>=TR.haz&&!t.hazOn&&qHead){t.hazOn=true;log(t,'haz',{at:+t.wait.toFixed(2)})}
       /* go round: the blocker has stopped, the oncoming lane is clear for TR.roundClear m */
       if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
@@ -1345,7 +1366,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
         if(clear&&hit){t.mode='round';t.offT=TR.roundOff;t.odo=0;t.modeT=0;t.roundLen=hit.gap+2*(blk.hl+blk.hw)+2*hl+3;
           if(hit.gap<7&&!trBehind(t,obs,4)){c.revT=.7;c.revDir=-1;t.roundLen+=3}/* too close to swing out: back up a car's length first */
           log(t,'round',{at:+t.wait.toFixed(2),len:+t.roundLen.toFixed(1),backUp:c.revT>0})}}
-      if(t.wait>=TR.rev&&!t.mode&&t.reroutes<2){t.mode='rev';t.modeT=0;log(t,'rev',{at:+t.wait.toFixed(2)});
+      if(t.wait>=TR.rev&&!t.mode&&t.reroutes<2){t.mode='rev';t.modeT=0;log(t,'rev',{at:+t.wait.toFixed(2),by:blk&&blk.k,head:!!qHead,chain:(()=>{const out=[];let q=t;for(let k=0;k<5&&q;k++){const nn2=q.c.ai&&G.nodes[q.c.ai.next];out.push([q.id,q.blk,q.mode,+q.wait.toFixed(1),q.cap===Infinity?99:+q.cap.toFixed(1),nn2?+Math.hypot(nn2.x-q.c.x,nn2.z-q.c.z).toFixed(1):-1,nn2?nn2.e.length:0,q.res,q.c.ai&&q.c.ai.next]);q=q.blkRef}return out})()});
         if(!trBehind(t,obs,4))c.revT=.9;c.revDir=1;
         /* U-turn: head back to the node we came from, on the opposite lane */
         const a=ai.cur,b=ai.next;if(a>=0&&b>=0&&a!==b){ai.prev=-1;ai.cur=b;ai.next=a;ai.pts=[{x:c.x,z:c.z},...G.lane([b,a]).slice(1)];ai.tr={i:0}}
@@ -1356,14 +1377,15 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     if(t.mode==='rev'){t.modeT+=dt;if(t.modeT>2.5)t.mode=null;else if(c.revT<=0)cap=Math.min(cap,4)}
     /* wrecked: pull over to the kerb and stop there, hazards on */
     if(t.wreck){t.offT=-1.3;t.wreckT=(t.wreckT||0)+dt;cap=Math.min(cap,t.wreckT<3?3:0);if(t.wreckT>3&&Math.abs(c.spd)<.3&&!t.driver)trDriver(t,lvl,o)}
+    if(skip||t.creep>0)cap=Math.min(cap,2);
     if(t.shoveT>0)cap=0;
     {const r=(t.mode==='round'?2.2:1.1)*dt;t.offNow+=Math.max(-r,Math.min(r,t.offT-t.offNow))}if(Math.abs(t.offNow)<.02&&!t.offT)t.offNow=0;
-    t.cap=cap;t.blk=blk&&blk.k;
+    t.cap=cap;t.blk=blk&&blk.k;t.blkRef=blk&&blk.ref||null;
     CA.step(c,dt,{G,collide:statics,speedCap:()=>cap===Infinity?null:cap,offset:()=>t.offNow,canSnap:()=>!seen(c.x,c.z)});
     /* 4. final guard: never left overlapping anything; only the traffic car moves (the player's vehicle is resolved in index.html) */
-    trSep(t,obs);
+    trSep(t,obs);t.seen=seen(c.x,c.z);
     trSync(t,lvl,t.cap<.8||Math.abs(c.spd)<.3&&cap!==Infinity,dt);
-    const gone=Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off||(t.wait>=TR.gone||t.reroutes>=2&&t.wait>8||t.wreck&&t.wreckT>90)&&!seen(c.x,c.z)&&Math.hypot(c.x-p.x,c.z-p.z)>25;
+    const gone=Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off||(t.wait>=TR.gone||t.reroutes>=2&&t.wait>8||t.wreck&&t.wreckT>90)&&!seen(c.x,c.z);
     if(gone){if(!o.off&&(t.wait>=TR.gone||t.reroutes>=2||t.wreck))log(t,'despawn',{wait:+t.wait.toFixed(1),wreck:!!t.wreck});trDrop(T,lvl,t);T.cars.splice(i,1)}}};
 /* push this traffic car (only it) out of anything it overlaps */
 function trSep(t,obs){const c=t.c;for(let pass=0;pass<2;pass++){const A=trBox(t);let any=false;
@@ -1399,7 +1421,7 @@ OW.trafficSync=t=>{if(WS)trSync(t,WS.lvl,true,0)};
 OW.trafficHit=(t,info)=>{const ws=WS;if(!ws||!ws.traffic)return 0;const T=ws.traffic,c=t.c,sp=info.sp||0,m=(HT.Garage&&HT.Garage.VEH[t.ty]||{mass:1}).mass||1;
   const dmg=sp>6.5?Math.min(c.stats.hp*.45,.13*(sp-6.5)*(sp-6.5)*m):0;if(dmg>0)c.hp=Math.max(0,c.hp-dmg);
   T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'hit',sp:+sp.toFixed(2),dmg:+dmg.toFixed(1),hp:+c.hp.toFixed(1),by:info.byPlayer?'player':'traffic'});
-  if(info.byPlayer&&sp>1.2&&(T.clock-(t.hitAt||-9))>2.5){t.hitAt=T.clock;t.hazT=8;if(T.honkT<=0){trHorn(t,.9,info.camera);T.honkT=.6}if(sp>6)trAlarm(t,info.camera);
+  if(info.byPlayer&&sp>1.2&&(T.clock-(t.hitAt||-9))>2.5){t.hitAt=T.clock;t.hazT=8;if(T.honkT<=0){trHorn(t,.9,info.camera);T.honkT=.6;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'honk',long:true,hit:true})}if(sp>6)trAlarm(t,info.camera);
     if(info.say&&T.barkT<=0&&Math.random()<.8){T.barkT=TR.barkCd;try{info.say(TR_WHO[t.ty]||'Driver',TR_HIT[(t.id+((t.hitN=(t.hitN|0)+1)))%TR_HIT.length])}catch(_){}}}
   if(c.hp<=0&&!t.wreck){c.hp=1;t.wreck=true;t.mode=null;t.wait=0;t.wreckT=0;if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'wreck'})}
   if(ws.traffic.g&&ud(t).setDamage)try{ud(t).setDamage(1-c.hp/c.stats.hp)}catch(_){}

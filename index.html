@@ -1411,7 +1411,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,want:OWS.trafficWant,
     pv:CV&&!CV.fly?{x:CV.pos.x,z:CV.pos.z,yaw:CV.yaw,spd:CV.spd,hl:carSize(CV).l/2,hw:carSize(CV).w/2,type:CV.type}:null,/* [TRAFFIC] the player's vehicle, any type */
     cars:L.cars?L.cars.filter(e=>e!==CV&&e.obj):null,say:(who,txt)=>radio(who,txt),
-    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):null});/* traffic yields to the escort truck and getaway cars too */
+    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||null});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
   owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
@@ -1777,11 +1777,12 @@ function trafficContact(e,dt,px0,pz0){const O=OW();if(!O||!O.trafficLive||!L||!L
     if(mine&&rest>.001){/* (pinned against a wall: the pusher stops, as at a wall) */e.pos.x=c.x+=nx*rest;e.pos.z=c.z+=nz*rest}
     if(!mine){tc.spd=0;const sQ=closing*2*mP/(mP+mQ);if(sQ>1)O.trafficHit(t,{sp:sQ,byPlayer:false});continue}/* the traffic car's fault: it stops, nothing on the player */
     if(closing<=.05)continue;/* resting contact: positions only, no impulse, no jitter */
-    const J=1.1*closing*mP*mQ/(mP+mQ),dP=heavy||e.type==='tank'?0:J/mP,dQ=J/mQ;
+    const J=(closing<1.5?1:1.1)*closing*mP*mQ/(mP+mQ),/* resting push: no bounce, the two move together */dP=heavy||e.type==='tank'?0:J/mP,dQ=J/mQ;
     c.spd+=dP*(nx*vdx+nz*vdz);e.spd=c.spd;O.trafficShove(t,0,0,-nx*dQ,-nz*dQ);
     const spP=closing*2*mQ/(mP+mQ),spQ=closing*2*mP/(mP+mQ),front=nx*f[0]+nz*f[1]<0,push={x:nx,z:nz};
     if(spP>5&&e.bump<=0){try{if(ENG&&ENG.crash)ENG.crash(Math.min(1,spP/15));else snd('hit',Math.min(1,spP/15))}catch(_){}e.bump=.4;try{FX.shake(Math.min(.4,spP/34))}catch(_){}}
     const lost=heavy?0:carImpact(e,spP,push,front,{cause:'crash'});if(lost>0){if(e.obj.userData.bodyRoot)dentCar(e,push,spP);carLook(e);if(carSave(e))try{SAVEM.touch('garage')}catch(_){}if(mode==='mission'&&M&&M.world&&carHp(e)<=0)wmVanDown()}
+    if(closing<1.2)continue;/* a steady push: no new hit */
     const got=O.trafficHit(t,{sp:spQ,byPlayer:true,camera,say:(w,x)=>radio(w,x),player:P.pos});
     if(got>2.5){trafficHero(t);const ud=t.v.userData;if(ud.bodyRoot)dentCar({obj:t.v,yaw:tc.yaw,dmg:1-tc.hp/tc.stats.hp},{x:-nx,z:-nz},spQ);if(ud.setDamage)try{ud.setDamage(1-tc.hp/tc.stats.hp)}catch(_){}O.trafficSync(t)}
     /* consequences: a little trust once per car (not during jobs), a little Riverside heat */
