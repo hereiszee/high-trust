@@ -72,6 +72,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <!-- three r128 add-ons in one request: loaders, meshopt decoder, skeleton utils, post-processing -->
 <script src="https://cdn.jsdelivr.net/combine/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js,npm/three@0.128.0/examples/js/loaders/RGBELoader.js,npm/three@0.128.0/examples/js/libs/meshopt_decoder.js,npm/three@0.128.0/examples/js/utils/SkeletonUtils.js,npm/three@0.128.0/examples/js/shaders/CopyShader.js,npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js,npm/three@0.128.0/examples/js/shaders/FXAAShader.js,npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js,npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js,npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" crossorigin></script>
 <script src="js/hud.js"></script>
+<script src="js/credits.js"></script><!-- Credits & licences text (title and pause menus) -->
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/guns.js"></script>
@@ -785,6 +786,12 @@ function snd(kind,vol=1){const A=AU();if(A){try{A.legacy(kind,vol)}catch(e){}ret
 /* ================= CHARACTERS ================= */
 const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 /* realistic skinned people when js/people.js and its GLBs are in; the box dudes below stay as the fallback */
+/* owner rule (docs/steam/CONTENT.md minors): children and the family are never hit by anything, and no gun is out within KID_R m of them.
+   isProt(x): a character, entity or hitbox mesh is protected (js/people.js HT.People.isProtected); kidNear(r): the nearest one around the dad */
+const KID_R=25;
+function isProt(x){const pp=window.HT&&HT.People;return!!(x&&pp&&pp.isProtected&&pp.isProtected(x))}
+function kidNear(r,x,z){r=r||KID_R;x=x==null?P.pos.x:x;z=z==null?P.pos.z:z;const pp=window.HT&&HT.People;let b=pp&&pp.protectedNear?pp.protectedNear(x,z,r):null;
+  for(const e of[...npcs,...allies,...enemies]){if(!e||!e.pos||!isProt(e))continue;const k=Math.hypot(e.pos.x-x,e.pos.z-z);if(k<r&&(!b||k<b.dist))b={d:e.dude,dist:k,x:e.pos.x,z:e.pos.z}}return b}
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});
   if(m.ok&&!m._htReg&&typeof m.make==='function'){const mk=m.make.bind(m);m.make=(...a)=>{const d=mk(...a);if(d&&d.root)DUDE_REG.push(d.root);return d};m._htReg=true}/* every skinned person, wherever it is made (jobs, neighbours, givers) */
   return m.ok?m:null}
@@ -1260,7 +1267,7 @@ function setPrompt(t,p){if(!t){UI.prompt=null;return}t=String(t).replace(/\s*<sm
 
 /* ================= SPAWNING ================= */
 function addChar(e){e.dude.meshes.forEach(m=>m.userData.ent=e);scene.add(e.dude.root)}
-function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])rayTargets.push(...e.dude.meshes)}
+function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...enemies,...allies])if(!isProt(e))rayTargets.push(...e.dude.meshes)}/* a protected character (kid, family) is never a hit target */
 /* every enemy spawned since the last clear, including ones a job takes out of enemies[] (tow's peaceful attendants): all of them leave the scene at clearChars,
    or each failed or retried run leaves their models behind */
 let spawnedEnemies=[];
@@ -1983,13 +1990,26 @@ function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
 function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
-function showTitle(){HUD.show('title',UI.title)}
+function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80)}
+/* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
+function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
+  HUD.dialog({kicker:'High Trust',title:'Credits & licences',wide:true,html:'<pre>'+e(C.CREDITS)+'</pre><h4>Licence notices</h4>'+C.NOTICES.map(([w,c])=>'<pre><b>'+e(w)+'</b>\nMIT License\n'+e(c)+'\n\n'+e(C.MIT_BODY)+'</pre><br>').join('')+'<h4>Fonts</h4><pre>'+e(C.FONTS)+'</pre>',
+    buttons:[{label:'Close',act:'close',cls:'pri'}],focus:'close',cancel:'close'})}
+function titleFocus(){if(HUD.screen!=='title'||HUD.dialogOpen)return;const c=document.querySelector('.ht-title [data-act=continue]');const b=(c&&!c.hidden&&!c.disabled)?c:document.querySelector('.ht-title [data-act=newgame]');if(b&&!b.disabled)b.focus({preventScroll:true})}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',(a,arg)=>{
-  if(a==='newgame'||a==='continue'){metaTitleAction(a);start()}
+  if(a==='continue'){start()}
+  else if(a==='newgame'){if(!hasSave()){metaTitleAction(a);start();return}
+    /* two steps: the old save is kept in the "previous" slot (title: Restore previous save), Cancel is the default */
+    HUD.dialog({kicker:'New game',title:'Start over?',text:'Your current save ('+(UI.title.continueLabel||'in progress')+') will be put aside and a new game starts.\n\nYou can bring it back from the title screen with "Restore previous save" until you start another new game.',
+      buttons:[{label:'Start a new game',act:'ok',cls:'dng'},{label:'Cancel',act:'cancel',cls:'pri'}],focus:'cancel'}).then(r=>{if(r==='ok'){metaTitleAction('newgame');start()}})}
+  else if(a==='restore'){const pv=SAVEM&&SAVEM.previous();if(!pv)return;
+    HUD.dialog({kicker:'Previous save',title:'Restore it?',text:'Bring back the save from '+metaWhen(pv.t)+' ('+pv.jobs+' jobs · '+money(pv.cash)+').'+(hasSave()?'\n\nYour current save swaps places with it, so you can switch back the same way.':''),
+      buttons:[{label:'Restore',act:'ok',cls:''},{label:'Cancel',act:'cancel',cls:'pri'}],focus:'cancel'}).then(r=>{if(r==='ok'&&SAVEM.restorePrevious()){metaFixSave(SV());metaSave(true);if(HOME3)homeTeardown();vanApply();metaTitle()}})}
+  else if(a==='credits'){showCredits()}
   else if(UI.acts[a])UI.acts[a](arg);
   else if(a==='resume'){if(pauseOpen)closePause()}
   else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
@@ -2158,7 +2178,7 @@ function fire(){
     const dir=fwd.clone().add(V3(rand(-1,1),rand(-1,1),rand(-1,1)).multiplyScalar(spread)).normalize();
     ray.set(camera.position,dir);ray.near=P.fp?0:Math.max(0,camera.position.distanceTo(eye)-.2);ray.far=w.range;
     const hits=ray.intersectObjects(rayTargets,false);let hit=null;
-    for(const h of hits){const e=h.object.userData.ent;if(e===P)continue;if(e&&(e.state==='dead'||e.state==='cuffed'||e.down))continue;if(e&&e.kind==='ally')continue;
+    for(const h of hits){const e=h.object.userData.ent;if(e===P)continue;if(isProt(e||h.object))continue;/* kids and family: the round passes them by */if(e&&(e.state==='dead'||e.state==='cuffed'||e.down))continue;if(e&&e.kind==='ally')continue;
       if(e&&e.state==='surrender'&&simT-(e.surrAt||0)<SURR_GRACE)continue;hit=h;break}
     let end=hit?hit.point:camera.position.clone().addScaledVector(dir,w.range);
     if(!P.fp){const d2=end.clone().sub(shoulder),L2=d2.length();ray.set(shoulder,d2.normalize());ray.near=0;ray.far=Math.max(0,L2-.05);const blk=ray.intersectObjects(L.solids,false)[0];if(blk){hit=blk;end=blk.point}}
@@ -2191,6 +2211,7 @@ function puff(p){FX.impact(p,V3(0,1,0),'wood',{big:true,decal:false})}
 /* ================= COMBAT ================= */
 function speaker(){const a=allies.filter(x=>!x.down);return a.length?pick(a).id:null}
 function hurtEnemy(e,dmg,by,opt={}){
+  if(!e||isProt(e))return;/* owner rule: nothing hurts a kid or the family */
   if(e.state==='dead'||e.state==='cuffed')return;if(by==='ally'&&e.script&&e.script.kind==='to')return;/* the crew leaves the Duke's run for his car to the dad */if(e.fr)frHurt(e,by);
   /* beanbag: never kills, never an execution; a hit on someone who already gave up costs a little trust */
   if(opt.nonlethal){if(e.state==='surrender'){if(simT-(e.surrAt||0)>=SURR_GRACE&&simT-(e.beanAt||-9)>1){e.beanAt=simT;addTrust(-1);const s=speaker();if(s)radio(s,"Okay, he gets it.",true)}return}
@@ -2211,8 +2232,8 @@ function killEnemy(e){cue('die',e.dude);if(e.state!=='surrender')dropGun(e,'drop
   if(e.boss&&M)M.bossDone='down';
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
 function hurtPlayer(d,src){if(CV)d=carBulletHit(d);/* the car soaks part of it */if(mode==='hub'){frHurtPlayer(d,src);return}if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;if(src&&src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1));FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
-function hurtAlly(a,d){if(a.down)return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
-function shootAt(src,target,acc,dmg,isEnemy){cue('fire',src.dude);
+function hurtAlly(a,d){if(a.down||isProt(a))return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
+function shootAt(src,target,acc,dmg,isEnemy){if(isProt(target))return;cue('fire',src.dude);
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
   const dir=end.clone().sub(from).normalize(),mz=from.clone().addScaledVector(dir,.7),gun=src.gun||'pistol';
@@ -2779,9 +2800,11 @@ let HOME3=null,homeReady=false,homeLoading=null;
 
 /* ---------- title: continue / new game (HUD buttons) ---------- */
 function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
-function metaTitle(){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
+function metaWhen(t){if(!t)return'earlier';try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}}
+function metaTitle(dataOnly){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
+  const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaWhen(pv.t)+' · '+pv.jobs+' jobs':'';
   if(has){const s=SV(),done=s.prog.done.slice(0,MISSIONS.length).filter(Boolean).length;UI.title.continueLabel=done+'/'+MISSIONS.length+' jobs · '+money(s.cash)}
-  if(HUD.screen==='title')HUD.show('title',UI.title)}
+  if(!dataOnly&&HUD.screen==='title'){HUD.show('title',UI.title);setTimeout(titleFocus,80)}}
 metaTitle();
 /* 'newgame' wipes the save first; 'continue' just starts */
 function metaTitleAction(a){if(a==='newgame'&&SAVEM&&hasSave()){if(DECO.on)decoStop(true);if(HOME3)homeTeardown();SAVEM.reset();metaFixSave(SV());metaSave(true)}}
@@ -3147,6 +3170,7 @@ const FR_LINES={
  back:["Yeah. Keep walking.","Whatever, old man.","Tell your HOA we said hi.","We're done. We're done."],
  war:["{a} on OUR block?!","That's {b}! Get 'em off the corner!","{b} been waiting for this."],
  holster:["Okay. Holstering.","Gun's away. Nobody panic.","Holstered. Deep breaths."],
+ kids:["Kids out here. Gun stays away.","Not with kids on the block. Holstering.","There's a kid right there. Put it away."],
  leftRiver:"Holstering. We're out of Riverside.",
  down:["Woke up on my own couch. Sal from Dad's Auto towed the van home and left a bill. And a lollipop.","Linda says I was 'napping in Riverside'. Sal says that's forty bucks.","Back home. My pride is still somewhere on 3rd St."],
  topTier:["Nobody's out here but kids with chalk, man. Put it away.","Mrs. Ramos just looked at me. Holstering.","Riverside's fine. Riverside's great. Put it away."],
@@ -3322,6 +3346,7 @@ function tz(z){return Math.floor(z/TILE)}
 
 /* ---------- drawing and holstering ---------- */
 function frDraw(id){const bOk=baseArmOk();/* Fort Sensible's training areas (js/base.js): the gun may come out there, never any heat */
+  if(kidNear()){if(simT-FR.quipT>4){FR.quipT=simT;frSay(FR_LINES.kids,'you',true)}return}/* owner rule: no gun out within 25 m of a kid or the family */
   if(!bOk&&(!frInRiver()||!frOn())){if(simT-FR.quipT>6){FR.quipT=simT;frSay(baseLine()||(frOn()?FR_LINES.maple:FR_LINES.calm),'you',true)}return}
   if(!bOk&&FR.cap<=0&&frTier()>=5){if(simT-FR.quipT>6){FR.quipT=simT;frSay(FR_LINES.topTier,speaker()||'you',true)}return}
   id=id&&P.weapons.includes(id)?id:P.cur;FR.drawn=true;FR.base=bOk;FR.calmT=0;FR.drawT=simT;swap(id,true);if(P.dude)equip(P.dude,id);
@@ -3547,6 +3572,7 @@ function frMusic(){const A=AU();if(!A)return;const h=FR.heat,want=h>=1||FR.hosti
 function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=performance.now();
   if(!FR.drawn&&P.dude&&P.dude.gun&&!VAN.on)equip(P.dude,null);
   if(!FR.drawn&&mouseDown&&!VAN.on){mouseDown=false;frDraw(P.cur)}
+  if(FR.drawn&&kidNear())frHolster(FR_LINES.kids);
   if(FR.drawn&&FR.base){if(VAN.on)frHolster();else if(!baseArmOk())frHolster(baseLine('left')||FR_LINES.holster[0])}/* Fort Sensible: out of the training areas, the gun goes away */
   if(!frOn()){if(FR.members.length||(FR.drawn&&!FR.base)||FR.heat)frReset();return null}
   const inR=frInRiver();FR.diff=FR.diff||Object.assign({},AI.MISSION_DIFF[0]||AI.DIFFICULTY.normal);
@@ -4398,7 +4424,8 @@ ASSETS.onProgress(()=>{if(!ASSETS.done)ldStatus()});
 const ldTimer=setInterval(()=>{if(mode!=='title'){clearInterval(ldTimer);return}ldStatus()},1000);
 addEventListener('online',()=>ASSETS.retry());
 ASSETS.ready.then(A=>{ldStatus();
-  if(HUD.screen==='title'){const b=document.querySelector('.ht-title [data-act=newgame]');if(b)b.focus({preventScroll:true})}
+  /* a save exists: Continue is first and focused, so one stray Enter never starts over */
+  if(HUD.screen==='title')titleFocus();
   /* the title backdrop builds on the next task, so the unlocked button paints first (Start rebuilds the hub anyway) */
   setTimeout(()=>{initModules();if(mode==='title'){buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();if(typeof titlePose==='function')titlePose()};requestAnimationFrame(()=>requestAnimationFrame(showScene))},0)});
 /* a hub model that arrives after Stage A gave up waiting: rebuild the hub while the title card is still up */
@@ -4425,6 +4452,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
+window.__ht.quitToTitle=()=>quitToTitle();window.__ht.showCredits=()=>showCredits();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},

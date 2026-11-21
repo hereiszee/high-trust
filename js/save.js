@@ -182,7 +182,7 @@ HT.CATALOG=CATALOG;
 /* =====================================================================
    SAVE  (localStorage 'ht-save': v1 per SPEC E, v2 per SPEC2 D, v3 per SPEC3 4.0/4.8, plus optional extension fields)
    ===================================================================== */
-const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',BAD_KEY='ht-save-corrupt',SAVE_V=3;
+const SAVE_KEY='ht-save',BAK_KEY='ht-save-bak',PREV_KEY='ht-save-prev',BAD_KEY='ht-save-corrupt',SAVE_V=3;
 const isObj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o);
 const clone=o=>JSON.parse(JSON.stringify(o));
 const num=(v,d)=>typeof v==='number'&&isFinite(v)?v:d;
@@ -452,8 +452,20 @@ const Save={
     const prev=sGet(SAVE_KEY);if(prev&&parseRaw(prev).state==='ok')sSet(BAK_KEY,prev);
     const ok=sSet(SAVE_KEY,JSON.stringify(data));emit('saved',data);return ok},
   flush(){if(timer)Save.saveNow()},
-  reset(){clearTimeout(timer);timer=null;sDel(SAVE_KEY);sDel(BAK_KEY);data=SAVE_DEFAULT();attachProg();Save.saveNow();
+  /* a new game: the old save moves to the 'previous' slot (Save.restorePrevious brings it back) instead of being deleted */
+  reset(){clearTimeout(timer);timer=null;
+    if(data){if(boundProg)data.prog=boundProg;if(Save.hasProgress(data))sSet(PREV_KEY,JSON.stringify(data))}
+    sDel(SAVE_KEY);sDel(BAK_KEY);data=SAVE_DEFAULT();attachProg();Save.saveNow();
     for(const k in data)emit(k,data[k]);emit('load',data);return data},
+  hasProgress(d){d=d||data;return!!(d&&d.prog&&((d.prog.missionsRun||0)>0||(d.cash||0)>0||(d.stats&&d.stats.spent||0)>0))},
+  /* the save a New game replaced: {t,cash,jobs} or null */
+  previous(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return null;const p=r.s.prog||{},j=r.s.jobs&&typeof r.s.jobs==='object'?r.s.jobs:{};
+    return{t:r.s.t||0,cash:r.s.cash||0,jobs:Object.keys(j).filter(k=>j[k]&&j[k].done).length,runs:p.missionsRun||0}},
+  /* swap the current save and the previous slot (so a restore can itself be undone) */
+  restorePrevious(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return false;clearTimeout(timer);timer=null;
+    if(data){if(boundProg)data.prog=boundProg;if(Save.hasProgress(data))sSet(PREV_KEY,JSON.stringify(data));else sDel(PREV_KEY)}
+    const old=data;data=sanitize(migrate(r.s));attachProg();sDel(BAK_KEY);Save.saveNow();lastLoad={status:'ok',from:r.s.v||0};
+    for(const k in data)emit(k,data[k],old&&old[k]);emit('load',data);return true},
   /* link the game's live prog object: SAVE.prog becomes that same object */
   bindProg(p){boundProg=p;if(data)attachProg();return p},
   on(key,f){(listeners[key]=listeners[key]||[]).push(f);return()=>Save.off(key,f)},

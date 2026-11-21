@@ -713,7 +713,7 @@ const TIPS=['Hurt enemies sometimes give up. Zip-ties earn more trust than the a
 function screenTitle(d){
   const e=el('div','ht-scr ht-title');
   e.innerHTML=`<div class="scrim"></div><div class="col"><div class="ht-logo"><span class="roof">${UI_ICON.roof}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>${d.premise?`<p class="premise">${esc(d.premise)}</p>`:''}
-  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Settings','settings','ghost')}</div></div>
+  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Restore previous save','restore','ghost','<span class="sub rl"></span>')}${btn('Settings','settings','ghost')}${btn('Credits &amp; licences','credits','ghost')}</div></div>
   <div class="ht-load"><div class="row"><span class="tip"><b>Tip</b><span class="tt"></span></span><span class="st ht-num">Loading</span></div><div class="bar"><i></i></div></div><div class="ht-ver">Build ${esc(d.version||'')}</div>`;
   e.querySelector('.tt').textContent=d.tip||TIPS[Math.floor(Math.random()*TIPS.length)];
   return e}
@@ -723,6 +723,7 @@ function updTitle(e,d){const L=e.querySelector('.ht-load'),f=clamp(d.progress??0
   L.classList.toggle('done',!!done);L.classList.toggle('warn',!!d.warn);
   const cont=e.querySelector('[data-act=continue]'),ng=e.querySelector('[data-act=newgame]');
   const canC=!!d.canContinue;cont.hidden=!canC;e.querySelector('.cl').textContent=d.continueLabel||'';
+  const rs=e.querySelector('[data-act=restore]');rs.hidden=!d.canRestore;e.querySelector('.rl').textContent=d.restoreLabel||'';rs.disabled=!done;
   cont.disabled=!done;ng.disabled=!done;ng.className='ht-btn'+(canC?'':' pri');ng.innerHTML=(canC||!done?'':UI_ICON.play)+'<span>'+(canC?'New game':(done?(d.startLabel||'Clock in'):'Loading…'))+'</span>';
   if(!d.version)e.querySelector('.ht-ver').hidden=true;
 }
@@ -750,7 +751,7 @@ function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'co
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
   ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
-  <div class="sep"></div>${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
+  <div class="sep"></div>${btn('Credits &amp; licences','credits','ghost')}${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
@@ -769,6 +770,34 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
   pane.querySelectorAll('.ht-seg3').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
   const rs=pane.querySelector('[data-reset]');if(rs)rs.onclick=()=>{if(rs.dataset.arm){emit('action','resetSave');rs.textContent='Save reset';rs.disabled=true}else{rs.dataset.arm=1;rs.textContent='Tap again to wipe everything';rs.classList.remove('ghost')}};
 }
+/* modal dialog above every screen: HUD.dialog({kicker,title,text|html,buttons:[{label,act,cls}],focus,cancel,wide})
+   resolves with the chosen act; Esc (or a click on the backdrop) resolves with o.cancel ('cancel').
+   Focus starts on o.focus (else the last button) and is trapped inside; arrows move between buttons. */
+const DLG={el:null,done:null};
+function dialog(o={}){if(DLG.el)closeDialog(DLG.cancel);
+  const e=el('div','ht-dlg'+(o.wide?' wide':''));e.setAttribute('role','dialog');e.setAttribute('aria-modal','true');
+  const bs=(o.buttons||[{label:'OK',act:'ok',cls:'pri'}]);
+  e.innerHTML=`<div class="bk"></div><div class="box" tabindex="-1">${o.kicker?`<div class="kick">${esc(o.kicker)}</div>`:''}${o.title?`<h3>${esc(o.title)}</h3>`:''}<div class="bd">${o.html!=null?o.html:(o.text?String(o.text).split('\n\n').map(p=>`<p>${esc(p)}</p>`).join(''):'')}</div>
+  <div class="ht-btns row">${bs.map(b=>`<button class="ht-btn ${b.cls||''}" data-dlg="${esc(b.act)}">${esc(b.label)}</button>`).join('')}</div></div>`;
+  (R.scr||document.body).appendChild(e);DLG.el=e;DLG.cancel=o.cancel||'cancel';DLG.prev=document.activeElement;
+  const p=new Promise(res=>{DLG.done=res});
+  e.querySelectorAll('[data-dlg]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();closeDialog(b.dataset.dlg)}));
+  e.querySelector('.bk').addEventListener('click',ev=>{ev.stopPropagation();closeDialog(DLG.cancel)});
+  requestAnimationFrame(()=>e.classList.add('on'));
+  const f=(o.focus&&e.querySelector(`[data-dlg="${o.focus}"]`))||e.querySelector('[data-dlg]:last-child');if(f)f.focus({preventScroll:true});
+  return p}
+function closeDialog(act){const e=DLG.el;if(!e)return;DLG.el=null;const d=DLG.done;DLG.done=null;e.remove();
+  try{if(DLG.prev&&DLG.prev.isConnected)DLG.prev.focus({preventScroll:true})}catch(_){}if(d)d(act)}
+function dialogKeys(ev){const e=DLG.el;if(!e)return;const k=ev.key;
+  const bs=[...e.querySelectorAll('[data-dlg]')],i=bs.indexOf(document.activeElement),bd=e.querySelector('.bd');
+  if(k==='Escape'){closeDialog(DLG.cancel)}
+  else if(k==='Tab'||k==='ArrowLeft'||k==='ArrowRight'){const n=(k==='ArrowLeft'||(k==='Tab'&&ev.shiftKey))?(i<=0?bs.length-1:i-1):(i+1)%bs.length;bs[n]&&bs[n].focus({preventScroll:true})}
+  else if((k==='ArrowDown'||k==='ArrowUp'||k==='PageDown'||k==='PageUp')&&bd){bd.scrollTop+=(k==='ArrowDown'?60:k==='ArrowUp'?-60:k==='PageDown'?bd.clientHeight*.9:-bd.clientHeight*.9)}
+  else if(k==='Home'&&bd)bd.scrollTop=0;else if(k==='End'&&bd)bd.scrollTop=bd.scrollHeight;
+  else if((k==='Enter'||k===' ')&&i>=0){bs[i].click()}
+  else if(k!=='Enter'&&k!==' ')return;/* other keys: swallowed below */
+  ev.preventDefault();ev.stopImmediatePropagation()}
+addEventListener('keydown',ev=>{if(DLG.el){dialogKeys(ev);ev.stopImmediatePropagation()}},true);
 const BUILD={title:screenTitle,brief:screenBrief,result:screenResult,pause:screenPause,calendar:(d)=>screenCalendar(d)};
 function showScreen(name,d={}){
   if(name==='map'){MAP.openMap();return}
@@ -1145,6 +1174,7 @@ const HUD={
   hit,damage,feed,toast,ammoToast,banner,payout,checkpoint,overlay,
   kit:{viewfinder:kitViewfinder,choices:kitChoices,roles:kitRoles},
   show:showScreen,hide:hideScreen,set:setScreen,
+  dialog,closeDialog,get dialogOpen(){return!!DLG.el},
   get screen(){return SCR.cur},
   minimap:{routeStats:()=>Object.assign({},RT.stats),setRegions(r){MM.regions=r||null;MAP.dirty=true},setLevel,route(pts){MM.route=pts?pts.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p):null;MM.routeTo=null},findRoute,setPins(p){MM.pins=p||[];MAP.dirty=true},overlay(fn){MM.overlay=fn||null;MAP.dirty=true},
     openMap:()=>MAP.openMap(),closeMap:()=>MAP.close(),toggleMap:()=>MAP.toggle(),get mapOpen(){return MAP.open},onFastTravel(fn){MAP.onTravel=fn},zoom(z){MM.zoom=z},reveal(x,z){reveal(x,z)}},

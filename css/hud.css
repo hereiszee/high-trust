@@ -965,3 +965,17 @@
 .ht-drv .vh[data-band="4"] .vw,.ht-drv .vh[data-band="5"] .vw{color:#ff7a6a}
 @keyframes ht-vh-blink{0%{opacity:1}100%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.ht-drv .vh .row b{animation:none!important}}
+/* modal dialog (HUD.dialog): confirmations, credits */
+.ht-dlg{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;pointer-events:auto;opacity:0;transition:opacity var(--d2,.18s) ease-out}
+.ht-dlg.on{opacity:1}
+.ht-dlg .bk{position:absolute;inset:0;background:rgba(9,11,14,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ht-dlg .box{position:relative;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;padding:28px;border-radius:var(--r3,14px);background:#14171c;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08);outline:none}
+.ht-dlg.wide .box{width:min(820px,calc(100vw - 32px))}
+.ht-dlg .kick{font:700 var(--t-s)/1 var(--ht-ui);letter-spacing:.28em;text-transform:uppercase;color:var(--sun)}
+.ht-dlg h3{font:400 clamp(26px,3.4vw,38px)/1 var(--ht-display);text-transform:uppercase;margin:10px 0 14px}
+.ht-dlg .bd{overflow:auto;min-height:0;flex:1 1 auto;margin-bottom:18px;padding-right:6px}
+.ht-dlg .bd p{font:500 var(--t-m,16px)/1.5 var(--ht-body);color:var(--fg2);margin:0 0 10px}
+.ht-dlg .bd pre{white-space:pre-wrap;font:500 13px/1.55 var(--ht-body);color:var(--fg2);margin:0}
+.ht-dlg .bd h4{font:700 var(--t-s)/1.2 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--sun);margin:18px 0 6px}
+.ht-dlg .ht-btns.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.ht-dlg .ht-btn:focus-visible,.ht-dlg .ht-btn:focus{box-shadow:0 0 0 2px var(--ink),0 0 0 4px #fff}
