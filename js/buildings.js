@@ -1138,7 +1138,7 @@
 
   /* ------------------------------------------------------------------ shops */
   const SHOP_NAMES = { hardware: ["HANK'S HARDWARE", 'TOOLS · PAINT · LUMBER'], auto: ["DAD'S AUTO", 'REPAIR · TIRES · BRAKES'], store: null };
-  const STORES = [['CORNER MART', 'GROCERY · DELI · LOTTO'], ['QUICK-ISH', 'OPEN 24-ISH HOURS'], ['MAPLE MARKET', 'FRESH · LOCAL · FRIENDLY'], ['CENT-SIBLE', 'SNACKS · ICE · ROOT BEER']];
+  const STORES = [['CORNER MART', 'GROCERY · DELI · LOTTO'], ['QUIKSTOP', 'OPEN 24 HOURS'], ['MAPLE MARKET', 'FRESH · LOCAL · FRIENDLY'], ['SAV-MOR', 'BEER · SNACKS · ICE']];
   function shop(opts = {}) {
     if (!MAT) init({});
     const w = Math.max(6, opts.w || 16), d = Math.max(6, opts.d || 12), facing = FACE_ROT[opts.facing] != null ? opts.facing : '+z';

@@ -44,9 +44,9 @@ Not blockers, but they should be fixed in the same pass:
 
 | Thing | How it ships today | Author | Licence | Commercial | Attribution | Evidence | Status |
 |---|---|---|---|---|---|---|---|
-| three.js r128 `three.min.js` | CDN: cdnjs.cloudflare.com (`index.html:71`) | three.js authors (mrdoob and contributors) | MIT | yes | MIT notice must accompany copies | three.js repo LICENSE (MIT); not vendored in repo | NEEDS ATTRIBUTION |
-| three.js r128 examples: GLTFLoader, RGBELoader, SkeletonUtils, EffectComposer, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader | CDN: cdn.jsdelivr.net combine (`index.html:73`) | three.js authors (FXAA shader after NVIDIA/T. Lottes, bloom after a three.js contributor) | MIT (as part of the three.js package) | yes | same notice as three.js | npm three@0.128.0 package licence | NEEDS ATTRIBUTION |
-| `meshopt_decoder.js` (three@0.128.0/examples/js/libs) | CDN: jsdelivr (`index.html:73`) | Arseny Kapoulkine (meshoptimizer) | MIT | yes | MIT notice | meshoptimizer licence (MIT) | NEEDS ATTRIBUTION |
+| three.js r128 `three.min.js` | vendored: `vendor/three-r128/` (was CDN) | three.js authors (mrdoob and contributors) | MIT | yes | MIT notice must accompany copies | three.js repo LICENSE (MIT); vendor/three-r128/LICENSE | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
+| three.js r128 examples: GLTFLoader, RGBELoader, SkeletonUtils, EffectComposer, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader | vendored: `vendor/three-r128/` (was CDN) | three.js authors (FXAA shader after NVIDIA/T. Lottes, bloom after a three.js contributor) | MIT (as part of the three.js package) | yes | same notice as three.js | npm three@0.128.0 package licence | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
+| `meshopt_decoder.js` (three@0.128.0/examples/js/libs) | vendored: `vendor/three-r128/` (was CDN) | Arseny Kapoulkine (meshoptimizer) | MIT | yes | MIT notice | meshoptimizer licence (MIT) | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
 | Google Fonts CSS `@import` (Barlow, Barlow Condensed, Bowlby One) | `css/menus.css:5` fetches from fonts.googleapis.com, a duplicate of the self-hosted woff2 files | see fonts rows | OFL 1.1 | yes | — | — | OK (remove the @import for the Steam build: it is a network call and a privacy point) |
 | Service worker `sw.js` | own code | High Trust | repo licence | — | — | — | OK (disable it in the desktop wrapper; see QA-GAPS.md) |
 | Horn tunes (`js/carai.js:67-74`): Shave and a Haircut (1899), Ode to Joy (Beethoven 1824), Take Me Out to the Ball Game (von Tilzer/Norworth 1908), Für Elise (Beethoven), William Tell Overture (Rossini 1829), The Entertainer (Joplin 1902) | note data, synthesized | composers listed | public domain compositions; no recordings used | yes | no | `assets/credits/menus.md` | OK |
@@ -54,7 +54,7 @@ Not blockers, but they should be fixed in the same pass:
 | Effects textures, vehicles, in-world signage, icons | procedural (`js/fx.js`, `js/vehicles.js`, `js/world.js`, `js/save.js`) | High Trust | repo licence | yes | no | `assets/credits/fx.md`, `CREDITS.md` "Vehicles" | OK |
 | Build tools (not shipped): glTF-Transform 4.1.1 (MIT), meshoptimizer 0.22.0 (MIT), sharp 0.33.5 (Apache-2.0, bundles libvips LGPL-3.0), Blender 5.0 (GPL; its output is not covered by the GPL) | `tools/package.json`, `tools/rocketbox/*` | — | — | — | not needed (not distributed) | — | OK |
 
-**For Steam, vendor the libraries.** Copy `three.min.js` r128 and the ten example files into `vendor/three-r128/`, along with three.js's `LICENSE`. A Steam build must run offline, so it should not load code from a CDN. See QA-GAPS.md.
+**Done: the libraries are vendored.** `three.min.js` r128 and the ten example files are in `vendor/three-r128/` with three.js's `LICENSE` and meshoptimizer's licence (provenance in `vendor/README.md`), and index.html loads them locally. The Google Fonts `@import` is gone (the fonts were already local). Desktop packages also carry `THIRD-PARTY-NOTICES.txt` at the install root.
 
 ## Does the game have a credits screen?
 

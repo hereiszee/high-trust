@@ -21,9 +21,7 @@
 <link rel="preload" href="assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bowlby-one-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin>
+<link rel="preload" as="script" href="vendor/three-r128/three.min.js">
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/menus.css">
 <script>
@@ -42,7 +40,7 @@ window.__htBoot=(()=>{const B={onProgress:null};
     return get(p.url,a=>B.onProgress&&B.onProgress(a,p.kb*1024))});
   B.pack.catch(()=>{});B.man.catch(()=>{});
   /* service worker: once it runs, hand it what this visit already loaded so the next visit (or an offline one) starts from cache */
-  if('serviceWorker'in navigator&&location.protocol!=='file:')addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker'in navigator&&location.protocol!=='file:'&&!window.HTDesktop)/* the desktop shell is offline by design: no worker */addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
     navigator.serviceWorker.ready.then(r=>setTimeout(()=>{const u=[location.href.split('#')[0],...performance.getEntriesByType('resource').map(e=>e.name)].filter(x=>/^https?:/.test(x));
       if(r.active)r.active.postMessage({warm:[...new Set(u)]})},3000)).catch(()=>{})});
   return B})();
@@ -68,9 +66,18 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <div class="hud" id="lock" hidden>Click the view to lock your mouse · Esc to pause</div>
 <div id="tags" hidden></div><div id="sub" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin></script>
-<!-- three r128 add-ons in one request: loaders, meshopt decoder, skeleton utils, post-processing -->
-<script src="https://cdn.jsdelivr.net/combine/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js,npm/three@0.128.0/examples/js/loaders/RGBELoader.js,npm/three@0.128.0/examples/js/libs/meshopt_decoder.js,npm/three@0.128.0/examples/js/utils/SkeletonUtils.js,npm/three@0.128.0/examples/js/shaders/CopyShader.js,npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js,npm/three@0.128.0/examples/js/shaders/FXAAShader.js,npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js,npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js,npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" crossorigin></script>
+<!-- Three.js r128 and its example loaders, vendored unmodified from three@0.128.0 (vendor/README.md): no network needed -->
+<script src="vendor/three-r128/three.min.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/RGBELoader.js"></script>
+<script src="vendor/three-r128/examples/js/libs/meshopt_decoder.js"></script>
+<script src="vendor/three-r128/examples/js/utils/SkeletonUtils.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/CopyShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/FXAAShader.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>
@@ -687,7 +694,7 @@ const RENDER=(()=>{
     if(R.composer){R.composer.setPixelRatio(pr);R.composer.setSize(w,h);grade.uniforms.res.value.set(w*pr,h*pr);if(fxaa)fxaa.uniforms.resolution.value.set(1/(w*pr),1/(h*pr))}};
   /* set(q,scale): one preset at a resolution scale (0.6..1 of the preset's pixel ratio) */
   function set(q,scale=1){const G=GFX[q]||GFX.med,prevQ=R.q;R.q=GFX[q]?q:'med';R.scale=scale;
-    const pr=Math.max(.5,Math.min(window.devicePixelRatio||1,G.pr)*scale);if(renderer.getPixelRatio()!==pr)renderer.setPixelRatio(pr);
+    const pr=Math.max(.5,Math.min(window.devicePixelRatio||1,G.pr)*scale*(R.rscale||1));/* R.rscale: the Resolution scale setting */if(renderer.getPixelRatio()!==pr)renderer.setPixelRatio(pr);
     if(sun.shadow.mapSize.x!==G.shadow){sun.shadow.mapSize.set(G.shadow,G.shadow);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
     shadowExt=G.ext;Object.assign(sun.shadow.camera,{left:-G.ext,right:G.ext,top:G.ext,bottom:-G.ext});sun.shadow.camera.updateProjectionMatrix();
     const st=G.soft?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
@@ -1236,8 +1243,9 @@ const P={pos:V3(),yaw:0,pitch:0,hp:100,regenT:0,crouch:false,aim:false,fp:false,
 let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
 const keys={};let mouseDown=false,useTap=false;
 const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'auto'};
-try{Object.assign(CFG,JSON.parse(localStorage.getItem('ht-cfg')||'{}'))}catch(e){}
-function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
+const CFG_STORE=()=>window.HTDesktop?HTDesktop.storage:localStorage;/* desktop shell: settings live in the save file (desktop/save-store.js) */
+try{Object.assign(CFG,JSON.parse(CFG_STORE().getItem('ht-cfg')||'{}'))}catch(e){}
+function saveCfg(){try{CFG_STORE().setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
 
 /* ================= UI helpers ================= */
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
@@ -1973,7 +1981,9 @@ cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 /* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
 function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
 HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
-  if(k==='gfx')RENDER.apply(v);if(k in VOL_DEF)setVolume();saveCfg()});
+  if(k==='gfx')RENDER.apply(v);if(k==='rscale'){RENDER.rscale=clamp(+v||100,50,100)/100;RENDER.apply(RENDER.sel||CFG.gfx)}if(k in VOL_DEF)setVolume();saveCfg()});
+/* Resolution scale and Frame rate cap (js/hud.js SETTINGS) */
+HUD.settings={rscale:clamp(+CFG.rscale||100,50,100),fpsCap:String(CFG.fpsCap||'0')};
 /* volume: the js/audio.js buses when present; otherwise one gain node in front of the fallback synth's speakers */
 let volNode=null,volSet=false;
 function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
@@ -2038,6 +2048,10 @@ HUD.on('touch',(a,down)=>{initAudio();
   if(!running)return;
   if(a==='aim')P.aim=!P.aim;else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
   else if(a==='swap')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);else if(a==='view')P.fp=!P.fp;else if(a==='jump'&&!VAN.on)P.jumpBuf=MOVE.buf});
+/* controller hook (js/gamepad.js): the left stick shares the touch stick's path (analog walk, throttle/steer), the right stick calls look() */
+window.HT.Input={stick:tj,look:(dx,dy)=>{if(running&&!pauseOpen)look(dx,dy)},fire:down=>{mouseDown=!!down&&running},aim:on=>{if(running)P.aim=!!on},
+  get running(){return running},get paused(){return pauseOpen},get mode(){return mode},get driving(){return !!VAN.on},
+  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},relock(){if(!everLocked)lockFailed=false}};
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);
@@ -4360,6 +4374,7 @@ function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 function frame(now){
+  {const cap=+CFG.fpsCap||0;if(cap>0&&now-last<1000/cap-2){requestAnimationFrame(frame);return}}/* Frame rate cap setting; 0 = display rate (VSync) */
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
@@ -4375,7 +4390,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
-RENDER.apply(CFG.gfx);
+RENDER.rscale=clamp(+CFG.rscale||100,50,100)/100;RENDER.apply(CFG.gfx);
 initModules();
 /* gun models load after Stage A, so they don't compete with the boot pack (procedural guns until then) */
 ASSETS.ready.then(()=>{try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}});
@@ -4451,3 +4466,6 @@ window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get sol
 requestAnimationFrame(frame);
 })();
 </script>
+<script src="js/keys.js"></script><!-- key rebinding (Pause → Key bindings) -->
+<script src="js/gamepad.js"></script><!-- controllers: Gamepad API, menu navigation, pad glyphs -->
+<script src="js/platform.js"></script><!-- desktop shell + Steam glue; no-op on the web (docs/steam/BUILD.md) -->

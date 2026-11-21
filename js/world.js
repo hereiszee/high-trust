@@ -108,7 +108,7 @@ function graffitiTex(){if(CT.graf)return CT.graf;const c=canvas(1024,1024),x=c.g
   return CT.graf=ctex(c)}
 function posterTex(){if(CT.post)return CT.post;const c=canvas(1024,1024),x=c.getContext('2d');const r=rngOf(41);
   const P=[{bg:'#f3eedc',t:['LOST DOG','BISCUIT','Beagle mix · answers to "Biscuit"','REWARD · 555-0142'],ph:1},{bg:'#e9d25a',t:['GARAGE','SALE','SAT 8AM · 14 MAPLE ST','tools · bikes · crib'],ph:0},
-    {bg:'#202326',t:['THE','MULCHERS','live · Maple Social Club · Fri','$5 at the door'],ph:0,fg:'#f1e3c4'},{bg:'#f6f6f2',t:['WE BUY','HOUSES','ANY CONDITION · CASH','call today'],ph:0,fg:'#b8281e'}];
+    {bg:'#202326',t:['THE','MULCHERS','live · Elks Lodge · Fri','$5 at the door'],ph:0,fg:'#f1e3c4'},{bg:'#f6f6f2',t:['WE BUY','HOUSES','ANY CONDITION · CASH','call today'],ph:0,fg:'#b8281e'}];
   P.forEach((p,i)=>{const ox=(i%2)*512,oy=Math.floor(i/2)*512;x.save();x.translate(ox,oy);
     x.fillStyle=p.bg;x.beginPath();x.moveTo(40,30);x.lineTo(470,22);x.lineTo(476,490);x.lineTo(60,486);x.lineTo(34,440);x.closePath();x.fill();
     x.fillStyle=p.fg||'#1b1b1b';x.textAlign='center';x.font='900 64px Impact, "Arial Black", sans-serif';x.fillText(p.t[0],256,110);x.font='900 78px Impact, "Arial Black", sans-serif';x.fillText(p.t[1],256,p.ph?190:200);
