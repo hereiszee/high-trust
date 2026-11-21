@@ -983,3 +983,10 @@ html.ht-pad body{cursor:none}
 .ht-keys .ht-rb.wait{background:var(--alarm,#ff5a47);color:#fff;animation:ht-rbp 1s infinite}
 @keyframes ht-rbp{50%{opacity:.6}}
 .ht-paddia{display:block;width:100%;max-width:560px;height:auto;margin:4px 0 10px}
+/* Steam Deck legibility (html.ht-deck, set by js/platform.js when Steam reports a Deck): with Interface size 110% nothing renders
+   under 12 px at 1280x800 (Valve's floor is 9 px) */
+html.ht-deck .ht-root{--t-2xs:11px;--t-xs:11px}
+html.ht-deck .ht-drv .hint .ht-kc,html.ht-deck .ht-vf .ft .ht-kc{font-size:11px}
+html.ht-deck .ht-me .zl span,html.ht-deck .ht-ch .op .rg,html.ht-deck .ht-rc .rr .l em,html.ht-deck .ht-root.compact .ht-wi .lb{font-size:11px}
+html.ht-deck .ht-cal .dy .tt{font-size:11px}
+html.ht-deck .htm-slotk{font-size:11px}
