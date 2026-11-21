@@ -39,15 +39,15 @@ const ROUTE=[{x:411,z:85},{x:410.6,z:77},{x:407.2,z:75.6},{x:407.2,z:67.2},{x:40
   {x:384.6,z:39.2,stop:'the end of the court'},{x:375.2,z:39.2},{x:351,z:39.2},{x:343.2,z:39.2},{x:333.6,z:38.6},{x:331.4,z:35.4}];
 const STAGES=['ladder','garden','court','church','car'];
 const LABELS={ladder:'Up the ladder',garden:'The garden gate',court:'Past the court',church:'To the church',car:'The car'};
-const DESC={thug_hoodie:'grey hoodie',thug_track:'track jacket',thug_beanie:'beanie',thug_red:'red track top',thug_fro:'black jacket',thug_jacket:'brown jacket',thug_brown:'brown hoodie',
-  thug_cap:'work shirt and cap',thug_f_hood:'black hoodie',thug_f_leather:'leather jacket',boss:'suit'};
+const DESC={thug_hoodie:'grey zip-up',thug_track:'track jacket',thug_beanie:'beanie',thug_red:'red track top',thug_fro:'black jacket',thug_jacket:'brown jacket',thug_brown:'brown zip-up',
+  thug_cap:'work shirt and cap',thug_f_hood:'black zip-up',thug_f_leather:'leather jacket',boss:'suit'};
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const LINES={
   beanHit:["OW. Okay. Okay! I'm out. I'm SO out.","AAH. Who throws a beanbag?! From WHERE?","That's... a bean? I'm done. I'm done.","Ow, my everything. Fine. FINE."],
   gary:["Hi. I'll be your zip-tie technician today.","Zip-tie technician, coming through.","Please keep your hands where I can see them and your feet where they are.","Gary, Riverside Zip-Tie Services. How did we do today?"],
   mark:["Mark.","Marked.","Got him. Mark.","Mark. He's watching our guy, not the street."],
-  civ:{gran:"Negative. That's Mrs. Alvarez. Those are groceries. Don't you dare.",marcus:"Umbrella. Not a rifle. It's not even raining, Marcus.",kenji:"Jogger. Friendly. Good form, actually.",phone:"Grey hoodie, phone... he's texting his mom. Friendly.",mei:"Bus stop. She's reading. Friendly.",lucia:"Friendly. That's Lucia from the laundromat."},
+  civ:{gran:"Negative. That's Mrs. Alvarez. Those are groceries. Don't you dare.",marcus:"Umbrella. Not a rifle. It's not even raining, Marcus.",kenji:"Jogger. Friendly. Good form, actually.",phone:"Grey zip-up, phone... he's texting his mom. Friendly.",mei:"Bus stop. She's reading. Friendly.",lucia:"Friendly. That's Lucia from the laundromat."},
   spook:["Nope. Nope nope nope.","Somebody's shooting at me from GOD!","I'm going home. I live here. I'm going home."],
   lethal:["Rule one, Hawk.","Rule one. Hawk. RULE ONE.","...That's not what the beans are for. That's what the beans are INSTEAD of."],
   civScare:["Hawk! That's a civilian. Eyes, then trigger.","You just scared a neighbour half to death. Eyes first.","That was somebody's grandma. Eyes. Then trigger."],
@@ -431,7 +431,7 @@ function idStep(dt,M){const a=A(),O=M.ow,R=O.rifle;if(!scoped(M)||R.scopeT<.8){R
   for(const c of cand){const dx=c.x-eye.x,dy=c.y-eye.y,dz=c.z-eye.z,d=Math.hypot(dx,dy,dz),dot=(dx*fw.x+dy*fw.y+dz*fw.z)/d;const ang=Math.acos(clamp(dot,-1,1)),lim=Math.max(.008,Math.atan(.6/d));if(ang<lim&&ang/lim<ba){ba=ang/lim;best=c}}
   if(best&&R.look&&R.look.o===best.o)R.lookT+=dt;else{R.look=best;R.lookT=best?dt:0}
   if(!best)return;const o=best.o,need=best.kind==='kevin'?TUNE.kevinT:best.kind==='civ'?TUNE.civT:TUNE.markT;R.need=need;
-  if(R.lookT>=need){if(best.kind==='threat'&&!o.marked){o.marked=true;o.markedAt=a.simT;say('doug',o.st==='lurk'?pick(["He's not watching the street, he's watching our guy. Mark.","Mark. That one's waiting for something.","Hands in the hoodie, eyes on Ferreira. Mark."]):pick(LINES.mark),true);const Au=AUD();try{Au&&Au.ui&&Au.ui('mark')}catch(_){}}
+  if(R.lookT>=need){if(best.kind==='threat'&&!o.marked){o.marked=true;o.markedAt=a.simT;say('doug',o.st==='lurk'?pick(["He's not watching the street, he's watching our guy. Mark.","Mark. That one's waiting for something.","Hands in his pockets, eyes on Ferreira. Mark."]):pick(LINES.mark),true);const Au=AUD();try{Au&&Au.ui&&Au.ui('mark')}catch(_){}}
     else if(best.kind==='civ'&&!o.ided){o.ided=true;say('doug',LINES.civ[o.line]||"Friendly.",true)}
     else if(best.kind==='kevin'&&!o.ided){o.ided=true;O.stats.kevin=1;say('doug',"That's a Soak-o-Matic. That's Kevin. Hold fire. Kevin, go home.",true);later(M,1.6,()=>{say('kevin',"Aww.")});o.st='leave'}}}
 function rangeStep(dt,M){const a=A(),O=M.ow,R=O.rifle;R.rangeT-=dt;if(R.rangeT>0)return;R.rangeT=.15;const T=a.THREE;if(!_ray.r)_ray.r=new T.Raycaster();
@@ -500,13 +500,13 @@ function enemyShot(M,t,wit){const a=A(),O=M.ow,E=O.esc,e=t.e;if(!wit||!E)return;
     else if(r==='dead'){a.endMission(false,"Mr. Ferreira went down and stayed down. Rosa got him to the clinic; he'll make it, but the statement won't happen today.","The witness is hurt.")}
     else if(Math.random()<.3)say('ferreira',pick(["Ow! That's my good arm!","I'm okay! It grazed my cardigan!"]))}}
 function spook(M,t){const a=A(),O=M.ow,e=t.e;if(t.spookTried)return;t.spookTried=true;
-  if(Math.random()<TUNE.spookP||t.forceSpook){t.st='run';t.fled=true;t.t=0;const to=fleeTo(t);a.equip(e.dude,null);e.gun=null;e.script={kind:'to',x:to.x,z:to.z,speed:5.4,then:()=>{t.st='gone';vanish(e)}};O.stats.spooked++;say(cap(t.desc||'Hoodie'),pick(LINES.spook),true);later(M,1.4,()=>{say('doug',"He's gone. Spooked counts. Doesn't count for much.")})}
+  if(Math.random()<TUNE.spookP||t.forceSpook){t.st='run';t.fled=true;t.t=0;const to=fleeTo(t);a.equip(e.dude,null);e.gun=null;e.script={kind:'to',x:to.x,z:to.z,speed:5.4,then:()=>{t.st='gone';vanish(e)}};O.stats.spooked++;say(cap(t.desc||'Crew'),pick(LINES.spook),true);later(M,1.4,()=>{say('doug',"He's gone. Spooked counts. Doesn't count for much.")})}
   else{/* ducks, then comes back up: the fuse gets three seconds longer */t.fuseT=Math.max(0,(t.fuseT||0)-3);if(t.st==='fire'){t.st='aim'}say('doug',"Close. He ducked. He's still there.",true)}}
 function fleeTo(t){const e=t.e;const opts=[{x:e.pos.x+30,z:e.pos.z},{x:e.pos.x-30,z:e.pos.z},{x:e.pos.x,z:e.pos.z-25},{x:e.pos.x,z:e.pos.z+25}];const a=A();return opts.find(p=>a.walkable(a.tx(p.x),a.tx(p.z)))||opts[0]}
 function vanish(e){const a=A();e.script={kind:'incar'};e.state='dead';e.hp=0;if(e.dude.root.parent)e.dude.root.parent.remove(e.dude.root);const k=a.enemies.indexOf(e);if(k>=0)a.enemies.splice(k,1);a.rebuildTargets()}
 function hitThreat(M,t,p,h){const a=A(),O=M.ow,e=t.e,head=!!(h.object&&h.object.userData&&h.object.userData.head),H=G();O.stats.hits++;
   if(p.type==='bean'){t.bean=true;if(e.state==='idle'){a.equip(e.dude,null);if(H.hurtEnemy)H.hurtEnemy(e,999,'player',{nonlethal:true,head,gun:'beanbag'});if(e.state==='idle')a.surrender(e);
-      later(M,0.35,()=>{say(cap(t.desc||'Hoodie'),pick(LINES.beanHit),true)});if(head&&!O.say.face){O.say.face=1;later(M,1.5,()=>{say('doug',"Centre mass with the beans, Hawk. Not the face. He's got a face.",true)})}}}
+      later(M,0.35,()=>{say(cap(t.desc||'Crew'),pick(LINES.beanHit),true)});if(head&&!O.say.face){O.say.face=1;later(M,1.5,()=>{say('doug',"Centre mass with the beans, Hawk. Not the face. He's got a face.",true)})}}}
   else{if(H.hurtEnemy)H.hurtEnemy(e,999,'player',{gun:'hunter',head});else{e.state='dead'}}}
 /* Gary jogs over and zip-ties anyone who gave up on the street (the chain waits a beat while he's gone) */
 function gary(M,t){const a=A(),O=M.ow,E=O.esc;if(!E||!t)return;const g=E.member('gary');O.cuffQ=O.cuffQ||[];if(!O.cuffQ.includes(t))O.cuffQ.push(t);if(O.garyBusy)return;garyNext(M)}

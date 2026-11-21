@@ -1293,7 +1293,7 @@ function shopDetail(m,e){if(e.kind==='resale')return HT.Resale.detail(m,e);
     body=`<div class="htm-cmp">${cmp?`Compared with your <b>${esc(GUNS[cmp].name)}</b> <span class="htm-legend"><i class="up"></i>better <i class="down"></i>worse</span>`:st.state==='equipped'?'In your loadout':'Nothing to compare with'}</div>`+
       barsHTML(other?gunBars(other):null,gunBars(me))+gunFacts(me,other);
     if(g.unlock.collect&&st.state!=='equipped'&&st.state!=='owned'){const c=st.collect||{n:0,need:g.unlock.collect};
-      body+=`<div class="htm-collect"><span>Armory: pick up ${c.need} from thugs to get it free</span><span class="htm-meter"><i style="width:${100*c.n/c.need}%"></i></span><b>${c.n}/${c.need}</b></div>`}}
+      body+=`<div class="htm-collect"><span>Armory: pick up ${c.need} from crooks to get it free</span><span class="htm-meter"><i style="width:${100*c.n/c.need}%"></i></span><b>${c.n}/${c.need}</b></div>`}}
   else if(e.kind==='att'){const a=ATTACHMENTS[e.id];kicker=ATT_SLOTS.find(x=>x[0]===a.slot)[1]+' attachment';
     const owned=a.compat.filter(g=>s.owned.guns.includes(g)),eq=[s.loadout.p1,s.loadout.p2,s.loadout.side].filter(g=>g&&a.compat.includes(g));
     const pool=eq.length?[...new Set([...eq,...owned])]:owned.length?owned:a.compat;
@@ -1596,7 +1596,7 @@ const Locker={
       if(own){if(g.slot==='side')btns=inSlot?'<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>Your sidearm</span></button>':`<button class="htm-btn" data-nav data-act="equip" data-slot="side"><span>Holster it · Sidearm</span></button>`;
         else{btns=['p1','p2',...(s.garage.util.rack?['p3']:[])].map(k=>L[k]===id?`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>In ${slotName[k]}</span></button>`:`<button class="htm-btn${k===tgt?'':' alt'}" data-nav data-act="equip" data-slot="${k}"><span>${L[k]?'Swap into':'Put in'} ${slotName[k]}</span></button>`).join('');
           if((inSlot==='p1'||inSlot==='p2')&&L.p2)btns+=`<button class="htm-ghost" data-nav data-act="swapp">⇅ Swap primaries</button>`;if(inSlot==='p2'||inSlot==='p3')btns+=`<button class="htm-ghost" data-nav data-act="unequip" data-slot="${inSlot}">Leave it home</button>`}}
-      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
+      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from crooks on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
         btns=`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span><i class="htm-lock"></i>Not in your locker</span></button>`+(a.collect?`<div class="htm-collect"><span>${esc(how)}</span><span class="htm-meter"><i style="width:${100*a.collect.n/a.collect.need}%"></i></span><b>${a.collect.n}/${a.collect.need}</b></div>`:`<div class="htm-note">${esc(how)}</div>`)}
       const mods=g.att.map(sl=>{const a=(s.attOn[id]||{})[sl];return a?`<i class="on">${esc(ATTACHMENTS[a].name)}</i>`:''}).join('');
       return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(s.attOn[id])}})}</div>${inSlot?`<span class="htm-stamp s-eq">${slotName[inSlot]}</span>`:''}</div>

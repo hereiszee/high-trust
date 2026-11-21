@@ -28,7 +28,7 @@ const COL={tre:'#ffb86b',you:'#6fb8ff',dave:'#ff8a7a',gary:'#9fe58a'};
 /* ---------------- the cast ---------------- */
 const CAST={you:{name:'You',color:COL.you,voice:{kind:'dad',pitch:1}},tre:{name:'Tre',color:COL.tre,voice:{kind:'thug',pitch:1.32,vol:.3}},
   dave:{name:'Big Dave',color:COL.dave,voice:{kind:'dad',pitch:.78,vol:.36}},gary:{name:'Gary',color:COL.gary,voice:{kind:'dad',pitch:1.14,vol:.3}}};
-const TELLS={bored:{tells:['[Tre taps his foot and studies the sky. Bored.]','[Tre picks at his hoodie string. Bored.]','[Tre is counting the bricks on Dave\'s chimney. Bored.]']},
+const TELLS={bored:{tells:['[Tre taps his foot and studies the sky. Bored.]','[Tre picks at his sleeve. Bored.]','[Tre is counting the bricks on Dave\'s chimney. Bored.]']},
   scared:{tells:['[Tre hunches over and shrinks into the chair. Scared.]','[Tre stares at the table, shoulders up around his ears. Scared.]','[Tre won\'t lift his head. Scared.]']},
   defensive:{tells:['[Tre looks away. Defensive.]','[Tre turns his shoulder to you. Defensive.]','[Tre is very interested in the mailbox. Defensive.]']},
   friendly:{tells:['[Tre leans in. Friendly.]','[Tre is almost smiling. Friendly.]','[Tre nods along. Friendly.]']}};

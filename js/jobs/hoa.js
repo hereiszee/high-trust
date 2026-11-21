@@ -165,7 +165,7 @@ function iced(){const a=A(),THREE=a.THREE,g=new THREE.Group();mesh(new THREE.Cyl
 
 /* ---------------- actors ---------------- */
 /* four new models on demand (Barb, Phil, Gil, the kid); the crew and the buyer reuse the street-crew set that is already loaded */
-const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',lookout:'thug_brown',/* the lookout is an HT.Cast teen (boot-loaded base, so he is never a stand-in) (js/jobs/_runner.js): a different base from Chain Reaction's Dez */driver:'thug_hoodie',loaderA:'thug_track',loaderB:'thug_beanie',buyer:'thug_red'};
+const CAST={barb:'nb_gran',phil:'nb_pops',gil:'nb_sweater',lookout:'thug_brown',/* the lookout is an HT.Cast teen (boot-loaded base, so he is never a stand-in) (js/jobs/_runner.js): a different base from Chain Reaction's Dez */driver:'thug_hoodie',loaderA:'thug_track',loaderB:'thug_jacket',buyer:'thug_red'};
 const LOOKS={barb:{shirt:'#5a6f8f',pants:'#3a3a48'},phil:{shirt:'#7a8a5a',pants:'#4a4a3a'},gil:{shirt:'#8a8a9a',pants:'#3a3a3a'},nb1:{shirt:'#c76a5a',pants:'#2a2a3a'},nb2:{shirt:'#8a5ab8',pants:'#3a3a48'},
   lookout:{shirt:'#3a4a6a',pants:'#2a2a2a',hood:1},driver:{shirt:'#4a3a2a',pants:'#2a2a2a'},loaderA:{shirt:'#2f5d4a',pants:'#3a3a3a'},loaderB:{shirt:'#5a3a3a',pants:'#2a2a2a'},buyer:{shirt:'#3a5a8a',pants:'#2a2a3a'}};
 function PP(){return window.HT&&HT.People}

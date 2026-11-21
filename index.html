@@ -145,13 +145,13 @@ const ASSETS=(()=>{
   const WORLD=['hanging_industrial_lamp','pull_chain_light_socket','wooden_picnic_table','shrub_02','shrub_04','grass_medium_02'],DECALS=['leak_a','leak_b','asphalt_patch'];
   const PROPS=['car_van','car_suv','car_sedan','car_hatchback','street_lamp','mailbox','trash_can','crate','crate_long','crate_slat','pallet','barrel_red','barrel_blue','couch','table_low','table_dining','trashbag','tyre','utility_box','cardboard_box','chest_wood','tree_oak','tree_tall','tree_pine','bush'];
   /* realistic rigged people (js/people.js asks for 'rb_<key>'): 10 game characters + the shared animation set */
-  const PEOPLE=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','anims'];
+  const PEOPLE=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_red','thug_cap','thug_jacket','boss','anims'];
   const SRC={};for(const n of PROPS)SRC[n]='assets/props/'+n+'.glb';for(const n of WORLD)SRC[n]='assets/world/'+n+'.glb';
   for(const n of PEOPLE)SRC['rb_'+n]='assets/people/rocketbox/'+n+'.glb';
   const texSrc=(n,s)=>'assets/tex/'+n+'_'+s+'.jpg',SKY='assets/sky/sky_2k.jpg',HDR='assets/sky/sky_1k.hdr';
   /* what each place needs; hub = Stage A when the boot pack is unavailable, the rest streams in Stage B (missions also on openBrief) */
   const T3=n=>['col','nrm','rgh'].map(s=>texSrc(n,s)),G=n=>SRC[n],D=n=>'assets/world/'+n+'.png',RB=n=>SRC['rb_'+n];
-  const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red'].map(RB);
+  const THUGS=['thug_hoodie','thug_red','thug_cap','thug_jacket'].map(RB);
   const GROUPS={
     hub:[SKY,HDR,...['asphalt','sidewalk','grass','concfloor','woodfloor','mulch','pavers','roof','siding'].flatMap(T3),...['tree_oak','tree_tall','tree_pine','bush','mailbox'].map(G),D('asphalt_patch'),...['dad_player','dad_gary','anims'].map(RB)],
     /* the open world hub also shows chain-link (fence alpha), rowhouse/site brick, warehouses, mission-site walls and Riverside trash */
@@ -1897,7 +1897,7 @@ let castWait=null;
 function castKey(pm,c){const r=pm.roles&&pm.roles[c];if(typeof r==='string'&&(pm.keys||[]).includes(r))return r;return(pm.keys||[]).includes(c)?c:null}
 /* the People models a job waits for before it starts (crew, Riverside giver, the four thug looks, the boss): also used by the job harness */
 function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok||!pm.preload)return[];const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
+  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_red','thug_cap','thug_jacket',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
   const keys=castKeysFor(i);
@@ -2365,7 +2365,7 @@ function aiAfter(){if(!aiWorld||!M||!M.squads)return;let n=0;
   if(n)rebuildTargets()}
 function aiEnemy(e,dt){const d=e.dude,t0=performance.now();JH.perceive(e,aiWorld);const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
   AI.move(e,I,dt);collide(e.pos,.35);
-  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
+  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Crew',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
   /* what the game's own systems read: target (hunter laser, music) and fireT (the laser shows while he lines up a shot) */
   const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid==='player'?P:tid?allies.find(a=>a.id===tid)||null:null;
   e.fireT=I.aiming&&e.ai.gun.laser?Math.max(.01,e.ai.gun.aim*(aiWorld.diff.aim||1)-e.ai.aimT):0;
@@ -3985,7 +3985,7 @@ function wmStake(dt,F){const m=M.def,S=m.stake,e=CV;M.stakeT+=dt;
     for(const s of M.suspects){if(s.id||s.gone)continue;const dx=s.pos.x-cp.x,dy=1.3-cp.y,dz=s.pos.z-cp.z,dd=Math.hypot(dx,dy,dz);if(dd>45)continue;
       const ang=Math.acos(clamp((dx*cf.x+dy*cf.y+dz*cf.z)/dd,-1,1));if(ang<Math.max(.045,1.1/dd)&&ang<best&&losClear(cp.x,cp.z,s.pos.x,s.pos.z,'#htVrxA')){best=ang;watching=s}}}
   if(watching){watching.idT+=dt;if(watching.idT>=S.watchT){watching.id=true;M.ids++;snd('cuff');
-      radio('dee',watching.kind==='courier'?"That's him. Orange jacket. That's the courier.":pick(["That's Marcus. He's twelve. He's supposed to be at basketball.","Andre. His grandma sings in my choir.","DeShawn. He owes me a book report."]),true);HUD.feed((watching.kind==='courier'?'Courier':'Lookout')+" ID'd",'info',M.ids+'/4')}}
+      radio('dee',watching.kind==='courier'?"That's him. Orange jacket. That's the courier.":pick(["That's Owen. He's twelve. He's supposed to be at basketball.","Mateo. His grandma sings in my choir.","Jayden. He owes me a book report."]),true);HUD.feed((watching.kind==='courier'?'Courier':'Lookout')+" ID'd",'info',M.ids+'/4')}}
   /* suspicion: on foot near them, moving the van, honking */
   let up=false;if(!VAN.on)for(const s of M.suspects)if(!s.gone&&s.pos.distanceTo(P.pos)<S.alertDist){up=true;break}
   M.sus=clamp(M.sus+(up?35:-5)*dt,0,100);M.susMax=Math.max(M.susMax,M.sus);

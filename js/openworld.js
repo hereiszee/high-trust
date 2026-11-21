@@ -145,14 +145,14 @@ function waterNormal(){if(TX.wn)return TX.wn;const S=256,c=canvas(S,S),x=c.getCo
 /* graffiti atlas: 8 designs in a 4x2 grid of 256x128 cells, wavy spray strokes, nothing rude */
 function grafTex(){if(TX.gr)return TX.gr;const c=canvas(1024,256),x=c.getContext('2d');const r=rng(9);x.clearRect(0,0,1024,256);
   const cols=[['#e8395b','#ffd23f'],['#3fa7e8','#ffffff'],['#7fdc6e','#1d1d1d'],['#b06be8','#ffe14d'],['#f2f2f2','#d12a2a'],['#ff8c2a','#1a1a1a'],['#2ae8c8','#ff4fa8'],['#ffd23f','#222']];
-  const words=['BRZ','K9','LOL','MOOP','DUKE','','~','HI'];
+  const words=['BRZ','K9','LOL','MOOP','FIZZ','','~','HI'];
   for(let i=0;i<8;i++){const cx=(i%4)*256+128,cy=Math.floor(i/4)*128+64,[a,b]=cols[i];x.save();x.translate(cx,cy);x.rotate((r()-.5)*.2);
     x.lineJoin='round';x.lineCap='round';
     if(words[i]==='~'){x.strokeStyle=a;x.lineWidth=12;x.beginPath();for(let t=0;t<=1;t+=.02){const px=-100+t*200,py=Math.sin(t*14)*26*(1-t*.4);t?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();x.strokeStyle=b;x.lineWidth=3;x.stroke()}
     else if(words[i]===''){x.fillStyle=a;x.beginPath();x.arc(0,0,50,0,6.28);x.fill();x.strokeStyle=b;x.lineWidth=7;for(const sx of[-18,18]){x.beginPath();x.moveTo(sx-9,-22);x.lineTo(sx+9,-6);x.moveTo(sx+9,-22);x.lineTo(sx-9,-6);x.stroke()}x.beginPath();x.arc(0,12,22,.2,2.9);x.stroke()}
     else{x.font='900 '+(words[i].length>3?70:88)+'px "Arial Black", Impact, sans-serif';x.textAlign='center';x.textBaseline='middle';
       x.strokeStyle=b;x.lineWidth=16;x.strokeText(words[i],0,4);x.fillStyle=a;x.fillText(words[i],0,4);x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.6)';x.strokeText(words[i],0,4);
-      if(words[i]==='DUKE'){x.fillStyle=b;x.beginPath();x.moveTo(-40,-38);x.lineTo(-28,-58);x.lineTo(-14,-40);x.lineTo(0,-60);x.lineTo(14,-40);x.lineTo(28,-58);x.lineTo(40,-38);x.closePath();x.fill()}}
+      if(words[i]==='FIZZ'){x.fillStyle=b;for(const[bx,by,br]of[[-44,-44,9],[-24,-56,6],[30,-50,8],[48,-36,5]]){x.beginPath();x.arc(bx,by,br,0,6.28);x.fill()}}/* bubbles, not a crown */}
     /* drips */
     x.fillStyle=a;for(let k=0;k<5;k++){const dx=(r()-.5)*150,h=8+r()*26;x.fillRect(dx,20,3,h)}
     x.restore()}

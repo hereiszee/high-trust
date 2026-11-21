@@ -68,7 +68,7 @@ J.register(ID,{
   def:{giver:'dadazon',giverName:'Dadazon Tracking',giverLook:{shirt:'#3f8f5a',pants:'#2a2a2a',cap:'#3f8f5a'},hood:'maple',title:'Porch Light',
     role:'Dadazon · Out for delivery today',place:'A delivery street',
     lines:["OUT FOR DELIVERY: parcels on one street today. Estimated arrival: between 9:00 am and the heat death of the universe.",
-      "Doug's group chat says the porch pirates are back. Gray hoodie. Tote bag. And somebody's been cruising in a sedan.",
+      "Doug's group chat says the porch pirates are back. Tote bag. Fast walk. And somebody's been cruising in a sedan.",
       "Grab the lawn chair, set it up where you can see the porches, and SIT in it. A dad in a lawn chair is the most powerful deterrent known to science."],
     obj:'Guard the porches while the truck delivers: set up the lawn chair and sit in it. A word first if a pirate takes a parcel; run him down only if he runs.',
     crew:[],weapons:[],noGuns:LINES.noGuns,from:{home:'laptop'},
@@ -160,7 +160,7 @@ function pirates(dt,M,F){const a=A(),P=a.P;if(M.stage!=='pirates')return;
 function spawnPirate(M){const a=A(),ex=M.exitsP[M.spawned%2],q=a.wmSnap(ex.x,ex.z),e=a.spawnEnemy(q.x,q.z,false);a.equip(e.dude,null);e.gun=null;e.noLeash=true;e.hp=e.maxhp=40;
   const tag=document.createElement('div');tag.className='tag';tag.textContent='PORCH PIRATE';const host=document.getElementById('tags');if(host)host.appendChild(tag);e.tag=tag;
   const p={e,st:'walk',t:-1,exit:M.exitsP[(M.spawned+1)%2],from:null};M.pir.push(p);M.spawned++;retarget(M,p);a.rebuildTargets();
-  if(M.spawned===1)a.radio('you',"Gray hoodie. Tote bag. There he is.",true)}
+  if(M.spawned===1)a.radio('you',"Tote bag. Fast walk. There he is.",true)}
 function retarget(M,p,avoid){const D=deterR(M),e=p.e;let best=-1,bd=1e9;M.porches.forEach((t,k)=>{if(t.state!=='porch')return;if(avoid&&Math.hypot(t.x-D.x,t.z-D.z)<D.r)return;const d=Math.hypot(t.x-e.pos.x,t.z-e.pos.z);if(d<bd){bd=d;best=k}});
   if(best<0){if(!avoid){p.st='leave';go(e,p.exit,3.4,()=>vanish(M,p))}return false}p.t=best;/* never leave him without a script: the combat AI would take over an unarmed man */go(e,M.porches[best],3.6,()=>grab(M,p));return true}
 function go(e,t,speed,then){e.script={kind:'to',x:t.x,z:t.z,speed,then}}
