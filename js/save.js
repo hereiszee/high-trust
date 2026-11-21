@@ -162,7 +162,7 @@ const SUPPLIES={
 const GADGETS={
   flashlight:{name:"Dad's Maglite",price:0,key:'F',free:true,fx:'Toggle with F · runs forever · doubles as a doorstop',on:'Clip it on',off:'Leave it in the junk drawer',
     blurb:"Four D-cells and thirty years of \"who touched my flashlight.\" Nobody touched your flashlight."},
-  nvg:{name:'Hoot-Vision Gen-1 Goggles',price:650,key:'N',battery:240,fx:'Toggle with N · battery 4 min · recharges at home',on:'Strap them on',off:'Put them back in the box',
+  nvg:{name:'NightOwl Gen-1 Goggles',price:650,key:'N',battery:240,fx:'Toggle with N · battery 4 min · recharges at home',on:'Strap them on',off:'Put them back in the box',
     blurb:"Doug owns two pairs. He won't say why. Now you own one, and you also won't say why."}};
 const GADGET_ORDER=['flashlight','nvg'];
 
