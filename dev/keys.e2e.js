@@ -36,6 +36,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await ev(()=>{HT.Keys.set('fwd','i');HT.Keys.set('reload','e')});
   /* the screen */
   await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
+  await ev(()=>{try{document.exitPointerLock()}catch(e){}});await p.waitForTimeout(200);/* a held pointer lock would eat the Esc below */
   await ev(()=>{if(!window.HT.Input.paused)window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))});await p.waitForTimeout(500);
   await p.click('.ht-pause [data-tab=keys]');
   ok(await p.isVisible('[data-rebind=crouch]'),'Key bindings tab lists rebindable actions');

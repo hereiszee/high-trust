@@ -27,7 +27,8 @@ const { FAKE_PAD } = require('./fake-pad.js');
 async function deckRun() {
   let L, app, p;
   /* ---------- third launch as a Steam Deck (SteamDeck=1, 1280x800): controller prompts from the start, Interface size 110% ---------- */
-  L = await launch([], { SteamDeck: '1', HT_WINDOW_SIZE: '1280x800' }); ({ app, p } = L);
+  /* a fresh profile: the main run seeded Low graphics, and a saved Graphics choice (rightly) keeps Auto off the Deck rung */
+  L = await launch([], { SteamDeck: '1', HT_WINDOW_SIZE: '1280x800', HT_USER_DATA: fs.mkdtempSync(path.join(os.tmpdir(), 'ht-deck-')) }); ({ app, p } = L);
   await p.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 180000 });
   const deck = await p.evaluate(() => ({ deck: window.HTDesktop.deck, pad: document.documentElement.classList.contains('ht-pad'), deckCss: document.documentElement.classList.contains('ht-deck'), rung: window.__ht.render.auto.i, q: window.__ht.render.q, scale: window.__ht.render.scale, dpr: window.devicePixelRatio, w: innerWidth, h: innerHeight }));
   ok(deck.deck && deck.pad && deck.deckCss && deck.rung >= 2 && Math.abs(deck.dpr - 1.1) < .02, 'Steam Deck: controller prompts before any input, Interface size 110%, Deck text sizes, Auto starts a rung lower (' + JSON.stringify(deck) + ')');

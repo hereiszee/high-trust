@@ -49,14 +49,15 @@ function emit(to,down,src){
 /* ---------- remap ---------- */
 const held={};/* physical input -> default input sent on press, so the release matches even if bindings change in between */
 let capture=null;
+function stale(){if(capture&&!document.querySelector('.ht-rb.wait'))capture=null;return !capture}/* the screen closed mid-capture */
 function onKey(e){
-  if(capture&&e.type==='keydown'){if(!e.isTrusted&&e.key!=='Escape')return;e.preventDefault();e.stopImmediatePropagation();capture(String(e.key||'').toLowerCase());return}
+  if(capture&&e.type==='keydown'&&!stale()){if(!e.isTrusted&&e.key!=='Escape')return;e.preventDefault();e.stopImmediatePropagation();capture(String(e.key||'').toLowerCase());return}
   if(capture||!e.isTrusted)return;const k=String(e.key||'').toLowerCase();
   let to;if(e.type==='keydown'){if(!(k in T))return;to=T[k];held[k]=to}else{if(!(k in held))return;to=held[k];delete held[k]}
   e.preventDefault();e.stopImmediatePropagation();if(to!=null)emit(to,e.type==='keydown',e)}
 function onMouse(e){
   const k=BTN2IN[e.button];if(!k)return;
-  if(capture&&e.type==='mousedown'&&e.isTrusted){if(e.button===0&&!capture.mouseOk)return;/* a plain click elsewhere cancels via the click handler */e.preventDefault();e.stopImmediatePropagation();capture(k);return}
+  if(capture&&e.type==='mousedown'&&e.isTrusted&&!stale()){if(e.button===0&&!capture.mouseOk)return;/* a plain click elsewhere cancels via the click handler */e.preventDefault();e.stopImmediatePropagation();capture(k);return}
   if(!e.isTrusted)return;
   const onView=e.target===view();
   if(e.type==='mousedown'){
@@ -98,8 +99,6 @@ function bind(pane,rerender){
     capture.mouseOk=id==='fire'||id==='aim';/* for the rest, a left click elsewhere cancels */});
   const r=pane.querySelector('[data-rebind-reset]');if(r)r.onclick=e=>{e.stopPropagation();B={};AIM='hold';save();rerender()};
   pane.querySelectorAll('[data-aim] button').forEach(x=>x.onclick=e=>{e.stopPropagation();AIM=x.dataset.v;save();rerender()})}
-/* leaving the screen mid-capture: stop listening */
-setInterval(()=>{if(capture&&!document.querySelector('.ht-rb.wait'))capture=null},500);
 
 HT.Keys={ACTIONS,get:get,relabel,table,bind,name,get changed(){return Object.keys(B).length>0},get aimMode(){return AIM},set aimMode(v){AIM=v==='toggle'?'toggle':'hold';save()},
   set(id,k){if(!ACTIONS.some(a=>a.id===id))return false;k=String(k).toLowerCase();if(RESERVED.has(k))return false;assign(id,k);return true},
