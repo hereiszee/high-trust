@@ -114,7 +114,11 @@ node dev/base-shots.js [filter]                                      # staged vi
 ```
 
 Numbers and screenshots: `docs/screenshots/base/` (see `evidence.txt`). The bot aims by setting the view as a mouse would; every
-press, hold and click is a Playwright event.
+press, hold and click is a Playwright event. `node dev/base-air.js` takes the aerial before/after views of the roof lids.
+
+Draw calls (Medium, headless, from `evidence.txt`): base gate driving 489, range 474, tank driving 433, jet climbing out 45,
+jet inbound over Maple Heights 195. `dev/openworld-ingame.js` probes stay at or under `origin/main` (worst: riversideMain3rd 432,
+scrapyardGate 429, midBridge 435 on Medium; budget 450).
 
 ## Weaknesses
 
