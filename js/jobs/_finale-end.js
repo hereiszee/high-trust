@@ -102,6 +102,9 @@ FN.stages.handsup={
       if(S.tie)F.holds.push({x:S.spot.x,z:S.spot.z,r:2.4,o:S,txt:'Zip-tie The Wholesaler',time:1.2,fn:()=>tie(M)});
       F.objs.push([S.tie?'Zip-tie him: hold E next to him':'Take the zip-tie from Malik (E)',false]);F.target=S.tie?{x:S.spot.x,z:S.spot.z,label:'Zip-tie'}:m?{x:m.x,z:m.z,label:'Malik'}:null;return}
     if(S.ph==='done'){S.endT-=dt;F.objs.push(['That\'s it. That\'s the whole thing.',true]);if(S.endT<=0&&!S.faded){S.faded=true;fade(M,()=>advance(M,'festival'),{out:1.2,hold:1.6,inT:1.4,txt:'That evening'})}}},
+  /* the zip-tie moment gets a camera of its own: down the road, the crowd behind him, for four seconds */
+  camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='done'||!(S.endT>4.6))return false;const cam=a.camera,k=clamp((9-S.endT)/4.4,0,1);
+    const cx=S.spot.x-S.f.x*(7.5-k*1.5)-S.rt.x*1.2,cz=S.spot.z-S.f.z*(7.5-k*1.5)-S.rt.z*1.2;cam.position.set(cx,2.6-k*.6,cz);cam.lookAt(S.spot.x,1.1,S.spot.z);cam.fov=55;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
   clear(M){const a=A(),S=M.fn.sub;M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null);S.ch=null}for(const p of(S.ring||[]).concat([S.w,S.malik]))unperson(p)},
   bot(a,t,o,M,B){const S=M.fn.sub,P=a.P;if(a.CV){a.exitCar();return}if(S.ph==='walk'){P.pos.set(S.spot.x+S.rt.x*2,0,S.spot.z+S.rt.z*2);if(t%6===0)a.useTap=true;return}
     if(S.ph==='talk'){if(t%12===6&&S.ch)S.ch.pick(0);return}

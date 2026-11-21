@@ -43,7 +43,7 @@ function crowd(M){const S=M.fn.sub,f=W.fest;S.crowd=[];const keys=FN.NB.concat(F
 function mill(M,dt,p){if(p.st&&p.st!=='mill')return;p.next-=dt;if(p.next<=0&&p.tx==null){p.next=5+Math.random()*9;const f=W.fest;walkTo(p,clamp(p.x+(Math.random()-.5)*14,p.lo||352,p.hi||405),f.z0+.8+Math.random()*(f.z1-f.z0-1.6),.9+Math.random()*.4)}
   if(p.tx==null&&!p.face)p.face={x:W.stage.x,z:W.stage.z}}
 FN.stages.roof={
-  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,1);measureRoof();crowd(M);S.scope=false;S.zoom=0;S.bolt=0;S.beans=RK.beans;S.focus=null;S.focusT=0;S.handled=0;S.smokes=[];S.up=false;S.t=0;
+  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,1);FN.extras(M,'stoops');measureRoof();crowd(M);S.scope=false;S.zoom=0;S.bolt=0;S.beans=RK.beans;S.focus=null;S.focusT=0;S.handled=0;S.smokes=[];S.up=false;S.t=0;
     const sp=role(M,'spotter'),wk=role(M,'walker');S.tellT=sp.v;S.walkV=wk.v;S.walker=person(wk.id||'dee',W.hq.x-1,W.hq.z+1.5);if(S.walker){S.walker.st='idle';S.walker.home={x:W.hq.x-1,z:W.hq.z+1.5}}
     S.spotter=person(sp.id||'doug',437,51.5);if(S.spotter)S.spotter.hidden=true;
     /* right mouse toggles the scope (a pure toggle); Z zooms */
@@ -207,7 +207,7 @@ function truckTick(dt,M,F){const a=A(),S=M.fn.sub,T=S.tr;const pl=S.frozen||S.pl
 const DK={crate:6,bubble:25,wave:13,calmDrain:3.2,tip:12,heavyFrom:3,maxWaves:12,messT:4,tackle:1.5,crewV:3.2};
 const STREETS=[{x:347,z0:99,z1:48},{x:379,z0:99,z1:48}];
 FN.stages.defend={
-  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,1);S.pct=0;S.calm=100;S.t=0;S.waveT=6;S.wave=0;S.pushers=[];S.crates=0;S.hold=null;
+  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,'build',0);FN.extras(M,'setup',{n:4,skipPorch:[0,1,2,3]});S.ring=FN.bubbleRing(M,396,47.6,25);S.pct=0;S.calm=100;S.t=0;S.waveT=6;S.wave=0;S.pushers=[];S.crates=0;S.hold=null;
     S.rate=role(M,'stage').v;S.drain=role(M,'porch').v;
     /* the families on the stoops (with your own), the Adeyemis handing out water */
     family(M,[{x:W.porches[0].x,z:W.porches[0].z,face:{x:387,z:40}},{x:W.porches[0].x+1.2,z:W.porches[0].z+.2,face:{x:388,z:40}},{x:W.porches[0].x-1.1,z:W.porches[0].z+.2,face:{x:386,z:40}},
@@ -225,7 +225,7 @@ FN.stages.defend={
     /* the 25 m rule: hands only near the family and the kids */
     const kid=nearKid(M,P.pos.x,P.pos.z),near=kid<DK.bubble;const carrying=!!(P.carry&&P.carry.kind==='fin:crate');
     if(near||carrying){if(!S.noGun){S.noGun=true;a.holster(true)}M.noGuns=carrying?'Hands are full.':"Not with the family right there. Hands only.";}else if(S.noGun){S.noGun=false;M.noGuns=false;a.holster(false)}
-    S.pct=Math.min(100,S.pct+S.rate*dt);
+    S.pct=Math.min(100,S.pct+S.rate*dt);FN.festSet(M,'build',S.pct);
     /* crates: Benny's truck -> the stage */
     const pile={x:W.benny.x+3.6,z:W.benny.z+.5};if(!carrying&&!P.carry){if(hyp(P.pos.x-pile.x,P.pos.z-pile.z)<2.6)F.taps.push({x:pile.x,z:pile.z,r:2.6,txt:'Grab a speaker crate',fn:()=>crateGrab(M)})}
     else if(carrying){const st={x:W.stage.x+W.stage.w/2+.6,z:W.stage.z};F.taps.push({x:st.x,z:st.z,r:3,txt:'Put the crate on the stage',fn:()=>crateDrop(M)});if(hyp(P.pos.x-st.x,P.pos.z-st.z)>3)F.target={x:st.x,z:st.z,label:'Stage'};
@@ -255,9 +255,10 @@ function crateDrop(M,quiet){const a=A(),S=M.fn.sub,c=a.P.carry;if(!c)return;a.wm
 /* waves of his crew from Mill St: troublemakers for the stalls (unarmed), and from wave 3 one armed man who stays out past the porches */
 function waves(dt,M){const a=A(),S=M.fn.sub;if(S.done)return;S.waveT-=dt;if(S.waveT>0||S.wave>=DK.maxWaves)return;S.wave++;S.waveT=DK.wave;
   const n=S.wave<2?1:2;for(let i=0;i<n;i++){const st=STREETS[(S.wave+i)%2];spawnPusher(M,st.x+(Math.random()-.5)*2,st.z0+i*3)}
-  if(S.wave>=DK.heavyFrom&&S.wave%2===1){const st=STREETS[S.wave%2];const e=a.spawnEnemy(st.x,st.z0-6,false);e.noLeash=true;e.loud=1;S.pushers.push({e,heavy:true,st:'fight'});a.rebuildTargets();if(once(M,'heavy'))say('doug',"Armed one on "+(st.x<360?'2nd':'3rd')+" St. Out past the porches you can use the beanbag. Near the families: hands only.",true)}
+  if(S.wave>=DK.heavyFrom&&S.wave%2===1){const st=STREETS[S.wave%2];const e=a.spawnEnemy(st.x,st.z0-6,false);e.noLeash=true;e.loud=1;tag(e,'HIS CREW · ARMED');S.pushers.push({e,heavy:true,st:'fight'});a.rebuildTargets();if(once(M,'heavy'))say('doug',"Armed one on "+(st.x<360?'2nd':'3rd')+" St. Out past the porches you can use the beanbag. Near the families: hands only.",true)}
   if(S.wave===1)say('dee',pick(["Here they come. Up from Mill St. Two of them look like they've never been to a festival. That's sad, actually."]))}
-function spawnPusher(M,x,z){const a=A(),S=M.fn.sub;const e=a.spawnEnemy(x,z,false);a.equip(e.dude,null);e.gun=null;e.noLeash=true;e.hp=e.maxhp=50;
+function tag(e,t){const el=D.createElement('div');el.className='tag';el.textContent=t;const host=D.getElementById('tags');if(host){if(e.tag)e.tag.remove();host.appendChild(el);e.tag=el}}
+function spawnPusher(M,x,z){const a=A(),S=M.fn.sub;const e=a.spawnEnemy(x,z,false);a.equip(e.dude,null);e.gun=null;e.noLeash=true;e.hp=e.maxhp=50;tag(e,'HIS CREW');
   const stalls=[365,371,377,383,389,395];const sx=stalls[Math.floor(Math.random()*stalls.length)]+1,sz=W.fest.z1-.4;const p={e,heavy:false,st:'walk',tx:sx,tz:sz};
   e.script={kind:'to',x:x,z:60,speed:3.1,then:()=>{e.script={kind:'to',x:sx,z:sz,speed:2.8,then:()=>{p.st='mess';p.t=DK.messT;hold(e)}}}};S.pushers.push(p);a.rebuildTargets()}
 function pushTick(dt,M){const a=A(),S=M.fn.sub,P=a.P;const sprint=P.moving&&a.keys.shift&&!a.CV;
