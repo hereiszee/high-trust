@@ -129,15 +129,18 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
         const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
         await key('ArrowUp',j.pitch<pw-.03);await key('ArrowDown',j.pitch>pw+.05);
         const sw=o.spd||75,mt=o.minThr==null?.35:o.minThr;await key('w',j.spd<sw||j.thr<mt);await key('s',j.spd>sw+(o.minThr==null?8:2)&&j.thr>mt-.05);
-        if(process.env.FLYLOG&&n%10===0)console.log('    fly',n,j.x.toFixed(0),j.z.toFixed(0),'alt',j.alt.toFixed(1),'hdg',j.hdg.toFixed(2),'bank',j.bank.toFixed(2),'pitch',j.pitch.toFixed(2),'spd',j.spd.toFixed(0),'thr',j.thr.toFixed(2));await key('Shift',!!o.ab);await step(2)}
+        if(process.env.FLYLOG&&n%10===0)console.log('    fly',n,j.x.toFixed(0),j.z.toFixed(0),'alt',j.alt.toFixed(1),'hdg',j.hdg.toFixed(2),'bank',j.bank.toFixed(2),'pitch',j.pitch.toFixed(2),'spd',j.spd.toFixed(0),'thr',j.thr.toFixed(2));if(!!o.ab!==j.abOn&&(!o.ab||j.thr>.95)){await p.keyboard.press('Shift')}/* Shift toggles the afterburner */await step(2)}
       await release();return n};
     /* taxi onto runway 27 and roll: full throttle, A steers south onto the centreline, then pull up past 94 mph */
-    await key('w',true);for(let i=0;i<260;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-4*Math.sign(d.runway.z-j.z)*0-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
+    for(let i=0;i<10;i++)await p.keyboard.press('w');/* ten taps: full throttle, and it stays */await step(4);j=await js();ok(j.thr>.99,'ten taps of W set full throttle, nothing held ('+Math.round(j.thr*100)+'%)');
+    for(let i=0;i<260;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-4*Math.sign(d.runway.z-j.z)*0-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
       await key('a',he>.04);await key('d',he<-.04);await key('ArrowUp',j.spd>42);if(j.air)break;if(i===40)await shot('jet-takeoff');await step(2)}
     await release();j=await js();ok(j.air,'took off ('+(j.spd*2.237).toFixed(0)+' mph at x '+j.x.toFixed(0)+')');
     await press('g');j=await js();ok(j.gear===0,'G raises the gear');
     await fly({to:[-200,230],alt:90,max:140});await perf('jet climbing out');
     await press('v');await step(4);await shot('jet-cockpit');await press('v');await step(2);await ev(()=>{window.__ht.P.fp=false});
+    await press('c');j=await js();const lk1=j.look;await step(10);await press('c');j=await js();ok(lk1&&!j.look,'C toggles the look back on and off (no held keys)');
+    j=await js();ok(j.thr>.3,'the throttle holds with no key down ('+Math.round(j.thr*100)+'%)');
     /* the circuit: north over Maple Heights, low and fast over the house (the family comes out), a sonic boom */
     await fly({to:[250,120],alt:80,max:300,until:q=>Math.hypot(q.x-250,q.z-120)<60});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
@@ -163,15 +166,15 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:400,until:q=>q.x<480&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
       await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
       await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
-      await key('s',true);for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}await release();
+      for(let i=0;i<10;i++)await p.keyboard.press('s');/* taps to idle: idle on the ground brakes on its own */for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
     await press('e');s=await st();ok(!s.car,'E gets out on the ground');
-    /* eject: take off again, climb, hold E */
+    /* eject: take off again, climb, E twice */
     await ev(()=>HT.Jet.home());/* what the Air Wing does with a jet left far away (20 s out of sight) */
     await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
     {const h0=(await js()).hdg;await key('w',true);for(let i=0;i<300;i++){j=await js();let he=h0-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04);await key('ArrowUp',j.spd>42);if(j.air&&j.alt>12)break;await step(2)}await release()}
     await fly({to:[-100,d.runway.z],alt:110,max:200,until:q=>q.alt>80});
-    await p.keyboard.down('e');await step(24);await p.keyboard.up('e');await step(30);j=await js();ok(!!j.chute&&!j.on,'holding E ejects: parachute at '+(j.chute?j.chute.y.toFixed(0):'?')+' m');
+    await press('e');await step(4);j=await js();const still=j.on;await press('e');await step(30);j=await js();ok(still&&!!j.chute&&!j.on,'E twice ejects (one tap arms it): parachute at '+(j.chute?j.chute.y.toFixed(0):'?')+' m');
     await shot('jet-parachute');
     for(let i=0;i<500;i++){j=await js();if(!j.chute)break;await step(4)}const pp=await st();
     ok(!j.chute,'landed under the parachute at '+pp.x.toFixed(0)+','+pp.z.toFixed(0)+(pp.z>160&&pp.x<290?' (back on the post)':''));

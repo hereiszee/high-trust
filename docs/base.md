@@ -63,18 +63,18 @@ bake sale."). Left far away and out of sight, the motor pool tows it home.
 
 ## The jet (DAD-1)
 
-On the apron by Hangar 2; E climbs in. Controls (taught on screen the first time):
+On the apron by Hangar 2; E climbs in. Controls (taught on screen the first time). Every control is a tap or a toggle; nothing has to be held to keep flying:
 
 | | |
 |---|---|
-| W / S | throttle up / down (S at idle brakes on the ground) |
-| Shift | afterburner (at full throttle) |
+| W / S | throttle: each tap steps it 10% (holding ramps it); it stays where you set it. Idle on the ground brakes |
+| Shift | afterburner on / off (at 100% throttle) |
 | mouse up/down, ↑ / ↓ | nose up / down (the game's look convention: mouse up = nose up) |
 | mouse left/right, A / D, ← / → | roll (A / D steer the nose wheel on the ground) |
 | Z / X | rudder |
 | G | gear up / down |
-| V / C | cockpit view / look back |
-| hold E (in the air) | eject |
+| V / C | cockpit view / look back (both toggles) |
+| E, E (in the air) | eject: the first tap arms it for 3 s, the second ejects |
 
 Flight model: thrust, drag (top speed ~190 mph, ~250 with the afterburner), gravity along the climb, coordinated turns from bank,
 a stall below ~74 mph (the nose drops, the tower nags), take-off past ~94 mph with the nose up. A landing needs the gear down, a
