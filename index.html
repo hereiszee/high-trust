@@ -1553,7 +1553,9 @@ function exitCar(){const e=CV;if(!e)return;const f=V3(-Math.sin(e.yaw),0,-Math.c
   CV=null;e.spd=0;e.steer=0;if(e.car){e.car.spd=0;e.car.steer=0}syncCar(e);engine(false,e);if(carBand(e)<5)carFxOff(e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}
   setCarSolid(e,true);const VM=HTM('Vehicles');if(e.obj.userData.mod&&VM&&VM.update)try{VM.update(e.obj,{speed:0,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}carLook(e);
   let ok=false;const side=S.w/2+.75;
-  for(const s of[-side,side]){const p=e.pos.clone().addScaledVector(r,s),q=p.clone();collide(q,.35);if(q.distanceTo(p)<.05&&walkable(tx(p.x),tx(p.z))){P.pos.copy(p);ok=true;break}}
+  /* a spot is free if the player fits there AND a step further out from the car (an angled car against a wall leaves a pocket you can't walk out of) */
+  const free=(v,s)=>{for(const k of[0,.8]){const p=e.pos.clone().addScaledVector(v,s+Math.sign(s)*k),q=p.clone();collide(q,.35);if(q.distanceTo(p)>=.05||!walkable(tx(p.x),tx(p.z)))return false}return true};
+  for(const[v,s]of[[r,-side],[r,side],[f,-(S.l/2+1.1)],[f,S.l/2+1.1]])if(free(v,s)){P.pos.copy(e.pos).addScaledVector(v,s);ok=true;break}/* doors, then behind, then ahead */
   if(!ok){const p=e.pos.clone().addScaledVector(f,-(S.l/2+1.1));collide(p,.35);P.pos.copy(p)}
   P.yaw=e.yaw;P.dude.root.visible=true;P.dude.root.position.set(P.pos.x,0,P.pos.z);P.fp=DRV.fp0;P.crouch=false;
   let i=0;for(const a of allies){if(!a.ride){a.dude.root.visible=true;continue}a.ride=false;a.pos.copy(P.pos).addScaledVector(f,-1.4-(i>>1)).addScaledVector(r,i%2?1.4:-1.4);collide(a.pos,.35);a.dude.root.visible=true;a.dude.root.position.set(a.pos.x,0,a.pos.z);i++}}
@@ -3727,7 +3729,7 @@ function startMissionWorld(i,o={}){o=jrOpts(o);const m=MISSIONS[i];if(mode==='ho
   else{L.items=[];L.bonus=[];L.stashes=[];L.ammo=[];L.spawns=[];L.waveSpawns=[];L.boss=null;L.grill=null;const c=car.pos;wmSetWindow(wmWindow(c.x,c.z,14))}
   wmExitAt(car);
   const hud_=st&&!stay?st.huddle:null;
-  if(hud_){P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
+  if(hud_){const ex=P.pos.clone();P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);if(Math.hypot(P.pos.x-hud_.x,P.pos.z-hud_.z)>.05)P.pos.copy(ex);/* the car is parked on the huddle spot: stay where you got out (squeezing out of it can leave you boxed in against a wall) */const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
   resetMove();P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
   FX.clear();setLoadout(missionLoadout(i),null);metaAmmo();metaMissionStart(i);
   const crew=m.crew.filter(c=>c!=='rosa'||m.self||prog.done[6]||(SV()&&SV().crew.rosa));
