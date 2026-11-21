@@ -693,7 +693,9 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ow)return null;c
   if(a.CV){a.exitCar();return null}
   const B=O.bot||(O.bot={phase:'',hold:0,aimAt:null,wait:0,fired:0});a.keys.e=false;H.mouse=false;
   if(O.roof.fade>0)return null;
-  if(M.exitOpen){P.aim=false;if(O.roof.on){P.pos.set(R.top.x,R.y,R.top.z);a.keys.e=true}else{const c=M.car;P.pos.set(c.pos.x+2.5,0,c.pos.z);a.useTap=true}return null}
+  if(M.exitOpen){P.aim=false;if(O.roof.on){P.pos.set(R.top.x,R.y,R.top.z);a.keys.e=true}else{/* beside the car (a door, or behind / ahead of it), clear of solids and as far from the ladder as possible: by the ladder its hold prompt wins over Get in */const c=M.car,rx=Math.cos(c.yaw),rz=-Math.sin(c.yaw),fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw);let d=null;
+    for(const[f,s]of[[0,-2.2],[0,2.2],[-3.4,0],[3.4,0]]){const q={x:c.pos.x+fx*f+rx*s,z:c.pos.z+fz*f+rz*s},v=new (A().THREE.Vector3)(q.x,0,q.z);a.collide(v,.35,0);if(Math.hypot(v.x-q.x,v.z-q.z)>.05)continue;const k=Math.hypot(q.x-R.bottom.x,q.z-R.bottom.z);if(!d||k>d.k)d={...q,k}}
+    d=d||{x:c.pos.x+2.5,z:c.pos.z};P.pos.set(d.x,0,d.z);a.useTap=true}return null}
   if(!O.roof.on){P.pos.set(R.bottom.x,0,R.bottom.z);a.keys.e=true;return null}
   if(o.fail){P.aim=false;return null}/* sit on your hands: the walk gets pinned */
   /* vantage: braced on the north-west corner for the street, the west parapet for the garden */
