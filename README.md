@@ -27,6 +27,10 @@ It's a single `index.html` built on Three.js r128 (vendored in `vendor/`, no net
 
 On a phone, drag on the left half of the screen to move and on the right half to look. Use the on-screen buttons for everything else.
 
+With a controller (Xbox, PlayStation, Steam Deck): left stick moves, right stick looks, RT fires, LT aims while held, A uses or jumps, Y gets in or out, Menu pauses. The menus work with the D-pad, A and B. The full layout is under Pause → Key bindings.
+
+The desktop (Steam) build wraps this same page in Electron (`desktop/`). See `docs/steam/BUILD.md`.
+
 ## Missions
 
 Talk to each dad at his yellow marker in Maple Heights. Take the job, get in the minivan, and drive the crew to the job site at the edge of the neighborhood (or pick "Skip the drive" in the brief). Finish his job and he joins the crew for every raid after it.
