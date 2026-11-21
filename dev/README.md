@@ -90,3 +90,11 @@ Headless Chromium + SwiftShader, one browser at a time. `--shots` writes jpgs to
 - `node dev/release-title.e2e.js`: with a save, Continue is first and focused; New game asks first (Cancel is the default; Esc, backdrop and Enter-on-Cancel keep the save); confirming keeps the old save in the `ht-save-prev` slot; "Restore previous save" swaps it back; Credits & licences opens from the title and the pause menu, scrolls (End, wheel) and closes on Esc.
 - `node dev/kids-safe.e2e.js`: children and family are never hit (`HT.People.isProtected`, one predicate at every hit test). It covers pistol, beanbag and shotgun at point blank in the hub and Riverside, a kid wrongly registered as an enemy, the 25 m draw rule and auto-holster in Riverside, the minivan driven through kids, Kevin in Higher Ground (refused shot, lowered rifle, rounds pass him), and every kid on set in Crossing Guard, Dad Taxi and the finale with guns forced on. Any `People.hit`/`die` on a protected model fails the run.
 - `node dev/release-ui.e2e.js`: first-run hints, the aim toggle, the pause → Controls page, WebGL context loss and restore, finale guidance (objective line, home marker, calendar), "Not yet" being offered again, the Small Talk zip-tie line, one Dave and one Doug, and the quit-mid-job warning.
+
+## Characters under a bad network, and aim toggles
+```
+node dev/people-load.e2e.js [--shots]   # first 6 model requests per scenario aborted, 3 s latency on the rest: no box figure ever visible,
+                                        # every named character real within 30 s (hub start with crew, Riverside, roundup, hub after a job)
+node dev/aim-toggle.e2e.js              # real mouse/keys: gun aim, overwatch scope + Shift breath (tap toggle, auto-release), camera,
+                                        # tank gunner's sight are toggles; Key bindings → Aim: Toggle (default) / Hold
+```
