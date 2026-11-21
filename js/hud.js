@@ -126,7 +126,15 @@ const SETTINGS=[
     {k:'sfx',l:'Effects',min:0,max:100,step:5,fmt:v=>v+'%'},
     {k:'voice',l:'Dialogue',min:0,max:100,step:5,fmt:v=>v+'%'}]}
 ];
-const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Jump · vault','Space'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Decorate (at home)','B'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
+/* every binding, grouped (pause → Controls). ' · ' separates alternatives. Aim and raise modes are toggles (owner rule). */
+const KEY_GROUPS=[
+  ['On foot',[['Move','W A S D'],['Look','Mouse'],['Jog (hold)','Shift'],['Jump · vault','Space'],['Crouch (toggle)','C · Ctrl'],['Talk · use · get in a car','E'],['Zip-tie someone with hands up','E (hold)'],['Camera: first / third person','V'],['Map','M'],['Flashlight · night vision','F · N'],['Pause','Esc · P']]],
+  ['Guns',[['Fire','Mouse 1'],['Aim (click to raise, click again to lower)','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Draw in Riverside · holster','1 2 3 · H']]],
+  ['Cars and the minivan',[['Accelerate · brake / reverse','W · S'],['Steer','A D'],['Boost · handbrake','Shift · Space'],['Horn','H'],['Get out (slow down first)','E'],['Glovebox (parked, a neighbour\'s car)','G']]],
+  ['Tank',[['Drive · turn on the spot','W S · A D'],['Turret','Mouse'],['Fire the main gun','Mouse 1'],["Gunner's sight (toggle)",'V'],['Get out','E']]],
+  ['Jet',[['Throttle up · down','W · S'],['Pitch and roll','Mouse · Arrow keys'],['Roll (steer on the ground)','A D'],['Rudder','Z · X'],['Afterburner (toggle, at full throttle)','Shift'],['Landing gear','G'],['Cockpit view · look back (toggle)','V · C'],['Eject (in the air)','E twice']]],
+  ['Jobs and home',[['Scope zoom (Higher Ground)','Z'],['Hold breath (scoped)','Shift'],['Camera: raise (toggle) · shoot · lower','Mouse 2 · Space · Q'],['Decorate (at home)','B'],['Menus: browse · choose · back','Arrows · Enter · Esc']]]];
+const DEFAULT_KEYS=KEY_GROUPS.flatMap(g=>g[1]);
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
 
@@ -750,12 +758,12 @@ function payout(rows){const p=HUD.payoutEl;if(!p)return;p.innerHTML=rows.map(r=>
 function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'controls';
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
-  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
+  ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Controls'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
   <div class="sep"></div>${btn('Credits &amp; licences','credits','ghost')}${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
-  if(tab==='keys'){h='<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'}
+  if(tab==='keys'){const grp=d.bindings?[['Keyboard & mouse',d.bindings]]:KEY_GROUPS;h=grp.map(([gh,rows])=>'<h3>'+esc(gh)+'</h3><div class="ht-keys">'+rows.map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>').join('')}
   else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
     h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
