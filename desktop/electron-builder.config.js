@@ -3,6 +3,9 @@
    HT_FULL_ASSETS=1 also ships the source assets (assets/tex, props, people...). By default only assets/opt (the optimised variants
    the game actually loads, see docs/PERF.md) plus fonts and credits go in: every source file is covered by assets/opt/manifest.json. */
 const FULL = process.env.HT_FULL_ASSETS === '1';
+/* Windows exe icon + version info need rcedit, which needs wine on Linux/macOS. Without wine the exe still works, with Electron's icon:
+   build the release on Windows (or install wine) so HighTrust.exe gets the High Trust icon. */
+const canEditExe = process.platform === 'win32' || (() => { try { require('child_process').execSync('command -v wine || command -v wine64', { stdio: 'ignore' }); return true } catch (e) { return false } })();
 const game = ['index.html', 'LICENSE', 'js/**', 'css/**', 'vendor/**',
   ...(FULL ? ['assets/**', '!assets/**/*.md', 'assets/CREDITS.md'] : ['assets/opt/**', 'assets/fonts/**', 'assets/CREDITS.md', 'assets/credits/**', '!assets/opt/boot.jpg*', '!assets/opt/.cache.json']),
   '!**/.DS_Store', '!**/*.psd', '!**/*.blend'];
@@ -18,7 +21,7 @@ module.exports = {
   asarUnpack: ['node_modules/steamworks.js/**'], /* native addon + libsteam_api next to it */
   electronLanguages: ['en-US'],
   compression: 'normal',
-  win: { target: [{ target: 'dir', arch: ['x64'] }, { target: 'zip', arch: ['x64'] }], icon: 'build/icon.png' },
+  win: { target: [{ target: 'dir', arch: ['x64'] }, { target: 'zip', arch: ['x64'] }], icon: 'build/icon.png', signAndEditExecutable: canEditExe },
   linux: { target: [{ target: 'dir', arch: ['x64'] }, { target: 'tar.gz', arch: ['x64'] }], category: 'Game', icon: 'build/icon.png' },
   mac: { target: [{ target: 'dir', arch: ['x64', 'arm64'] }], category: 'public.app-category.action-games', icon: 'build/icon.png', identity: null },
   publish: null, /* Steam delivers updates */
