@@ -1123,7 +1123,7 @@ function screenCalendar(d){const e=el('div','ht-scr ht-cal');const ents=(d.entri
   const sel=ents.find(x=>x.id===d.selected);CAL.page=calPageOf(sel?sel.day:d.day);
   e.innerHTML=`<div class="scrim full"></div><div class="wrap"><div class="paper"><i class="mag"></i><div class="ph"><div><div class="yr">Fridge calendar</div><h3 class="mo"></h3></div><div class="nv"><button data-pg="-1" aria-label="Previous month">‹</button><button data-pg="1" aria-label="Next month">›</button></div></div>
     <div class="wk">${['S','M','T','W','T','F','S'].map(x=>`<span>${x}</span>`).join('')}</div><div class="gd"></div><div class="lg"><span><i class="ht-pin m3"></i>Gold</span><span><i class="ht-pin m2"></i>Silver</span><span><i class="ht-pin m1"></i>Bronze</span><span><i class="ht-pin m0"></i>Done</span></div></div>
-    <div class="side"><div class="kick">${esc(d.kicker||'Replay a job')}</div><h2>${esc(d.title||'The calendar')}</h2><div class="ls"></div><div class="dt"></div>
+    <div class="side"><div class="kick">${esc(d.kicker||'Replay a job')}</div><h2>${esc(d.title||'The calendar')}</h2>${d.goal?`<p class="goal">${esc(d.goal)}</p>`:''}<div class="ls"></div><div class="dt"></div>
     <div class="ht-btns row"><button class="ht-btn pri" data-cal="replay">Replay<span class="ht-kc dim">Enter</span></button><button class="ht-btn ghost" data-cal="close">Close<span class="ht-kc dim">Esc</span></button></div>
     <p class="note">Replays pay half; no story changes.</p></div></div>`;
   e.addEventListener('click',ev=>{const t=ev.target.closest('[data-cal],[data-pg],[data-id]');if(!t)return;ev.stopPropagation();

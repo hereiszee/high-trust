@@ -801,7 +801,9 @@ function dudeSweep(){const keep=[];for(const r of DUDE_REG){let a=r;while(a.pare
     dudeFree(r)}/* out of the scene: release it and stop holding on to it (one that comes back is simply re-textured by three.js) */
   DUDE_REG.length=0;DUDE_REG.push(...keep)}
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
-function makeDude(o){
+/* box-dude fallback too: a kid or family role is flagged protected (People models carry it in rb.key) */
+function makeDude(o){const d=makeDude0(o);if(d&&o&&!d.protected){const PK=(window.HT&&HT.People&&HT.People.PROTECTED)||{nb_kid:1,nb_teen:1,son:1,daughter:1,wife:1};if(PK[o.variant]||PK[o.role]||o.kid||o.family)d.protected=true}return d}
+function makeDude0(o){
   if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
   const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
   const root=new THREE.Group();const meshes=[];
@@ -1989,6 +1991,12 @@ function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
   volNode.gain.value=A?1:v('master')*v('sfx')}
 function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;mouseDown=false;P.aim=false;for(const k in keys)keys[k]=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
+/* WebGL context loss (driver reset, GPU hiccup, some fullscreen alt-tabs): pause, say so, let three.js restore everything; offer a reload if it doesn't come back */
+const GLX={lost:false,n:0};
+function glLostDialog(){if(!GLX.lost)return;HUD.dialog({kicker:'Graphics',title:'Graphics reset',text:"The graphics driver reset (an alt-tab, a driver update or a GPU hiccup). The game is paused while the picture comes back.\n\nIf it doesn't come back in a few seconds, reload. Your progress is saved after every job and purchase; a job in progress starts over.",
+    buttons:[{label:'Reload the game',act:'reload'},{label:'Wait',act:'wait',cls:'pri'}],focus:'wait',cancel:'wait'}).then(r=>{if(r==='reload'){metaSave(true);location.reload()}else if(r==='wait'&&GLX.lost)setTimeout(glLostDialog,2500)})}
+cv.addEventListener('webglcontextlost',e=>{e.preventDefault();GLX.lost=true;GLX.n++;if(running)openPause();mouseDown=false;glLostDialog()},false);
+cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80)}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
@@ -2013,7 +2021,8 @@ HUD.on('action',(a,arg)=>{
   else if(UI.acts[a])UI.acts[a](arg);
   else if(a==='resume'){if(pauseOpen)closePause()}
   else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
-  else if(a==='quit')quitToTitle();
+  else if(a==='quit'){if(mode==='mission'&&M&&M.state==='go'){HUD.dialog({kicker:M.def&&M.def.title||'Job in progress',title:'Quit to title?',text:'Progress in this job will be lost. Everything from finished jobs and purchases is saved.\n\nNext time, the job starts from the beginning.',
+      buttons:[{label:'Quit to title',act:'ok',cls:'dng'},{label:'Keep playing',act:'cancel',cls:'pri'}],focus:'cancel'}).then(r=>{if(r==='ok')quitToTitle()})}else quitToTitle()}
   else if(a==='resetSave'){Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});metaResetSave()}});
 /* full map (M): the world waits while it is open, and the cursor is free */
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
@@ -2676,6 +2685,7 @@ function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
   let prompt=null,target=null;const mp=metaHubUpd(dt);
+  if(JOB===null&&HUBX.home&&!VAN.on){const fi=finaleCached();if(fi&&fi.ready)target={x:HUBX.home.x,z:HUBX.home.z,label:'Home · the family'}}finaleObjTick();
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
     if(JOB===null&&!target)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
@@ -3052,8 +3062,9 @@ function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){
   let best=null,bd=1e9;const fam=H.familyInteractables?H.familyInteractables():[];
   for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
   const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Root beer · the fridge calendar',calendar:'Calendar · replay a job',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
-  setPrompt(best?KE+' · '+(LBL[best.id]||best.label):null);
-  homeHint-=dt;setObj('Home',homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
+  const fi=finaleCached(),fin=!!(fi&&fi.ready);
+  setPrompt(best?KE+' · '+(fin&&best.id==='family'&&!/^Pet/.test(best.label||'')?'Talk to the family · the festival':(LBL[best.id]||best.label)):null);
+  homeHint-=dt;setObj('Home',fin?['The family wants to talk: press E near Jen or the kids']:fi&&fi.act3?[fi.line]:homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
   if(!best||!useTap)return;useTap=false;const id=best.id;
   if(JH.home(id))return;/* JOBS: jobs offered from home, Doug's corkboard, Jen's note */
   if(id==='calendar'){openCalendar();return}
@@ -4189,6 +4200,8 @@ function wmHubGivers(){const out=[],lines=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
   out.push(...jrGivers());/* JOBS: registered jobs' givers */
+  /* one character, one spot: a built-in job and a registered job with the same giver on the same spot (Dave, Doug) show once, the earlier job first */
+  for(let k=out.length-1;k>0;k--){const g=out[k],gv=MISSIONS[g.i].giver;if(out.slice(0,k).some(o=>MISSIONS[o.i].giver===gv&&Math.hypot(o.x-g.x,o.z-g.z)<4))out.splice(k,1)}
   const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
     if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
     const gk=giverKey(m.giver);if(gk&&pm&&pm.preload&&!pm.has(gk)&&!(n.dude.rb&&n.dude.rb.key===gk))pm.preload([gk]).then(()=>{if(!npcs.includes(n)||!pm.has(gk))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
@@ -4197,7 +4210,27 @@ function wmHubGivers(){const out=[],lines=[];
     if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
     else if(g.lock==='maple'){n.locked="Finish up in Maple Heights first. The Duke will keep. Men like that always keep.";n.lockTag='after Maple Heights is done'}
     lines.push(HOMIES[m.giver].name+(n.locked?' · '+n.lockTag:' has a job for you'+(m.hood==='river'?' in Riverside Flats':'')))}
-  setObj(L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights',lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'])}
+  const tg=tieGoal();if(tg){lines.push(tg);const sv=SV();if(sv&&sv.flags&&!sv.flags.tieHint){sv.flags.tieHint=1;metaSave();setTimeout(()=>{if(mode==='hub')radio('gary',"Tre won't talk to a man with a gun. Bring in ten folks alive, zip-tied, not shot, and he'll know we're serious. Then we talk.",true)},2500)}}
+  const fi=finaleInfo();if(fi&&fi.act3)lines.push(fi.ready?'The festival: go home and talk to the family':fi.line);if(fi&&fi.act3&&!fi.ready&&fi.n>=fi.total)lines.push(fi.hint);
+  HUBOBJ.title=L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights';HUBOBJ.lines=lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'];HUBOBJ.fin=fi?fi.line+fi.ready:'';
+  setObj(HUBOBJ.title,HUBOBJ.lines)}
+/* the finale's gate, spelled out (js/jobs/finale.js unlock): shown once Act 3 starts (the Duke is done), in the hub objective, at home and on the fridge calendar */
+const HUBOBJ={title:'',lines:[],fin:'',t:0,info:null,infoT:-9};
+function finaleInfo(){const j=JR&&JR.get('finale');if(!j||j.builtin)return null;const m=j.def,i=MISSIONS.indexOf(m);if(i<0||prog.done[i]||jrDone('finale'))return null;
+  const u=m.unlock||{},ids=[].concat(u.done||[]),n=ids.filter(jrDone).length,need=u.trust||80,needR=u.trustR||80,tM=Math.floor(prog.trust||0),tR=Math.floor(prog.trustR||0);
+  const ready=n>=ids.length&&tM>=need&&tR>=needR;
+  return{n,total:ids.length,tM,tR,need,needR,ready,act3:jrDone('duke'),
+    line:'Finale: '+n+' of '+ids.length+' jobs · Maple trust '+Math.min(tM,need)+'/'+need+' · Riverside trust '+Math.min(tR,needR)+'/'+needR,
+    hint:tR<needR?'Raise Riverside trust: zip-ties, repeat jobs, helping out':'Raise Maple trust: zip-ties, repeat jobs, the HOA'}}
+/* Small Talk (js/jobs/talk.js) also needs ten people zip-tied alive: say so once it's the only thing missing */
+function tieGoal(){if(!JR)return null;const j=JR.get('talk');if(!j||j.builtin||jrDone('talk'))return null;const u=j.def.unlock||{},need=u.cuffed||0,c=prog.cuffed||0;if(!need||c>=need)return null;
+  if(!(jrDone('dee')||jrDone('duke')))return null;return'Small Talk (Gary): zip-tie '+need+' people alive · '+c+'/'+need}
+function finaleCached(){if(simT-HUBOBJ.infoT>1||simT<HUBOBJ.infoT){HUBOBJ.infoT=simT;HUBOBJ.info=finaleInfo()}return HUBOBJ.info}
+/* the objective panel follows trust as it changes in free roam */
+function finaleObjTick(){if(JOB!==null||!HUBOBJ.title)return;const fi=finaleCached();if(!fi||!fi.act3)return;const k=fi.line+fi.ready;if(k===HUBOBJ.fin)return;HUBOBJ.fin=k;
+  const ls=HUBOBJ.lines.filter(l=>!/^Finale: |^The festival: |^Raise (Riverside|Maple) trust/.test(l)),at=Math.max(0,ls.length-(ls[ls.length-1]==='Follow the yellow marker.'?1:0));
+  const add=[fi.ready?'The festival: go home and talk to the family':fi.line].concat(!fi.ready&&fi.n>=fi.total?[fi.hint]:[]);ls.splice(at,0,...add);
+  if(ls.length===add.length+1&&ls[ls.length-1]==='Saturday. Nothing on the list. Go grill something.')ls.pop();HUBOBJ.lines=ls;setObj(HUBOBJ.title,ls)}
 function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
   ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
 function wmAllDone(){return MISSIONS.length>0&&MISSIONS.every((m,i)=>m.reg||prog.done[i])&&!WM.finaleSeen&&!(SV()&&SV().flags.finale2)}
@@ -4341,7 +4374,7 @@ function jrResult(ok,res,mi){const m=MISSIONS[mi];if(ok||!m||!m.reg)return;const
 function jrHomeGiver(id){if(!JR||!WORLD)return false;const s=SV(),day=s?s.day:1;
   for(const j of JR.list(j=>!j.builtin&&j.def.from&&j.def.from.home===id)){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m)||(!m.repeatable&&prog.done[i]))continue;if(JRS.declined[m.id]===day||JRS.pending===i)continue;
     openBrief(i,{home:id});return true}return false}
-function jrHubEnter(){if(JRS.night){JRS.night=false;if(typeof setNight==='function')try{setNight(0)}catch(_){}}
+function jrHubEnter(){JRS.declined={};/* "Not yet" holds until you leave the house: the job is offered again next visit */if(JRS.night){JRS.night=false;if(typeof setNight==='function')try{setNight(0)}catch(_){}}
   if(JRS.pending!=null&&mode==='hub'){const i=JRS.pending;JRS.pending=null;if(!L.dests[i]){const d=jrDest(MISSIONS[i]);if(d)L.dests[i]=d}if(L.dests[i]){JOB=i;objKey='';jrOnRegister(JR.get(MISSIONS[i].id));destRings.forEach((r,k)=>{if(r)r.visible=k===i});hubObj()}}}
 function calEntries(){const s=SV(),out=[];if(!s)return out;const jobs=s.jobs||{};
   MISSIONS.forEach((m,i)=>{const r=jobs[m.id],done=(r&&r.done)||prog.done[i];if(!done)return;const e=(s.calendar&&s.calendar.entries||[]).find(e=>e.id===m.id)||{};
@@ -4350,7 +4383,8 @@ function calEntries(){const s=SV(),out=[];if(!s)return out;const jobs=s.jobs||{}
       replayable:!!WORLD&&missionInWorld(i),note:(m.medals?m.medals.map((x,k)=>['Bronze','Silver','Gold'][k]+': '+x).join(' · '):'')})});return out}
 function openCalendar(sel){const s=SV();running=false;releaseLock();const close=()=>{HUD.hide('calendar');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock()};
   const ent=calEntries();
-  try{HUD.show('calendar',{title:'The Fridge Calendar',day:s?s.day:1,entries:ent,selected:sel||null})}catch(e){console.warn(e);running=true;return}
+  const fi=finaleInfo();
+  try{HUD.show('calendar',{title:'The Fridge Calendar',day:s?s.day:1,entries:ent,selected:sel||null,goal:fi&&fi.act3?(fi.ready?'The festival is ready: talk to the family.':fi.line):(tieGoal()||null)})}catch(e){console.warn(e);running=true;return}
   UI.acts={'calendar:close':close,'calendar:replay':id=>{id=id||sel;const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return;HUD.hide('calendar');UI.acts={};jrReplay(i)}}}
 function jrReplay(i){JRS.next={replay:true};if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}running=true;startMissionWhenReady(i);requestLock()}
 /* ---- loading the job files: after Stage A, in idle time, one by one (docs/PERF.md progressive loader); a missing file is skipped ---- */
@@ -4452,7 +4486,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.showCredits=()=>showCredits();
+window.__ht.quitToTitle=()=>quitToTitle();window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},

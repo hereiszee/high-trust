@@ -325,8 +325,8 @@ P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style
   const G=HT.Guns,vc=G&&G.VMC&&G.VMC[rb.gunType];const k=cycle||(vc&&vc.cycle);if(k==='pump'||k==='boltAction')rb.cyc={t:0,k}};
 P.interact=d=>{const rb=d&&d.rb;if(!rb)return;oneShot(d,'interact',1.1,.85)};
 P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
-P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead)return;oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
-P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
+P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;/* never a hit reaction on a kid or the family */oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
+P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
 /* tests: pin inputs regardless of what the game asks for (P.force(d,null) clears) */
 P.force=(d,o)=>{if(d&&d.rb)d.rb.force=o||null};
 P.revive=d=>{const rb=d&&d.rb;if(!rb)return;rb.dead=false;rb.deadT=0;d.body.position.y=0;d.root.visible=true};

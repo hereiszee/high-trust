@@ -448,7 +448,7 @@ function aimPoint(M){const a=A(),C=cw(M),cam=a.camera,T=T3();const o=cam.positio
   for(const t of targetsOf(M)){const tt_=((t.x-o.x)*dir.x+(t.y-o.y)*dir.y+(t.z-o.z)*dir.z);if(tt_<.5||tt_>best)continue;const px=o.x+dir.x*tt_,py=o.y+dir.y*tt_,pz=o.z+dir.z*tt_;if(Math.hypot(px-t.x,pz-t.z)<t.r&&Math.abs(py-t.y)<t.h){best=tt_;hit={x:px,y:py,z:pz}}}
   if(!hit){if(dir.y<-.02){const t=-o.y/dir.y;if(t<best)hit={x:o.x+dir.x*t,y:0,z:o.z+dir.z*t}}if(!hit)hit={x:o.x+dir.x*best,y:o.y+dir.y*best,z:o.z+dir.z*best}}return hit}
 function targetsOf(M){const C=cw(M),out=[];for(let i=0;i<2;i++)out.push({x:SPOT.bucket[i].x,y:.25,z:SPOT.bucket[i].z,r:.3,h:.3,kind:'bucket',i});
-  for(const k of C.kids)out.push({x:k.x,y:1,z:k.z,r:.38,h:.8,kind:'kid',o:k});if(C.dee)out.push({x:C.dee.x,y:1,z:C.dee.z,r:.38,h:.85,kind:'dee'});
+  /* the kids are never a target, not even for the hose (owner rule): the water goes past them */if(C.dee)out.push({x:C.dee.x,y:1,z:C.dee.z,r:.38,h:.85,kind:'dee'});
   for(const c of C.cars)if(c.owner&&c.owner.d.root.visible)out.push({x:c.owner.x,y:1,z:c.owner.z,r:.38,h:.8,kind:'owner',o:c});
   for(const t of C.trouble)if(t.p&&t.p.d.root.visible&&!t.done)out.push({x:t.p.x,y:1,z:t.p.z,r:.42,h:.85,kind:'bad',o:t});
   if(C.rival&&C.rival.on)out.push({x:SPOT.rsign.x,y:1.3,z:SPOT.rsign.z,r:.55,h:.45,kind:'rsign'});

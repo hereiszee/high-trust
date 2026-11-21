@@ -669,13 +669,17 @@ function aimCheck(O){const a=A(),R=camRay(),sk=O.cols[O.skim];const hit=castPeop
     const cx=R.o.x+R.d.x*t-p.x,cz=R.o.z+R.d.z*t-p.z;if(hyp(cx,cz)<K.lineR){O.ret='bad';O.retWhy=p.kind==='gary'?'Gary’s in the way':'Somebody behind him';return}}
   O.ret='ok';O.retWhy=null}
 /* a round against everybody's capsule (radius 0.3, their height) and the world's solids */
-function castPeople(O,o,d,maxT){let best=null;const list=O.people.filter(p=>!p.gone);if(O.duf&&O.duf.e&&O.duf.e.state!=='dead')list.push({x:O.duf.e.pos.x,z:O.duf.e.pos.z,h:1.75,duf:true});
+const prot=p=>!!(p&&(p.kind==='kid'||p.stroller||(p.d&&window.HT&&HT.People&&HT.People.isProtected&&HT.People.isProtected(p.d))));
+/* a kid or a stroller within 3 m of the line of fire (out to the round's range): the shot is refused */
+function kidInLine(O,o,d){for(const p of O.people){if(p.gone||!prot(p))continue;const vx=p.x-o.x,vz=p.z-o.z,t=clamp(vx*d.x+vz*d.z,0,K.shotR+10);if(hyp(o.x+d.x*t-p.x,o.z+d.z*t-p.z)<3)return true}return false}
+function castPeople(O,o,d,maxT){let best=null;const list=O.people.filter(p=>!p.gone&&!prot(p));/* kids and stroller parents are never in the round's path (owner rule) */if(O.duf&&O.duf.e&&O.duf.e.state!=='dead')list.push({x:O.duf.e.pos.x,z:O.duf.e.pos.z,h:1.75,duf:true});
   for(const p of list){const h=(p.mode==='sit'?1.25:p.mode==='kneel'||p.mode==='hands'&&p.down?1.15:p.h||1.75),ox=o.x-p.x,oz=o.z-p.z,A_=d.x*d.x+d.z*d.z,B=2*(ox*d.x+oz*d.z),C=ox*ox+oz*oz-K.capR*K.capR,D=B*B-4*A_*C;
     if(D<0||A_<1e-9)continue;const s=Math.sqrt(D);let t0=(-B-s)/(2*A_),t1=(-B+s)/(2*A_);if(t1<0)continue;t0=Math.max(t0,0);const y0=o.y+d.y*t0,y1=o.y+d.y*t1;
     let t=null;if(y0>=0&&y0<=h)t=t0;else if((y0>h&&y1<h)||(y0<0&&y1>0)){t=(y0>h?(h-o.y):(0-o.y))/d.y}if(t==null||t>maxT)continue;if(!best||t<best.t)best={t,p:p.duf?{kind:'duffel'}:p}}
   const a=A(),T=a.THREE;if(!O._ray)O._ray=new T.Raycaster();const r=O._ray;r.set(new T.Vector3(o.x,o.y,o.z),new T.Vector3(d.x,d.y,d.z));r.near=.5;r.far=best?best.t:maxT;
   let sol=null;try{sol=r.intersectObjects(a.L.solids,false)[0]}catch(_){}if(sol&&(!best||sol.distance<best.t))return{t:sol.distance,p:null,point:sol.point};return best}
 function shoot(O){const a=A(),P=a.P,T=a.THREE,sk=O.cols[O.skim];
+  {const R0=camRay();if(kidInLine(O,R0.o,R0.d)){toggleDraw(O,false);a.feed('Not with a kid in the line of fire','bad','holstered');return}}
   if(O.round<=0){try{AUD()&&AUD().mech('pistol','dry')}catch(_){}if(O.clock-(O.dryT||-9)>3){O.dryT=O.clock;say('rosa',"That was the one. Holster it. Legs now.",true)}return}
   O.round--;O.shots++;if(P.ammo&&P.ammo.beanbag){P.ammo.beanbag.mag=0;P.ammo.beanbag.res=0}
   const R=camRay(),sp=K.spread+(P.moving?K.moveSpread:0);const dir={x:R.d.x+(Math.random()-.5)*2*sp,y:R.d.y+(Math.random()-.5)*2*sp,z:R.d.z+(Math.random()-.5)*2*sp};const l=Math.hypot(dir.x,dir.y,dir.z);dir.x/=l;dir.y/=l;dir.z/=l;

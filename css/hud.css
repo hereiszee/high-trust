@@ -979,3 +979,4 @@
 .ht-dlg .bd h4{font:700 var(--t-s)/1.2 var(--ht-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--sun);margin:18px 0 6px}
 .ht-dlg .ht-btns.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .ht-dlg .ht-btn:focus-visible,.ht-dlg .ht-btn:focus{box-shadow:0 0 0 2px var(--ink),0 0 0 4px #fff}
+.ht-cal .side .goal{font:700 var(--t-s)/1.4 var(--ht-ui);letter-spacing:.04em;color:var(--sun);background:rgba(255,201,74,.1);padding:8px 10px;border-radius:var(--r2);margin:-6px 0 12px}
