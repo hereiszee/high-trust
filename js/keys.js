@@ -81,7 +81,7 @@ function relabel(txt){const t=String(txt).trim().toLowerCase(),k=t==='space'?' '
 
 /* ---------- the Key bindings screen (js/hud.js calls table() and bind()) ---------- */
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function table(){return'<h3>Keyboard &amp; mouse</h3><div class="ht-set"><label>Aim<small>Mouse 2 and the controller\'s LT</small></label><div class="ht-seg3" data-aim>'+
+function table(){return'<h3>Keyboard &amp; mouse</h3><div class="ht-set"><label>Aim, scope, binoculars, hold breath<small>Mouse 2 · Shift on a scope · the controller\'s LT (hold until you pick)</small></label><div class="ht-seg3" data-aim>'+
   [['hold','Hold'],['toggle','Toggle']].map(([v,l])=>`<button aria-pressed="${AIM===v}" data-v="${v}">${l}</button>`).join('')+'</div></div>'+
   '<div class="ht-keys ht-rebind">'+
   ACTIONS.map(a=>`<div><span>${esc(a.l)}</span><span><button class="ht-kc ht-rb${B[a.id]?' chg':''}" data-rebind="${a.id}" aria-label="Rebind ${esc(a.l)}">${esc(name(get(a.id)))}</button></span></div>`).join('')+
