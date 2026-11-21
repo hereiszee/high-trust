@@ -34,7 +34,7 @@ const SAVE_I=process.argv.indexOf('--save'),SAVE_F=SAVE_I>0?process.argv[SAVE_I+
       for(;s<steps;s++){const d0=Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z);if(H.mode!=='hub')break;
         while(wi<pts.length-1&&Math.hypot(pts[wi].x-e.pos.x,pts[wi].z-e.pos.z)<6)wi++;const w=d0<12?tgt:pts[Math.min(wi,pts.length-1)];
         const dx=w.x-e.pos.x,dz=w.z-e.pos.z;let d=Math.atan2(-dx,-dz)-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
-        const want=d0<5.5?0:d0<12?Math.max(1.5,d0*.4):Math.abs(d)>.5?7:13;/* stop near the ring: creeping at the exact centre, the van can circle just outside the 4.5 m trigger (Grass Is Greener's ring at the paddock gate) */k.a=d>.05;k.d=d<-.05;k.w=e.spd<want;k.s=e.spd>want+2;
+        const want=d0<12?Math.max(1.5,d0*.4):Math.abs(d)>.5?7:13;k.a=d>.05;k.d=d<-.05;k.w=e.spd<want;k.s=e.spd>want+2;
         if(Math.abs(e.spd)<.5){stuck++;if(stuck>90){stuck=0;const q=pts[Math.min(wi+1,pts.length-1)];e.pos.set(q.x,0,q.z);H.syncVan&&H.syncVan()}}else stuck=0;H.step(1)}
       for(const x of['w','a','s','d'])k[x]=false;return{steps:s,mode:H.mode,d:Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z)}};
     T.toRing=i=>{const d=H.L.dests[i],G=H.ow.roads(),V=H.VAN;if(!d)return{err:'no dest'};if(H.CV)H.exitVehicle();const r=G.nearestRoad(d.x,d.z),A_=G.nodes[r.a],B_=G.nodes[r.b];
