@@ -366,7 +366,7 @@ FN.stages.tail={
     /* the sedan waits for its driver, then drives */
     if(S.t>TK.wait&&!r.done)r.step(dt,{});const t={x:r.x,z:r.z,yaw:r.yaw,spd:r.v,stopped:r.v<.5};placeCar(S.sed,r.x,r.z,r.yaw,dt);
     if(S.inCar&&S.courier){unperson(S.courier);S.courier=null}
-    if(!p){F.objs.push(['Get in the minivan and follow the gray sedan',false]);F.target={x:a.VAN.pos.x,z:a.VAN.pos.z,label:'Minivan'};if(S.t>TK.wait+25)return tailFail(M,'lost',"He drove off while you were still on the sidewalk.");if(S.t>TK.wait+2)tailMeter(M,F,null);return}
+    if(!p){F.objs.push(['Get in the minivan (E) and follow the gray sedan',false]);F.target={x:a.VAN.pos.x,z:a.VAN.pos.z,label:'Minivan'};if(S.t>TK.wait+25)return tailFail(M,'lost',"He drove off while you were still on the sidewalk.");if(S.t>TK.wait+2)tailMeter(M,F,null);return}
     const d=hyp(t.x-p.x,t.z-p.z);let R=null;
     if(S.T&&S.t>TK.wait){if((S.losT-=dt)<=0){S.losT=.1;const Tl=TL(),grid={map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2};S.los=Tl.los(t.x,t.z,p.x,p.z,{grid})}
       R=S.T.tick(dt,{t,p,carId:p.id,carType:p.type,los:S.los,sight:S.los});if(S.t-TK.wait<10)S.T.S.lose=Math.max(0,(S.T.S.lose||0)-dt*2.2);M.fn.st.tailSus=Math.max(M.fn.st.tailSus,R.sus|0)}
@@ -390,7 +390,7 @@ FN.stages.tail={
   clear(M){const S=M.fn.sub;if(S.courier)unperson(S.courier);if(S.driver)unperson(S.driver)}};
 function playerCar(){const a=A(),e=a.CV;if(!e)return null;return{x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:e.car?e.car.spd:e.spd||0,type:e===a.VAN?'minivan':e.type,id:e===a.VAN?'van':(e.name||'car')+':'+e.type,e}}
 FN.playerCar=playerCar;
-function tailMeter(M,F,R){if(!R){F.meters.push({id:'band',label:'Following',v:200,max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:'get in a car'});return}
+function tailMeter(M,F,R){if(!R){const inCar=!!A().CV;F.meters.push({id:'band',label:'Following',v:inCar?37:200,max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:inCar?'he is getting in his car':'get in a car'});return}
   F.meters.push({id:'band',label:'Following',v:Math.min(200,R.d),max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:Math.round(R.d)+' m'});
   F.meters.push({id:'sus',label:'His mirror',v:R.sus||0,max:100,style:'ring',icon:'eye'})}
 function swapNow(M,already){const a=A(),S=M.fn.sub,sh=S.shuttle.entry;if(S.swapped||!sh)return;S.swapped=true;if(!already){try{a.exitCar();a.enterCar(sh);a.M.car=a.M.car}catch(_){}}
