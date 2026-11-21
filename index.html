@@ -1974,8 +1974,9 @@ document.addEventListener('pointerlockchange',()=>{const was=locked;locked=docum
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
 cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
   if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
-  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=true;e.preventDefault()});
-addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2)P.aim=false});
+  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=aimHoldMode()?true:!P.aim;/* owner rule: aim is a toggle on mouse (click to raise, click again to lower), never a hold; Key bindings → Aim: Hold brings back press-and-hold */e.preventDefault()});
+addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2&&aimHoldMode())P.aim=false});
+function aimHoldMode(){const K=window.HT&&HT.Keys;return!!(K&&K.aimHold&&K.aimHold())}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function look(dx,dy){camLookT=1.3;const gw=WEAPONS[P.cur],base=CFG.sens*.00032,s=base*((P.adsT>.5||(P.aim&&!gw))?CFG.ads/100*(gw&&gw.scope?gw.ads.zoom:1):1);P.yaw-=dx*s;
   const dp=-dy*s*(CFG.inv?-1:1);if(dp<0&&P.rDebt>0)P.rDebt=Math.max(0,P.rDebt+dp);/* pulling down counts against recoil recovery */P.pitch=clamp(P.pitch+dp,-1.3,1.25)}
@@ -4014,7 +4015,7 @@ function wmStake(dt,F){const m=M.def,S=m.stake,e=CV;M.stakeT+=dt;
   const lk=M.suspects.filter(s=>s.kind==='lookout'&&s.id).length,cr=M.suspects.some(s=>s.kind==='courier'&&s.id);
   F.objs.push(['ID the lookouts · '+lk+'/3',lk>=3],['ID the courier',cr],['Suspicion · '+Math.round(M.sus)+'%',false,M.sus>60?'warn':''],[Math.max(0,Math.ceil(S.maxT-M.stakeT))+' s before the pickup',false]);
   const s=wmNearest(M.suspects,x=>!x.id&&!x.gone);if(s)F.target={x:s.pos.x,z:s.pos.z,label:s.kind==='courier'?'Suspect':'Lookout?'};
-  F.prompt=watching?'Hold right mouse · Watching':VAN.on?'Hold right mouse · Binoculars':null;F.promptP=watching?clamp(watching.idT/S.watchT,0,1):0;
+  F.prompt=watching?'Binoculars on him · Watching':VAN.on?(P.aim?'Right mouse again · Lower binoculars':'Right mouse · Binoculars'):null;F.promptP=watching?clamp(watching.idT/S.watchT,0,1):0;
   if(VAN.on&&!watching){F.taps.push({d:0,r:1,txt:'Get out (skip to the raid)',fn:()=>wmDeeRaid(M.sus>=100)})}
   M.noCars=true;
   if(M.sus>=100){M.loud=true;banner('SPOTTED','The lookouts scattered. They know you are here.',2.4);radio('doug','Well. That went great. Go go go!',true);for(const q of M.suspects)if(q.kind==='lookout')q.flee={x:q.pos.x+rand(20,30),z:q.pos.z-rand(-4,4)};return wmDeeRaid(true)}

@@ -6,7 +6,7 @@
    allowed, and it costs) shoot for real. Kevin has a Super Soaker. Hold fire. The last threat is a car: tyres.
 
    The rifle is its own thing, not the game's hitscan: rounds fly (beanbag 125 m/s and dropping, live .308 820 m/s),
-   the reticle has bean holdover marks, the scope breathes (inhale, exhale, a still pause at the bottom; Shift holds it),
+   the reticle has bean holdover marks, the scope breathes (inhale, exhale, a still pause at the bottom; tap Shift to hold it, tap again to let go: a toggle, owner rule),
    bracing on the parapet steadies it, and every shot kicks the sight picture.
    Shared helper: js/jobs/_escort.js (HT.Escort). Test player: test.step below; dev/jobs/overwatch.js for the shots.
    Owner rules: no family members in this job; failPolicy escalate; Riverside's change is people coming back and staying.
@@ -221,7 +221,7 @@ J.register('overwatch',{
   end(M,ok){returnRifle(M);if(!ok)return;const s=A().SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'ferreira')}catch(_){}try{SV.perk(s,'doug',true)}catch(_){}s.flags=s.flags||{};s.flags.ferreira=true}},
 
-  test:{give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
+  test:{ladder:()=>{const R=roofInfo();return R?{x:R.bottom.x,z:R.bottom.z}:null},give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ow:{stage:'court',rifle:{type:'bean',box:{bean:{mag:3,res:9},live:{mag:5,res:5}}},stats:{beaned:2,cuffed:2,lethal:0,spooked:0,civ:0,shots:3,hits:2,kevin:0,flats:0},sight:{done:true},roof:{on:false},
       witHp:87,esc:null,escSaved:{s:40.5,state:'walk',stopK:-1,stopsDone:[4],revived:0,hp:[100,87,100],fired:[0,0]}}})}
@@ -233,7 +233,7 @@ function stageStep(dt,M,F){const a=A(),O=M.ow,P=a.P,R=roofInfo();
   if(M.exitOpen){if(O.roof.on)F.objs.push(['Climb down the ladder',false]);if(O.roof.on)F.target={x:R.top.x,z:R.top.z,label:'Ladder'};return}
   if(O.stage==='ladder'){
     if(!O.roof.on){F.objs.push(['Climb the ladder on the east wall',false]);F.target={x:R.bottom.x,z:R.bottom.z,label:'Ladder'};return}
-    if(!O.sight.done){O.sight.t+=dt;F.objs.push(['Sight in: hit the scarecrow in Rosa\'s garden with a beanbag',false]);F.objs.push(['Right mouse: scope · Shift: hold breath · Z: zoom',false]);
+    if(!O.sight.done){O.sight.t+=dt;F.objs.push(['Sight in: hit the scarecrow in Rosa\'s garden with a beanbag',false]);F.objs.push([aimHold()?'Hold right mouse: scope · hold Shift: hold breath · Z: zoom':'Right mouse: scope (click again to lower) · Shift: hold breath (tap, tap again to breathe) · Z: zoom',false]);
       if(O.sight.t>40&&!O.sight.nag){O.sight.nag=1;say('doug',"Close enough. Rosa says they're moving. You'll learn on the job, like I did. Badly.",true);O.sight.done=true}
       return}
     if(O.sight.go==null)O.sight.go=3.2;
@@ -330,7 +330,10 @@ function rifleStep(dt,M){const a=A(),O=M.ow,R=O.rifle,P=a.P,B=R.breath,T=TUNE.br
   R.boltT=Math.max(0,R.boltT-dt);R.kick*=Math.exp(-TUNE.kickBack*dt);R.heart+=(70-R.heart)*Math.min(1,dt*.12);if(P.moving)R.heart=Math.min(118,R.heart+dt*6);
   const sc=scoped(M);R.scopeT=clamp(R.scopeT+(sc?dt:-dt)/.22,0,1);
   /* breathing: in, out, a still pause at the bottom; Shift holds it (4.5 s steady, then it shakes, then you gasp) */
-  const cyc=T.inn+T.out+T.pause;const want=sc&&(a.keys.shift||R.touchHold)&&B.recover<=0;
+  /* keyboard: Shift is a TAP toggle (R.touchHold, same flag as the touch chip); it lets go on its own when the lungs run out (hold + shake).
+     Key bindings → Aim: Hold brings back press-and-hold Shift. */
+  if(!sc)R.touchHold=false;
+  const cyc=T.inn+T.out+T.pause;const want=sc&&((aimHold()&&a.keys.shift)||R.touchHold)&&B.recover<=0;
   if(want&&!B.held){B.held=true;B.holdT=0;R.touchHold=R.touchHold&&true}
   if(B.held){B.holdT+=dt;if(!want||B.holdT>T.hold+T.shake){B.held=false;R.touchHold=false;if(B.holdT>T.hold){B.recover=T.recover;gasp()}}}
   else{B.t=(B.t+dt)%cyc;B.recover=Math.max(0,B.recover-dt)}
@@ -667,7 +670,10 @@ function hudFill(M,F){const a=A(),O=M.ow,E=O.esc,R=O.rifle;
 
 /* ---------------- input: Z zoom, Q rounds, wheel zoom while scoped, touch chips ---------------- */
 function onRoofJob(){const a=A(),M=a&&a.M;return M&&M.state==='go'&&M.def&&M.def.id==='overwatch'&&M.ow&&M.ow.roof.on?M:null}
-if(typeof addEventListener==='function'){addEventListener('keydown',e=>{if(e.repeat)return;const M=onRoofJob();if(!M)return;const k=(e.key||'').toLowerCase();if(k==='z')zoomStep(M);else if(k==='q')switchRounds(M)});
+function aimHold(){const K=window.HT&&HT.Keys;return!!(K&&K.aimHold&&K.aimHold())}
+/* Shift on the scope: tap to hold your breath, tap again to breathe (a gasp still comes if you held past the steady part) */
+function breathTap(M){const R=M.ow.rifle,B=R.breath;if(!scoped(M)||aimHold())return;if(B.held||R.touchHold){R.touchHold=false}else if(B.recover<=0)R.touchHold=true}
+if(typeof addEventListener==='function'){addEventListener('keydown',e=>{if(e.repeat)return;const M=onRoofJob();if(!M)return;const k=(e.key||'').toLowerCase();if(k==='z')zoomStep(M);else if(k==='q')switchRounds(M);else if(k==='shift')breathTap(M)});
   addEventListener('wheel',e=>{const M=onRoofJob();if(!M||!scoped(M))return;zoomStep(M,e.deltaY<0?1:-1)},{passive:true})}
 function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done)return;hookTouch.done=true;a.HUD.on('gadget',id=>{const M=onRoofJob();if(!M)return;if(id==='ow-rounds')switchRounds(M);else if(id==='ow-zoom')zoomStep(M);else if(id==='ow-breath')M.ow.rifle.touchHold=!M.ow.rifle.touchHold});
   a.HUD.on('touch',(id,down)=>{const M=onRoofJob();if(M&&id==='swap'&&down)switchRounds(M)})}
@@ -702,7 +708,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ow)return null;c
   if(B.react>0){B.react-=1/30;P.aim=o.human?false:true;return null}
   P.aim=true;const sol=solveAim(M,tgt);if(!sol)return null;const wy=sol.yaw-O.rifle.sw.y+B.err.y,wp=sol.pitch-O.rifle.sw.p-O.rifle.kick+B.err.p;
   if(o.human){let dy=wy-P.yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;const k=.16;P.yaw+=dy*k;P.pitch+=(wp-P.pitch)*k;B.err.y*=.97;B.err.p*=.97;const mov=Math.hypot(tgt.vx||0,tgt.vz||0)>.5;if(Math.abs(dy)>(mov?.012:.004)){if(!mov)B.hold=0;return null}}else{P.yaw=wy;P.pitch=wp}
-  a.keys.shift=O.rifle.scopeT>.9&&B.hold>(o.human?.6:.2);B.hold+=1/30;
+  O.rifle.touchHold=O.rifle.scopeT>.9&&B.hold>(o.human?.6:.2);B.hold+=1/30;
   const need=tgt.kind==='kevin'?1.2:tgt.kind==='threat'&&!tgt.o.marked?.75:.3;
   if(tgt.kind==='kevin')return null;/* look, don't shoot */
   if(B.hold>need&&O.rifle.scopeT>=1&&O.rifle.boltT<=0&&!P.rl&&(O.rifle.still||O.rifle.breath.held||Math.hypot(tgt.vx||0,tgt.vz||0)>.5)){H.mouse=true;B.hold=need*.5}
