@@ -1,0 +1,48 @@
+node dev/traffic-check.js
+road graph: 164 directed edges, 12 at least 55 m long; regions maple, route9, river
+     behind: 3.58d 3.66 3.66 3.66 3.58 3.65 3.65d 3.65 3.58d 3.66 3.65d 3.65 3.58d 3.65 3.66d 3.66 3.58d 3.66 3.66d 3.67  (gap m per trial; d = player drove into place)
+ok   behind: player car displacement over 20 trials = 0.0e+0 m (roads 12, regions maple/route9, speeds 7-13 m/s)
+ok   behind: never overlapping the player car (max overlap 0 m)
+ok   behind: stopped 2.4-4.2 m short in 20/20 (min 3.58, max 3.67)
+     ahead: 3.58d 3.66 3.66d 3.65 3.58d 3.66 3.67d 3.65 3.58d 3.66 3.65d 3.65 3.58d 3.66 3.66d 3.67 3.58d 3.65 3.65d 3.67  (gap m per trial; d = player drove into place)
+ok   ahead: player car displacement over 20 trials = 0.0e+0 m (roads 12, regions maple/route9, speeds 7-13 m/s)
+ok   ahead: never overlapping the player car (max overlap 0 m)
+ok   ahead: stopped 2.4-4.2 m short in 20/20 (min 3.58, max 3.67)
+     side: 2.58 3.63 3.38 3.56 2.79 3.60 3.39 3.60 2.48 3.61 3.40 3.57 2.58 3.63 3.38 3.56 2.79 3.60 3.39 3.60  (gap m per trial; d = player drove into place)
+ok   side: player car displacement over 20 trials = 0.0e+0 m (roads 2, regions route9, speeds 7-13 m/s)
+ok   side: never overlapping the player car (max overlap 0 m)
+ok   side: stopped 2.4-7 m short in 20/20 (min 2.48, max 3.63)
+     ladder, oncoming lane clear: stop@0, honk@1.97, bark@3 "Any day now, chief.", honk@6, round@6, roundDone@11.83
+ok   first horn ~2 s after stopping (at 1.97 s)
+ok   goes round once stopped 6 s with the oncoming lane clear (round at 6 s, done 11.83 s), never touching the player car (overlap 0)
+ok   player car not moved while it went round
+     ladder, oncoming lane blocked: stop@0, honk@1.96, bark@3 "Is this a parking spot now? Is that what we're doing?", honk@7.46, haz@10, honk(long)@12.73, bark@16.8 "Any day now, chief.", honk@18.73, rev@24.96
+ok   horns 1.96 7.46 12.73L 18.73 s: gaps 5.5/5.27/6 s (4-6, later 6-9), a long one
+ok   hazards at 10 s (10)
+ok   reverses and U-turns at 25 s (24.96), player car moved 0.0e+0 m
+ok   barks: "Is this a parking spot now? Is that what we're doing?"@3, "Any day now, chief."@16.8
+     boxed in: stop@894.97, haz@904.97, rev@919.93, rev@933.8, despawn@933.8
+ok   boxed in on all sides: two re-route attempts, then despawned out of view after 39.3 s (in view on 1 sampled seconds)
+     push: {"hitV":0,"moved":17.263544932714538,"thp":[100,91.87842069252075],"hp":[100,49.4103867811634],"dents":1,"hazard":true,"hero":true,"trust":[17,17,16],"drops":[-1],"ev":["hit(14.83 m/s, -8.1)","honk","hit(1.96 m/s, -0)"],"wreck":false}
+ok   driving into a stopped traffic car at 0.0 m/s shoves it 17.26 m
+ok   both damaged on the car-damage curve: traffic 100 -> 91.9, player 100 -> 49.4
+ok   it dents (hero model, 1 dents), hazards on, a long horn
+ok   -1 trust for ramming it, once per car: trust changes over both rams [-1] (trust 17.0 -> 17.0 -> 16.0)
+ok   slow push: the hatchback is pushed 8.11 m smoothly (never moves back more than 0.0 mm a frame, van speed 2.08-2.28 m/s, resting overlap 0.000)
+ok   the tank is never moved by traffic, even one forced to ram it at 11 m/s (0.0e+0 m; gaps 0, 0, 0)
+ok   the tank drives a traffic car 33.5 m down the road (tank up to 10.5 m/s)
+ok   a queue of three forms behind the player: gaps 3.65, 3.86, 3.86 m, no overlap (0)
+ok   it clears in order once he drives off (start frames 2, 3, 5; past his spot in order 0, 1, 2)
+ok   junctions: 6 pairs of cars arriving at once never overlap (closest 6.43/17.58/10.3/1.1/6.42/21.4 m)
+ok   a car on the cross street waits 9.5 m from the junction centre while the player drives across (closest 6.18 m)
+ok   a stand-in mission car (o.others) is stopped for like the player: 3.67 m short, by other
+ok   during a job ambient traffic stands still, as before (5 cars from free roam, moved 0 m; jobs run their own cars)
+     soak events: {"haz":42,"honk":23,"stop":128,"roundDone":5,"rev":36,"round":12,"roundAbort":8,"bark":4,"despawn":14,"hit":3}; van autopilot 0.14 laps, van hp 77
+ok   5-minute free roam with up to 24 cars and the van ramming its way round a loop: 0 overlaps > 5 cm after resolution in 1800 samples (max 0 m)
+     step time (game logic, no render): traffic off 0.788 ms, 24 cars 1.262 ms
+     shot stopped-honking.jpg
+     shot going-round.jpg
+     shot queue.jpg
+     shot pushed-dented.jpg
+ok   no page errors
+all traffic checks passed
