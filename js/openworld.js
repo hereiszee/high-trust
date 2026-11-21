@@ -1172,9 +1172,9 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
   const fogFar=C.fogFar?C.fogFar():200;const R=ws.fly?Math.max(ws.fly.R||0,Math.min(ws.R||(ws.R=200),fogFar+8)):Math.min(ws.R||(ws.R=200),fogFar+8);   /* ws.fly: OW.flight (the jet) */ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
-  let nxt=null,nxtD=1e9;const BR=Math.max(R,ws.buildR||0)+40;   /* nearest unbuilt unit first (was: list order); ws.buildR (OW.buildAhead) builds past the draw radius without drawing */
+  const BR=Math.max(R,ws.buildR||0)+40;   /* ws.buildR (OW.buildAhead) builds past the draw radius without drawing it */
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
-    if(!u.built){if(!ws.active&&d<BR&&d<nxtD){nxt=u;nxtD=d}continue}
+    if(!u.built){if(d<BR&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue;if(d>=R+40){if(u.group)u.group.visible=false;continue}}/* without buildAhead: exactly as before */
     if(!u.ready){u.group.visible=false;continue}
     if(u.mg){const far=d>(ws.fly&&ws.fly.blod||ws.BLOD);if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
     let vis=u.sp&&u.sp.always?true:d<(u.r&&!ws.fly?Math.min(u.r,R):R);   /* flying (OW.flight): everything to R, the small-radius units too */
@@ -1184,7 +1184,6 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}
       const mn=d<ws.MID;if(mn!==u.mnear){u.mnear=mn;for(const m of u.mid)m.visible=mn;if(u.dressRoot)u.dressRoot.visible=mn}}}
-  if(nxt){startUnit(nxt);if(!stepUnit(nxt,ws.SLICE||6))ws.active=nxt}
   easeBT(dt);
   for(const w of ws.water){w.nm.offset.x=Math.sin(ws.t*.05)*.02;w.nm.offset.y-=dt*.018}
   /* nearby raycast proxies, every 0.5 s or after moving 8 m */
