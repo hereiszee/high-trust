@@ -69,7 +69,10 @@ function model(o){const T=T3(),K2=B().kit,root=new T.Group(),W='#e9ebe8',G2='#a9
   P.flush(body);
   /* canopy: a glass bubble (its own mesh so ejecting can throw it) */
   const cg=new T.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI/2);cg.scale(1.9,.62,.62);const canopy=new T.Mesh(cg,mt('jglass',{color:new T.Color('#5d7f99').convertSRGBToLinear(),roughness:.05,metalness:.3,transparent:true,opacity:.42,depthWrite:false}));
-  canopy.position.set(1.5,2.38,0);body.add(canopy);const frame=new T.Mesh(new T.TorusGeometry(.6,.035,6,16,Math.PI),mt('jframe',{color:new T.Color('#2a2d31'),roughness:.6}));frame.position.set(1.2,2.38,0);frame.rotation.y=Math.PI/2;body.add(frame);
+  canopy.position.set(1.5,2.38,0);body.add(canopy);
+  /* the boarding ladder on the left, under the cockpit (so it's obvious where to climb in) */
+  {const lm=mt('jladder',{color:new T.Color('#f2c230').convertSRGBToLinear(),roughness:.5,metalness:.4});const lg=new T.Group();for(const dx of[-.22,.22]){const r=new T.Mesh(new T.BoxGeometry(.05,2.2,.05),lm);r.position.set(dx,1.1,0);lg.add(r)}
+   for(let k=0;k<6;k++){const g2=new T.Mesh(new T.BoxGeometry(.44,.04,.05),lm);g2.position.set(0,.25+k*.36,0);lg.add(g2)}lg.position.set(1.25,0,-.98);lg.rotation.x=-.2;body.add(lg);root.userData.ladder=lg}const frame=new T.Mesh(new T.TorusGeometry(.6,.035,6,16,Math.PI),mt('jframe',{color:new T.Color('#2a2d31'),roughness:.6}));frame.position.set(1.2,2.38,0);frame.rotation.y=Math.PI/2;body.add(frame);
   /* decals: the callsign on both sides of the nose, the badge on both tails */
   for(const s of[-1,1]){const d=new T.Mesh(new T.PlaneGeometry(3.2,.8),mt('jdec',{map:decalTex(),transparent:true,alphaTest:.05,roughness:.5}));d.position.set(2.6,1.95,s*.8);d.rotation.y=s>0?0:Math.PI;if(s<0)d.scale.x=1;body.add(d);
     const tl=new T.Mesh(new T.PlaneGeometry(1.1,1.1),mt('jtail',{map:tailTex(),transparent:true,alphaTest:.05,roughness:.5,side:T.DoubleSide}));tl.position.set(-4.65,3.25,s*.84);tl.rotation.set(s*-.29,0,0);body.add(tl)}
@@ -103,6 +106,8 @@ function persist(){try{A().save()}catch(_){}}
 function glue(){const a=A();if(!a||typeof a.carFeel!=='function')return false;if(!glue.done){a.carFeel('jet',FEEL,[[1.4,1.65,0]]);glue.done=true}return true}
 function ensure(a){const d=B().def();if(!d||!glue())return;if(S.e&&a.L.cars&&a.L.cars.includes(S.e)&&S.L===a.L)return;
   let v=null;try{v=a.makeVehicle('jet','#e9ebe8')}catch(_){v=null}if(!v)return;v.userData.lod=0;v.position.set(d.jet.x,0,d.jet.z);a.L.group.add(v);const e=a.registerCar(v,d.jet.x,d.jet.z);if(!e)return;
+  /* collision: the fuselage only (the wings were an 8.8 m wall you couldn't get past to the cockpit); boarding is generous (interact) */
+  v.userData.size={l:11.4,w:1.9,h:3.6};try{a.syncCar(e)}catch(_){}
   e.type='jet';e.name='the Air Wing';e.owner='base';e.yaw=d.jet.yaw;e.home={x:d.jet.x,z:d.jet.z,yaw:d.jet.yaw};e.noJobs=LINES.refuse;e.jet=true;a.syncCar(e);S.e=e;S.L=a.L;pose(v)}
 /* the model's transform from the flight state (or parked on its wheels) */
 function pose(v){const j=v.userData.jet;if(!j)return;const a=A();const e=S.e;
@@ -422,6 +427,8 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
 function fogLate(a){if(!FOG0)return;const sc=a.scene,alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}if(a.camera.far<3600){a.camera.far=3600;a.camera.updateProjectionMatrix()}}
 Jet.fogLate=()=>fogLate(A());
 function hud(st){const a=A();if(!a)return;fogLate(a);const on=F.on&&a.CV&&a.CV.type==='jet';hudShow(!!on);
+  /* on foot near the parked jet: a marker on the cockpit ladder */
+  if(!on&&!a.CV&&S.e&&!F.chute&&!F.ride&&jetNear(a)<26&&S.e.obj&&S.e.obj.userData.ladder){const lp=new THREE.Vector3();S.e.obj.userData.ladder.getWorldPosition(lp);st.markers=st.markers||[];st.markers.push({id:'jetLadder',kind:'obj',label:'Climb in',x:lp.x,z:lp.z,screen:a.project?a.project(lp.x,2.4,lp.z):null,edge:false})}
   /* after an eject: where the jet went (a marker on it, map and screen) */
   if(!on&&S.e&&(F.ride||F.markT>a.simT)){const p=S.e.pos;st.markers=st.markers||[];st.markers.push({id:'jetHome',kind:'obj',label:'DAD-1 · Hangar 2',x:p.x,z:p.z,screen:a.project?a.project(p.x,3,p.z):null,edge:true,always:true})}
   if(!on)return;
@@ -480,7 +487,44 @@ function helpTick(a,dt){const on=F.on&&a.CV&&a.CV.type==='jet';const h=(on||F.ri
 /* after an eject or crash far from the post: a ride back (a quick fade to the apron) */
 function rideBack(a){const d=B().def();if(!d)return;const h=helpEl();F.ride=null;tipShow(null);h.fade.style.transition='none';h.fade.style.opacity='1';
   const P=a.P;P.pos.set(d.jet.x-9,0,d.jet.z-6);try{a.collide(P.pos,.35)}catch(_){}
+  /* the crew rode back in the car with you */
+  try{(a.allies||[]).forEach((al,i)=>{al.pos.set(P.pos.x+(i%2?2.2:-2.2),0,P.pos.z+1.6+(i>>1)*1.2);a.collide(al.pos,.35);al.dude&&al.dude.root.position.set(al.pos.x,0,al.pos.z)});CR.phase=null}catch(_){}
   setTimeout(()=>{h.fade.style.transition='opacity .6s';h.fade.style.opacity='0'},60);say(TOWER,"DAD-1, welcome back. The jet's on the apron where you left it. Well. Where we left it.",true)}
+/* ================= the crew while you fly (owner's playtest: "friends running in the air beside you") =================
+   index.html's updAlly asks Jet.crew(ally,dt) first in the hub. In the jet or under the canopy they stay where you left them (at the
+   base). When you're down: near where they are, they walk over; far away, they appear out of the camera's view (on walkable ground,
+   30-45 m off) and jog up with a line. The same after "ride back to Fort Sensible" (they're at the apron). */
+const CR={phase:null,t:0,list:null};
+const CREW_LINES=["You ejected. On purpose. Over a residential street.","We saw the parachute from the apron. Then we saw you land in a hedge.","Sal says the Air Wing wants a word. Several words.","You good? You look like a man who just fell out of the sky."];
+function crewHidden(a,cx,cz,r0,r1){const cam=a.camera,fr=new THREE.Frustum();cam.updateMatrixWorld();fr.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse));
+  const back=a.P.yaw;/* start the search behind him: (sin,cos) of his yaw is the opposite of where he faces */
+  for(let k=0;k<48;k++){const ang=back+(k%2?1:-1)*Math.floor(k/2)*.26,r=r0+(k*7%5)/4*(r1-r0),x=cx+Math.sin(ang)*r,z=cz+Math.cos(ang)*r;
+    if(!a.walkable(a.tx(x),a.tx(z)))continue;{const py=a.P.yaw,fx=-Math.sin(py),fz=-Math.cos(py);if((x-cx)*fx+(z-cz)*fz>-6)continue}/* behind where he faces too (the chase camera ends up looking that way) */const pt=new THREE.Vector3(x,1,z);if(fr.containsPoint(pt))continue;const pt2=new THREE.Vector3(x,2.2,z);if(fr.containsPoint(pt2))continue;return{x,z}}return null}
+Jet.crewLog=[];/* test hook: where they spawned and whether the camera could see it */
+Jet.crew=(al,dt)=>{const a=A();if(!a||a.mode!=='hub'||!al||!al.dude)return false;const d=al.dude,P=a.P;
+  if(F.on||F.chute){if(CR.phase!=='hold'){CR.phase='hold';CR.list=new Map()}al.pos.y=0;d.root.position.set(al.pos.x,0,al.pos.z);try{a.pose(d,dt,{moving:false})}catch(_){}return true}
+  if(CR.phase==='hold'){CR.phase='catch';CR.t=0;CR.said=false;CR.list=new Map()}
+  if(CR.phase!=='catch')return false;
+  let c=CR.list.get(al);
+  if(!c){const dist=Math.hypot(al.pos.x-P.pos.x,al.pos.z-P.pos.z);c={far:dist>90,stuck:0,last:{x:al.pos.x,z:al.pos.z}};
+    if(c.far){const sp=crewHidden(a,P.pos.x,P.pos.z,30,45);if(sp){al.pos.set(sp.x,0,sp.z);try{a.collide(al.pos,.35)}catch(_){}Jet.crewLog.push({id:al.id,x:sp.x,z:sp.z,seen:false})}}
+    CR.list.set(al,c)}
+  CR.t+=dt/Math.max(1,(A().allies||[]).length);
+  const dx=P.pos.x-al.pos.x,dz=P.pos.z-al.pos.z,dd=Math.hypot(dx,dz);
+  if(dd<3.2||CR.t>40){CR.list.set(al,Object.assign(c,{done:true}));if([...CR.list.values()].every(q=>q.done)&&CR.list.size>=(A().allies||[]).length)CR.phase=null;return false}
+  if(!CR.said&&c.far&&dd<14){CR.said=true;try{a.radio(al.id,CREW_LINES[(Math.random()*CREW_LINES.length)|0])}catch(_){}}
+  const sp=c.far?5.2:dd>12?4.6:2.2,st=Math.min(dd-2.4,sp*dt);al.pos.x+=dx/dd*st;al.pos.z+=dz/dd*st;try{a.collide(al.pos,.35)}catch(_){}al.pos.y=0;
+  /* stuck on a corner: step sideways, then (out of sight) closer */
+  c.stuck+=dt;if(c.stuck>1.5){const mv=Math.hypot(al.pos.x-c.last.x,al.pos.z-c.last.z);c.stuck=0;c.last={x:al.pos.x,z:al.pos.z};if(mv<.8){const h=crewHidden(a,P.pos.x,P.pos.z,12,22);if(h)al.pos.set(h.x,0,h.z)}}
+  al.yaw=Math.atan2(dx,dz);d.root.position.set(al.pos.x,0,al.pos.z);d.root.rotation.y=al.yaw;try{a.pose(d,dt,{moving:true,speed:sp/4.6})}catch(_){}return true};
+/* the dad under the canopy: hanging, arms up on the risers, legs loose, a slow sway (not the run cycle); a landing step when he's down */
+function chutePose(a,dt){const P=a.P,d=P.dude;if(!d)return;const c=F.chute;
+  if(c){F.landT=.55;try{a.pose(d,dt,{moving:false})}catch(_){}const b=d.rb&&d.rb.bones;if(b){const t=(c.t||0);
+      for(const[n,z,x]of[['Bip01_R_UpperArm',-2.35,0],['Bip01_L_UpperArm',2.35,0]]){const bo=b[n];if(bo){bo.rotation.z+=z*(n[6]==='R'?1:1);bo.rotation.x+=x}}
+      for(const n of['Bip01_R_Forearm','Bip01_L_Forearm']){const bo=b[n];if(bo)bo.rotation.z+=n[6]==='R'?-.35:.35}
+      for(const n of['Bip01_R_Thigh','Bip01_L_Thigh']){const bo=b[n];if(bo)bo.rotation.x+=Math.sin(t*1.3+(n[6]==='R'?0:1.6))*.12}}
+    d.root.rotation.z=Math.sin((c.t||0)*.9)*.06;F.pose='chute';return}
+  d.root.rotation.z=0;if(F.landT>0){F.landT-=dt;try{a.pose(d,dt,{moving:false,mode:'crouch'})}catch(_){}F.pose='land';return}F.pose=null}
 /* ================= every frame (pose hook): ensure the jet, the parachute, the family, the bridge check, gear key ================= */
 function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const dt=Math.min(.1,Math.max(0,a.simT-(S.simT||a.simT)));S.simT=a.simT;
   if(a.mode==='hub')ensure(a);
@@ -491,7 +535,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<140||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
-  fogLate(a);if(!dt)return;chuteTick(a,dt);familyTick(a,dt);helpTick(a,dt);if(F.on&&F.air)autoGear(a);if(!F.on&&!F.chute)farFog(a,false)}
+  fogLate(a);if(!dt)return;chuteTick(a,dt);chutePose(a,dt);familyTick(a,dt);helpTick(a,dt);if(F.on&&F.air)autoGear(a);if(!F.on&&!F.chute)farFog(a,false)}
 /* keys the game doesn't own while flying (all taps or toggles): G gear, C look back, Shift afterburner, W / S throttle steps; E twice in the air ejects (index.html: e.noExit) */
 addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='jet')return;const k=ev.key.toLowerCase();
   if(k==='g'&&F.air&&!ev.repeat){F.gManT=a.simT;F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}
@@ -499,8 +543,13 @@ addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='je
   if(k==='c'){F.look=!F.look}
   if(k==='shift'){F.abOn=!F.abOn&&F.thr>.9;if(!F.abOn&&F.thr<=.9&&!F.said.ab){F.said.ab=1;a.feed('Afterburner: throttle to 100% first (W), then Shift','info')}}
   if(k==='w')F.thr=Math.min(1,Math.round(F.thr*10+1)/10);if(k==='s')F.thr=Math.max(0,Math.round(F.thr*10-1)/10)});
+/* how far the dad is from the jet's fuselage (any side; 0 = touching) */
+function jetNear(a){const e=S.e;if(!e)return 1e9;const P=a.P,dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,fx=-Math.sin(e.yaw),fz=-Math.cos(e.yaw);const al=dx*fx+dz*fz,sd=dx*fz-dz*fx;
+  return Math.hypot(Math.max(0,Math.abs(al)-5.7),Math.max(0,Math.abs(sd)-.95))}
+Jet.near=()=>jetNear(A());
 function interact(prompt){const a=A();if(!a||a.mode!=='hub')return null;
   if(F.ride&&!a.CV&&a.simT<F.ride.until&&Math.hypot(a.P.pos.x-F.ride.x,a.P.pos.z-F.ride.z)<60)return{txt:'Ride back to Fort Sensible',fn:()=>rideBack(a)};
+  if(!a.CV&&S.e&&!F.chute&&jetNear(a)<3.5)return{txt:'Climb into DAD-1',fn:()=>{try{a.enterCar(S.e)}catch(_){}}};
   const e=a.CV;if(!e||e.type!=='jet'||!F.on)return null;
   /* eject: two taps of E (no held keys): the first arms it for 3 s */
   if(F.air){const armed=F.ejArm!=null&&a.simT-F.ejArm<3;return armed?{txt:'Press E again to eject',fn:()=>{F.ejArm=null;eject(a,e,false)}}:{txt:'Eject (press twice)',fn:()=>{F.ejArm=a.simT;beep(700)}}}if(F.spd>4)return null;return null}
@@ -514,7 +563,7 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
     Au.vehicle=function(){const v=orig.apply(this,arguments);let cv=null;try{cv=A()&&A().CV}catch(_){}if(!v||!cv||cv.type!=='jet')return v;try{v.stall(true)}catch(_){}const s0=v.set;v.set=p=>s0.call(v,Object.assign({},p,{rpm:0,throttle:0,speed:0,skid:0}));v.stall=()=>{};return v};Au.vehicle._jet=true})()}
 hook();
 /* test hooks (dev/base-check.js) */
-Jet.state=()=>({e:!!S.e,on:F.on,abOn:!!F.abOn,look:!!F.look,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
+Jet.state=()=>({pose:F.pose||null,e:!!S.e,on:F.on,abOn:!!F.abOn,look:!!F.look,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
 function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}e.obj.quaternion.setFromEuler(_e.set(0,d.jet.yaw+Math.PI/2,0,'YZX'));e.obj.position.y=0}
 Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};

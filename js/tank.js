@@ -280,7 +280,11 @@ function reticle(on){let el=S.ret;if(!on){if(el)el.style.display='none';return}
   el.style.display='block'}
 
 /* ================= the sergeant (E prompts) and wiring ================= */
-function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||prompt)return null;const sg=S.sarge;if(!sg||!sg.d)return null;
+function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||prompt)return null;
+  /* board from any side (the game's car prompt only covers the long sides): within 2.8 m of the hull */
+  {const e=S.e;if(e){const P=a.P,dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,fx=-Math.sin(e.yaw),fz=-Math.cos(e.yaw),al=dx*fx+dz*fz,sd=dx*fz-dz*fx;
+    if(Math.hypot(Math.max(0,Math.abs(al)-3.8),Math.max(0,Math.abs(sd)-1.8))<2.8)return{txt:'Climb into LAWN ORDER',fn:()=>{try{a.enterCar(e)}catch(_){}}}}}
+  const sg=S.sarge;if(!sg||!sg.d)return null;
   if(Math.hypot(a.P.pos.x-sg.p.x,a.P.pos.z-sg.p.z)<2.6)return{txt:'Talk to '+SARGE,fn:()=>say(SARGE,pick(["The tank? Walk up to it and press E. Like any car. That's the problem.","Practice rounds only. They make a big noise and a big cloud and they don't hurt anybody. Mostly they hurt my paperwork.","Neutral steering: A and D turn it on the spot. Like a Roomba. A seventy-ton Roomba."]),true)};return null}
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('vehicle',(e,dt)=>{try{vehicle(e,dt)}catch(err){if(!S.err){S.err=1;console.warn('[tank]',err)}}});

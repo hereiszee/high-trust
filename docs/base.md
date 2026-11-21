@@ -95,8 +95,19 @@ altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the call
 * After an eject or a crash the feed says where the jet went ("back at Fort Sensible, Hangar 2. It was a rental.") and a marker
   sits on it (map and screen). The parachute drifts you home within 250 m; farther out you land where you are and the screen
   offers "E: ride back to Fort Sensible" (a quick fade to the apron).
+* Boarding: the jet collides only with its fuselage (the wings used to be an 8.8 m wall), there's a yellow ladder under the cockpit
+  and a "Climb in" marker on it, and "E · Climb into DAD-1" comes up anywhere within 3.5 m of the fuselage, from any side. The
+  tank boards from any side within 2.8 m of the hull ("Climb into LAWN ORDER").
+* Under the canopy the dad hangs: arms up on the risers, legs loose, a slow sway (no run cycle); a crouched landing step when
+  he's down (`HT.Jet.state().pose` is `'chute'`, then `'land'`).
+* The crew (index.html's `updAlly` asks `HT.Jet.crew` first): while you fly or hang under the canopy they stay where you left them
+  at the base. Down near where they are, they walk over. Down far out, they turn up out of sight (behind you and outside the
+  camera's view, on walkable ground, 30-45 m off) and jog up with a line. After "ride back to Fort Sensible" they're at the apron
+  with you. In the tank they wait where they are (the game's own rule for any car).
 * `node dev/base-check.js pilot`: a player script that only does what the prompts say takes off, lets the gear come up, banks,
-  lands (gear down by itself), then ejects over Maple Heights and rides back. Screenshots: `jet-tip-*.jpg`, `jet-strip.jpg`,
+  lands (gear down by itself), then ejects over Maple Heights and rides back; with two of the crew along, it checks they never leave the ground, stay put while
+  he flies, walk over near the base, appear out of view and jog up far out. Screenshots: `jet-tip-*.jpg`, `jet-strip.jpg`, `jet-board-prompt.jpg`,
+  `jet-parachute-pose.jpg`, `jet-crew-jog.jpg`,
   `jet-ride-prompt.jpg`, `jet-ride-back.jpg`.
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
