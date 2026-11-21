@@ -40,16 +40,23 @@ const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
 function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;if(ctx&&ctx.closest('.ht-drv')&&k==='E')b='Y';if(ctx&&ctx.closest('.ht-drv')&&k==='SPACE')b='A';
   const g=GL[S.kind]||GL.xbox;return{b,label:b.startsWith('D')?'D'+b.slice(1):(g[b]||b)}}
 let swapping=false;
-function swapGlyphs(){swapping=true;try{const on=S.last==='pad';
+/* keyboard: keycaps of rebound keys show the player's key (js/keys.js) */
+const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
+function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabel();
+  if(on||kb)MO.observe(document.documentElement,{subtree:true,childList:true,characterData:true});else MO.disconnect();
   document.querySelectorAll('.ht-kc').forEach(e=>{if(e.closest('.ht-keys'))return;/* the controls tables stay literal */
-    if(on){const cur=e.textContent;if(e.dataset.padG===cur)return;const g=glyphFor(cur,e);if(!g){if(e.dataset.padK!=null)restore(e);return}
-      e.dataset.padK=cur;e.textContent=g.label;e.dataset.padG=g.label;e.classList.add('pad-g');e.style.setProperty('--pg',COLOR[g.b]||'')}
+    const cur=e.textContent;if(e.dataset.padG!=null&&cur!==e.dataset.padG){delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}/* the HUD rewrote it */
+    const base=e.dataset.padK!=null?e.dataset.padK:cur;
+    if(on){const g=glyphFor(base,e);if(!g){if(e.dataset.padK!=null)restore(e);return}if(e.dataset.padG===g.label&&e.classList.contains('pad-g'))return;
+      e.dataset.padK=base;e.textContent=g.label;e.dataset.padG=g.label;e.classList.add('pad-g');e.style.setProperty('--pg',COLOR[g.b]||'')}
+    else if(kb){const r=HT.Keys.relabel(base);if(!r){if(e.dataset.padK!=null)restore(e);return}if(e.classList.contains('pad-g')){e.classList.remove('pad-g');e.style.removeProperty('--pg')}
+      e.dataset.padK=base;e.textContent=r;e.dataset.padG=r}
     else if(e.dataset.padK!=null)restore(e)})}finally{swapping=false}}
 function restore(e){if(e.textContent===e.dataset.padG)e.textContent=e.dataset.padK;delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}
 /* the HUD rewrites keycaps when prompts change: re-apply */
-const MO=new MutationObserver(()=>{if(!swapping&&S.last==='pad')schedule()});/* connected only while the pad is the last device */
+const MO=new MutationObserver(()=>{if(!swapping)schedule()});/* connected only while the pad is the last device, or keys are rebound */
 let swapQ=0;function schedule(){if(!swapQ)swapQ=requestAnimationFrame(()=>{swapQ=0;swapGlyphs()})||setTimeout(()=>{swapQ=0;swapGlyphs()},50)}
-function setLast(dev){if(S.last===dev)return;S.last=dev;if(dev==='pad')MO.observe(document.documentElement,{subtree:true,childList:true,characterData:true});else MO.disconnect();document.documentElement.classList.toggle('ht-pad',dev==='pad');swapGlyphs();if(dev!=='pad'){releaseAll();const I=IN();if(I&&I.relock)I.relock()}}
+function setLast(dev){if(S.last===dev)return;S.last=dev;document.documentElement.classList.toggle('ht-pad',dev==='pad');swapGlyphs();if(dev!=='pad'){releaseAll();const I=IN();if(I&&I.relock)I.relock()}}
 addEventListener('keydown',e=>{if(e.isTrusted)setLast('kb')},true);
 addEventListener('mousedown',e=>{if(e.isTrusted)setLast('kb')},true);
 addEventListener('mousemove',e=>{if(e.isTrusted&&(Math.abs(e.movementX)+Math.abs(e.movementY)>6))setLast('kb')},true);
@@ -150,7 +157,10 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
   }
   S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5))}
 try{if([...navigator.getGamepads()].some(Boolean))startPoll()}catch(_){}
+/* Steam Deck (desktop shell): controller-first from the first frame, before any input */
+if(window.HTDesktop&&HTDesktop.deck){setLast('pad');startPoll()}
 addEventListener('gamepadconnected',e=>{startPoll();try{const H=window.__ht&&window.__ht.HUD;if(H&&H.feed)H.feed('Controller connected','info')}catch(_){}});
 addEventListener('gamepaddisconnected',()=>{releaseAll();try{const H=window.__ht&&window.__ht.HUD;if(H&&H.feed)H.feed('Controller disconnected','info')}catch(_){}});
+if(kbRelabel())schedule();/* keys rebound in an earlier session */
 Pad.glyphFor=glyphFor;Pad.setLast=setLast;Pad.swapGlyphs=swapGlyphs;
 })();

@@ -62,10 +62,11 @@ if(HUD){
   const i=HUD.settingsSchema.indexOf(disp);
   HUD.settingsSchema.splice(i+1,0,{tab:'display',h:'Window',items:[
     {k:'dispMode',l:'Display mode',type:'seg',opts:[['full','Fullscreen'],['win','Windowed']],sub:'F11 or Alt+Enter switches any time'},
-    {k:'vsync',l:'VSync',type:'bool',sub:'Off lifts the display limit (use with a frame rate cap) · applies after a restart'}]});
-  HUD.settings={dispMode:D.desktop.fullscreen===false?'win':'full',vsync:D.desktop.vsync!==false};
+    {k:'vsync',l:'VSync',type:'bool',sub:'Off lifts the display limit (use with a frame rate cap) · applies after a restart'},
+    {k:'uiScale',l:'Interface size',type:'seg',opts:[['1','100%'],['1.1','110%'],['1.25','125%']],sub:'Bigger HUD and menu text (Steam Deck starts at 110%)'}]});
+  HUD.settings={dispMode:D.desktop.fullscreen===false?'win':'full',vsync:D.desktop.vsync!==false,uiScale:String(D.desktop.uiScale||1)};
   D.onFullscreen(on=>{HUD.settings={dispMode:on?'full':'win'};const sg=document.querySelector('.ht-seg3[data-k=dispMode]');if(sg)sg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===(on?'full':'win')))});
-  HUD.on('setting',(k,v)=>{if(k==='dispMode')D.fullscreen(v==='full');else if(k==='vsync')D.setDesktop('vsync',!!v)});
+  HUD.on('setting',(k,v)=>{if(k==='dispMode')D.fullscreen(v==='full');else if(k==='vsync')D.setDesktop('vsync',!!v);else if(k==='uiScale')D.setDesktop('uiScale',+v)});
   HUD.on('action',a=>{if(a!=='quitDesktop')return;try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}try{D.flush()}catch(e){}D.quit()});
 }
 /* alt-tab / minimise: pause, like a PC game should (the shell keeps rendering in the background) */
