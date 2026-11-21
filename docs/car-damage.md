@@ -53,7 +53,7 @@ Measured on a sedan (`node dev/car-damage/handling.js`): top speed 67 → 67 →
 
 - When a job starts, the crew gives the van a once-over up to `JOB_PATCH` (85%), because the jobs are balanced for a healthy van.
 - During a chase, an escort or an ambush (`carChasing()`), bands 3 and 4 use a milder chase band: top speed ×0.75, acceleration and brakes ×0.85, no limp mode. Wall crashes do half damage to the car you drive. Rams and gunfire count in full, and 0 still ends the chase (the world-mission code calls `wmVanDown`).
-- Ambient traffic cars are not in `L.cars`. Hitting one damages your car but not theirs, and costs no trust.
+- Ambient traffic cars are not in `L.cars` (they live in `js/openworld.js` `OW.traffic`). They stop 2.5-4 m short of your car, honk, go round or re-route. If you drive into one, `trafficContact` in `index.html` shares the push by mass (the tank 8, a car towing +1): it gets shoved, brakes, honks, puts its hazards on and dents, and both cars take damage on the same curve as `carImpact` (from the speed change each side feels, so `CRASH_MIN` and the 45% cap apply). A hard enough hit disables it: it pulls over at the kerb and the driver gets out and makes a phone call. Ramming one costs -1 trust once per car (at most -3 a session, not during jobs) and +0.25 heat in Riverside. A traffic car that runs into you never moves your car and costs you nothing. Checks: `node dev/traffic-check.js`.
 
 ## Consequences
 

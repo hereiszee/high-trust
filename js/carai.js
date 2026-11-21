@@ -218,6 +218,9 @@ function step(c,dt,ctx){ctx=ctx||{};const ai=c.ai;if(!ai||c.dead)return null;let
     c.x=r.x-dz/l*1.5;c.z=r.z+dx/l*1.5;c.yaw=yawTo(dx,dz);c.spd=0;c.stuckCount=0;c.revT=0;ai.prev=r.a;ai.cur=r.b;pickNext(c,ctx.van);c.snapped=(c.snapped||0)+1}
   const n=G.nodes[ai.next];const p=track(c,ai.pts,Math.max(5,c.spd*.5+3));
   if(Math.hypot(n.x-c.x,n.z-c.z)<5||p.end){ai.prev=ai.cur;ai.cur=ai.next;pickNext(c,ctx.van)}
+  /* [TRAFFIC] ctx.offset(c) -> metres to the left of the lane (+ = pull out into the oncoming lane to go round, - = pull over to the kerb):
+     shifts the steering point sideways; omitted = no change */
+  if(ctx.offset){const o=ctx.offset(c);if(o){const pts=ai.pts,i=Math.min(Math.max(0,p.i),pts.length-2),A=pts[i],B=pts[i+1]||A,dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1;p.x+=dz/l*o;p.z-=dx/l*o}}
   let ts=ai.max;const ca=cornerAhead(ai.pts,ai.tr.i,c.x,c.z,16);if(ca<12)ts=Math.min(ts,ai.turnSpeed);
   if(ctx.speedCap){const k=ctx.speedCap(c.x,c.z,c);if(k!=null&&k<ts)ts=Math.max(0,k)}
   if(ai.mode==='flee'&&ctx.van){const d=Math.hypot(ctx.van.x-c.x,ctx.van.z-c.z);
