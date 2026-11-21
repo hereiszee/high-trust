@@ -20,6 +20,8 @@ module.exports = {
   directories: { output: 'dist', buildResources: 'build' },
   files: ['main.js', 'preload.js', 'save-store.js', 'steam.js', 'package.json', 'build/icon.png', '!test/**', '!scripts/**', '!dist/**', '!steam_appid.txt', '!STEAM_APPID_README.txt'],
   extraResources: [{ from: '..', to: 'game', filter: game }],
+  /* licences at the install root, next to the exe (Contents/ on macOS): third-party notices from the content audit + vendored libraries */
+  extraFiles: [{ from: '../assets/credits/THIRD-PARTY-NOTICES.txt', to: 'THIRD-PARTY-NOTICES.txt' }],
   asar: true,
   asarUnpack: ['node_modules/steamworks.js/**'], /* native addon + libsteam_api next to it */
   electronLanguages: ['en-US'],
