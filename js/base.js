@@ -305,12 +305,12 @@ function airfield(P,d){const rw=d.runway,zc=rw.z,x0=rw.x0+2,x1=rw.x1-2,hw=(rw.z1
   P.sign(rw.x1-26,1.3,rw.z0-1.2,2.2,.9,Math.PI*0,board('rwy',['RWY 27','← THAT WAY'],1,1,'red'));P.cyl('paint',rw.x1-26,.45,rw.z0-1.15,.05,.05,.9,'#333',6)}
 
 /* ---------- the Route 9 sign at Industrial Way, and one at the tree line ---------- */
-function r9Sign(P){/* on the south shoulder of Route 9, east of Industrial Way, facing traffic from the north-west */
+function r9Sign(P,d,which){if(which!=='tl'){/* on the south shoulder of Route 9, east of Industrial Way, facing traffic from the north-west */
   const x=209.6,z=50.6;for(const u of[-1.6,1.6])P.cyl('metal',x+u,2.3,z,.08,.08,4.6,'#7d8287',8);
   const r=board('r9',['FORT SENSIBLE  ↓','PUBLIC RANGE · INDUSTRIAL WAY · 0.3 MI'],3,1,'green',{badge:true});P.sign(x,3.6,z-.06,5.6,1.6,0,r);P.obox('metal',x,3.6,z,5.7,1.7,.08,0,'#55595e');
-  const r2=board('r9b',['FORT SENSIBLE','PUBLIC RANGE · OPEN'],2,1,'brown');P.sign(x,3.6,z+.06,5.6,1.6,Math.PI,r2);
+  const r2=board('r9b',['FORT SENSIBLE','PUBLIC RANGE · OPEN'],2,1,'brown');P.sign(x,3.6,z+.06,5.6,1.6,Math.PI,r2)}
   /* at the tree line on Industrial Way */
-  postSign(P,197.2,160.4,-Math.PI/2*0,3,1.2,board('tl',['FORT SENSIBLE  ↓','ALL VISITORS STOP AT THE GATE','(HE IS VERY NICE)'],2,1,'brown'),1)}
+  if(which!=='r9')postSign(P,197.2,160.4,-Math.PI/2*0,3,1.2,board('tl',['FORT SENSIBLE  ↓','ALL VISITORS STOP AT THE GATE','(HE IS VERY NICE)'],2,1,'brown'),1)}
 
 /* register the cull units (before the world is built: this file loads before index.html's main script) */
 function addPieces(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(addPieces,0);return}
@@ -319,7 +319,8 @@ function addPieces(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(addPieces,0
   unit('base_mid',{x0:118,z0:164,x1:204,z1:224,y1:22},(P,d)=>{barracks(P,d.bld.barracks1,'BARRACKS A');barracks(P,d.bld.barracks2,'BARRACKS B');parade(P,d);waterTower(P,d);roadSigns(P,d)},160);
   unit('base_east',{x0:180,z0:158,x1:282,z1:232,y1:14},(P,d)=>{gate(P,d);gatehouse(P,d.bld.gate);tower(P,d.bld.tower);hangar(P,d.bld.hangar);motorPool(P,d.motor)},150);
   unit('base_air',{x0:8,z0:226,x1:282,z1:248,y1:7},(P,d)=>airfield(P,d),120);
-  unit('base_r9',{x0:190,z0:40,x1:226,z1:170,y1:7},P=>r9Sign(P),160)}
+  /* two small units, not one long box from Route 9 to the tree line (a long box counts as near from half of town) */
+  unit('base_r9',{x0:204,z0:46,x1:216,z1:56,y1:7},(P,d)=>r9Sign(P,d,'r9'),130);unit('base_tl',{x0:192,z0:155,x1:203,z1:166,y1:6},(P,d)=>r9Sign(P,d,'tl'),110)}
 addPieces();
 
 /* ================= the post's rules (index.html asks these) and a tiny hook bus for js/range.js, js/tank.js, js/jet.js, js/eggs.js ================= */

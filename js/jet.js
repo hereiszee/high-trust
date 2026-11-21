@@ -3,7 +3,7 @@
  * Once you're in, this file flies it: index.html skips the ground physics for e.fly vehicles and calls the 'vehicle' hook, where
  * the flight model below moves the jet. HT.Vehicles.make('jet') returns the procedural model; HT.Vehicles.update('jet') poses it.
  *   W/S throttle · Shift afterburner · mouse (or arrow keys) pitch and roll · A/D roll (steer on the ground) · Z/X rudder
- *   G gear · V cockpit · C look back · hold E in the air: eject (the parachute drifts back to the post; the jet "is fine, it's a rental").
+ *   G gear · V cockpit · C look back (toggle) · Shift afterburner (toggle) · E twice in the air: eject (the parachute drifts back to the post; the jet "is fine, it's a rental").
  *   Takeoff from runway 27, landing with the gear down; stall, comic crashes, a sonic boom over the neighbourhood (windows rattle, car
  *   alarms), contrails, flying under the High Bridge (an old rail viaduct over the river valley north of town), buzzing your house
  *   (the family comes out to wave). No weapons. While flying: a wider draw radius, far terrain to the horizon, lids on open interiors.
@@ -16,7 +16,7 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;const pick=a=>a[Math.floor(Math.random()*a.le
 const T3=()=>THREE;const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 const CALL='DAD-1',TOWER='Tower';
 /* tuning: metres, seconds. TH thrust (m/s² at full throttle), AB afterburner, CD drag (top speed = sqrt(thrust/CD)) */
-const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:9,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
+const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:12,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
 const FEEL={label:'jet',seats:1,bed:0,max:6,boostMax:8,acc:2,boostAcc:3,brake:8,hbrake:8,turn:1,steerResp:5,grip:20,roll:0,cam:[16,4],eng:2,gears:1,horn:'short',door:'close',rear:1,torque:0};
 const LINES={
   enter:["DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm.","DAD-1, Tower. Throttle up with W. Pull back at a hundred and forty. Linda says wear a jacket.","Tower to DAD-1. The jet is fueled, the coffee is not. Have a nice flight."],
@@ -117,37 +117,38 @@ F.gearKFor=v=>S.e&&v===S.e.obj?F.gearK:1;
 
 /* ================= the flight model (vehicle hook) ================= */
 const _f=V(0,0,0),_u=V(0,0,0),_r=V(0,0,0),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_y=V(0,1,0);
-function start(a,e){F.on=true;F.air=false;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
+function start(a,e){F.on=true;F.air=false;F.look=false;F.abOn=false;F.ejArm=null;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
   F.q.setFromEuler(_e.set(0,e.yaw+Math.PI/2,0,'YZX'));e.fly=true;F.trails=[[],[]];F.said={};F.flightT=0;
   const s=sv();if(s&&s.jet)s.jet.flights=(s.jet.flights|0)+1;say(TOWER,pick(LINES.enter),true);
   try{if(HT.People&&HT.People.preload)HT.People.preload(['wife','son','daughter'])}catch(_){}/* so they can come out and wave when you buzz the house */
-  teach(a,'fly1','Jet: W / S throttle · Shift afterburner · A / D steer on the ground · nose up (mouse up or ↑) past 90 mph to take off');
+  teach(a,'fly1','Jet: tap W / S to set the throttle (it stays) · Shift afterburner on/off at 100% · A / D steer on the ground · nose up (mouse up or ↑) past 90 mph to take off');
   hudShow(true)}
 function stop(a,e){F.on=false;F.air=false;if(e){e.fly=false;e.noExit=false}flight(false);hudShow(false);jetSound(0,0)}
 function vehicle(e,dt){if(!e||e.type!=='jet')return;const a=A();if(!F.on)start(a,e);const c=e.car,k=a.keys,P=a.P;
   /* inputs: the mouse moves P.yaw / P.pitch (index.html look()); we read and reset them every frame, keys add to them */
   const mdx=(F.prevYaw==null?0:F.prevYaw-P.yaw),mdy=(F.prevPitch==null?0:P.pitch-F.prevPitch);P.yaw=0;P.pitch=0;F.prevYaw=0;F.prevPitch=0;
-  const look=!!k.c;
+  const look=!!F.look;/* C toggles the look back (keydown below): no held view keys */
   /* nose up = mouse up or ↑ (the game's look convention, so a player never has to think "inverted"); pitchIn > 0 is nose down */
   let pitchIn=-clamp(mdy*14,-1,1)+((k.arrowdown?1:0)-(k.arrowup?1:0)),rollIn=clamp(mdx*-14,-1,1)*-1+((k.d?1:0)-(k.a?1:0)),yawIn=(k.x?1:0)-(k.z?1:0)+(F.air?0:((k.arrowright?1:0)-(k.arrowleft?1:0)));
   if(F.air)rollIn+=(k.arrowright?1:0)-(k.arrowleft?1:0);
   pitchIn=clamp(pitchIn,-1,1);rollIn=clamp(rollIn,-1,1);F.inp.p=pitchIn;F.inp.r=rollIn;
   /* throttle and afterburner */
-  if(k.w)F.thr=Math.min(1,F.thr+dt*.65);if(k.s)F.thr=Math.max(0,F.thr-dt*.8);F.ab+=((k.shift&&F.thr>.9?1:0)-F.ab)*Math.min(1,dt*3);
+  /* set-and-stay: a tap of W / S steps it 10% (keydown below), holding ramps it; nothing has to be held to keep flying. Shift toggles the afterburner */
+  if(k.w)F.thr=Math.min(1,F.thr+dt*.65);if(k.s)F.thr=Math.max(0,F.thr-dt*.8);if(F.thr<.9)F.abOn=false;F.ab+=((F.abOn?1:0)-F.ab)*Math.min(1,dt*3);
   if(!F.air)ground(a,e,dt,pitchIn,yawIn,k);else air(a,e,dt,pitchIn,rollIn,yawIn);
   /* hand the pose to the car entry (the game's camera, map, sound and exit code read these) */
   _f.set(1,0,0).applyQuaternion(F.q);e.pos.set(F.pos.x,0,F.pos.z);const hy=Math.atan2(-_f.x,-_f.z);c.x=F.pos.x;c.z=F.pos.z;c.yaw=hy;c.spd=F.air?F.spd:F.spd;c.steer=0;e.noExit=F.air||F.spd>4;
   F.vsT=(F.vsT||0)+dt;jetSound(F.thr+F.ab*.5,F.spd);events(a,e,dt);trails(a,e,dt);
   flight(F.air&&F.pos.y>8)}
 function ground(a,e,dt,pitchIn,yawIn,k){/* rolling: thrust, rolling drag, brakes, nose-wheel steering; rotate past ROT and lift off */
-  const st=(k.a?1:0)-(k.d?1:0);const acc=F.thr*K.TH+F.ab*K.AB-K.GROUND_DRAG*9.8-K.CD*F.spd*F.spd-(k.s&&F.thr<.05||k[' ']?K.BRAKE:0);
+  const st=(k.a?1:0)-(k.d?1:0);const acc=F.thr*K.TH+F.ab*K.AB-K.GROUND_DRAG*9.8-K.CD*F.spd*F.spd-(F.thr<.05||k[' ']?K.BRAKE:0);/* idle on the ground = wheel brakes on (nothing held) */
   F.spd=Math.max(0,F.spd+acc*dt);if(F.thr<.02&&F.spd<.3&&!k.w)F.spd=0;
   _e.setFromQuaternion(F.q,'YZX');let yaw=_e.y,pitch=_e.z;yaw+=(st+yawIn*.6)*dt*(F.spd<1?0:F.spd<30?.55:.25);
   const wantP=F.spd>K.ROT?clamp(-pitchIn,0,1)*.22:0;pitch+=(wantP-pitch)*Math.min(1,dt*2.2);
   F.q.setFromEuler(_e.set(0,yaw,pitch,'YZX'));_f.set(1,0,0).applyQuaternion(F.q);F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y=0;
   /* off the paved area at speed: bumpy, slows you down; buildings stop you (comic) */
   if(hitSolid(a,F.pos.x,F.pos.z,1.5)&&F.spd>2){crash(a,e,'ground');return}
-  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;say(TOWER,pick(LINES.takeoff));teach(a,'fly2','In the air: mouse or ↑ ↓ pitch (mouse up = nose up) · A / D or ← → roll · Z / X rudder · G gear · V cockpit · hold E to eject')}}
+  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;say(TOWER,pick(LINES.takeoff));teach(a,'fly2','In the air: mouse or ↑ ↓ pitch (mouse up = nose up) · A / D or ← → roll · Z / X rudder · G gear · V cockpit · C look back · E twice to eject')}}
 function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* body rotations (local axes: x forward, y up, z right): pitch about z, roll about x, yaw about -y */
   _q.setFromEuler(_e.set(rollIn*K.ROLL*eff*dt,-yawIn*K.YAW*eff*dt,-pitchIn*K.PITCH*eff*dt,'XYZ'));F.q.multiply(_q);
@@ -159,14 +160,15 @@ function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* speed along the path: thrust, drag, gravity along the climb; sink when slow */
   F.spd+= (F.thr*K.TH+F.ab*K.AB-K.CD*F.spd*F.spd-9.8*_f.y)*dt;F.spd=Math.max(0,F.spd);
   const sink=9.8*Math.max(0,1-Math.pow(F.spd/K.STALL,2))*1.6+(F.gear?.4:0)*Math.max(0,1-F.spd/50);
-  const vy=_f.y*F.spd-sink;F.vs=vy;F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y+=vy*dt;
+  const settle=F.gear&&F.lastAlt<4&&F.thr<.5&&_f.y<.08?1.6:0;/* the flare: gear down, throttle back, a few metres up, it settles onto the wheels instead of floating down the runway */
+  const vy=_f.y*F.spd-sink-settle;F.vs=vy;F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y+=vy*dt;
   F.gearK+=((F.gear?1:0)-F.gearK)*Math.min(1,dt*1.4);
   /* the boundary: far out, the tower talks; farther, a gentle hand turns you home */
   const cx=232,cz=128,dd=Math.hypot(F.pos.x-cx,F.pos.z-cz);if(dd>K.WARNR&&!F.said.far){F.said.far=1;say(TOWER,pick(LINES.far),true)}if(dd<K.WARNR-200)F.said.far=0;
   if(dd>K.MAXR){const want=Math.atan2(-(cx-F.pos.x),-(cz-F.pos.z)),hy=Math.atan2(-_f.x,-_f.z);let d2=want-hy;d2=Math.atan2(Math.sin(d2),Math.cos(d2));_q.setFromAxisAngle(_y,d2*dt*.8);F.q.premultiply(_q)}
   /* the ground, buildings, the High Bridge */
   const gy=groundY(a,F.pos.x,F.pos.z);
-  if(F.pos.y<=gy+.05){const ok=F.gear&&F.gearK>.8&&F.vs>-7&&Math.abs(bank)<.4&&_f.y>-.2&&gy<.5;if(ok)touchdown(a,e);else crash(a,e,'ground')}
+  if(F.pos.y<=gy+.05||(F.gear&&F.gearK>.8&&F.pos.y<=gy+.4&&F.vs<1)){/* gear down: the wheels take the ground within 0.4 m (no skimming the length of the runway) */const ok=F.gear&&F.gearK>.8&&F.vs>-7&&Math.abs(bank)<.4&&_f.y>-.2&&gy<.5;if(ok)touchdown(a,e);else crash(a,e,'ground')}
   else if(F.pos.y<14&&hitSolid(a,F.pos.x,F.pos.z,2.5,F.pos.y))crash(a,e,'building');
   else if(bridgeHit(F.pos))crash(a,e,'bridge');
   F.lastAlt=F.pos.y-gy;
@@ -200,8 +202,12 @@ function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;per
 function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Achievement · Buzzed your own house','trust')}
   say(pick(['Linda']),pick(LINES.buzz),true);family(a)}
 /* the family on the front lawn, waving, for half a minute (HT.People's family models; never restyled) */
-function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const h=a.L.start;if(!PP||!PP.ok||!h)return;
+function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const st=a.L.start;if(!PP||!PP.ok||!st)return;
+  /* on the front lawn, beside the driveway, in front of the door (falls back to the dad's start) */
+  const dr=a.WORLD&&a.WORLD.doors&&a.WORLD.doors.home,h=dr?{x:dr.x-3.6,z:dr.z-0.6}:st;
   const spots=[[0,-2.6],[1.3,-3.2],[-1.3,-3.2]];['wife','son','daughter'].forEach((r,i)=>{let d=null;try{d=PP.make(r)}catch(_){d=null}if(!d)return;d.root.position.set(h.x+spots[i][0],0,h.z+spots[i][1]);d.root.rotation.y=Math.PI;a.L.group.add(d.root);S.fam.push({d,ph:i*1.3})});
+  /* not loaded yet (they stream in): load them, then they come out */
+  if(!S.fam.length&&!S.famWait&&PP.preload){S.famWait=1;try{PP.preload(['wife','son','daughter']).then(()=>{S.famWait=0;if(a.L&&a.L.start===st)family(a)},()=>{S.famWait=0})}catch(_){S.famWait=0}}
   S.famT=30}
 function familyTick(a,dt){if(!S.fam.length)return;S.famT-=dt;for(const f of S.fam){try{a.pose(f.d,dt,{})}catch(_){}const b=f.d.rb&&f.d.rb.bones;if(b){const ua=b.Bip01_R_UpperArm,fa=b.Bip01_R_Forearm;const t=performance.now()/1000+f.ph;if(ua){ua.rotation.z-=1.9;ua.rotation.x+=Math.sin(t*7)*.35}if(fa)fa.rotation.z-=.6}
     /* look at the jet */if(F.on){const dx=F.pos.x-f.d.root.position.x,dz=F.pos.z-f.d.root.position.z;f.d.root.rotation.y=Math.atan2(dx,dz)}}
@@ -287,7 +293,7 @@ function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.na
 
 /* ================= the High Bridge set piece (north of the map, across the river valley) ================= */
 function bridgePiece(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(bridgePiece,0);return}
-  O.addSetpiece({id:'highbridge',box:()=>({x0:HB.x0-10,z0:HB.z-12,x1:HB.x1+10,z1:HB.z+12,y1:HB.deck+6}),build(ws,u){const K2=B()&&B().kit;if(!K2)return;const T=T3(),P=K2.painter();
+  O.addSetpiece({id:'highbridge',r:90,/* on the ground it shows within 90 m (flying: everything to the flight radius) */box:()=>({x0:HB.x0-10,z0:HB.z-12,x1:HB.x1+10,z1:HB.z+12,y1:HB.deck+6}),build(ws,u){const K2=B()&&B().kit;if(!K2)return;const T=T3(),P=K2.painter();
     /* the ground under each pier: ask the backdrop terrain (always built) */
     const meshes=[];for(const q of ws.units)if(q.sp&&q.sp.id==='backdrop'&&q.group)q.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)meshes.push(m)});
     const rc=new T.Raycaster();const gy=x=>{rc.set(V(x,120,HB.z),V(0,-1,0));rc.far=200;const h=rc.intersectObjects(meshes,false)[0];return h?h.point.y:-1};
@@ -338,10 +344,12 @@ function hudShow(on){if(!HUDEL&&on){HUDEL=document.createElement('div');HUDEL.st
       <circle cx="0" cy="0" r="7"/><line x1="-20" y1="0" x2="-7" y2="0"/><line x1="7" y1="0" x2="20" y2="0"/><line x1="0" y1="-7" x2="0" y2="-16"/>
       <rect x="-330" y="-18" width="92" height="36" rx="3"/><rect x="238" y="-18" width="92" height="36" rx="3"/></g>
       <g fill="#7dff9a" font-size="22" text-anchor="middle" style="filter:drop-shadow(0 0 2px rgba(0,0,0,.7))"><text id="jspd" x="-284" y="8"></text><text id="jalt" x="284" y="8"></text><text x="-284" y="-26" font-size="13">MPH</text><text x="284" y="-26" font-size="13">FT</text>
-      <text id="jhdg" x="0" y="-250"></text><text x="0" y="-228" font-size="12">HDG</text><text id="jcall" x="-420" y="-250" text-anchor="start" font-size="18">${CALL}</text>
-      <text id="jthr" x="-420" y="250" text-anchor="start" font-size="18"></text><text id="jgear" x="420" y="250" text-anchor="end" font-size="18"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
+      <text id="jhdg" x="0" y="-200"></text><text x="0" y="-182" font-size="12">HDG</text><text id="jcall" x="0" y="-164" font-size="13">${CALL}</text>
+      <text id="jthr" x="-284" y="44" font-size="14"></text><text id="jgear" x="-284" y="64" font-size="14"></text><text id="jwarn" x="0" y="80" font-size="30" fill="#ff6a4a"></text><text id="jvs" x="284" y="40" font-size="14"></text></g></svg>`;
     document.body.appendChild(HUDEL);for(const id of['jhl','jspd','jalt','jhdg','jthr','jgear','jwarn','jvs'])HE[id]=HUDEL.querySelector('#'+id)}
-  if(HUDEL)HUDEL.style.display=on?'block':'none'}
+  if(HUDEL)HUDEL.style.display=on?'block':'none';
+  /* the car dial and its keys (Horn · Brake · Hood) don't apply in the air: the flight HUD has speed, throttle and gear */
+  const dv=document.querySelector('.ht-drv');if(dv&&!!on!==!!S.drvHid){S.drvHid=!!on;dv.style.visibility=on?'hidden':''}}
 /* the game's mood and night code set the fog every frame after the camera hook: put the flight fog back late in the frame */
 function fogLate(a){if(!FOG0)return;const sc=a.scene,alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}if(a.camera.far<3600){a.camera.far=3600;a.camera.updateProjectionMatrix()}}
 Jet.fogLate=()=>fogLate(A());
@@ -359,15 +367,23 @@ function hud(st){const a=A();if(!a)return;fogLate(a);const on=F.on&&a.CV&&a.CV.t
 function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const dt=Math.min(.1,Math.max(0,a.simT-(S.simT||a.simT)));S.simT=a.simT;
   if(a.mode==='hub')ensure(a);
   const e=S.e;if(F.on&&(!e||a.CV!==e)){stop(a,e)}
+  /* a rental: left away from the apron and out of sight for 20 s, the Air Wing tows it home */
+  if(e&&a.CV!==e&&!F.on){const d=B().def(),far=Math.hypot(e.pos.x-d.jet.x,e.pos.z-d.jet.z)>30,away=a.camera.position.distanceTo(e.obj.position)>120;S.parkT=far&&away?(S.parkT||0)+(Math.min(.1,Math.max(0,a.simT-(S.homeT||a.simT)))):0;S.homeT=a.simT;
+    if(S.parkT>20){S.parkT=0;home(a,e);a.feed('The Air Wing towed the jet back to Hangar 2. It was a rental.','info')}}
   if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<140||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
   fogLate(a);if(!dt)return;chuteTick(a,dt);familyTick(a,dt);if(!F.on&&!F.chute)farFog(a,false)}
-/* keys the game doesn't own while flying: G gear (toggle), and E held in the air ejects (index.html: e.noExit) */
+/* keys the game doesn't own while flying (all taps or toggles): G gear, C look back, Shift afterburner, W / S throttle steps; E twice in the air ejects (index.html: e.noExit) */
 addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='jet')return;const k=ev.key.toLowerCase();
-  if(k==='g'&&F.air&&!ev.repeat){F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}});
+  if(k==='g'&&F.air&&!ev.repeat){F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}
+  if(ev.repeat)return;
+  if(k==='c'){F.look=!F.look}
+  if(k==='shift'){F.abOn=!F.abOn&&F.thr>.9;if(!F.abOn&&F.thr<=.9&&!F.said.ab){F.said.ab=1;a.feed('Afterburner: throttle to 100% first (W), then Shift','info')}}
+  if(k==='w')F.thr=Math.min(1,Math.round(F.thr*10+1)/10);if(k==='s')F.thr=Math.max(0,Math.round(F.thr*10-1)/10)});
 function interact(prompt){const a=A();if(!a||a.mode!=='hub')return null;const e=a.CV;if(!e||e.type!=='jet'||!F.on)return null;
-  if(F.air)return{txt:'Eject',hold:.5,fn:()=>eject(a,e,false)};if(F.spd>4)return null;return null}
+  /* eject: two taps of E (no held keys): the first arms it for 3 s */
+  if(F.air){const armed=F.ejArm!=null&&a.simT-F.ejArm<3;return armed?{txt:'Press E again to eject',fn:()=>{F.ejArm=null;eject(a,e,false)}}:{txt:'Eject (press twice)',fn:()=>{F.ejArm=a.simT;beep(700)}}}if(F.spd>4)return null;return null}
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('vehicle',(e,dt)=>{try{vehicle(e,dt)}catch(err){if(!S.err){S.err=1;console.warn('[jet]',err)}}});
   Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[jet] camera',err)}}});
@@ -378,9 +394,11 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
     Au.vehicle=function(){const v=orig.apply(this,arguments);let cv=null;try{cv=A()&&A().CV}catch(_){}if(!v||!cv||cv.type!=='jet')return v;try{v.stall(true)}catch(_){}const s0=v.set;v.set=p=>s0.call(v,Object.assign({},p,{rpm:0,throttle:0,speed:0,skid:0}));v.stall=()=>{};return v};Au.vehicle._jet=true})()}
 hook();
 /* test hooks (dev/base-check.js) */
-Jet.state=()=>({e:!!S.e,on:F.on,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
+Jet.state=()=>({e:!!S.e,on:F.on,abOn:!!F.abOn,look:!!F.look,air:F.air,x:F.pos.x,y:F.pos.y,z:F.pos.z,spd:F.spd,thr:F.thr,gear:F.gear,stall:F.stall,alt:F.lastAlt,chute:F.chute?{y:F.chute.p.y,open:F.chute.open}:null,fam:S.fam.length,fly:F.fly,
   hdg:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.atan2(-_f.x,-_f.z)})(),pitch:(()=>{_f.set(1,0,0).applyQuaternion(F.q);return Math.asin(clamp(_f.y,-1,1))})(),bank:(()=>{_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);return Math.atan2(-_r.y,_u.y)})()});
-Jet.HB=HB;Jet.camera=dt=>camera(dt);
+function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}e.obj.quaternion.setFromEuler(_e.set(0,d.jet.yaw+Math.PI/2,0,'YZX'));e.obj.position.y=0}
+Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};
+Jet.HB=HB;Jet.camera=dt=>camera(dt);Jet.family=()=>family(A());/* test hook: the family comes out as if you buzzed the house */
 /* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
 Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
 })();
