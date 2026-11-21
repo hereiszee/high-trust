@@ -118,9 +118,10 @@ jobs:
           npm i --no-save playwright@1
           xvfb-run -a -s "-screen 0 1600x900x24" node test/e2e.js --exe dist/linux-unpacked/HighTrust
 
-      # uploaded even when a test failed, so the build can still be tried by hand
+      # uploaded even when a test failed, so the build can still be tried by hand.
+      # macOS: only the zip below, since upload-artifact drops the symlinks inside the .app (it balloons and the signature breaks)
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && runner.os != 'macOS'
         with:
           name: ${{ matrix.name }}
           path: desktop/dist/${{ matrix.out }}/
