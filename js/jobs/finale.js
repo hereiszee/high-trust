@@ -29,7 +29,7 @@ function js(id,src,ok){if(!D||!D.head||ok()||D.getElementById(id))return;const s
 function css(id,href){if(!D||!D.head||D.getElementById(id))return;const l=D.createElement('link');l.id=id;l.rel='stylesheet';l.href=href;D.head.appendChild(l)}
 if(D&&D.createElement){js('ht-tail-js','js/tail.js',()=>HTx.Tail&&HTx.Tail.create);js('ht-plan-js','js/crewplan.js',()=>HTx.Plan&&HTx.Plan._ver);css('ht-plan-css','css/plan.css');
   js('ht-convoy-js','js/convoy.js',()=>HTx.Convoy&&HTx.Convoy.create);/* HT.Convoy (Minivan Roundup's): the crew's cars in the chase */
-  for(const f of['_finale-street','_finale-end','_finale-fest'])js('ht-'+f,'js/jobs/'+f+'.js',()=>false)}
+  for(const f of['_finale-dress','_finale-street','_finale-end','_finale-fest'])js('ht-'+f,'js/jobs/'+f+'.js',()=>false)}
 const ID='finale';
 /* cinematic moments (the wave, the credits): the HUD steps aside, the subtitles stay */
 if(D&&D.head&&!D.getElementById('fin-style')){const st=D.createElement('style');st.id='fin-style';
@@ -95,6 +95,7 @@ function freeRes(){const r=RES;RES=null;if(!r)return;const a=A();
   for(const c of r.cars)unregisterCar(c);for(const o of r.veh){try{o.parent&&o.parent.remove(o);o.userData&&o.userData.dispose&&o.userData.dispose()}catch(_){}}
   for(const g of r.geo)try{g.dispose()}catch(_){}for(const m of r.mat)try{m.dispose()}catch(_){}for(const t of r.tex)try{t.dispose()}catch(_){}
   if(r.props)try{r.props.dispose()}catch(_){}
+  if(r.bikes&&HTx.Runner&&HTx.Runner.disposeBike)for(const b of r.bikes)try{b.parent&&b.parent.remove(b);HTx.Runner.disposeBike(b)}catch(_){}
   for(const e of r.el)try{e.remove()}catch(_){}for(const p of r.people)try{p.d.root.parent&&p.d.root.parent.remove(p.d.root)}catch(_){}
   if(a&&a.P&&a.P.dude)a.P.dude.root.visible=true}
 FN.res=res;FN.freeRes=freeRes;
@@ -125,6 +126,7 @@ function person(id,x,z,o){o=o||{};const a=A(),pp=PP(),c=CAST[id]||{key:id};let d
   try{if(c.giver)d=a.makeDude({giver:c.giver});else if(pp){const k=c.key||id;d=pp.make(k,{scale:o.scale||c.scale})}}catch(_){d=null}
   if(!d){try{d=a.makeDude(NB.includes(c.key)?{role:'neighbour',variant:c.key}:{shirt:'#7a8796',pants:'#2b2f36'})}catch(_){d=null}}if(!d)return null;
   try{a.equip(d,null)}catch(_){}if(d.meshes)d.meshes.length=0;
+  /* the boss model's crown belongs to the old King: the Wholesaler is a businessman in a good coat, no crown */d.root.traverse(o=>{if(o.name==='rb_crown')o.visible=false});
   const p={id,d,x,z,yaw:o.yaw||0,tx:null,tz:null,speed:0,mode:o.mode||'stand',moving:false,wave:0,waveT:0,talk:o.talk||null,name:c.name||o.name||'',tag:o.tag||null,hidden:false,ph:Math.random()*6,face:null};
   d.root.position.set(x,a.groundAt(x,z),z);d.root.rotation.y=p.yaw;a.wmAdd(d.root);res().people.push(p);(FN.live||(FN.live=[])).push(p);return p}
 function unperson(p){if(!p)return;const r=res(),k=r.people.indexOf(p);if(k>=0)r.people.splice(k,1);const l=FN.live||[],j=l.indexOf(p);if(j>=0)l.splice(j,1);try{p.d.root.parent&&p.d.root.parent.remove(p.d.root)}catch(_){}}
@@ -136,9 +138,10 @@ function peopleTick(dt){const a=A(),l=FN.live||[];for(const p of l){if(!p.d||!p.
     p.moving=mv;p.d.root.position.set(p.x,a.groundAt(p.x,p.z)+(p.y||0),p.z);p.d.root.rotation.y=p.yaw;p.d.root.visible=!p.hidden;
     if(p.waveT>0)p.waveT-=dt;try{a.pose(p.d,dt,{moving:mv,speed:mv?p.speed:0,mode:p.mode})}catch(_){}}}
 /* the wave: the right arm up and over, on the People bones, after the animation mixer (the 'pose' hook) */
-function waveTick(dt){const l=FN.live||[];const t=FN.t||0;for(const p of l){if(!(p.waveT>0)||!p.d||!p.d.rb)continue;const b=p.d.rb.bones;if(!b)continue;const k=Math.min(1,p.waveT*2,(FN.waveLen||2.2)-p.waveT+.4);
-    const ua=b.Bip01_R_UpperArm,fa=b.Bip01_R_Forearm;if(ua){ua.rotation.z-=1.9*k;ua.rotation.x+=Math.sin((t+p.ph)*7)*.35*k}if(fa)fa.rotation.z-=.6*k}}
-function wave(p,len){if(!p)return;p.waveT=len||2.2;FN.waveLen=len||2.2}
+function waveTick(dt){const l=FN.live||[];const t=FN.t||0;for(const p of l){if(p.waveD>0){p.waveD-=dt;continue}if(!(p.waveT>0)||!p.d||!p.d.rb)continue;const b=p.d.rb.bones;if(!b)continue;const L=p.waveL||2.2,el=L-p.waveT,k=Math.min(1,el*3,p.waveT*2.5);
+    /* the whole arm up high and swinging from the elbow: big enough to read at sixty metres */
+    const ua=b.Bip01_R_UpperArm,fa=b.Bip01_R_Forearm,hd=b.Bip01_R_Hand,sw=Math.sin((t+p.ph)*8.5);if(ua){ua.rotation.z-=2.55*k;ua.rotation.x+=(.25+sw*.18)*k}if(fa)fa.rotation.z-=(.35+sw*.55)*k;if(hd)hd.rotation.z-=sw*.3*k}}
+function wave(p,len,delay){if(!p)return;p.waveT=len||2.2;p.waveL=len||2.2;p.waveD=delay||0;FN.waveLen=len||2.2}
 Object.assign(FN,{person,unperson,walkTo,wave});
 
 /* ================= lines: our own queue onto the radio subtitles (never more than the game's 4-line queue; never blocks play) ================= */
@@ -149,7 +152,7 @@ const once=(M,k)=>{const s=M.fn.said;if(s[k])return false;s[k]=1;return true};
 Object.assign(FN,{say,sayAll,once,hush:M=>{if(M&&M.fn){M.fn.q.length=0;M.fn.qT=0}}});
 
 /* ================= cars this job places (scripted or borrowable) ================= */
-function car(type,color,x,z,yaw,o){o=o||{};const a=A();const obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);res().veh.push(obj);
+function car(type,color,x,z,yaw,o){o=o||{};const a=A();const obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);res().veh.push(obj);obj.userData.finStage=(a.M&&a.M.fn&&a.M.fn.stage)||null;
   obj.position.set(x,a.groundAt(x,z),z);obj.rotation.set(0,yaw+Math.PI/2,0);
   const v={obj,type,x,z,yaw,spd:0,S:a.carSize({obj}),entry:null};if(o.drive){v.entry=a.registerCar(obj,x,z);if(v.entry){v.entry.yaw=yaw;v.entry.pos.set(x,0,z);v.entry.name=o.name||'Earl';v.entry.owner=o.owner||'crew';a.syncCar(v.entry);res().cars.push(v.entry)}}
   return v}
@@ -172,7 +175,16 @@ function rail(path,o){const Tl=TL();if(Tl&&Tl.Rail&&Tl.poly)return Tl.Rail(Tl.po
 function polyOf(pts){const Tl=TL();if(Tl&&Tl.poly)return Tl.poly(pts);const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+hyp(pts[i].x-pts[i-1].x,pts[i].z-pts[i-1].z));
   const len=cum[cum.length-1];return{pts,cum,len,at(s){s=clamp(s,0,len);let i=1;while(i<cum.length-1&&cum[i]<s)i++;const p=pts[i-1],q=pts[i],t=(s-cum[i-1])/((cum[i]-cum[i-1])||1);return{x:p.x+(q.x-p.x)*t,z:p.z+(q.z-p.z)*t,yaw:yawTo(q.x-p.x,q.z-p.z),i}},
     project(x,z){let best=0,bd=1e9;for(let i=1;i<pts.length;i++){const p=pts[i-1],q=pts[i],dx=q.x-p.x,dz=q.z-p.z,l2=dx*dx+dz*dz||1,t=clamp(((x-p.x)*dx+(z-p.z)*dz)/l2,0,1),px=p.x+dx*t,pz=p.z+dz*t,d=hyp(x-px,z-pz);if(d<bd){bd=d;best=cum[i-1]+t*Math.sqrt(l2)}}return{s:best,d:bd}}}}
-Object.assign(FN,{route,routeClear,rail,polyOf});
+/* parked cars at the kerb: a scripted car swerves round them like a driver would (the path is densified to 1 m, and points near a
+   parked car slide sideways toward the road centre, eased in and out over 8 m); the result still stays on road tiles */
+function avoidCars(pts,o){o=o||{};const a=A(),L=a.L;const cars=((L&&L.cars)||[]).filter(e=>e.obj&&e!==a.VAN&&!(o.skip&&o.skip(e))).map(e=>({x:e.pos.x,z:e.pos.z,yaw:e.yaw,S:a.carSize(e)}));if(!cars.length||pts.length<2)return pts;
+  const D=[];for(let i=1;i<pts.length;i++){const p=pts[i-1],q=pts[i],l=hyp(q.x-p.x,q.z-p.z),n=Math.max(1,Math.ceil(l));for(let k=0;k<n;k++)D.push({x:p.x+(q.x-p.x)*k/n,z:p.z+(q.z-p.z)*k/n})}D.push(pts[pts.length-1]);
+  const shift=new Float32Array(D.length),nx=[],nz=[];for(let i=0;i<D.length;i++){const p=D[Math.max(0,i-1)],q=D[Math.min(D.length-1,i+1)],l=hyp(q.x-p.x,q.z-p.z)||1;nx.push((q.z-p.z)/l);nz.push(-(q.x-p.x)/l)}/* right-hand normal */
+  for(let i=0;i<D.length;i++)for(const c of cars){const dx=D[i].x-c.x,dz=D[i].z-c.z,f=[-Math.sin(c.yaw),-Math.cos(c.yaw)];const lo=Math.abs(dx*f[0]+dz*f[1]);if(lo>c.S.l/2+1)continue;
+    const lat=dx*nx[i]+dz*nz[i];/* + means we're to the car's right... measured along our normal */const need=c.S.w/2+1+.35;if(Math.abs(lat)>=need)continue;const want=(lat>=0?1:-1)*need-lat;
+    for(let j=Math.max(0,i-8);j<=Math.min(D.length-1,i+8);j++){const w=1-Math.abs(j-i)/9;const v=want*w;if(Math.abs(v)>Math.abs(shift[j]))shift[j]=v}}
+  return D.map((p,i)=>({x:p.x+nx[i]*shift[i],z:p.z+nz[i]*shift[i]}))}
+Object.assign(FN,{route,routeClear,rail,polyOf,avoidCars});
 
 /* ================= the fade (driven by dt) ================= */
 function fadeEl(){const r=res();if(r.fade)return r.fade;const d=D.createElement('div');d.className='fin-fade';d.style.cssText='position:fixed;inset:0;background:#07090c;pointer-events:none;opacity:0;z-index:3;display:flex;align-items:center;justify-content:center;color:#f4efe2;font:700 34px/1.2 var(--ui,system-ui,sans-serif);letter-spacing:.04em;text-shadow:0 2px 12px #000';
@@ -233,6 +245,9 @@ FN.ORDER=ORDER;
 function stageOf(M){return M.fn.stage}
 /* move to the next stage: clear this one, mark the checkpoint (the snapshot is the world exactly as the next stage starts) */
 function advance(M,next,o){const a=A(),F=M.fn;const cur=FN.stages[F.stage];if(cur&&cur.clear)try{cur.clear(M)}catch(e){console.error(e)}
+  for(const p of(F.sub&&F.sub.extras)||[])unperson(p);
+  /* the festival evening shows only its own vehicles (Benny's work truck from the afternoon would sit in the crowd) */
+  if(next==='festival')for(const v of res().veh)if(v.userData&&v.userData.finStage&&v.userData.finStage!=='festival')v.visible=false;
   F.stage=next;F.built=null;F.sub={};if(!(o&&o.quiet))a.CP.mark(next);else M.stage=next}
 FN.advance=advance;
 function stats(M){return M.fn.st}
@@ -262,7 +277,7 @@ J.register(ID,{
     if(!castReady()&&!fn.castOk&&fn.waitT<20){fn.waitT+=dt;preloadCast();F.objs.push(['Everybody is on their way to the festival…',false]);return}fn.castOk=true;
     const S=FN.stages[fn.stage];if(!S){F.objs.push(['Loading the festival…',false]);return}
     if(fn.built!==fn.stage){fn.built=fn.stage;fn.sub={};M.stage=fn.stage;FN.clearPressed();try{S.build(M)}catch(e){console.error('[finale] build '+fn.stage,e)}}
-    peopleTick(dt);if(FN.timerTick)FN.timerTick(dt,M);S.upd(dt,M,F,fading);fn.objs=F.objs.map(o=>o[0])},
+    peopleTick(dt);if(FN.timerTick)FN.timerTick(dt,M);if(FN.smokeTick)FN.smokeTick(M,dt);if(FN.extrasTick)FN.extrasTick(M,dt);S.upd(dt,M,F,fading);fn.objs=F.objs.map(o=>o[0])},
   pose(dt){waveTick(dt)},
   save(M){const f=M.fn;return{stage:f.stage,plan:f.plan?{assign:Object.assign({},f.plan.assign)}:null,st:f.st,seen:f.seen,x:f.carry||null}},
   load(M,s){if(!s||!M.fn)return;const f=M.fn;f.stage=s.stage||'plan';f.built=null;if(s.plan)f.plan={assign:Object.assign({},s.plan.assign),entry:null};f.st=Object.assign(ST0(),s.st||{});f.seen=Object.assign(f.seen||{},s.seen||{});f.carry=s.x||null},
@@ -300,7 +315,7 @@ FN.bot=function(a,t,o){const M=a.M;if(!M||!M.fn||M.state!=='go')return null;cons
 
 /* ===================================================================== STAGE 1: THE PLAN ===================================================================== */
 FN.stages.plan={
-  build(M){const a=A(),F=M.fn;FN.festSet(M,0);
+  build(M){const a=A(),F=M.fn;FN.festSet(M,0);FN.extras&&FN.extras(M,'setup');
     /* everyone around the table */
     const around=[['gary',-1.6,-1.3],['rick',-.4,-1.6],['dave',.9,-1.5],['doug',2,-1],['rosa',-2.1,.4],['earl',-1.5,1.5],['dee',-.2,1.8],['benny',1.1,1.7],['hank',2.3,.8]];
     F.sub.cast=around.map(([id,dx,dz])=>{const p=person(id,W.hq.x+dx,W.hq.z+dz);if(p)p.face={x:W.hq.x,z:W.hq.z};return p}).filter(Boolean);
@@ -338,8 +353,8 @@ const TAIL_WP=[{x:W.courier.x,z:W.courier.z},{x:410,z:71},{x:315,z:71},{x:315,z:
 FN.TAIL_WP=TAIL_WP;
 const TK={wait:10,max:9.5,watch:4,watchR:[18,85],lostD:150,spookFail:2.5};
 FN.stages.tail={
-  build(M){const a=A(),F=M.fn,S=F.sub;FN.festSet(M,0);
-    const path=route(TAIL_WP);S.P=polyOf(path);S.path=path;
+  build(M){const a=A(),F=M.fn,S=F.sub;FN.festSet(M,0);FN.extras&&FN.extras(M,'setup',{n:2});FN.yard&&FN.yard(M);
+    const path=avoidCars(route(TAIL_WP),{skip:e=>S.shuttle&&e===S.shuttle.entry});S.P=polyOf(path);S.path=path;
     S.sed=car('sedan','#8f969c',W.courier.x,W.courier.z,W.courier.yaw);S.rail=rail(path,{max:TK.max,len:S.sed.S.l,gap:6});S.rail.place(0);
     S.courier=person('courier',W.courier.x-2.2,W.courier.z+3.5);if(S.courier){S.courier.d.root.visible=true;walkTo(S.courier,W.courier.x-1.1,W.courier.z,1.6);S.courier.arrive=p=>{p.hidden=true;S.inCar=true}}
     /* Earl's No. 9 shuttle: a borrowable van on River Rd (E to swap into it) */
@@ -353,7 +368,7 @@ FN.stages.tail={
     /* the sedan waits for its driver, then drives */
     if(S.t>TK.wait&&!r.done)r.step(dt,{});const t={x:r.x,z:r.z,yaw:r.yaw,spd:r.v,stopped:r.v<.5};placeCar(S.sed,r.x,r.z,r.yaw,dt);
     if(S.inCar&&S.courier){unperson(S.courier);S.courier=null}
-    if(!p){F.objs.push(['Get in the minivan and follow the gray sedan',false]);F.target={x:a.VAN.pos.x,z:a.VAN.pos.z,label:'Minivan'};if(S.t>TK.wait+25)return tailFail(M,'lost',"He drove off while you were still on the sidewalk.");if(S.t>TK.wait+2)tailMeter(M,F,null);return}
+    if(!p){F.objs.push(['Get in the minivan (E) and follow the gray sedan',false]);F.target={x:a.VAN.pos.x,z:a.VAN.pos.z,label:'Minivan'};if(S.t>TK.wait+25)return tailFail(M,'lost',"He drove off while you were still on the sidewalk.");if(S.t>TK.wait+2)tailMeter(M,F,null);return}
     const d=hyp(t.x-p.x,t.z-p.z);let R=null;
     if(S.T&&S.t>TK.wait){if((S.losT-=dt)<=0){S.losT=.1;const Tl=TL(),grid={map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2};S.los=Tl.los(t.x,t.z,p.x,p.z,{grid})}
       R=S.T.tick(dt,{t,p,carId:p.id,carType:p.type,los:S.los,sight:S.los});if(S.t-TK.wait<10)S.T.S.lose=Math.max(0,(S.T.S.lose||0)-dt*2.2);M.fn.st.tailSus=Math.max(M.fn.st.tailSus,R.sus|0)}
@@ -377,7 +392,7 @@ FN.stages.tail={
   clear(M){const S=M.fn.sub;if(S.courier)unperson(S.courier);if(S.driver)unperson(S.driver)}};
 function playerCar(){const a=A(),e=a.CV;if(!e)return null;return{x:e.pos.x,z:e.pos.z,yaw:e.yaw,spd:e.car?e.car.spd:e.spd||0,type:e===a.VAN?'minivan':e.type,id:e===a.VAN?'van':(e.name||'car')+':'+e.type,e}}
 FN.playerCar=playerCar;
-function tailMeter(M,F,R){if(!R){F.meters.push({id:'band',label:'Following',v:200,max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:'get in a car'});return}
+function tailMeter(M,F,R){if(!R){const inCar=!!A().CV;F.meters.push({id:'band',label:'Following',v:inCar?37:200,max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:inCar?'he is getting in his car':'get in a car'});return}
   F.meters.push({id:'band',label:'Following',v:Math.min(200,R.d),max:200,style:'bands',zones:[[0,14,'bad','Too close'],[14,60,'good','Ideal'],[60,105,'warn','Losing him'],[105,200,'bad','Lost']],sub:Math.round(R.d)+' m'});
   F.meters.push({id:'sus',label:'His mirror',v:R.sus||0,max:100,style:'ring',icon:'eye'})}
 function swapNow(M,already){const a=A(),S=M.fn.sub,sh=S.shuttle.entry;if(S.swapped||!sh)return;S.swapped=true;if(!already){try{a.exitCar();a.enterCar(sh);a.M.car=a.M.car}catch(_){}}
@@ -388,34 +403,17 @@ function swapNow(M,already){const a=A(),S=M.fn.sub,sh=S.shuttle.entry;if(S.swapp
 function tailFail(M,why,line){M.loseWhy='tail:'+why;A().endMission(false,line,why==='spooked'?'He made you.':'You lost him.')}
 
 /* ===================================================================== festival props (shared by every stage) ===================================================================== */
-/* level 0: setting up (barriers, a few stalls); 1: stalls up, stage frame; 2: the stage built; 3: the evening (string lights, everything) */
-FN.festSet=function(M,level){const F=M.fn;if(F.festL===level&&F.fest&&F.fest.parent)return;if(F.fest){try{F.fest.parent&&F.fest.parent.remove(F.fest)}catch(_){}}
-  const a=A(),T=a.THREE,g=new T.Group(),k=kit(),f=W.fest;
-  /* barriers at both ends (sawhorses in festival blue) */
-  for(const x of[f.x0-1.2,f.x1+1.4])for(let z=f.z0+.8;z<f.z1;z+=1.9){k.add(1.6,.12,.08,'#2b5d8a',x,.95,z,Math.PI/2).add(1.6,.1,.08,'#f4f1ea',x,.65,z,Math.PI/2).add(.06,1,.5,'#9aa0a6',x,.5,z-.7).add(.06,1,.5,'#9aa0a6',x,.5,z+.7)}
-  /* stalls: canopies along both kerbs */
-  const cols=['#d94f3d','#f2b53a','#3a8fd9','#5fb35f','#e07bb5','#f08a3a','#7a6ad9'];let i=0;
-  const stall=(x,z,face)=>{const c=cols[i++%cols.length];k.add(2.6,.06,2,c,x,2.35,z).add(2.66,.25,.04,c,x,2.2,z+face*1.0).add(.05,2.3,.05,'#c9ccd0',x-1.25,1.15,z-.95).add(.05,2.3,.05,'#c9ccd0',x+1.25,1.15,z-.95).add(.05,2.3,.05,'#c9ccd0',x-1.25,1.15,z+.95).add(.05,2.3,.05,'#c9ccd0',x+1.25,1.15,z+.95)
-    .add(2.2,.75,.6,'#efe9dc',x,.38,z+face*.55).add(2.24,.05,.64,c,x,.78,z+face*.55);if(level>=1)k.add(.3,.2,.25,'#f4d38a',x-.6,.88,z+face*.5).add(.25,.25,.25,'#d9a15c',x+.4,.9,z+face*.55)};
-  const xs=level>=1?[365,371,377,383,389,395]:[371,383,395];for(const x of xs){stall(x,f.z0+1.05,1);stall(x+2,f.z1-1.05,-1)}
-  /* the bandstand: a frame at level 1, a deck with a backdrop from level 2 */
-  const s=W.stage;if(level>=1){k.add(s.w,.08,s.d,'#6b4f3a',s.x,.06,s.z);for(const dx of[-1,1])for(const dz of[-1,1])k.add(.14,3.4,.14,'#454a50',s.x+dx*(s.w/2-.2),1.7,s.z+dz*(s.d/2-.2))}
-  if(level>=2){k.add(s.w,.9,s.d,'#5a4232',s.x,.45,s.z).add(s.w+.1,.06,s.d+.1,'#7a5a44',s.x,.92,s.z).add(.3,2.6,s.d,'#2b5d8a',s.x-s.w/2+.2,2.2,s.z).add(s.w,.25,.3,'#2b2e33',s.x,3.45,s.z-s.d/2+.1).add(s.w,.25,.3,'#2b2e33',s.x,3.45,s.z+s.d/2-.1)
-    .add(.7,1.1,.6,'#1e2024',s.x-s.w/2+1,1.45,s.z-s.d/2+.6).add(.7,1.1,.6,'#1e2024',s.x-s.w/2+1,1.45,s.z+s.d/2-.6).add(.04,1.2,.04,'#30343a',s.x+1.8,1.5,s.z).add(.9,.35,.6,'#f2efe6',s.x-1,1.1,s.z+1.6)
-    .add(1.2,.6,.03,'#f4f1ea',s.x+3,1.3,s.z-s.d/2-.05);for(let z=s.z-s.d/2+.4;z<s.z+s.d/2;z+=.6)k.add(.4,.25,.55,'#6b4f3a',s.x+s.w/2+.25,.13+(.0),z)}
-  const m=k.mesh();g.add(m);
-  if(level>=2){const b=sign(['RIVERSIDE FLATS','STREET FESTIVAL'],{bg:'#2b5d8a',fg:'#ffd23f',w:4.8,ph:200});b.position.set(s.x-s.w/2+.36,2.5,s.z);b.rotation.y=Math.PI/2;g.add(b)}
-  /* the banner over the street at 4th St (from the start: it's the festival's front door) */
-  {const pk=kit().add(.12,5.4,.12,'#8a8f96',f.x1+.4,2.7,f.z0-.6).add(.12,5.4,.12,'#8a8f96',f.x1+.4,2.7,f.z1+.6).mesh();g.add(pk);const b=sign(['RIVERSIDE FLATS STREET FESTIVAL · TODAY · EVERYBODY WELCOME'],{bg:'#f2efe6',fg:'#2b5d8a',w:7.2,pw:1024,ph:100});b.position.set(f.x1+.4,4.7,(f.z0+f.z1)/2);b.rotation.y=Math.PI/2;g.add(b)}
-  /* bunting from level 1; string lights at level 3 (emissive bulbs in one mesh) */
-  if(level>=1)g.add(FN.bunting(f.x0,f.x1,f.z0-.2,f.z1+.2,4.7,level>=3));
-  g.position.set(0,0,0);a.wmAdd(g);F.fest=g;F.festL=level};
-/* bunting and string lights zig-zagging across the street: flags in one mesh, bulbs in another */
-FN.bunting=function(x0,x1,z0,z1,y,lights,store){const a=A(),T=a.THREE,g=new T.Group(),k=kit(store),kb=kit(store),cols=['#d94f3d','#f2b53a','#3a8fd9','#5fb35f','#f4f1ea','#e07bb5'];let n=0;
-  for(let x=x0;x<=x1;x+=8){const xa=x,xb=Math.min(x1,x+8);k.add(.1,y+.2,.1,'#8a8f96',xa,(y+.2)/2,z0-.4).add(.1,y+.2,.1,'#8a8f96',xa,(y+.2)/2,z1+.4);
-    for(let i=0;i<=14;i++){const t=i/14,zz=z0+(z1-z0)*t,xx=xa+(xb-xa)*t,sag=Math.sin(t*Math.PI)*.7;k.add(.24,.27,.02,cols[n++%cols.length],xx,y-sag-.16,zz,Math.atan2(xb-xa,z1-z0)+Math.PI/2,0);
-      if(lights)kb.add(.11,.13,.11,i%2?'#ffe9a8':'#fff2c9',xx+.3,y-sag-.05,zz)}}
-  g.add(k.mesh());if(lights&&kb.n)g.add(kb.mesh(true));return g};
+FN.bunting=function(x0,x1,z0,z1,y,lights,store){const a=A(),T=a.THREE,g=new T.Group(),st=store||res(),cols=['#d23c32','#f2c230','#2f8a5a','#2c6ab0','#f4f1e6','#e8709a'].map(h=>new T.Color(h).convertSRGBToLinear());
+  const P=[],C=[],N=[],bulbs=[],pole=kit(store);let n=0;
+  for(let x=x0;x<=x1;x+=7){const xa=x-3.2,xb=x+3.2;pole.add(.08,y+.2,.08,'#8a8f96',xa,(y+.2)/2,z0-.4).add(.08,y+.2,.08,'#8a8f96',xb,(y+.2)/2,z1+.4);
+    const L=Math.hypot(xb-xa,z1-z0+.8),k=Math.floor(L/.42),ry=Math.atan2(xb-xa,z1-z0)+Math.PI/2,c=Math.cos(ry),sn=Math.sin(ry);
+    for(let i=1;i<k;i++){const t=i/k,xx=xa+(xb-xa)*t,zz=z0-.4+(z1-z0+.8)*t,yy=y-Math.sin(t*Math.PI)*.8;const col=cols[n++%cols.length];
+      for(const[px,py]of[[-.13,0],[.13,0],[0,-.28]]){P.push(xx+px*c,yy+py,zz-px*sn);N.push(sn,0,c);C.push(col.r,col.g,col.b)}if(i%2)bulbs.push([xx,yy+.02,zz])}}
+  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(P,3));geo.setAttribute('normal',new T.Float32BufferAttribute(N,3));geo.setAttribute('color',new T.Float32BufferAttribute(C,3));
+  const fm=new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:.9});st.geo.push(geo);st.mat.push(fm);g.add(new T.Mesh(geo,fm));g.add(pole.mesh());
+  if(lights&&bulbs.length){const bg=new T.SphereGeometry(.05,8,6),bm=new T.MeshBasicMaterial({color:new T.Color('#ffd98a'),toneMapped:false});st.geo.push(bg);st.mat.push(bm);const I=new T.InstancedMesh(bg,bm,bulbs.length),o=new T.Object3D();
+    bulbs.forEach((b,i)=>{o.position.set(b[0],b[1],b[2]);o.updateMatrix();I.setMatrixAt(i,o.matrix)});g.add(I)}
+  return g};
 /* the plan and tail bots (the other stages carry their own) */
 FN.stages.plan.bot=(a,t,o,M,B)=>{const P=a.P;if(a.CV){a.exitCar();return}if(!B.at){P.pos.set(W.hq.x,0,W.hq.z+1.6);a.collide(P.pos,.35);B.at=1;return}
   if(!M.fn.sub.board&&t%15===5){a.useTap=true;return}if(M.fn.sub.board&&t%15===10)M.fn.sub.board.key('Enter')};

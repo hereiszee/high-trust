@@ -16,12 +16,12 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* the world streamed in around the camera before anything is judged */
   const stream=()=>ev(async()=>{const H=window.__ht;let last=-1,same=0;for(let k=0;k<160&&same<8;k++){H.draw();await new Promise(r=>setTimeout(r,60));const s=H.ow&&H.ow.stats&&H.ow.stats();const b=s?s.built:0;if(b===last&&(!H.assets.stream||!H.assets.stream.idle||H.assets.stream.idle()))same++;else{same=0;last=b}}});
   /* a framing per shot (the camera follows the dad): on foot, looking at what the stage is about */
-  const POSE={'roadblock-build':[380.5,84,Math.PI,-.12],'roadblock-truck':[380.5,84,Math.PI,-.1],'roadblock-stopped':[383,84,Math.PI,-.1],'defend':[379.5,51,Math.PI,-.08],'defend-mid':[356,44.6,-Math.PI/2,-.07],
+  const POSE={'roadblock-build':[380.5,84,Math.PI,-.12],'roadblock-truck':[380.5,84,Math.PI,-.1],'roadblock-stopped':[383,84,Math.PI,-.1],'defend':[373,44.6,Math.PI/2,-.06],'defend-mid':[394,43.2,Math.PI/2+.25,-.05],
     'festival-walk':[407,43.2,Math.PI/2,-.06],'festival-home':[404,52,-.4,-.1],'plan':[404,46,Math.PI/2+.5,-.1]};
   const pose=n=>ev(([n,P_])=>{const H=window.__ht,a=H.jobs.api,M=H.M;const k=n.replace(/^\d+-/,'');let q=P_[k];
-    if(!q&&M&&M.fn&&M.fn.stage==='handsup'&&M.fn.sub.spot){const S=M.fn.sub;{const cx=S.spot.x-S.rt.x*3.5+S.f.x*3,cz=S.spot.z-S.rt.z*3.5+S.f.z*3;q=[cx,cz,Math.atan2(-(S.spot.x-cx),-(S.spot.z-cz))+.25,-.1]}}
+    if(!q&&M&&M.fn&&M.fn.stage==='handsup'&&M.fn.sub.spot){const S=M.fn.sub;{for(const[lr,lf]of[[-4.5,3],[-4.5,-3],[-3,6],[4.5,3],[0,7]]){const cx=S.spot.x+S.rt.x*lr+S.f.x*lf,cz=S.spot.z+S.rt.z*lr+S.f.z*lf;if(a.walkable(a.tx(cx),a.tx(cz))===false)continue;q=[cx,cz,Math.atan2(-(S.spot.x-cx),-(S.spot.z-cz)),-.12];break}}}
     if(!q)return;if(a.CV)a.exitCar();H.P.pos.set(q[0],0,q[1]);H.collide(H.P.pos,.35);H.P.yaw=q[2];H.P.pitch=q[3];H.step(2)},[n,POSE]);
-  const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(/festival-wave|festival-credits/.test(n))await ev(()=>{for(let i=0;i<150;i++)window.__ht.step(1)});await pose(n);await stream();if(!/postgame|result/.test(n))await ev(()=>{try{window.__ht.HUD.banner(null)}catch(_){}});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
+  const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(/festival-credits/.test(n))await ev(()=>{for(let i=0;i<150;i++)window.__ht.step(1)});if(/festival-wave$/.test(n))await ev(()=>{const H=window.__ht;H.M.fn.sub.wt=.9;H.M.fn.sub.wv=0;H.jobs.api.radio('you','We did it because we live here. That\'s it. That\'s the speech.',true);for(let i=0;i<36;i++)H.step(1)});await pose(n);await stream();if(!/postgame|result/.test(n))await ev(()=>{try{window.__ht.HUD.banner(null)}catch(_){}});if(/postgame/.test(n))await ev(()=>{const H=window.__ht,s=H.jobs.api.SV();s.flags.festivalCard=false;H.P.pos.set(394,0,43.2);H.P.yaw=Math.PI/2;H.P.pitch=-.04;H.step(1);H.draw();for(let i=0;i<70;i++)H.step(1)});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
     await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(SHOT_DIR,n+'.jpg'),type:'jpeg',quality:80}).catch(e=>console.log('shot failed '+e.message));console.log('     shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>{});await p.waitForTimeout(300);
   /* a whole campaign's save, in one of three histories */
@@ -37,12 +37,13 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       for(;k<n&&H.M&&H.M.state==='go';k++){j.test.step(a,(window.__ft=(window.__ft||0)+1),o);H.P.hp=Math.max(H.P.hp,60);H.step(1)}
       const M=H.M;return{state:M&&M.state,stage:M&&M.fn&&M.fn.stage,ph:M&&M.fn&&M.fn.sub&&M.fn.sub.ph,objs:(M&&M.fn&&M.fn.objs||[]).slice(0,2),why:M&&M.loseWhy,el:M&&Math.round(M.elapsed),st:M&&M.fn&&M.fn.st}},[o,150]);
       t+=150;const key=r.stage+'|'+(r.objs[0]||'');if(key!==last){console.log('  ['+r.el+'s] '+r.stage+(r.ph?'/'+r.ph:'')+' · '+r.objs.join(' · '));last=key}
-      const sk=r.stage+(r.ph?'-'+r.ph:'');if(SHOTS&&r.stage&&!shotsDone[sk]){shotsDone[sk]=1;await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+sk)}
+      const sk=r.stage+(r.ph?'-'+r.ph:'');if(SHOTS&&r.stage&&!shotsDone[sk]){shotsDone[sk]=1;await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+sk);
+        if(sk==='festival-wave'){await ev(()=>{const H=window.__ht,S=H.M.fn.sub;S.wt=9.4;S.wv=0;for(let i=0;i<45;i++)H.step(1)});await shot('17b-festival-wave-wide')}}
       if(SHOTS&&r.stage&&!r.ph){const k2=r.stage+'-mid';shotsDone[r.stage+'T']=(shotsDone[r.stage+'T']||0)+1;if(shotsDone[r.stage+'T']===4&&!shotsDone[k2]){shotsDone[k2]=1;await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+k2)}}
       if(TO&&r.stage===TO)return r;if(r.state!=='go')return r}return{state:'timeout'}};
   const r=await run(FAIL?{fail:true}:{},FRAMES);console.log('  end: '+JSON.stringify({state:r.state,stage:r.stage,why:r.why,st:r.st}));
   if(SHOTS&&r.state==='won'){await ev(()=>window.__ht.step(45));await shot('19-result');
-    await ev(()=>{const H=window.__ht;H.UIacts['result:retry']&&H.UIacts['result:retry']();H.step(4);H.P.pos.set(392,0,43.2);H.P.yaw=Math.PI/2;H.P.pitch=-.02;H.step(2)});await shot('20-postgame')}
+    await ev(()=>{const H=window.__ht;H.UIacts['result:retry']&&H.UIacts['result:retry']();H.step(4)});await shot('20-postgame')}
   if(TO)ok(r.stage===TO,'reached '+TO);else ok(FAIL?r.state==='lost':r.state==='won','run '+(FAIL?'lost':'won')+' ('+r.state+')');
   if(RETRY&&r.state==='lost'){await ev(()=>window.__ht.step(45));const rt=await ev(()=>{const H=window.__ht;H.UIacts['result:retry']();H.step(3);return{state:H.M.state,stage:H.M.stage}});ok(rt.state==='go','retried from '+rt.stage);
     const r2=await run({},FRAMES);ok(r2.state==='won','won after the retry ('+r2.state+' '+r2.stage+' '+(r2.why||'')+')')}
