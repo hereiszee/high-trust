@@ -55,8 +55,8 @@ log('road graph: '+E.total+' directed edges, '+E.long+' at least 55 m long; regi
 /* ---------------- 1. stop short ---------------- */
 for(const kind of['behind','ahead','side']){
   const r=await p.evaluate(([kind,NT])=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();const res=[];const speeds=[7,9,11,13];
-    let pool;if(kind==='side'){pool=[];for(const [j,n] of G.nodes.entries()){if(n.e.length<3)continue;for(const em of n.e){const M=G.nodes[em.to],lm=Math.hypot(M.x-n.x,M.z-n.z);if(lm<30)continue;
-          for(const es of n.e){if(es===em)continue;const S=G.nodes[es.to],ls=Math.hypot(S.x-n.x,S.z-n.z);if(ls<35)continue;const cr=(M.x-n.x)*(S.z-n.z)-(M.z-n.z)*(S.x-n.x);if(Math.abs(cr)<1)continue;pool.push({j,m:em.to,s:es.to,ls,region:O.regionAt(n.x,n.z)})}}}}
+    let pool;if(kind==='side'){pool=[];for(const [j,n] of G.nodes.entries()){if(n.e.length<3)continue;for(const em of n.e){const M=G.nodes[em.to],lm=Math.hypot(M.x-n.x,M.z-n.z);if(lm<24)continue;
+          for(const es of n.e){if(es===em)continue;const S=G.nodes[es.to],ls=Math.hypot(S.x-n.x,S.z-n.z);if(ls<30)continue;const cr=(M.x-n.x)*(S.z-n.z)-(M.z-n.z)*(S.x-n.x);if(Math.abs(cr)<1)continue;pool.push({j,m:em.to,s:es.to,ls,region:O.regionAt(n.x,n.z)})}}}}
     else pool=T.edges.filter(e=>e.l>=55);
     {const seen=new Set(),uniq=[],rest=[];for(const q of pool){const key=kind==='side'?q.j:q.a+'-'+q.b;(seen.has(key)?rest:uniq).push(q);seen.add(key)}pool=uniq.concat(rest)}/* distinct roads / junctions first */
     for(let k=0;k<NT;k++){T.clear();const E=pool[k%pool.length],v=speeds[k%4],drive=kind!=='side'&&k%2===0;let t,setup;
@@ -137,6 +137,24 @@ const P3=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();const
   let tv=[];for(let i=0;i<150;i++){H.step(1);tv.push(tank.spd)}T.keysOff();const moved=Math.hypot(t.c.x-t0.x,t.c.z-t0.z);H.exitVan();return{worst,ovs,gaps:res,moved,tankV:Math.max(...tv)}});
 if(P3.none)ok(false,'tank not found');else{ok(P3.worst<1e-6,'the tank is never moved by traffic, even one forced to ram it at 11 m/s ('+P3.worst.toExponential(1)+' m; gaps '+P3.gaps.join(', ')+')');
   ok(P3.moved>3,'the tank drives a traffic car '+P3.moved.toFixed(1)+' m down the road (tank up to '+P3.tankV.toFixed(1)+' m/s)')}
+
+/* a traffic car that rear-ends the stopped player (forced: it would have braked) costs him nothing and doesn't move him */
+const P4=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[2];const q=T.lanePt(E.a,E.b,50);T.place(q.x,q.z,q.yaw);
+  const hp0=H.carHp(e),tr0=H.prog.trust+(H.prog.trustR||0);const t=O.trafficAdd({a:E.a,b:E.b,at:20,spd:12,max:12});
+  const w=T.watch(t,30*6,()=>{if(Math.hypot(t.c.x-e.pos.x,t.c.z-e.pos.z)<14&&t.c.spd<11.5&&!t.rammed){t.c.spd=12}return false});
+  return{disp:w.disp,ov:w.ov,hp:[hp0,H.carHp(e)],trust:[tr0,H.prog.trust+(H.prog.trustR||0)],ev:T.ev(t.id).map(x=>x.ev+(x.by?':'+x.by:''))}});
+ok(P4.disp<1e-6&&P4.hp[1]===P4.hp[0]&&P4.trust[1]===P4.trust[0]&&P4.ov<.05,'rear-ended by a traffic car forced not to brake: player car moved '+P4.disp.toExponential(1)+' m, hp '+P4.hp.join(' -> ')+', trust unchanged ('+P4.ev.join(', ')+')');
+/* a hard hit disables it: it pulls over at the kerb, hazards on, the driver gets out and phones someone (never hurt) */
+const P5=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[1];const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
+  const t=O.trafficAdd({a:E.a,b:E.b,at:36,spd:0,max:6,type:'hatch'});t.c.hp=12;H.step(3);T.keysOff();H.keys.w=true;for(let i=0;i<200&&!t.wreck;i++)H.step(1);T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
+  for(let i=0;i<30*8;i++)H.step(1);const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)];let lat=0;{const ai=t.c.ai,pp=ai.pts,k=Math.min(ai.tr.i,pp.length-2),A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;lat=((t.c.x-A.x)*(B.z-A.z)-(t.c.z-A.z)*(B.x-A.x))/l}
+  const d=t.driver;return{wreck:!!t.wreck,spd:t.c.spd,haz:!!t.hazSet,driver:!!d,phone:!!t.phone,dDist:d?+Math.hypot(d.root.position.x-t.c.x,d.root.position.z-t.c.z).toFixed(2):null,lat:+lat.toFixed(2),ev:T.ev(t.id).map(x=>x.ev)}});
+ok(P5.wreck&&Math.abs(P5.spd)<.3&&P5.haz&&(P5.driver||!P5.phone),'a hard hit wrecks it: pulled over ('+P5.lat+' m right of the lane line), stopped, hazards on, driver standing '+P5.dDist+' m from it'+(P5.driver?' with a phone':' (no people models loaded)')+' ('+P5.ev.join(', ')+')');
+/* Riverside: ramming adds a little heat (docs/riverside-heat.md), once per car */
+const P6=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(x=>x.l>=45&&x.region==='river')[0];if(!E)return{none:true};
+  const q=T.lanePt(E.a,E.b,4);T.place(q.x,q.z,q.yaw);H.step(5);const h0=H.heat.get();const t=O.trafficAdd({a:E.a,b:E.b,at:24,spd:0,max:.01});H.step(3);T.keysOff();H.keys.w=true;
+  for(let i=0;i<150&&!O.trafficLog().some(x=>x.ev==='hit'&&x.id===t.id);i++)H.step(1);H.step(2);const h1=H.heat.get();T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;return{h0,h1,region:H.region}});
+ok(P6.none||P6.h1-P6.h0>.2&&P6.h1-P6.h0<.3,'ramming traffic in Riverside: heat '+(P6.none?'(no Riverside road)':P6.h0.toFixed(2)+' -> '+P6.h1.toFixed(2)+' (+0.25)'));
 
 /* ---------------- 4. queue of three ---------------- */
 const Q=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();const E=T.edges.filter(e=>e.l>=80)[0]||T.edges.filter(e=>e.l>=70)[0];
