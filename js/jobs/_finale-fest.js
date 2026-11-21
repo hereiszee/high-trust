@@ -69,6 +69,9 @@ FN.stages.festival={
     const V=a.VAN;V.pos.set(414.5,0,43.6);V.yaw=Math.PI/2;/* parked at the east barrier, nose west: the way home is through the festival */V.spd=0;if(V.car)V.car.spd=0;try{G().syncVan&&G().syncVan()}catch(_){}
     S.cast=guests().map(([id,x,z])=>{const p=person(KEYMAP[id]||id,x,z,{scale:id==='malik'||id==='kid'?.86:undefined});if(!p)return null;p.lid=id;p.name=NAMES[id]||(FN.CAST[id]||{}).name||id;p.face={x:x+(Math.random()-.5)*2,z:43};p.n=0;return p}).filter(Boolean);
     S.fam=['jen','tyler','maddie'].map((id,i)=>{const p=person(id,363+i*1.1,44.2+(i%2)*.6);if(p){p.lid=id;p.name=FN.CAST[id].name;p.face={x:W.stage.x,z:W.stage.z};p.n=0}return p}).filter(Boolean);
+    /* the band: drums at the back, a guitar and a singer at the front edge (local volunteers; Benny's truck does the encores) */
+    S.band=[['thug_fro',W.stage.x-2.9,W.stage.z,'sit'],['nb_marcus',W.stage.x+.8,W.stage.z-1.4,'stand'],['nb_mei',W.stage.x+1.6,W.stage.z+.9,'stand']].map(([k,x,z,mode])=>{const p=person(k,x,z);if(!p)return null;p.y=.92;p.mode=mode;p.face={x:W.stage.x+12,z:W.stage.z};
+      if(mode==='stand'&&k==='nb_marcus'){const g=a.box(.12,.62,.32,'#7a3a1e',.18,1.05,.22,p.d.root);g.rotation.z=.9}return p}).filter(Boolean);
     S.crowd=[];const keys=FN.NB.concat(FN.STREET.slice(0,5));for(let i=0;i<16;i++){const p=person(keys[i%keys.length],356+Math.random()*48,41+Math.random()*4);if(p){p.lo=355;p.hi=404;p.next=Math.random()*5;S.crowd.push(p)}}
     S.tr0=Math.min(99,(G().prog||{}).trustR||80);S.tr=S.tr0;S.trT=0;
     try{HT.Audio&&HT.Audio.music&&HT.Audio.music('hub')}catch(_){}
@@ -124,7 +127,7 @@ function speak(M,i){const a=A(),S=M.fn.sub;if(S.ph!=='speech')return;if(S.ch){tr
 /* ---------------- the credits: a slow drive home with the family ---------------- */
 function credits(M){const a=A(),S=M.fn.sub,V=a.VAN;if(S.ph==='credits')return;S.ph='credits';for(const p of S.fam)p.hidden=true;if(a.CV!==V){try{a.enterCar(V)}catch(_){}}
   /* the slow way home: west down Main St through the festival, everybody stepping back to the kerbs and waving, then over the bridge */
-  const home=a.WORLD.places.home;const tailR=FN.route([{x:346,z:43.6},{x:home.x+24,z:43.2},{x:home.x+2,z:home.z+8}]);const path=[{x:V.pos.x,z:43.6},{x:352,z:43.6}].concat(tailR);
+  const home=a.WORLD.places.home;const tailR=FN.route([{x:346,z:43.6},{x:home.x+24,z:43.2},{x:home.x+2,z:home.z+8}]);const path=FN.avoidCars([{x:V.pos.x,z:43.6},{x:352,z:43.6}].concat(tailR));
   S.dP=FN.polyOf(path);S.ds=0;S.dv=4.2;S.dr=true;const fd=M.fn.festD;if(fd&&fd.closures)fd.closures.visible=false;
   let k=0;for(const p of(FN.live||[])){if(p.hidden||p.mode==='sit'||!p.d)continue;if(p.z>41.6&&p.z<45.4&&p.x>350&&p.x<408){const side=(k++)%2?41.3:45.6;p.face={x:p.x,z:43.5};walkTo(p,p.x+(Math.random()-.5)*1.5,side,2.2)}}
   S.credWave=0;S.roll=rollEl(M);S.rt=0;

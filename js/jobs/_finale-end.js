@@ -9,10 +9,10 @@ const D=document;
 const LOOP=[{x:443,z:99},{x:443,z:71},{x:315,z:71},{x:315,z:127},{x:443,z:127}];
 const CK={max:13,far:70,near:22,lostD:170,lostT:7,callD:32,boxT:3,inR:2.6,behind:[3.5,13],lat:2.6,crumb:2,gap:9,startT:9};
 function chasePath(){const pts=[{x:W.sedan.x,z:W.sedan.z}];for(let lap=0;lap<3;lap++)for(const p of LOOP)pts.push(p);pts.push(LOOP[0]);return FN.route(pts)}
-FN.chasePath=chasePath;
+FN.chasePath=()=>FN.avoidCars(chasePath());
 const CREWCAR={rick:['sedan','#a8322d'],benny:['workvan','#f5d0e0'],sal:['pickup','#2f4f6f'],dave:['pickup','#5a7a3a'],gary:['suv','#4b5d6b'],doug:['suv','#6b6b4b'],hank:['pickup','#b23a2a'],earl:['workvan','#e3a32a'],rosa:['hatch','#3f8f86'],dee:['minivan','#7a5aa8']};
 FN.stages.chase={
-  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,2);const path=chasePath();S.path=path;S.P=FN.polyOf(path);S.rail=FN.rail(path,{max:CK.max,len:4.9,gap:4});S.rail.place(0);
+  build(M){const a=A(),S=M.fn.sub;FN.festSet(M,2);const path=FN.avoidCars(chasePath());S.path=path;S.P=FN.polyOf(path);S.rail=FN.rail(path,{max:CK.max,len:4.9,gap:4});S.rail.place(0);
     S.sed=FN.car('sedan','#1b1d22',W.sedan.x,W.sedan.z,W.sedan.yaw);S.t=0;S.box={t:0};S.called=false;S.lostT=0;S.go=false;S.crumbs=[];
     /* your van on 2nd St, nose south, keys in it */
     const V=a.VAN;if(!a.CV){V.pos.set(347.4,0,54);V.yaw=Math.PI;V.spd=0;if(V.car)V.car.spd=0;try{G().syncVan&&G().syncVan()}catch(_){}}

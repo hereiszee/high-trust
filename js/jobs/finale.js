@@ -175,7 +175,16 @@ function rail(path,o){const Tl=TL();if(Tl&&Tl.Rail&&Tl.poly)return Tl.Rail(Tl.po
 function polyOf(pts){const Tl=TL();if(Tl&&Tl.poly)return Tl.poly(pts);const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+hyp(pts[i].x-pts[i-1].x,pts[i].z-pts[i-1].z));
   const len=cum[cum.length-1];return{pts,cum,len,at(s){s=clamp(s,0,len);let i=1;while(i<cum.length-1&&cum[i]<s)i++;const p=pts[i-1],q=pts[i],t=(s-cum[i-1])/((cum[i]-cum[i-1])||1);return{x:p.x+(q.x-p.x)*t,z:p.z+(q.z-p.z)*t,yaw:yawTo(q.x-p.x,q.z-p.z),i}},
     project(x,z){let best=0,bd=1e9;for(let i=1;i<pts.length;i++){const p=pts[i-1],q=pts[i],dx=q.x-p.x,dz=q.z-p.z,l2=dx*dx+dz*dz||1,t=clamp(((x-p.x)*dx+(z-p.z)*dz)/l2,0,1),px=p.x+dx*t,pz=p.z+dz*t,d=hyp(x-px,z-pz);if(d<bd){bd=d;best=cum[i-1]+t*Math.sqrt(l2)}}return{s:best,d:bd}}}}
-Object.assign(FN,{route,routeClear,rail,polyOf});
+/* parked cars at the kerb: a scripted car swerves round them like a driver would (the path is densified to 1 m, and points near a
+   parked car slide sideways toward the road centre, eased in and out over 8 m); the result still stays on road tiles */
+function avoidCars(pts,o){o=o||{};const a=A(),L=a.L;const cars=((L&&L.cars)||[]).filter(e=>e.obj&&e!==a.VAN&&!(o.skip&&o.skip(e))).map(e=>({x:e.pos.x,z:e.pos.z,yaw:e.yaw,S:a.carSize(e)}));if(!cars.length||pts.length<2)return pts;
+  const D=[];for(let i=1;i<pts.length;i++){const p=pts[i-1],q=pts[i],l=hyp(q.x-p.x,q.z-p.z),n=Math.max(1,Math.ceil(l));for(let k=0;k<n;k++)D.push({x:p.x+(q.x-p.x)*k/n,z:p.z+(q.z-p.z)*k/n})}D.push(pts[pts.length-1]);
+  const shift=new Float32Array(D.length),nx=[],nz=[];for(let i=0;i<D.length;i++){const p=D[Math.max(0,i-1)],q=D[Math.min(D.length-1,i+1)],l=hyp(q.x-p.x,q.z-p.z)||1;nx.push((q.z-p.z)/l);nz.push(-(q.x-p.x)/l)}/* right-hand normal */
+  for(let i=0;i<D.length;i++)for(const c of cars){const dx=D[i].x-c.x,dz=D[i].z-c.z,f=[-Math.sin(c.yaw),-Math.cos(c.yaw)];const lo=Math.abs(dx*f[0]+dz*f[1]);if(lo>c.S.l/2+1)continue;
+    const lat=dx*nx[i]+dz*nz[i];/* + means we're to the car's right... measured along our normal */const need=c.S.w/2+1+.35;if(Math.abs(lat)>=need)continue;const want=(lat>=0?1:-1)*need-lat;
+    for(let j=Math.max(0,i-8);j<=Math.min(D.length-1,i+8);j++){const w=1-Math.abs(j-i)/9;const v=want*w;if(Math.abs(v)>Math.abs(shift[j]))shift[j]=v}}
+  return D.map((p,i)=>({x:p.x+nx[i]*shift[i],z:p.z+nz[i]*shift[i]}))}
+Object.assign(FN,{route,routeClear,rail,polyOf,avoidCars});
 
 /* ================= the fade (driven by dt) ================= */
 function fadeEl(){const r=res();if(r.fade)return r.fade;const d=D.createElement('div');d.className='fin-fade';d.style.cssText='position:fixed;inset:0;background:#07090c;pointer-events:none;opacity:0;z-index:3;display:flex;align-items:center;justify-content:center;color:#f4efe2;font:700 34px/1.2 var(--ui,system-ui,sans-serif);letter-spacing:.04em;text-shadow:0 2px 12px #000';
@@ -343,7 +352,7 @@ FN.TAIL_WP=TAIL_WP;
 const TK={wait:10,max:9.5,watch:4,watchR:[18,85],lostD:150,spookFail:2.5};
 FN.stages.tail={
   build(M){const a=A(),F=M.fn,S=F.sub;FN.festSet(M,0);FN.extras&&FN.extras(M,'setup',{n:2});FN.yard&&FN.yard(M);
-    const path=route(TAIL_WP);S.P=polyOf(path);S.path=path;
+    const path=avoidCars(route(TAIL_WP),{skip:e=>S.shuttle&&e===S.shuttle.entry});S.P=polyOf(path);S.path=path;
     S.sed=car('sedan','#8f969c',W.courier.x,W.courier.z,W.courier.yaw);S.rail=rail(path,{max:TK.max,len:S.sed.S.l,gap:6});S.rail.place(0);
     S.courier=person('courier',W.courier.x-2.2,W.courier.z+3.5);if(S.courier){S.courier.d.root.visible=true;walkTo(S.courier,W.courier.x-1.1,W.courier.z,1.6);S.courier.arrive=p=>{p.hidden=true;S.inCar=true}}
     /* Earl's No. 9 shuttle: a borrowable van on River Rd (E to swap into it) */

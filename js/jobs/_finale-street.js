@@ -191,7 +191,7 @@ function readNow(M){const a=A(),S=M.fn.sub,rb=HT.Jobs.get('cones')&&HT.Jobs.get(
 function wording(r){const g=r.top;if(!g)return"Nothing in the road yet. He won't even slow down.";const v=g.verdict;
   return v==='airtight'?'Airtight: two cars and a lit flare. He stops. He might even apologise.':v==='stop'?'He stops: '+g.why+'.':v==='gap'?'He drives through the gap ('+(g.pass?g.pass.w.toFixed(1):'?')+' m). Close it.':
     v==='cones'?'Only cones: he drives right over them. Sawhorses or a car.':v==='bully'?"Sawhorses he'd push through: add the sign before it, the flagger or a lit flare.":v==='shove'?"One car he can shove: make it official (sign, flare) or add another car.":g.why}
-function startTruck(M){const a=A(),S=M.fn.sub;const path=FN.route([{x:W.truck.x+10,z:W.truck.z},{x:380.5,z:112},{x:380.5,z:BK.arriveZ-6}]);S.tP=FN.polyOf(path);S.tr=FN.car('workvan','#d8d2c4',path[0].x,path[0].z,FN.yawTo(path[1].x-path[0].x,path[1].z-path[0].z));
+function startTruck(M){const a=A(),S=M.fn.sub;const path=FN.avoidCars(FN.route([{x:W.truck.x+10,z:W.truck.z},{x:380.5,z:112},{x:380.5,z:BK.arriveZ-6}]),{skip:e=>Math.abs(e.pos.x-380)<6&&e.pos.z>80&&e.pos.z<97});S.tP=FN.polyOf(path);S.tr=FN.car('workvan','#d8d2c4',path[0].x,path[0].z,FN.yawTo(path[1].x-path[0].x,path[1].z-path[0].z));
   const ts=sign(['STAGE & SOUND · RIVERSIDE FESTIVAL'],{bg:'#f2efe6',fg:'#2b5d8a',w:2.6,ph:80});ts.position.set(0,1.75,1.03);S.tr.obj.add(ts);S.ts=0;S.tv=BK.truckV;S.frozen=null}
 function truckTick(dt,M,F){const a=A(),S=M.fn.sub,T=S.tr;const pl=S.frozen||S.plan;const q0=S.tP.at(S.ts);
   /* freeze the read once he's close (what he sees is what he gets) */if(!S.frozen&&pl&&pl.first&&q0.z-pl.first.z1<30&&q0.x<386)S.frozen=pl;
