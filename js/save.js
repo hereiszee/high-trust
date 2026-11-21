@@ -402,9 +402,10 @@ function gadget(s,id){s=S(s);return s.gadgets[id]=isObj(s.gadgets[id])?s.gadgets
 /* perk(s,id) reads, perk(s,id,true) grants */
 function perk(s,id,on){s=S(s);if(on!==undefined){on=!!on;if(!!s.perks[id]!==on){s.perks[id]=on;if(mine(s))Save.touch('perks')}}return!!s.perks[id]}
 
-/* storage adapter: localStorage in the browser, a Map elsewhere (tests can swap it with Save.useStorage) */
+/* storage adapter: localStorage in the browser, HTDesktop.storage in the desktop shell, a Map elsewhere (tests can swap it with Save.useStorage) */
 function memStore(){const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),_m:m}}
-let store=(()=>{try{if(root.localStorage){const k='__ht_probe';root.localStorage.setItem(k,'1');root.localStorage.removeItem(k);return root.localStorage}}catch(e){}return memStore()})();
+let store=(()=>{/* desktop shell (desktop/preload.js): a file in the user's profile folder instead of localStorage */if(root.HTDesktop&&root.HTDesktop.storage)return root.HTDesktop.storage;
+  try{if(root.localStorage){const k='__ht_probe';root.localStorage.setItem(k,'1');root.localStorage.removeItem(k);return root.localStorage}}catch(e){}return memStore()})();
 const sGet=k=>{try{return store.getItem(k)}catch(e){return null}};
 const sSet=(k,v)=>{try{store.setItem(k,v);return true}catch(e){return false}};
 const sDel=k=>{try{store.removeItem(k)}catch(e){}};

@@ -1,0 +1,12 @@
+"DepotBuild"
+{
+	"DepotID" "LINUX_DEPOT_ID"    // TODO(owner): usually APP_ID + 2
+	"ContentRoot" "../../../desktop/dist/linux-unpacked/"
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+	"FileExclusion" "steam_appid.txt"
+}
