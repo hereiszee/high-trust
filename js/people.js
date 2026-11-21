@@ -438,8 +438,8 @@ P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType||rb.pending)return;const
   const G=HT.Guns,vc=G&&G.VMC&&G.VMC[rb.gunType];const k=cycle||(vc&&vc.cycle);if(k==='pump'||k==='boltAction')rb.cyc={t:0,k}};
 P.interact=d=>{const rb=d&&d.rb;if(!rb)return;oneShot(d,'interact',1.1,.85)};
 P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType||rb.pending)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
-P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead)return;oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
-P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead)return;if(rb.pending){rb.dead=true;return}rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
+P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;/* never a hit reaction on a kid or the family */oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
+P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;if(rb.pending){rb.dead=true;return}rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
 /* tests: pin inputs regardless of what the game asks for (P.force(d,null) clears) */
 P.force=(d,o)=>{if(d&&d.rb)d.rb.force=o||null};
 P.revive=d=>{const rb=d&&d.rb;if(!rb)return;rb.dead=false;rb.deadT=0;d.body.position.y=0;d.root.visible=true};
@@ -677,5 +677,14 @@ P.update=function(dt,camera){if(pending.length&&(P._tickAcc=(P._tickAcc||0)+dt)>
         d.root.traverse(o=>{if(!o.isMesh||(o.userData&&o.userData.hitbox))return;o.castShadow=band===0||(band===1&&o===body)})}}
     if(++rb.skip<every){P.stats.skipped++;continue}rb.skip=0;const t=Math.min(rb.acc,.25);rb.acc=0;step(d,t);P.stats.updates++}};
 P.quality=q=>{qualityFn=()=>q};
+/* owner rule: children and the family can never be shot, hit or knocked about by anything. Every hit test asks this one question.
+   x: a character (People/box dude), an entity with .dude, or a hitbox mesh (walks up to the character). Flags: .protected / .kid / .family */
+P.PROTECTED={nb_kid:1,nb_teen:1,son:1,daughter:1,wife:1};
+P.isProtected=function(x){for(let i=0;x&&i<12;i++){if(x.protected||x.kid||x.family)return true;if(x.rb&&P.PROTECTED[x.rb.key])return true;if(x.isObject3D&&typeof x.name==='string'&&x.name.slice(0,3)==='rb_'&&P.PROTECTED[x.name.slice(3)])return true;
+    if(x.dude&&x.dude!==x){x=x.dude;continue}const u=x.userData;if(u&&(u.protected||u.kid))return true;if(u&&u.ent&&u.ent!==x){x=u.ent;continue}if(u&&u.dude){x=u.dude;continue}x=x.parent||null}return false};
+/* the nearest protected character standing in the world within r m of (x,z): {d,dist} or null (the 25 m no-guns bubble) */
+let _pv=null;P.protectedNear=function(x,z,r){if(!_pv&&T&&T.Vector3)_pv=new T.Vector3();let best=null;
+  for(const d of P.live){if(!d.root.parent||!d.root.visible||d.rb.dead||!P.isProtected(d))continue;let o=d.root;for(;o.parent;o=o.parent)if(!o.visible)break;if(o.parent)continue;
+    d.root.getWorldPosition(_pv);const k=Math.hypot(_pv.x-x,_pv.z-z);if(k<r&&(!best||k<best.dist))best={d,dist:k,x:_pv.x,z:_pv.z}}return best};
 HT.People=P;
 })();

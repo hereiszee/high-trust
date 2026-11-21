@@ -82,3 +82,11 @@ node dev/riverside-ingame.js [--only=0,4,91] [--seeds=10]   # giver -> drive -> 
 node dev/riverside-shots.js                                  # docs/screenshots/riverside-jobs/*.jpg
 ```
 `--only` takes job numbers 0-8, plus 90 (W3 checks: leash, leaving the job, fallback, trust gate) and 91 (chase win/fail over `--seeds`).
+
+## Release blockers (docs/steam/QA-GAPS.md, CONTENT.md minors)
+
+Headless Chromium + SwiftShader, one browser at a time. `--shots` writes jpgs to `docs/screenshots/release/`.
+
+- `node dev/release-title.e2e.js`: with a save, Continue is first and focused; New game asks first (Cancel is the default; Esc, backdrop and Enter-on-Cancel keep the save); confirming keeps the old save in the `ht-save-prev` slot; "Restore previous save" swaps it back; Credits & licences opens from the title and the pause menu, scrolls (End, wheel) and closes on Esc.
+- `node dev/kids-safe.e2e.js`: children and family are never hit (`HT.People.isProtected`, one predicate at every hit test). It covers pistol, beanbag and shotgun at point blank in the hub and Riverside, a kid wrongly registered as an enemy, the 25 m draw rule and auto-holster in Riverside, the minivan driven through kids, Kevin in Higher Ground (refused shot, lowered rifle, rounds pass him), and every kid on set in Crossing Guard, Dad Taxi and the finale with guns forced on. Any `People.hit`/`die` on a protected model fails the run.
+- `node dev/release-ui.e2e.js`: first-run hints, the aim toggle, the pause → Controls page, WebGL context loss and restore, finale guidance (objective line, home marker, calendar), "Not yet" being offered again, the Small Talk zip-tie line, one Dave and one Doug, and the quit-mid-job warning.
