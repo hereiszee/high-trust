@@ -1895,14 +1895,12 @@ function endMission(ok,why,title){
   setTimeout(()=>{if(mode==='mission'&&M&&M.i===mi&&M.state!=='go')HUD.show('result',res)},ok?900:1200);
 }
 function finale(){releaseLock();const t=Math.round(prog.trust),tr=Math.round(prog.trustR||0),both=MISSIONS.length>4,good=both?t>=70&&tr>=70:t>=70;
-  HUD.show('result',{stamp:(both?'Maple Heights & Riverside Flats':'Maple Heights')+' · One month later',title:good?'Doors unlocked.':'Quiet, anyway.',goLabel:'New Saturday',canRetry:both,retryLabel:'Keep driving',
+  HUD.show('result',{stamp:(both?'Maple Heights & Riverside Flats':'Maple Heights')+' · One month later',title:good?'Doors unlocked.':'Quiet, anyway.',goLabel:'Keep driving',canRetry:false,/* this card never wipes the campaign any more: there are dozens of jobs beyond the first nine; a new game lives in the title and pause menus */
     text:(both?(good?"Kids bike to school on both sides of the river. The chop shop is a climbing gym and the scrapyard is the Second Gear Auto School; the Duke changes the oil. ":"The dens are gone on both sides of the river. People wave, a little carefully. Trust takes longer to rebuild than a fence. ")
       +"Rosa still won't wear the polo. Earl's bike library has a waiting list. The guys still meet Saturdays. Mostly they just grill."
       :(t>=70?"Kids bike to school without texting when they get there. A man left his garage open overnight and nothing happened. The chop shop is a climbing gym now.":"The dens are gone. People are polite to you at the hardware store, a little too polite. Trust takes longer to rebuild than a fence.")+' The guys still meet Saturdays. Mostly they just grill.'),
     stats:[['Maple trust',t+'%'],...(both?[['Riverside trust',tr+'%']]:[]),['Zip-tied',prog.cuffed||'Nobody',prog.cuffed?(prog.cuffed===1?'person':'people')+' who got a second chance':'this time'],['Regrets',prog.shotSurr||'None',prog.shotSurr?'you think about at night':'you can name']]});
-  UI.acts={'result:go':()=>{Object.assign(prog,{done:prog.done.map(()=>false),trust:12,trustR:5,act:1,cuffed:0,downed:0,shotSurr:0,missionsRun:0});WM.finaleSeen=false;WM.beat=false;const s=SV();if(s){s.flags.act2Intro=false;s.flags.finale2=false;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}
-      HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()},
-    'result:retry':()=>{WM.finaleSeen=true;const s=SV();if(s){s.flags.finale2=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
+  UI.acts={'result:go':()=>{WM.finaleSeen=true;const s=SV();if(s){s.flags.finale2=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}HUD.hide('result');UI.acts={};enterHub();canvasFocus();requestLock()}}}
 function setObj(t,lines){if(mode==='mission'&&M&&M.leaveLine)lines=[...lines,M.leaveLine];UI.obj={title:t,lines:lines.map(l=>typeof l==='string'?{text:l}:{text:l[0],done:!!l[1],warn:l[2]==='warn'})}}
 
 /* ================= INPUT ================= */
@@ -4151,7 +4149,12 @@ const WM_AFTER={gary:['INDUSTRIAL WAY CLIMBING GYM','Formerly a chop shop · Rop
   rosa:['RIVERSIDE COMMUNITY GARDEN','Plant Day every Saturday · Forty families'],duke:['SECOND GEAR AUTO SCHOOL','Pastor Dee\'s youth program · Ask for Sal']};
 function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORLD.sites[m.id];if(!s||!WM_AFTER[m.id])return;
   const G=OW()&&OW().roads();let yaw=0,x=s.ring.x,z=s.ring.z;if(G){const r=G.nearestRoad(x,z);if(r){const dx=r.x-x,dz=r.z-z,l=Math.hypot(dx,dz)||1;x-=dx/l*1.2;z-=dz/l*1.2;yaw=Math.atan2(dx,dz)}}
-  const q=wmSnap(x,z);(WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
+  let q=wmSnap(x,z);if(G){/* never on the carriageway (Block Party's ring is on the road, so the nudge above had no direction): the nearest walkable tile off it, facing the road */
+    const onRd=(a,b)=>{const r=G.nearestRoad(a,b);return r&&r.dist<3.4};if(onRd(q.x,q.z)){const gx=tx(q.x),gz=tx(q.z);let f=null;
+      /* grass first (a lawn, never a gate walkway or a sidewalk: Block Party's sign went into Linden Park's gate, the way to the mower paddock), then any walkable tile off the road */
+      for(const want of[c=>c==='g',()=>true])for(let r=1;r<8&&!f;r++)for(let dz=-r;dz<=r&&!f;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;const X=gx+dx,Z=gz+dz;if(L.g[Z]&&want(L.g[Z][X])&&walkable(X,Z)&&!WM_NAVMAP[L.g[Z][X]]&&!onRd(tileC(X),tileC(Z))){f={x:tileC(X),z:tileC(Z)};break}}
+      if(f){q=f;const r=G.nearestRoad(f.x,f.z);if(r)yaw=Math.atan2(r.x-f.x,r.z-f.z)}}}
+  (WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
   if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
 function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;jrGiverTick(dt);
   if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}

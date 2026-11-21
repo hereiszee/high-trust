@@ -503,7 +503,7 @@ SETPIECES.push({id:'bridge',box:def=>({x0:270,z0:30,x1:316,z1:58,y1:9}),build(ws
   const jt=B.gbOf('joint');for(const x of[142*TILE,152*TILE])jt.floor(x-.04,z0,x+.04,z1,-.115,1);
   W_.finish(B,{bare:true,before:b=>{if(b.tuf)b.tuf.length=0;if(b.flw)b.flw.length=0}});
   /* barricade (its own group, hidden when the bridge opens) */
-  const bar=new THREE.Group();bar.name='barricade';g.add(bar);ws.barricadeGroup=bar;
+  const bar=new THREE.Group();bar.name='barricade';bar.userData.noCompact=true;/* must stay its own group: it is hidden when the bridge opens */g.add(bar);ws.barricadeGroup=bar;
   const stripe=(()=>{const c=canvas(256,64),x=c.getContext('2d');for(let i=-2;i<10;i++){x.fillStyle=i%2?'#f4f1ea':'#e8611c';x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32+32,0);x.lineTo(i*32,64);x.lineTo(i*32-32,64);x.fill()}const t=ctex(c);return stdMat('stripe',{map:t,roughness:.5})})();
   const leg=stdMat('sawleg',{color:'#d9d4c8',roughness:.7});const X=141*TILE+1;
   for(const zc of[tc(20)-.2,tc(22)+.2]){for(const yy of[.55,1.0]){const b=new THREE.Mesh(new THREE.BoxGeometry(.06,.24,3.2),stripe);b.position.set(X-.08,yy,zc);b.castShadow=true;bar.add(b)}
