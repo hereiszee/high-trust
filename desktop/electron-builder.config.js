@@ -43,5 +43,16 @@ module.exports = {
     extendInfo: { NSHighResolutionCapable: true, LSApplicationCategoryType: 'public.app-category.action-games', GCSupportsControllerUserInteraction: true }
   },
   publish: null, /* Steam delivers updates */
+  /* no Developer ID: ad-hoc sign the whole bundle (arm64 code must carry at least an ad-hoc signature to run, and electron-builder 26.0
+     only signs with a certificate). Gatekeeper still blocks it until it is notarised; this just lets it run on Apple Silicon after
+     right-click → Open / removing the quarantine flag (docs/steam/PLAYTEST.md). */
+  afterSign: async ctx => {
+    if (ctx.electronPlatformName !== 'darwin' || SIGN_MAC || /-temp$/.test(ctx.appOutDir)) return;/* the per-arch halves of a universal build are merged first */
+    const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+    const app = fs.readdirSync(ctx.appOutDir).find(f => f.endsWith('.app')); if (!app) return;
+    const p = path.join(ctx.appOutDir, app), ent = path.join(__dirname, 'build', 'entitlements.mac.plist');
+    execFileSync('codesign', ['--force', '--deep', '--sign', '-', '--options', 'runtime', '--entitlements', ent, p], { stdio: 'inherit' });
+    execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=2', p], { stdio: 'inherit' });
+  },
   npmRebuild: false /* steamworks.js ships prebuilt N-API binaries for every platform */
 };
