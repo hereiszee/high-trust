@@ -19,6 +19,7 @@ when Steam is running.
 Game-side pieces (shared with the web build, all no-ops on the web unless noted):
 - `js/platform.js`: `HT.Steam` (achievements, rich presence) and the desktop-only settings (Display mode, VSync) and Quit to desktop.
 - `js/gamepad.js`: the controller layer. It also works in the web build.
+- `js/keys.js`: keyboard rebinding (Pause → Key bindings), web and desktop. Tested by `dev/keys.e2e.js`.
 - `vendor/`: Three.js r128 and its add-ons, vendored, so neither build depends on a CDN.
 - `js/save.js` and `index.html`: in the shell, both use `HTDesktop.storage` (the save file) instead of localStorage.
 
@@ -33,7 +34,7 @@ npm start              # run the shell on the repo (dev: devtools on F12)
 npm test               # save file unit tests
 npm run dist:linux     # dist/linux-unpacked/ + dist/high-trust-1.0.0.tar.gz
 npm run dist:win       # dist/win-unpacked/ + zip. Without wine the exe keeps Electron's icon: build releases on Windows
-npm run dist:mac       # an unsigned .app builds from Linux (untested); signing + notarization need a Mac and an Apple Developer ID
+npm run dist:mac       # macOS only: universal (arm64 + x64) .app in dist/mac-universal + zip. Use CI (below) from Linux/Windows
 npm run dist:full      # same as dist, also ships the source assets (only needed if assets/opt is stale)
 xvfb-run -a node test/e2e.js --exe dist/linux-unpacked/HighTrust   # end-to-end check of a packaged build
 ```
@@ -77,19 +78,66 @@ missing (`[app] 404` in the log).
 4. Strip the macOS/Windows natives from the Linux depot and vice versa (`node_modules/steamworks.js/dist/*`, about 6 MB).
 
 
+## CI: all three platforms (`.github/workflows/desktop-build.yml`)
+
+Actions → **Desktop build** → *Run workflow* (or push a `v*` tag). It runs three jobs:
+
+| Runner | Builds | Artifact (= depot content) |
+|---|---|---|
+| `windows-latest` | `HighTrust.exe` x64, with the High Trust icon (rcedit works there) | `high-trust-windows-x64` |
+| `macos-latest` | `High Trust.app`, **universal** (arm64 + x64 merged by @electron/universal, which only runs on macOS) | `high-trust-macos-universal` |
+| `ubuntu-latest` | `HighTrust` x64, then the packaged e2e test under xvfb | `high-trust-linux-x64` |
+
+Each job also runs the save-file unit tests and `dev/check-build.js` (assets/opt up to date). Download the artifacts, put each in
+`desktop/dist/{win-unpacked,mac-universal,linux-unpacked}`, and run steamcmd (below). The repo holds no secrets. Signing steps run only
+when the repository secrets listed at the top of the workflow exist.
+
+## macOS: signing and notarisation (owner)
+
+**An unsigned or un-notarised Mac build is blocked by Gatekeeper, even when Steam installs it** ("High Trust can't be opened because Apple
+cannot check it for malicious software"). Players can override it in System Settings, but that is not shippable. What you need:
+
+1. An **Apple Developer Program** membership ($99/year) for your team.
+2. A **Developer ID Application** certificate (Xcode → Settings → Accounts → Manage Certificates → +, or developer.apple.com → Certificates).
+   Export it from Keychain as a `.p12` with a password.
+3. An **app-specific password** for your Apple ID (appleid.apple.com → Sign-In and Security), and your **Team ID** (developer.apple.com → Membership).
+4. Add GitHub repository secrets: `MAC_CERT_P12_BASE64` (`base64 -i cert.p12 | pbcopy`), `MAC_CERT_PASSWORD`, `APPLE_ID`,
+   `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. The next CI run signs with the hardened runtime, notarises and staples. The
+   "macOS signature / notarisation report" step prints `codesign -dv` and `spctl` output so you can confirm it.
+   Locally on a Mac the same env vars work (`CSC_LINK=cert.p12 CSC_KEY_PASSWORD=… APPLE_ID=… npm run dist:mac`).
+
+Entitlements (`desktop/build/entitlements.mac.plist`): `allow-jit` and `allow-unsigned-executable-memory` (V8 and WebGL),
+`disable-library-validation` (Valve's `libsteam_api.dylib` loaded by the steamworks.js addon), and `allow-dyld-environment-variables`
+(the Steam overlay injects `gameoverlayrenderer.dylib` with `DYLD_INSERT_LIBRARIES`; without it there is no overlay on Mac).
+
+Other macOS details, handled in the shell:
+- **Cmd+Q** quits, flushing the save first. macOS keeps a minimal app menu (Quit, Hide, Ctrl+Cmd+F fullscreen), since without a menu
+  Cmd+Q does nothing.
+- **Fullscreen** is native macOS fullscreen: its own Space, the menu bar slides in at the top edge, and switching animates for about 0.7 s.
+  F11, Alt/Option+Enter and Ctrl+Cmd+F all toggle it. Simple (pre-Lion) fullscreen would be instant but breaks Mission Control and multi-display;
+  `win.setSimpleFullScreen` is the one-line switch if testing prefers it.
+- **Pointer lock** is Chromium's and works the same as on Windows. Esc releases it and opens the pause menu, as in the browser.
+- **Retina:** the graphics presets cap the pixel ratio (Low 1, Medium 1.25, High 2) and Auto starts on Medium, so a 2× display doesn't
+  render at 4× the pixels by default. Resolution scale goes lower still.
+- **Apple Silicon:** WebGL runs through ANGLE on Metal, natively in the universal build (no Rosetta). WebGL2 + half-float render targets
+  are supported there. **This has not been run on a real Mac** (no Mac here). First test on CI artifacts: start → free roam →
+  post effects on High → pause → Cmd+Q → relaunch → Continue.
+- The minimum macOS is 12 (Electron 45's floor is 12).
+
 ## Steam setup (owner)
 
 ### Depots and upload with steamcmd
 
-Templates are in `docs/steam/vdf/`. Replace `APP_ID`, `WINDOWS_DEPOT_ID` and `LINUX_DEPOT_ID` with the ids from Steamworks.
+Templates are in `docs/steam/vdf/` (one depot per OS). Replace `APP_ID`, `WINDOWS_DEPOT_ID`, `MAC_DEPOT_ID` and `LINUX_DEPOT_ID` with the ids from Steamworks.
 
-1. Steamworks → your app → *SteamPipe → Depots*: add a Windows depot (OS: Windows, 64-bit) and a Linux depot (OS: Linux + SteamOS).
+1. Steamworks → your app → *SteamPipe → Depots*: add three depots: Windows (OS: Windows, 64-bit), macOS (OS: macOS), Linux (OS: Linux + SteamOS).
 2. *Installation → General*: add launch options:
    - Windows: executable `HighTrust.exe`, OS Windows.
    - Linux: executable `HighTrust`, OS Linux. Arguments: none. On Steam Deck the native Linux build runs as-is. If a driver
      ever misbehaves, users can force Proton with the Windows build.
+   - macOS: executable `High Trust.app`, OS macOS.
    - Optional extra entry "Windowed": the same executable with `--windowed`.
-3. Build the two folders (`npm run dist`), then upload:
+3. Get the three folders (CI artifacts, or `npm run dist` + a Mac build), then upload:
 
 ```sh
 steamcmd +login <builder_account> +run_app_build "$(pwd)/docs/steam/vdf/app_build.vdf" +quit
@@ -128,6 +176,8 @@ Steam none of that happens.
 ## Steam Deck checklist
 
 - [ ] Native Linux depot uploaded. Launch option set for Linux. Deck: verify it starts fullscreen at 1280×800 and the title fits (16:10).
+- [ ] Controller-first: when Steam sets `SteamDeck=1`, the game starts with controller prompts before any input (`HTDesktop.deck`) and
+  Interface size starts at 115% (Display → Window). That makes the smallest HUD text (10-11 px CSS) about 12-13 px on screen, above Valve's 9 px guideline.
 - [ ] Controller: every menu (title, pause, settings tabs, brief, result, shops, calendar, map) works with the D-pad/stick, A and B.
   The pause menu "Key bindings" tab lists the controller layout. Prompts switch to pad glyphs as soon as the pad is used.
 - [ ] Steam Input: set the default controller config to **Gamepad** (the game reads the standard mapping). Do not ship a
@@ -148,6 +198,7 @@ Steam none of that happens.
 - Store page: capsules, screenshots, trailer, description, age rating questionnaire (it's a shooter), price, release date.
 - Achievement icons and publishing them, the rich presence file, Steam Cloud settings, Steam Input default config.
 - Code signing: a Windows code-signing certificate (otherwise SmartScreen warns on the zip build; Steam installs aren't affected), and an Apple
-  Developer ID + notarization for macOS.
+  Developer ID + notarisation for macOS (required: Gatekeeper blocks unsigned Mac builds).
 - The build account for steamcmd, and pushing builds live.
 - Set `RELEASE_APP_ID` (desktop/steam.js) and `appId`/`copyright` (desktop/electron-builder.config.js).
+- Apple Developer Program, Developer ID certificate, app-specific password, Team ID → GitHub secrets (see the macOS section).
