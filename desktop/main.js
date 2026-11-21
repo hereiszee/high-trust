@@ -58,6 +58,13 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.gif': 'image/gif', '.ico': 'image/x-icon',
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.hdr': 'application/octet-stream', '.bin': 'application/octet-stream',
   '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
+let OPT = null;
+function optFor(src) {
+  if (OPT === null) { try { OPT = JSON.parse(fs.readFileSync(path.join(GAME_ROOT, 'assets/opt/manifest.json'), 'utf8')).files || {} } catch (e) { OPT = {} } }
+  const e = OPT[src]; if (!e) return null;
+  for (const t of ['l', 'm']) { const f = e[t] && e[t].f; if (!f) continue; const u = f.glb || f.hdr || f.webp || f.jpg || f.png; if (u && fs.existsSync(path.join(GAME_ROOT, u))) return u }
+  return null;
+}
 function serve(req) {
   const u = new URL(req.url);
   if (u.host !== 'game') return new Response('not found', { status: 404 });
@@ -66,7 +73,12 @@ function serve(req) {
   if (rel === '/sw.js') return new Response('', { status: 404 });
   const file = path.normalize(path.join(GAME_ROOT, rel));
   if (!file.startsWith(GAME_ROOT + path.sep)) return new Response('forbidden', { status: 403 });
-  let st; try { st = fs.statSync(file) } catch (e) { log('[app] 404', rel); return new Response('not found', { status: 404 }) }
+  let st; try { st = fs.statSync(file) } catch (e) {
+    /* the package ships assets/opt, not the source assets: a loader that asks for a source path before the manifest is in
+       (js/world.js furniture, for one) gets the optimised file the manifest maps it to */
+    const alt = optFor(rel.slice(1));
+    if (alt) return serve({ url: ORIGIN + '/' + alt });
+    log('[app] 404', rel); return new Response('not found', { status: 404 }) }
   if (!st.isFile()) return new Response('not found', { status: 404 });
   const headers = { 'content-type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'content-length': String(st.size), 'cache-control': 'no-cache', 'access-control-allow-origin': '*' };
   return new Response(Readable.toWeb(fs.createReadStream(file)), { status: 200, headers });

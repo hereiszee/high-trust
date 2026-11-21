@@ -63,7 +63,9 @@ Steam compresses depots, so the download is close to the zip/tar.gz size (about 
 **The asset cut already applied:** `assets/` is about 150 MB in the repo, but the game loads the optimised, content-hashed files in
 `assets/opt/` (docs/PERF.md) and every source file is listed in `assets/opt/manifest.json`. So the package ships only `assets/opt`
 (minus the JPEG boot pack, since Chromium always takes the WebP one), fonts and credits. `npm run dist:full` ships everything instead (+82 MB) if
-the manifest ever lags behind. The e2e test fails on any missing file (`[app] 404` in the log).
+the manifest ever lags behind. A loader that asks for a source path before the manifest has arrived (js/world.js's interior furniture
+does this at startup) is served the optimised file the manifest maps it to (`optFor` in main.js). The e2e test fails on any file that is still
+missing (`[app] 404` in the log).
 
 **How to cut more:**
 1. *Electron itself is most of the package.* `electronLanguages: ['en-US']` already drops the other locales. A Steam-only build could
