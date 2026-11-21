@@ -154,7 +154,8 @@ function ground(a,e,dt,pitchIn,yawIn,k){/* rolling: thrust, rolling drag, brakes
 function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* hands off: the wings level and the nose settles toward level flight (gently: a held bank or climb is untouched) */
   {_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);_f.set(1,0,0).applyQuaternion(F.q);const bk=Math.atan2(-_r.y,_u.y),pt=Math.asin(clamp(_f.y,-1,1));
-   if(F.handsR&&F.lastAlt>3)rollIn=clamp(-bk*.45,-.3,.3);if(F.handsP&&Math.abs(bk)<.35&&F.lastAlt>3&&!F.stall)pitchIn=clamp(pt*.8,-.25,.25)}/* the nose only once the wings are about level */
+   if(F.handsR&&F.lastAlt>3)rollIn=clamp(-bk*.45,-.3,.3);const climbOut=F.gear&&F.lastAlt<60&&F.thr>.6?.14:0;/* just off the runway, gear down, power up: hands off climbs gently out */
+   if(F.handsP&&Math.abs(bk)<.35&&(F.lastAlt>3||climbOut)&&!F.stall)pitchIn=clamp((pt-climbOut)*.8,-.25,.25)}/* the nose only once the wings are about level */
   /* body rotations (local axes: x forward, y up, z right): pitch about z, roll about x, yaw about -y */
   _q.setFromEuler(_e.set(rollIn*K.ROLL*eff*dt,-yawIn*K.YAW*eff*dt,-pitchIn*K.PITCH*eff*dt,'XYZ'));F.q.multiply(_q);
   _f.set(1,0,0).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);
@@ -244,13 +245,13 @@ function chuteTick(a,dt){const c=F.chute;if(!c)return;c.t+=dt;const P=a.P,k=a.ke
     const home=d?V(d.jet.x-14,0,d.jet.z-6):V(c.p.x,0,c.p.z);let hx=home.x-c.p.x,hz=home.z-c.p.z;const hl=Math.hypot(hx,hz)||1;hx/=hl;hz/=hl;
     /* automatic: no keys under the canopy (the owner's rule: nothing held); it turns to face the post and drifts home */
     {let dy=Math.atan2(-hx,-hz)-(c.yaw||0);dy=Math.atan2(Math.sin(dy),Math.cos(dy));c.yaw=(c.yaw||0)+dy*Math.min(1,dt*.8)}
-    const drift=hl>4&&hl<600?Math.min(9,hl*.2+3):0;/* far out: land where you are (a ride back is offered) */c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*.8);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*.8);
+    const drift=hl>4&&hl<250?Math.min(9,hl*.2+3):0;/* far out: land where you are (a ride back is offered) */c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*.8);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*.8);
     c.v.y+=(-3.4-c.v.y)*Math.min(1,dt*2);c.p.addScaledVector(c.v,dt)}
   const gy=groundY(a,c.p.x,c.p.z);
   P.pos.set(c.p.x,0,c.p.z);c.mesh.position.set(c.p.x,c.p.y,c.p.z);c.mesh.rotation.y=c.yaw||0;
   if(P.dude){P.dude.root.position.set(c.p.x,c.p.y,c.p.z);P.dude.root.rotation.y=(c.yaw||0)+Math.PI;P.dude.root.visible=true}
   if(c.p.y<=gy+.05&&c.t>1.5){F.chute=null;c.mesh.parent&&c.mesh.parent.remove(c.mesh);P.pos.set(c.p.x,0,c.p.z);try{a.collide(P.pos,.35)}catch(_){}tone(300,200,.15,.1);
-    const far=d&&Math.hypot(c.p.x-d.jet.x,c.p.z-d.jet.z)>300;if(far){F.ride={until:a.simT+120,x:c.p.x,z:c.p.z};say(TOWER,"DAD-1, you're a long way out. Press E and we'll send a car.",true)}else say(TOWER,pick(LINES.ground),true)}}
+    const far=d&&Math.hypot(c.p.x-d.jet.x,c.p.z-d.jet.z)>200;if(far){F.ride={until:a.simT+120,x:c.p.x,z:c.p.z};say(TOWER,"DAD-1, you're a long way out. Press E and we'll send a car.",true)}else say(TOWER,pick(LINES.ground),true)}}
 
 /* ================= camera: chase, cockpit (V), look back (C); the parachute ================= */
 const _c=V(0,0,0),_t=V(0,0,0);
@@ -435,13 +436,13 @@ function hud(st){const a=A();if(!a)return;fogLate(a);const on=F.on&&a.CV&&a.CV.t
 
 /* ================= discoverability (owner's playtest): the controls strip, step prompts, auto gear, the ride back ================= */
 /* nose convention, said in words everywhere: SPACE, ↑ or mouse up (like looking up) = nose up = climb; Q, ↓ or mouse down = dive */
-const TIPS={thr:'Tap W to throttle up (it stays where you set it)',rotate:'Nose up to take off: SPACE, ↑ or mouse up (like looking up)',
+const TIPS={taxi:'Tap W to roll, A / D to steer onto the runway (just ahead of you)',thr:'Tap W to throttle up (it stays where you set it)',rotate:'Nose up to take off: SPACE, ↑ or mouse up (like looking up)',
   gear:'Climbing: the gear comes up by itself above 150 ft (G does it by hand)',bank:'A / D to bank: the nose follows the bank. SPACE climbs, Q dives',
   land:'To land: S to throttle back, line up with the runway, ease the nose down. The gear comes down by itself',
   ride:'You landed a long way out. E: ride back to Fort Sensible (the jet is already at Hangar 2)'};
-let HELP=null;
+let HELP=null;/* the prompt sits upper-middle: clear of the game's E prompts, the subtitles and the key strip */
 function helpEl(){if(HELP)return HELP;const d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:20;font-family:"Barlow","Arial Narrow",Arial,sans-serif';
-  d.innerHTML='<div data-j="tip" style="position:absolute;left:50%;bottom:22%;transform:translateX(-50%);max-width:min(860px,86vw);text-align:center;font-size:clamp(17px,2.3vw,26px);font-weight:700;line-height:1.25;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);background:rgba(12,16,20,.62);padding:10px 22px;border-radius:12px;border:1px solid rgba(255,255,255,.14);display:none"></div>'+
+  d.innerHTML='<div data-j="tip" style="position:absolute;left:50%;top:27%;transform:translateX(-50%);max-width:min(1060px,90vw);text-align:center;font-size:clamp(17px,2.3vw,26px);font-weight:700;line-height:1.25;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);background:rgba(12,16,20,.62);padding:10px 22px;border-radius:12px;border:1px solid rgba(255,255,255,.14);display:none"></div>'+
     '<div data-j="strip" style="position:absolute;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:min(640px,64vw);display:none"></div>'+
     '<div data-j="fade" style="position:absolute;inset:0;background:#000;opacity:0;transition:opacity .45s"></div>';
   document.body.appendChild(d);HELP={root:d,tip:d.querySelector('[data-j=tip]'),strip:d.querySelector('[data-j=strip]'),fade:d.querySelector('[data-j=fade]'),chips:{},tipId:null};
@@ -455,11 +456,12 @@ Jet.tip=()=>HELP&&HELP.tipId||null;/* test hook: the prompt on screen (dev/base-
 /* which step: first flights walk through them once (SAVE.base.jet.tut); any step comes back if you sit in it for 6 s without doing it */
 function tutor(a,dt){const s=sv(),tut=s&&s.jet?(s.jet.tut||(s.jet.tut={})):(S.tut||(S.tut={}));const done=id=>{if(!tut[id]){tut[id]=1;try{A().save()}catch(_){}}};
   const d=B().def(),r=d&&d.runway;let want=null,stuck=null;
-  if(!F.air){if(F.thr<.7){want='thr';stuck=F.spd<2&&F.thr<.05?'thr':null}else{done('thr');if(F.spd>K.ROT-6){want='rotate';stuck=F.spd>K.ROT+8?'rotate':null}}}
+  if(!F.air){const offRw=r&&Math.abs(F.pos.z-r.z)>7;if(!offRw)done('taxi');if(offRw&&!tut.taxi){want='taxi';stuck=null}else if(F.thr<.7){want='thr';stuck=F.spd<2&&F.thr<.05?'thr':null}else{done('thr');if(F.spd>K.ROT-6){want='rotate';stuck=F.spd>K.ROT+8?'rotate':null}}}
   else{done('thr');done('rotate');
     if(F.gear&&F.lastAlt<60){want='gear';}else if(!F.gear)done('gear');
-    if(!want){if(!tut.bank){want='bank';if(Math.abs(F.inp.r)>.5){F.bankT=(F.bankT||0)+dt;if(F.bankT>1)done('bank')}}
-      else if(r){const ahead=Math.abs(F.pos.z-r.z)<260&&F.lastAlt<140&&(F.pos.x>r.x1&&F.pos.x<r.x1+1400||F.pos.x<r.x0&&F.pos.x>r.x0-1400);if(ahead)want='land'}}
+    if(!want){if(!tut.bank){want='bank';if(Math.abs(F.inp.r)>.5){F.bankT=(F.bankT||0)+dt;if(F.bankT>.6)done('bank')}}
+      else if(r){_f.set(1,0,0).applyQuaternion(F.q);const hd=Math.atan2(-_f.x,-_f.z),ang=(w)=>Math.abs(Math.atan2(Math.sin(hd-w),Math.cos(hd-w)));
+        const ahead=Math.abs(F.pos.z-r.z)<260&&F.lastAlt<140&&F.vs<2&&(F.pos.x>r.x1&&F.pos.x<r.x1+1400&&ang(Math.PI/2)<.6||F.pos.x<r.x0&&F.pos.x>r.x0-1400&&ang(-Math.PI/2)<.6);/* heading in toward the runway, not climbing away */if(ahead)want='land'}}
     if(F.gear&&F.lastAlt>70&&F.vs>-1)stuck='gear'}
   if(want==='land'&&!F.air)done('land');
   const key=stuck||want;if(key&&key===S.stKey)S.stT=(S.stT||0)+dt;else{S.stKey=key;S.stT=0}

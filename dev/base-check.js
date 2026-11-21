@@ -7,7 +7,7 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
 const OUT=path.join(__dirname,'../docs/screenshots/base');fs.mkdirSync(OUT,{recursive:true});
 const args=process.argv.slice(2),SHOTS=args.includes('--shots');let phases=(args.find(a=>!a.startsWith('--'))||'all').split(',');
-if(phases.includes('all'))phases=['drive','range','tank','jet','eggs'];
+if(phases.includes('all'))phases=['drive','range','tank','jet','pilot','eggs'];
 const log=[];const say=(...a)=>{const s=a.join(' ');console.log(s);log.push(s)};let fails=0;
 const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
@@ -179,6 +179,55 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     for(let i=0;i<500;i++){j=await js();if(!j.chute)break;await step(4)}const pp=await st();
     ok(!j.chute,'landed under the parachute at '+pp.x.toFixed(0)+','+pp.z.toFixed(0)+(pp.z>160&&pp.x<290?' (back on the post)':''));
     const jb=await ev(()=>{const e=HT.Jet.S.e;return e?{x:e.pos.x,z:e.pos.z}:null});ok(jb&&Math.hypot(jb.x-256,jb.z-221)<2,'the jet is back on the apron (it was a rental)');
+  }
+  if(phases.includes('pilot')){say('== a new pilot who only does what the screen says');
+    let s=await st();if(s.car){await press('e');await step(4)}
+    const d=await ev(()=>HT.Base.def());const js=()=>ev(()=>HT.Jet.state());const tip=()=>ev(()=>HT.Jet.tip&&HT.Jet.tip());
+    await ev(()=>{const b=HT.Jobs.api.SV().base;if(b&&b.jet)b.jet.tut={};HT.Jet.home()});/* first flights again */
+    await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
+    let j=await js();ok(j.on,'E climbs in');
+    const strip=await ev(()=>{const el=[...document.querySelectorAll('div')].find(x=>x.textContent.includes('Nose up / down')&&x.style.display==='flex');return el?el.textContent:''});
+    ok(/Throttle/.test(strip)&&/Gear/.test(strip)&&/SPACE/.test(strip)&&/Eject/.test(strip),'the controls strip is on screen: '+strip.replace(/\s+/g,' ').slice(0,120));
+    const seen={},shotTip=async id=>{if(seen[id])return;seen[id]=1;await shot('jet-tip-'+id)};let gPress=0;
+    /* the prompt loop: read the prompt, press what it names (taxi: steer onto the centreline with A / D) */
+    for(let n=0;n<700;n++){const t=await tip();j=await js();if(j.air&&j.alt>3&&t!=='rotate')break;
+      if(t)await shotTip(t);
+      if(t==='taxi'){if(j.thr<.25)await p.keyboard.press('w');const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04)}
+      else if(t==='thr'){await release();await p.keyboard.press('w')}
+      else if(t==='rotate'){await key(' ',true)}
+      else{await release()}
+      if(!j.air){const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));if(t!=='taxi'){await key('a',he>.03);await key('d',he<-.03)}}
+      await step(2)}
+    await release();j=await js();ok(j.air,'took off by following the prompts ('+Object.keys(seen).join(' → ')+')');
+    for(let n=0;n<300&&j.gear;n++){j=await js();const t=await tip();if(t)await shotTip(t);await step(2)}ok(j.gear===0&&gPress===0,'hands off it climbs out and the gear comes up by itself (no G; '+(j.alt*3.28).toFixed(0)+' ft)');
+    /* the bank prompt: hold A for a moment, as it says */
+    for(let n=0;n<120;n++){const t=await tip();if(t==='bank'){await shotTip('bank');await key('a',true);await step(30);await release();break}await step(2)}
+    await shot('jet-strip');
+    /* back round to runway 27 with the prompted keys only: A / D bank, SPACE / Q nose, W / S throttle */
+    const fly=async(o)=>{let n=0;for(;n<(o.max||900);n++){j=await js();if(o.until&&o.until(j))break;const TT=typeof o.to==='function'?o.to(j):o.to;const want=Math.atan2(-(TT[0]-j.x),-(TT[1]-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
+        const bankW=Math.max(-1,Math.min(1,-he*1.8));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
+        await key(' ',j.pitch<pw-.03);await key('q',j.pitch>pw+.05);const sw=o.spd||75,mt=o.minThr==null?.35:o.minThr;await key('w',j.spd<sw||j.thr<mt);await key('s',j.spd>sw+(o.minThr==null?8:2)&&j.thr>mt-.05);
+        const t=await tip();if(t)await shotTip(t);if(process.env.FLYLOG&&n%10===0)console.log('    pfly',n,j.x.toFixed(0),j.z.toFixed(0),'alt',j.alt.toFixed(1),'pitch',j.pitch.toFixed(2),'spd',j.spd.toFixed(0),'thr',j.thr.toFixed(2),'gear',j.gear,'air',j.air);await step(2)}await release();return n};
+    await fly({to:[520,d.runway.z],alt:80,spd:70,max:700,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
+    await fly({to:[860,d.runway.z],alt:40,spd:60,max:500,until:q=>q.x>820});
+    await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:500,until:q=>q.x<560&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
+    await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
+    for(let i=0;i<10;i++)await p.keyboard.press('s');for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}
+    ok(seen.land,'the landing prompt came up on the approach');ok(!j.air&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27, gear down by itself ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')');
+    /* eject far from the post (over Maple Heights), land there, take the ride back */
+    /* out, the Air Wing tows it to the apron (as when you leave it), back in, and off again down runway 27 */
+    await press('e');await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
+    for(let i=0;i<10;i++)await p.keyboard.press('w');for(let i=0;i<300;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04);if(j.air&&j.alt>12)break;await step(2)}await release();
+    await fly({to:[40,30],alt:110,spd:70,max:700,until:q=>Math.hypot(q.x-40,q.z-30)<60});
+    j=await js();say('    (before eject: '+JSON.stringify({x:Math.round(j.x),z:Math.round(j.z),alt:Math.round(j.alt),on:j.on,air:j.air})+')');
+    await press('e');await step(4);await press('e');await step(10);j=await js();ok(!!j.chute,'E twice: out over Maple Heights'+(j.chute?'':' '+JSON.stringify({on:j.on,air:j.air,tip:await tip()})));
+    const fed=await ev(()=>!!(window.__ht&&document.body.textContent.includes('back at Fort Sensible')));
+    for(let i=0;i<600;i++){j=await js();if(!j.chute)break;await step(4)}
+    const where=await st();const far=Math.hypot(where.x-d.jet.x,where.z-d.jet.z);ok(far>200,'landed where he came down, '+far.toFixed(0)+' m from the jet (no long drift)');
+    let t=await tip();ok(t==='ride','the screen offers the ride back ('+t+')');ok(fed,'the feed says where the jet went');
+    const mk=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='DAD-1 · Hangar 2')});ok(mk,'a marker on the jet (DAD-1 · Hangar 2)');
+    await shot('jet-ride-prompt');await press('e');await step(10);s=await st();const back=Math.hypot(s.x-d.jet.x,s.z-d.jet.z);ok(back<20,'E: back at the apron ('+back.toFixed(1)+' m from the jet)');
+    await p.waitForTimeout(800);await shot('jet-ride-back');
   }
   if(phases.includes('eggs')){say('== easter eggs');
     let s=await st();if(s.car){await key('s',true);await step(30);await release();await press('e')}
