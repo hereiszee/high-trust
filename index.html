@@ -793,8 +793,13 @@ function snd(kind,vol=1){const A=AU();if(A){try{A.legacy(kind,vol)}catch(e){}ret
 const SKIN=['#e0b48f','#c68e66','#8d5a3b','#f1c7a3','#a8714c'];
 /* realistic skinned people when js/people.js and its GLBs are in; the box dudes below stay as the fallback */
 function people(){const m=HTM('People');if(!m)return null;if(!m._initDone)m.init({assets:ASSETS,quality:()=>RENDER.q});
-  if(m.ok&&!m._htReg&&typeof m.make==='function'){const mk=m.make.bind(m);m.make=(...a)=>{const d=mk(...a);if(d&&d.root)DUDE_REG.push(d.root);return d};m._htReg=true}/* every skinned person, wherever it is made (jobs, neighbours, givers) */
-  return m.ok?m:null}
+  const ok=m.usable?m.usable():m.ok;
+  if(ok&&!m._htReg&&typeof m.make==='function'){const mk=m.make.bind(m);m.make=(...a)=>{const d=mk(...a);if(d&&d.root)DUDE_REG.push(d.root);return d};m._htReg=true;/* every skinned person, wherever it is made (jobs, neighbours, givers) */
+    /* a character whose model is still streaming is made pending (invisible, never a box); it turns real in place when the model lands.
+       Only after a long run of failed retries may the box stand in (People logs that once), and the real model still replaces it later. */
+    m.boxFallback=(role,look)=>boxDude(look||HOMIES[role]||{shirt:'#7a8796',pants:'#2b2f36'});
+    if(m.onSwap)m.onSwap(d=>{for(const e of [...enemies,...allies])if(e.dude===d){rebuildTargets();break}})}
+  return ok?m:null}
 /* skinned people made so far that may still need their bone texture released (see dudeSweep, run by clearChars) */
 const DUDE_REG=[];
 function dudeSweep(){const keep=[];for(const r of DUDE_REG){let a=r;while(a.parent)a=a.parent;if(a===scene){keep.push(r);continue}
@@ -803,7 +808,10 @@ function dudeSweep(){const keep=[];for(const r of DUDE_REG){let a=r;while(a.pare
 function roleOf(o){if(o.role)return o.role;for(const k in HOMIES)if(HOMIES[k]===o)return k;return o.crown?'boss':'thug'}
 function makeDude(o){
   if(o&&o.giver&&typeof giverModel==='function')return giverModel(o.giver);/* Riverside givers (RIVERSIDE JOBS) */
-  const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
+  const pp=people();if(pp){try{const d=pp.make(roleOf(o),{variant:o.variant,look:o});if(d)return d}catch(e){console.warn('people: make failed, using box dude',e)}}
+  return boxDude(o)}
+/* the old box figure: only for looks People has no model for, or (via People.boxFallback) after its long retry ceiling */
+function boxDude(o){
   const root=new THREE.Group();const meshes=[];
   const reg=(m,head)=>{m.userData.head=!!head;meshes.push(m);return m};
   const skin=o.skin||pick(SKIN);
@@ -2738,7 +2746,7 @@ function hud(dt){
   const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
   /* name tags: the spawn code still creates tag elements (hidden in #tags); their text and class drive the HUD tags */
   const tags=[];
-  for(const x of [...allies,...enemies]){if(!x.tag||!x.tag.isConnected)continue;if(drv&&x.kind==='ally')continue;
+  for(const x of [...allies,...enemies]){if(!x.tag||!x.tag.isConnected)continue;if(drv&&x.kind==='ally')continue;if(x.dude&&x.dude.pending)continue;/* no tag over a character whose model is still streaming */
     const dd=x.pos.distanceTo(P.pos);if(dd>(x.kind==='enemy'&&x.state!=='surrender'?(x.boss?30:16):45))continue;
     const ally=x.kind==='ally',c=x.tag.className;
     tags.push({id:x,text:ally?x.name+(x.down?' · down':''):x.tag.textContent,kind:ally?(x.down?'down':'ally'):c.includes('surr')?'surr':'boss',screen:project(x.pos.x,2.3*(x.dude.root.scale.x||1),x.pos.z)})}
@@ -3618,7 +3626,7 @@ const GIVER_STAND_IN={earl:{base:'boss',tint:'#4f6f9a'},benny:{base:'boss',tint:
 /* the cast models (js/people.js roles earl, dee, rosa, benny) when People has them; the stand-in below otherwise (Sal: not cast yet) */
 function giverKey(id){const pp=HTM('People');return pp&&pp.giverKeys&&pp.giverKeys.includes(id)?id:GIVER_STAND_IN[id]?GIVER_STAND_IN[id].base:null}
 function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=people();let d=null;
-  if(pp&&pp.giverKeys&&pp.giverKeys.includes(id)){if(pp.has(id)){try{d=pp.make(id,{})}catch(e){d=null}if(d){d.giver=id;return d}}else if(pp.preload)pp.preload([id]).catch(()=>{})}
+  if(pp&&pp.giverKeys&&pp.giverKeys.includes(id)){try{d=pp.make(id,{})}catch(e){d=null}if(d){d.giver=id;return d}}/* pending until the model is in */
   if(pp&&s){try{d=pp.make(s.base,{})}catch(e){d=null}}
   if(!d)return makeDude(Object.assign({},h,{giver:null}));
   const tint=new THREE.Color(s.tint),hide=[];
