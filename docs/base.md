@@ -80,7 +80,7 @@ Flight model: thrust, drag (top speed ~190 mph, ~250 with the afterburner), grav
 a stall below ~74 mph (the nose drops, the tower nags), take-off past ~94 mph with the nose up. A landing needs the gear down, a
 sink rate under ~1400 fpm, wings roughly level. With the gear down and the throttle back, the last few metres settle onto the
 wheels (an arcade flare, so the jet doesn't float the length of the runway); S at idle brakes hard enough to stop on 258 m. Anything else is a comic crash: a puff, a "boing", and the dad ejects; the jet is
-back on the apron ("it's a rental"). The parachute drifts you back toward the post (W A S D steer). The HUD shows speed (mph),
+back on the apron ("it's a rental"). The parachute turns and drifts you back toward the post on its own (no keys). The HUD shows speed (mph),
 altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the callsign and STALL / PULL UP / GEAR warnings.
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
@@ -93,6 +93,21 @@ altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the call
 * While flying: the open world draws out to 900 m (`OW.flight`), camera far 3.6 km with fog pushed out, a far-terrain ring of
   fields and hills to the horizon (built on the first flight), and flat roof lids over interiors that are drawn without a roof
   (mission lots' `.` floors), shown only while you fly so ground play and the planning views never see them.
+
+### From the air
+
+* Climbing into the jet starts streaming the whole town (`OW.buildAhead(900)`: built, not drawn), so by take-off the ground under
+  and ahead of you is real geometry: houses, streets with markings, cars, trees.
+* The flight draw radius grows with altitude (420 m under ~150 ft, 620 m under ~425 ft, 900 m above). Past it, the painted ground
+  map (`OW.groundMap()`: roads with centre dashes, sidewalks, lots, lawns, water, roofs in each building's colour, tree crowns,
+  parked cars) lies just under the streamed ground, so blocks still read.
+* The far-terrain ring is built from the backdrop's own grass material and its edge heights (binned once from its vertices),
+  so there is no seam or cliff where the backdrop ends, and the first flight no longer freezes (was 1.6 s).
+* Wingtip vapour only when you pull, roll hard or light the burner.
+* `node dev/air-check.js [tag]`: 100 / 300 / 800 ft over Maple Heights, Riverside and the base, a 60 ft pass down our street and
+  a 100 ft look across the whole town; prints draw calls, triangles and frame ms; jpgs and numbers in
+  `docs/screenshots/base/air-check/` (`-before` = the previous commit, `-after` = now). Medium, headless (warm frame): Maple 830 /
+  706 / 286 calls at 100 / 300 / 800 ft, Riverside 643 / 477 / 116, the base 366 / 270 / 54, the street pass 280; 10-22 ms.
 
 ## Easter eggs ("Things your dad found", pause menu)
 
@@ -126,8 +141,13 @@ scrapyardGate 429, midBridge 435 on Medium; budget 450).
   mouse movement is not exercised. Every key press, hold and click is a real Playwright event.
 * The flight model is arcade on purpose (turns at ~2.6× real g so a 460 m town is flyable). The base-check autopilot needs long
   straight finals (runway 27 from 700 m out, the river run from 700 m south of town) to be reliable.
-* The first flight builds the far-terrain ring and the roof lids: one slower frame (~35 ms headless) on the climb out.
+* The first flight builds the far-terrain ring (it uses the backdrop's own grass material and is blended from the backdrop's edge
+  heights, so there is no seam) and the roof lids; the first frame after new things stream in also compiles shaders (base-check
+  times a warm frame). The river set piece stops ~400 m past the map; from very high you can see where it ends.
+* `dev/base-air.js` builds every unit at once for its staged views (~1500 draw calls, ~9M triangles); in real flight the
+  normal streaming keeps it far lower (45 climbing out, 100-200 over town in base-check).
 * Headless numbers are software-rendered; draw-call and triangle counts are the comparable figures, milliseconds are not.
 * The family can take a moment to come out on the very first buzz of a session if their models haven't finished streaming.
+* From the air the backdrop's ring of far houses (world.js, just past the map edge) are lone houses without streets.
 * The Route 9 bridge sits on the water, so the "under the bridge" achievement is the new High Bridge north of town.
-* `riverside-ingame` job 0 fails the same way on `origin/main` (not caused by the base).
+* `jobs-check mower` and the `openworld-ingame` midBridge probe fail the same way on plain `origin/main` (not caused by the base).

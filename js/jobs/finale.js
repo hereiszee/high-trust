@@ -152,7 +152,7 @@ const once=(M,k)=>{const s=M.fn.said;if(s[k])return false;s[k]=1;return true};
 Object.assign(FN,{say,sayAll,once,hush:M=>{if(M&&M.fn){M.fn.q.length=0;M.fn.qT=0}}});
 
 /* ================= cars this job places (scripted or borrowable) ================= */
-function car(type,color,x,z,yaw,o){o=o||{};const a=A();const obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);res().veh.push(obj);
+function car(type,color,x,z,yaw,o){o=o||{};const a=A();const obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);res().veh.push(obj);obj.userData.finStage=(a.M&&a.M.fn&&a.M.fn.stage)||null;
   obj.position.set(x,a.groundAt(x,z),z);obj.rotation.set(0,yaw+Math.PI/2,0);
   const v={obj,type,x,z,yaw,spd:0,S:a.carSize({obj}),entry:null};if(o.drive){v.entry=a.registerCar(obj,x,z);if(v.entry){v.entry.yaw=yaw;v.entry.pos.set(x,0,z);v.entry.name=o.name||'Earl';v.entry.owner=o.owner||'crew';a.syncCar(v.entry);res().cars.push(v.entry)}}
   return v}
@@ -246,6 +246,8 @@ function stageOf(M){return M.fn.stage}
 /* move to the next stage: clear this one, mark the checkpoint (the snapshot is the world exactly as the next stage starts) */
 function advance(M,next,o){const a=A(),F=M.fn;const cur=FN.stages[F.stage];if(cur&&cur.clear)try{cur.clear(M)}catch(e){console.error(e)}
   for(const p of(F.sub&&F.sub.extras)||[])unperson(p);
+  /* the festival evening shows only its own vehicles (Benny's work truck from the afternoon would sit in the crowd) */
+  if(next==='festival')for(const v of res().veh)if(v.userData&&v.userData.finStage&&v.userData.finStage!=='festival')v.visible=false;
   F.stage=next;F.built=null;F.sub={};if(!(o&&o.quiet))a.CP.mark(next);else M.stage=next}
 FN.advance=advance;
 function stats(M){return M.fn.st}

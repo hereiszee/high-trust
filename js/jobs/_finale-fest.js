@@ -97,10 +97,13 @@ FN.stages.festival={
       F.taps.push({x:V.pos.x,z:V.pos.z,r:4,txt:'Drive home with the family',fn:()=>credits(M)});
       if(a.CV===V)credits(M);return}
     if(S.ph==='credits'){creditsTick(dt,M,F)}},
-  camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='wave')return false;const cam=a.camera,k=clamp(S.wt/9,0,1),e=k*k*(3-2*k);
+  camera(dt,M){const a=A(),S=M.fn.sub;
+    /* through the festival the credits get a camera above the light strands (the lanterns hang at 4-5 m): behind and over the van */
+    if(S.ph==='credits'&&S.dP&&S.ds<66){const V=a.VAN,f={x:-Math.sin(V.yaw),z:-Math.cos(V.yaw)},cam=a.camera;cam.position.set(V.pos.x-f.x*9,7.4,V.pos.z-f.z*9+.4);cam.lookAt(V.pos.x+f.x*7,.8,V.pos.z+f.z*7);cam.fov=60;cam.updateProjectionMatrix();return true}
+    if(S.ph!=='wave')return false;const cam=a.camera,k=clamp(S.wt/9,0,1),e=k*k*(3-2*k);
     /* a crane over the stage: rising and pulling back, the whole street waving under the lights */
     /* close on the family and the crew first, then up and back until the whole street is in it */
-    const x=W.stage.x+W.stage.w/2+.6+e*1.8,y=1.55+e*4.6,z=43.6-Math.sin(e*2.2)*.8;cam.position.set(x,y,z);cam.lookAt(W.stage.x+W.stage.w/2+5+e*10,1.45-e*.3,43.1);cam.fov=58;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;FN.grade(1);return true},
+    const x=W.stage.x+W.stage.w/2+.6+e*2.4,y=1.55+e*2.3,z=43.6-Math.sin(e*2.2)*.8;cam.position.set(x,y,z);cam.lookAt(W.stage.x+W.stage.w/2+5+e*12,1.45+e*.1,43.1);cam.fov=58;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;FN.grade(1);return true},
   vehicle(car,dt,M){const S=M.fn.sub;if(S.ph!=='credits'||!S.dr)return;const a=A();S.ds=Math.min(S.dP.len,S.ds+S.dv*dt*(S.fast?5:1));const q=S.dP.at(S.ds),q2=S.dP.at(Math.min(S.dP.len,S.ds+3));
     car.pos.set(q.x,0,q.z);car.yaw=yawTo(q2.x-q.x,q2.z-q.z)||car.yaw;if(car.car)car.car.spd=S.dv;car.spd=S.dv;a.syncCar(car)},
   clear(M){const a=A(),S=M.fn.sub;FN.cine(false);FN.grade(false);M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null)}if(S.roll){a.overlay('fin-credits',null);S.roll=null}},
@@ -150,7 +153,7 @@ function rollEl(M){const c=ctx(),el=D.createElement('div');el.className='fin-cre
 const CRED={dur:46};
 function creditsTick(dt,M,F){const a=A(),S=M.fn.sub,R=S.roll;FN.grade(1);
   /* through the festival at walking pace, people waving as the van goes by; then home at a dad's cruising speed */
-  S.dv=S.ds<62?4.2:9;S.credWave-=dt;if(S.credWave<=0&&S.ds<70){S.credWave=.4;const vx=a.VAN.pos.x;for(const p of FN.live||[])if(!p.hidden&&Math.abs(p.x-(vx-6))<4&&!(p.waveT>0))FN.wave(p,2.4)}for(const k of['w','a','s','d',' '])a.keys[k]=false;const can=!!M.fn.seen.credits;S.fast=can&&!!a.keys.x;S.rt+=dt*(S.fast?5:1);
+  S.dv=S.ds<62?4.2:9;if(S.ds<66){const V=a.VAN;for(const p of FN.live||[]){if(p.hidden||p.mode==='sit'||p.y)continue;const ax=V.pos.x-p.x;if(ax>-2&&ax<12&&Math.abs(p.z-43.6)<1.9){p.face={x:p.x,z:43.6};walkTo(p,p.x,p.z<43.6?41.2:45.8,2.6)}}}S.credWave-=dt;if(S.credWave<=0&&S.ds<70){S.credWave=.4;const vx=a.VAN.pos.x;for(const p of FN.live||[])if(!p.hidden&&Math.abs(p.x-(vx-6))<4&&!(p.waveT>0))FN.wave(p,2.4)}for(const k of['w','a','s','d',' '])a.keys[k]=false;const can=!!M.fn.seen.credits;S.fast=can&&!!a.keys.x;S.rt+=dt*(S.fast?5:1);
   const k=clamp(S.rt/CRED.dur,0,1),h=R.col.offsetHeight||1400,vh=innerHeight;R.col.style.transform=`translateY(${-(k*(h+vh*.2))}px)`;R.hint.textContent=can?'Hold X to fast-forward':'';
   F.objs.push(['Driving home with the family',false]);
   if(k>=1||S.ds>=S.dP.len-1&&S.rt>CRED.dur*.6){if(S.fin)return;S.fin=true;FN.markSeen(M,'credits');a.overlay('fin-credits',null);S.roll=null;FN.cine(false);M.def.endLine=tail();if(!M.replay)try{G().prog.trustR=100}catch(_){}M.fn.won=epilogue();a.endMission(true)}}
@@ -172,5 +175,8 @@ const PG={mesh:null,store:{geo:[],mat:[],tex:[]}};
 HT.Jobs.on('hud',()=>{const a=A();if(!a||a.mode!=='hub'||!a.L||!a.L.ow)return;const s=SV();if(!s||!s.flags||!s.flags.festival)return;
   if(!PG.mesh){try{PG.mesh=FN.bunting(W.fest.x0-30,W.fest.x1+10,W.fest.z0-.2,W.fest.z1+.2,4.6,true,PG.store);PG.mesh.traverse(o=>{o.castShadow=false})}catch(e){console.error(e);return}}
   if(PG.mesh.parent!==a.L.group)a.L.group.add(PG.mesh);
-  if(!s.flags.festivalCard){s.flags.festivalCard=true;try{HT.Save.touch&&HT.Save.touch('flags')}catch(_){}a.HUD.banner({kind:'title',kicker:'High Trust',title:'The end… of the beginning',sub:'Everything is open. Every job is on the fridge calendar. The guys still meet Saturdays.',dur:7})}});
+  if(!s.flags.festivalCard){s.flags.festivalCard=true;try{HT.Save.touch&&HT.Save.touch('flags')}catch(_){}a.HUD.banner({kind:'title',kicker:'High Trust',title:'The end… of the beginning',sub:'Everything is open. Every job is on the fridge calendar. The guys still meet Saturdays.',dur:7});PG.cam=7;PG.at=null}});
+/* while the end card is up the camera rises over the street you're on: nobody near the lens, no guns in frame */
+HT.Jobs.on('camera',dt=>{const a=A();if(!a||a.mode!=='hub'||!(PG.cam>0))return undefined;PG.cam-=dt||0;const P=a.P,cam=a.camera;if(!PG.at)PG.at={x:P.pos.x,z:P.pos.z,y:P.yaw};const k=Math.min(1,(7-PG.cam)/7),e=k*k*(3-2*k),f={x:-Math.sin(PG.at.y),z:-Math.cos(PG.at.y)};
+  cam.position.set(PG.at.x-f.x*(5+e*6),3.2+e*10,PG.at.z-f.z*(5+e*6));cam.lookAt(PG.at.x+f.x*24,1.5,PG.at.z+f.z*24);cam.fov=60;cam.updateProjectionMatrix();return true});
 })();
