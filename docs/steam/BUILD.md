@@ -32,8 +32,8 @@ npm ci                 # electron, electron-builder, steamworks.js
 npm start              # run the shell on the repo (dev: devtools on F12)
 npm test               # save file unit tests
 npm run dist:linux     # dist/linux-unpacked/ + dist/high-trust-1.0.0.tar.gz
-npm run dist:win       # dist/win-unpacked/ + zip (see notes below)
-npm run dist:mac       # macOS: run this on a Mac (see notes below)
+npm run dist:win       # dist/win-unpacked/ + zip. Without wine the exe keeps Electron's icon: build releases on Windows
+npm run dist:mac       # an unsigned .app builds from Linux (untested); signing + notarization need a Mac and an Apple Developer ID
 npm run dist:full      # same as dist, also ships the source assets (only needed if assets/opt is stale)
 xvfb-run -a node test/e2e.js --exe dist/linux-unpacked/HighTrust   # end-to-end check of a packaged build
 ```
@@ -44,7 +44,36 @@ Env: `HT_USER_DATA=<dir>` (alternate profile, used by tests), `HT_STEAM_APPID=<i
 Before packaging, run `node dev/check-build.js` from the repo root. The package ships `assets/opt/` (the optimised variants the game
 loads), not the source assets, so `assets/opt` has to be up to date (`node tools/build-assets.js`).
 
-SIZE_SECTION
+## What gets built, and its size
+
+Measured on this branch (electron 45.4.1, electron-builder 26.0.12):
+
+| Output | Size |
+|---|---|
+| `dist/linux-unpacked/` (Linux depot) | 344 MB |
+| `dist/high-trust-1.0.0.tar.gz` | 180 MB |
+| `dist/win-unpacked/` (Windows depot) | 387 MB |
+| `dist/High Trust-1.0.0-win.zip` | 203 MB |
+| of which `resources/game` (the game itself) | 69 MB (assets/opt 63 MB, js 4.3 MB, vendor 0.9 MB) |
+| `resources/app.asar` + steamworks.js natives | 9 MB |
+| Electron/Chromium runtime | about 265 MB Linux, 310 MB Windows |
+
+Steam compresses depots, so the download is close to the zip/tar.gz size (about 180-200 MB), and patches are delta-encoded.
+
+**The asset cut already applied:** `assets/` is about 150 MB in the repo, but the game loads the optimised, content-hashed files in
+`assets/opt/` (docs/PERF.md) and every source file is listed in `assets/opt/manifest.json`. So the package ships only `assets/opt`
+(minus the JPEG boot pack, since Chromium always takes the WebP one), fonts and credits. `npm run dist:full` ships everything instead (+82 MB) if
+the manifest ever lags behind. The e2e test fails on any missing file (`[app] 404` in the log).
+
+**How to cut more:**
+1. *Electron itself is most of the package.* `electronLanguages: ['en-US']` already drops the other locales. A Steam-only build could
+   swap Electron for a smaller WebView shell (Tauri or a CEF build), but that drops the steamworks.js overlay path. Not recommended for launch.
+2. *Textures:* `assets/opt` keeps both tiers (`m` and `l`). Dropping the reduced tier would save roughly 10-15 MB, but Graphics Auto/Low uses it. Better: convert
+   the largest `l` textures to KTX2/Basis (GPU-compressed). That is smaller on disk and in VRAM, which matters on the Deck. It's a renderer change, so plan it separately.
+3. *People GLBs* (36 MB of sources, 31 MB in assets/opt) are the biggest single group. Meshopt + quantization is already on; draco
+   wouldn't add much.
+4. Strip the macOS/Windows natives from the Linux depot and vice versa (`node_modules/steamworks.js/dist/*`, about 6 MB).
+
 
 ## Steam setup (owner)
 
