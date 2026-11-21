@@ -6,7 +6,7 @@
      B crouch (toggle)    X reload · horn in a car    Y get in / out    RB / D-pad ← → switch gun
      D-pad ↑ flashlight   D-pad ↓ night vision        L3 jog (stays on until the stick is let go)   R3 camera
      View map             Menu pause
-   Menus (anything that pauses the game, shops, the map, choice strips): D-pad / left stick move focus, A selects, B backs out (Esc),
+   Menus (anything that pauses the game, the map, choice strips; shops and the locker keep their own pad code in js/save.js): D-pad / left stick move focus, A selects, B backs out (Esc),
    ← → on a slider changes it, LB / RB switch pause tabs, right stick scrolls.
    Keyboard + mouse keep working side by side; the last device used decides the prompts (keycaps or pad glyphs, html.ht-pad).
    Digital actions are synthetic key events, so every module that listens for keys (jobs, eggs, free roam) gets them for free.
@@ -105,6 +105,8 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
   const any=g.buttons.some((b,i)=>b&&b.pressed&&i!==16)||lx||ly||rx||ry||lt>.2||rt>.2;
   if(any)setLast('pad');
   if(S.last!=='pad'){S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
+  /* shops and the gun locker (HT.Menus, js/save.js) run their own pad navigation: stay out of their way */
+  if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen()){if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
   const I=IN(),menu=inMenu();
   if(menu){if(S.wasGame){releaseAll();S.wasGame=false}
     if(!S.focus||!document.contains(S.focus)||!visible(S.focus)){const list=targets();if(list.length&&(!S.focus||S.t<now))setFocus(initial(list));S.t=now+250}

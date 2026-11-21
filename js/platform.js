@@ -68,6 +68,8 @@ if(HUD){
   HUD.on('setting',(k,v)=>{if(k==='dispMode')D.fullscreen(v==='full');else if(k==='vsync')D.setDesktop('vsync',!!v)});
   HUD.on('action',a=>{if(a!=='quitDesktop')return;try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}try{D.flush()}catch(e){}D.quit()});
 }
+/* alt-tab / minimise: pause, like a PC game should (the shell keeps rendering in the background) */
+addEventListener('blur',()=>{const I=HT.Input;if(I&&I.running&&!I.paused&&I.mode!=='title')document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}))});
 /* last chance to write a pending debounced save (Alt+F4, window close) */
 addEventListener('beforeunload',()=>{try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}try{D.flush()}catch(e){}});
 })(typeof window!=='undefined'?window:globalThis);
