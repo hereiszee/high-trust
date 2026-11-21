@@ -34,7 +34,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       await ev(([x,z])=>{const P=window.__ht.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z))},[x,z]);await key('w',true);await key('d',stuck>4&&stuck<16);await step(2)}
     await release();await step(4);const s=await st();const okk=Math.hypot(x-s.x,z-s.z)<r+.5;if(!okk)say('  (walk to '+x.toFixed(0)+','+z.toFixed(0)+' stopped at '+s.x.toFixed(1)+','+s.z.toFixed(1)+')');return okk};
   const route=async(pts,r)=>{for(const[x,z]of pts)if(!await walk(x,z,r||1))return false;return true};
-  const aimAt=(x,y,z)=>ev(([x,y,z])=>{const H=window.__ht,P=H.P;P.bloom=0;P.rDebt=0;/* the bot waits for the crosshair to settle */for(let k=0;k<2;k++){const c=H.camera.position;const dx=x-c.x,dy=y-c.y,dz=z-c.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));H.step(1)}},[x,y,z]);
+  const aimAt=(x,y,z)=>ev(([x,y,z])=>{const H=window.__ht,P=H.P;P.bloom=0;P.rDebt=0;/* the bot waits for the crosshair to settle */for(let k=0;k<2;k++){const c=H.camera.position;const dx=x-c.x,dy=y-c.y,dz=z-c.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));H.step(1);H.draw()/* the camera follows the view in the real frame */}},[x,y,z]);
   const click=async(n=1)=>{for(let k=0;k<n;k++){await p.mouse.down();await step(2);await p.mouse.up();await step(4)}};
   const press=async k=>{await p.keyboard.press(k);await step(3)};
   const promptText=()=>ev(()=>{const H=window.__ht;H.draw();const el=[...document.querySelectorAll('*')].filter(x=>x.children.length===0&&/(Climb into|Borrow|Drive)/.test(x.textContent||''));return el.map(x=>x.textContent).join(' | ')});
@@ -75,12 +75,23 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await p.keyboard.press('Enter');await step(3);r=await ev(()=>HT.Range.state());ok(!r.card,'Enter closes the results card');
     await ev(()=>HT.Range.showLast&&HT.Range.showLast());r=await ev(()=>HT.Range.state());if(r.card){await p.keyboard.press('e');await step(3);r=await ev(()=>HT.Range.state());ok(!r.card,'E closes it too')}
     /* rental rack */
-    await walk(d.rack.x+1.2,d.rack.z,.5);await step(4);say('  rack prompt: '+await ev(()=>JSON.stringify(window.__ht.prompt)));await press('e');r=await ev(()=>HT.Range.state());const cur=await ev(()=>window.__ht.P.cur);ok(r.rent&&cur!=='pistol','E at the rack rents '+cur);
-    await aimAt(d.line-50,1.4,d.lanes[3]);await click(3);await shot('range-rental');
+    await route([[d.rack.x-1.8,d.rack.z+3],[d.rack.x-1.6,d.rack.z]],.5);await step(4);/* to the rack's front (it faces into the shed, toward the line) */
+    /* look at the carbine on its peg: the prompt names it */
+    {const ids=await ev(()=>HT.Range.rackIds());const i7=ids.indexOf('rifle'),gz=d.rack.z+(i7-(ids.length-1)/2)*.46;for(let k=0;k<5;k++)await aimAt(d.rack.x,1.1,gz);/* the third-person camera eases into place over a few frames */
+     const pr=await ev(()=>{const el=[...document.querySelectorAll('*')].find(x=>/^Take .* \(rack menu\)$/i.test((x.textContent||'').trim())&&x.children.length===0);return el?el.textContent:''});
+     ok(/Carbine/i.test(pr),'looking at a gun on the rack names it: "'+pr+'"');await shot('range-rack')}
+    await p.keyboard.press('e');await ev(()=>{const H=window.__ht;H.step(1)});let mn=await ev(()=>HT.Range.menu());ok(mn.open&&mn.id==='rifle','E opens the rack menu on the gun you looked at ('+mn.id+')');await shot('range-rack-menu');
+    await p.keyboard.press('ArrowRight');await step(2);mn=await ev(()=>HT.Range.menu());ok(mn.id==='smg','→ moves along the rack ('+mn.id+')');
+    await p.keyboard.press('Enter');await step(6);r=await ev(()=>HT.Range.state());const cur=await ev(()=>window.__ht.P.cur);ok(r.rent&&cur==='smg','Enter takes it: '+cur);
+    const wd=await ev(()=>{window.__ht.draw();const el=[...document.querySelectorAll('*')].find(x=>/The Carpool · \d+ \/ \d+/.test(x.textContent||'')&&x.children.length===0);return el?el.textContent:''});ok(!!wd,'the HUD shows the rental with its ammo: '+wd);
+    await press('e');await p.keyboard.press('1');await step(6);const c1=await ev(()=>window.__ht.P.cur);ok(c1==='pistol','number keys pick straight away (1 · '+c1+')');
+    await press('e');await p.keyboard.press('9');await step(6);const c9=await ev(()=>window.__ht.P.cur);ok(c9==='hunter','9 · the .308 ('+c9+')');
+    await press('e');await p.keyboard.press('7');await step(6);
+    await walk(d.rack.x-4.2,d.rack.z,.6);await aimAt(d.line-50,1.4,d.lanes[3]);await click(3);await shot('range-rental');
     const ammoFull=await ev(()=>{const P=window.__ht.P,a=P.ammo[P.cur],w=window.__ht.WEAPONS?null:null;return a&&a.res>0});ok(ammoFull,'free ammo on the line');
     /* the muzzle has to point downrange */
     const m0=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});await ev(()=>{window.__ht.P.yaw=-Math.PI/2});await click(1);const m1=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});ok(m1===m0,'firing away from downrange is refused');
-    await route([[131,206],[140,190]],1.5);r=await ev(()=>HT.Range.state());const back=await ev(()=>window.__ht.P.cur);const drawn=await ev(()=>HT.Roam.drawn);ok(!r.rent&&!drawn,'leaving the range returns the rental ('+back+') and holsters');
+    await route([[d.rack.x-1.8,d.rack.z+3.2],[d.rack.x+1.5,d.rack.z+3.4],[131,206],[140,190]],1.5);/* round the end of the rack */r=await ev(()=>HT.Range.state());const back=await ev(()=>window.__ht.P.cur);const drawn=await ev(()=>HT.Roam.drawn);ok(!r.rent&&!drawn,'leaving the range returns the rental ('+back+') and holsters');
     await press('1');const drawn2=await ev(()=>HT.Roam.drawn);ok(!drawn2,'the gun stays holstered elsewhere on the post');
     const heat=await ev(()=>window.__ht.heat||0);ok(!heat,'no heat from range shooting');
     await perf('range');
@@ -272,7 +283,7 @@ await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.p
     if(walt){await ev(([x,z,yaw])=>{const P=window.__ht.P;P.pos.set(x+Math.cos(yaw)*2.2,0,z-Math.sin(yaw)*2.2);window.__ht.step(4)},[walt.x,walt.z,walt.yaw]);await press('e');s=await st();await p.keyboard.press('g');await step(4);await shot('egg-mug');ok(await found('mug'),"G in Walt's car finds the mug");await press('e')}else ok(false,"Walt's car exists");
     /* cardboard Bigfoot on the range berm */
     const d=await ev(()=>HT.Base.def().range);await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x+1.2,0,z);window.__ht.step(4)},[d.rack.x,d.rack.z]);await step(4);
-    for(let i=0;i<10&&(await ev(()=>window.__ht.P.cur))!=='hunter';i++){await press('e');await step(4)}/* the .308 from the rental rack: a pistol doesn't reach 100 m */
+    await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x-1.6,0,z);window.__ht.step(4)},[d.rack.x,d.rack.z]);await step(4);await press('e');await p.keyboard.press('9');await step(6);/* the .308 from the rental rack: a pistol doesn't reach 100 m */
     await ev(([x,z])=>{const P=window.__ht.P;P.pos.set(x,0,z);window.__ht.step(4)},[d.stand,d.lanes[1]+1.3]);await step(10);
     await p.mouse.down({button:'right'});await step(30);/* aim down the scope (right mouse held), like a person would at 100 m */
     for(let i=0;i<6&&!(await found('bigfoot'));i++){await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await step(20);await aimAt(sp.bigfoot.x,sp.bigfoot.y,sp.bigfoot.z);await click(1);await step(8)}
