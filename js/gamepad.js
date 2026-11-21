@@ -98,7 +98,7 @@ function startPoll(){if(polling)return;polling=true;lastT=performance.now();requ
 function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
   const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];
   let g=pads.find(p=>p.mapping==='standard'&&p.connected)||pads.find(p=>p.connected);if(!g){if(S.pad!=null){S.pad=null;releaseAll();setLast('kb')}polling=false;return}
-  if(S.pad!==g.index){S.pad=g.index;S.kind=/054c|sony|dualsense|dualshock|playstation|wireless controller/i.test(g.id)?'ps':'xbox';S.prev=[]}
+  if(S.pad!==g.index){S.pad=g.index;S.kind=/054c|sony|dualsense|dualshock|playstation/i.test(g.id)?'ps':'xbox';S.prev=[]}
   const btn=i=>pressed(g,i),was=i=>!!S.prev[i],down=i=>btn(i)&&!was(i),up=i=>!btn(i)&&was(i);
   const [lx,ly]=dz(g.axes[0]||0,g.axes[1]||0),[rx,ry]=dz(g.axes[2]||0,g.axes[3]||0);
   const lt=val(g,B.LT),rt=val(g,B.RT);

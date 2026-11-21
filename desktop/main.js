@@ -74,11 +74,12 @@ function serve(req) {
 
 /* ---------- window ---------- */
 let win = null;
-const ICON = path.join(__dirname, 'build', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+const [WIN_W, WIN_H] = (/^(\d+)x(\d+)$/.exec(process.env.HT_WINDOW_SIZE || '') || [0, 1600, 900]).slice(1).map(Number); /* windowed size; tests use a small one */
+const ICON = path.join(__dirname, 'build', 'icon.png');
 function setFullscreen(on) { if (!win) return; on = !!on; win.setFullScreen(on); cfg.fullscreen = on; saveCfg() }
 function createWindow() {
   win = new BrowserWindow({
-    width: 1600, height: 900, minWidth: 960, minHeight: 540, show: false, fullscreen: !!cfg.fullscreen, fullscreenable: true,
+    width: WIN_W, height: WIN_H, minWidth: 960, minHeight: 540, show: false, fullscreen: !!cfg.fullscreen, fullscreenable: true,
     title: 'High Trust', backgroundColor: '#16181c', autoHideMenuBar: true, icon: fs.existsSync(ICON) ? ICON : undefined,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true,
       devTools: DEVTOOLS, backgroundThrottling: false, spellcheck: false, autoplayPolicy: 'no-user-gesture-required' }

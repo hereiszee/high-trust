@@ -10,13 +10,15 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "stage": "node scripts/stage.js",
     "test": "node --test test/*.test.js",
-    "dist": "npm run stage && electron-builder --win --linux",
-    "dist:win": "npm run stage && electron-builder --win",
-    "dist:linux": "npm run stage && electron-builder --linux",
-    "dist:mac": "npm run stage && electron-builder --mac",
-    "dist:dir": "npm run stage && electron-builder --linux --dir"
+    "dist": "electron-builder -c electron-builder.config.js --win --linux",
+    "dist:win": "electron-builder -c electron-builder.config.js --win",
+    "dist:linux": "electron-builder -c electron-builder.config.js --linux",
+    "dist:mac": "electron-builder -c electron-builder.config.js --mac",
+    "dist:dir": "electron-builder -c electron-builder.config.js --linux --dir",
+    "dist:full": "HT_FULL_ASSETS=1 electron-builder -c electron-builder.config.js --win --linux",
+    "e2e": "node test/e2e.js",
+    "icon": "node scripts/make-icon.js"
   },
   "dependencies": {
     "steamworks.js": "0.4.0"
