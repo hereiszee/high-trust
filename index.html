@@ -2242,7 +2242,7 @@ function killEnemy(e){cue('die',e.dude);if(e.state!=='surrender')dropGun(e,'drop
   if(Math.random()<.45){const s=speaker();if(s)radio(s,pick(LINES.enemyDown))}}
 function hurtPlayer(d,src){if(CV)d=carBulletHit(d);/* the car soaks part of it */if(mode==='hub'){frHurtPlayer(d,src);return}if(mode!=='mission'||!M||M.state!=='go')return;P.hp-=d;P.regenT=4.5;if(src&&src.pos)FX.damageFrom(src.pos,clamp(d/25,.4,1));FX.hitPulse(d/30);FX.shake(d/60);hurtFlash=Math.min(1,hurtFlash+d/40);if(P.hp<=0){P.hp=0;endMission(false,"You took one too many. Gary drove you home doing exactly the speed limit. Nobody blames you.")}}
 function hurtAlly(a,d){if(a.down||isProt(a))return;a.hp-=d;if(a.hp>0)cue('hit',a.dude,false);if(a.hp<=0){if(M)M.allyDowns=(M.allyDowns||0)+1;a.down=true;a.downT=9;a.hp=0;a.target=null;radio(a.id,pick(LINES.allyDown),true)}}
-function shootAt(src,target,acc,dmg,isEnemy){if(isProt(target))return;cue('fire',src.dude);
+function shootAt(src,target,acc,dmg,isEnemy){if(isProt(target)||(src&&src._holst))return;cue('fire',src.dude);
   const from=src.pos.clone().add(V3(0,1.4,0)),tp=target.pos.clone().add(V3(0,target===P&&P.crouch?1.0:1.3,0));
   const hit=Math.random()<acc;const end=hit?tp:tp.clone().add(V3(rand(-1.5,1.5),rand(-.6,1.2),rand(-1.5,1.5)));
   const dir=end.clone().sub(from).normalize(),mz=from.clone().addScaledVector(dir,.7),gun=src.gun||'pistol';
@@ -2485,6 +2485,8 @@ function updAlly(a,dt){
   if(VAN.on&&(mode==='hub'||a.ride))return;if(a.medic&&!a.down&&wmMedic(a,dt))return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
+  /* owner rule: the crew's guns go away within 25 m of a kid or the family too (and they don't fire) */
+  if(mode==='hub'){a.kidT=(a.kidT||0)-dt;if(a.kidT<=0){a.kidT=.25;const k=!!kidNear(KID_R,a.pos.x,a.pos.z);if(k!==!!a._holst){a._holst=k;equip(d,k?null:a.gun)}}}else if(a._holst){a._holst=false;equip(d,a.gun)}
   if(mode==='hub'&&frAlly(a,dt))return;
   if(mode==='mission'&&L.nav&&aiWorld){aiAlly(a,dt);return}
   a.thinkT-=dt;

@@ -50,6 +50,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   const armedKid=await ev(()=>window.__ht.frArmed);
   ok(armed0===true&&armedKid===false,'Riverside: key 1 draws with no kid around (key Q) ('+armed0+'), refused with a kid 12 m away ('+armedKid+')');
   const walkUp=await ev(()=>{const H=window.__ht,K=window.__K;H.running=true;K.k1.root.position.x=H.P.pos.x+60;H.frDraw('pistol');H.step(2);const a=H.frArmed;K.k1.root.position.x=H.P.pos.x+20;H.step(3);return{before:a,after:H.frArmed,running:H.running,dist:+Math.hypot(K.k1.root.position.x-H.P.pos.x,K.k1.root.position.z-H.P.pos.z).toFixed(1)}});
+  const crew=await ev(()=>{const H=window.__ht,K=window.__K;H.step(12);const kp=K.k1.root.position;return H.allies.map(a=>({id:a.id,d:+Math.hypot(a.pos.x-kp.x,a.pos.z-kp.z).toFixed(1),gun:!!a.dude.gun}))});
+  ok(crew.filter(a=>a.d<25).every(a=>!a.gun)&&crew.some(a=>a.d<25),'Riverside: the crew within 25 m of the kid put their guns away '+JSON.stringify(crew));
   ok(walkUp.before===true&&walkUp.after===false,'Riverside: drawn at 60 m, holstered when the kid comes within 20 m '+JSON.stringify(walkUp));
   if(SHOTS){fs.mkdirSync(DIR,{recursive:true});await ev(()=>{const H=window.__ht,K=window.__K;K.k1.root.position.set(H.P.pos.x+3,0,H.P.pos.z-6);K.aimAt(H.P.pos.x+3,1.2,H.P.pos.z-6);H.P.fp=false;H.frDraw('pistol');window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c);if(H.HUD.screen&&H.HUD.screen!=='pause')H.HUD.hide(H.HUD.screen);H.running=true});
     await p.waitForTimeout(1500);await ev(()=>{window.__rafOn=false;window.__ht.draw()});await p.screenshot({path:path.join(DIR,'riverside-kid-holster.jpg'),type:'jpeg',quality:84})}
@@ -82,8 +84,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       for(let i=0;i<30;i++)H.step(1);hits.push(O.lastHit?O.lastHit.k:'none')}
     return{fr,y:+P.pos.y.toFixed(2),visY:P.visY,refused,dropped,hold,offFired,hits,kevinStat:O.stats.kevin,state:M.state,log:K.log.slice()}});
   if(ow)ok(ow.refused&&ow.dropped&&ow.hold>0&&ow.offFired&&!ow.hits.includes('kevin')&&ow.kevinStat!==-1&&ow.state==='go'&&!ow.log.length,'Higher Ground: aiming at Kevin refuses the shot and lowers the rifle, 12 m off it fires, rounds at him fly past '+JSON.stringify(ow));
-  if(ow&&SHOTS){await ev(()=>{const H=window.__ht,O=H.M.ow,Kv=O.kevin,P=H.P;Kv.st='aim';O.rifle.lowerT=0;const e={x:P.pos.x,y:P.pos.y+1.62,z:P.pos.z};P.yaw=Math.atan2(-(Kv.x+1.5-e.x),-(Kv.z-e.z));P.pitch=Math.atan2(.9-e.y,Math.hypot(Kv.x-e.x,Kv.z-e.z));P.aim=true;if(H.HUD.screen)H.HUD.hide(H.HUD.screen);H.running=true;window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
-    await p.waitForTimeout(1600);await ev(()=>{window.__rafOn=false});await p.screenshot({path:path.join(DIR,'overwatch-friendly.jpg'),type:'jpeg',quality:84})}
+  /* no scope screenshot: headless, the job's camera hook doesn't draw the roof view reliably; the checks above cover the scope logic */
   for(const id of['crossing','taxi','finale']){const r=await job(id,sweep);if(r)ok(r.state==='go'&&!r.log.length&&!r.kids.some(k=>/DEAD/.test(k)),id+': every kid on set shot at point blank with guns forced on: no hit '+JSON.stringify(r))}
   const bad=errs.filter(e=>!/favicon|net::ERR/.test(e));ok(!bad.length,'no console errors '+bad.slice(0,3).join(' | '));
   await b.close();console.log(fails?`FAIL ${fails}`:'PASS');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

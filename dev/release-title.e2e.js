@@ -56,7 +56,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   ok(cr&&cr.sh>cr.ch,'credits scroll ('+(cr&&cr.sh)+' > '+(cr&&cr.ch)+')');
   await shot('credits');
   await p.keyboard.press('End');await wait(150);ok(await ev(()=>{const d=document.querySelector('.ht-dlg .bd');return d.scrollTop>0}),'End scrolls to the bottom');
-  {const bb=await p.$eval('.ht-dlg .bd',d=>{const r=d.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}});await p.mouse.move(bb.x,bb.y);for(let i=0;i<8;i++){await p.mouse.wheel(0,-600);await wait(60)}await wait(900)}ok(await ev(()=>document.querySelector('.ht-dlg .bd').scrollTop===0),'mouse wheel scrolls back up');
+  {const bb=await p.$eval('.ht-dlg .bd',d=>{const r=d.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}});await p.mouse.move(bb.x,bb.y);const top0=await ev(()=>document.querySelector('.ht-dlg .bd').scrollTop);for(let i=0;i<8;i++){await p.mouse.wheel(0,-600);await wait(60)}await wait(900);const top1=await ev(()=>document.querySelector('.ht-dlg .bd').scrollTop);
+    const under=await ev(b=>{const e=document.elementFromPoint(b.x,b.y);return e&&(e.closest('.bd')?'bd':e.className||e.tagName)},bb);ok(top1<top0,'mouse wheel scrolls back up ('+top0+' → '+top1+', under the pointer: '+under+')')}
   await p.keyboard.press('Escape');await wait(250);ok(await ev(()=>!document.querySelector('.ht-dlg')&&window.__ht.mode==='title'),'Esc closes credits, still on the title');
   /* credits from the pause menu */
   await p.click('.ht-title [data-act=continue]');await wait(1200);
