@@ -2,8 +2,13 @@
    window.HT.People: builds characters that plug into the game's makeDude / pose / equip contract.
 
    const P = HT.People; P.init({assets, quality:()=>'med'});   // assets = the game's ASSETS (gltf('rb_<key>'))
-   P.ready.then(...)                                          // resolves once the GLBs are in and prepared (or rejects -> box fallback)
-   const d = P.make(role, {variant, scale, idle});             // null when unavailable; role: you|gary|rick|dave|doug|thug|boss|wife|son|daughter|earl|dee|rosa|benny|neighbour or a file key
+   P.ready.then(...)                                          // resolves once the shared clips are in (they keep retrying; rejects only without three.js support)
+   const d = P.make(role, {variant, scale, idle, look});       // null only for an unknown key / no SkeletonUtils. A known character whose model is still
+                                                              // streaming comes back PENDING (d.pending): an invisible stand-in (no meshes drawn, no
+                                                              // hitboxes hit) that the game drives as usual; the real model is swapped into the same
+                                                              // d / d.root the moment it arrives (P.onSwap(fn) hears about it). Loads retry forever.
+                                                              // After P.PENDING_CEILING s the game's P.boxFallback(role, look) may stand in (logged once).
+                                                              // role: role: you|gary|rick|dave|doug|thug|boss|wife|son|daughter|earl|dee|rosa|benny|neighbour or a file key
    d = {root, body, meshes (invisible hitboxes, userData.head on the head box), head, gunHold (on Bip01_R_Hand), gun, walk, legs:[], arms:[], rb}
    P.pose(d, dt, {moving, speed, aim, mode:'stand'|'crouch'|'down'|'kneel'|'hands'|'sit', pitch})   // sets targets + measures ground speed
    P.update(dt, camera)                                       // advances every live mixer (call once per frame / sim step)
@@ -62,15 +67,47 @@ const extra={};/* gltfs loaded on demand (family) */
 P.files=()=>GAME_KEYS.concat(['anims']).map(k=>({name:'rb_'+k,url:BASE+k+'.glb'}));
 P.init=function(o){o=o||{};if(o.assets)A=o.assets;if(o.quality)qualityFn=o.quality;
   if(P._initDone)return P.ready;P._initDone=true;
+  if(!T||!T.SkeletonUtils){P.failed=true;rejectReady(new Error('people: no SkeletonUtils'));return P.ready}
+  /* every people file the game's loader delivers (it retries with backoff on its own) is prepared and handed to whoever waits for it */
+  if(A&&A.onAsset)A.onAsset(src=>{const m=/people\/rocketbox\/(\w+)\.glb$/.exec(String(src));if(m&&KNOWN.has(m[1]))arrived(m[1])});
   const wait=A&&A.ready?A.ready:Promise.resolve();
-  wait.then(()=>{try{if(prepareAll()){resolveReady(P);setTimeout(()=>P.preload(STREAM_KEYS),0)}else{P.failed=true;rejectReady(new Error('people assets missing'))}}catch(e){console.warn('people: prepare failed',e);P.failed=true;rejectReady(e)}});
+  wait.then(()=>{try{if(!prepareAll())load('anims')}catch(e){console.warn('people: prepare failed',e)}});
+  if(!P._tick)P._tick=setInterval(tick,400);/* also runs while the render loop is paused (hidden tab, tests) */
   return P.ready};
 function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
-function prepareAll(){const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
-  srcClips={};for(const c of an.animations)srcClips[c.name]=c;
-  let n=0;for(const k of GAME_KEYS)if(prep(k))n++;P.ok=n>0;return P.ok}
-P.preload=function(keys){return Promise.all(keys.map(k=>{if(tpl[k])return true;if(!loader)return false;
-  return new Promise(res=>loader.load(BASE+k+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[k]=g;res(!!prep(k))},undefined,()=>res(false)))}))};
+/* the shared clips are what makes any character possible: until they are in, every character waits (pending) */
+function prepareAll(){if(srcClips)return true;const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
+  const sc={};for(const c of an.animations)sc[c.name]=c;srcClips=sc;
+  for(const k of GAME_KEYS)if(gltf(k))try{prep(k)}catch(e){console.warn('people: prepare failed for',k,e)}
+  P.ok=true;resolveReady(P);setTimeout(()=>P.preload(STREAM_KEYS),0);setTimeout(tick,0);return true}
+
+/* ---------- loading that never gives up ----------
+   Files in the game's manifest (GAME_KEYS, anims) come through the game's loader, which retries with backoff; if one is still missing a
+   few seconds after it was asked for, this loader fetches it too. Everything else (givers, neighbours, family, street-crew variants) is
+   fetched here, retried with backoff (0.8 s growing to 10 s) for as long as a pending character needs it or for 3 minutes after a preload. */
+const KNOWN=new Set(P.keys.concat(['anims'])),MANIFEST=new Set(GAME_KEYS.concat(['anims']));
+const LS={},waiters={};const now=()=>(typeof performance!=='undefined'?performance.now():Date.now());
+P.loadStats=()=>{const o={};for(const k in LS)o[k]={tries:LS[k].tries,busy:LS[k].busy,waiting:!!LS[k].timer,have:k==='anims'?!!srcClips:!!tpl[k]};return o};
+function have(key){return key==='anims'?!!srcClips:!!tpl[key]}
+/* still needed: preloaded in the last 3 minutes, or a waiting character that is in the scene (or was made in the last 15 s and may be added yet).
+   A character the game dropped stops the retries; if it comes back into the scene, tick() starts them again. */
+function onStage(d){let a=d.root;while(a.parent)a=a.parent;return !!a.isScene||now()-(d.rb||d._rb).t0<15000}
+function wanted(key){const s=LS[key];if(s&&s.until>now())return true;if(key==='anims'&&!srcClips)return true;for(const d of pending)if((key==='anims'||(d.rb||d._rb).key===key)&&onStage(d))return true;return false}
+function settle(key,ok){const w=waiters[key];if(!w)return;delete waiters[key];for(const f of w)try{f(ok)}catch(e){}}
+function arrived(key){try{if(key==='anims')prepareAll();else if(srcClips||gltf(key))prep(key)}catch(e){console.warn('people: prepare failed for',key,e)}
+  if(have(key)||(key!=='anims'&&tpl[key]))settle(key,true);tick()}
+function load(key){if(!KNOWN.has(key)||have(key))return;const s=LS[key]||(LS[key]={tries:0,busy:false,timer:0,t0:now(),until:0});
+  if(gltf(key)){arrived(key);if(have(key))return}/* gltf() also asks the game's loader for manifest files */
+  if(s.busy||s.timer)return;
+  if(MANIFEST.has(key)&&A&&A.gltf&&!s.tries){const left=4000-(now()-s.t0);if(left>0){s.timer=setTimeout(()=>{s.timer=0;load(key)},left);return}}
+  if(!loader)return;s.busy=true;
+  loader.load(BASE+key+'.glb',g=>{s.busy=false;s.tries=0;if(!gltf(key)){g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[key]=g}arrived(key)},undefined,
+    ()=>{s.busy=false;s.tries++;settle(key,false);if(!wanted(key))return;
+      const wait=Math.min(10000,800*Math.pow(1.8,s.tries-1))*(.8+Math.random()*.4);s.timer=setTimeout(()=>{s.timer=0;load(key)},wait)})}
+/* resolves true once the key is prepared, false after a failed attempt (it keeps retrying behind that) */
+P.preload=function(keys){return Promise.all((keys||[]).map(k=>{const r=ROLE[k];if(typeof r==='string')k=r;if(tpl[k])return true;if(!KNOWN.has(k))return false;
+  const s=LS[k]||(LS[k]={tries:0,busy:false,timer:0,t0:now(),until:0});s.until=now()+180e3;if(!srcClips)load('anims');
+  return new Promise(res=>{(waiters[k]||(waiters[k]=[])).push(res);load(k);if(tpl[k])settle(k,true)})}))};
 P.has=k=>!!tpl[resolveKey(k)];
 
 /* ---------- clips: pelvis track scaled to the character's hip height, split into lower/upper masks ---------- */
@@ -279,7 +316,13 @@ function draw(list,role){const avail=list.filter(k=>tpl[k]||gltf(k));if(!avail.l
     if(b&&b.last&&q.length>1&&q[q.length-1]===b.last)[q[0],q[q.length-1]]=[q[q.length-1],q[0]];bags[role]=b={q,n:avail.length,last:b&&b.last}}
   const k=b.q.pop();b.last=k;return k}
 function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:draw(k,role);return k}
-P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null){try{if(!prepareAll())P.failed=true}catch(e){P.failed=true}}if(!P.ok||!T.SkeletonUtils)return null;const key=resolveKey(role,o.variant);const t=tpl[key]||prep(key);if(!t)return null;
+P.usable=()=>!!(T&&T.SkeletonUtils&&!P.failed);
+P.make=function(role,o){o=o||{};if(!T||!T.SkeletonUtils||P.failed)return null;if(!srcClips)try{prepareAll()}catch(e){}
+  const key=resolveKey(role,o.variant);let t=null;if(srcClips)try{t=tpl[key]||prep(key)}catch(e){console.warn('people: prepare failed for',key,e)}
+  if(t){const d=build(t,key,o);P.live.push(d);return d}
+  if(!KNOWN.has(key))return null;
+  return makePending(key,role,o)};
+function build(t,key,o){
   const body=T.SkeletonUtils.clone(t.scene);body.name='rb_'+key;
   const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
   const meshes=[];let head=null,gunHold=null,skinned=[];
@@ -295,7 +338,73 @@ P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null)
   const d={root,body,meshes,head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true};if(NB[key])d.neighbour=true;
   /* start in idle so a freshly spawned character is never seen in the bind pose */
   setBase(d,rb.idle,true);step(d,0);mixer.update(Math.random()*3);
-  P.live.push(d);return d};
+  return d}
+
+/* ---------- pending characters ----------
+   A known character whose model is not in yet: same contract as a real one (root, body, gunHold, meshes, rb, legs/arms stubs), nothing drawn
+   (the root reports itself invisible while pending, whatever the game sets), hitboxes that rays pass through. The game keeps driving it
+   (position, follow, pose inputs, equip, die), the inputs are kept, and fill() turns it into the real character in place. */
+const pending=[];P.pending=pending;P.PENDING_CEILING=60;let fbLogged=false;
+const swapCbs=[];P.onSwap=f=>{swapCbs.push(f)};P.boxFallback=null;
+const noRay=function(){};
+function pendVisible(root){root._htVis=root.visible!==false;root._htPend=true;
+  Object.defineProperty(root,'visible',{configurable:true,enumerable:true,get(){return this._htVis&&!this._htPend},set(v){this._htVis=!!v}})}
+function makePending(key,role,o){
+  const root=new T.Group();root.name='rb_pending_'+key;pendVisible(root);
+  const body=new T.Group();body.name='rb_'+key;body.userData.pending=true;root.add(body);/* named like a real body, so name-based checks (HT.People.isProtected) see who it is */
+  const gunHold=new T.Group();gunHold.name='gunHold';gunHold.visible=false;body.add(gunHold);
+  const hb=(h,y,head)=>{const m=new T.Mesh(hbGeo(.42,h,.32,0,y,0),hitMat);m.userData.hitbox=true;m.userData.head=!!head;m.userData.pendingHit=true;m.raycast=noRay;m.castShadow=false;m.frustumCulled=false;body.add(m);return m};
+  /* neighbours carry no hitboxes (not targets); everyone else gets two that rays pass through until the model is in */
+  const head=NB[key]?null:hb(.3,1.68,true),torso=NB[key]?null:hb(1.45,.78,false);
+  const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
+  const stub=()=>new T.Object3D();
+  const rb={key,pending:true,t0:now(),role,opts:o,acts:{},lw:{},in:{mode:'stand',aim:false,moving:false,pitch:0},dead:false,gunType:null,style:null,v:0,vx:0,vz:0,lx:null,lz:null,acc:0,skip:0,orphan:0,phase:0,female:!!FEMALE[key]};
+  const d={root,body,meshes:head?[head,torso]:[],head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true,pending:true};if(NB[key])d.neighbour=true;
+  pending.push(d);if(!srcClips)load('anims');load(key);return d}
+/* the ids the game hangs on hitboxes (userData.ent and the like) carry over to the new ones */
+function carryHitData(from,to){const extra={};for(const m of from)for(const k in m.userData)if(k!=='hitbox'&&k!=='head'&&k!=='pendingHit')extra[k]=m.userData[k];for(const m of to)Object.assign(m.userData,extra)}
+function fill(d){const boxed=!!d.boxed,rb0=boxed?d._rb:d.rb,key=rb0.key,t=tpl[key];if(!t||!srcClips)return false;
+  const n=build(t,key,rb0.opts||{}),root=d.root;
+  const gunType=boxed?(d.gun&&d.gun.userData&&d.gun.userData.gun)||null:rb0.gunType;
+  const oldHold=d.gunHold,oldBody=d.body,oldMeshes=d.meshes.slice();
+  /* the new body goes into the same root (position, rotation, scale, parent, anything the game attached to the root stay) */
+  root.add(n.body);
+  if(oldHold)for(const c of oldHold.children.slice())n.gunHold.add(c);
+  if(boxed){for(const o of d._boxParts||[])if(o.parent)o.parent.remove(o);d._boxParts=null;root.rotation.x=0;root.rotation.z=0}
+  else if(oldBody){for(const c of oldBody.children.slice())if(c!==oldHold&&!(c.userData&&c.userData.pendingHit))n.body.add(c);root.remove(oldBody)}
+  /* a caller that emptied the hitbox list on purpose (finale cast: not targets) keeps it empty */
+  const meshes=d.meshes,cleared=!boxed&&!meshes.length&&!NB[key];carryHitData(oldMeshes,n.meshes);meshes.length=0;if(!cleared)meshes.push(...n.meshes);
+  const savedIn=Object.assign({},rb0.in),dead=rb0.dead,force=rb0.force;
+  for(const k in rb0)delete rb0[k];Object.assign(rb0,n.rb);Object.assign(rb0.in,savedIn);if(force)rb0.force=force;
+  d.rb=rb0;d.body=n.body;d.head=n.head;d.gunHold=n.gunHold;d.legs=n.legs;d.arms=n.arms;d.people=true;d.pending=false;d.boxed=false;delete d._rb;delete d._rideRig;
+  if(NB[key])d.neighbour=true;
+  root._htPend=false;
+  if(d.gun&&d.gun.parent!==d.gunHold)d.gunHold.add(d.gun);
+  if(gunType||d.gun)try{P.equip(d,gunType)}catch(e){}
+  if(dead){rb0.dead=false;P.die(d);rb0.deadT=3}
+  setBase(d,chooseBase(d),true);step(d,0);
+  const i=pending.indexOf(d);if(i>=0)pending.splice(i,1);P.live.push(d);
+  for(const f of swapCbs)try{f(d)}catch(e){console.warn('people: onSwap',e)}
+  return true}
+/* after the ceiling, a character still waiting may get the game's box stand-in (if the game offers one); the real model replaces it later */
+function boxIn(d){const rb=d.rb;let b=null;try{b=P.boxFallback&&P.boxFallback(rb.role,rb.opts&&rb.opts.look,rb.key)}catch(e){b=null}if(!b||!b.root)return false;
+  if(!fbLogged){fbLogged=true;console.warn('people: character models still unavailable after '+P.PENDING_CEILING+' s of retries; showing stand-ins until they arrive ('+rb.key+')')}
+  const root=d.root,parts=b.root.children.slice();for(const c of parts)root.add(c);d._boxParts=parts;
+  if(d.gunHold)for(const c of d.gunHold.children.slice())b.gunHold.add(c);
+  if(d.body){for(const c of d.body.children.slice())if(c!==d.gunHold&&!(c.userData&&c.userData.pendingHit))root.add(c);root.remove(d.body)}
+  carryHitData(d.meshes,b.meshes);d.meshes.length=0;d.meshes.push(...b.meshes);
+  d._rb=rb;delete d.rb;delete d.body;d.head=b.head;d.gunHold=b.gunHold;d.legs=b.legs;d.arms=b.arms;d.people=false;d.pending=false;d.boxed=true;root._htPend=false;
+  for(const f of swapCbs)try{f(d)}catch(e){}
+  return true}
+function tick(){if(!pending.length)return;const t=now();
+  for(const d of pending.slice()){const rb=d.boxed?d._rb:d.rb;if(!rb)continue;const key=rb.key;
+    /* dropped by the game long ago: forget it */
+    if(!d.root.parent){d._orph=d._orph||t;if(t-d._orph>600e3){pending.splice(pending.indexOf(d),1);continue}}else d._orph=0;
+    if(srcClips&&!tpl[key]&&gltf(key))try{prep(key)}catch(e){}
+    if(srcClips&&tpl[key]){try{fill(d)}catch(e){console.warn('people: swap failed for',key,e)}continue}
+    if(onStage(d)){if(!srcClips)load('anims');load(key)}
+    if(!d.boxed&&d.root.parent&&t-rb.t0>P.PENDING_CEILING*1000)boxIn(d)}}
+P.tick=tick;
 
 function act(rb,name,part){const c=clips(name,rb.hip);if(!c)return null;let a=rb.acts[name];if(!a){a=rb.acts[name]={lo:null,sp:null,ar:null,c}}
   if(!a[part]){const x=rb.mixer.clipAction(c[part]);if(ONCE[name]){x.setLoop(T.LoopOnce,1);x.clampWhenFinished=true}x.enabled=true;x.setEffectiveWeight(0);a[part]=x}return a[part]}
@@ -308,7 +417,7 @@ function setBase(d,name,instant){const rb=d.rb;if(!clips(name,rb.hip))name=rb.id
 
 /* ---------- public driving API ---------- */
 P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
-  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;inp.air=o.air||null;if(rb.force)Object.assign(inp,rb.force);
+  const inp=rb.in;inp.mode=o.mode||'stand';inp.aim=o.aim===undefined?true:!!o.aim;inp.moving=!!o.moving;inp.pitch=o.pitch||0;inp.speedHint=o.speed||1;inp.air=o.air||null;if(rb.force)Object.assign(inp,rb.force);if(rb.pending)return;
   if(dt>0){const x=r.position.x,z=r.position.z;if(rb.lx!==null){const dx=x-rb.lx,dz=z-rb.lz,dd=Math.hypot(dx,dz);
       if(dd<3){const s=Math.sin(r.rotation.y),c=Math.cos(r.rotation.y);const k=1-Math.exp(-dt*10);const sc=r.scale.x||1;
         /* local: +x = character's left, +z = forward; scaled characters take longer strides */
@@ -316,21 +425,21 @@ P.pose=function(d,dt,o){const rb=d.rb;if(!rb)return;o=o||{};const r=d.root;
     rb.lx=x;rb.lz=z;if(!inp.moving){const k=1-Math.exp(-dt*14);rb.vx-=rb.vx*k;rb.vz-=rb.vz*k}}
   if(inp.mode==='down'&&!rb.dead)rb.downed=true;else if(inp.mode!=='down'&&rb.downed){rb.downed=false;rb.getUp=.6}};
 const PISTOL_STYLE={pistol:1,revolver:1,nailer:1,sawedoff:1};const _ry=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI);
-P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;if(d.gun)batchGun(d.gun);rb.shadowBand=-1;rb.gunType=type||null;const gh=d.gunHold;const G=HT.Guns;
+P.equip=function(d,type){const rb=d.rb;if(!rb||!d.gunHold)return;if(rb.pending){rb.gunType=type||null;return}if(d.gun)batchGun(d.gun);rb.shadowBand=-1;rb.gunType=type||null;const gh=d.gunHold;const G=HT.Guns;
   rb.style=type?(PISTOL_STYLE[type]?'pistol':'rifle'):null;gh.scale.set(1,1,1);
   /* realistic guns (js/guns.js): calibrated hand fit; makeGun wraps those models turned to +Z, so turn back */
   if(type&&d.gun&&d.gun.userData&&d.gun.userData.gun&&G&&G.handAttach){try{const a=G.handAttach(type);gh.position.copy(a.position);gh.quaternion.copy(a.quaternion);if(d.gun.userData.muzzle!=='-z')gh.quaternion.multiply(_ry);rb.style=a.clipStyle||rb.style;rb.gh={p:gh.position.clone(),q:gh.quaternion.clone()};return}catch(e){}}
   const f=GUN_FIT[rb.style==='pistol'?'pistol':'rifle'];
   gh.position.fromArray(f.p);gh.quaternion.fromArray(f.q);
   if(d.gun){const muzzleNegZ=d.gun.userData&&d.gun.userData.muzzle==='-z';if(!muzzleNegZ&&rb.style!=='pistol'){gh.quaternion.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.PI));const n=BOX_NUDGE[type]||[0,0,0];d.gun.position.set(n[0],n[1],n[2])}}rb.gh={p:gh.position.clone(),q:gh.quaternion.clone()}};
-function oneShot(d,name,dur,peak){const rb=d.rb;if(!rb||rb.dead)return;const a=act(rb,name,'ar'),b=act(rb,name,'sp');if(!a)return;const cd=rb.acts[name].c.dur;
+function oneShot(d,name,dur,peak){const rb=d.rb;if(!rb||rb.dead||rb.pending)return;const a=act(rb,name,'ar'),b=act(rb,name,'sp');if(!a)return;const cd=rb.acts[name].c.dur;
   for(const x of[a,b]){x.reset();x.timeScale=dur?cd/dur:1;x.play()}rb.one={name,t:0,dur:dur||cd,peak:peak||1}}
-P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;const ps=rb.style==='pistol';oneShot(d,ps?'pistol_fire':'rifle_fire',ps?.4:.22,1);rb.kick=1;
+P.fire=(d,cycle)=>{const rb=d&&d.rb;if(!rb||!rb.gunType||rb.pending)return;const ps=rb.style==='pistol';oneShot(d,ps?'pistol_fire':'rifle_fire',ps?.4:.22,1);rb.kick=1;
   const G=HT.Guns,vc=G&&G.VMC&&G.VMC[rb.gunType];const k=cycle||(vc&&vc.cycle);if(k==='pump'||k==='boltAction')rb.cyc={t:0,k}};
 P.interact=d=>{const rb=d&&d.rb;if(!rb)return;oneShot(d,'interact',1.1,.85)};
-P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
+P.reload=(d,sec)=>{const rb=d&&d.rb;if(!rb||!rb.gunType||rb.pending)return;if(rb.style==='pistol')oneShot(d,'pistol_reload',sec||1.2,1);else rb.reloadT=sec||1.9};
 P.hit=(d,headshot)=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;/* never a hit reaction on a kid or the family */oneShot(d,headshot?'hit_head':'hit_chest',headshot?.43:.33,.9)};
-P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
+P.die=d=>{const rb=d&&d.rb;if(!rb||rb.dead||P.isProtected(d))return;if(rb.pending){rb.dead=true;return}rb.dead=true;rb.deadT=0;rb.one=null;d.body.position.y=0;setBase(d,'death');};
 /* tests: pin inputs regardless of what the game asks for (P.force(d,null) clears) */
 P.force=(d,o)=>{if(d&&d.rb)d.rb.force=o||null};
 P.revive=d=>{const rb=d&&d.rb;if(!rb)return;rb.dead=false;rb.deadT=0;d.body.position.y=0;d.root.visible=true};
@@ -554,7 +663,7 @@ function applyAir(d,dt){const rb=d.rb;if(rb.dead)return;const a=rb.in.air;const 
 /* zoom-aware LOD: through a scope or binoculars a far character fills the screen like a near one, so the animation-rate steps and the
    far-gun swap use dist x (camera.fov / P.baseFov) (never more than the real distance) */
 P.baseFov=72;
-P.update=function(dt,camera){if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;const zk=camera&&camera.fov?Math.min(1,Math.max(.02,camera.fov/(P.baseFov||72))):1;
+P.update=function(dt,camera){if(pending.length&&(P._tickAcc=(P._tickAcc||0)+dt)>.25){P._tickAcc=0;tick()}if(!P.live.length)return;const cp=camera?camera.position:null;P.stats.updates=0;P.stats.skipped=0;const zk=camera&&camera.fov?Math.min(1,Math.max(.02,camera.fov/(P.baseFov||72))):1;
   for(let i=P.live.length-1;i>=0;i--){const d=P.live[i];const rb=d.rb;
     if(!d.root.parent){if(++rb.orphan>90){P.live.splice(i,1);rb.mixer.stopAllAction()}continue}rb.orphan=0;
     rb.acc+=dt;
