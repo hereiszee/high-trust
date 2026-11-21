@@ -66,8 +66,28 @@ function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
 function prepareAll(){const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
   srcClips={};for(const c of an.animations)srcClips[c.name]=c;
   let n=0;for(const k of GAME_KEYS)if(prep(k))n++;P.ok=n>0;return P.ok}
-P.preload=function(keys){return Promise.all(keys.map(k=>{if(tpl[k])return true;if(!loader)return false;
-  return new Promise(res=>loader.load(BASE+k+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[k]=g;res(!!prep(k))},undefined,()=>res(false)))}))};
+/* on-demand models (givers, neighbours, family, street-crew variants): a slow or failed .glb load retries with backoff (1, 2, 4 ... 30 s;
+   an attempt that hangs counts as failed after 15 s). preload() never leaves a caller waiting forever: if a model is not in after 8 s (or
+   3 failed attempts) the key gets a stand-in, a boot-loaded body of a similar build (never a box), so has(k) is true and make(k) works;
+   when a retry finally lands, the real model replaces the stand-in for everyone made after that. P.missing lists keys on a stand-in. */
+const LOAD={timeout:15000,ceiling:8000,standInAfter:3,maxWait:30000},pend={};P.missing={};P.loadStats={tries:{},standIns:0,late:0};
+const STAND_IN={earl:'dad_doug',dee:'dad_rick',rosa:'dad_gary',benny:'dad_dave',nb_gran:'dad_doug',nb_pops:'dad_doug',nb_office:'dad_gary',nb_sweater:'dad_rick',
+  nb_teen:'thug_hoodie',nb_kid:'dad_player',nb_kenji:'dad_gary',nb_marcus:'dad_dave',nb_mei:'dad_rick',nb_lucia:'dad_gary',wife:'dad_rick',son:'dad_player',daughter:'dad_player'};
+const STAND_SCALE={nb_kid:.7,son:.7,daughter:.68,nb_teen:.92};
+function standIn(k){if(tpl[k])return true;const b=tpl[STAND_IN[k]]||tpl[THUGS[0]]||tpl.dad_player||tpl[GAME_KEYS.find(x=>tpl[x])];if(!b)return false;
+  tpl[k]=Object.assign({},b,{standIn:STAND_IN[k]||'base',siScale:STAND_SCALE[k]||1});P.missing[k]=true;P.loadStats.standIns++;return true}
+function loadKey(k){if(tpl[k]&&!P.missing[k])return Promise.resolve(true);if(!loader)return Promise.resolve(standIn(k));if(pend[k])return pend[k].p;
+  const st={tries:0};st.p=new Promise(r=>{st.res=r});pend[k]=st;
+  const landed=g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});extra[k]=g;const was=P.missing[k];if(was){delete tpl[k];P.loadStats.late++}
+    if(prep(k)){delete P.missing[k];delete pend[k];st.res(true)}else{if(was&&!tpl[k])standIn(k);retry()}};
+  const retry=()=>{if(st.tries>=LOAD.standInAfter&&!tpl[k])standIn(k);setTimeout(attempt,Math.min(LOAD.maxWait,1000*Math.pow(2,Math.min(st.tries-1,5))))};
+  const attempt=()=>{st.tries++;P.loadStats.tries[k]=st.tries;let over=false;
+    const to=setTimeout(()=>{over=true;retry()},LOAD.timeout);/* a request that never answers: try again (a late answer still counts) */
+    loader.load(BASE+k+'.glb',g=>{clearTimeout(to);if(pend[k]!==st)return;landed(g)},undefined,()=>{clearTimeout(to);if(!over)retry()})};
+  attempt();return st.p}
+P.preload=function(keys){return Promise.all((keys||[]).map(k=>{if(tpl[k]&&!P.missing[k])return true;
+  return Promise.race([loadKey(k),new Promise(r=>setTimeout(()=>r(tpl[k]?true:standIn(k)),LOAD.ceiling))])}))};
+P.loadTuning=LOAD;
 P.has=k=>!!tpl[resolveKey(k)];
 
 /* ---------- clips: pelvis track scaled to the character's hip height, split into lower/upper masks ---------- */
@@ -277,7 +297,7 @@ function draw(list,role){const avail=list.filter(k=>tpl[k]||gltf(k));if(!avail.l
 function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:draw(k,role);return k}
 P.make=function(role,o){o=o||{};if(!P.ok&&!P.failed&&A&&A.done&&srcClips===null){try{if(!prepareAll())P.failed=true}catch(e){P.failed=true}}if(!P.ok||!T.SkeletonUtils)return null;const key=resolveKey(role,o.variant);const t=tpl[key]||prep(key);if(!t)return null;
   const body=T.SkeletonUtils.clone(t.scene);body.name='rb_'+key;
-  const root=new T.Group();root.add(body);const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
+  const root=new T.Group();root.add(body);const sc=(t.standIn?t.siScale:(SCALE[key]||1))*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
   const meshes=[];let head=null,gunHold=null,skinned=[];
   body.traverse(n=>{if(n.userData&&n.userData.hitbox){meshes.push(n);if(n.userData.head)head=n}else if(n.isSkinnedMesh)skinned.push(n);if(n.name==='gunHold')gunHold=n});
   const bones={};for(const n of['Bip01_Pelvis','Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_R_Hand','Bip01_L_Forearm','Bip01_L_Hand','Bip01_L_Finger2','Bip01_R_Forearm','Bip01_L_Toe0','Bip01_R_Toe0','Bip01_L_Foot','Bip01_R_Foot'])bones[n]=body.getObjectByName(n);
