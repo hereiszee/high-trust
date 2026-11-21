@@ -41,7 +41,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
   /* a fresh game in the open world */
   await ev(()=>{try{localStorage.removeItem('ht-save')}catch(_){}const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(3)});
   await p.mouse.click(640,360);await step(2);/* the first click asks for pointer lock (refused headless) */
-  const perf=async(label)=>{const r=await ev(()=>{const H=window.__ht,R=H.renderer;const t0=performance.now();H.draw();const ms=performance.now()-t0;R.info.autoReset=false;R.info.reset();H.draw();const calls=R.info.render.calls,tris=R.info.render.triangles;R.info.autoReset=true;
+  const perf=async(label)=>{const r=await ev(()=>{const H=window.__ht,R=H.renderer;H.draw();/* warm-up: shader compiles for whatever just streamed in */const t0=performance.now();H.draw();const ms=performance.now()-t0;R.info.autoReset=false;R.info.reset();H.draw();const calls=R.info.render.calls,tris=R.info.render.triangles;R.info.autoReset=true;
       const t1=performance.now();for(let i=0;i<10;i++)H.step(1);const js=(performance.now()-t1)/10;return{calls,tris,drawMs:+ms.toFixed(1),stepMs:+js.toFixed(2)}});say('  perf '+label+' '+JSON.stringify(r));return r};
 
   if(phases.includes('drive')){say('== drive: home to Fort Sensible in the minivan');
@@ -145,7 +145,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await fly({to:[250,120],alt:80,max:300,until:q=>Math.hypot(q.x-250,q.z-120)<60});
     const home=await ev(()=>({x:window.__ht.L.start.x,z:window.__ht.L.start.z}));
     await fly({to:[home.x,home.z],alt:q=>Math.hypot(q.x-home.x,q.z-home.z)<700?34:90,spd:78,max:500,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<220});
-    await shot('jet-maple');await perf('jet over Maple Heights (inbound, looking at the houses)');
+    await shot('jet-inbound');await perf('jet inbound to Maple Heights');
     await fly({to:[home.x,home.z],alt:34,spd:78,max:300,until:q=>Math.hypot(q.x-home.x,q.z-home.z)<30});
     await fly({to:[home.x+260,home.z+40],alt:45,spd:100,ab:true,max:120});
     if(SHOTS){/* the lawn, from the street: a fixed camera on the family (the bot's jet is already past) */
