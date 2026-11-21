@@ -126,8 +126,12 @@ scrapyardGate 429, midBridge 435 on Medium; budget 450).
   mouse movement is not exercised. Every key press, hold and click is a real Playwright event.
 * The flight model is arcade on purpose (turns at ~2.6× real g so a 460 m town is flyable). The base-check autopilot needs long
   straight finals (runway 27 from 700 m out, the river run from 700 m south of town) to be reliable.
-* The first flight builds the far-terrain ring and the roof lids: one slower frame (~35 ms headless) on the climb out.
+* The first flight builds the far-terrain ring (it uses the backdrop's own grass material and is blended from the backdrop's edge
+  heights, so there is no seam) and the roof lids; the first frame after new things stream in also compiles shaders (base-check
+  times a warm frame). The river set piece stops ~400 m past the map; from very high you can see where it ends.
+* `dev/base-air.js` builds every unit at once for its staged views (~1500 draw calls, ~9M triangles); in real flight the
+  normal streaming keeps it far lower (45 climbing out, 100-200 over town in base-check).
 * Headless numbers are software-rendered; draw-call and triangle counts are the comparable figures, milliseconds are not.
 * The family can take a moment to come out on the very first buzz of a session if their models haven't finished streaming.
 * The Route 9 bridge sits on the water, so the "under the bridge" achievement is the new High Bridge north of town.
-* `riverside-ingame` job 0 fails the same way on `origin/main` (not caused by the base).
+* `jobs-check mower` and the `openworld-ingame` midBridge probe fail the same way on plain `origin/main` (not caused by the base).

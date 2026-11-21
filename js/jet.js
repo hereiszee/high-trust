@@ -273,14 +273,22 @@ function flight(on){if(on===F.fly)return;F.fly=on;const O=OWm();if(O&&O.flight)O
 
 /* ================= far terrain: fields and low hills out to the horizon (built on the first flight) ================= */
 function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;const Wm=def.W*2,Hm=def.H*2,cx=Wm/2,cz=Hm/2;
-  const N=56,R0=Math.max(Wm,Hm)/2+180,R1=5200;const P=[],C=[],I=[];const rings=22;
+  const N=56,R0=Math.max(Wm,Hm)/2+180,R1=5200;const P=[],C=[],I=[],UV=[],IN=[];const rings=22;
   const hgt=(x,z,d)=>{const n=Math.sin(x*.004)*Math.cos(z*.0047)+.5*Math.sin(x*.011+1.3)*Math.sin(z*.009+.7)+.25*Math.sin(x*.023+z*.017);return clamp((d-100)/160,0,1)*(9+24*clamp(n*.5+.5,0,1))+clamp((d-500)/1200,0,1)*60*Math.max(0,n+.3)-2};
+  /* no seam with the backdrop (world.js backdrop(): the map plus 260 m): sample its height along its border and blend out from there */
+  const bm=[];try{for(const q of OWm().units())if(q.sp&&q.sp.id==='backdrop'&&q.group){q.group.updateMatrixWorld(true);q.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)bm.push(m)})}}catch(_){}
+  const rc=new T.Raycaster(),dn=V(0,-1,0),bx0=-260,bz0=-260,bx1=Wm+260,bz1=Hm+260;/* world.js backdrop(): ext 260 */const bh=(x,z)=>{if(!bm.length)return null;rc.set(V(x,300,z),dn);rc.far=600;const h=rc.intersectObjects(bm,false)[0];return h?h.point.y:null};
   for(let j=0;j<=rings;j++){const t=j/rings,r=R0*.8+(R1-R0*.8)*t*t;for(let i=0;i<N;i++){const ang=i/N*Math.PI*2;let x=cx+Math.cos(ang)*r*1.15,z=cz+Math.sin(ang)*r*.75*(1+t*.6);
-      const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);const y=hgt(x,z,d);P.push(x,y,z);
-      const fld=(Math.floor(x/140)+Math.floor(z/110))%4,base=[[.085,.17,.035],[.15,.21,.05],[.2,.19,.07],[.07,.13,.035]][(fld+4)%4]/* linear: the grass texture's own range */,k=1-t*.25;C.push(base[0]*k,base[1]*k,base[2]*k)}}
-  for(let j=0;j<rings;j++)for(let i=0;i<N;i++){const a0=j*N+i,a1=j*N+(i+1)%N,b0=(j+1)*N+i,b1=(j+1)*N+(i+1)%N;I.push(a0,b0,a1,a1,b0,b1)}
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setIndex(I);g.computeVertexNormals();
-  const m=new T.Mesh(g,new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
+      const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);let y=hgt(x,z,d);
+      const out=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0);const eh=bh(clamp(x,bx0+4,bx1-4),clamp(z,bz0+4,bz1-4));
+      IN.push(out<=0?1:0);if(eh!=null){if(out<=0)y=eh-4;else{const k=clamp(out/350,0,1),sk=k*k*(3-2*k);y=eh-.6+(y-eh+.6)*sk}}P.push(x,y,z);
+      const fld=(Math.floor(x/140)+Math.floor(z/110))%4,tint=[[.96,1,1.04],[1.04,1.02,.94],[1.1,1,.86],[.9,.96,1]][(fld+4)%4],out2=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0),v=.74*(1-.25*clamp(out2/600,0,1))*(1-t*.15),ft=clamp((out2-150)/500,0,1)/* fields fade in away from the backdrop */;
+      C.push(v*(.96+(tint[0]-.96)*ft),v*(1+(tint[1]-1)*ft),v*(1.04+(tint[2]-1.04)*ft));UV.push(x/9,z/9)}}
+  for(let j=0;j<rings;j++)for(let i=0;i<N;i++){const a0=j*N+i,a1=j*N+(i+1)%N,b0=(j+1)*N+i,b1=(j+1)*N+(i+1)%N;if(IN[a0]&&IN[a1]&&IN[b0]&&IN[b1])continue;/* under the backdrop: not drawn (no overdraw) */I.push(a0,a1,b0,a1,b1,b0)}/* wound to face up (the backdrop's material is single-sided) */
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('color',new T.Float32BufferAttribute(C,3));g.setAttribute('uv',new T.Float32BufferAttribute(UV,2));g.setIndex(I);g.computeVertexNormals();
+  /* the backdrop's own grass material (same texture, same 9 m tiling, vertex colours like its own): no colour seam at its edge */
+  let bmat=null;for(const q of bm)if(q.material&&q.material.map&&q.material.vertexColors&&(!bmat||q.geometry.attributes.position.count>bmat.n))bmat={m:q.material,n:q.geometry.attributes.position.count};
+  const m=new T.Mesh(g,bmat?bmat.m:new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide}));m.receiveShadow=false;m.renderOrder=-2;m.frustumCulled=false;m.name='farTerrain';a.scene.add(m);F.far=m}
 /* lids: flat roofs over interiors drawn without one (mission sites' '.' floors), shown only while you fly so ground play and the planning views never see them */
 function lids(a,on){if(on&&!F.lid){const T=T3(),def=a.WORLD,g=new T.Group();g.name='airLids';const m=new T.MeshStandardMaterial({color:new T.Color('#6d6f70').convertSRGBToLinear(),roughness:.95});
     const boxes=[],seen=new Uint8Array(def.W*def.H),W=def.W,H=def.H,mp=def.map,inside=c=>c==='.'||c==='I'||c==='T'||c==='i'||c==='a'||c==='E'||c==='B'||c==='S'||c==='k'||c==='Q';const geo=new T.BoxGeometry(1,1,1);
