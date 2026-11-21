@@ -1,0 +1,30 @@
+{
+  "name": "high-trust",
+  "productName": "High Trust",
+  "version": "1.0.0",
+  "description": "High Trust: an open-world shooter about suburban dads taking their neighborhood back.",
+  "author": "High Trust",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder -c electron-builder.config.js --win --linux",
+    "dist:win": "electron-builder -c electron-builder.config.js --win",
+    "dist:linux": "electron-builder -c electron-builder.config.js --linux",
+    "dist:mac": "electron-builder -c electron-builder.config.js --mac",
+    "dist:dir": "electron-builder -c electron-builder.config.js --linux --dir",
+    "dist:full": "HT_FULL_ASSETS=1 electron-builder -c electron-builder.config.js --win --linux",
+    "e2e": "node test/e2e.js",
+    "icon": "node scripts/make-icon.js"
+  },
+  "dependencies": {
+    "steamworks.js": "0.4.0"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.0.12"
+  }
+}

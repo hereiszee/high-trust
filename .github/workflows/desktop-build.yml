@@ -1,0 +1,134 @@
+# Desktop (Steam) builds: Windows x64, macOS universal, Linux x64 on their own runners. docs/steam/BUILD.md
+# Runs by hand (Actions -> Desktop build -> Run workflow) and on tags v*. Artifacts are the folders the Steam depots take.
+# No secrets live in the repo. Signing runs only when these repository secrets exist:
+#   macOS:  MAC_CERT_P12_BASE64, MAC_CERT_PASSWORD (Developer ID Application certificate, exported as .p12, base64)
+#           APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   (notarisation)
+#   Windows: WIN_CERT_P12_BASE64, WIN_CERT_PASSWORD               (code signing; optional, Steam doesn't require it)
+name: Desktop build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win --x64
+            out: win-unpacked
+            name: high-trust-windows-x64
+          - os: macos-latest
+            target: --mac --universal
+            out: mac-universal
+            name: high-trust-macos-universal
+          - os: ubuntu-latest
+            target: --linux --x64
+            out: linux-unpacked
+            name: high-trust-linux-x64
+    runs-on: ${{ matrix.os }}
+    env:
+      # secrets at job level so steps can test for them; empty when not configured
+      MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+      MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+      WIN_CERT_P12_BASE64: ${{ secrets.WIN_CERT_P12_BASE64 }}
+      WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - run: npm ci
+
+      - name: Unit tests (save file)
+        run: npm test
+
+      - name: Assets are built (assets/opt matches the sources)
+        working-directory: .
+        run: node dev/check-build.js
+
+      - name: macOS signing material
+        if: runner.os == 'macOS' && env.MAC_CERT_P12_BASE64 != ''
+        shell: bash
+        run: |
+          echo "$MAC_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/mac.p12"
+          echo "CSC_LINK=$RUNNER_TEMP/mac.p12" >> "$GITHUB_ENV"
+          echo "CSC_KEY_PASSWORD=$MAC_CERT_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Windows signing material
+        if: runner.os == 'Windows' && env.WIN_CERT_P12_BASE64 != ''
+        shell: bash
+        run: |
+          echo "$WIN_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/win.p12"
+          echo "CSC_LINK=$RUNNER_TEMP/win.p12" >> "$GITHUB_ENV"
+          echo "CSC_KEY_PASSWORD=$WIN_CERT_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Package
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx electron-builder -c electron-builder.config.js ${{ matrix.target }} --publish never
+
+      - name: macOS signature / notarisation report
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP="dist/mac-universal/High Trust.app"; [ -d "$APP" ] || APP=$(ls -d dist/mac-universal/*.app | head -1)
+          lipo -info "$APP/Contents/MacOS/"* || true
+          codesign -dv --verbose=2 "$APP" 2>&1 || echo "UNSIGNED: Gatekeeper will block this build (see BUILD.md)"
+          spctl -a -vv -t exec "$APP" 2>&1 || true
+
+      - name: Smoke test (launch to title) on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          npm i --no-save playwright@1
+          node test/e2e.js --exe dist/win-unpacked/HighTrust.exe --smoke
+
+      - name: Smoke test (launch to title) on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          npm i --no-save playwright@1
+          APP=$(ls -d dist/mac-universal/*.app | head -1)
+          BIN="$APP/Contents/MacOS/$(ls "$APP/Contents/MacOS" | head -1)"
+          node test/e2e.js --exe "$BIN" --smoke
+
+      - name: End-to-end check of the packaged Linux build
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+          npm i --no-save playwright@1
+          xvfb-run -a -s "-screen 0 1600x900x24" node test/e2e.js --exe dist/linux-unpacked/HighTrust
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: desktop/dist/${{ matrix.out }}/
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-archive
+          path: |
+            desktop/dist/*.zip
+            desktop/dist/*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 14

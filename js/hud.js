@@ -116,7 +116,9 @@ const SETTINGS=[
   {tab:'display',h:'Camera',items:[
     {k:'fov',l:'Field of view',min:60,max:100,step:1,fmt:v=>v+'°'}]},
   {tab:'display',h:'Graphics',items:[
-    {k:'gfx',l:'Quality',type:'seg',opts:[['auto','Auto'],['low','Low'],['med','Medium'],['high','High']],sub:'Auto adapts resolution and effects to this machine · Low turns off shadows and post effects'}]},
+    {k:'gfx',l:'Quality',type:'seg',opts:[['auto','Auto'],['low','Low'],['med','Medium'],['high','High']],sub:'Auto adapts resolution and effects to this machine · Low turns off shadows and post effects'},
+    {k:'rscale',l:'Resolution scale',sub:'Renders fewer pixels and scales up · lower is faster',min:50,max:100,step:5,fmt:v=>v+'%'},
+    {k:'fpsCap',l:'Frame rate cap',type:'seg',opts:[['0','Off'],['30','30'],['60','60'],['120','120'],['144','144']],sub:'Off follows the display (VSync)'}]},
   {tab:'display',h:'Interface',items:[
     {k:'subs',l:'Subtitles',type:'bool'},
     {k:'mmRotate',l:'Rotate minimap',sub:'Off keeps north up',type:'bool'}]},
@@ -127,6 +129,9 @@ const SETTINGS=[
     {k:'voice',l:'Dialogue',min:0,max:100,step:5,fmt:v=>v+'%'}]}
 ];
 const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Jump · vault','Space'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Decorate (at home)','B'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
+/* controller layout (js/gamepad.js), shown under Key bindings */
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],['Menus','D-pad / left stick · A select · B back']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
 
@@ -713,7 +718,7 @@ const TIPS=['Hurt enemies sometimes give up. Zip-ties earn more trust than the a
 function screenTitle(d){
   const e=el('div','ht-scr ht-title');
   e.innerHTML=`<div class="scrim"></div><div class="col"><div class="ht-logo"><span class="roof">${UI_ICON.roof}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>${d.premise?`<p class="premise">${esc(d.premise)}</p>`:''}
-  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Settings','settings','ghost')}</div></div>
+  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Settings','settings','ghost')}${window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div>
   <div class="ht-load"><div class="row"><span class="tip"><b>Tip</b><span class="tt"></span></span><span class="st ht-num">Loading</span></div><div class="bar"><i></i></div></div><div class="ht-ver">Build ${esc(d.version||'')}</div>`;
   e.querySelector('.tt').textContent=d.tip||TIPS[Math.floor(Math.random()*TIPS.length)];
   return e}
@@ -750,11 +755,13 @@ function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'co
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
   ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Key bindings'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
-  <div class="sep"></div>${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
+  <div class="sep"></div>${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}${d.canQuit!==false&&window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
-  if(tab==='keys'){h='<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'}
+  if(tab==='keys'){h=(window.HT.Keys&&!d.bindings?HT.Keys.table():'<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>')+
+    '<h3>Controller</h3><div class="ht-keys ht-padkeys">'+PAD_KEYS.map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'+
+    (window.HT.Keys?'':'<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>')}
   else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
     h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
@@ -763,6 +770,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
     else if(it.type==='seg')h+=`<div class="ht-set">${lab}<div class="ht-seg3" data-k="${it.k}">${it.opts.map(([ov,ol])=>`<button aria-pressed="${v===ov}" data-v="${ov}">${ol}</button>`).join('')}</div></div>`;
     else{const val=v??it.min;h+=`<div class="ht-set">${lab}<input type="range" id="hts-${it.k}" min="${it.min}" max="${it.max}" step="${it.step}" value="${val}" data-k="${it.k}" style="--p:${((val-it.min)/(it.max-it.min)*100).toFixed(1)}%"><output class="ht-num">${(it.fmt||String)(val)}</output></div>`}}}
   pane.innerHTML=h;
+  if(tab==='keys'&&window.HT.Keys&&!d.bindings)HT.Keys.bind(pane,()=>renderPane(e,d));/* rebinding (js/keys.js) */
   const set=(k,v)=>{S[k]=v;emit('setting',k,v);if(k==='subs')H.subsOn=v;if(k==='mmRotate')H.mmRotate=v};
   pane.querySelectorAll('input[type=range]').forEach(r=>{const it=SETTINGS.flatMap(g=>g.items).find(i=>i.k===r.dataset.k);r.oninput=()=>{const v=+r.value;r.style.setProperty('--p',((v-it.min)/(it.max-it.min)*100).toFixed(1)+'%');r.nextElementSibling.textContent=(it.fmt||String)(v);set(it.k,v)}});
   pane.querySelectorAll('.ht-tog').forEach(t=>t.onclick=()=>{const v=t.getAttribute('aria-checked')!=='true';t.setAttribute('aria-checked',v);set(t.dataset.k,v)});

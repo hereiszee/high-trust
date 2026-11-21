@@ -2,7 +2,6 @@
    The chrome (scrim, panel, tabs, buttons, type, colour, motion) uses the HUD design system in css/hud.css: when the menus are
    mounted inside .ht-root they inherit its tokens; standalone they use the same values from the fallback block below.
    Store branding (logo plate, colour band, item backdrops) lives inside the panel. Prefix: htm- / htp-. */
-@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700;800&family=Bowlby+One&display=swap");
 
 /* token fallbacks: identical to .ht-root in css/hud.css (only used when not inside .ht-root) */
 body>.htm,.htp:not(.ht-root *){
