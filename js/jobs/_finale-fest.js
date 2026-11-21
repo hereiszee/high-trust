@@ -89,14 +89,14 @@ FN.stages.festival={
     if(S.ph==='speech'){S.chT-=dt;F.objs.push(['1, 2 or 3',false]);if(S.chT<=0)speak(M,0);return}
     if(S.ph==='wave'){S.wt+=dt;if(S.wt>S.wv){S.wv=S.wt+2.4;for(const p of FN.live||[])if(Math.random()<.85)FN.wave(p,2.4)}
       const can=M.fn.seen.wave;if(can){F.objs.push(['E: skip',false]);F.taps.push({d:0,r:1,txt:'Skip',fn:()=>{S.wt=99}})}
-      if(S.wt>9.5){S.ph='home';FN.cine(false);FN.markSeen(M,'wave');for(const p of S.fam){p.face=null;walkTo(p,a.VAN.pos.x-2.2,a.VAN.pos.z-2+S.fam.indexOf(p)*1.2,1.5)}say('jen',"Okay. Home. I'll get the kids. You get the van.",true)}return}
+      if(S.wt>11){S.ph='home';FN.cine(false);FN.markSeen(M,'wave');for(const p of S.fam){p.face=null;walkTo(p,a.VAN.pos.x-2.2,a.VAN.pos.z-2+S.fam.indexOf(p)*1.2,1.5)}say('jen',"Okay. Home. I'll get the kids. You get the van.",true)}return}
     if(S.ph==='home'){const V=a.VAN;F.objs.push(['Drive home with the family: E at the minivan (4th St)',false]);F.target={x:V.pos.x,z:V.pos.z,label:'Home'};
       F.taps.push({x:V.pos.x,z:V.pos.z,r:4,txt:'Drive home with the family',fn:()=>credits(M)});
       if(a.CV===V)credits(M);return}
     if(S.ph==='credits'){creditsTick(dt,M,F)}},
   camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='wave')return false;const cam=a.camera,k=clamp(S.wt/9,0,1),e=k*k*(3-2*k);
     /* a crane over the stage: rising and pulling back, the whole street waving under the lights */
-    cam.position.set(W.stage.x+6+e*3,4.9+e*5,43.4+e*2);cam.lookAt(380,1.2,43.2);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
+    cam.position.set(W.stage.x+5.4+e*3.5,2.3+e*3.6,43.2+e*.3);cam.lookAt(382,1.5-e*.4,43.3);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
   vehicle(car,dt,M){const S=M.fn.sub;if(S.ph!=='credits'||!S.dr)return;const a=A();S.ds=Math.min(S.dP.len,S.ds+S.dv*dt*(S.fast?5:1));const q=S.dP.at(S.ds),q2=S.dP.at(Math.min(S.dP.len,S.ds+3));
     car.pos.set(q.x,0,q.z);car.yaw=yawTo(q2.x-q.x,q2.z-q.z)||car.yaw;if(car.car)car.car.spd=S.dv;car.spd=S.dv;a.syncCar(car)},
   clear(M){const a=A(),S=M.fn.sub;FN.cine(false);M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null)}if(S.roll){a.overlay('fin-credits',null);S.roll=null}},
@@ -114,6 +114,8 @@ function speech(M){const a=A(),S=M.fn.sub,P=a.P;S.ph='speech';P.pos.set(W.stage.
   try{ch=a.HUD.kit.choices({speaker:'You, at the microphone',color:'#ffd23f',prompt:'Everyone is looking at you. Benny has turned the ice cream song down to medium.',tell:'the whole street, holding funnel cakes',options:SPEECH.map((s,i)=>({text:s[0],reg:i===1?'joke':'real'})),onPick:i=>speak(M,i)})}catch(e){console.error(e)}
   S.ch=ch;if(ch)a.overlay('fin-talk',ch.el);S.chT=18}
 function speak(M,i){const a=A(),S=M.fn.sub;if(S.ph!=='speech')return;if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null);S.ch=null}const s=SPEECH[i]||SPEECH[0];say('you',s[0],true);say('you',s[1]);
+  /* everyone gathers in front of the stage and faces it */
+  let n=0;for(const p of S.crowd.concat(S.fam,S.cast.filter(q=>q.lid!=='adeyemi'&&q.lid!=='ferreira'&&q.lid!=='porch'))){const x=W.stage.x+W.stage.w/2+3+(n%6)*2.6+Math.random(),z=41.4+((n*5)%4)*1.05;n++;p.face={x:W.stage.x,z:W.stage.z};walkTo(p,x,z,1.6)}
   S.ph='wave';S.wt=0;S.wv=0;FN.cine(true);try{HT.Audio.music&&HT.Audio.music('victory')}catch(_){}a.HUD.banner({kind:'title',kicker:'Riverside Flats Street Festival',title:epilogue(),sub:'Everybody you helped. Everybody who helped.',dur:6,letterbox:true})}
 
 /* ---------------- the credits: a slow drive home with the family ---------------- */
@@ -147,7 +149,7 @@ FN.storyEnd=function(M){const s=SV(),Sv=HT.Save;if(!s)return;s.flags=s.flags||{}
   try{Sv&&Sv.storefront&&Sv.storefront(s,'festival','lights');Sv&&Sv.perk&&Sv.perk(s,'benny',true);Sv&&Sv.household&&Sv.household(s,'festival')}catch(_){}
   try{const H=G();H.prog.trustR=100;H.prog.act=Math.max(H.prog.act||1,3)}catch(_){}try{Sv&&Sv.touch&&Sv.touch('flags','world','perks')}catch(_){}};
 /* when the job stops running mid-scene: the overlays go */
-FN.offStage=function(){const a=A();FN.cine(false);try{a.overlay('fin-credits',null);a.overlay('fin-talk',null)}catch(_){}try{D.body.classList.remove('ow-scoped')}catch(_){}};
+FN.offStage=function(){const a=A();FN.cine(false);try{a.setNight(0)}catch(_){}try{a.overlay('fin-credits',null);a.overlay('fin-talk',null)}catch(_){}try{D.body.classList.remove('ow-scoped')}catch(_){}};
 
 /* ---------------- after the finale: free roam with festival bunting on Main St, and one card ---------------- */
 const PG={mesh:null,store:{geo:[],mat:[],tex:[]}};

@@ -253,6 +253,7 @@ J.register(ID,{
     radio:[['dee',"Festival HQ is the folding table by 4th St. Everybody's there. Come assign us before Benny gives away all the ice cream."]],
     endLine:'Everybody waves.'},
   start(M,o){freeRes();FN.live=[];FN.t=0;const cp=o&&o.checkpoint;preloadCast();
+    try{A().setNight(0)}catch(_){}
     M.fn={stage:'plan',built:null,sub:{},q:[],qT:0,said:{},st:ST0(),plan:(PL()&&PL().load(ID))||null,seen:seen(),waitT:0,fade:null,t:0};M.noCars=false;M.score=0;
     const a=A();a.wmSetWindow(a.wmWindow(380,70,58));
     if(!cp)say('dee',"Festival HQ is the folding table at the east end. Walk over and press E. Everyone's waiting on you, no pressure.")},
