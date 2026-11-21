@@ -55,7 +55,10 @@ if(ST&&HT.Save&&HT.Save.on){HT.Save.on('saved',d=>Steam.check(d));HT.Save.on('lo
 
 if(!D)return;
 /* ---------- desktop shell only ---------- */
-document.documentElement.classList.add('ht-desktop');
+document.documentElement.classList.add('ht-desktop');if(D.deck)document.documentElement.classList.add('ht-deck');
+/* Steam Deck, first run (no saved Graphics choice): Auto starts a rung lower (Medium at 85% resolution) and climbs if frames allow */
+if(D.deck){try{const c=JSON.parse(D.storage.getItem('ht-cfg')||'{}');const R=root.__ht&&root.__ht.render;
+  if((!c.gfx||c.gfx==='auto')&&R&&R.auto&&R.apply){R.auto.i=Math.max(R.auto.i,2);R.apply('auto')}}catch(e){}}
 const HUD=root.__ht&&root.__ht.HUD;
 if(HUD){
   const disp=HUD.settingsSchema.find(g=>g.tab==='display'&&g.h==='Graphics');
@@ -70,7 +73,11 @@ if(HUD){
   HUD.on('action',a=>{if(a!=='quitDesktop')return;try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}try{D.flush()}catch(e){}D.quit()});
 }
 /* alt-tab / minimise: pause, like a PC game should (the shell keeps rendering in the background) */
-addEventListener('blur',()=>{const I=HT.Input;if(I&&I.running&&!I.paused&&I.mode!=='title')document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}))});
+const pauseNow=()=>{const I=HT.Input;if(I&&I.running&&!I.paused&&I.mode!=='title')document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}))};
+addEventListener('blur',pauseNow);
+/* hidden (minimised, Steam overlay full screen, Deck suspend), or the machine going to sleep: pause and write the save */
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseNow();try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}}});
+if(D.onSuspend)D.onSuspend(()=>{pauseNow();try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}});
 /* last chance to write a pending debounced save (Alt+F4, window close) */
 addEventListener('beforeunload',()=>{try{HT.Save&&HT.Save.flush&&HT.Save.flush()}catch(e){}try{D.flush()}catch(e){}});
 })(typeof window!=='undefined'?window:globalThis);
