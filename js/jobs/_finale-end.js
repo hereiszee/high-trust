@@ -36,7 +36,7 @@ FN.stages.chase={
     const tg={x:r.x,z:r.z,yaw:r.yaw,spd:r.v,w:2,l:4.9};const f={x:-Math.sin(r.yaw),z:-Math.cos(r.yaw)},rt={x:Math.cos(r.yaw),z:-Math.sin(r.yaw)};
     const rx=p.x-r.x,rz=p.z-r.z,back=-(rx*f.x+rz*f.z),lat=Math.abs(rx*rt.x+rz*rt.z);const behind=back>CK.behind[0]&&back<CK.behind[1]&&lat<CK.lat;
     if(!S.called&&d<CK.callD){F.objs.push(['Press G to call the box',false])}
-    if(a.keys.g&&!S.gk&&!S.called&&d<CK.callD+10){S.called=true;sayAll([['you',"BOX! Box box box!"],[S.crew[0].id,"Going left!"],[S.crew[1].id,"Going around the front! Hold on to your cones!"]])}S.gk=a.keys.g;
+    const gk=FN.pressed('g');if(gk&&!S.called&&d>=CK.callD+10)A().feed('Too far for the box: get within '+CK.callD+' m','info');if(gk&&!S.called&&d<CK.callD+10){S.called=true;sayAll([['you',"BOX! Box box box!"],[S.crew[0].id,"Going left!"],[S.crew[1].id,"Going around the front! Hold on to your cones!"]])}
     const inSlot=S.called&&S.crew.every(c=>c.in);if(inSlot&&behind)S.box.t+=dt;else S.box.t=Math.max(0,S.box.t-dt*2);
     if(S.box.t>=CK.boxT&&!S.stopping){S.stopping=true;M.fn.st.boxT=Math.round(S.t)}
     F.objs.push([S.called?(inSlot?(behind?'Hold the box · stay on his bumper':'Get right behind him: they have the sides'):'The crew is moving into the box…'):'Catch him: close to '+CK.callD+' m, then press G',false]);
@@ -49,7 +49,7 @@ FN.stages.chase={
   fire(M){A().feed('No guns in a car chase through a festival neighbourhood','info');return true},
   clear(M){},
   bot(a,t,o,M,B){const S=M.fn.sub,r=S.rail,P=a.P;if(!a.CV){P.pos.set(a.VAN.pos.x+2.4,0,a.VAN.pos.z);a.collide(P.pos,.35);if(t%6===3)a.enterCar(a.VAN);return}
-    const e=a.CV,c=e.car||e;const q=S.P.at(Math.max(0,r.s-7));e.pos.set(q.x,0,q.z);e.yaw=q.yaw;c.spd=r.v;a.syncCar(e);a.keys.g=(t%20)<2}};
+    const e=a.CV,c=e.car||e;const q=S.P.at(Math.max(0,r.s-7));e.pos.set(q.x,0,q.z);e.yaw=q.yaw;c.spd=r.v;a.syncCar(e);if(t%20===0&&!S.called)FN.press('g')}};
 /* breadcrumbs behind your car, for the convoy */
 function crumbs(M,p){const S=M.fn.sub,L=S.crumbs,l=L[L.length-1];if(!l||hyp(l.x-p.x,l.z-p.z)>CK.crumb){L.push({x:p.x,z:p.z});if(L.length>200)L.shift()}}
 /* the crew's cars: in convoy behind you until you call it, then into their slots around him (HT.Tail.slot keeps them in lane) */

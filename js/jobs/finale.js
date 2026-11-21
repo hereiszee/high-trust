@@ -245,8 +245,8 @@ J.register(ID,{
       "Gary: \"The Wholesaler wants it to fail. Smoke bombs, our stage truck, a crew in the crowd. So: a plan. Posts for everyone. Then we stop him, without ruining a single funnel cake.\""],
     obj:'Run the festival: assign the whole cast to posts, tail his courier, watch the crowd from the roof, stop the stage truck, hold the street, box him in, and finish it with a conversation and a zip-tie.',
     crew:[],weapons:['pistol','beanbag'],from:{home:'family'},start:{x:W.ring.x,z:W.ring.z},site:null,
-    unlock:{done:['gary','rick','dave','doug','earl','dee','rosa','benny','duke','taxi','hoa','mower','tail','crossing','tow','overwatch','pawn','moving','cargo','cones','talk','sabotage','brake','bike','arrest','heist'],
-      trust:80,trustR:80,when:()=>{const r=J.get('roundup');if(!r||r.builtin)return true;const s=SV();return!!(s&&s.jobs&&s.jobs.roundup&&s.jobs.roundup.done)}},
+    unlock:{done:['gary','rick','dave','doug','earl','dee','rosa','benny','duke','taxi','hoa','mower','tail','crossing','tow','overwatch','pawn','moving','cargo','cones','talk','sabotage','brake','bike','arrest','heist','roundup'],
+      trust:80,trustR:80},
     pay:2500,par:0,roam:true,order:5,winTrust:0,
     stages:ORDER,stageLabels:LABELS,failPolicy:'escalate',
     medals:['Finished','The Wholesaler zip-tied, by you','Zip-tied, and not one live round in the whole finale'],
@@ -259,7 +259,7 @@ J.register(ID,{
   upd(dt,M,F){const a=A(),fn=M.fn;if(!fn)return;fn.t+=dt;FN.t=fn.t;lineTick(dt,M);const fading=fadeTick(dt,M);
     if(!castReady()&&!fn.castOk&&fn.waitT<20){fn.waitT+=dt;preloadCast();F.objs.push(['Everybody is on their way to the festival…',false]);return}fn.castOk=true;
     const S=FN.stages[fn.stage];if(!S){F.objs.push(['Loading the festival…',false]);return}
-    if(fn.built!==fn.stage){fn.built=fn.stage;fn.sub={};M.stage=fn.stage;try{S.build(M)}catch(e){console.error('[finale] build '+fn.stage,e)}}
+    if(fn.built!==fn.stage){fn.built=fn.stage;fn.sub={};M.stage=fn.stage;FN.clearPressed();try{S.build(M)}catch(e){console.error('[finale] build '+fn.stage,e)}}
     peopleTick(dt);if(FN.timerTick)FN.timerTick(dt,M);S.upd(dt,M,F,fading);fn.objs=F.objs.map(o=>o[0])},
   pose(dt){waveTick(dt)},
   save(M){const f=M.fn;return{stage:f.stage,plan:f.plan?{assign:Object.assign({},f.plan.assign)}:null,st:f.st,seen:f.seen,x:f.carry||null}},
@@ -284,6 +284,9 @@ FN.markSeen=markSeen;
 /* free everything when the job is no longer running (won, lost, abandoned): a system hud handler, like the other jobs' safety nets */
 J.on('hud',()=>{const a=A();if(!a)return;const M=a.M;const keep=M&&M.def&&M.def.id===ID&&a.mode==='mission';
   if(!keep&&RES){try{FN.offStage&&FN.offStage(M)}catch(_){}freeRes();FN.live=[]}});
+/* single key presses for job actions (Z zoom, G the box, X): caught on keydown so a quick tap between two frames is never missed */
+const PRESSED=new Set();if(D)addEventListener('keydown',e=>{if(e.repeat)return;const a=A();if(!a||!a.M||!a.M.fn||a.M.state!=='go')return;if(HTx.Menus&&HTx.Menus.isOpen&&HTx.Menus.isOpen())return;PRESSED.add((e.key||'').toLowerCase())});
+FN.press=k=>PRESSED.add(k);FN.pressed=k=>{if(PRESSED.has(k)){PRESSED.delete(k);return true}return false};FN.clearPressed=()=>PRESSED.clear();
 /* the old built-in ending (index.html finale(): a "One month later" card when the nine original jobs are done, whose "New Saturday"
    wipes the campaign) predates this job: with the festival as the ending, it never shows (its own "Keep driving" flag) */
 function retireOld(){const s=SV();if(s&&s.flags&&!s.flags.finale2&&s.jobs&&Object.keys(s.jobs).length)s.flags.finale2=true}FN.retireOld=retireOld;
@@ -403,12 +406,12 @@ FN.festSet=function(M,level){const F=M.fn;if(F.festL===level&&F.fest&&F.fest.par
   /* the banner over the street at 4th St (from the start: it's the festival's front door) */
   {const pk=kit().add(.12,5.4,.12,'#8a8f96',f.x1+.4,2.7,f.z0-.6).add(.12,5.4,.12,'#8a8f96',f.x1+.4,2.7,f.z1+.6).mesh();g.add(pk);const b=sign(['RIVERSIDE FLATS STREET FESTIVAL · TODAY · EVERYBODY WELCOME'],{bg:'#f2efe6',fg:'#2b5d8a',w:7.2,pw:1024,ph:100});b.position.set(f.x1+.4,4.7,(f.z0+f.z1)/2);b.rotation.y=Math.PI/2;g.add(b)}
   /* bunting from level 1; string lights at level 3 (emissive bulbs in one mesh) */
-  if(level>=1)g.add(FN.bunting(f.x0,f.x1,f.z0-.2,f.z1+.2,4.3,level>=3));
+  if(level>=1)g.add(FN.bunting(f.x0,f.x1,f.z0-.2,f.z1+.2,4.7,level>=3));
   g.position.set(0,0,0);a.wmAdd(g);F.fest=g;F.festL=level};
 /* bunting and string lights zig-zagging across the street: flags in one mesh, bulbs in another */
 FN.bunting=function(x0,x1,z0,z1,y,lights,store){const a=A(),T=a.THREE,g=new T.Group(),k=kit(store),kb=kit(store),cols=['#d94f3d','#f2b53a','#3a8fd9','#5fb35f','#f4f1ea','#e07bb5'];let n=0;
   for(let x=x0;x<=x1;x+=8){const xa=x,xb=Math.min(x1,x+8);k.add(.1,y+.2,.1,'#8a8f96',xa,(y+.2)/2,z0-.4).add(.1,y+.2,.1,'#8a8f96',xa,(y+.2)/2,z1+.4);
-    for(let i=0;i<=14;i++){const t=i/14,zz=z0+(z1-z0)*t,xx=xa+(xb-xa)*t,sag=Math.sin(t*Math.PI)*.7;k.add(.32,.34,.02,cols[n++%cols.length],xx,y-sag-.2,zz,Math.atan2(xb-xa,z1-z0)+Math.PI/2,0);
+    for(let i=0;i<=14;i++){const t=i/14,zz=z0+(z1-z0)*t,xx=xa+(xb-xa)*t,sag=Math.sin(t*Math.PI)*.7;k.add(.24,.27,.02,cols[n++%cols.length],xx,y-sag-.16,zz,Math.atan2(xb-xa,z1-z0)+Math.PI/2,0);
       if(lights)kb.add(.11,.13,.11,i%2?'#ffe9a8':'#fff2c9',xx+.3,y-sag-.05,zz)}}
   g.add(k.mesh());if(lights&&kb.n)g.add(kb.mesh(true));return g};
 /* the plan and tail bots (the other stages carry their own) */

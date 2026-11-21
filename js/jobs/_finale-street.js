@@ -47,7 +47,7 @@ FN.stages.roof={
     const sp=role(M,'spotter'),wk=role(M,'walker');S.tellT=sp.v;S.walkV=wk.v;S.walker=person(wk.id||'dee',W.hq.x-1,W.hq.z+1.5);if(S.walker){S.walker.st='idle';S.walker.home={x:W.hq.x-1,z:W.hq.z+1.5}}
     S.spotter=person(sp.id||'doug',437,51.5);if(S.spotter)S.spotter.hidden=true;
     /* right mouse toggles the scope (a pure toggle); Z zooms */
-    S.onDown=e=>{if(e.button===2&&S.up&&!M.fn.fade){S.scope=!S.scope;if(!S.scope)a.P.aim=false;e.preventDefault()}};D.addEventListener('mousedown',S.onDown,true);
+    S.onDown=e=>{if(e.button===2&&S.up&&!M.fn.fade&&(D.pointerLockElement||(matchMedia&&matchMedia('(pointer:coarse)').matches))&&!(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())){S.scope=!S.scope;if(!S.scope)a.P.aim=false;e.preventDefault()}};D.addEventListener('mousedown',S.onDown,true);
     S.lab=D.createElement('div');S.lab.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;font:600 13px/1.25 var(--ui,system-ui,sans-serif)';D.body.appendChild(S.lab);FN.res().el.push(S.lab);
     if(once(M,'roof0'))sayAll([['doug',"Ladder's on the east wall of the Community Center. Hold E at the bottom. I'm already up here. I brought snacks and the beanbags."]])},
   upd(dt,M,F,fading){const a=A(),S=M.fn.sub,P=a.P,R=roofInfo();S.t+=dt;measureRoof();
@@ -60,7 +60,7 @@ FN.stages.roof={
       if(!fading)F.holds.push({x:R.bottom.x,z:R.bottom.z,r:2.2,o:S,txt:'Climb the ladder',time:.8,fn:()=>climb(M,true)});smokeMeter(M,F);return}
     /* on the roof */
     P.pos.y=R.y;P.pos.x=clamp(P.pos.x,R.r.x0+.3,R.r.x1-.3);P.pos.z=clamp(P.pos.z,R.r.z0+.3,R.r.z1-.3);if(P.cur!=='hunter'&&P.weapons.includes('hunter'))G().swap&&G().swap('hunter',true);
-    P.aim=!!S.scope;if(a.keys.z&&!S.zk){S.scope&&(S.zoom=(S.zoom+1)%RK.zoom.length)}S.zk=a.keys.z;S.bolt=Math.max(0,S.bolt-dt);
+    P.aim=!!S.scope;if(FN.pressed('z')&&S.scope)S.zoom=(S.zoom+1)%RK.zoom.length;S.bolt=Math.max(0,S.bolt-dt);
     if(S.handled>=S.plants.length){S.scope=false;P.aim=false;F.objs.push(['All four handled. Climb down: hold E at the ladder (east side of the roof)',false]);F.target={x:R.top.x,z:R.top.z,label:'Ladder'};
       if(once(M,'roofDone'))sayAll([['doug',"That's four. Hawk to everybody: four for four."],['dee',"We're not doing call signs, Doug."],['doug',"Our stage truck just left the yard. It's coming up 3rd St. Hank's on 3rd and Ash with the pickup. GO."]]);
       if(!fading)F.holds.push({x:R.top.x,z:R.top.z,r:2.6,o:S,txt:'Climb down',time:.6,fn:()=>climb(M,false)});return}
@@ -74,7 +74,7 @@ FN.stages.roof={
     cam.position.set(P.pos.x-Math.sin(P.yaw)*.7,R.y+(P.crouch?1.2:1.62),P.pos.z-Math.cos(P.yaw)*.7);cam.rotation.set(P.pitch,P.yaw,0,'YXZ');
     const z=RK.zoom[S.zoom],fov=2*Math.atan(Math.tan(70*Math.PI/360)/z)*180/Math.PI;cam.fov=fov;cam.updateProjectionMatrix();if(P.dude)P.dude.root.visible=false;const sc=D.getElementById('scope');if(sc)sc.style.display='none';
     for(const p of FN.live||[])if(p.d&&p.d.rb)p.d.rb.skip=1e6;return true},
-  fire(M){const S=M.fn.sub;if(!S.up)return false;if(S.scope)shoot(M);else A().feed('Scope in first (right mouse)','info');return true},
+  fire(M){const S=M.fn.sub;if(!S.up)return false;S.fires=(S.fires||0)+1;if(S.scope)shoot(M);else A().feed('Scope in first (right mouse)','info');return true},
   hud(st,M){const S=M.fn.sub;if(!S.up)return;st.crosshair=Object.assign({},st.crosshair||{},{hidden:!!S.scope});st.gadgets=[{id:'fin-beans',label:'Beanbags ×'+S.beans,key:'Click',on:true},{id:'fin-zoom',label:RK.zoom[S.zoom]+'× zoom',key:'Z',on:S.zoom>0}];
     labels(M);if(D.body.classList.contains('ow-scoped')!==!!S.scope)D.body.classList.toggle('ow-scoped',!!S.scope)},
   clear(M){const a=A(),S=M.fn.sub;if(S.onDown)D.removeEventListener('mousedown',S.onDown,true);roofOn(M,false);returnRifle(M);D.body.classList.remove('ow-scoped');if(a.P.dude)a.P.dude.root.visible=true;
@@ -143,10 +143,10 @@ FN.stages.roadblock={
     S.hank=person(su.id||'hank',W.hank.x-1.4,W.hank.z+3.2);if(S.hank){S.hank.face={x:380,z:90}}
     if(once(M,'rb0'))sayAll([[su.id||'hank',"Every cone in the store. Every sawhorse. Two hundred zip-ties. On the house. Just this once. Don't tell my wife."],
       ['you',"Sawhorses across the lane, the sign a few metres before them, a lit flare at the wall. Then it looks official."]]);
-    S.onKey=e=>{if(e.key&&e.key.toLowerCase()==='x'&&!e.repeat&&M.fn.stage==='roadblock'&&S.ph==='build'){cycle(M)}};D.addEventListener('keydown',S.onKey)},
+  },
   upd(dt,M,F){const a=A(),S=M.fn.sub,P=a.P;S.t+=dt;if(S.props)S.props.step(dt);
     const plan=S.props?readNow(M):null;S.plan=plan;
-    if(S.ph==='build'){S.time-=dt;
+    if(S.ph==='build'){S.time-=dt;if(FN.pressed('x'))cycle(M);
       /* the carpool van arrives: Rick and the Okafors */
       if(!S.van&&S.t>BK.vanAt){S.van=FN.car('minivan','#3c6fa8',377.4,90,Math.PI/2);S.vanItem=true;sayAll([['rick',"Carpool van, parked across the west lane. The Okafors are in the back, eating chips, very calm."],['you',"East lane's on me."]])}
       const c=P.carry;const held=c&&c.kind&&c.kind.startsWith('fin:')?c.kind.slice(4):null;
@@ -168,7 +168,7 @@ FN.stages.roadblock={
       if(d&&d.state==='cuffed'&&!S.done){S.done=true;M.fn.st.cuffs++;M.fn.st.block=plan?plan.verdict:'stop';sayAll([['sal',"I'll tow it back to the stage. Gently. Like it's my own truck. It's not. It's better."],['benny',"Speakers are in the back! I hear them! They're fine!"],
           ['dee',"His crew's coming up from Mill St. The stage goes back up, the families stay on the porches, and nobody touches a funnel cake."]]);advance(M,'defend')}}},
   hud(st,M){},
-  clear(M){const a=A(),S=M.fn.sub;if(S.onKey)D.removeEventListener('keydown',S.onKey);if(a.P.carry&&String(a.P.carry.kind).startsWith('fin:'))dropCarry(M);if(S.hank)unperson(S.hank)},
+  clear(M){const a=A(),S=M.fn.sub;if(a.P.carry&&String(a.P.carry.kind).startsWith('fin:'))dropCarry(M);if(S.hank)unperson(S.hank)},
   bot(a,t,o,M,B){const S=M.fn.sub,P=a.P;if(S.ph!=='build'){if(S.ph==='stopped'&&S.driver&&S.driver.state==='surrender'){P.pos.set(S.driver.pos.x+1.2,0,S.driver.pos.z);if(t%6===0)a.useTap=true}return}
     if(o.fail){P.pos.set(W.hank.x+3,0,W.hank.z-6);return}
     /* east lane: two sawhorses side by side at z 90, a sign 12 m before it, a flare at the wall; then wait */

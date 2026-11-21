@@ -96,7 +96,7 @@ FN.stages.festival={
     if(S.ph==='credits'){creditsTick(dt,M,F)}},
   camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='wave')return false;const cam=a.camera,k=clamp(S.wt/9,0,1),e=k*k*(3-2*k);
     /* a crane over the stage: rising and pulling back, the whole street waving under the lights */
-    cam.position.set(W.stage.x+5.5+e*4,6.2+e*7,43.2+e*2.4);cam.lookAt(388,1.2,43.3);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
+    cam.position.set(W.stage.x+6+e*3,4.9+e*5,43.4+e*2);cam.lookAt(380,1.2,43.2);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
   vehicle(car,dt,M){const S=M.fn.sub;if(S.ph!=='credits'||!S.dr)return;const a=A();S.ds=Math.min(S.dP.len,S.ds+S.dv*dt*(S.fast?5:1));const q=S.dP.at(S.ds),q2=S.dP.at(Math.min(S.dP.len,S.ds+3));
     car.pos.set(q.x,0,q.z);car.yaw=yawTo(q2.x-q.x,q2.z-q.z)||car.yaw;if(car.car)car.car.spd=S.dv;car.spd=S.dv;a.syncCar(car)},
   clear(M){const a=A(),S=M.fn.sub;FN.cine(false);M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null)}if(S.roll){a.overlay('fin-credits',null);S.roll=null}},
