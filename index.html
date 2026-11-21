@@ -21,9 +21,7 @@
 <link rel="preload" href="assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bowlby-one-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin>
+<link rel="preload" as="script" href="vendor/three-r128/three.min.js">
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/menus.css">
 <script>
@@ -68,9 +66,18 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <div class="hud" id="lock" hidden>Click the view to lock your mouse · Esc to pause</div>
 <div id="tags" hidden></div><div id="sub" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin></script>
-<!-- three r128 add-ons in one request: loaders, meshopt decoder, skeleton utils, post-processing -->
-<script src="https://cdn.jsdelivr.net/combine/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js,npm/three@0.128.0/examples/js/loaders/RGBELoader.js,npm/three@0.128.0/examples/js/libs/meshopt_decoder.js,npm/three@0.128.0/examples/js/utils/SkeletonUtils.js,npm/three@0.128.0/examples/js/shaders/CopyShader.js,npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js,npm/three@0.128.0/examples/js/shaders/FXAAShader.js,npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js,npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js,npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" crossorigin></script>
+<!-- Three.js r128 and its example loaders, vendored unmodified from three@0.128.0 (vendor/README.md): no network needed -->
+<script src="vendor/three-r128/three.min.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/RGBELoader.js"></script>
+<script src="vendor/three-r128/examples/js/libs/meshopt_decoder.js"></script>
+<script src="vendor/three-r128/examples/js/utils/SkeletonUtils.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/CopyShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/FXAAShader.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>

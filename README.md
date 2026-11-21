@@ -4,7 +4,7 @@ A browser shooter about a group of suburban dads who restore a high-trust neighb
 
 Play it: https://hereiszee.github.io/high-trust/
 
-It's a single `index.html` built on Three.js r128 (loaded from cdnjs). There's no build step. Open the file in a browser, or serve the folder with any static server.
+It's a single `index.html` built on Three.js r128 (vendored in `vendor/`, no network needed). There's no build step. Open the file in a browser, or serve the folder with any static server.
 
 ## Controls
 
