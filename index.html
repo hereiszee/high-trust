@@ -2080,7 +2080,7 @@ HUD.on('touch',(a,down)=>{initAudio();
 /* controller hook (js/gamepad.js): the left stick shares the touch stick's path (analog walk, throttle/steer), the right stick calls look() */
 window.HT.Input={stick:tj,look:(dx,dy)=>{if(running&&!pauseOpen)look(dx,dy)},fire:down=>{mouseDown=!!down&&running},aim:on=>{if(running)P.aim=!!on},
   get running(){return running},get paused(){return pauseOpen},get mode(){return mode},get driving(){return !!VAN.on},
-  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},relock(){if(!everLocked)lockFailed=false}};
+  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},get aiming(){return !!P.aim},relock(){if(!everLocked)lockFailed=false}};
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);

@@ -138,8 +138,11 @@ const KEY_GROUPS=[
   ['Jobs and home',[['Scope zoom (Higher Ground)','Z'],['Hold breath (scoped)','Shift'],['Camera: raise (toggle) · shoot · lower','Mouse 2 · Space · Q'],['Decorate (at home)','B'],['Menus: browse · choose · back','Arrows · Enter · Esc']]]];
 const DEFAULT_KEYS=KEY_GROUPS.flatMap(g=>g[1]);
 /* controller layout (js/gamepad.js), shown under Key bindings */
-const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
-  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],['Menus','D-pad / left stick · A select · B back']];
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
+  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],
+  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder'],
+  ['Map open','Stick pan · RT / LT zoom · LB / RB places · A travel · B close'],['Menus','D-pad / left stick · A select · B back · LB / RB tabs']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
 
@@ -771,7 +774,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
   if(tab==='keys'){const row=([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`;
     /* rebinding (js/keys.js) first, then every control by situation (defaults: cars, tank, jet, jobs), then the controller */
     h=(window.HT.Keys&&!d.bindings?HT.Keys.table():'')+(d.bindings?'<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+d.bindings.map(row).join('')+'</div>':KEY_GROUPS.map(([gh,rs])=>'<h3>'+esc(gh)+(window.HT.Keys&&HT.Keys.changed?' <small style="opacity:.6;font-weight:500">(default keys)</small>':'')+'</h3><div class="ht-keys">'+rs.map(row).join('')+'</div>').join(''))+
-    '<h3>Controller</h3><div class="ht-keys ht-padkeys">'+PAD_KEYS.map(row).join('')+'</div>'+(window.HT.Keys?'':'<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>')}
+    '<h3>Controller</h3>'+(window.HT.Pad&&HT.Pad.diagram?HT.Pad.diagram():'')+'<div class="ht-keys ht-padkeys">'+PAD_KEYS.map(row).join('')+'</div>'+(window.HT.Keys?'':'<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>')}
   else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
     h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
