@@ -5,7 +5,7 @@
    STUDIO is the developer name under "Design, code ...": set it before release. */
 (function(){'use strict';
 const HT=window.HT=window.HT||{};
-const STUDIO='The High Trust team';
+const STUDIO='hereiszee';
 const CREDITS=`HIGH TRUST
 
 Design, code, procedural art, music and sound
