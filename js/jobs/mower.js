@@ -679,6 +679,8 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return n
     /* a person steps round a crate: if the straight line is blocked, slide sideways for a moment */if((M._side||0)>0){M._side--;P.pos.x+=-dz/(d||1)*s*.9;P.pos.z+=dx/(d||1)*s*.9}a.collide(P.pos,.35,0);if(s>.05&&Math.hypot(P.pos.x-x0,P.pos.z-z0)<s*.3)M._side=12;return d};
   switch(M.phase){
   case 'pick':{keysOff();if(a.CV)a.exitCar();const id=o.fail?'zero':(M.mode==='tt'?'estate':'reliable'),e=M.choices[id];
+    /* a car between you and the gate (a replay parks the van on the start ring, right in the walkway): go round it like a player */
+    {const cv=(a.L.cars||[]).find(c=>c.obj&&!c.convoy&&Math.abs(c.pos.x-P.pos.x)<2.6&&c.pos.z>P.pos.z-.5&&c.pos.z-P.pos.z<4.5);if(cv&&P.pos.z<103){walk(cv.pos.x+(P.pos.x<=cv.pos.x?-2.8:2.8),P.pos.z+.1);return null}}
     /* in through the gate walkway, then across the infield to the paddock */if(P.pos.z<106.5&&Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)>4){if(P.pos.z<105.6)walk(Math.abs(P.pos.x-92)>.6&&P.pos.z<103?92:92,P.pos.z<103&&Math.abs(P.pos.x-92)>.6?P.pos.z:106.2);else walk(98.8,108.8);return null}
     if(walk(e.pos.x,e.pos.z)<1.2||Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)<2.2)a.useTap=true;return null}
   case 'toLine':{if(o.fail&&!a.CV){keysOff();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
