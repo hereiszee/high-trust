@@ -1203,33 +1203,215 @@ OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:
 OW.units=()=>WS?WS.units:[];
 OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY.x0+PARTY.x1)/2,(PARTY.z0+PARTY.z1)/2);return{truck:T&&T.visible?{x:T.position.x,z:T.position.z,yaw:T.rotation.y}:null,party:ws.blockT&&ws.blockT[pb]>=90?{x:(PARTY.x0+PARTY.x1)/2,z:(PARTY.z0+PARTY.z1)/2}:null}};
 /* ================= ambient traffic (HT.Roads graph + HT.CarAI wander, HT.Vehicles LOD1) ================= */
-/* a handful of cars near the player, spawned and removed out of view; they pause at intersections, yield to the player and to each other */
+/* a handful of cars near the player, spawned and removed out of view. Every car looks ahead along its own lane (trSweep) for the player's
+   vehicle (any type, driven or parked), the dad on foot, mission cars (o.others), parked cars, job props and other traffic, and brakes smoothly
+   to stop TR.sg0..sg1 m short (bumper to bumper, scaled by its speed). Junctions with 3+ roads are taken one car at a time (a reservation per
+   node, replacing the old fixed 1.1 s pause) and never while the player's car is in or about to enter the box. Blocked by something that isn't moving:
+     2 s  a short horn (positioned, pitch varies per car; then every 4-6 s, a long one from ~9 s), a dad bark now and then (o.say)
+     6 s  if the oncoming lane is clear, pull out (TR.roundOff m left) and go round slowly, then merge back
+     10 s hazards;  25 s reverse a little and U-turn onto the opposite lane;  40 s (or rerouted twice) despawn, only when out of view.
+   Cars behind a waiting car just queue (no horn ladder, no going round) and move up in order.
+   Contact with the player's car is resolved in index.html (trafficContact, by mass and speed). Here a final guard (trSep) only ever moves
+   the TRAFFIC car out of anything it overlaps: traffic never displaces the player's vehicle on its own.
+   OW.trafficLive / trafficShove / trafficHit / trafficSync / obbSat are what index.html's resolver uses; OW.trafficLog is the event log
+   dev/traffic-check.js reads. */
 const TRAFFIC_TYPES=['sedan','hatch','suv','pickup','workvan','sedan'],TRAFFIC_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#6d7378','#7a5a3a','#c9b48a'];
+/* tuning (metres, seconds, m/s, m/s^2) */
+const TR={look:30,plan:4.5,sg0:2.6,sg1:4,sgK:.14,margin:.3,honk1:2,honkGap:[4,6],honkLong:9,bark1:3,barkGap:12,barkCd:7,haz:10,round:6,roundSpd:4.5,roundOff:3.1,roundClear:45,
+  rev:25,gone:40,box:6.5,stopLine:8,yieldR:18};
+OW.trafficTune=TR;
+const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
+const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
+  "Buddy. Pal. Champ.","My lasagna is on a timer, friend.","We've all got places to be. Mine is Costco.","Any day now, chief.","I'm not mad. I'm just honking.",
+  "Did you get your licence out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
+const TR_HIT=["My BUMPER. I just paid that off.","Oh, come ON. That was a lease!","Hey! I've got pies in the back!","Are you KIDDING me? Brenda's going to kill me.",
+  "That's going in the neighbourhood group chat.","I signalled! I SIGNALLED!"];
+const TR_WRECK=["Yeah, hi, roadside assistance? You won't believe this.","Honey, I'm going to be late. No, I'm fine. The car isn't.","No, I'm FINE. The car's having a moment.",
+  "Hi, it's me. Can you pick up the kids? Long story."];
+const trFwd=y=>[-Math.sin(y),-Math.cos(y)];
+/* 2D oriented boxes {x,z,fx,fz,hl,hw}: separating axis test. Returns null or {nx,nz,d}: push B by -n*d (or A by +n*d) to separate; n points from B to A */
+function obbSat(A,B){let best=null;const dx=A.x-B.x,dz=A.z-B.z;
+  for(const[ax,az]of[[A.fx,A.fz],[-A.fz,A.fx],[B.fx,B.fz],[-B.fz,B.fx]]){
+    const ra=A.hl*Math.abs(A.fx*ax+A.fz*az)+A.hw*Math.abs(-A.fz*ax+A.fx*az),rb=B.hl*Math.abs(B.fx*ax+B.fz*az)+B.hw*Math.abs(-B.fz*ax+B.fx*az),c=dx*ax+dz*az,o=ra+rb-Math.abs(c);
+    if(o<=0)return null;if(!best||o<best.d)best={nx:c<0?-ax:ax,nz:c<0?-az:az,d:o}}return best}
+OW.obbSat=obbSat;
+const trBox=t=>{const c=t.c,f=trFwd(c.yaw);return{x:c.x,z:c.z,fx:f[0],fz:f[1],hl:c.stats.len/2,hw:c.stats.wid/2}};
+/* the traffic horn: two detuned saws through a band, positioned against the camera (pan + distance), on the sfx bus */
+function trHorn(t,dur,cam,parts){const A=HT.Audio;if(!A||!A.ready||!A.bus||!cam)return false;const ctx=A.ctx,bus=A.bus('sfx');if(!ctx||!bus||ctx.state!=='running')return false;
+  const dx=t.c.x-cam.position.x,dz=t.c.z-cam.position.z,d=Math.hypot(dx,dz);if(d>110)return false;
+  const e=cam.matrixWorld.elements,fx=-e[8],fz=-e[10],fl=Math.hypot(fx,fz)||1,pan=Math.max(-1,Math.min(1,(dx*-fz/fl+dz*fx/fl)/(d||1)))*.75*Math.min(1,d/3);
+  const vol=.15*Math.min(1,7/Math.max(7,d));
+  try{const out=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.max(900,3600*Math.exp(-d/60));out.gain.value=vol;
+    let last=lp;lp.connect(out);if(ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=pan;out.connect(p);p.connect(bus)}else out.connect(bus);
+    const t0=ctx.currentTime+.01+Math.min(.3,d/343);let end=t0;
+    for(const[at,du]of parts||[[0,dur]]){const g=ctx.createGain(),a=ctx.createOscillator(),b=ctx.createOscillator();a.type=b.type='sawtooth';a.frequency.value=t.hornF;b.frequency.value=t.hornF*1.26;
+      a.connect(g);b.connect(g);g.connect(last);const s=t0+at;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(.5,s+.015);g.gain.setValueAtTime(.5,s+du);g.gain.linearRampToValueAtTime(0,s+du+.04);
+      a.start(s);b.start(s);a.stop(s+du+.06);b.stop(s+du+.06);end=Math.max(end,s+du+.1)}
+    setTimeout(()=>{try{out.disconnect();lp.disconnect()}catch(_){}},(end-ctx.currentTime+.3)*1000)}catch(_){return false}return true}
+/* a short two-tone car alarm (a few cycles, quiet, only when the player is near) */
+function trAlarm(t,cam){const A=HT.Audio;if(!A||!A.tone||!cam||Math.hypot(t.c.x-cam.position.x,t.c.z-cam.position.z)>45)return;try{for(let i=0;i<4;i++){A.tone({f:700,to:1250,type:'square',d:.26,gain:.012,at:i*.55});A.tone({f:1250,to:700,type:'square',d:.26,gain:.012,at:i*.55+.27})}}catch(_){}}
+/* job props (HT.Props managers, js/jobs/_props.js) the traffic should see: managers are noted as they are created (wrapped once, no job file touched) */
+const TR_PROPS=new Set();function trWrapProps(){const H=HT.Props;if(!H||H._trWrapped||!H.create)return;const mk=H.create;H.create=function(){const S=mk.apply(this,arguments);if(S)TR_PROPS.add(S);const d=S&&S.dispose;if(d)S.dispose=function(){TR_PROPS.delete(S);return d.apply(this,arguments)};return S};H._trWrapped=true}
+/* look ahead along the car's lane: samples every metre from the car's centre; for each sample the obstacle boxes are measured in the sample's
+   frame (along / across the lane). off(d): metres left of the lane centre at distance d (going round). Returns {gap (front bumper to the obstacle), ob, u (its speed along the lane)} */
+function trSweep(t,obs,len,offA,offB,skip){const c=t.c,ai=c.ai,pts=ai&&ai.pts;if(!pts||pts.length<2)return null;const hl=c.stats.len/2,hw=c.stats.wid/2+TR.margin;
+  let k=Math.max(0,Math.min(ai.tr?ai.tr.i:0,pts.length-2)),A=pts[k],B=pts[k+1],sl=Math.hypot(B.x-A.x,B.z-A.z)||1e-3,tx=(B.x-A.x)/sl,tz=(B.z-A.z)/sl;
+  let u=Math.max(0,Math.min(sl,(c.x-A.x)*tx+(c.z-A.z)*tz)),qx=A.x+tx*u,qz=A.z+tz*u,ext=0,best=null;const near=[];
+  if(offA==null)offA=(c.x-qx)*tz-(c.z-qz)*tx;/* null: where the car actually is, left of its lane */
+  for(const o of obs){if(o===skip||o.ref===t)continue;const r=len+hl+o.hl+o.hw+4;if(Math.abs(o.x-c.x)<r&&Math.abs(o.z-c.z)<r)near.push(o)}if(!near.length)return null;
+  for(let d=0;d<=len+hl;d+=1){
+    if(d>=hl-1){const off=offA+(offB-offA)*Math.min(1,d/7),sx=qx+tz*off,sz=qz-tx*off;
+      for(const o of near){const dx=o.x-sx,dz=o.z-sz,a=dx*tx+dz*tz,cc=dx*-tz+dz*tx,ea=o.hl*Math.abs(o.fx*tx+o.fz*tz)+o.hw*Math.abs(-o.fz*tx+o.fx*tz),ec=o.hl*Math.abs(-o.fx*tz+o.fz*tx)+o.hw*Math.abs(o.fz*tz+o.fx*tx);
+        if(Math.abs(cc)>=ec+hw||a-ea>=1||a+ea<=-.5)continue;const gap=Math.max(0,d-hl+Math.max(0,a-ea));if(!best||gap<best.gap)best={gap,ob:o,u:(o.vx||0)*tx+(o.vz||0)*tz,tx,tz}}
+      if(best&&d-hl>best.gap+1)break}
+    /* advance 1 m along the polyline (straight on past its end, at most 8 m) */
+    let rem=1;while(rem>0){const left=sl-u;
+      if(left>=rem){u+=rem;qx+=tx*rem;qz+=tz*rem;rem=0}
+      else if(k>=pts.length-2){u+=rem;qx+=tx*rem;qz+=tz*rem;ext+=rem-Math.max(0,left);rem=0;if(ext>8)return best}
+      else{rem-=left;k++;A=pts[k];B=pts[k+1];sl=Math.hypot(B.x-A.x,B.z-A.z)||1e-3;tx=(B.x-A.x)/sl;tz=(B.z-A.z)/sl;u=0;qx=A.x;qz=A.z}}}
+  return best}
+/* something within (hl+r) behind the car, in its own width (before reversing) */
+function trBehind(t,obs,r){const c=t.c,f=trFwd(c.yaw),hl=c.stats.len/2,hw=c.stats.wid/2+.3;
+  for(const o of obs){if(o.ref===t)continue;const dx=o.x-c.x,dz=o.z-c.z,a=dx*f[0]+dz*f[1],s=Math.abs(-dx*f[1]+dz*f[0]),ext=o.hl+o.hw*.5;if(a<0&&-a-ext<hl+r&&s<hw+o.hw)return true}return false}
 OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehicle)return;const G=OW.roads();if(!G)return;
-  const T=ws.traffic||(ws.traffic={cars:[],g:null,G:null,t:0,seed:11});if(!T.g){T.g=new THREE.Group();T.g.name='traffic';ws.lvl.group.add(T.g);ws.own.add(T.g)}
-  if(T.G!==G){for(const c of T.cars)T.g.remove(c.v);T.cars.length=0;T.G=G}
-  const want=o.off?0:ws.q==='low'?3:ws.q==='high'?7:5,p=o.player,cam=o.camera,lvl=ws.lvl;T.t-=dt;
+  const T=ws.traffic||(ws.traffic={cars:[],g:null,G:null,t:0,seed:11,clock:0,res:new Map(),log:[],barkT:0,honkT:0,id:0});if(!T.g){T.g=new THREE.Group();T.g.name='traffic';ws.lvl.group.add(T.g);ws.own.add(T.g)}
+  if(T.G!==G){for(const c of T.cars)trDrop(T,ws.lvl,c);T.cars.length=0;T.res.clear();T.G=G}
+  trWrapProps();
+  const want=o.off?0:o.want!=null?o.want:ws.q==='low'?3:ws.q==='high'?7:5,p=o.player,cam=o.camera,lvl=ws.lvl,pv=o.pv;T.t-=dt;T.clock+=dt;T.barkT-=dt;T.honkT-=dt;
   const seen=(x,z)=>{if(!cam)return false;_b.min.set(x-3,0,z-3);_b.max.set(x+3,2.5,z+3);return ws.frustum.intersectsBox(_b)&&Math.hypot(x-cam.position.x,z-cam.position.z)<150};
+  const log=(t,ev,x)=>{T.log.push(Object.assign({t:+T.clock.toFixed(2),id:t.id,ev},x||{}));if(T.log.length>600)T.log.splice(0,100)};
+  /* obstacles this frame: the player's vehicle (or the dad on foot), mission cars, parked/left cars, job props, and every traffic car */
+  const obs=[];
+  if(pv){const f=trFwd(pv.yaw);obs.push({x:pv.x,z:pv.z,fx:f[0],fz:f[1],hl:pv.hl,hw:pv.hw,vx:f[0]*pv.spd,vz:f[1]*pv.spd,k:'player'})}
+  else if(o.car)obs.push({x:o.car.x,z:o.car.z,fx:0,fz:-1,hl:2.4,hw:2.4,vx:0,vz:0,k:'player'});
+  else if(p)obs.push({x:p.x,z:p.z,fx:0,fz:-1,hl:.45,hw:.45,vx:0,vz:0,k:'foot'});
+  for(const u of o.others||[]){if(!u)continue;const f=trFwd(u.yaw||0),S=u.stats||{};obs.push({x:u.x,z:u.z,fx:f[0],fz:f[1],hl:(S.len||4.6)/2,hw:(S.wid||2)/2,vx:f[0]*(u.spd||0),vz:f[1]*(u.spd||0),k:'other'})}
+  for(const e of o.cars||[]){if(!e||!e.pos||e.obj&&e.obj.userData&&e.obj.userData.flat)continue;if(Math.abs(e.pos.x-p.x)>160||Math.abs(e.pos.z-p.z)>160)continue;const f=trFwd(e.yaw||0),S=e.obj&&e.obj.userData&&e.obj.userData.size||{l:4.4,w:2};
+    obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked'})}
+  for(const S of TR_PROPS)for(const q of S.list||[]){if(q.state!=='placed'||Math.abs(q.x-p.x)>160||Math.abs(q.z-p.z)>160)continue;const K=HT.Props.KINDS&&HT.Props.KINDS[q.kind]||{w:.5,d:.5},f=trFwd(q.yaw||0);
+    obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop'})}
+  const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t});t.ob=ob;tro.push(ob);obs.push(ob)}
   /* spawn */
-  if(T.cars.length<want&&T.t<=0){T.t=.7;const cand=G.nodes.filter(n=>{const d=Math.hypot(n.x-p.x,n.z-p.z);return d>45&&d<130&&n.e.length&&!seen(n.x,n.z)&&!T.cars.some(c=>Math.hypot(c.c.x-n.x,c.c.z-n.z)<20)});
+  if(T.cars.length<want&&T.t<=0){T.t=.7;const cand=G.nodes.filter(n=>{const d=Math.hypot(n.x-p.x,n.z-p.z);return d>45&&d<130&&n.e.length&&!seen(n.x,n.z)&&!T.cars.some(c=>Math.hypot(c.c.x-n.x,c.c.z-n.z)<20)&&!obs.some(q=>q.k!=='prop'&&Math.hypot(q.x-n.x,q.z-n.z)<9)});
     if(cand.length){T.seed=(T.seed*1103515245+12345)&0x7fffffff;const n=cand[T.seed%cand.length],e=n.e[T.seed%n.e.length],k=T.seed>>3;
-      const v=C.makeVehicle(TRAFFIC_TYPES[k%TRAFFIC_TYPES.length],TRAFFIC_COLS[(k>>3)%TRAFFIC_COLS.length],{lod:1});
+      const ty=TRAFFIC_TYPES[k%TRAFFIC_TYPES.length],co=TRAFFIC_COLS[(k>>3)%TRAFFIC_COLS.length],v=C.makeVehicle(ty,co,{lod:1});
       if(v){v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});const yaw=Math.atan2(-e.dir[0],-e.dir[1]);const c=CA.make(v.userData.type||'sedan',{x:n.x-e.dir[1]*1.5,z:n.z+e.dir[0]*1.5,yaw});
-        CA.wander(c,G,{max:10+(k%4),seed:k});T.g.add(v);T.cars.push({c,v,pause:0,paused:-1})}}}
+        CA.wander(c,G,{max:10+(k%4),seed:k});T.g.add(v);T.cars.push({c,v,ty:v.userData.type||ty,co,id:++T.id,wait:0,free:0,honkN:0,nextHonk:TR.honk1,barkAt:TR.bark1,
+          hornF:330+((k*37)%9)*22,offNow:0,offT:0,mode:null,sg:TR.sg0,reroutes:0,res:-1})}}}
   const statics=(q,r)=>{for(const k of lvl.cnear(q.x,q.z,r+3))if(k.ph!==undefined&&q.x+r>k.x0&&q.x-r<k.x1&&q.z+r>k.z0&&q.z-r<k.z1){const ox1=q.x+r-k.x0,ox2=k.x1-(q.x-r),oz1=q.z+r-k.z0,oz2=k.z1-(q.z-r);if(Math.min(ox1,ox2)<Math.min(oz1,oz2))q.x+=ox1<ox2?-ox1:ox2;else q.z+=oz1<oz2?-oz1:oz2}};
-  for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai;const fx=-Math.sin(c.yaw),fz=-Math.cos(c.yaw);
-    /* yield: something within 10 m ahead in the lane (the player, his car, another car) */
-    const ahead=(x,z,r)=>{const dx=x-c.x,dz=z-c.z,f=dx*fx+dz*fz,s=Math.abs(dx*-fz+dz*fx);return f>0&&f<r&&s<2.2};
-    let block=ahead(p.x,p.z,10)||(o.car&&ahead(o.car.x,o.car.z,11))||T.cars.some(u=>u!==t&&ahead(u.c.x,u.c.z,8))||!!(o.others&&o.others.some(u=>ahead(u.x,u.z,11)));/* o.others: mission cars (escort truck, getaways) */
-    /* pause at intersections (3+ roads) before crossing */
-    const nn=ai&&ai.next>=0&&G.nodes[ai.next];if(nn&&nn.e.length>=3&&t.paused!==ai.next&&Math.hypot(nn.x-c.x,nn.z-c.z)<8.5){t.pause=1.1;t.paused=ai.next}
-    if(t.pause>0){t.pause-=dt;block=true}
-    CA.step(c,dt,{G,collide:statics,blocked:()=>block,canSnap:()=>!seen(c.x,c.z)});
-    t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
-    const VM=HT.Vehicles;if(VM&&VM.update)try{VM.update(t.v,{speed:c.spd,steer:c.steer||0,braking:block,headlights:false,dt})}catch(e){}
-    /* dynamic collider so the player's car and the dad bump into it */
-    if(!t.col){t.col={x0:0,z0:0,x1:0,z1:0,ph:1.5,k:'traffic'};lvl.colliders.push(t.col)}const a=Math.abs(fx),b=Math.abs(fz),hx=a*2.2+b*.95,hz=b*2.2+a*.95;Object.assign(t.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz});
-    if(Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off){T.g.remove(t.v);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);T.cars.splice(i,1)}}};
+  T.statics=statics;
+  /* junction reservations: drop holders that are gone */
+  for(const[n,h]of T.res)if(!T.cars.includes(h))T.res.delete(n);
+  const pvMover=pv&&{x:pv.x,z:pv.z,vx:obs[0].vx,vz:obs[0].vz,spd:Math.abs(pv.spd)};
+  for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai,S=c.stats;const f=trFwd(c.yaw),hl=S.len/2;
+    /* shoved (index.html trafficContact): slide, the driver stands on the brake */
+    if(t.push){c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-9*dt)/(sp||1);t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
+    if(t.shoveT>0)t.shoveT-=dt;if(t.hazT>0)t.hazT-=dt;
+    let cap=Infinity,blk=null;
+    /* 1. look ahead along the lane */
+    const look=Math.max(12,TR.look*Math.min(1,.45+Math.abs(c.spd)/14));
+    const hit=trSweep(t,obs,look,t.mode==='round'||t.wreck?null:t.offNow,t.offT,null);
+    if(hit){const sgW=Math.min(TR.sg1,Math.max(TR.sg0,TR.sg0+TR.sgK*Math.abs(c.spd)));if(hit.gap>t.sg+6||!t.hadHit)t.sg=sgW;else t.sg=Math.max(t.sg,Math.min(sgW,TR.sg1));t.hadHit=true;
+      const u=Math.max(0,hit.u),room=hit.gap-t.sg;cap=room>0?Math.sqrt(2*TR.plan*room+u*u):u*Math.max(0,Math.min(1,1+room/1.5));blk=hit.ob}
+    else t.hadHit=false;
+    /* 2. junctions with 3+ roads: one car at a time, never into the player's path; the old short pause before crossing stays */
+    const nn=ai&&ai.next>=0&&G.nodes[ai.next];
+    if(t.res>=0&&t.res!==ai.next){const rn=G.nodes[t.res];if(!rn||Math.hypot(rn.x-c.x,rn.z-c.z)>TR.box+2.5){if(T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1}}
+    if(nn&&nn.e.length>=3&&!t.wreck){const dn=Math.hypot(nn.x-c.x,nn.z-c.z);
+      if(T.res.get(ai.next)!==t&&dn<TR.stopLine+14&&dn>2.5){
+        let busy=false,by=null;const inBox=(x,z)=>Math.hypot(x-nn.x,z-nn.z)<TR.box;
+        if(!busy&&T.res.has(ai.next)){busy=true;by=T.res.get(ai.next).ob}
+        if(!busy)for(const q of tro)if(q.ref!==t&&inBox(q.x,q.z)){busy=true;by=q;break}
+        if(!busy&&pvMover){const dp=Math.hypot(pvMover.x-nn.x,pvMover.z-nn.z);if(dp<TR.box+1.5||dp<TR.yieldR&&pvMover.spd>2&&(nn.x-pvMover.x)*pvMover.vx+(nn.z-pvMover.z)*pvMover.vz>0){busy=true;by=obs[0]}}
+        if(!busy)for(const q of obs)if(q.k==='other'&&Math.hypot(q.x-nn.x,q.z-nn.z)<TR.yieldR){busy=true;by=q;break}
+        if(!busy&&dn<TR.stopLine+3){T.res.set(ai.next,t);t.res=ai.next}
+        else if(busy){const jc=Math.sqrt(2*TR.plan*Math.max(0,dn-TR.stopLine));if(jc<cap){cap=jc;blk=by||{k:'junction'}}}}
+}
+    /* 3. the horn ladder, going round, reversing and re-routing */
+    const stopped=Math.abs(c.spd)<.5&&cap<.8&&t.mode!=='rev';
+    const qHead=blk&&!(blk.k==='traffic'&&blk.ref&&(blk.ref.wait>.5||blk.ref.cap<.8))&&blk.k!=='junction';
+    if(stopped&&blk){if(!t.wait)log(t,'stop',{by:blk.k,gap:hit?+hit.gap.toFixed(2):null});t.wait+=dt;t.free=0}else if(Math.abs(c.spd)>2||!blk){t.free+=dt;if(t.free>1.2&&t.wait){t.wait=0;t.honkN=0;t.nextHonk=TR.honk1;t.barkAt=TR.bark1;if(!t.wreck)t.hazOn=false}}
+    const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'),stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
+    if(t.wait>0&&!t.wreck){
+      if(qHead&&atPlayer&&t.wait>=t.nextHonk&&T.honkT<=0){const n=t.honkN++,long=n===2||n>=4&&n%2===0;
+        trHorn(t,long?.85:.22,cam,long?null:n===1?[[0,.12],[.2,.14]]:null);T.honkT=.5;log(t,'honk',{long,at:+t.wait.toFixed(2)});t.nextHonk=t.wait+(t.wait>14?6+Math.random()*3:TR.honkGap[0]+Math.random()*(TR.honkGap[1]-TR.honkGap[0]))}
+      if(!qHead&&t.wait>12&&!t.qHonk){t.qHonk=true;if(Math.random()<.3&&T.honkT<=0){trHorn(t,.18,cam);T.honkT=.5;log(t,'honk',{queue:true,at:+t.wait.toFixed(2)})}}
+      if(qHead&&atPlayer&&t.wait>=t.barkAt){t.barkAt=t.wait+TR.barkGap+Math.random()*6;const near=Math.hypot(c.x-p.x,c.z-p.z)<32;
+        if(near&&T.barkT<=0&&o.say&&Math.random()<(t.honkN<=2?.65:.35)){T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line})}}
+      if(t.wait>=TR.haz&&!t.hazOn&&qHead){t.hazOn=true;log(t,'haz',{at:+t.wait.toFixed(2)})}
+      /* go round: the blocker has stopped, the oncoming lane is clear for TR.roundClear m */
+      if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
+        const clear=!trSweep(t,obs,TR.roundClear,TR.roundOff,TR.roundOff,blk);
+        if(clear&&hit){t.mode='round';t.offT=TR.roundOff;t.odo=0;t.modeT=0;t.roundLen=hit.gap+2*(blk.hl+blk.hw)+2*hl+3;
+          if(hit.gap<7&&!trBehind(t,obs,4)){c.revT=.7;c.revDir=-1;t.roundLen+=3}/* too close to swing out: back up a car's length first */
+          log(t,'round',{at:+t.wait.toFixed(2),len:+t.roundLen.toFixed(1),backUp:c.revT>0})}}
+      if(t.wait>=TR.rev&&!t.mode&&t.reroutes<2){t.mode='rev';t.modeT=0;log(t,'rev',{at:+t.wait.toFixed(2)});
+        if(!trBehind(t,obs,4))c.revT=.9;c.revDir=1;
+        /* U-turn: head back to the node we came from, on the opposite lane */
+        const a=ai.cur,b=ai.next;if(a>=0&&b>=0&&a!==b){ai.prev=-1;ai.cur=b;ai.next=a;ai.pts=[{x:c.x,z:c.z},...G.lane([b,a]).slice(1)];ai.tr={i:0}}
+        if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1;t.reroutes++;t.wait=Math.min(t.wait,15)}}
+    if(t.mode==='round'){t.modeT+=dt;if(c.revT<=0)t.odo+=Math.abs(c.spd)*dt;cap=Math.min(cap,Math.abs(t.offNow-t.offT)>.6?2.2:TR.roundSpd);
+      if(t.odo>=t.roundLen){t.mode=null;t.offT=0;t.wait=0;log(t,'roundDone',{dur:+t.modeT.toFixed(2)})}
+      else if(t.modeT>16||t.modeT>4&&stopped&&t.wait>4){t.mode=null;t.offT=0;t.wait=TR.rev;log(t,'roundAbort',{})}}
+    if(t.mode==='rev'){t.modeT+=dt;if(t.modeT>2.5)t.mode=null;else if(c.revT<=0)cap=Math.min(cap,4)}
+    /* wrecked: pull over to the kerb and stop there, hazards on */
+    if(t.wreck){t.offT=-1.3;t.wreckT=(t.wreckT||0)+dt;cap=Math.min(cap,t.wreckT<3?3:0);if(t.wreckT>3&&Math.abs(c.spd)<.3&&!t.driver)trDriver(t,lvl,o)}
+    if(t.shoveT>0)cap=0;
+    {const r=(t.mode==='round'?2.2:1.1)*dt;t.offNow+=Math.max(-r,Math.min(r,t.offT-t.offNow))}if(Math.abs(t.offNow)<.02&&!t.offT)t.offNow=0;
+    t.cap=cap;t.blk=blk&&blk.k;
+    CA.step(c,dt,{G,collide:statics,speedCap:()=>cap===Infinity?null:cap,offset:()=>t.offNow,canSnap:()=>!seen(c.x,c.z)});
+    /* 4. final guard: never left overlapping anything; only the traffic car moves (the player's vehicle is resolved in index.html) */
+    trSep(t,obs);
+    trSync(t,lvl,t.cap<.8||Math.abs(c.spd)<.3&&cap!==Infinity,dt);
+    const gone=Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off||(t.wait>=TR.gone||t.reroutes>=2&&t.wait>8||t.wreck&&t.wreckT>90)&&!seen(c.x,c.z)&&Math.hypot(c.x-p.x,c.z-p.z)>25;
+    if(gone){if(!o.off&&(t.wait>=TR.gone||t.reroutes>=2||t.wreck))log(t,'despawn',{wait:+t.wait.toFixed(1),wreck:!!t.wreck});trDrop(T,lvl,t);T.cars.splice(i,1)}}};
+/* push this traffic car (only it) out of anything it overlaps */
+function trSep(t,obs){const c=t.c;for(let pass=0;pass<2;pass++){const A=trBox(t);let any=false;
+  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.004)continue;
+    c.x+=h.nx*h.d;c.z+=h.nz*h.d;A.x=c.x;A.z=c.z;any=true;const f=trFwd(c.yaw),toward=-(h.nx*f[0]+h.nz*f[1]);if(toward*c.spd>0)c.spd=0;t.sepN=(t.sepN|0)+1}if(!any)break}}
+/* model, lamps and collider */
+function trSync(t,lvl,braking,dt){const c=t.c,f=trFwd(c.yaw);t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
+  const VM=HT.Vehicles,ud=t.v.userData,haz=!!(t.hazOn||t.wreck||t.hazT>0);if(ud.setHazard&&t.hazSet!==haz){t.hazSet=haz;try{ud.setHazard(haz)}catch(_){}}
+  if(t.driver&&dt)try{HT.People.pose(t.driver,dt,{moving:false,aim:false,mode:'stand'})}catch(_){}
+  if(VM&&VM.update&&dt)try{VM.update(t.v,{speed:c.spd,steer:c.steer||0,braking:!!braking,headlights:false,dt})}catch(e){}
+  /* dynamic collider so the dad bumps into it (oriented box; .veh: the car being driven skips it, index.html trafficContact resolves that pair) */
+  if(!t.col){t.col={x0:0,z0:0,x1:0,z1:0,ph:1.5,k:'traffic',veh:true,tr:t};lvl.colliders.push(t.col)}
+  const hl=c.stats.len/2+.04,hw=c.stats.wid/2+.04,a=Math.abs(f[0]),b=Math.abs(f[1]),hx=a*hl+b*hw,hz=b*hl+a*hw;
+  Object.assign(t.col,{x0:c.x-hx,x1:c.x+hx,z0:c.z-hz,z1:c.z+hz,ob:{x:c.x,z:c.z,fx:f[0],fz:f[1],hl,hw}})}
+function trDrop(T,lvl,t){T.g.remove(t.v);if(t.driver){const pp=HT.People;t.driver.root.parent&&t.driver.root.parent.remove(t.driver.root);if(pp&&pp.live){const li=pp.live.indexOf(t.driver);if(li>=0)pp.live.splice(li,1)}t.driver=null}
+  if(t.phone&&t.phone.parent)t.phone.parent.remove(t.phone);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res)}
+/* a wrecked car's driver: out on the kerb side, facing the car, phone to his ear; never hurt */
+function trDriver(t,lvl,o){const PP=HT.People;if(!PP||!PP.ok){t.driver=false;return}let d=null;try{d=PP.make('neighbour',{})}catch(_){d=null}if(!d){t.driver=false;return}
+  const c=t.c,f=trFwd(c.yaw),rx=-f[1],rz=f[0],x=c.x+rx*(c.stats.wid/2+1.1)+f[0]*.6,z=c.z+rz*(c.stats.wid/2+1.1)+f[1]*.6;
+  d.root.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});d.root.position.set(x,HW()?HW().groundY(lvl,x,z):0,z);d.root.rotation.y=Math.atan2(c.x-x,c.z-z);WS.traffic.g.add(d.root);t.driver=d;
+  const ph=new THREE.Mesh(new THREE.BoxGeometry(.05,.13,.025),new THREE.MeshStandardMaterial({color:0x151515,roughness:.4}));ph.position.set(.11,1.6,.02);d.root.add(ph);t.phone=ph;
+  try{PP.pose(d,0,{moving:false,aim:false,mode:'stand'})}catch(_){}
+  if(o.say&&Math.hypot(c.x-o.player.x,c.z-o.player.z)<30)try{o.say(TR_WHO[t.ty]||'Driver',TR_WRECK[t.id%TR_WRECK.length])}catch(_){}}
+/* ---- what index.html's contact resolver uses ---- */
+OW.trafficLive=()=>WS&&WS.traffic?WS.traffic.cars:[];
+OW.trafficBox=trBox;
+/* move a traffic car by (dx,dz) (it slides against buildings), give it a shove velocity; returns how far it actually moved */
+OW.trafficShove=(t,dx,dz,vx,vz)=>{const ws=WS;if(!ws||!ws.traffic)return{x:0,z:0};const c=t.c,x0=c.x,z0=c.z;c.x+=dx;c.z+=dz;if(ws.traffic.statics)ws.traffic.statics(c,c.stats.wid/2);
+  if(vx||vz){const p=t.push||(t.push={vx:0,vz:0});p.vx+=vx;p.vz+=vz;const s=Math.hypot(p.vx,p.vz);if(s>14){p.vx*=14/s;p.vz*=14/s}t.shoveT=Math.max(t.shoveT||0,1.2);c.spd=0}
+  trSync(t,ws.lvl,true,0);return{x:c.x-x0,z:c.z-z0}};
+OW.trafficSync=t=>{if(WS)trSync(t,WS.lvl,true,0)};
+/* a hit on a traffic car: damage (same curve and cap as carImpact), the driver's reaction. info {sp (m/s, effective), byPlayer, camera, say, player}. Returns HP lost */
+OW.trafficHit=(t,info)=>{const ws=WS;if(!ws||!ws.traffic)return 0;const T=ws.traffic,c=t.c,sp=info.sp||0,m=(HT.Garage&&HT.Garage.VEH[t.ty]||{mass:1}).mass||1;
+  const dmg=sp>6.5?Math.min(c.stats.hp*.45,.13*(sp-6.5)*(sp-6.5)*m):0;if(dmg>0)c.hp=Math.max(0,c.hp-dmg);
+  T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'hit',sp:+sp.toFixed(2),dmg:+dmg.toFixed(1),hp:+c.hp.toFixed(1),by:info.byPlayer?'player':'traffic'});
+  if(info.byPlayer&&sp>1.2&&(T.clock-(t.hitAt||-9))>2.5){t.hitAt=T.clock;t.hazT=8;if(T.honkT<=0){trHorn(t,.9,info.camera);T.honkT=.6}if(sp>6)trAlarm(t,info.camera);
+    if(info.say&&T.barkT<=0&&Math.random()<.8){T.barkT=TR.barkCd;try{info.say(TR_WHO[t.ty]||'Driver',TR_HIT[(t.id+((t.hitN=(t.hitN|0)+1)))%TR_HIT.length])}catch(_){}}}
+  if(c.hp<=0&&!t.wreck){c.hp=1;t.wreck=true;t.mode=null;t.wait=0;t.wreckT=0;if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'wreck'})}
+  if(ws.traffic.g&&ud(t).setDamage)try{ud(t).setDamage(1-c.hp/c.stats.hp)}catch(_){}
+  return dmg};
+const ud=t=>t.v.userData||{};
+/* dev/tests: put a traffic car on the lane of edge a->b, `at` metres from a (dev/traffic-check.js) */
+OW.trafficAdd=o=>{const ws=WS,G=OW.roads(),T=ws&&ws.traffic,CA=HT.CarAI;if(!T||!G||!CA)return null;const A=G.nodes[o.a],B=G.nodes[o.b];if(!A||!B)return null;const dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,ux=dx/l,uz=dz/l;
+  const ty=o.type||'sedan',co=o.color||'#8a2f2a',v=C.makeVehicle(ty,co,{lod:1});if(!v)return null;v.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});const at=o.at||0;
+  const c=CA.make(ty,{x:A.x+ux*at-uz*1.5,z:A.z+uz*at+ux*1.5,yaw:Math.atan2(-ux,-uz),spd:o.spd||0});CA.wander(c,G,{max:o.max||11,seed:o.seed||1});
+  c.ai.prev=o.a;c.ai.cur=o.a;c.ai.next=o.b;c.ai.pts=[{x:c.x,z:c.z},...G.lane([o.a,o.b]).slice(1)];c.ai.tr={i:0};
+  T.g.add(v);const t={c,v,ty,co,id:++T.id,wait:0,free:0,honkN:0,nextHonk:TR.honk1,barkAt:TR.bark1,hornF:330+(T.id%9)*22,offNow:0,offT:0,mode:null,sg:TR.sg0,reroutes:0,res:-1};T.cars.push(t);trSync(t,ws.lvl,false,0);return t};
+OW.trafficLog=()=>WS&&WS.traffic?WS.traffic.log:[];
 OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type,yaw:t.c.yaw})):[];
 /* ================= Riverside neighbours (HT.People 'neighbour' pool on HT.WorldGen.neighbourSlots porch anchors) ================= */
 /* OW.neighbours(dt,{player,camera,trust,river,shots:[{x,z}]}) once per frame. More porches fill as Riverside trust rises (none at tier 0, up to
