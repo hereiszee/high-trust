@@ -177,7 +177,8 @@ Steam none of that happens.
 
 - [ ] Native Linux depot uploaded. Launch option set for Linux. Deck: verify it starts fullscreen at 1280×800 and the title fits (16:10).
 - [ ] Controller-first: when Steam sets `SteamDeck=1`, the game starts with controller prompts before any input (`HTDesktop.deck`) and
-  Interface size starts at 115% (Display → Window). That makes the smallest HUD text (10-11 px CSS) about 12-13 px on screen, above Valve's 9 px guideline.
+  Interface size starts at 110% (Display → Window). That makes the smallest HUD text (10-11 px CSS) about 11-12 px on screen, above Valve's 9 px guideline,
+  while the layout keeps the 1280×720 CSS height every screen was checked at (115% overflowed the title column at 800 px).
 - [ ] Controller: every menu (title, pause, settings tabs, brief, result, shops, calendar, map) works with the D-pad/stick, A and B.
   The pause menu "Key bindings" tab lists the controller layout. Prompts switch to pad glyphs as soon as the pad is used.
 - [ ] Steam Input: set the default controller config to **Gamepad** (the game reads the standard mapping). Do not ship a

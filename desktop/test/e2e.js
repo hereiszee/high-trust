@@ -12,9 +12,9 @@ const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'ht-e2e-'));
 const GPU = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? 'ok   ' : 'FAIL ') + m) };
 
-async function launch(extra = []) {
+async function launch(extra = [], env = {}) {
   const args = EXE ? [...GPU, '--no-sandbox', '--windowed', ...extra] : [path.join(__dirname, '..'), ...GPU, '--no-sandbox', '--windowed', '--no-devtools', ...extra];
-  const app = await _electron.launch({ executablePath: EXE || require(path.join(__dirname, '../node_modules/electron')), args, env: Object.assign({}, process.env, { HT_USER_DATA: PROFILE, HT_WINDOW_SIZE: '1280x720' }), timeout: 120000 });
+  const app = await _electron.launch({ executablePath: EXE || require(path.join(__dirname, '../node_modules/electron')), args, env: Object.assign({}, process.env, { HT_USER_DATA: PROFILE, HT_WINDOW_SIZE: '1280x720' }, env), timeout: 120000 });
   const out = []; app.process().stdout.on('data', d => out.push(String(d))); app.process().stderr.on('data', d => out.push(String(d)));
   const p = await app.firstWindow(); const errs = [], remote = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()) });
@@ -24,7 +24,20 @@ async function launch(extra = []) {
 const shot = async (p, n) => { if (!SHOTS) return; fs.mkdirSync(SHOT_DIR, { recursive: true }); await p.waitForTimeout(700); await p.screenshot({ path: path.join(SHOT_DIR, n + '.png'), timeout: 180000 }); console.log('     shot ' + n) };
 const { FAKE_PAD } = require('./fake-pad.js');
 
+async function deckRun() {
+  let L, app, p;
+  /* ---------- third launch as a Steam Deck (SteamDeck=1, 1280x800): controller prompts from the start, Interface size 110% ---------- */
+  L = await launch([], { SteamDeck: '1', HT_WINDOW_SIZE: '1280x800' }); ({ app, p } = L);
+  await p.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 180000 });
+  const deck = await p.evaluate(() => ({ deck: window.HTDesktop.deck, pad: document.documentElement.classList.contains('ht-pad'), dpr: window.devicePixelRatio, w: innerWidth, h: innerHeight }));
+  ok(deck.deck && deck.pad && Math.abs(deck.dpr - 1.1) < .02, 'Steam Deck: controller prompts before any input, Interface size 110% (' + JSON.stringify(deck) + ')');
+  await shot(p, 'deck-title');
+  ok(L.errs.length === 0 && L.remote.length === 0, 'Deck launch: zero errors, zero remote requests');
+  await app.close();
+}
+
 (async () => {
+  if (has('deck-only')) { await deckRun(); console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0) }
   /* software GL: start on Low graphics so frames come faster (the saved settings live in the same file as the save) */
   fs.mkdirSync(path.join(PROFILE, 'saves'), { recursive: true });
   fs.writeFileSync(path.join(PROFILE, 'saves', 'save.json'), JSON.stringify({ format: 'ht-desktop-save', v: 1, keys: { 'ht-cfg': JSON.stringify({ gfx: 'low' }) } }));
@@ -119,5 +132,6 @@ const { FAKE_PAD } = require('./fake-pad.js');
   ok(await p.isVisible('.ht-title [data-act=continue]'), 'title offers Continue');
   ok(L.errs.length === 0 && L.remote.length === 0, 'second launch: zero errors, zero remote requests');
   await app.close();
+  await deckRun();
   console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1) });

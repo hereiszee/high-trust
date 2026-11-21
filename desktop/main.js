@@ -36,8 +36,10 @@ if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0) }
 /* ---------- desktop settings (machine-local, not cloud-synced) ---------- */
 const CFG_FILE = path.join(USER, 'desktop-settings.json');
 const DECK = process.env.SteamDeck === '1';
-const cfg = Object.assign({ fullscreen: true, vsync: true, uiScale: DECK ? 1.15 : 1 }, (() => { try { return JSON.parse(fs.readFileSync(CFG_FILE, 'utf8')) } catch (e) { return {} } })());
+const cfg = Object.assign({ fullscreen: true, vsync: true }, (() => { try { return JSON.parse(fs.readFileSync(CFG_FILE, 'utf8')) } catch (e) { return {} } })());
 if (flag('windowed')) cfg.fullscreen = false; if (flag('fullscreen')) cfg.fullscreen = true;
+/* Interface size: the player's choice, else 110% on a Steam Deck, else 100% */
+const curScale = () => cfg.uiScale != null ? cfg.uiScale : (DECK ? 1.1 : 1);
 const saveCfg = () => { try { fs.writeFileSync(CFG_FILE, JSON.stringify(cfg, null, 2)) } catch (e) { } };
 
 /* ---------- Chromium switches (before ready) ---------- */
@@ -99,8 +101,8 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false);
   win.once('ready-to-show', () => { win.show(); win.focus() });
-  /* Interface size (Deck default 115%: the smallest HUD text is 10-11 px at 1280x800) */
-  win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(uiScale(cfg.uiScale)));
+  /* Interface size (Deck default 110%: the smallest HUD text is 10-11 px CSS at 1280x800) */
+  win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(uiScale(curScale())));
   win.on('enter-full-screen', () => { cfg.fullscreen = true; saveCfg(); win.webContents.send('ht:fullscreen', true) });
   win.on('leave-full-screen', () => { cfg.fullscreen = false; saveCfg(); win.webContents.send('ht:fullscreen', false) });
   win.on('page-title-updated', e => e.preventDefault());
@@ -124,7 +126,7 @@ function createWindow() {
 
 /* ---------- IPC (the HTDesktop bridge in preload.js) ---------- */
 const fromGame = e => { try { return (e.senderFrame && e.senderFrame.url || '').startsWith(ORIGIN + '/') } catch (_) { return false } };
-ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign({}, store.data), saveFrom: store.lastLoad, desktop: { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: cfg.uiScale },
+ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign({}, store.data), saveFrom: store.lastLoad, desktop: { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: curScale() },
   steam: steam.info(), deck: DECK, version: app.getVersion(), electron: process.versions.electron, platform: process.platform, dev: DEV } : null });
 ipcMain.on('ht:save-set', (e, k, v) => { if (fromGame(e) && typeof k === 'string' && typeof v === 'string' && k.length < 128 && v.length < 32e6) store.set(k, v) });
 ipcMain.on('ht:save-remove', (e, k) => { if (fromGame(e) && typeof k === 'string') store.remove(k) });
@@ -135,7 +137,7 @@ const uiScale = v => Math.min(1.5, Math.max(.8, +v || 1));
 ipcMain.handle('ht:desktop-set', (e, k, v) => { if (!fromGame(e)) return null;
   if (k === 'vsync') { cfg.vsync = !!v; saveCfg() }
   else if (k === 'uiScale') { cfg.uiScale = uiScale(v); saveCfg(); if (win) win.webContents.setZoomFactor(cfg.uiScale) }
-  return { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: cfg.uiScale } });
+  return { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: curScale() } });
 ipcMain.handle('ht:steam-unlock', (e, id) => fromGame(e) ? steam.unlock(id) : false);
 ipcMain.on('ht:steam-presence', (e, k, v) => { if (fromGame(e)) steam.presence(k, v) });
 
