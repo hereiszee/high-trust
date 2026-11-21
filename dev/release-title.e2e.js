@@ -66,5 +66,18 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await p.click('.ht-pause [data-act=credits]');await wait(300);ok(await ev(()=>!!document.querySelector('.ht-dlg')),'pause → Credits & licences opens');
   await shot('credits-pause');
   await p.keyboard.press('Escape');await wait(250);ok(await ev(()=>!document.querySelector('.ht-dlg')&&window.__ht.HUD.screen==='pause'),'Esc closes credits back to the pause menu (game stays paused)');
+  /* layout: all six title buttons (Quit to desktop needs the desktop shell: simulated) inside the viewport, none under the loading/READY row,
+     labels on one line, at 1280x720, the Steam Deck (1280x800 at 110% interface size = 1164x727 CSS px, html.ht-deck) and 1920x1080 */
+  await p.keyboard.press('Escape').catch(()=>{});await ev(()=>{const H=window.__ht;if(H.mode!=='title')H.quitToTitle()});await wait(600);
+  for(const [w,h,deck] of [[1280,720,0],[1164,727,1],[1920,1080,0]]){await p.setViewportSize({width:w,height:h});
+    await ev(d=>{if(!localStorage.getItem('ht-save-prev'))localStorage.setItem('ht-save-prev',JSON.stringify({v:3,cash:120,t:Date.now(),prog:{missionsRun:2},stats:{spent:5}}));document.documentElement.classList.toggle('ht-deck',!!d);window.HTDesktop=window.HTDesktop||{};window.__ht.showTitle()},deck);await wait(900);
+    const L=await ev(()=>{const R=e=>e.getBoundingClientRect(),ld=R(document.querySelector('.ht-title .ht-load .row')),bar=R(document.querySelector('.ht-title .ht-load'));const W=innerWidth,H=innerHeight,out=[];
+      const bs=[...document.querySelectorAll('.ht-title .ht-btns .ht-btn')].filter(x=>!x.hidden);
+      for(const b of bs){const r=R(b),hit=!(r.right<=bar.left||r.left>=bar.right||r.bottom<=bar.top||r.top>=bar.bottom);const lines=[...b.querySelectorAll('span')].some(s=>s.getClientRects().length>1||s.offsetHeight>r.height*.7);
+        if(hit)out.push(b.dataset.act+' overlaps the loading row');if(r.top<0||r.left<0||r.bottom>H||r.right>W)out.push(b.dataset.act+' leaves the viewport');if(lines)out.push(b.dataset.act+' wraps')}
+      const lg=R(document.querySelector('.ht-logo'));if(lg.top<0)out.push('logo cut off');return{n:bs.length,acts:bs.map(b=>b.dataset.act).join(','),out}});
+    ok(L.n===6&&!L.out.length,`title layout ${w}x${h}${deck?' (Deck, 110%)':''}: ${L.n} buttons (${L.acts}), ${L.out.join('; ')||'no overlaps, all inside, one line each'}`);
+    await shot('title-layout-'+w+'x'+h)}
+  await ev(()=>{delete window.HTDesktop;document.documentElement.classList.remove('ht-deck')});
   const bad=errs.filter(e=>!/favicon|net::ERR/.test(e));ok(!bad.length,'no console errors '+bad.slice(0,3).join(' | '));
   await b.close();console.log(fails?`FAIL ${fails}`:'PASS');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

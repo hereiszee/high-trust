@@ -28,12 +28,12 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     const pad=[...d.children].map(x=>x.textContent);HT.Pad.setLast('kb');const kb=[...d.children].map(x=>x.textContent);HT.Pad.setLast('pad');d.remove();return{pad,kb}});
   ok(tx.pad.join('|')==='Climb down: hold A at the ladder|Press LB to call the box|BRAKE TOGETHER: hold LT and stop|Hello there, Gary','sentences name pad buttons: '+tx.pad.join(' | '));
   ok(tx.kb.join('|')==='Climb down: hold E at the ladder|Press G to call the box|BRAKE TOGETHER: hold S and stop|Hello there, Gary','and go back to keys on the keyboard');
-  /* LT hold vs toggle */
-  await ev(()=>{__T.set({buttons:{6:1}})});const h1=await ev(()=>__ht.P.aim);await ev(()=>{__T.set({buttons:{6:0}})});const h2=await ev(()=>__ht.P.aim);
+  /* LT hold vs toggle (Aim defaults to Toggle; set Hold explicitly first) */
+  await ev(()=>{HT.Keys.aimMode='hold';__ht.P.aim=false;__T.set({buttons:{6:1}})});const h1=await ev(()=>__ht.P.aim);await ev(()=>{__T.set({buttons:{6:0}})});const h2=await ev(()=>__ht.P.aim);
   ok(h1===true&&h2===false,'LT holds aim');
   await ev(()=>{HT.Keys.aimMode='toggle';__T.set({buttons:{6:1}});__T.set({buttons:{6:0}})});const t1=await ev(()=>__ht.P.aim);
   await ev(()=>{__T.set({buttons:{6:1}});__T.set({buttons:{6:0}})});const t2=await ev(()=>__ht.P.aim);
-  ok(t1===true&&t2===false,'Aim: Toggle: LT press on, press off');await ev(()=>{HT.Keys.aimMode='hold'});
+  ok(t1===true&&t2===false,'Aim: Toggle: LT press on, press off');await ev(()=>{HT.Keys.aimMode='toggle'});
   /* tank and jet: in the van, with the vehicle type faked */
   await ev(()=>{const H=window.__ht;H.P.pos.set(H.VAN.pos.x+2.2,0,H.VAN.pos.z);H.enterVan();H.step(2)});
   const fake=t=>ev(t=>{const real=window.__htReal||(window.__htReal=window.__ht);window.__ht=Object.create(real,{CV:{get:()=>t?{type:t}:real.CV}})},t);
