@@ -29,7 +29,7 @@ const LINES={
   boomN:["My windows! My good windows!","That rattled my whole china cabinet!","Somebody's showing off.","Was that thunder? The sky is blue. That wasn't thunder."],
   bridge:["DAD-1 just flew UNDER the High Bridge. Tower did not see that. Tower is very impressed.","Under the bridge! Somebody write that down! Not on a form. On the fridge."],
   buzz:["Is that your father? Wave, kids! WAVE!","That's Dad! Hi Dad! HI DAD!","Your father is buzzing the house. In a jet. On a Tuesday."],
-  eject:["DAD-1 has ejected. Repeat: DAD-1 is enjoying the parachute.","Ejection! DAD-1, steer the chute with W A S D. The jet is fine. It's a rental."],
+  eject:["DAD-1 has ejected. Repeat: DAD-1 is enjoying the parachute.","Ejection! DAD-1, sit back, the chute knows the way home. The jet is fine. It's a rental."],
   crash:["DAD-1... that was not a landing. That was a strongly worded suggestion to the ground.","The jet's fine. It's a rental. The ground is having a worse day."],
   ground:["DAD-1 is down safe. Somebody get him a juice box.","DAD-1 on the ground. The jet's already back in the hangar. Don't ask how."],
   refuse:"You can't take a jet to a job. Linda checked."};
@@ -117,13 +117,13 @@ F.gearKFor=v=>S.e&&v===S.e.obj?F.gearK:1;
 
 /* ================= the flight model (vehicle hook) ================= */
 const _f=V(0,0,0),_u=V(0,0,0),_r=V(0,0,0),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_y=V(0,1,0);
-function start(a,e){F.on=true;F.air=false;F.look=false;F.abOn=false;F.ejArm=null;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
+function start(a,e){try{OWm().buildAhead&&OWm().buildAhead(900)}catch(_){}/* stream the town in while taxiing, not in the air */F.on=true;F.air=false;F.look=false;F.abOn=false;F.ejArm=null;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
   F.q.setFromEuler(_e.set(0,e.yaw+Math.PI/2,0,'YZX'));e.fly=true;F.trails=[[],[]];F.said={};F.flightT=0;
   const s=sv();if(s&&s.jet)s.jet.flights=(s.jet.flights|0)+1;say(TOWER,pick(LINES.enter),true);
   try{if(HT.People&&HT.People.preload)HT.People.preload(['wife','son','daughter'])}catch(_){}/* so they can come out and wave when you buzz the house */
   teach(a,'fly1','Jet: tap W / S to set the throttle (it stays) · Shift afterburner on/off at 100% · A / D steer on the ground · nose up (mouse up or ↑) past 90 mph to take off');
   hudShow(true)}
-function stop(a,e){F.on=false;F.air=false;if(e){e.fly=false;e.noExit=false}flight(false);hudShow(false);jetSound(0,0)}
+function stop(a,e){try{OWm().buildAhead&&OWm().buildAhead(0)}catch(_){}F.on=false;F.air=false;if(e){e.fly=false;e.noExit=false}flight(false);hudShow(false);jetSound(0,0)}
 function vehicle(e,dt){if(!e||e.type!=='jet')return;const a=A();if(!F.on)start(a,e);const c=e.car,k=a.keys,P=a.P;
   /* inputs: the mouse moves P.yaw / P.pitch (index.html look()); we read and reset them every frame, keys add to them */
   const mdx=(F.prevYaw==null?0:F.prevYaw-P.yaw),mdy=(F.prevPitch==null?0:P.pitch-F.prevPitch);P.yaw=0;P.pitch=0;F.prevYaw=0;F.prevPitch=0;
@@ -225,7 +225,7 @@ function eject(a,e,crashed){const s=sv();if(s&&s.jet&&!crashed)s.jet.ejects=(s.j
   /* the jet goes home: it's a rental */
   const d=B().def();if(d&&e){e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.yaw;try{a.owStopCar(e);a.syncCar(e)}catch(_){}e.obj.quaternion.setFromEuler(_e.set(0,d.jet.yaw+Math.PI/2,0,'YZX'));e.obj.position.y=0}
   if(!crashed)say(TOWER,pick(LINES.eject),true);tone(200,900,.5,.15);
-  F.chute={p:from.clone().setY(Math.max(from.y,2)+2),v:vel,t:0,open:false,mesh:chuteMesh(a)};teach(a,'chute','Parachute: W A S D steer · it drifts you back toward Fort Sensible')}
+  F.chute={p:from.clone().setY(Math.max(from.y,2)+2),v:vel,t:0,open:false,mesh:chuteMesh(a)};teach(a,'chute','Parachute: sit back, it steers itself back to Fort Sensible')}
 function chuteMesh(a){const T=T3(),g=new T.Group();const cg=new T.SphereGeometry(3.4,16,8,0,Math.PI*2,0,Math.PI/2.6);const cm=new T.MeshStandardMaterial({color:new T.Color('#f6f2e8').convertSRGBToLinear(),roughness:.8,side:T.DoubleSide});
   const can=new T.Mesh(cg,cm);can.scale.y=.55;can.position.y=5.2;g.add(can);
   const stripe=new T.Mesh(new T.SphereGeometry(3.42,16,2,0,Math.PI*2,Math.PI/3.4,.18),new T.MeshStandardMaterial({color:new T.Color('#e46d1f').convertSRGBToLinear(),roughness:.8,side:T.DoubleSide}));stripe.scale.y=.55;stripe.position.y=5.2;g.add(stripe);
@@ -236,9 +236,10 @@ function chuteTick(a,dt){const c=F.chute;if(!c)return;c.t+=dt;const P=a.P,k=a.ke
   if(!c.open){c.v.y-=9.8*dt;c.p.addScaledVector(c.v,dt)}
   else{c.mesh.scale.setScalar(Math.min(1,c.mesh.scale.x+dt*2));/* steer, and drift home to the post */
     const home=d?V(d.jet.x-14,0,d.jet.z-6):V(c.p.x,0,c.p.z);let hx=home.x-c.p.x,hz=home.z-c.p.z;const hl=Math.hypot(hx,hz)||1;hx/=hl;hz/=hl;
-    const fwd=V(-Math.sin(c.yaw||0),0,-Math.cos(c.yaw||0));c.yaw=(c.yaw||Math.atan2(-hx,-hz))+((k.a?1:0)-(k.d?1:0))*dt*1.2;
-    const drift=hl>4?Math.min(9,hl*.2+3):0;c.v.x+=((hx*drift+fwd.x*(k.w?4:0))-c.v.x)*Math.min(1,dt*.8);c.v.z+=((hz*drift+fwd.z*(k.w?4:0))-c.v.z)*Math.min(1,dt*.8);
-    c.v.y+=(-(k.s?2:3.4)-c.v.y)*Math.min(1,dt*2);c.p.addScaledVector(c.v,dt)}
+    /* automatic: no keys under the canopy (the owner's rule: nothing held); it turns to face the post and drifts home */
+    {let dy=Math.atan2(-hx,-hz)-(c.yaw||0);dy=Math.atan2(Math.sin(dy),Math.cos(dy));c.yaw=(c.yaw||0)+dy*Math.min(1,dt*.8)}
+    const drift=hl>4?Math.min(9,hl*.2+3):0;c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*.8);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*.8);
+    c.v.y+=(-3.4-c.v.y)*Math.min(1,dt*2);c.p.addScaledVector(c.v,dt)}
   const gy=groundY(a,c.p.x,c.p.z);
   P.pos.set(c.p.x,0,c.p.z);c.mesh.position.set(c.p.x,c.p.y,c.p.z);c.mesh.rotation.y=c.yaw||0;
   if(P.dude){P.dude.root.position.set(c.p.x,c.p.y,c.p.z);P.dude.root.rotation.y=(c.yaw||0)+Math.PI;P.dude.root.visible=true}
@@ -269,7 +270,13 @@ let FOG0=null;
 function farFog(a,on){const sc=a.scene,cam=a.camera;if(on){if(!FOG0&&sc.fog)FOG0={near:sc.fog.near,far:sc.fog.far,cfar:cam.far};farTerrain(a);
     const alt=F.chute?F.chute.p.y:F.pos.y;if(sc.fog){sc.fog.near=380+alt*2;sc.fog.far=2400+alt*4}cam.far=3600;cam.updateProjectionMatrix();if(F.far)F.far.visible=true;lids(a,true)}
   else if(FOG0){if(sc.fog){sc.fog.near=FOG0.near;sc.fog.far=FOG0.far}cam.far=FOG0.cfar;cam.updateProjectionMatrix();FOG0=null;if(F.far)F.far.visible=false;lids(a,false);try{RO().setMood()}catch(_){}}}
-function flight(on){if(on===F.fly)return;F.fly=on;const O=OWm();if(O&&O.flight)O.flight(on?{R:900,blod:70}:null)}
+/* the flight draw radius grows with altitude (low: less sky-line to fill, so fewer draw calls); beyond it the painted ground map
+   (OW.groundMap: streets, roofs, trees, cars) lies under the streamed ground so the town still reads */
+const flightR=y=>y<45?420:y<130?620:900;
+function flight(on){const R=on?flightR(F.pos.y):0;if(on===F.fly&&R===F.flyR)return;F.fly=on;F.flyR=R;const O=OWm();if(O&&O.flight)O.flight(on?{R,blod:70}:null);groundMap(on)}
+function groundMap(on){const a=A();if(!a||!a.L)return;if(on&&!F.gm){const O=OWm(),tx=O&&O.groundMap&&O.groundMap(),def=a.WORLD;if(!tx||!def)return;const T=T3(),w=def.W*2,h=def.H*2;
+    const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({map:tx}));m.rotation.x=-Math.PI/2;m.position.set(w/2,-1.2,h/2);m.name='groundMap'/* under the river's water (-0.85) and the roads (-0.12) */;m.receiveShadow=false;F.gm=m}
+  if(F.gm){if(on&&F.gm.parent!==a.L.group)a.L.group.add(F.gm);F.gm.visible=!!on}}
 
 /* ================= far terrain: fields and low hills out to the horizon (built on the first flight) ================= */
 function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;const Wm=def.W*2,Hm=def.H*2,cx=Wm/2,cz=Hm/2;
@@ -277,7 +284,12 @@ function farTerrain(a){if(F.far)return;const T=T3(),def=a.WORLD;if(!def)return;c
   const hgt=(x,z,d)=>{const n=Math.sin(x*.004)*Math.cos(z*.0047)+.5*Math.sin(x*.011+1.3)*Math.sin(z*.009+.7)+.25*Math.sin(x*.023+z*.017);return clamp((d-100)/160,0,1)*(9+24*clamp(n*.5+.5,0,1))+clamp((d-500)/1200,0,1)*60*Math.max(0,n+.3)-2};
   /* no seam with the backdrop (world.js backdrop(): the map plus 260 m): sample its height along its border and blend out from there */
   const bm=[];try{for(const q of OWm().units())if(q.sp&&q.sp.id==='backdrop'&&q.group){q.group.updateMatrixWorld(true);q.group.traverse(m=>{if(m.isMesh&&!m.isInstancedMesh)bm.push(m)})}}catch(_){}
-  const rc=new T.Raycaster(),dn=V(0,-1,0),bx0=-260,bz0=-260,bx1=Wm+260,bz1=Hm+260;/* world.js backdrop(): ext 260 */const bh=(x,z)=>{if(!bm.length)return null;rc.set(V(x,300,z),dn);rc.far=600;const h=rc.intersectObjects(bm,false)[0];return h?h.point.y:null};
+  const bx0=-260,bz0=-260,bx1=Wm+260,bz1=Hm+260;/* world.js backdrop(): ext 260 */
+  /* the backdrop's heights, binned once from its own vertices into an 8 m grid (raycasting it 1300 times froze the first flight for 1.6 s) */
+  const CS=8,GW=Math.ceil((bx1-bx0)/CS)+1,GH=Math.ceil((bz1-bz0)/CS)+1,GS=new Float32Array(GW*GH),GN=new Uint16Array(GW*GH),_v=V(0,0,0);
+  for(const m of bm){const pa=m.geometry.attributes.position;if(!pa)continue;const mw=m.matrixWorld;for(let i=0;i<pa.count;i++){_v.set(pa.getX(i),pa.getY(i),pa.getZ(i)).applyMatrix4(mw);
+    const gx=Math.round((_v.x-bx0)/CS),gz=Math.round((_v.z-bz0)/CS);if(gx<0||gz<0||gx>=GW||gz>=GH||_v.y>200)continue;const k=gz*GW+gx;GS[k]+=_v.y;GN[k]++}}
+  const bh=(x,z)=>{if(!bm.length)return null;const gx=Math.round((x-bx0)/CS),gz=Math.round((z-bz0)/CS);for(let r=0;r<4;r++){let s2=0,n=0;for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const xx=gx+dx,zz=gz+dz;if(xx<0||zz<0||xx>=GW||zz>=GH)continue;const k=zz*GW+xx;if(GN[k]){s2+=GS[k]/GN[k];n++}}if(n)return s2/n}return null};
   for(let j=0;j<=rings;j++){const t=j/rings,r=R0*.8+(R1-R0*.8)*t*t;for(let i=0;i<N;i++){const ang=i/N*Math.PI*2;let x=cx+Math.cos(ang)*r*1.15,z=cz+Math.sin(ang)*r*.75*(1+t*.6);
       const d=Math.max(Math.abs(x-cx)-Wm/2,Math.abs(z-cz)-Hm/2,0);let y=hgt(x,z,d);
       const out=Math.max(bx0-x,x-bx1,bz0-z,z-bz1,0);const eh=bh(clamp(x,bx0+4,bx1-4),clamp(z,bz0+4,bz1-4));
@@ -321,12 +333,13 @@ function bridgePiece(){const O=OWm();if(!O||!O.addSetpiece){setTimeout(bridgePie
 bridgePiece();
 
 /* ================= trails, sound, HUD ================= */
-function trails(a,e,dt){const on=F.air&&(F.spd>72||Math.abs(F.inp.p)>.6&&F.spd>50);const root=F.trailRoot||(F.trailRoot=(()=>{const T=T3(),g=new T.Group();g.name='contrails';
+function trails(a,e,dt){const on=F.air&&F.spd>50&&(Math.abs(F.inp.p)>.5||Math.abs(F.inp.r)>.7||F.ab>.5);/* wingtip vapour when you pull, roll hard or light the burner (not all the time: it streaks across the chase view) */const root=F.trailRoot||(F.trailRoot=(()=>{const T=T3(),g=new T.Group();g.name='contrails';
     for(let i=0;i<2;i++){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(new Float32Array(64*2*3),3));const idx=[];for(let k=0;k<63;k++){const a2=k*2;idx.push(a2,a2+1,a2+2,a2+1,a2+3,a2+2)}geo.setIndex(idx);
       const m=new T.Mesh(geo,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.45,depthWrite:false,side:T.DoubleSide}));m.frustumCulled=false;g.add(m)}return g})());
   if(root.parent!==a.L.group)a.L.group.add(root);
   _r.set(0,0,1).applyQuaternion(F.q);_u.set(0,1,0).applyQuaternion(F.q);_f.set(1,0,0).applyQuaternion(F.q);
   for(let i=0;i<2;i++){const s=i?1:-1,tip=F.pos.clone().addScaledVector(_r,s*4.3).addScaledVector(_f,-2.2).addScaledVector(_u,1.6),L=F.trails[i];
+    {const last=L[L.length-1];if(last&&last.p.distanceTo(tip)>60)L.length=0}/* a jump (reset, tow home): start over */
     if(on){const last=L[L.length-1];if(!last||last.p.distanceTo(tip)>3)L.push({p:tip,u:_u.clone(),t:0})}for(const q of L)q.t+=dt;while(L.length&&(L[0].t>2.4||L.length>64))L.shift();
     const geo=root.children[i].geometry,pa=geo.attributes.position;for(let k=0;k<64;k++){const q=L[Math.min(k,L.length-1)];if(!q){pa.setXYZ(k*2,0,-999,0);pa.setXYZ(k*2+1,0,-999,0);continue}const w=.12+q.t*.35;
       pa.setXYZ(k*2,q.p.x+q.u.x*w,q.p.y+q.u.y*w,q.p.z+q.u.z*w);pa.setXYZ(k*2+1,q.p.x-q.u.x*w,q.p.y-q.u.y*w,q.p.z-q.u.z*w)}pa.needsUpdate=true;root.children[i].visible=L.length>1}}

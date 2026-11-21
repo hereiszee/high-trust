@@ -658,6 +658,28 @@ OW.prop=name=>S3[name]||null;
    OW.kit: the helpers set pieces use. OW.flight({R,blod}) widens the draw radius while flying (null = back to the preset). */
 OW.addSetpiece=sp=>{if(sp&&sp.id&&!SETPIECES.some(q=>q.id===sp.id))SETPIECES.push(sp)};
 OW.kit={stdMat,basicGlow,canvas,ctex,lin,M4,cyl,rng,signCanvas,HW,TILE};
+/* OW.groundMap(): the whole world seen from straight above, painted once (8 px a tile) from the tile kinds: roads with centre
+   dashes, sidewalks, lots, lawns, water, roofs in each building's own colour, tree crowns, parked cars. The jet lays it under the
+   streamed ground (js/jet.js) so streets and blocks read beyond the flight draw radius. Cached; null without a world. */
+OW.groundMap=()=>{const ws=WS;if(!ws)return null;if(ws.gmap)return ws.gmap;const def=ws.def,W=def.W,H=def.H,PX=8,cv=canvas(W*PX,H*PX),x=cv.getContext('2d');
+  const COL={road:'#3d3f44',lot:'#5b5d61',walk:'#b4aea2',grass:'#5f8a45',inside:'#7b7670',wall:'#6a6660'};
+  for(let z=0;z<H;z++)for(let xx=0;xx<W;xx++){const k=ws.K[z*W+xx],c=def.map[z][xx];x.fillStyle=c==='~'?'#3f6f86':c==='t'?'#4f7a3c':COL[k]||'#5f8a45';x.fillRect(xx*PX,z*PX,PX,PX)}
+  /* lawn texture: a little noise so big lawns aren't flat */
+  const r=rng(77);for(let i=0;i<W*H*1.2;i++){x.fillStyle=r()<.5?'rgba(40,70,25,.18)':'rgba(140,170,80,.14)';x.fillRect(r()*W*PX,r()*H*PX,3,3)}
+  /* centre dashes (yellow) along every road */
+  x.strokeStyle='#d8b23a';x.lineWidth=1.2;x.setLineDash([10,10]);for(const rd of def.roads){x.beginPath();if(rd.o==='h'){const y=(rd.k+1.5)*PX;x.moveTo(rd.a*PX,y);x.lineTo((rd.b+1)*PX,y)}else{const xx=(rd.k+1.5)*PX;x.moveTo(xx,rd.a*PX);x.lineTo(xx,(rd.b+1)*PX)}x.stroke()}x.setLineDash([]);
+  /* roofs: houses (a ridge line), row units (brick), the named buildings */
+  const roof=(x0,z0,x1,z1,col,ridge)=>{x.fillStyle=col;x.fillRect(x0*PX,z0*PX,(x1-x0+1)*PX,(z1-z0+1)*PX);x.fillStyle='rgba(0,0,0,.22)';const w=(x1-x0+1)*PX,d=(z1-z0+1)*PX;if(ridge){if(w>=d)x.fillRect(x0*PX,z0*PX+d/2,w,d/2);else x.fillRect(x0*PX+w/2,z0*PX,w/2,d)}x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;x.strokeRect(x0*PX+.5,z0*PX+.5,w-1,d-1)};
+  const RF=['#5b4a43','#4a4f57','#6b5a4c','#3f4650','#7a5d48','#545454'];
+  def.houses.forEach((h,i)=>roof(h.x0,h.z0,h.x1,h.z1,RF[i%RF.length],true));
+  for(const u of def.rowUnits||[])roof(u.x0,u.z0,u.x1,u.z1,'#7a4a36',false);
+  for(const bd of def.buildings||[])roof(bd.x0,bd.z0,bd.x1,bd.z1,bd.roof||'#8a8780',false);
+  for(const w of def.warehouses||[])roof(w.x0,w.z0,w.x1,w.z1,'#9aa0a3',false);
+  /* trees and parked cars */
+  for(const t of def.trees){const g=x.createRadialGradient(t.x/2*PX,t.z/2*PX,0,t.x/2*PX,t.z/2*PX,PX*1.5);g.addColorStop(0,'#3f6d2c');g.addColorStop(1,'rgba(40,80,30,0)');x.fillStyle=g;x.beginPath();x.arc(t.x/2*PX,t.z/2*PX,PX*1.5,0,6.283);x.fill()}
+  for(const c of def.parked||[]){x.save();x.translate(c.x/2*PX,c.z/2*PX);x.rotate(-(c.yaw||0));x.fillStyle=c.col||'#888';x.fillRect(-PX*1.1,-PX*.45,PX*2.2,PX*.9);x.restore()}
+  const tx=ctex(cv);tx.anisotropy=4;ws.gmap=tx;return tx};
+OW.buildAhead=r=>{if(WS)WS.buildR=+r||0};/* build (not draw) every unit within r m: the jet calls it on boarding so the town streams in while you taxi */
 OW.flight=o=>{const ws=WS;if(!ws)return;ws.fly=o||null;for(const u of ws.units){u.near=null;u.mnear=null;u.far=null}};
 const s3Vc=()=>stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1});
 const S3C={white:[.82,.81,.77],galv:[.5,.53,.55],dark:[.1,.11,.12],conc:[.5,.49,.46],glass:[.03,.05,.08],wood:[.33,.22,.13],red:[.62,.06,.05],yellow:[.85,.62,.06],paint:[.86,.85,.8],brass:[.6,.45,.15]};
@@ -1150,8 +1172,9 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
   const fogFar=C.fogFar?C.fogFar():200;const R=ws.fly?Math.max(ws.fly.R||0,Math.min(ws.R||(ws.R=200),fogFar+8)):Math.min(ws.R||(ws.R=200),fogFar+8);   /* ws.fly: OW.flight (the jet) */ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
+  let nxt=null,nxtD=1e9;const BR=Math.max(R,ws.buildR||0)+40;   /* nearest unbuilt unit first (was: list order); ws.buildR (OW.buildAhead) builds past the draw radius without drawing */
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
-    if(!u.built){if(d<R+40&&!ws.active){startUnit(u);if(!stepUnit(u,ws.SLICE||6))ws.active=u}else continue}
+    if(!u.built){if(!ws.active&&d<BR&&d<nxtD){nxt=u;nxtD=d}continue}
     if(!u.ready){u.group.visible=false;continue}
     if(u.mg){const far=d>(ws.fly&&ws.fly.blod||ws.BLOD);if(far!==u.far){u.far=far;u.mg.visible=!far;if(u.shell)u.shell.visible=far}}
     let vis=u.sp&&u.sp.always?true:d<(u.r&&!ws.fly?Math.min(u.r,R):R);   /* flying (OW.flight): everything to R, the small-radius units too */
@@ -1161,6 +1184,7 @@ OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const n
     if(vis&&u.detail){const near=d<ws.DETAIL+60;if(near||near!==u.near){u.near=near;for(let i=0;i<u.detail.length;i++){const sp=u.detailS[i];u.detail[i].visible=near&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.DETAIL}
         for(let i=0;i<u.tufts.length;i++){const sp=u.tuftS[i];u.tufts[i].visible=near&&ws.q!=='low'&&Math.hypot(sp.center.x-cx,sp.center.z-cz)-sp.radius<ws.TUFT}}
       const mn=d<ws.MID;if(mn!==u.mnear){u.mnear=mn;for(const m of u.mid)m.visible=mn;if(u.dressRoot)u.dressRoot.visible=mn}}}
+  if(nxt){startUnit(nxt);if(!stepUnit(nxt,ws.SLICE||6))ws.active=nxt}
   easeBT(dt);
   for(const w of ws.water){w.nm.offset.x=Math.sin(ws.t*.05)*.02;w.nm.offset.y-=dt*.018}
   /* nearby raycast proxies, every 0.5 s or after moving 8 m */

@@ -80,7 +80,7 @@ Flight model: thrust, drag (top speed ~190 mph, ~250 with the afterburner), grav
 a stall below ~74 mph (the nose drops, the tower nags), take-off past ~94 mph with the nose up. A landing needs the gear down, a
 sink rate under ~1400 fpm, wings roughly level. With the gear down and the throttle back, the last few metres settle onto the
 wheels (an arcade flare, so the jet doesn't float the length of the runway); S at idle brakes hard enough to stop on 258 m. Anything else is a comic crash: a puff, a "boing", and the dad ejects; the jet is
-back on the apron ("it's a rental"). The parachute drifts you back toward the post (W A S D steer). The HUD shows speed (mph),
+back on the apron ("it's a rental"). The parachute turns and drifts you back toward the post on its own (no keys). The HUD shows speed (mph),
 altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the callsign and STALL / PULL UP / GEAR warnings.
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
