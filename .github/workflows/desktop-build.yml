@@ -94,6 +94,22 @@ jobs:
           codesign -dv --verbose=2 "$APP" 2>&1 || echo "UNSIGNED: Gatekeeper will block this build (see BUILD.md)"
           spctl -a -vv -t exec "$APP" 2>&1 || true
 
+      - name: Smoke test (launch to title) on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          npm i --no-save playwright@1
+          node test/e2e.js --exe dist/win-unpacked/HighTrust.exe --smoke
+
+      - name: Smoke test (launch to title) on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          npm i --no-save playwright@1
+          APP=$(ls -d dist/mac-universal/*.app | head -1)
+          BIN="$APP/Contents/MacOS/$(ls "$APP/Contents/MacOS" | head -1)"
+          node test/e2e.js --exe "$BIN" --smoke
+
       - name: End-to-end check of the packaged Linux build
         if: runner.os == 'Linux'
         shell: bash

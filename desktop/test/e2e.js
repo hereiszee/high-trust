@@ -37,6 +37,19 @@ async function deckRun() {
 }
 
 (async () => {
+  if (has('smoke')) { /* CI on Windows/macOS runners: launch to the title, no console errors, nothing remote, quit */
+    const L = await launch(); const { app, p } = L;
+    ok(await p.evaluate(() => !!window.HTDesktop), 'HTDesktop bridge present');
+    await p.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 300000 });
+    await p.waitForSelector('.ht-title [data-act=newgame]:not([disabled])', { timeout: 120000 });
+    ok(true, 'reached the title screen');
+    await p.screenshot({ path: path.join(os.tmpdir(), 'ht-smoke-title.png'), timeout: 180000 }).catch(() => { });
+    ok(L.errs.length === 0, 'zero console errors' + (L.errs.length ? ': ' + L.errs.slice(0, 5).join(' | ') : ''));
+    ok(L.remote.length === 0, 'zero remote requests' + (L.remote.length ? ': ' + L.remote.slice(0, 5).join(' ') : ''));
+    const exited = new Promise(r => app.process().once('exit', c => r(c)));
+    await p.evaluate(() => { window.HT.Save.flush && window.HT.Save.flush(); window.HTDesktop.quit() });
+    ok(await Promise.race([exited, new Promise(r => setTimeout(() => r('timeout'), 20000))]) === 0, 'HTDesktop.quit() exits cleanly');
+    console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0) }
   if (has('deck-only')) { await deckRun(); console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0) }
   /* software GL: start on Low graphics so frames come faster (the saved settings live in the same file as the save) */
   fs.mkdirSync(path.join(PROFILE, 'saves'), { recursive: true });
