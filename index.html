@@ -91,7 +91,8 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/base.js"></script><!-- Fort Sensible: the post, the range, the tank, the jet, easter eggs (docs/base.md) -->
 <script src="js/range.js"></script>
 <script src="js/tank.js"></script>
-<!-- js/jet.js and js/eggs.js: not loaded in this ship (still in testing, docs/base.md) -->
+<script src="js/jet.js"></script>
+<script src="js/eggs.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -2617,7 +2618,7 @@ function updHub(dt){
     if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
   for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
-    if(Math.abs(e.spd)<4&&!e.noExit){prompt=KE+' · Get out';/* e.noExit: the jet in the air (js/jet.js: hold E to eject instead) */if(useTap){useTap=false;exitCar()}}
+    if(Math.abs(e.spd)<4&&!e.noExit){prompt=KE+' · Get out';/* e.noExit: the jet in the air (js/jet.js: E twice to eject instead) */if(useTap){useTap=false;exitCar()}}
     if(JOB!==null){const d=L.dests[JOB];target={x:d.x,z:d.z,label:MISSIONS[JOB].place};
       if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)&&e.noJobs){/* the tank and the jet (js/tank.js, js/jet.js): jobs say no */prompt=e.noJobs;if(DRV.quipT<=0){DRV.quipT=8;radio(speaker()||'you',e.noJobs)}}
       else if(Math.hypot(e.pos.x-d.x,e.pos.z-d.z)<4.5&&(!L.ow||Math.abs(e.spd)<3)){if(allies.some(a=>!a.down&&!a.ride)){prompt="The crew didn't fit · bring a bigger car";if(DRV.quipT<=0){DRV.quipT=8;const sp=speaker();if(sp)radio(sp,pick(NOFIT_LINES))}}
