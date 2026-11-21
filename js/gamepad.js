@@ -41,6 +41,26 @@ const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
 function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;if(ctx&&ctx.closest('.ht-drv')&&k==='E')b='Y';if(ctx&&ctx.closest('.ht-drv')&&k==='SPACE')b='A';
   const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
 let swapping=false;
+/* ---------- key names inside sentences ("hold E at the ladder", "Press G to call the box") ----------
+   The one helper every prompt goes through while a pad is in use: HUD text nodes are rewritten in place (and put back for the keyboard).
+   Jobs can call HT.Pad.keyText(str) for text they draw themselves (canvas, alerts). */
+const TXT_KEY=/\b(press|hold|tap|Press|Hold|Tap|PRESS|HOLD|TAP)(\s+the)?\s+(E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT)\b(?![\w'’])/g;
+const TXT_EXTRA={W:'RT',S:'LT',B:'B'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
+function keyText(str){if(S.last!=='pad'||typeof str!=='string'||!TXT_KEY.test(str)){TXT_KEY.lastIndex=0;return str}TXT_KEY.lastIndex=0;
+  const drv=!!(IN()&&IN().driving);
+  return str.replace(TXT_KEY,(m,verb,the,k)=>{const K=k.toUpperCase();let g=null;
+    if(TXT_EXTRA[K]&&!KEY2PAD[K])g={label:TXT_EXTRA[K]};else g=glyphFor(K==='SPACE'?'Space':K==='TAB'?'Tab':K==='SHIFT'?'Shift':K,null);
+    if(g&&drv&&K==='E')g={label:(GL[S.kind]||GL.xbox).Y};
+    return g?verb+(the||'')+' '+g.label:m})}
+const TXT_ORIG=new WeakMap();
+function swapText(root){if(!root)return;const on=S.last==='pad';
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,script,style')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
+  for(let n=w.nextNode();n;n=w.nextNode()){const o=TXT_ORIG.get(n);
+    if(o&&n.nodeValue!==o.out){TXT_ORIG.delete(n)}/* the HUD wrote new text */
+    const base=TXT_ORIG.has(n)?TXT_ORIG.get(n).src:n.nodeValue;
+    if(on){const out=keyText(base);if(out!==base){if(n.nodeValue!==out){n.nodeValue=out}TXT_ORIG.set(n,{src:base,out})}else if(TXT_ORIG.has(n)){n.nodeValue=base;TXT_ORIG.delete(n)}}
+    else if(TXT_ORIG.has(n)){n.nodeValue=TXT_ORIG.get(n).src;TXT_ORIG.delete(n)}}}
+const textRoots=()=>[...document.querySelectorAll('.ht-root,.ht-scr,.card,.ht-map')];
 /* keyboard: keycaps of rebound keys show the player's key (js/keys.js) */
 const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
 function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabel();
@@ -52,7 +72,8 @@ function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabe
       e.dataset.padK=base;e.textContent=g.label;e.dataset.padG=g.label;e.classList.add('pad-g');e.style.setProperty('--pg',COLOR[g.b]||'')}
     else if(kb){const r=HT.Keys.relabel(base);if(!r){if(e.dataset.padK!=null)restore(e);return}if(e.classList.contains('pad-g')){e.classList.remove('pad-g');e.style.removeProperty('--pg')}
       e.dataset.padK=base;e.textContent=r;e.dataset.padG=r}
-    else if(e.dataset.padK!=null)restore(e)})}finally{swapping=false}}
+    else if(e.dataset.padK!=null)restore(e)});
+  if(on||TXT_ORIG.dirty){for(const r of textRoots())swapText(r);TXT_ORIG.dirty=on}}finally{swapping=false}}
 function restore(e){if(e.textContent===e.dataset.padG)e.textContent=e.dataset.padK;delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}
 /* the HUD rewrites keycaps when prompts change: re-apply */
 const MO=new MutationObserver(()=>{if(!swapping)schedule()});/* connected only while the pad is the last device, or keys are rebound */
@@ -203,5 +224,5 @@ Pad.diagram=()=>{const g=GL[S.kind]||GL.xbox,t=(x,y,s,a='middle')=>`<text x="${x
   ${t(544,138,'use · jump  '+g.A,'end')}${t(544,178,'look ('+g.R3+' camera)  R','end')}${t(544,232,'pause  '+g.MENU,'end')}</g></g></svg>`};
 /* tests (dev/pad.e2e.js) drive the loop by hand: the headless harness holds requestAnimationFrame */
 Pad._tick=now=>{polling=true;poll(now==null?performance.now():now);polling=false};
-Pad.glyphFor=glyphFor;Pad.setLast=setLast;Pad.swapGlyphs=swapGlyphs;
+Pad.keyText=keyText;Pad.glyphFor=glyphFor;Pad.setLast=setLast;Pad.swapGlyphs=swapGlyphs;
 })();

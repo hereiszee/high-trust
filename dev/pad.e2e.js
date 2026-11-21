@@ -23,6 +23,11 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* job keycaps */
   const gl=await ev(()=>{const d=document.createElement('div');d.className='ht-root';d.innerHTML='<b class="ht-kc">G</b><b class="ht-kc">T</b><b class="ht-kc">Tab</b><b class="ht-kc">2</b><b class="ht-kc">E</b>';document.body.appendChild(d);HT.Pad.swapGlyphs();const r=[...d.children].map(x=>x.textContent);d.remove();return r});
   ok(gl.join(',')==='LB,LB+↑,LB+↓,LB+B,A','job keycaps become pad glyphs: '+gl.join(','));
+  /* key names inside sentences (objectives, radio, prompts) */
+  const tx=await ev(()=>{const d=document.createElement('div');d.className='ht-root';d.innerHTML='<p>Climb down: hold E at the ladder</p><p>Press G to call the box</p><p>BRAKE TOGETHER: hold S and stop</p><p>Hello there, Gary</p>';document.body.appendChild(d);HT.Pad.swapGlyphs();
+    const pad=[...d.children].map(x=>x.textContent);HT.Pad.setLast('kb');const kb=[...d.children].map(x=>x.textContent);HT.Pad.setLast('pad');d.remove();return{pad,kb}});
+  ok(tx.pad.join('|')==='Climb down: hold A at the ladder|Press LB to call the box|BRAKE TOGETHER: hold LT and stop|Hello there, Gary','sentences name pad buttons: '+tx.pad.join(' | '));
+  ok(tx.kb.join('|')==='Climb down: hold E at the ladder|Press G to call the box|BRAKE TOGETHER: hold S and stop|Hello there, Gary','and go back to keys on the keyboard');
   /* LT hold vs toggle */
   await ev(()=>{__T.set({buttons:{6:1}})});const h1=await ev(()=>__ht.P.aim);await ev(()=>{__T.set({buttons:{6:0}})});const h2=await ev(()=>__ht.P.aim);
   ok(h1===true&&h2===false,'LT holds aim');
