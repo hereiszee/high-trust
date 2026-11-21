@@ -130,7 +130,7 @@ const SETTINGS=[
 ];
 const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Jump · vault','Space'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Decorate (at home)','B'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
 /* controller layout (js/gamepad.js), shown under Key bindings */
-const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
   ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],['Menus','D-pad / left stick · A select · B back']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
