@@ -1316,6 +1316,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked',src:e})}
   for(const S of TR_PROPS)for(const q of S.list||[]){if(q.state!=='placed'||Math.abs(q.x-p.x)>160||Math.abs(q.z-p.z)>160)continue;const K=HT.Props.KINDS&&HT.Props.KINDS[q.kind]||{w:.5,d:.5},f=trFwd(q.yaw||0);
     obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop',src:q})}
+  T.obs=obs.filter(q=>q.k!=='player'&&q.k!=='foot');
   const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t,src:t});t.ob=ob;tro.push(ob);obs.push(ob)}
   /* spawn */
   if(T.cars.length<want&&T.t<=0){T.t=.7;const cand=G.nodes.filter(n=>{const d=Math.hypot(n.x-p.x,n.z-p.z);return d>45&&d<130&&n.e.length&&!seen(n.x,n.z)&&!T.cars.some(c=>Math.hypot(c.c.x-n.x,c.c.z-n.z)<20)&&!obs.some(q=>q.k!=='prop'&&Math.hypot(q.x-n.x,q.z-n.z)<9)});
@@ -1421,8 +1422,8 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     const gone=Math.hypot(c.x-p.x,c.z-p.z)>170&&!seen(c.x,c.z)||o.off||(t.wait>=TR.gone||t.reroutes>=2&&t.wait>8||t.wreck&&t.wreckT>90)&&!seen(c.x,c.z);
     if(gone){if(!o.off&&(t.wait>=TR.gone||t.reroutes>=2||t.wreck))log(t,'despawn',{wait:+t.wait.toFixed(1),wreck:!!t.wreck});trDrop(T,lvl,t);T.cars.splice(i,1)}}};
 /* push this traffic car (only it) out of anything it overlaps */
-function trSep(t,obs){const c=t.c;for(let pass=0;pass<2;pass++){const A=trBox(t);let any=false;
-  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.004)continue;
+function trSep(t,obs){const c=t.c;for(let pass=0;pass<4;pass++){const A=trBox(t);let any=false;
+  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
     c.x+=h.nx*h.d;c.z+=h.nz*h.d;A.x=c.x;A.z=c.z;any=true;const f=trFwd(c.yaw),toward=-(h.nx*f[0]+h.nz*f[1]);if(toward*c.spd>0)c.spd=0;t.sepN=(t.sepN|0)+1}if(!any)break}}
 /* model, lamps and collider */
 function trSync(t,lvl,braking,dt){const c=t.c,f=trFwd(c.yaw);t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
@@ -1449,6 +1450,7 @@ OW.trafficLive=()=>WS&&WS.traffic?WS.traffic.cars:[];
 OW.trafficBox=trBox;
 /* move a traffic car by (dx,dz) (it slides against buildings), give it a shove velocity; returns how far it actually moved */
 OW.trafficShove=(t,dx,dz,vx,vz)=>{const ws=WS;if(!ws||!ws.traffic)return{x:0,z:0};const c=t.c,x0=c.x,z0=c.z;c.x+=dx;c.z+=dz;if(ws.traffic.statics)ws.traffic.statics(c,c.stats.wid/2);
+  if(ws.traffic.obs)trSep(t,ws.traffic.obs);/* it can't be shoved into a parked car or another car either: what it can't take, the pusher does */
   if(vx||vz){const p=t.push||(t.push={vx:0,vz:0});p.vx+=vx;p.vz+=vz;const s=Math.hypot(p.vx,p.vz);if(s>14){p.vx*=14/s;p.vz*=14/s}t.shoveT=Math.max(t.shoveT||0,1.2);c.spd=0}
   trSync(t,ws.lvl,true,0);return{x:c.x-x0,z:c.z-z0}};
 OW.trafficSync=t=>{if(WS)trSync(t,WS.lvl,true,0)};
