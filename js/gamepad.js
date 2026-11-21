@@ -21,10 +21,10 @@ const S={pad:null,kind:'xbox',prev:[],last:'kb',held:{},sprint:false,lt:false,rt
 const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind}};
 
 /* ---------- synthetic keys ---------- */
-const CODES={' ':'Space',escape:'Escape',shift:'ShiftLeft',enter:'Enter',tab:'Tab'};
-function keyEv(type,k){const key=k===' '?' ':k.length===1?k:k[0].toUpperCase()+k.slice(1);const code=CODES[k]||(/^[a-z]$/.test(k)?'Key'+k.toUpperCase():/^\d$/.test(k)?'Digit'+k:key);
+const CODES={' ':'Space',escape:'Escape',shift:'ShiftLeft',enter:'Enter',tab:'Tab','+':'NumpadAdd','-':'NumpadSubtract',arrowleft:'ArrowLeft',arrowright:'ArrowRight',arrowup:'ArrowUp',arrowdown:'ArrowDown'};
+function keyEv(type,k,extra){const key=k===' '?' ':k.length===1?k:k.startsWith('arrow')?'Arrow'+k[5].toUpperCase()+k.slice(6):k[0].toUpperCase()+k.slice(1);const code=CODES[k]||(/^[a-z]$/.test(k)?'Key'+k.toUpperCase():/^\d$/.test(k)?'Digit'+k:key);
   const t=document.activeElement&&document.activeElement!==document.body?document.activeElement:document;
-  t.dispatchEvent(new KeyboardEvent(type,{key,code,bubbles:true,cancelable:true}))}
+  t.dispatchEvent(new KeyboardEvent(type,Object.assign({key,code,bubbles:true,cancelable:true},extra||{})))}
 function press(k){if(S.held[k])return;S.held[k]=true;keyEv('keydown',k)}
 function release(k){if(!S.held[k])return;S.held[k]=false;keyEv('keyup',k)}
 function tap(k){keyEv('keydown',k);setTimeout(()=>keyEv('keyup',k),50)}
@@ -34,11 +34,12 @@ function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stic
 const GL={xbox:{A:'A',B:'B',X:'X',Y:'Y',LB:'LB',RB:'RB',LT:'LT',RT:'RT',VIEW:'View',MENU:'Menu',L3:'L3',R3:'R3',LS:'L',RS:'R'},
   ps:{A:'✕',B:'○',X:'□',Y:'△',LB:'L1',RB:'R1',LT:'L2',RT:'R2',VIEW:'Create',MENU:'Options',L3:'L3',R3:'R3',LS:'L',RS:'R'}};
 /* keycap text -> pad button; driving hints read E as get out (Y) */
-const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'RB',SHIFT:'L3',
-  F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',G:'D↓'};
+const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
+  F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',
+  /* job keys through the LB layer */G:'LB',T:'LB+↑',Z:'LB+←',X:'LB+→','1':'LB+A','2':'LB+B','3':'LB+X','4':'LB+Y'};
 const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
 function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;if(ctx&&ctx.closest('.ht-drv')&&k==='E')b='Y';if(ctx&&ctx.closest('.ht-drv')&&k==='SPACE')b='A';
-  const g=GL[S.kind]||GL.xbox;return{b,label:b.startsWith('D')?'D'+b.slice(1):(g[b]||b)}}
+  const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
 let swapping=false;
 /* keyboard: keycaps of rebound keys show the player's key (js/keys.js) */
 const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
@@ -84,7 +85,7 @@ function slide(dir){const e=S.focus;if(!e)return false;
   return false}
 function activate(){const list=targets();const e=current(list);if(!e){if(list.length)setFocus(initial(list));return}
   if(e.tagName==='INPUT')return;e.click();setTimeout(()=>{if(!document.contains(e)||!visible(e))S.focus=null},0)}
-function back(){/* map: M closes it; everything else understands Esc */const map=document.querySelector('.ht-map');if(map&&!map.hidden){tap('m');return}tap('escape')}
+function back(){/* map: M closes it; everything else understands Esc */if(mapOpen()){tap('m');return}tap('escape')}
 function tabs(dir){const t=[...document.querySelectorAll('.ht-pause [data-tab]')].filter(visible);if(!t.length)return;const i=t.findIndex(x=>x.getAttribute('aria-selected')==='true');const n=t[(i+dir+t.length)%t.length];n.click();S.focus=null}
 function scroll(dy){const e=S.focus;let p=e&&e.parentElement;while(p&&p!==document.body){const cs=getComputedStyle(p);if(/(auto|scroll)/.test(cs.overflowY)&&p.scrollHeight>p.clientHeight){p.scrollTop+=dy;return}p=p.parentElement}
   const pane=document.querySelector('.ht-pane');if(pane)pane.scrollTop+=dy}
@@ -94,10 +95,14 @@ const pressed=(g,i)=>{const b=g.buttons[i];return !!b&&(b.pressed||b.value>.5)};
 const val=(g,i)=>{const b=g.buttons[i];return b?b.value||(b.pressed?1:0):0};
 function dz(x,y){const m=Math.hypot(x,y);if(m<DZ)return[0,0,0];const k=Math.min(1,(m-DZ)/(1-DZ))/m;return[x*k,y*k,Math.min(1,(m-DZ)/(1-DZ))]}
 /* held-direction repeat for menus: first step at once, then after 380 ms every 110 ms */
-function repeat(id,on,now,fn){const r=S.rep[id];if(!on){delete S.rep[id];return}if(!r){S.rep[id]={next:now+380};fn();return}if(now>=r.next){r.next=now+110;fn()}}
+function repeat(id,on,now,fn,every=110){const r=S.rep[id];if(!on){delete S.rep[id];return}if(!r){S.rep[id]={next:now+(every<110?220:380)};fn();return}if(now>=r.next){r.next=now+every;fn()}}
+const LB_LAYER=[[0,'1'],[1,'2'],[2,'3'],[3,'4'],[12,'t'],[13,'tab'],[14,'z'],[15,'x']];
+/* the HUD's own flag: .ht-map stays unhidden for 230 ms after it closes */
+function mapOpen(){const H=window.__ht&&window.__ht.HUD,mm=H&&H.minimap;if(mm&&'mapOpen' in mm)return !!mm.mapOpen;const m=document.querySelector('.ht-map');return !!m&&!m.hidden}
+function vehicleKind(I){if(!I.driving)return null;const g=window.__ht,e=g&&g.CV;const t=e&&e.type;return t==='jet'?'jet':t==='tank'?'tank':'car'}
 function choiceStrip(){const c=document.querySelector('.ht-ch');return c&&!c.classList.contains('off')&&!c.hidden&&visible(c)?c:null}
 function inMenu(){const I=IN();if(!I)return true;if(!I.running||I.paused)return true;if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return true;
-  const map=document.querySelector('.ht-map');if(map&&!map.hidden)return true;return false}
+  return mapOpen()}
 function promptUp(){const p=document.querySelector('.ht-pr');return !!p&&!p.classList.contains('off')}
 let lastT=performance.now(),polling=false;
 /* the loop only runs once a controller has shown up (pages without one pay nothing) */
@@ -114,46 +119,66 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
   if(S.last!=='pad'){S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
   /* shops and the gun locker (HT.Menus, js/save.js) run their own pad navigation: stay out of their way */
   if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen()){if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
-  const I=IN(),menu=inMenu();
-  if(menu){if(S.wasGame){releaseAll();S.wasGame=false}
+  const I=IN(),menu=inMenu(),map=mapOpen();
+  if(map){/* the full map: stick / D-pad pan, RS pans finer, RT / LT zoom, LB / RB cycle places, A fast-travels, B or View closes */
+    if(S.wasGame){releaseAll();S.wasGame=false}
+    const L=btn(B.LEFT)||lx<-.4,R=btn(B.RIGHT)||lx>.4,U=btn(B.UP)||ly<-.4,Dn=btn(B.DOWN)||ly>.4;
+    repeat('ml',L,now,()=>tap('arrowleft'),90);repeat('mr',R,now,()=>tap('arrowright'),90);repeat('mu',U,now,()=>tap('arrowup'),90);repeat('md',Dn,now,()=>tap('arrowdown'),90);
+    repeat('zi',rt>.5,now,()=>tap('+'),250);repeat('zo',lt>.5,now,()=>tap('-'),250);
+    if(down(B.RB))tap('tab');if(down(B.LB))keyEv('keydown','tab',{shiftKey:true});
+    if(down(B.A))tap('enter');if(down(B.B)||down(B.VIEW))tap('m');if(down(B.MENU)){tap('m');setTimeout(()=>tap('escape'),360)}/* the game ignores Esc for 300 ms after the map closes */
+  }else if(menu){if(S.wasGame){releaseAll();S.wasGame=false}
     if(!S.focus||!document.contains(S.focus)||!visible(S.focus)){const list=targets();if(list.length&&(!S.focus||S.t<now))setFocus(initial(list));S.t=now+250}
     const L=btn(B.LEFT)||lx<-.5,R=btn(B.RIGHT)||lx>.5,U=btn(B.UP)||ly<-.5,Dn=btn(B.DOWN)||ly>.5;
     repeat('l',L,now,()=>{if(!slide(-1))move(-1,0)});repeat('r',R,now,()=>{if(!slide(1))move(1,0)});repeat('u',U,now,()=>move(0,-1));repeat('d',Dn,now,()=>move(0,1));
     if(down(B.A))activate();if(down(B.B))back();if(down(B.MENU)){const I2=IN();if(I2&&I2.paused)tap('escape');else if(document.querySelector('.ht-title')&&!document.querySelector('.ht-title').hidden)activate();else tap('escape')}
     if(down(B.LB))tabs(-1);if(down(B.RB))tabs(1);if(Math.abs(ry)>.1)scroll(ry*900*dt);
-    if(down(B.VIEW)){const map=document.querySelector('.ht-map');if(map&&!map.hidden)tap('m')}
   }else if(I){S.wasGame=true;if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}
-    const car=I.driving,st=I.stick;
+    const veh=vehicleKind(I),car=!!veh,st=I.stick;
+    /* LB layer: hold LB and press A/B/X/Y = 1/2/3/4, D-pad ↑ ↓ ← → = T / Tab / Z / X (job keys); LB tapped alone = G */
+    if(down(B.LB)){S.lb=true;S.lbUsed=false}
+    const lay=S.lb&&btn(B.LB);
+    if(lay){for(const[bi,k]of LB_LAYER)if(down(bi)){tap(k);S.lbUsed=true}}
+    if(up(B.LB)){if(!S.lbUsed)tap('g');S.lb=false}
+    const dn=i=>!lay&&down(i);/* buttons the LB layer took don't also do their normal job */
     /* a choice strip (keys 1-3) over live gameplay: D-pad ↑ ↓ pick, A confirms */
     const ch=choiceStrip();
-    if(ch){const ops=[...ch.querySelectorAll('button')].filter(visible);if(ops.length){if(down(B.UP)||down(B.DOWN)){const i=ops.indexOf(S.chF);const n=ops[Math.max(0,Math.min(ops.length-1,(i<0?0:i+(down(B.UP)?-1:1))))];if(S.chF)S.chF.classList.remove('pad-focus');S.chF=n;n.classList.add('pad-focus')}
-      if(down(B.A)&&S.chF&&ops.includes(S.chF)){S.chF.click();S.chF=null}}}
+    if(ch){const ops=[...ch.querySelectorAll('button')].filter(visible);if(ops.length){if(dn(B.UP)||dn(B.DOWN)){const i=ops.indexOf(S.chF);const n=ops[Math.max(0,Math.min(ops.length-1,(i<0?0:i+(down(B.UP)?-1:1))))];if(S.chF)S.chF.classList.remove('pad-focus');S.chF=n;n.classList.add('pad-focus')}
+      if(dn(B.A)&&S.chF&&ops.includes(S.chF)){S.chF.click();S.chF=null}}}
     else S.chF=null;
-    /* left stick (+ triggers in a car) */
-    let mx=lx,my=ly;if(car){mx=lx;my=-(rt-lt)}
-    const on=Math.abs(mx)>.01||Math.abs(my)>.01;
-    if(on){st.id='pad';st.x=mx;st.y=my;S.stickOn=true}else if(S.stickOn){if(st.id==='pad'){st.id=null;st.x=st.y=0}S.stickOn=false}
-    /* jog: L3 latches until the stick is let go */
-    if(down(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
-    if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift');
-    /* look */
-    if(rx||ry){const c=v=>v*Math.abs(v);I.look(c(rx)*LOOK*dt,c(ry)*LOOK*dt)}
-    if(!car){
-      if(rt>.5&&!S.rt){S.rt=true;I.fire(true)}else if(rt<.3&&S.rt){S.rt=false;I.fire(false)}else if(S.rt&&I.auto)I.fire(true);
-      const tog=HT.Keys&&HT.Keys.aimMode==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
-      if(lt>.5&&!S.lt){S.lt=true;I.aim(tog?!I.aiming:true)}else if(lt<.3&&S.lt){S.lt=false;if(!tog)I.aim(false)}
-    }else{if(S.rt){S.rt=false;I.fire(false)}if(S.lt){S.lt=false;I.aim(false)}}
-    /* buttons */
-    if(!ch){
-      if(down(B.A)){S.aKey=car?' ':promptUp()?'e':' ';press(S.aKey)}
-      if(up(B.A)&&S.aKey){release(S.aKey);S.aKey=null}
-      if(down(B.UP))tap('f');if(down(B.DOWN))tap('n')}
-    if(down(B.B)&&!car)tap('c');
-    if(down(B.X))tap(car?'h':'r');
-    if(down(B.Y))tap('e');
-    if(!car&&(down(B.RB)||down(B.RIGHT)))tap('q');
-    if(!car&&down(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}));
-    if(down(B.R3))tap('v');if(down(B.VIEW))tap('m');
+    const c2=v=>v*Math.abs(v);
+    if(veh==='jet'){/* jet: LS pitch / roll (through look(), which the jet reads like the mouse), RS ← → rudder, RT / LT throttle,
+       RB afterburner, X gear, B look back, Y eject (twice) / get out */
+      if(lx||ly)I.look(c2(lx)*LOOK*1.3*dt,c2(ly)*LOOK*1.3*dt);
+      if(rx<-.4)press('z');else release('z');if(rx>.4)press('x');else release('x');
+      if(rt>.3)press('w');else release('w');if(lt>.3)press('s');else release('s');
+      if(dn(B.RB))tap('shift');if(dn(B.X))tap('g');if(dn(B.B))tap('c');
+      if(S.stickOn){if(st.id==='pad'){st.id=null;st.x=st.y=0}S.stickOn=false}
+    }else{
+      /* left stick; in a car the triggers are throttle and brake; the tank drives on the stick so RT can fire */
+      let mx=lx,my=ly;if(veh==='car'){my=-(rt-lt)||(Math.abs(ly)>.5?ly:0)}
+      const on=Math.abs(mx)>.01||Math.abs(my)>.01;
+      if(on){st.id='pad';st.x=mx;st.y=my;S.stickOn=true}else if(S.stickOn){if(st.id==='pad'){st.id=null;st.x=st.y=0}S.stickOn=false}
+      if(dn(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
+      if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift');
+      if(rx||ry)I.look(c2(rx)*LOOK*dt,c2(ry)*LOOK*dt);
+      if(!car||veh==='tank'){
+        if(rt>.5&&!S.rt){S.rt=true;I.fire(true)}else if(rt<.3&&S.rt){S.rt=false;I.fire(false)}else if(S.rt&&I.auto&&!car)I.fire(true);
+        if(veh==='tank'){if(lt>.5&&!S.lt){S.lt=true;tap('v')}else if(lt<.3)S.lt=false}/* tank: LT = gunner's sight */
+        else{const tog=HT.Keys&&HT.Keys.aimMode==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
+          if(lt>.5&&!S.lt){S.lt=true;I.aim(tog?!I.aiming:true)}else if(lt<.3&&S.lt){S.lt=false;if(!tog)I.aim(false)}}
+      }else{if(S.rt){S.rt=false;I.fire(false)}if(S.lt){S.lt=false;I.aim(false)}}
+      if(!ch){
+        if(dn(B.A)){S.aKey=car?' ':promptUp()?'e':' ';press(S.aKey)}
+        if(dn(B.UP))tap('f');if(dn(B.DOWN))tap('n')}
+      if(dn(B.B)&&!car)tap('c');
+      if(dn(B.X))tap(car?'h':'r');
+      if(!car&&(dn(B.RB)||dn(B.RIGHT)))tap('q');
+      if(!car&&dn(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}));
+      if(dn(B.R3))tap('v')}
+    if(up(B.A)&&S.aKey){release(S.aKey);S.aKey=null}
+    if(dn(B.Y))tap('e');
+    if(dn(B.VIEW))tap('m');
     if(down(B.MENU)){releaseAll();tap('escape')}
   }
   S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5))}
@@ -163,5 +188,20 @@ if(window.HTDesktop&&HTDesktop.deck){setLast('pad');startPoll()}
 addEventListener('gamepadconnected',e=>{startPoll();try{const H=window.__ht&&window.__ht.HUD;if(H&&H.feed)H.feed('Controller connected','info')}catch(_){}});
 addEventListener('gamepaddisconnected',()=>{releaseAll();try{const H=window.__ht&&window.__ht.HUD;if(H&&H.feed)H.feed('Controller disconnected','info')}catch(_){}});
 if(kbRelabel())schedule();/* keys rebound in an earlier session */
+/* the on-screen layout (Pause → Key bindings) */
+Pad.diagram=()=>{const g=GL[S.kind]||GL.xbox,t=(x,y,s,a='middle')=>`<text x="${x}" y="${y}" text-anchor="${a}">${s}</text>`,c=(x,y,r,f,s)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`+(s?t(x,y+4,s):'');
+  return `<svg class="ht-paddia" viewBox="0 0 560 250" role="img" aria-label="Controller layout"><g fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2">
+  <path d="M190 70h180c40 0 62 18 78 60l22 62c10 28-14 46-36 30l-46-34H170l-46 34c-22 16-46-2-36-30l22-62c16-42 38-60 80-60z"/></g>
+  <g font-size="11" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">
+  ${c(200,118,16,'rgba(255,255,255,.18)',g.LS)}${c(330,160,16,'rgba(255,255,255,.18)',g.RS)}
+  <rect x="222" y="148" width="36" height="12" rx="3" fill="rgba(255,255,255,.18)"/><rect x="234" y="136" width="12" height="36" rx="3" fill="rgba(255,255,255,.18)"/>
+  ${c(380,98,10,COLOR.Y,g.Y)}${c(360,118,10,COLOR.X,g.X)}${c(400,118,10,COLOR.B,g.B)}${c(380,138,10,COLOR.A,g.A)}
+  ${t(255,98,g.VIEW)}${t(305,98,g.MENU)}${t(200,62,g.LB+' · '+g.LT)}${t(360,62,g.RB+' · '+g.RT)}
+  <g fill="rgba(255,255,255,.8)" font-weight="600">${t(16,40,g.LT+'  aim / brake','start')}${t(16,58,g.LB+'  G · hold for job keys','start')}${t(16,118,'L  move · steer ('+g.L3+' jog)','start')}
+  ${t(16,158,'D-pad  gun ← → · light ↑ · NVG ↓','start')}${t(16,232,g.VIEW+'  map','start')}
+  ${t(544,40,'fire / gas  '+g.RT,'end')}${t(544,58,'next gun  '+g.RB,'end')}${t(544,98,'get in / out  '+g.Y,'end')}${t(544,118,'reload · horn  '+g.X+' · crouch  '+g.B,'end')}
+  ${t(544,138,'use · jump  '+g.A,'end')}${t(544,178,'look ('+g.R3+' camera)  R','end')}${t(544,232,'pause  '+g.MENU,'end')}</g></g></svg>`};
+/* tests (dev/pad.e2e.js) drive the loop by hand: the headless harness holds requestAnimationFrame */
+Pad._tick=now=>{polling=true;poll(now==null?performance.now():now);polling=false};
 Pad.glyphFor=glyphFor;Pad.setLast=setLast;Pad.swapGlyphs=swapGlyphs;
 })();

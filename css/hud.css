@@ -982,3 +982,4 @@ html.ht-pad body{cursor:none}
 .ht-keys .ht-rb.chg{background:var(--sun,#ffc94a)}
 .ht-keys .ht-rb.wait{background:var(--alarm,#ff5a47);color:#fff;animation:ht-rbp 1s infinite}
 @keyframes ht-rbp{50%{opacity:.6}}
+.ht-paddia{display:block;width:100%;max-width:560px;height:auto;margin:4px 0 10px}

@@ -130,8 +130,11 @@ const SETTINGS=[
 ];
 const DEFAULT_KEYS=[['Move','W A S D'],['Jog','Shift'],['Jump · vault','Space'],['Crouch','C'],['Fire','Mouse 1'],['Aim','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Use · zip-tie · talk','E (hold)'],['Camera','V'],['Map','M'],['Decorate (at home)','B'],['Pause','Esc'],['Drive','W S · A D'],['Boost · handbrake','Shift · Space'],['Horn','H']];
 /* controller layout (js/gamepad.js), shown under Key bindings */
-const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
-  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],['Menus','D-pad / left stick · A select · B back']];
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
+  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],
+  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder'],
+  ['Map open','Stick pan · RT / LT zoom · LB / RB places · A travel · B close'],['Menus','D-pad / left stick · A select · B back · LB / RB tabs']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
 
@@ -760,7 +763,7 @@ function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'co
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
   if(tab==='keys'){h=(window.HT.Keys&&!d.bindings?HT.Keys.table():'<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>')+
-    '<h3>Controller</h3><div class="ht-keys ht-padkeys">'+PAD_KEYS.map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'+
+    '<h3>Controller</h3>'+(window.HT.Pad&&HT.Pad.diagram?HT.Pad.diagram():'')+'<div class="ht-keys ht-padkeys">'+PAD_KEYS.map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'+
     (window.HT.Keys?'':'<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>')}
   else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
     h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
