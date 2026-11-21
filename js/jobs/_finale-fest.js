@@ -64,8 +64,8 @@ function guests(){const c=ctx();const g=[['earl',372,40.5],['dee',378,45.4],['ro
   if(c.fl.towGuy)g.push(['lyle',391.5,45.6]);if(c.fl.youthVan||c.done('carwash'))g.push(['kid',382,43.5]);return g}
 const KEYMAP={porch:'nb_gran',kid:'nb_kid'};const NAMES={porch:'Mrs. Lindqvist',kid:'Youth group kid'};
 FN.stages.festival={
-  build(M){const a=A(),S=M.fn.sub,P=a.P;FN.festSet(M,3);a.setNight(.62);a.holster(true);M.noGuns="It's a festival. Hands are for waving.";S.t=0;S.ph='walk';S.talked=0;S.wv=0;
-    if(a.CV)try{a.exitCar()}catch(_){}P.pos.set(410,0,43.3);P.yaw=Math.PI/2;P.pitch=-.05;a.collide(P.pos,.35);
+  build(M){const a=A(),S=M.fn.sub,P=a.P;FN.festSet(M,3);FN.hush(M);a.setNight(.55);a.holster(true);M.noGuns="It's a festival. Hands are for waving.";S.t=0;S.ph='walk';S.talked=0;S.wv=0;
+    if(a.CV)try{a.exitCar()}catch(_){}P.pos.set(403.5,0,43.3);P.yaw=Math.PI/2;P.pitch=-.05;a.collide(P.pos,.35);
     const V=a.VAN;V.pos.set(411.4,0,58);V.yaw=0;V.spd=0;if(V.car)V.car.spd=0;try{G().syncVan&&G().syncVan()}catch(_){}
     S.cast=guests().map(([id,x,z])=>{const p=person(KEYMAP[id]||id,x,z,{scale:id==='malik'||id==='kid'?.86:undefined});if(!p)return null;p.lid=id;p.name=NAMES[id]||(FN.CAST[id]||{}).name||id;p.face={x:x+(Math.random()-.5)*2,z:43};p.n=0;return p}).filter(Boolean);
     S.fam=['jen','tyler','maddie'].map((id,i)=>{const p=person(id,363+i*1.1,44.2+(i%2)*.6);if(p){p.lid=id;p.name=FN.CAST[id].name;p.face={x:W.stage.x,z:W.stage.z};p.n=0}return p}).filter(Boolean);
@@ -89,16 +89,17 @@ FN.stages.festival={
     if(S.ph==='speech'){S.chT-=dt;F.objs.push(['1, 2 or 3',false]);if(S.chT<=0)speak(M,0);return}
     if(S.ph==='wave'){S.wt+=dt;if(S.wt>S.wv){S.wv=S.wt+2.4;for(const p of FN.live||[])if(Math.random()<.85)FN.wave(p,2.4)}
       const can=M.fn.seen.wave;if(can){F.objs.push(['E: skip',false]);F.taps.push({d:0,r:1,txt:'Skip',fn:()=>{S.wt=99}})}
-      if(S.wt>9.5){S.ph='home';FN.markSeen(M,'wave');for(const p of S.fam){p.face=null;walkTo(p,a.VAN.pos.x-2.2,a.VAN.pos.z-2+S.fam.indexOf(p)*1.2,1.5)}say('jen',"Okay. Home. I'll get the kids. You get the van.",true)}return}
+      if(S.wt>9.5){S.ph='home';FN.cine(false);FN.markSeen(M,'wave');for(const p of S.fam){p.face=null;walkTo(p,a.VAN.pos.x-2.2,a.VAN.pos.z-2+S.fam.indexOf(p)*1.2,1.5)}say('jen',"Okay. Home. I'll get the kids. You get the van.",true)}return}
     if(S.ph==='home'){const V=a.VAN;F.objs.push(['Drive home with the family: E at the minivan (4th St)',false]);F.target={x:V.pos.x,z:V.pos.z,label:'Home'};
       F.taps.push({x:V.pos.x,z:V.pos.z,r:4,txt:'Drive home with the family',fn:()=>credits(M)});
       if(a.CV===V)credits(M);return}
     if(S.ph==='credits'){creditsTick(dt,M,F)}},
   camera(dt,M){const a=A(),S=M.fn.sub;if(S.ph!=='wave')return false;const cam=a.camera,k=clamp(S.wt/9,0,1),e=k*k*(3-2*k);
-    cam.position.set(W.stage.x+3+e*10,2.5+e*9,43+Math.sin(e*1.2)*3);cam.lookAt(392,1.6-e*.6,43.3);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
+    /* a crane over the stage: rising and pulling back, the whole street waving under the lights */
+    cam.position.set(W.stage.x+5.5+e*4,6.2+e*7,43.2+e*2.4);cam.lookAt(388,1.2,43.3);cam.fov=60;cam.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true},
   vehicle(car,dt,M){const S=M.fn.sub;if(S.ph!=='credits'||!S.dr)return;const a=A();S.ds=Math.min(S.dP.len,S.ds+S.dv*dt*(S.fast?5:1));const q=S.dP.at(S.ds),q2=S.dP.at(Math.min(S.dP.len,S.ds+3));
     car.pos.set(q.x,0,q.z);car.yaw=yawTo(q2.x-q.x,q2.z-q.z)||car.yaw;if(car.car)car.car.spd=S.dv;car.spd=S.dv;a.syncCar(car)},
-  clear(M){const a=A(),S=M.fn.sub;M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null)}if(S.roll){a.overlay('fin-credits',null);S.roll=null}},
+  clear(M){const a=A(),S=M.fn.sub;FN.cine(false);M.noGuns=false;try{a.holster(false)}catch(_){}if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null)}if(S.roll){a.overlay('fin-credits',null);S.roll=null}},
   bot(a,t,o,M,B){const S=M.fn.sub,P=a.P;if(S.ph==='walk'){if(S.talked<6){const p=S.cast.filter(q=>!q.n)[0];if(p){P.pos.set(p.x,0,p.z+(p.z>43.5?-.8:.8));if(t%4===0)a.useTap=true}return}P.pos.set(W.stage.x+3,0,W.stage.z);if(t%4===0)a.useTap=true;return}
     if(S.ph==='speech'){if(t%10===5&&S.ch)S.ch.pick(0);return}if(S.ph==='wave'){if(M.fn.seen.wave&&t%8===0)a.useTap=true;return}
     if(S.ph==='home'){const V=a.VAN;P.pos.set(V.pos.x+2.4,0,V.pos.z);if(t%6===0)a.useTap=true;return}
@@ -113,12 +114,13 @@ function speech(M){const a=A(),S=M.fn.sub,P=a.P;S.ph='speech';P.pos.set(W.stage.
   try{ch=a.HUD.kit.choices({speaker:'You, at the microphone',color:'#ffd23f',prompt:'Everyone is looking at you. Benny has turned the ice cream song down to medium.',tell:'the whole street, holding funnel cakes',options:SPEECH.map((s,i)=>({text:s[0],reg:i===1?'joke':'real'})),onPick:i=>speak(M,i)})}catch(e){console.error(e)}
   S.ch=ch;if(ch)a.overlay('fin-talk',ch.el);S.chT=18}
 function speak(M,i){const a=A(),S=M.fn.sub;if(S.ph!=='speech')return;if(S.ch){try{S.ch.close()}catch(_){}a.overlay('fin-talk',null);S.ch=null}const s=SPEECH[i]||SPEECH[0];say('you',s[0],true);say('you',s[1]);
-  S.ph='wave';S.wt=0;S.wv=0;try{HT.Audio.music&&HT.Audio.music('victory')}catch(_){}a.HUD.banner({kind:'title',kicker:'Riverside Flats Street Festival',title:epilogue(),sub:'Everybody you helped. Everybody who helped.',dur:6,letterbox:true})}
+  S.ph='wave';S.wt=0;S.wv=0;FN.cine(true);try{HT.Audio.music&&HT.Audio.music('victory')}catch(_){}a.HUD.banner({kind:'title',kicker:'Riverside Flats Street Festival',title:epilogue(),sub:'Everybody you helped. Everybody who helped.',dur:6,letterbox:true})}
 
 /* ---------------- the credits: a slow drive home with the family ---------------- */
 function credits(M){const a=A(),S=M.fn.sub,V=a.VAN;if(S.ph==='credits')return;S.ph='credits';for(const p of S.fam)p.hidden=true;if(a.CV!==V){try{a.enterCar(V)}catch(_){}}
   const home=a.WORLD.places.home;const path=FN.route([{x:V.pos.x,z:V.pos.z},{x:410,z:71},{x:315,z:71},{x:315,z:43},{x:home.x+24,z:43.2},{x:home.x+2,z:home.z+8}]);S.dP=FN.polyOf(path);S.ds=0;S.dv=8.5;S.dr=true;S.roll=rollEl(M);S.rt=0;
-  a.overlay('fin-credits',S.roll.el);try{HT.Audio.music&&HT.Audio.music('home')}catch(_){}a.setNight(.8)}
+  a.overlay('fin-credits',S.roll.el);FN.cine(true);try{HT.Audio.music&&HT.Audio.music('home')}catch(_){}a.setNight(.8);
+  sayAll([['tyler',"Dad. Everybody waved at us. Even the goat."],['maddie',"Can we do this every year?"],['jen',"Every year. Same street. Fewer smoke bombs."],['you',"Deal."],['tyler',"...Can I have ice cream when we get home?"],['jen',"You had four."],['tyler',"That was festival ice cream. Home ice cream is different."]])}
 function rollEl(M){const c=ctx(),el=D.createElement('div');el.className='fin-cred';el.style.cssText='position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2;background:linear-gradient(90deg,rgba(6,8,12,.0) 0%,rgba(6,8,12,.0) 55%,rgba(6,8,12,.62) 70%,rgba(6,8,12,.72) 100%)';
   const col=D.createElement('div');col.style.cssText='position:absolute;right:5vw;width:min(440px,42vw);top:100%;color:#f4efe2;font:500 17px/1.5 var(--ui,system-ui,sans-serif);text-align:center;text-shadow:0 2px 6px #000';
   const H=(t,s)=>`<div style="margin:0 0 34px"><div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#ffd23f;margin-bottom:6px">${t}</div>${s}</div>`;
@@ -137,7 +139,7 @@ const CRED={dur:46};
 function creditsTick(dt,M,F){const a=A(),S=M.fn.sub,R=S.roll;for(const k of['w','a','s','d',' '])a.keys[k]=false;const can=!!M.fn.seen.credits;S.fast=can&&!!a.keys.x;S.rt+=dt*(S.fast?5:1);
   const k=clamp(S.rt/CRED.dur,0,1),h=R.col.offsetHeight||1400,vh=innerHeight;R.col.style.transform=`translateY(${-(k*(h+vh*.2))}px)`;R.hint.textContent=can?'Hold X to fast-forward':'';
   F.objs.push(['Driving home with the family',false]);
-  if(k>=1||S.ds>=S.dP.len-1&&S.rt>CRED.dur*.6){if(S.fin)return;S.fin=true;FN.markSeen(M,'credits');a.overlay('fin-credits',null);S.roll=null;M.def.endLine=epilogue()+' '+tail();a.endMission(true)}}
+  if(k>=1||S.ds>=S.dP.len-1&&S.rt>CRED.dur*.6){if(S.fin)return;S.fin=true;FN.markSeen(M,'credits');a.overlay('fin-credits',null);S.roll=null;FN.cine(false);M.def.endLine=epilogue()+' '+tail();a.endMission(true)}}
 function tail(){const c=ctx();return c.fl.salBranch?"The festival lights stay up on Main St. Honest Towing sponsors the bulbs.":"The festival lights stay up on Main St. Nobody wants to take them down."}
 
 /* ---------------- story effects: what the finale leaves behind (never on a replay) ---------------- */
@@ -145,7 +147,7 @@ FN.storyEnd=function(M){const s=SV(),Sv=HT.Save;if(!s)return;s.flags=s.flags||{}
   try{Sv&&Sv.storefront&&Sv.storefront(s,'festival','lights');Sv&&Sv.perk&&Sv.perk(s,'benny',true);Sv&&Sv.household&&Sv.household(s,'festival')}catch(_){}
   try{const H=G();H.prog.trustR=100;H.prog.act=Math.max(H.prog.act||1,3)}catch(_){}try{Sv&&Sv.touch&&Sv.touch('flags','world','perks')}catch(_){}};
 /* when the job stops running mid-scene: the overlays go */
-FN.offStage=function(){const a=A();try{a.overlay('fin-credits',null);a.overlay('fin-talk',null)}catch(_){}try{D.body.classList.remove('ow-scoped')}catch(_){}};
+FN.offStage=function(){const a=A();FN.cine(false);try{a.overlay('fin-credits',null);a.overlay('fin-talk',null)}catch(_){}try{D.body.classList.remove('ow-scoped')}catch(_){}};
 
 /* ---------------- after the finale: free roam with festival bunting on Main St, and one card ---------------- */
 const PG={mesh:null,store:{geo:[],mat:[],tex:[]}};

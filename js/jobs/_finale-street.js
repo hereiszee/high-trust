@@ -18,8 +18,8 @@ const RK={tell:[1.7,1.15,.7],fuse:[70,92,114,136],smokeFail:2,bolt:1.1,beans:6,z
 /* plants: what gives them away through the scope. Behaviour, never a look: they're from the same crowd as everyone else */
 const TELLS=["touching his ear every few seconds: earpiece","backpack straps pulled tight. Heavy for a festival","not watching the parade: watching the exits","checking his watch. Then the stage. Then his watch","no funnel cake, no lemonade, no kid, no smile. Just standing"];
 const CIV=["holding three funnel cakes. Not suspicious, just ambitious","filming the marching band on a tablet","explaining the parade route to a toddler","waiting in line for lemonade. Patiently","waving at somebody on a porch","wearing a T-shirt that says WORLD'S OKAYEST GRANDPA"];
-function roofInfo(){const a=A(),s=a.WORLD&&a.WORLD.sites&&a.WORLD.sites.roof;if(!s)return null;const r=s.roof||{x0:416,z0:48,x1:438,z1:60},y=FN.roofY!=null?FN.roofY:(s.roofY||7);
-  return{r,y,b:s.building||{x0:416,z0:48,x1:438,z1:60},bottom:{x:s.ladder.bottom.x+.4,z:s.ladder.bottom.z},top:{x:s.ladder.top.x-.4,z:s.ladder.top.z}}}
+function roofInfo(){const a=A(),s=a.WORLD&&a.WORLD.sites&&a.WORLD.sites.roof;if(!s)return null;const r=s.roof||{x0:416,z0:48,x1:438,z1:60},y=FN.roofY!=null?FN.roofY:(s.roofY||7)+.9;/* the slab top is 0.9 m over roofY (measured below once it streams in) */
+  return{r,y,van:{x:r.x0+1.2,z:r.z0+1.1},b:s.building||{x0:416,z0:48,x1:438,z1:60},bottom:{x:s.ladder.bottom.x+.4,z:s.ladder.bottom.z},top:{x:s.ladder.top.x-.4,z:s.ladder.top.z}}}
 /* the roof slab's real height, by a ray down onto the building (once it's streamed in) */
 function measureRoof(){if(FN.roofY!=null)return;const a=A(),T=a.THREE,R=roofInfo();if(!R)return;const rc=new T.Raycaster(new T.Vector3((R.r.x0+R.r.x1)/2,40,(R.r.z0+R.r.z1)/2),new T.Vector3(0,-1,0),0,60);
   const h=rc.intersectObjects(a.L.solids||[],false).find(i=>i.point.y>4&&i.point.y<12);if(h)FN.roofY=h.point.y}
@@ -61,7 +61,7 @@ FN.stages.roof={
     /* on the roof */
     P.pos.y=R.y;P.pos.x=clamp(P.pos.x,R.r.x0+.3,R.r.x1-.3);P.pos.z=clamp(P.pos.z,R.r.z0+.3,R.r.z1-.3);if(P.cur!=='hunter'&&P.weapons.includes('hunter'))G().swap&&G().swap('hunter',true);
     P.aim=!!S.scope;if(a.keys.z&&!S.zk){S.scope&&(S.zoom=(S.zoom+1)%RK.zoom.length)}S.zk=a.keys.z;S.bolt=Math.max(0,S.bolt-dt);
-    if(S.handled>=S.plants.length){S.scope=false;P.aim=false;F.objs.push(['All four handled. Climb down: hold E at the ladder',false]);F.target={x:R.top.x,z:R.top.z,label:'Ladder'};
+    if(S.handled>=S.plants.length){S.scope=false;P.aim=false;F.objs.push(['All four handled. Climb down: hold E at the ladder (east side of the roof)',false]);F.target={x:R.top.x,z:R.top.z,label:'Ladder'};
       if(once(M,'roofDone'))sayAll([['doug',"That's four. Hawk to everybody: four for four."],['dee',"We're not doing call signs, Doug."],['doug',"Our stage truck just left the yard. It's coming up 3rd St. Hank's on 3rd and Ash with the pickup. GO."]]);
       if(!fading)F.holds.push({x:R.top.x,z:R.top.z,r:2.6,o:S,txt:'Climb down',time:.6,fn:()=>climb(M,false)});return}
     focusTick(dt,M);
@@ -84,8 +84,8 @@ FN.stages.roof={
     S.scope=true;const tg=S.plants.find(p=>!p.marked&&!p.down&&p.st!=='gone');if(!tg)return;const e={x:P.pos.x-Math.sin(P.yaw)*.7,y:R.y+1.62,z:P.pos.z-Math.cos(P.yaw)*.7};
     const dx=tg.x-e.x,dz=tg.z-e.z,dy=1.3-e.y;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));
     if(tg.revealed&&S.focus===tg){if(nearKid(M,tg.x,tg.z)>RK.kidR+1&&S.bolt<=0&&S.beans>0&&!B.noShoot)shoot(M);else if(t%10===0)markIt(M,tg)}}};
-function climb(M,up,instant){const a=A(),S=M.fn.sub,P=a.P,R=roofInfo();const mid=()=>{roofOn(M,up);S.up=up;if(up){borrowRifle(M);P.pos.set(R.top.x,R.y,R.top.z);P.yaw=Math.PI/2;P.pitch=-.16;if(S.spotter){S.spotter.hidden=false;S.spotter.x=R.top.x-1.5;S.spotter.z=R.r.z0+1.2;S.spotter.y=R.y;S.spotter.face={x:380,z:43}}}
-    else{S.scope=false;returnRifle(M);P.pos.set(R.bottom.x+.6,0,R.bottom.z);P.pos.y=0;P.yaw=Math.PI/2;if(S.spotter)S.spotter.hidden=true;if(M.fn.stage==='roof'&&S.handled>=S.plants.length)advance(M,'roadblock')}};
+function climb(M,up,instant){const a=A(),S=M.fn.sub,P=a.P;if(a.CV)try{a.exitCar()}catch(_){}const mid=()=>{measureRoof();const R=roofInfo();roofOn(M,up);S.up=up;if(up){borrowRifle(M);/* the spotter has set up at the north-west corner, over the festival */P.pos.set(R.van.x,R.y,R.van.z);P.yaw=Math.atan2(-(380-R.van.x),-(43-R.van.z));P.pitch=-.17;if(S.spotter){S.spotter.hidden=false;S.spotter.x=R.van.x+1.3;S.spotter.z=R.van.z+.9;S.spotter.y=R.y;S.spotter.face={x:380,z:43}}}
+    else{const R=roofInfo();S.scope=false;returnRifle(M);P.pos.set(R.bottom.x+.6,0,R.bottom.z);P.pos.y=0;P.yaw=Math.PI/2;if(S.spotter)S.spotter.hidden=true;if(M.fn.stage==='roof'&&S.handled>=S.plants.length)advance(M,'roadblock')}};
   if(instant)mid();else fade(M,mid,{out:.45,hold:.25,inT:.5})}
 function smokeMeter(M,F){const S=M.fn.sub;const nxt=S.plants.filter(p=>p.st==='mill'||p.st==='go').map(p=>p.fuse).sort((x,y)=>x-y)[0];
   F.meters.push({id:'smoke',label:'Smoke',v:S.smokes.length,max:RK.smokeFail,style:'pips',warn:1});if(nxt!=null)F.widgets.push({id:'fuse',kind:'timer',label:'Next move',v:Math.max(0,nxt),hot:nxt<15})}

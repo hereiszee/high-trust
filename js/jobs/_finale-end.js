@@ -80,15 +80,17 @@ FN.stages.handsup={
     S.sed=FN.car('sedan','#1b1d22',c.x,c.z,c.yaw);const f={x:-Math.sin(c.yaw),z:-Math.cos(c.yaw)},rt={x:Math.cos(c.yaw),z:-Math.sin(c.yaw)};
     const bx=role(M,'box').id||'rick',fid=bx==='benny'?'dave':'benny';const cc=CREWCAR[bx]||['suv','#555'],fc=CREWCAR[fid]||['workvan','#f5d0e0'];
     S.boxCars=[FN.car(cc[0],cc[1],c.x-rt.x*2.7,c.z-rt.z*2.7,c.yaw),FN.car(fc[0],fc[1],c.x+f.x*7.6,c.z+f.z*7.6,c.yaw+.25)];
-    /* he gets out on the kerb side */
-    S.w=person('wholesaler',c.x+rt.x*2.2,c.z+rt.z*2.2);if(S.w){S.w.face={x:c.x+rt.x*8,z:c.z+rt.z*8};S.w.name='The Wholesaler'}
-    S.spot={x:c.x+rt.x*2.2,z:c.z+rt.z*2.2};S.rt=rt;S.f=f;
+    /* he gets out and stands in the road behind his car (the box car has his left, the kerb his right) */
+    const sp=a.wmSnap(c.x-f.x*4.2-rt.x*.6,c.z-f.z*4.2-rt.z*.6);S.w=person('wholesaler',sp.x,sp.z);if(S.w){S.w.face={x:sp.x-f.x*6,z:sp.z-f.z*6};S.w.name='The Wholesaler'}
+    S.spot={x:sp.x,z:sp.z};S.rt=rt;S.f=f;
     /* everybody comes: the crew always; if you've been a zip-tie dad all along, half the festival too */
     const pr=G().prog||{};const zipDad=(pr.cuffed||0)>=2*Math.max(1,pr.downed||0);M.fn.st.zipDad=zipDad?1:0;
     const ids=['gary','rick','dave','doug','rosa','earl','dee','benny','hank','sal'].filter(id=>id!==bx&&id!==fid);if(zipDad)ids.push('nb_gran','nb_pops','nb_mei','nb_kenji','nb_sweater','nb_lucia','nb_office','thug_cap','nb_teen','nb_marcus');
-    S.ring=ids.map((id,i)=>{const an=Math.PI*.15+i/ids.length*Math.PI*1.7,R=8+(i%3)*1.2;const ax=S.spot.x+rt.x*Math.cos(an)*R+f.x*Math.sin(an)*R,az=S.spot.z+rt.z*Math.cos(an)*R+f.z*Math.sin(an)*R;
-      const p=person(id,ax+rt.x*14,az+rt.z*14);if(p){walkTo(p,ax,az,1.6+Math.random()*.6);p.face={x:S.spot.x,z:S.spot.z}}return p}).filter(Boolean);
-    S.malik=person('malik',S.spot.x+rt.x*9-f.x*2,S.spot.z+rt.z*9-f.z*2,{scale:.86});if(S.malik)S.malik.face={x:S.spot.x,z:S.spot.z};
+    /* they come up the street from both ends and stand along it, on the road and the pavement (never inside a wall) */
+    const ok=(x,z)=>a.walkable(a.tx(x),a.tx(z))!==false;
+    S.ring=ids.map((id,i)=>{const side=i%2?1:-1,along=side*(7+Math.floor(i/2)*1.4),lat=((i*7)%5-2)*1.3;let ax=S.spot.x-f.x*along+rt.x*lat,az=S.spot.z-f.z*along+rt.z*lat;if(!ok(ax,az)){const q=a.wmSnap(ax,az);ax=q.x;az=q.z}
+      const sx=S.spot.x-f.x*(along+side*22)+rt.x*lat,sz=S.spot.z-f.z*(along+side*22)+rt.z*lat;const p=person(id,sx,sz);if(p){walkTo(p,ax,az,1.7+Math.random()*.6);p.face={x:S.spot.x,z:S.spot.z}}return p}).filter(Boolean);
+    {const mx=S.spot.x+f.x*-9-rt.x*1.5,mz=S.spot.z+f.z*-9-rt.z*1.5;const q=a.wmSnap(mx,mz);S.malik=person('malik',q.x,q.z,{scale:.86});if(S.malik)S.malik.face={x:S.spot.x,z:S.spot.z}}
     if(once(M,'hu0'))sayAll([['gary',"Everybody stay calm. Everybody stay very, very calm. I am extremely calm."]])},
   upd(dt,M,F,fading){const a=A(),S=M.fn.sub,P=a.P;S.t+=dt;if(a.P.dude&&a.P.dude.gun)a.equip(a.P.dude,null);
     const d=hyp(P.pos.x-S.spot.x,P.pos.z-S.spot.z);

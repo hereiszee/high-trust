@@ -13,7 +13,15 @@ const FROM=arg('from'),TO=arg('to'),FAIL=!!arg('fail'),SHOTS=!!arg('shots'),RETR
 const SHOT_DIR=path.join(__dirname,'../../docs/screenshots/jobs/finale');
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{const {b,p,errs}=await open();const ev=(f,a)=>p.evaluate(f,a);
-  const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
+  /* the world streamed in around the camera before anything is judged */
+  const stream=()=>ev(async()=>{const H=window.__ht;let last=-1,same=0;for(let k=0;k<160&&same<8;k++){H.draw();await new Promise(r=>setTimeout(r,60));const s=H.ow&&H.ow.stats&&H.ow.stats();const b=s?s.built:0;if(b===last&&(!H.assets.stream||!H.assets.stream.idle||H.assets.stream.idle()))same++;else{same=0;last=b}}});
+  /* a framing per shot (the camera follows the dad): on foot, looking at what the stage is about */
+  const POSE={'roadblock-build':[380.5,84,Math.PI,-.12],'roadblock-truck':[380.5,84,Math.PI,-.1],'roadblock-stopped':[383,84,Math.PI,-.1],'defend':[379.5,51,Math.PI,-.08],'defend-mid':[356,44.6,-Math.PI/2,-.07],
+    'festival-walk':[407,43.2,Math.PI/2,-.06],'festival-home':[404,52,-.4,-.1],'plan':[404,46,Math.PI/2+.5,-.1]};
+  const pose=n=>ev(([n,P_])=>{const H=window.__ht,a=H.jobs.api,M=H.M;const k=n.replace(/^\d+-/,'');let q=P_[k];
+    if(!q&&M&&M.fn&&M.fn.stage==='handsup'&&M.fn.sub.spot){const S=M.fn.sub;{const cx=S.spot.x-S.rt.x*3.5+S.f.x*3,cz=S.spot.z-S.rt.z*3.5+S.f.z*3;q=[cx,cz,Math.atan2(-(S.spot.x-cx),-(S.spot.z-cz))+.25,-.1]}}
+    if(!q)return;if(a.CV)a.exitCar();H.P.pos.set(q[0],0,q[1]);H.collide(H.P.pos,.35);H.P.yaw=q[2];H.P.pitch=q[3];H.step(2)},[n,POSE]);
+  const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(SHOT_DIR,{recursive:true});if(/festival-wave|festival-credits/.test(n))await ev(()=>{for(let i=0;i<150;i++)window.__ht.step(1)});await pose(n);await stream();await ev(()=>{try{window.__ht.HUD.banner(null)}catch(_){}});await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(700);await ev(()=>{window.__rafOn=false});
     await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(SHOT_DIR,n+'.jpg'),type:'jpeg',quality:80}).catch(e=>console.log('shot failed '+e.message));console.log('     shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>{});await p.waitForTimeout(300);
   /* a whole campaign's save, in one of three histories */
@@ -38,7 +46,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       for(;k<n&&H.M&&H.M.state==='go';k++){j.test.step(a,(window.__ft=(window.__ft||0)+1),o);H.P.hp=Math.max(H.P.hp,60);H.step(1)}
       const M=H.M;return{state:M&&M.state,stage:M&&M.fn&&M.fn.stage,ph:M&&M.fn&&M.fn.sub&&M.fn.sub.ph,objs:(M&&M.fn&&M.fn.objs||[]).slice(0,2),why:M&&M.loseWhy,el:M&&Math.round(M.elapsed),st:M&&M.fn&&M.fn.st}},[o,150]);
       t+=150;const key=r.stage+'|'+(r.objs[0]||'');if(key!==last){console.log('  ['+r.el+'s] '+r.stage+(r.ph?'/'+r.ph:'')+' · '+r.objs.join(' · '));last=key}
-      if(SHOTS&&r.stage&&!shotsDone[r.stage]){shotsDone[r.stage]=1;await ev(()=>window.__ht.step(20));await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+r.stage)}
+      const sk=r.stage+(r.ph?'-'+r.ph:'');if(SHOTS&&r.stage&&!shotsDone[sk]){shotsDone[sk]=1;await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+sk)}
+      if(SHOTS&&r.stage&&!r.ph){const k2=r.stage+'-mid';shotsDone[r.stage+'T']=(shotsDone[r.stage+'T']||0)+1;if(shotsDone[r.stage+'T']===4&&!shotsDone[k2]){shotsDone[k2]=1;await shot(String(Object.keys(shotsDone).length).padStart(2,'0')+'-'+k2)}}
       if(TO&&r.stage===TO)return r;if(r.state!=='go')return r}return{state:'timeout'}};
   const r=await run(FAIL?{fail:true}:{},FRAMES);console.log('  end: '+JSON.stringify({state:r.state,stage:r.stage,why:r.why,st:r.st}));
   if(TO)ok(r.stage===TO,'reached '+TO);else ok(FAIL?r.state==='lost':r.state==='won','run '+(FAIL?'lost':'won')+' ('+r.state+')');

@@ -31,11 +31,16 @@ if(D&&D.createElement){js('ht-tail-js','js/tail.js',()=>HTx.Tail&&HTx.Tail.creat
   js('ht-convoy-js','js/convoy.js',()=>HTx.Convoy&&HTx.Convoy.create);/* HT.Convoy (Minivan Roundup's): the crew's cars in the chase */
   for(const f of['_finale-street','_finale-end','_finale-fest'])js('ht-'+f,'js/jobs/'+f+'.js',()=>false)}
 const ID='finale';
+/* cinematic moments (the wave, the credits): the HUD steps aside, the subtitles stay */
+if(D&&D.head&&!D.getElementById('fin-style')){const st=D.createElement('style');st.id='fin-style';
+  st.textContent='.ht-obj,.ht-cmp,.ht-me,.ht-wi,.ht-mm,.ht-hp,.ht-drv,.ht-wp,.ht-gd,.ht-trust,.ht-cash,.ht-keys,.ht-tag,.ht-pr,.ht-xh,.ht-crew,.ht-feed{transition:opacity .4s}'+
+    'body.fin-cine .ht-obj,body.fin-cine .ht-cmp,body.fin-cine .ht-me,body.fin-cine .ht-wi,body.fin-cine .ht-mm,body.fin-cine .ht-hp,body.fin-cine .ht-drv,body.fin-cine .ht-wp,body.fin-cine .ht-gd,body.fin-cine .ht-trust,body.fin-cine .ht-cash,body.fin-cine .ht-keys,body.fin-cine .ht-tag,body.fin-cine .ht-pr,body.fin-cine .ht-xh,body.fin-cine .ht-crew,body.fin-cine .ht-feed{opacity:0!important}';D.head.appendChild(st)}
+const cine=on=>{try{D.body.classList.toggle('fin-cine',!!on)}catch(_){}};
 const FN=HTx.Finale=HTx.Finale||{stages:{}};
 const hyp=Math.hypot,clamp=(v,a,b)=>v<a?a:v>b?b:v,wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return a};
 const yawTo=(dx,dz)=>Math.atan2(-dx,-dz)/* player and cars: forward=(-sin,-cos) */,cyaw=(dx,dz)=>Math.atan2(dx,dz)/* characters: root.rotation.y */;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-Object.assign(FN,{A,G,ID,hyp,clamp,wrap,yawTo,cyaw,pick});
+Object.assign(FN,{A,G,ID,hyp,clamp,wrap,yawTo,cyaw,pick,cine});
 const TL=()=>HTx.Tail&&HTx.Tail.create?HTx.Tail:null,PL=()=>HTx.Plan&&HTx.Plan._ver?HTx.Plan:null,PP=()=>{const p=HTx.People;return p&&p.ok?p:null};
 FN.TL=TL;FN.PL=PL;FN.PP=PP;
 
@@ -53,8 +58,8 @@ const W={
   truck:{x:404,z:128.5},                            /* the festival's stage truck, stolen, on Dock St */
   shuttle:{x:311,z:84,yaw:Math.PI},                 /* Earl's No. 9 shuttle, River Rd, kerbside, nose south */
   ladder:{x:439.6,z:55},                            /* Community Center east wall */
-  hank:{x:385.2,z:80,yaw:0},                        /* Hank's pickup, 3rd St just south of Ash, on the east kerb */
-  block:{xl:374.2,xr:383.8,z0:76,z1:95},            /* where a roadblock on 3rd St counts (the truck drives -z) */
+  hank:{x:381.2,z:78.5,yaw:0},                      /* Hank's pickup, 3rd St just south of Ash, in the northbound lane, nose north */
+  block:{xl:374.2,xr:383.8,z0:83,z1:97},            /* where a roadblock on 3rd St counts (the truck drives -z) */
   benny:{x:368.5,z:41.6,yaw:-Math.PI/2},            /* Benny's truck behind the stage (crates come off its back) */
   sedan:{x:410,z:97.5,yaw:-Math.PI/2}};             /* the Wholesaler's black sedan, Mill St at 4th, nose east */
 FN.W=W;
@@ -136,11 +141,11 @@ function wave(p,len){if(!p)return;p.waveT=len||2.2;FN.waveLen=len||2.2}
 Object.assign(FN,{person,unperson,walkTo,wave});
 
 /* ================= lines: our own queue onto the radio subtitles (never more than the game's 4-line queue; never blocks play) ================= */
-function say(who,text,front){const M=A().M;if(!M||!M.fn)return;const q=M.fn.q;if(front){q.unshift([who,text]);if(q.length>8)q.length=8}else q.push([who,text]);if(q.length>14)q.splice(1,q.length-14)}
+function say(who,text,front){const M=A().M;if(!M||!M.fn)return;const q=M.fn.q,t=M.fn.t||0;if(front){q.unshift([who,text,t]);if(q.length>8)q.length=8}else q.push([who,text,t]);if(q.length>14)q.splice(1,q.length-14)}
 function sayAll(list){for(const[w,t]of list)say(w,t)}
-function lineTick(dt,M){const F=M.fn;F.qT-=dt;if(F.qT<=0&&F.q.length){const[w,t]=F.q.shift();const c=CAST[w];A().radio(w==='you'?'you':(c&&c.name)||w,t,true);F.qT=Math.max(2.2,t.length*.052)+.25}}
+function lineTick(dt,M){const F=M.fn;F.qT-=dt;/* a line that waited 14 s is stale: the moment has passed */while(F.q.length>1&&(F.t-(F.q[0][2]||0))>14)F.q.shift();if(F.qT<=0&&F.q.length){const[w,t]=F.q.shift();const c=CAST[w];A().radio(w==='you'?'you':(c&&c.name)||w,t,true);F.qT=Math.max(2.2,t.length*.052)+.25}}
 const once=(M,k)=>{const s=M.fn.said;if(s[k])return false;s[k]=1;return true};
-Object.assign(FN,{say,sayAll,once});
+Object.assign(FN,{say,sayAll,once,hush:M=>{if(M&&M.fn){M.fn.q.length=0;M.fn.qT=0}}});
 
 /* ================= cars this job places (scripted or borrowable) ================= */
 function car(type,color,x,z,yaw,o){o=o||{};const a=A();const obj=a.makeVehicle(type,color)||a.makeVanBox(color);a.wmAdd(obj);res().veh.push(obj);
@@ -281,7 +286,7 @@ J.on('hud',()=>{const a=A();if(!a)return;const M=a.M;const keep=M&&M.def&&M.def.
   if(!keep&&RES){try{FN.offStage&&FN.offStage(M)}catch(_){}freeRes();FN.live=[]}});
 /* the old built-in ending (index.html finale(): a "One month later" card when the nine original jobs are done, whose "New Saturday"
    wipes the campaign) predates this job: with the festival as the ending, it never shows (its own "Keep driving" flag) */
-function retireOld(){const s=SV();if(s&&s.flags&&!s.flags.finale2)s.flags.finale2=true}FN.retireOld=retireOld;
+function retireOld(){const s=SV();if(s&&s.flags&&!s.flags.finale2&&s.jobs&&Object.keys(s.jobs).length)s.flags.finale2=true}FN.retireOld=retireOld;
 J.on('hud',retireOld);J.on('home',()=>{retireOld();return undefined});
 /* the scripted player for dev/jobs-check.js: each stage has its own (S.bot). o.fail: play well until the roadblock, then build nothing */
 FN.bot=function(a,t,o){const M=a.M;if(!M||!M.fn||M.state!=='go')return null;const S=FN.stages[M.fn.stage];if(!S||!S.bot||M.fn.built!==M.fn.stage||M.fn.fade)return null;
@@ -326,7 +331,7 @@ function planDone(M){const r=k=>role(M,k);const sp=r('spotter'),sw=r('swap'),su=
 /* his route: 4th St south to Ash, west to River Rd, south to Mill, east to 5th, south to Dock, west to the yard */
 const TAIL_WP=[{x:W.courier.x,z:W.courier.z},{x:410,z:71},{x:315,z:71},{x:315,z:99},{x:443,z:99},{x:443,z:127},{x:W.yard.x,z:W.yard.z}];
 FN.TAIL_WP=TAIL_WP;
-const TK={wait:7,max:9.5,watch:4,watchR:[18,85],lostD:150,spookFail:2.5};
+const TK={wait:10,max:9.5,watch:4,watchR:[18,85],lostD:150,spookFail:2.5};
 FN.stages.tail={
   build(M){const a=A(),F=M.fn,S=F.sub;FN.festSet(M,0);
     const path=route(TAIL_WP);S.P=polyOf(path);S.path=path;
