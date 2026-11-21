@@ -94,6 +94,21 @@ altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the call
   fields and hills to the horizon (built on the first flight), and flat roof lids over interiors that are drawn without a roof
   (mission lots' `.` floors), shown only while you fly so ground play and the planning views never see them.
 
+### From the air
+
+* Climbing into the jet starts streaming the whole town (`OW.buildAhead(900)`: built, not drawn), so by take-off the ground under
+  and ahead of you is real geometry: houses, streets with markings, cars, trees.
+* The flight draw radius grows with altitude (420 m under ~150 ft, 620 m under ~425 ft, 900 m above). Past it, the painted ground
+  map (`OW.groundMap()`: roads with centre dashes, sidewalks, lots, lawns, water, roofs in each building's colour, tree crowns,
+  parked cars) lies just under the streamed ground, so blocks still read.
+* The far-terrain ring is built from the backdrop's own grass material and its edge heights (binned once from its vertices),
+  so there is no seam or cliff where the backdrop ends, and the first flight no longer freezes (was 1.6 s).
+* Wingtip vapour only when you pull, roll hard or light the burner.
+* `node dev/air-check.js [tag]`: 100 / 300 / 800 ft over Maple Heights, Riverside and the base, a 60 ft pass down our street and
+  a 100 ft look across the whole town; prints draw calls, triangles and frame ms; jpgs and numbers in
+  `docs/screenshots/base/air-check/` (`-before` = the previous commit, `-after` = now). Medium, headless (warm frame): Maple 830 /
+  706 / 286 calls at 100 / 300 / 800 ft, Riverside 643 / 477 / 116, the base 366 / 270 / 54, the street pass 280; 10-22 ms.
+
 ## Easter eggs ("Things your dad found", pause menu)
 
 | Egg | Where | How |
@@ -133,5 +148,6 @@ scrapyardGate 429, midBridge 435 on Medium; budget 450).
   normal streaming keeps it far lower (45 climbing out, 100-200 over town in base-check).
 * Headless numbers are software-rendered; draw-call and triangle counts are the comparable figures, milliseconds are not.
 * The family can take a moment to come out on the very first buzz of a session if their models haven't finished streaming.
+* From the air the backdrop's ring of far houses (world.js, just past the map edge) are lone houses without streets.
 * The Route 9 bridge sits on the water, so the "under the bridge" achievement is the new High Bridge north of town.
 * `jobs-check mower` and the `openworld-ingame` midBridge probe fail the same way on plain `origin/main` (not caused by the base).
