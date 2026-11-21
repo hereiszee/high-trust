@@ -28,7 +28,7 @@ await p.evaluate(()=>{const H=window.__ht;H.enterHub();H.HUD.hide('title');H.ste
   T.edges=[];for(const [i,n] of G.nodes.entries())for(const e of n.e){const m=G.nodes[e.to],l=Math.hypot(m.x-n.x,m.z-n.z);T.edges.push({a:i,b:e.to,l,da:n.e.length,db:m.e.length,region:O.regionAt((n.x+m.x)/2,(n.z+m.z)/2)})}
   T.lanePt=(a,b,at,side)=>{const A=G.nodes[a],B=G.nodes[b],l=Math.hypot(B.x-A.x,B.z-A.z),ux=(B.x-A.x)/l,uz=(B.z-A.z)/l,s=side==null?1.5:side;return{x:A.x+ux*at-uz*s,z:A.z+uz*at+ux*s,yaw:Math.atan2(-ux,-uz),ux,uz}};
   T.cv=()=>H.CV||H.VAN;
-  T.place=(x,z,yaw)=>{const e=T.cv();e.pos.set(x,0,z);e.yaw=yaw;e.spd=0;e.steer=0;if(e.car){e.car.x=x;e.car.z=z;e.car.yaw=yaw;e.car.spd=0;e.car.steer=0}H.step(1)};
+  T.place=(x,z,yaw)=>{const e=T.cv();e.pos.set(x,0,z);e.yaw=yaw;e.spd=0;e.steer=0;if(e.car){e.car.x=x;e.car.z=z;e.car.yaw=yaw;e.car.spd=0;e.car.steer=0;e.car.vdx=-Math.sin(yaw);e.car.vdz=-Math.cos(yaw)}H.step(1)};/* (vdx/vdz: CarAI's slide direction, or a reversed teleport drives backwards) */
   T.keysOff=()=>{for(const k in H.keys)H.keys[k]=false};
   /* drive the player's car to (x,z) with real keys along yaw, then brake to a stop */
   T.driveTo=(x,z,yaw)=>{const e=T.cv(),f=[-Math.sin(yaw),-Math.cos(yaw)];T.place(x-f[0]*26,z-f[1]*26,yaw);T.keysOff();
@@ -145,11 +145,12 @@ const P4=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inV
   return{disp:w.disp,ov:w.ov,hp:[hp0,H.carHp(e)],trust:[tr0,H.prog.trust+(H.prog.trustR||0)],ev:T.ev(t.id).map(x=>x.ev+(x.by?':'+x.by:''))}});
 ok(P4.disp<1e-6&&P4.hp[1]===P4.hp[0]&&P4.trust[1]===P4.trust[0]&&P4.ov<.05,'rear-ended by a traffic car forced not to brake: player car moved '+P4.disp.toExponential(1)+' m, hp '+P4.hp.join(' -> ')+', trust unchanged ('+P4.ev.join(', ')+')');
 /* a hard hit disables it: it pulls over at the kerb, hazards on, the driver gets out and phones someone (never hurt) */
-const P5=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[1];const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
-  const t=O.trafficAdd({a:E.a,b:E.b,at:36,spd:0,max:6,type:'hatch'});t.c.hp=12;H.step(3);T.keysOff();H.keys.w=true;for(let i=0;i<200&&!t.wreck;i++)H.step(1);T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
-  for(let i=0;i<30*8;i++)H.step(1);const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)];let lat=0;{const ai=t.c.ai,pp=ai.pts,k=Math.min(ai.tr.i,pp.length-2),A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;lat=((t.c.x-A.x)*(B.z-A.z)-(t.c.z-A.z)*(B.x-A.x))/l}
+const P5=await p.evaluate(async()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[1];const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
+  const t=O.trafficAdd({a:E.a,b:E.b,at:36,spd:0,max:.01,type:'hatch'});t.c.hp=4;H.step(3);T.keysOff();H.keys.w=true;for(let i=0;i<200&&!t.wreck;i++)H.step(1);T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
+  /* the driver's model may still be streaming in: keep the game going (and the loader breathing) until he is out, up to 30 s */
+  for(let k=0;k<300&&!(t.driver&&k>=8);k++){for(let i=0;i<30;i++)H.step(1);await new Promise(r=>setTimeout(r,100))}const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)];let lat=0;{const ai=t.c.ai,pp=ai.pts,k=Math.min(ai.tr.i,pp.length-2),A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;lat=((t.c.x-A.x)*(B.z-A.z)-(t.c.z-A.z)*(B.x-A.x))/l}
   const d=t.driver;return{wreck:!!t.wreck,spd:t.c.spd,haz:!!t.hazSet,driver:!!d,phone:!!t.phone,dDist:d?+Math.hypot(d.root.position.x-t.c.x,d.root.position.z-t.c.z).toFixed(2):null,lat:+lat.toFixed(2),ev:T.ev(t.id).map(x=>x.ev)}});
-ok(P5.wreck&&Math.abs(P5.spd)<.3&&P5.haz&&(P5.driver||!P5.phone),'a hard hit wrecks it: pulled over ('+P5.lat+' m right of the lane line), stopped, hazards on, driver standing '+P5.dDist+' m from it'+(P5.driver?' with a phone':' (no people models loaded)')+' ('+P5.ev.join(', ')+')');
+ok(P5.wreck&&Math.abs(P5.spd)<.3&&P5.haz&&P5.driver&&P5.phone&&P5.lat<-.6,'a hard hit wrecks it: pulled over ('+(-P5.lat)+' m right of the lane line), stopped, hazards on, driver standing '+P5.dDist+' m from it'+(P5.driver?' with a phone':' (no people models loaded)')+' ('+P5.ev.join(', ')+')');
 /* Riverside: ramming adds a little heat (docs/riverside-heat.md), once per car */
 const P6=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(x=>x.l>=45&&x.region==='river')[0];if(!E)return{none:true};
   const q=T.lanePt(E.a,E.b,4);T.place(q.x,q.z,q.yaw);H.step(5);const h0=H.heat.get();const t=O.trafficAdd({a:E.a,b:E.b,at:24,spd:0,max:.01});H.step(3);T.keysOff();H.keys.w=true;

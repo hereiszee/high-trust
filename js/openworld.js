@@ -1288,7 +1288,7 @@ function trSweep(t,obs,len,offA,offB,skip){const c=t.c,ai=c.ai,own=t.lookPts&&t.
     if(d>=hl-1){const off=offA+(offB-offA)*Math.min(1,d/7),sx=qx+tz*off,sz=qz-tx*off;
       for(const o of near){const dx=o.x-sx,dz=o.z-sz,a=dx*tx+dz*tz,cc=dx*-tz+dz*tx,ea=o.hl*Math.abs(o.fx*tx+o.fz*tz)+o.hw*Math.abs(-o.fz*tx+o.fx*tz),ec=o.hl*Math.abs(-o.fx*tz+o.fz*tx)+o.hw*Math.abs(o.fz*tz+o.fx*tx);
         if(Math.abs(cc)>=ec+hw||a-ea>=1||a+ea<=-.5)continue;
-        if(o.k==='traffic'&&o.fx*tx+o.fz*tz<-.7&&Math.abs(cc)>=ec+hw-TR.margin-.1)continue;/* oncoming traffic in the other lane: no safety margin, they pass a metre apart */const gap=Math.max(0,d-hl+Math.max(0,a-ea));if(!best||gap<best.gap)best={gap,ob:o,u:(o.vx||0)*tx+(o.vz||0)*tz,tx,tz}}
+        if(o.k==='traffic'&&o.fx*tx+o.fz*tz<-.7&&Math.abs(cc)>=ec+hw-TR.margin-.1)continue;/* oncoming traffic in the other lane: no safety margin, they pass a metre apart */const gap=Math.max(0,d-hl+Math.max(0,a-ea));if(!best||gap<best.gap)best={gap,ob:o,u:(o.vx||0)*tx+(o.vz||0)*tz,tx,tz,cc:cc-off,ec,hwm:hw}}
       if(best&&d-hl>best.gap+1)break}
     /* advance 1 m along the polyline (straight on past its end, at most 8 m) */
     let rem=1;while(rem>0){const left=sl-u;
@@ -1313,10 +1313,10 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
   else if(p)obs.push({x:p.x,z:p.z,fx:0,fz:-1,hl:.45,hw:.45,vx:0,vz:0,k:'foot'});
   for(const u of o.others||[]){if(!u)continue;const f=trFwd(u.yaw||0),S=u.stats||{};obs.push({x:u.x,z:u.z,fx:f[0],fz:f[1],hl:(S.len||4.6)/2,hw:(S.wid||2)/2,vx:f[0]*(u.spd||0),vz:f[1]*(u.spd||0),k:'other'})}
   for(const e of o.cars||[]){if(!e||!e.pos||e.obj&&e.obj.userData&&e.obj.userData.flat)continue;if(Math.abs(e.pos.x-p.x)>160||Math.abs(e.pos.z-p.z)>160)continue;const f=trFwd(e.yaw||0),S=e.obj&&e.obj.userData&&e.obj.userData.size||{l:4.4,w:2};
-    obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked'})}
+    obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked',src:e})}
   for(const S of TR_PROPS)for(const q of S.list||[]){if(q.state!=='placed'||Math.abs(q.x-p.x)>160||Math.abs(q.z-p.z)>160)continue;const K=HT.Props.KINDS&&HT.Props.KINDS[q.kind]||{w:.5,d:.5},f=trFwd(q.yaw||0);
-    obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop'})}
-  const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t});t.ob=ob;tro.push(ob);obs.push(ob)}
+    obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop',src:q})}
+  const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t,src:t});t.ob=ob;tro.push(ob);obs.push(ob)}
   /* spawn */
   if(T.cars.length<want&&T.t<=0){T.t=.7;const cand=G.nodes.filter(n=>{const d=Math.hypot(n.x-p.x,n.z-p.z);return d>45&&d<130&&n.e.length&&!seen(n.x,n.z)&&!T.cars.some(c=>Math.hypot(c.c.x-n.x,c.c.z-n.z)<20)&&!obs.some(q=>q.k!=='prop'&&Math.hypot(q.x-n.x,q.z-n.z)<9)});
     if(cand.length){T.seed=(T.seed*1103515245+12345)&0x7fffffff;const n=cand[T.seed%cand.length],e=n.e[T.seed%n.e.length],k=T.seed>>3;
@@ -1345,7 +1345,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     if(ai&&ai.mode==='wander'&&ai.next>=0&&ai.cur>=0&&!t.wreck&&t.mode!=='rev'){const nn=G.nodes[ai.next];
       if(t.planAt===ai.cur&&ai.next!==t.planTo&&ai.prev>=0&&t.planTo!==ai.prev){ai.next=t.planTo;ai.pts=G.lane([ai.prev,ai.cur,ai.next]);ai.tr={i:0}}/* arrived: keep the planned road */
       else if(Math.hypot(nn.x-c.x,nn.z-c.z)<14&&t.planned!==ai.next){if(t.planAt!==ai.next){let op=nn.e.filter(e=>e.to!==ai.cur);if(!op.length)op=nn.e;const lv=op.filter(e=>G.nodes[e.to].e.length>1),pick=lv.length?lv:op;t.planTo=pick[Math.floor(ai.rnd()*pick.length)%pick.length].to;t.planAt=ai.next}
-        t.planned=ai.next;t.lookPts=[{x:c.x,z:c.z},...G.lane([ai.cur,ai.next,t.planTo]).slice(1)]}}
+        t.planned=ai.next;t.lookPts=G.lane([ai.cur,ai.next,t.planTo])}}/* lane-anchored, so offsets (going round, easing past a parked car) stay relative to the lane */
     if(t.planned!==ai.next)t.lookPts=null;
     /* 1. look ahead along the lane */
     const look=Math.max(12,TR.look*Math.min(1,.45+Math.abs(c.spd)/14));
@@ -1354,7 +1354,17 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     let skip=null;const q0=t.blkRef;if(q0&&q0.blkRef===t&&t.wait>1.5&&q0.wait>1.5&&!q0.wreck){const dev=u=>{const a=u.c.ai,pp=a&&a.pts,k=pp?Math.min(a.tr?a.tr.i:0,pp.length-2):0;if(!pp||pp.length<2)return 0;const A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;return Math.abs(((u.c.x-A.x)*(B.z-A.z)-(u.c.z-A.z)*(B.x-A.x))/l)};
       const mine=dev(t),theirs=dev(q0);if(mine>theirs+.05||Math.abs(mine-theirs)<=.05&&t.id>q0.id){t.skipT=q0;t.creep=4}}
     if(t.creep>0){t.creep-=dt;if(t.skipT&&T.cars.includes(t.skipT))skip=t.skipT.ob}else t.skipT=null;
-    const hit=trSweep(t,obs,look,t.mode==='round'||t.wreck?null:t.offNow,t.offT,skip);
+    let hit=trSweep(t,obs,look,t.mode==='round'||t.wreck||t.nudge?null:t.offNow,t.offT,skip);
+    /* a parked car, a wreck or a job prop in the lane (kerbside 'V' tiles sit on the carriageway of the 6 m streets): ease left past it
+       without stopping or honking - up to 1.5 m at 6 m/s, or out into the oncoming lane (up to TR.roundOff) at 4.5 m/s when 40 m of it is
+       clear - instead of queueing behind it. If the way isn't clear it stops and the usual ladder applies. t.nudge = metres left, held until it is behind */
+    if(!t.mode&&!t.wreck){const still=q=>Math.hypot(q.vx||0,q.vz||0)<.3&&(q.k==='parked'||q.k==='wreck'||q.k==='prop');
+      if(hit&&still(hit.ob)&&hit.cc>0&&hit.gap<26){const need=hit.ec+hit.hwm-hit.cc+.12;
+        if(need<=TR.roundOff+.2){const h2=trSweep(t,obs,need>1.5?Math.max(look,40):look,null,Math.max(need,t.nudge||0),null);if(!h2||h2.ob!==hit.ob&&h2.gap>2){if(!t.nudge)log(t,'nudge',{by:hit.ob.k,m:+need.toFixed(2)});t.nudge=Math.max(need,t.nudge||0);t.nudgeSrc=hit.ob.src;hit=h2}}}
+      if(t.nudge){const q=obs.find(o=>o.src&&o.src===t.nudgeSrc),a=q?(q.x-c.x)*f[0]+(q.z-c.z)*f[1]:-99;if(a<-(hl+(q?q.hl+q.hw:0)+1.5)){t.nudge=0;t.nudgeSrc=null;t.offT=0}
+        else{t.offT=t.nudge;cap=Math.min(cap,t.nudge>1.5?4.5:6);
+          /* judge the road at the offset it is moving to (not where the lag has it now), minus the car it is passing; slow enough to get across in time */
+          if(q&&hit&&hit.ob===q){hit=trSweep(t,obs,look,t.nudge,t.nudge,q);const lat=Math.max(0,t.nudge-t.offNow),room=Math.max(0,a-hl-(q.hl+q.hw)*.5);if(lat>.05)cap=Math.min(cap,Math.max(1.2,room*2.2/lat))}}}}
     if(hit){const sgW=Math.min(TR.sg1,Math.max(TR.sg0,TR.sg0+TR.sgK*Math.abs(c.spd)));if(hit.gap>t.sg+6||!t.hadHit)t.sg=sgW;else t.sg=Math.max(t.sg,Math.min(sgW,TR.sg1));t.hadHit=true;
       const u=Math.max(0,hit.u),room=hit.gap-t.sg;cap=room>0?Math.sqrt(2*TR.plan*room+u*u):u*Math.max(0,Math.min(1,1+room/1.5));blk=hit.ob}
     else t.hadHit=false;
@@ -1399,10 +1409,10 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
       else if(t.modeT>16||t.modeT>4&&stopped&&t.wait>4){t.mode=null;t.offT=0;t.wait=TR.rev;log(t,'roundAbort',{})}}
     if(t.mode==='rev'){t.modeT+=dt;if(t.modeT>2.5)t.mode=null;else if(c.revT<=0)cap=Math.min(cap,4)}
     /* wrecked: pull over to the kerb and stop there, hazards on */
-    if(t.wreck){t.offT=-1.3;t.wreckT=(t.wreckT||0)+dt;cap=Math.min(cap,t.wreckT<3?3:0);if(t.wreckT>3&&Math.abs(c.spd)<.3&&!t.driver)trDriver(t,lvl,o)}
+    if(t.wreck){t.offT=-1.3;t.wreckT=(t.wreckT||0)+dt;if(!t.parkedAt){const pp=ai.pts,k=Math.max(0,Math.min(ai.tr?ai.tr.i:0,pp.length-2)),A=pp[k],B=pp[k+1]||A,l=Math.hypot(B.x-A.x,B.z-A.z)||1,lat=((c.x-A.x)*(B.z-A.z)-(c.z-A.z)*(B.x-A.x))/l;if(t.wreckT>8||lat<-1)t.parkedAt=t.wreckT}cap=Math.min(cap,t.parkedAt?0:3);/* creep to the kerb, then stop */if(t.parkedAt&&Math.abs(c.spd)<.3&&!t.driver&&T.clock>=(t.driverTry||0)&&(t.driverN|0)<60){t.driverTry=T.clock+1;t.driverN=(t.driverN|0)+1;trDriver(t,lvl,o)}}
     if(skip||t.creep>0)cap=Math.min(cap,2);
     if(t.shoveT>0)cap=0;
-    {const r=(t.mode==='round'?2.2:1.1)*dt;t.offNow+=Math.max(-r,Math.min(r,t.offT-t.offNow))}if(Math.abs(t.offNow)<.02&&!t.offT)t.offNow=0;
+    {const r=(t.mode==='round'||t.nudge?2.2:1.1)*dt;t.offNow+=Math.max(-r,Math.min(r,t.offT-t.offNow))}if(Math.abs(t.offNow)<.02&&!t.offT)t.offNow=0;
     t.cap=cap;t.blk=blk&&blk.k;t.blkRef=blk&&blk.ref||null;
     CA.step(c,dt,{G,collide:statics,speedCap:()=>cap===Infinity?null:cap,offset:()=>t.offNow,canSnap:()=>!seen(c.x,c.z)});
     /* 4. final guard: never left overlapping anything; only the traffic car moves (the player's vehicle is resolved in index.html) */
@@ -1426,7 +1436,9 @@ function trSync(t,lvl,braking,dt){const c=t.c,f=trFwd(c.yaw);t.v.position.set(c.
 function trDrop(T,lvl,t){T.g.remove(t.v);if(t.driver){const pp=HT.People;t.driver.root.parent&&t.driver.root.parent.remove(t.driver.root);if(pp&&pp.live){const li=pp.live.indexOf(t.driver);if(li>=0)pp.live.splice(li,1)}t.driver=null}
   if(t.phone&&t.phone.parent)t.phone.parent.remove(t.phone);const ci=lvl.colliders.indexOf(t.col);if(ci>=lvl.nStatic)lvl.colliders.splice(ci,1);if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res)}
 /* a wrecked car's driver: out on the kerb side, facing the car, phone to his ear; never hurt */
-function trDriver(t,lvl,o){const PP=HT.People;if(!PP||!PP.ok){t.driver=false;return}let d=null;try{d=PP.make('neighbour',{})}catch(_){d=null}if(!d){t.driver=false;return}
+function trDriver(t,lvl,o){const PP=HT.People;if(!PP||!PP.ok)return;/* not ready yet: OW.traffic tries again every second */
+  const ks=PP.neighbourKeys||[],key=ks.length?ks[t.id%ks.length]:'neighbour';if(ks.length&&PP.has&&!PP.has(key)){if(!t.driverReq&&PP.preload){t.driverReq=true;try{PP.preload([key]).catch(()=>{})}catch(_){}}return}/* streams in */
+  let d=null;try{d=PP.make(ks.length?key:'neighbour',{})}catch(_){d=null}if(!d)return;
   const c=t.c,f=trFwd(c.yaw),rx=-f[1],rz=f[0],x=c.x+rx*(c.stats.wid/2+1.1)+f[0]*.6,z=c.z+rz*(c.stats.wid/2+1.1)+f[1]*.6;
   d.root.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});d.root.position.set(x,HW()?HW().groundY(lvl,x,z):0,z);d.root.rotation.y=Math.atan2(c.x-x,c.z-z);WS.traffic.g.add(d.root);t.driver=d;
   const ph=new THREE.Mesh(new THREE.BoxGeometry(.05,.13,.025),new THREE.MeshStandardMaterial({color:0x151515,roughness:.4}));ph.position.set(.11,1.6,.02);d.root.add(ph);t.phone=ph;
@@ -1446,7 +1458,7 @@ OW.trafficHit=(t,info)=>{const ws=WS;if(!ws||!ws.traffic)return 0;const T=ws.tra
   T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'hit',sp:+sp.toFixed(2),dmg:+dmg.toFixed(1),hp:+c.hp.toFixed(1),by:info.byPlayer?'player':'traffic'});
   if(info.byPlayer&&sp>1.2&&(T.clock-(t.hitAt||-9))>2.5){t.hitAt=T.clock;t.hazT=8;if(T.honkT<=0){trHorn(t,.9,info.camera);T.honkT=.6;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'honk',long:true,hit:true})}if(sp>6)trAlarm(t,info.camera);
     if(info.say&&T.barkT<=0&&Math.random()<.8){T.barkT=TR.barkCd;try{info.say(TR_WHO[t.ty]||'Driver',TR_HIT[(t.id+((t.hitN=(t.hitN|0)+1)))%TR_HIT.length])}catch(_){}}}
-  if(c.hp<=0&&!t.wreck){c.hp=1;t.wreck=true;t.mode=null;t.wait=0;t.wreckT=0;if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'wreck'})}
+  if(c.hp<=0&&!t.wreck){c.hp=1;t.wreck=true;if(c.ai&&c.ai.max<4)c.ai.max=4;/* enough to creep to the kerb */t.mode=null;t.wait=0;t.wreckT=0;if(t.res>=0&&T.res.get(t.res)===t)T.res.delete(t.res);t.res=-1;T.log.push({t:+T.clock.toFixed(2),id:t.id,ev:'wreck'})}
   if(ws.traffic.g&&ud(t).setDamage)try{ud(t).setDamage(1-c.hp/c.stats.hp)}catch(_){}
   return dmg};
 const ud=t=>t.v.userData||{};
