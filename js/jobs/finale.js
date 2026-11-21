@@ -287,7 +287,7 @@ FN.markSeen=markSeen;
 J.on('hud',()=>{const a=A();if(!a)return;const M=a.M;const keep=M&&M.def&&M.def.id===ID&&a.mode==='mission';
   if(!keep&&RES){try{FN.offStage&&FN.offStage(M)}catch(_){}freeRes();FN.live=[]}});
 /* single key presses for job actions (Z zoom, G the box, X): caught on keydown so a quick tap between two frames is never missed */
-const PRESSED=new Set();if(D)addEventListener('keydown',e=>{if(e.repeat)return;const a=A();if(!a||!a.M||!a.M.fn||a.M.state!=='go')return;if(HTx.Menus&&HTx.Menus.isOpen&&HTx.Menus.isOpen())return;PRESSED.add((e.key||'').toLowerCase())});
+const PRESSED=new Set();if(D&&typeof addEventListener==='function')addEventListener('keydown',e=>{if(e.repeat)return;const a=A();if(!a||!a.M||!a.M.fn||a.M.state!=='go')return;if(HTx.Menus&&HTx.Menus.isOpen&&HTx.Menus.isOpen())return;PRESSED.add((e.key||'').toLowerCase())});
 FN.press=k=>PRESSED.add(k);FN.pressed=k=>{if(PRESSED.has(k)){PRESSED.delete(k);return true}return false};FN.clearPressed=()=>PRESSED.clear();
 /* the old built-in ending (index.html finale(): a "One month later" card when the nine original jobs are done, whose "New Saturday"
    wipes the campaign) predates this job: with the festival as the ending, it never shows (its own "Keep driving" flag) */
