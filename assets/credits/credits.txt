@@ -1,7 +1,7 @@
 HIGH TRUST
 
 Design, code, procedural art, music and sound
-  [Studio / developer name]
+  hereiszee
 
 Built with three.js (r128), (c) three.js authors, MIT License
 Mesh decoding: meshoptimizer, (c) Arseny Kapoulkine, MIT License
