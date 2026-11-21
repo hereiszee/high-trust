@@ -11,9 +11,9 @@ Steam Deck or Linux box. It ends with a 20-minute checklist of things only a per
    | Artifact | For |
    |---|---|
    | `high-trust-windows-x64` | Windows 10/11 (x64) |
-   | `high-trust-macos-universal` | macOS 12+ on Apple Silicon or Intel |
    | `high-trust-linux-x64` | Linux, Steam Deck desktop mode |
-   | `*-archive` | the same builds as one zip / tar.gz (`dist/*.zip`, `*.tar.gz`) |
+   | `high-trust-macos-universal-archive` | macOS 12+ on Apple Silicon or Intel: the zip inside holds `HighTrust.app` (only the zip keeps the app bundle intact) |
+   | `high-trust-windows-x64-archive`, `high-trust-linux-x64-archive` | the Windows / Linux builds as one zip / tar.gz |
    | `*-test-output` | screenshots and logs from the CI test (ignore unless something failed) |
    Artifacts expire after 14 days. GitHub needs you to be signed in to download them.
 
@@ -22,7 +22,7 @@ Steam Deck or Linux box. It ends with a 20-minute checklist of things only a per
 **Windows.** Unzip anywhere, then run `HighTrust.exe`. SmartScreen may say "Windows protected your PC" because the exe isn't code-signed yet.
 Click **More info → Run anyway**. Steam installs don't show this.
 
-**macOS.** Unzip, then move `HighTrust.app` (it may show as "High Trust") to Applications or anywhere.
+**macOS.** Download `high-trust-macos-universal-archive`, unzip it, then unzip `High Trust-…-universal-mac.zip` inside (double-click it in Finder; Finder keeps the bundle intact), then move `HighTrust.app` (it may show as "High Trust") to Applications or anywhere.
 The CI build is **ad-hoc signed but not notarised** (that needs your Apple Developer ID, see BUILD.md), so Gatekeeper blocks a double-click:
 - **Right-click the app → Open → Open.** You only need to do this once. On recent macOS you may also have to allow it under
   **System Settings → Privacy & Security → "HighTrust was blocked" → Open Anyway**.

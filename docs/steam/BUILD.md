@@ -87,7 +87,7 @@ Actions → **Desktop build** → *Run workflow* (or push a `v*` tag). It runs t
 | Runner | Builds | Artifact (= depot content) |
 |---|---|---|
 | `windows-latest` | `HighTrust.exe` x64, with the High Trust icon (rcedit works there) | `high-trust-windows-x64` |
-| `macos-latest` | `High Trust.app`, **universal** (arm64 + x64 merged by @electron/universal, which only runs on macOS) | `high-trust-macos-universal` |
+| `macos-latest` | `HighTrust.app`, **universal** (arm64 + x64 merged by @electron/universal, which only runs on macOS); ad-hoc signed when there's no Developer ID | `high-trust-macos-universal-archive` (zip: unzip it into `dist/mac-universal/` for the depot) |
 | `ubuntu-latest` | `HighTrust` x64, then the packaged e2e test under xvfb | `high-trust-linux-x64` |
 
 Each job also runs the save-file unit tests and `dev/check-build.js` (assets/opt up to date). Download the artifacts, put each in
