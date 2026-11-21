@@ -7,7 +7,7 @@
    - Steamworks (desktop/steam.js) when available, silently absent otherwise
    Flags: --dev (devtools), --windowed, --fullscreen, --no-steam. Env: HT_USER_DATA (alternate profile folder, used by tests). */
 'use strict';
-const { app, BrowserWindow, protocol, ipcMain, session, Menu, shell } = require('electron');
+const { app, BrowserWindow, protocol, ipcMain, session, Menu, shell, powerMonitor } = require('electron');
 const path = require('path'), fs = require('fs'), { Readable } = require('stream');
 const { SaveStore } = require('./save-store.js');
 const steam = require('./steam.js');
@@ -89,7 +89,7 @@ function serve(req) {
 
 /* ---------- window ---------- */
 let win = null;
-const [WIN_W, WIN_H] = (/^(\d+)x(\d+)$/.exec(process.env.HT_WINDOW_SIZE || '') || [0, 1600, 900]).slice(1).map(Number); /* windowed size; tests use a small one */
+const [WIN_W, WIN_H] = (/^(\d+)x(\d+)$/.exec(process.env.HT_WINDOW_SIZE || '') || [0, DECK ? 1280 : 1600, DECK ? 800 : 900]).slice(1).map(Number); /* windowed size; tests use a small one */
 const ICON = path.join(__dirname, 'build', 'icon.png');
 function setFullscreen(on) { if (!win) return; on = !!on; win.setFullScreen(on); cfg.fullscreen = on; saveCfg() }
 function createWindow() {
@@ -158,4 +158,7 @@ app.whenReady().then(() => {
   });
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(['pointerLock', 'fullscreen', 'clipboard-sanitized-write'].includes(perm)));
   createWindow();
+  /* sleep (Steam Deck suspend, laptop lid): write the save and pause the game before the process is frozen */
+  powerMonitor.on('suspend', () => { store.flush(); if (win && !win.isDestroyed()) win.webContents.send('ht:suspend') });
+  powerMonitor.on('lock-screen', () => { if (win && !win.isDestroyed()) win.webContents.send('ht:suspend') });
 });
