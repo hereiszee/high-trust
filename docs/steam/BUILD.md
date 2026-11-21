@@ -80,6 +80,8 @@ missing (`[app] 404` in the log).
 
 ## CI: all three platforms (`.github/workflows/desktop-build.yml`)
 
+To try a CI build by hand on Windows, Mac or Linux/Deck, see **docs/steam/PLAYTEST.md** (download, unzip, the Gatekeeper/SmartScreen steps, a 20-minute hardware checklist).
+
 Actions → **Desktop build** → *Run workflow* (or push a `v*` tag). It runs three jobs:
 
 | Runner | Builds | Artifact (= depot content) |
