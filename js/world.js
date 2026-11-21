@@ -96,7 +96,7 @@ function floorDecalTex(){if(CT.floor)return CT.floor;const c=canvas(1024,1024),x
 function puddleTex(){if(CT.puddle)return CT.puddle;const c=canvas(256,256),x=c.getContext('2d');const r=rngOf(5);
   for(let i=0;i<14;i++){const g=x.createRadialGradient(128+(r()-.5)*90,128+(r()-.5)*60,0,128+(r()-.5)*90,128+(r()-.5)*60,30+r()*60);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.7,'rgba(255,255,255,.9)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,256,256)}
   return CT.puddle=ctex(c,false)}
-const TAGS=[['BIRCH','#d84a3a','#f2c84a'],['KINGZ','#3a7bd8','#9fe0ff'],['PPK','#7ad83a','#e8ff9f'],['NO SNITCH','#d83aa8','#ffd0f2'],['RIDGE','#f2a03a','#fff0b0'],['SK8','#3ad8c8','#d0fff8']];
+const TAGS=[['BIRCH','#d84a3a','#f2c84a'],['ZOOM','#3a7bd8','#9fe0ff'],['WAFFLE','#7ad83a','#e8ff9f'],['BLOOP','#d83aa8','#ffd0f2'],['RIDGE','#f2a03a','#fff0b0'],['SK8','#3ad8c8','#d0fff8']];
 function graffitiTex(){if(CT.graf)return CT.graf;const c=canvas(1024,1024),x=c.getContext('2d');const r=rngOf(31);
   TAGS.slice(0,4).forEach(([t,fill,hi],i)=>{const cx=(i%2)*512+256,cy=Math.floor(i/2)*512+256;x.save();x.translate(cx,cy);x.rotate((r()-.5)*.25);
     const fs=t.length>5?92:150;x.font=`900 ${fs}px Impact, "Arial Black", sans-serif`;x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';

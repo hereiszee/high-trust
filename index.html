@@ -21,9 +21,7 @@
 <link rel="preload" href="assets/fonts/barlow-condensed-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/bowlby-one-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin>
+<link rel="preload" as="script" href="vendor/three-r128/three.min.js">
 <link rel="stylesheet" href="css/hud.css">
 <link rel="stylesheet" href="css/menus.css">
 <script>
@@ -42,7 +40,7 @@ window.__htBoot=(()=>{const B={onProgress:null};
     return get(p.url,a=>B.onProgress&&B.onProgress(a,p.kb*1024))});
   B.pack.catch(()=>{});B.man.catch(()=>{});
   /* service worker: once it runs, hand it what this visit already loaded so the next visit (or an offline one) starts from cache */
-  if('serviceWorker'in navigator&&location.protocol!=='file:')addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker'in navigator&&location.protocol!=='file:'&&!window.HTDesktop)/* the desktop shell is offline by design: no worker */addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});
     navigator.serviceWorker.ready.then(r=>setTimeout(()=>{const u=[location.href.split('#')[0],...performance.getEntriesByType('resource').map(e=>e.name)].filter(x=>/^https?:/.test(x));
       if(r.active)r.active.postMessage({warm:[...new Set(u)]})},3000)).catch(()=>{})});
   return B})();
@@ -68,9 +66,18 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <div class="hud" id="lock" hidden>Click the view to lock your mouse · Esc to pause</div>
 <div id="tags" hidden></div><div id="sub" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin></script>
-<!-- three r128 add-ons in one request: loaders, meshopt decoder, skeleton utils, post-processing -->
-<script src="https://cdn.jsdelivr.net/combine/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js,npm/three@0.128.0/examples/js/loaders/RGBELoader.js,npm/three@0.128.0/examples/js/libs/meshopt_decoder.js,npm/three@0.128.0/examples/js/utils/SkeletonUtils.js,npm/three@0.128.0/examples/js/shaders/CopyShader.js,npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js,npm/three@0.128.0/examples/js/shaders/FXAAShader.js,npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js,npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js,npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" crossorigin></script>
+<!-- Three.js r128 and its example loaders, vendored unmodified from three@0.128.0 (vendor/README.md): no network needed -->
+<script src="vendor/three-r128/three.min.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="vendor/three-r128/examples/js/loaders/RGBELoader.js"></script>
+<script src="vendor/three-r128/examples/js/libs/meshopt_decoder.js"></script>
+<script src="vendor/three-r128/examples/js/utils/SkeletonUtils.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/CopyShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="vendor/three-r128/examples/js/shaders/FXAAShader.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/credits.js"></script><!-- Credits & licences text (title and pause menus) -->
 <script src="js/fx.js"></script>
@@ -146,13 +153,13 @@ const ASSETS=(()=>{
   const WORLD=['hanging_industrial_lamp','pull_chain_light_socket','wooden_picnic_table','shrub_02','shrub_04','grass_medium_02'],DECALS=['leak_a','leak_b','asphalt_patch'];
   const PROPS=['car_van','car_suv','car_sedan','car_hatchback','street_lamp','mailbox','trash_can','crate','crate_long','crate_slat','pallet','barrel_red','barrel_blue','couch','table_low','table_dining','trashbag','tyre','utility_box','cardboard_box','chest_wood','tree_oak','tree_tall','tree_pine','bush'];
   /* realistic rigged people (js/people.js asks for 'rb_<key>'): 10 game characters + the shared animation set */
-  const PEOPLE=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','anims'];
+  const PEOPLE=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_red','thug_cap','thug_jacket','boss','anims'];
   const SRC={};for(const n of PROPS)SRC[n]='assets/props/'+n+'.glb';for(const n of WORLD)SRC[n]='assets/world/'+n+'.glb';
   for(const n of PEOPLE)SRC['rb_'+n]='assets/people/rocketbox/'+n+'.glb';
   const texSrc=(n,s)=>'assets/tex/'+n+'_'+s+'.jpg',SKY='assets/sky/sky_2k.jpg',HDR='assets/sky/sky_1k.hdr';
   /* what each place needs; hub = Stage A when the boot pack is unavailable, the rest streams in Stage B (missions also on openBrief) */
   const T3=n=>['col','nrm','rgh'].map(s=>texSrc(n,s)),G=n=>SRC[n],D=n=>'assets/world/'+n+'.png',RB=n=>SRC['rb_'+n];
-  const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red'].map(RB);
+  const THUGS=['thug_hoodie','thug_red','thug_cap','thug_jacket'].map(RB);
   const GROUPS={
     hub:[SKY,HDR,...['asphalt','sidewalk','grass','concfloor','woodfloor','mulch','pavers','roof','siding'].flatMap(T3),...['tree_oak','tree_tall','tree_pine','bush','mailbox'].map(G),D('asphalt_patch'),...['dad_player','dad_gary','anims'].map(RB)],
     /* the open world hub also shows chain-link (fence alpha), rowhouse/site brick, warehouses, mission-site walls and Riverside trash */
@@ -688,7 +695,7 @@ const RENDER=(()=>{
     if(R.composer){R.composer.setPixelRatio(pr);R.composer.setSize(w,h);grade.uniforms.res.value.set(w*pr,h*pr);if(fxaa)fxaa.uniforms.resolution.value.set(1/(w*pr),1/(h*pr))}};
   /* set(q,scale): one preset at a resolution scale (0.6..1 of the preset's pixel ratio) */
   function set(q,scale=1){const G=GFX[q]||GFX.med,prevQ=R.q;R.q=GFX[q]?q:'med';R.scale=scale;
-    const pr=Math.max(.5,Math.min(window.devicePixelRatio||1,G.pr)*scale);if(renderer.getPixelRatio()!==pr)renderer.setPixelRatio(pr);
+    const pr=Math.max(.5,Math.min(window.devicePixelRatio||1,G.pr)*scale*(R.rscale||1));/* R.rscale: the Resolution scale setting */if(renderer.getPixelRatio()!==pr)renderer.setPixelRatio(pr);
     if(sun.shadow.mapSize.x!==G.shadow){sun.shadow.mapSize.set(G.shadow,G.shadow);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
     shadowExt=G.ext;Object.assign(sun.shadow.camera,{left:-G.ext,right:G.ext,top:G.ext,bottom:-G.ext});sun.shadow.camera.updateProjectionMatrix();
     const st=G.soft?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;
@@ -1245,8 +1252,9 @@ const P={pos:V3(),yaw:0,pitch:0,hp:100,regenT:0,crouch:false,aim:false,fp:false,
 let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
 const keys={};let mouseDown=false,useTap=false;
 const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'auto'};
-try{Object.assign(CFG,JSON.parse(localStorage.getItem('ht-cfg')||'{}'))}catch(e){}
-function saveCfg(){try{localStorage.setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
+const CFG_STORE=()=>window.HTDesktop?HTDesktop.storage:localStorage;/* desktop shell: settings live in the save file (desktop/save-store.js) */
+try{Object.assign(CFG,JSON.parse(CFG_STORE().getItem('ht-cfg')||'{}'))}catch(e){}
+function saveCfg(){try{CFG_STORE().setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
 
 /* ================= UI helpers ================= */
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
@@ -1906,7 +1914,7 @@ let castWait=null;
 function castKey(pm,c){const r=pm.roles&&pm.roles[c];if(typeof r==='string'&&(pm.keys||[]).includes(r))return r;return(pm.keys||[]).includes(c)?c:null}
 /* the People models a job waits for before it starts (crew, Riverside giver, the four thug looks, the boss): also used by the job harness */
 function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok||!pm.preload)return[];const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_track','thug_beanie','thug_red',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
+  return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_red','thug_cap','thug_jacket',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
   const keys=castKeysFor(i);
@@ -1982,7 +1990,9 @@ cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 /* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
 function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
 HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
-  if(k==='gfx')RENDER.apply(v);if(k in VOL_DEF)setVolume();saveCfg()});
+  if(k==='gfx')RENDER.apply(v);if(k==='rscale'){RENDER.rscale=clamp(+v||100,50,100)/100;RENDER.apply(RENDER.sel||CFG.gfx)}if(k in VOL_DEF)setVolume();saveCfg()});
+/* Resolution scale and Frame rate cap (js/hud.js SETTINGS) */
+HUD.settings={rscale:clamp(+CFG.rscale||100,50,100),fpsCap:String(CFG.fpsCap||'0')};
 /* volume: the js/audio.js buses when present; otherwise one gain node in front of the fallback synth's speakers */
 let volNode=null,volSet=false;
 function setVolume(){const v=k=>(CFG[k]??VOL_DEF[k])/100,A=AU();
@@ -2067,6 +2077,10 @@ HUD.on('touch',(a,down)=>{initAudio();
   if(!running)return;
   if(a==='aim')P.aim=!P.aim;else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
   else if(a==='swap')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);else if(a==='view')P.fp=!P.fp;else if(a==='jump'&&!VAN.on)P.jumpBuf=MOVE.buf});
+/* controller hook (js/gamepad.js): the left stick shares the touch stick's path (analog walk, throttle/steer), the right stick calls look() */
+window.HT.Input={stick:tj,look:(dx,dy)=>{if(running&&!pauseOpen)look(dx,dy)},fire:down=>{mouseDown=!!down&&running},aim:on=>{if(running)P.aim=!!on},
+  get running(){return running},get paused(){return pauseOpen},get mode(){return mode},get driving(){return !!VAN.on},
+  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},relock(){if(!everLocked)lockFailed=false}};
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);
@@ -2395,7 +2409,7 @@ function aiAfter(){if(!aiWorld||!M||!M.squads)return;let n=0;
   if(n)rebuildTargets()}
 function aiEnemy(e,dt){const d=e.dude,t0=performance.now();JH.perceive(e,aiWorld);const I=AI.think(e,aiWorld,dt);aiStats.thinkMs+=performance.now()-t0;aiStats.thinks++;
   AI.move(e,I,dt);collide(e.pos,.35);
-  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
+  if(I.bark&&(I.bark.priority>=3||e.pos.distanceTo(P.pos)<28)){radio(e.boss?'The King':'Crew',I.bark.text,I.bark.priority>=2);aiLog(e.id,I.bark);if(I.bark.event!=='hit'&&I.bark.event!=='surrender')aiVoice(AI_VOICE[I.bark.event],e)}
   /* what the game's own systems read: target (hunter laser, music) and fireT (the laser shows while he lines up a shot) */
   const tid=e.ai.mode==='combat'?e.ai.target:null;e.target=tid==='player'?P:tid?allies.find(a=>a.id===tid)||null:null;
   e.fireT=I.aiming&&e.ai.gun.laser?Math.max(.01,e.ai.gun.aim*(aiWorld.diff.aim||1)-e.ai.aimT):0;
@@ -2969,7 +2983,7 @@ function porchBuild(){if(HUBX.porch){HUBX.porch.parent&&HUBX.porch.parent.remove
     b.position.set(d.x+h.nx*.5+tx_*sd,y0+base+hh/2,d.z+h.nz*.5+tz_*sd);b.rotation.y=Math.atan2(h.nx,h.nz)+(i*.37%0.5)-.25;
     /* children of the unit box: scales are fractions of the box */
     const t=new THREE.Mesh(boxG,tape);t.scale.set(1.01,.02/hh,.09/dd);t.position.y=.5;b.add(t);
-    const lbl=new THREE.Mesh(boxG,mat('#e9e4d6'));lbl.scale.set(.5,.45,.02/dd);lbl.position.set(0,0,.505);b.add(lbl);const smile=new THREE.Mesh(boxG,mat('#2f5d9e'));smile.scale.set(.35,.06,.03/dd);smile.position.set(0,-.12,.51);b.add(smile)}
+    const lbl=new THREE.Mesh(boxG,mat('#e9e4d6'));lbl.scale.set(.5,.45,.02/dd);lbl.position.set(0,0,.505);b.add(lbl);const stamp=new THREE.Mesh(boxG,mat('#2e5e3e'));stamp.scale.set(.12,.12,.03/dd);stamp.position.set(.16,-.12,.51);b.add(stamp)}
   L.group.add(g);HUBX.porch=g}
 function metaOpenPorch(){const s=SV();if(!s||!ECON)return[];const n=porchCount();if(!n)return[];
   const later=s.pending.splice(n);let got=[];try{got=ECON.deliverPending()}catch(e){console.warn(e)}s.pending.push(...later);s.porch=0;SAVEM.touch('pending');furnSync();metaSave(true);porchBuild();
@@ -4024,7 +4038,7 @@ function wmStake(dt,F){const m=M.def,S=m.stake,e=CV;M.stakeT+=dt;
     for(const s of M.suspects){if(s.id||s.gone)continue;const dx=s.pos.x-cp.x,dy=1.3-cp.y,dz=s.pos.z-cp.z,dd=Math.hypot(dx,dy,dz);if(dd>45)continue;
       const ang=Math.acos(clamp((dx*cf.x+dy*cf.y+dz*cf.z)/dd,-1,1));if(ang<Math.max(.045,1.1/dd)&&ang<best&&losClear(cp.x,cp.z,s.pos.x,s.pos.z,'#htVrxA')){best=ang;watching=s}}}
   if(watching){watching.idT+=dt;if(watching.idT>=S.watchT){watching.id=true;M.ids++;snd('cuff');
-      radio('dee',watching.kind==='courier'?"That's him. Orange jacket. That's the courier.":pick(["That's Marcus. He's twelve. He's supposed to be at basketball.","Andre. His grandma sings in my choir.","DeShawn. He owes me a book report."]),true);HUD.feed((watching.kind==='courier'?'Courier':'Lookout')+" ID'd",'info',M.ids+'/4')}}
+      radio('dee',watching.kind==='courier'?"That's him. Orange jacket. That's the courier.":pick(["That's Owen. He's twelve. He's supposed to be at basketball.","Mateo. His grandma sings in my choir.","Jayden. He owes me a book report."]),true);HUD.feed((watching.kind==='courier'?'Courier':'Lookout')+" ID'd",'info',M.ids+'/4')}}
   /* suspicion: on foot near them, moving the van, honking */
   let up=false;if(!VAN.on)for(const s of M.suspects)if(!s.gone&&s.pos.distanceTo(P.pos)<S.alertDist){up=true;break}
   M.sus=clamp(M.sus+(up?35:-5)*dt,0,100);M.susMax=Math.max(M.susMax,M.sus);
@@ -4459,6 +4473,7 @@ function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 function frame(now){
+  {const cap=+CFG.fpsCap||0;if(cap>0&&now-last<1000/cap-2){requestAnimationFrame(frame);return}}/* Frame rate cap setting; 0 = display rate (VSync) */
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
@@ -4475,7 +4490,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
-RENDER.apply(CFG.gfx);
+RENDER.rscale=clamp(+CFG.rscale||100,50,100)/100;RENDER.apply(CFG.gfx);
 initModules();
 /* gun models load after Stage A, so they don't compete with the boot pack (procedural guns until then) */
 ASSETS.ready.then(()=>{try{if(window.HT&&HT.Guns&&HT.Guns.init)HT.Guns.init({assets:ASSETS}).then(()=>{if(P.dude){equip(P.dude,P.cur);setViewGun(P.cur)}}).catch(e=>console.warn('HT.Guns init failed',e))}catch(e){console.warn('HT.Guns init failed',e)}});
@@ -4553,3 +4568,6 @@ window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get sol
 requestAnimationFrame(frame);
 })();
 </script>
+<script src="js/keys.js"></script><!-- key rebinding (Pause → Key bindings) -->
+<script src="js/gamepad.js"></script><!-- controllers: Gamepad API, menu navigation, pad glyphs -->
+<script src="js/platform.js"></script><!-- desktop shell + Steam glue; no-op on the web (docs/steam/BUILD.md) -->

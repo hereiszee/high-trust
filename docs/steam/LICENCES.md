@@ -2,24 +2,40 @@
 
 Audit date: 2026-11-21, branch `work/steam-audit`. Scope: every file under `assets/` (263 source files; the 465 files in `assets/opt/` are build outputs of those same sources made by `tools/build-assets.js` and inherit their licence row), every library loaded by `index.html`, and runtime-fetched resources. Method: `assets/CREDITS.md`, `assets/credits/*.md`, `assets/people/rocketbox/CREDITS.md`, licence files in the repo, glTF `asset`/node/image names, JPEG/PNG metadata (none of the images carry EXIF/XMP), `tools/` scripts, and git history. Git history before commit `6d95d66` (2026-11-19) is squashed into one import commit, so history cannot prove where a file came from. A file is only marked OK when a credits file in the repo names its source and licence. Name-pattern guesses are recorded but do not count as proof.
 
-Status key: **OK** = commercial use allowed, nothing to show in-game. **NEEDS ATTRIBUTION** = commercial use allowed, but a notice or licence text has to ship with the game. **UNKNOWN** = the repo does not prove where it came from. **NOT ALLOWED COMMERCIALLY** = none found.
+Status key: **OK** = commercial use allowed, nothing to show in-game. **NEEDS ATTRIBUTION** = commercial use allowed, but a notice or licence text has to ship with the game. **UNKNOWN** = the repo does not prove where it came from (none left). **NOT ALLOWED COMMERCIALLY** = none found.
 
 ## Release blockers
 
 | # | Blocker | Files | Suggested fix |
 |---|---|---|---|
-| B1 | **UNKNOWN provenance: 4 surface texture sets** (12 files). They appear in no credits file and have no metadata. They are used in the hub boot set, so they show on screen at all times (paths, lots, mulch beds, interiors, fences). | `tex/mulch_{col,nrm,rgh}.jpg`, `tex/paintwall_*`, `tex/pavers_*`, `tex/plywood_*` | Whoever imported them should record the source page (they look like Poly Haven / ambientCG CC0 sets resized the same way as the credited ones). If the source cannot be found within a day, swap them for named CC0 sets: e.g. ambientCG "Ground" or "Bark" sets for mulch, Poly Haven "Plastered Wall" for paintwall, ambientCG "PavingStones" for pavers, ambientCG "Plywood" for plywood. Add a row to `assets/CREDITS.md` either way. Rebuild with `node tools/build-assets.js`. |
-| B2 | **UNKNOWN provenance: 3 decal PNGs** (oil leaks and asphalt patch). No credits row, no metadata. | `world/leak_a.png`, `world/leak_b.png`, `world/asphalt_patch.png` | Record the source, or redraw them procedurally (fx.js already generates comparable decals on canvas), or take CC0 ambientCG "AsphaltDamage"/"Leaking" decals and credit them. |
-| B3 | **UNKNOWN provenance: 4 models.** Their texture/node names (`*_diff`, `*_nor_gl`, `*_rough`) follow Poly Haven's naming, and Poly Haven has assets with these slugs. But no credits file lists these copies. | `world/grass_medium_02.glb`, `world/shrub_02.glb`, `world/pull_chain_light_socket.glb`, `home/potted_plant_02.glb` | Check each slug on polyhaven.com and record author and URL in `assets/CREDITS.md`. About 15 minutes of work; Poly Haven is CC0. |
-| B4 | **Own-code licence is CC0.** `LICENSE` puts the repository, which includes the game code, in the public domain. Anyone may legally copy, repackage and sell the game. This is not a third-party problem, but for a paid release it is the owner's decision. | `LICENSE` | Owner decides: keep CC0 (allowed on Steam, but no legal recourse against clones), or relicense future versions under "all rights reserved". Earlier commits stay CC0. The third-party CC0/MIT assets are unaffected either way. |
-| B5 | **AI-generated assets need declaring.** The CC0 licence is fine, but Hugging Face lists the 7 "Pixel Art Atlas" models as generated with an AI image model plus a pixel-art LoRA. Steam's content survey requires AI-generated content to be disclosed. | `home/pixel_{award_plaque,barbecue_grill,combination_safe,doghouse,footlocker,pet_bed,tall_trophy_cup}.glb` | Either declare them in the Steamworks AI disclosure (see CONTENT.md) or replace them with Kenney/Poly Haven/Quaternius CC0 equivalents, which removes the question. The barbecue, safe and doghouse all have CC0 equivalents. |
+| B1 | ~~UNKNOWN provenance: 4 surface texture sets~~ **RESOLVED 2026-11-21.** All four are Poly Haven CC0 sets: mulch = Brown Mud Leaves 01 (Rob Tuytel), paintwall = Painted Plaster Wall (Amal Kumar), pavers = Concrete Pavement (Charlotte Baglioni), plywood = Plywood (Rob Tuytel). Found by comparing every Poly Haven texture; all three maps match. | `tex/mulch_*`, `tex/paintwall_*`, `tex/pavers_*`, `tex/plywood_*` | Recorded in `assets/CREDITS.md`. Nothing replaced. |
+| B2 | ~~UNKNOWN provenance: 3 decal PNGs~~ **RESOLVED 2026-11-21.** ambientCG CC0: asphalt_patch = AsphaltDamage001, leak_a = Leaking012A, leak_b = Leaking016A (the leaks are wall drip streaks, alpha taken from the source colour map). | `world/leak_a.png`, `world/leak_b.png`, `world/asphalt_patch.png` | Recorded in `assets/CREDITS.md`. Nothing replaced. |
+| B3 | ~~UNKNOWN provenance: 4 models~~ **RESOLVED 2026-11-21.** Poly Haven CC0: grass_medium_02, shrub_02, potted_plant_02 (Rico Cilliers), pull_chain_light_socket (Josh Dean). The three world/ files are byte-for-byte equivalent exports (same vertex counts and bounds); potted_plant_02 is a simplified copy whose names, bounds and textures match. | `world/grass_medium_02.glb`, `world/shrub_02.glb`, `world/pull_chain_light_socket.glb`, `home/potted_plant_02.glb` | Recorded in `assets/CREDITS.md`. |
+| B4 | ~~Own-code licence is CC0~~ **RESOLVED.** `LICENSE` is now "Copyright (c) 2026 hereiszee. All rights reserved." (third-party components keep their own licences; versions published before the change stay CC0). | `LICENSE` | Done on main. |
+| B5 | **AI-generated assets: DISCLOSED (owner decision 2026-11-21).** The 7 Pixel Art Atlas models stay and are declared in the Steam content survey's pre-generated AI section; the exact text is in STORE.md ("Content survey: generative AI disclosure"). Original note: The CC0 licence is fine, but Hugging Face lists the 7 "Pixel Art Atlas" models as generated with an AI image model plus a pixel-art LoRA. Steam's content survey requires AI-generated content to be disclosed. | `home/pixel_{award_plaque,barbecue_grill,combination_safe,doghouse,footlocker,pet_bed,tall_trophy_cup}.glb` | Either declare them in the Steamworks AI disclosure (see CONTENT.md) or replace them with Kenney/Poly Haven/Quaternius CC0 equivalents, which removes the question. The barbecue, safe and doghouse all have CC0 equivalents. |
 | B6 | **Licence notices not shipped in-game.** The MIT notices for Rocketbox, three.js and meshoptimizer must be included with every copy of the game. Today they are only in repo markdown, and the game has no credits/licences screen (see below). | — | Add a "Credits & licences" screen to the main menu and also ship a `THIRD-PARTY-NOTICES.txt` in the depot. Text is provided below. |
 
+### B5 detail: where the 7 Pixel Art Atlas models are used (checked 2026-11-21; owner chose to disclose, not replace)
+
+Placed furniture in the house is **not** these models: `js/home.js` builds every one of these items procedurally (`FURN` builders for `plaque`, `trophy`, `safe`, `footlocker`, `grill`, `doghouse`, `dogbed`, home.js:938-958). The `.glb` files are only used in two places:
+
+| Model | Catalogue item (`js/save.js`) | Where it appears |
+|---|---|---|
+| `home/pixel_award_plaque.glb` | `plaque` "World's Okayest Dad Plaque" (save.js:136) | 3D thumbnail on the shop / storage card (Dadazon furniture tab, Hank's) via `gltfThumbs` (save.js:1354) |
+| `home/pixel_tall_trophy_cup.glb` | `trophy` "Fantasy League Trophy" (save.js:137) | shop / storage thumbnail |
+| `home/pixel_combination_safe.glb` | `safe` "Combination Safe" (save.js:142) | shop / storage thumbnail **and** a set-dressing prop in Doug's raid (*The Kingpin*) boss room (`js/world.js:305` EXTRA_MODELS, placed at world.js:657) |
+| `home/pixel_footlocker.glb` | `footlocker` "Army Footlocker" (save.js:144) | shop / storage thumbnail |
+| `home/pixel_barbecue_grill.glb` | `grill` "Kettle Grill Upgrade" (save.js:145) | shop / storage thumbnail |
+| `home/pixel_doghouse.glb` | `doghouse` "Biscuit Manor" (save.js:150) | shop / storage thumbnail |
+| `home/pixel_pet_bed.glb` | `dogbed` "Orthopedic Dog Bed" (save.js:151) | shop / storage thumbnail |
+
+**Replacement estimate: about half a day.** (1) Thumbnails: point the 7 catalogue entries at the existing procedural builders instead of a `.glb` (expose home.js's `FURN` builders to the thumbnail renderer, or render a `model:null` item from the builder), then check the 7 cards in the shop: 2-3 h. This also makes the shop card match what you actually get in the house. (2) The Kingpin safe: reuse the procedural `safe` builder, or swap in a CC0 Poly Haven/Kenney safe-like prop, and check the boss room: about 1 h. (3) Delete the 7 files, rebuild `assets/opt/`, drop the CREDITS row, and answer "no pre-generated AI content" in the survey: under 1 h. Low risk: the in-house versions already exist and are what players see in the house.
+
 Not blockers, but they should be fixed in the same pass:
-- **Stale credits rows.** `assets/CREDITS.md` lists `chars/dad_beard.glb`, `dad_worker`, `thug_hoodie`, `thug_punk`, `boss_suit`, `props/gun_*.glb` and a whole `guns2/` folder. None of these files exist any more. Delete those rows so the credits match what ships.
-- `world/hanging_industrial_lamp.glb` and `world/shrub_04.glb` are separate exports of assets that are credited under `home/`. Add explicit `world/` rows.
-- The `people/rocketbox/README.md` says "13 characters"; the folder ships 33. Fix the docs.
-- `oga_m4a1.glb`: credits say BigWhyaaa, CC0, OpenGameArt. When checked on 2026-11-21 the source page returned HTTP 403, so the licence could not be confirmed again. Save a copy or screenshot of the licence page as evidence before release.
+- **Stale credits rows (FIXED 2026-11-21).** `assets/CREDITS.md` listed `chars/dad_beard.glb`, `dad_worker`, `thug_hoodie`, `thug_punk`, `boss_suit`, `props/gun_*.glb` and a whole `guns2/` folder. None of these files exist any more. Those rows are deleted.
+- `world/hanging_industrial_lamp.glb` and `world/shrub_04.glb` are separate exports of assets that are credited under `home/`. Explicit `world/` rows added (FIXED).
+- The `people/rocketbox/README.md` said "13 characters"; the folder ships 33. Fixed.
+- `oga_m4a1.glb` (RESOLVED 2026-11-21): the OpenGameArt page answers again and says "Author: nisu", "License(s): CC0" (upstream 3dmodelscc0.com, now 404). BigWhyaaa was only a commenter; credits corrected. Evidence: `docs/steam/evidence/oga_m4a1.txt`.
 - Poly Haven home additions are credited only as "Poly Haven contributors". That is fine for CC0, but the credits screen will look better with names, which the asset pages list.
 - `assets/og.jpg` (web link preview) and the repo-root `pause.png` (1280×760, not referenced by any code) have no recorded origin. Neither needs to be in the Steam depot. Leave them out of the build (see below).
 - Not shipped and not in the inventory, but check they stay out of the depot: `dev/` (contains `bg_hub_*.jpg` and test pages), `legacy/`, `tools/`, `docs/`, `assets/people/rocketbox/test.html`.
@@ -28,9 +44,9 @@ Not blockers, but they should be fixed in the same pass:
 
 | Thing | How it ships today | Author | Licence | Commercial | Attribution | Evidence | Status |
 |---|---|---|---|---|---|---|---|
-| three.js r128 `three.min.js` | CDN: cdnjs.cloudflare.com (`index.html:71`) | three.js authors (mrdoob and contributors) | MIT | yes | MIT notice must accompany copies | three.js repo LICENSE (MIT); not vendored in repo | NEEDS ATTRIBUTION |
-| three.js r128 examples: GLTFLoader, RGBELoader, SkeletonUtils, EffectComposer, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader | CDN: cdn.jsdelivr.net combine (`index.html:73`) | three.js authors (FXAA shader after NVIDIA/T. Lottes, bloom after a three.js contributor) | MIT (as part of the three.js package) | yes | same notice as three.js | npm three@0.128.0 package licence | NEEDS ATTRIBUTION |
-| `meshopt_decoder.js` (three@0.128.0/examples/js/libs) | CDN: jsdelivr (`index.html:73`) | Arseny Kapoulkine (meshoptimizer) | MIT | yes | MIT notice | meshoptimizer licence (MIT) | NEEDS ATTRIBUTION |
+| three.js r128 `three.min.js` | vendored: `vendor/three-r128/` (was CDN) | three.js authors (mrdoob and contributors) | MIT | yes | MIT notice must accompany copies | three.js repo LICENSE (MIT); vendor/three-r128/LICENSE | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
+| three.js r128 examples: GLTFLoader, RGBELoader, SkeletonUtils, EffectComposer, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader | vendored: `vendor/three-r128/` (was CDN) | three.js authors (FXAA shader after NVIDIA/T. Lottes, bloom after a three.js contributor) | MIT (as part of the three.js package) | yes | same notice as three.js | npm three@0.128.0 package licence | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
+| `meshopt_decoder.js` (three@0.128.0/examples/js/libs) | vendored: `vendor/three-r128/` (was CDN) | Arseny Kapoulkine (meshoptimizer) | MIT | yes | MIT notice | meshoptimizer licence (MIT) | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
 | Google Fonts CSS `@import` (Barlow, Barlow Condensed, Bowlby One) | `css/menus.css:5` fetches from fonts.googleapis.com, a duplicate of the self-hosted woff2 files | see fonts rows | OFL 1.1 | yes | — | — | OK (remove the @import for the Steam build: it is a network call and a privacy point) |
 | Service worker `sw.js` | own code | High Trust | repo licence | — | — | — | OK (disable it in the desktop wrapper; see QA-GAPS.md) |
 | Horn tunes (`js/carai.js:67-74`): Shave and a Haircut (1899), Ode to Joy (Beethoven 1824), Take Me Out to the Ball Game (von Tilzer/Norworth 1908), Für Elise (Beethoven), William Tell Overture (Rossini 1829), The Entertainer (Joplin 1902) | note data, synthesized | composers listed | public domain compositions; no recordings used | yes | no | `assets/credits/menus.md` | OK |
@@ -38,26 +54,28 @@ Not blockers, but they should be fixed in the same pass:
 | Effects textures, vehicles, in-world signage, icons | procedural (`js/fx.js`, `js/vehicles.js`, `js/world.js`, `js/save.js`) | High Trust | repo licence | yes | no | `assets/credits/fx.md`, `CREDITS.md` "Vehicles" | OK |
 | Build tools (not shipped): glTF-Transform 4.1.1 (MIT), meshoptimizer 0.22.0 (MIT), sharp 0.33.5 (Apache-2.0, bundles libvips LGPL-3.0), Blender 5.0 (GPL; its output is not covered by the GPL) | `tools/package.json`, `tools/rocketbox/*` | — | — | — | not needed (not distributed) | — | OK |
 
-**For Steam, vendor the libraries.** Copy `three.min.js` r128 and the ten example files into `vendor/three-r128/`, along with three.js's `LICENSE`. A Steam build must run offline, so it should not load code from a CDN. See QA-GAPS.md.
+**Done: the libraries are vendored.** `three.min.js` r128 and the ten example files are in `vendor/three-r128/` with three.js's `LICENSE` and meshoptimizer's licence (provenance in `vendor/README.md`), and index.html loads them locally. The Google Fonts `@import` is gone (the fonts were already local). Desktop packages also carry `THIRD-PARTY-NOTICES.txt` at the install root.
 
 ## Does the game have a credits screen?
 
 **No, not in the sense Steam or the licences need.** The only credits are the in-fiction roll at the end of the finale (`js/jobs/_finale-fest.js:139-151`). It lists the characters ("Gary · spreadsheets, morale, one pivot table", and so on), it only appears after the last mission, and it names no developer or third-party asset. The title and pause menus have no Credits or Licences entry (`js/save.js`, `docs/design/MENUS.md`). Fix: add **Main menu → Credits** showing the text below, and put a link to it from the end of the finale roll.
 
-## In-game CREDITS text (ready to paste)
+## In-game CREDITS text
+
+**Single source of truth: `assets/credits/credits.txt`.** The in-game Credits screen loads or embeds that file verbatim; edit it there, never in code, and copy it here when it changes. Copy as of 2026-11-21:
 
 ```
 HIGH TRUST
 
 Design, code, procedural art, music and sound
-  [Studio / developer name]
+  hereiszee
 
-Built with three.js (r128), © three.js authors, MIT License
-Mesh decoding: meshoptimizer, © Arseny Kapoulkine, MIT License
+Built with three.js (r128), (c) three.js authors, MIT License
+Mesh decoding: meshoptimizer, (c) Arseny Kapoulkine, MIT License
 
 PEOPLE
 Characters and motion capture: Microsoft Rocketbox Avatar Library
-  © 2020 Microsoft, MIT License (modified: retextured, re-rigged, retargeted)
+  (c) 2020 Microsoft, MIT License (modified: retextured, re-rigged, retargeted)
 Additional animation: Quaternius, Universal Animation Library 1 & 2 (CC0)
 Family stand-ins and animation: Quaternius, Ultimate Modular Characters,
   Ultimate Animated Animals (CC0)
@@ -66,19 +84,18 @@ WORLD
 Textures, HDRI sky and props: Poly Haven (CC0)
   Rob Tuytel, Greg Zaal, Jarod Guest, Dimitrios Savva, Rico Cilliers,
   Guillaume Monsergent, Jenelle van Heerden, Charlotte Baglioni,
-  Dario Barresi, Sergej Majboroda, Josh Dean, GurJas Studios,
+  Dario Barresi, Sergej Majboroda, Amal Kumar, Josh Dean, GurJas Studios,
   Jorge Camacho, Serhii Khromov, Kirill Sannikov, Ethan Place,
   Aron Łyczek, Benny Weimer, MP, James Ray Cock, Rahul Chaudhary,
   Jurita Burger, Kuutti Siitonen, Amin, Ulan Cabanilla, Gabriel Radić,
   Antanas Kep, Yann Kervran, John Hutcheson, Satyaki Mandal,
   Mateusz Sadek, and the Poly Haven contributors
-Textures: ambientCG, Lennart Demes (CC0)
+Textures and decals: ambientCG, Lennart Demes (CC0)
 Models: Kenney, Car Kit, Furniture Kit, Mini Arena (CC0)
 Models: Quaternius, Stylized Nature MegaKit (CC0)
-Models: lucian-pavel (crates and pallet), braveo (mailbox),
-  BigWhyaaa (carbine), via OpenGameArt (CC0)
-[Pixel Art Atlas models, CodePawl / Angais (CC0), only if kept]
-[rows for B1–B3 once their sources are confirmed]
+Models via OpenGameArt (CC0): lucian-pavel (crates and pallet),
+  braveo (mailbox), nisu (carbine, from 3dmodelscc0.com)
+Furniture icons: Pixel Art Atlas GLB models, CodePawl / Angais (CC0)
 
 TYPE
 Barlow and Barlow Condensed by Jeremy Tribby; Bowlby One by Vernon Adams
@@ -92,11 +109,11 @@ Full licence texts: see THIRD-PARTY-NOTICES.txt in the install folder.
 Thank you to everyone who gives their work away.
 ```
 
-`THIRD-PARTY-NOTICES.txt` must contain the full MIT text three times, once each for Microsoft Rocketbox (© 2020 Microsoft; the text is already in `assets/people/rocketbox/CREDITS.md`), three.js (© 2010-2021 three.js authors) and meshoptimizer (© Arseny Kapoulkine), plus the three `assets/fonts/OFL-*.txt` files.
+`THIRD-PARTY-NOTICES.txt` (written: `assets/credits/THIRD-PARTY-NOTICES.txt`; copy it to the depot root at build time) must contain the full MIT text three times, once each for Microsoft Rocketbox (© 2020 Microsoft; the text is already in `assets/people/rocketbox/CREDITS.md`), three.js (© 2010-2021 three.js authors) and meshoptimizer (© Arseny Kapoulkine), plus the three `assets/fonts/OFL-*.txt` files.
 
 ## Full asset inventory (every file under `assets/`, excluding `assets/opt/` build outputs)
 
-Generated from the file tree on 2026-11-21 and checked against the credits files. Counts: 263 files, 202 OK, 42 NEEDS ATTRIBUTION (Rocketbox MIT and font binaries), 19 UNKNOWN.
+Generated from the file tree on 2026-11-21 and checked against the credits files. Counts: 263 files, 221 OK, 42 NEEDS ATTRIBUTION (Rocketbox MIT and font binaries), 0 UNKNOWN. Updated 2026-11-21 on `work/release-content`: the 19 former UNKNOWN files were matched to their official CC0 sources (see the B1-B3 rows).
 
 | File | Source | Author | Licence | Commercial | Attribution | Evidence | Status |
 |---|---|---|---|---|---|---|---|
@@ -121,7 +138,7 @@ Generated from the file tree on 2026-11-21 and checked against the credits files
 | `fonts/barlow-condensed-700.woff2` | Google Fonts "Barlow Condensed" (Latin subset) | Jeremy Tribby | SIL OFL 1.1 | yes | licence text must ship with the font (present); no in-game credit required | assets/CREDITS.md + OFL-*.txt | NEEDS ATTRIBUTION |
 | `fonts/barlow-condensed-800.woff2` | Google Fonts "Barlow Condensed" (Latin subset) | Jeremy Tribby | SIL OFL 1.1 | yes | licence text must ship with the font (present); no in-game credit required | assets/CREDITS.md + OFL-*.txt | NEEDS ATTRIBUTION |
 | `fonts/bowlby-one-400.woff2` | Google Fonts "Bowlby One" (Latin subset) | Vernon Adams | SIL OFL 1.1 | yes | licence text must ship with the font (present); no in-game credit required | assets/CREDITS.md + OFL-*.txt | NEEDS ATTRIBUTION |
-| `guns/oga_m4a1.glb` | OpenGameArt "M4A1 Assault Rifle" (opengameart.org/content/m4a1-assault-rifle) | BigWhyaaa | CC0 1.0 | yes | no | assets/credits/guns.md | OK (documented; source page returned 403 to our check, re-verify and save a copy of the page) |
+| `guns/oga_m4a1.glb` | OpenGameArt "M4A1 Assault Rifle" (https://opengameart.org/content/m4a1-assault-rifle), originally from 3dmodelscc0.com; page re-checked 2026-11-21 (HTTP 200: "Author: nisu", "License(s): CC0"); node names and normal map match the page's m4a1.zip | nisu | CC0 1.0 | yes | no | assets/credits/guns.md, docs/steam/evidence/oga_m4a1.txt | OK |
 | `guns/ph_bolt_rifle.glb` | Poly Haven "Bolt Action Rifle 7.62" | Mateusz Sadek | CC0 1.0 | yes | no | assets/credits/guns.md | OK |
 | `guns/ph_pistol.glb` | Poly Haven "Service Pistol" | Mateusz Sadek | CC0 1.0 | yes | no | assets/credits/guns.md | OK |
 | `home/ArmChair_01.glb` | Poly Haven "ArmChair_01" | Kirill Sannikov | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
@@ -172,16 +189,16 @@ Generated from the file tree on 2026-11-21 and checked against the credits files
 | `home/outdoor_table_chair_set_01.glb` | Poly Haven "outdoor_table_chair_set_01" | Poly Haven contributors (individual authors not recorded) | CC0 1.0 | yes | no | assets/CREDITS.md (Home interior additions) | OK |
 | `home/painted_wooden_chair_02.glb` | Poly Haven "painted_wooden_chair_02" | Kirill Sannikov | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `home/painted_wooden_nightstand.glb` | Poly Haven "painted_wooden_nightstand" | Poly Haven contributors (individual authors not recorded) | CC0 1.0 | yes | no | assets/CREDITS.md (Home interior additions) | OK |
-| `home/pixel_award_plaque.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_barbecue_grill.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_combination_safe.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_doghouse.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_footlocker.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_pet_bed.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
-| `home/pixel_tall_trophy_cup.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK licence-wise, but AI-GENERATED: must be declared in Steam AI disclosure, or replace |
+| `home/pixel_award_plaque.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_barbecue_grill.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_combination_safe.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_doghouse.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_footlocker.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_pet_bed.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
+| `home/pixel_tall_trophy_cup.glb` | "Pixel Art Atlas" GLB dataset (huggingface.co/datasets/codepawl/pixel-atlas-glb) | CodePawl / Angais; dataset page lists the assets as generated with an AI image model + pixel-art LoRA | CC0 1.0 | yes (as licensed) | no | assets/CREDITS.md + dataset page (checked 2026-11-21) | OK (CC0); AI-generated, **disclosed** in the Steam content survey (STORE.md) |
 | `home/planter_box_01.glb` | Poly Haven "planter_box_01" | Poly Haven contributors (individual authors not recorded) | CC0 1.0 | yes | no | assets/CREDITS.md (Home interior additions) | OK |
 | `home/pliers.glb` | Poly Haven "pliers" | Poly Haven contributors (individual authors not recorded) | CC0 1.0 | yes | no | assets/CREDITS.md (Home interior additions) | OK |
-| `home/potted_plant_02.glb` | NOT RECORDED (node/texture names follow Poly Haven naming "potted_plant_02_*"; likely Poly Haven but no record) | ? | ? | ? | ? | glTF node names only | UNKNOWN |
+| `home/potted_plant_02.glb` | Poly Haven "potted_plant_02" (https://polyhaven.com/a/potted_plant_02); simplified/quantized copy: all node, material and image names match, bounds within 3 mm, textures match; checked 2026-11-21 | Rico Cilliers | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
 | `home/potted_plant_04.glb` | Poly Haven "potted_plant_04" | James Ray Cock | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `home/propane_tank.glb` | Poly Haven "propane_tank" | Poly Haven contributors (individual authors not recorded) | CC0 1.0 | yes | no | assets/CREDITS.md (Home interior additions) | OK |
 | `home/round_wooden_table_02.glb` | Poly Haven "round_wooden_table_02" | Ulan Cabanilla | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
@@ -299,21 +316,21 @@ Generated from the file tree on 2026-11-21 and checked against the credits files
 | `tex/metal_col.jpg` | Poly Haven "Corrugated Iron" (polyhaven.com/a/corrugated_iron) | Jenelle van Heerden, Dimitrios Savva | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/metal_nrm.jpg` | Poly Haven "Corrugated Iron" (polyhaven.com/a/corrugated_iron) | Jenelle van Heerden, Dimitrios Savva | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/metal_rgh.jpg` | Poly Haven "Corrugated Iron" (polyhaven.com/a/corrugated_iron) | Jenelle van Heerden, Dimitrios Savva | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
-| `tex/mulch_col.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/mulch_nrm.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/mulch_rgh.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/paintwall_col.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/paintwall_nrm.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/paintwall_rgh.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/pavers_col.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/pavers_nrm.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/pavers_rgh.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
+| `tex/mulch_col.jpg` | Poly Haven "Brown Mud Leaves 01" (https://polyhaven.com/a/brown_mud_leaves_01); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/mulch_nrm.jpg` | Poly Haven "Brown Mud Leaves 01" (https://polyhaven.com/a/brown_mud_leaves_01); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/mulch_rgh.jpg` | Poly Haven "Brown Mud Leaves 01" (https://polyhaven.com/a/brown_mud_leaves_01); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/paintwall_col.jpg` | Poly Haven "Painted Plaster Wall" (https://polyhaven.com/a/painted_plaster_wall); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Amal Kumar | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/paintwall_nrm.jpg` | Poly Haven "Painted Plaster Wall" (https://polyhaven.com/a/painted_plaster_wall); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Amal Kumar | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/paintwall_rgh.jpg` | Poly Haven "Painted Plaster Wall" (https://polyhaven.com/a/painted_plaster_wall); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Amal Kumar | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/pavers_col.jpg` | Poly Haven "Concrete Pavement" (https://polyhaven.com/a/concrete_pavement); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Charlotte Baglioni | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/pavers_nrm.jpg` | Poly Haven "Concrete Pavement" (https://polyhaven.com/a/concrete_pavement); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Charlotte Baglioni | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/pavers_rgh.jpg` | Poly Haven "Concrete Pavement" (https://polyhaven.com/a/concrete_pavement); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Charlotte Baglioni | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
 | `tex/plaster_col.jpg` | Poly Haven "Decrepit Wallpaper" (polyhaven.com/a/decrepit_wallpaper) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/plaster_nrm.jpg` | Poly Haven "Decrepit Wallpaper" (polyhaven.com/a/decrepit_wallpaper) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/plaster_rgh.jpg` | Poly Haven "Decrepit Wallpaper" (polyhaven.com/a/decrepit_wallpaper) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
-| `tex/plywood_col.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/plywood_nrm.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
-| `tex/plywood_rgh.jpg` | NOT RECORDED in any credits file; first appears in squashed import commit 6d95d66; no metadata | ? | ? | ? | ? | none | UNKNOWN |
+| `tex/plywood_col.jpg` | Poly Haven "Plywood" (https://polyhaven.com/a/plywood); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/plywood_nrm.jpg` | Poly Haven "Plywood" (https://polyhaven.com/a/plywood); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `tex/plywood_rgh.jpg` | Poly Haven "Plywood" (https://polyhaven.com/a/plywood); identified 2026-11-21 by image match against all 853 Poly Haven textures (mean diff 0.1/255 vs 3-7/255 for the next best) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
 | `tex/roof_col.jpg` | Poly Haven "Grey Roof 01" (polyhaven.com/a/grey_roof_01) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/roof_nrm.jpg` | Poly Haven "Grey Roof 01" (polyhaven.com/a/grey_roof_01) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
 | `tex/roof_rgh.jpg` | Poly Haven "Grey Roof 01" (polyhaven.com/a/grey_roof_01) | Rob Tuytel | CC0 1.0 | yes | no | assets/CREDITS.md | OK |
@@ -354,12 +371,12 @@ Generated from the file tree on 2026-11-21 and checked against the credits files
 | `tex2/stucco_col.jpg` | Poly Haven White Stucco 02 | Dimitrios Savva | CC0 1.0 | yes | no | assets/credits/world.md (Building textures table) | OK |
 | `tex2/stucco_nrm.jpg` | Poly Haven White Stucco 02 | Dimitrios Savva | CC0 1.0 | yes | no | assets/credits/world.md (Building textures table) | OK |
 | `tex2/stucco_rgh.jpg` | Poly Haven White Stucco 02 | Dimitrios Savva | CC0 1.0 | yes | no | assets/credits/world.md (Building textures table) | OK |
-| `world/asphalt_patch.png` | NOT RECORDED in any credits file; no image metadata; first appears in squashed import 6d95d66 | ? | ? | ? | ? | none | UNKNOWN |
-| `world/grass_medium_02.glb` | NOT RECORDED (Blender-exported glTF whose node/texture names "grass_medium_02_diff/_nor_gl/_rough" follow Poly Haven naming; likely Poly Haven but no record) | ? | ? | ? | ? | glTF names only | UNKNOWN |
-| `world/hanging_industrial_lamp.glb` | Poly Haven "hanging_industrial_lamp" (same asset as assets/home/hanging_industrial_lamp.glb, credited there; this copy is a separate export, Blender I/O generator) | Poly Haven contributors | CC0 1.0 | yes | no | assets/CREDITS.md (home list), inferred same source | OK (add explicit row for the world/ copy) |
-| `world/leak_a.png` | NOT RECORDED in any credits file; no image metadata; first appears in squashed import 6d95d66 | ? | ? | ? | ? | none | UNKNOWN |
-| `world/leak_b.png` | NOT RECORDED in any credits file; no image metadata; first appears in squashed import 6d95d66 | ? | ? | ? | ? | none | UNKNOWN |
-| `world/pull_chain_light_socket.glb` | NOT RECORDED (Blender-exported glTF whose node/texture names "pull_chain_light_socket_diff/_nor_gl/_rough" follow Poly Haven naming; likely Poly Haven but no record) | ? | ? | ? | ? | glTF names only | UNKNOWN |
-| `world/shrub_02.glb` | NOT RECORDED (Blender-exported glTF whose node/texture names "shrub_02_diff/_nor_gl/_rough" follow Poly Haven naming; likely Poly Haven but no record) | ? | ? | ? | ? | glTF names only | UNKNOWN |
-| `world/shrub_04.glb` | Poly Haven "shrub_04" (same asset as assets/home/shrub_04.glb, credited there; this copy is a separate export, Blender I/O generator) | Poly Haven contributors | CC0 1.0 | yes | no | assets/CREDITS.md (home list), inferred same source | OK (add explicit row for the world/ copy) |
+| `world/asphalt_patch.png` | ambientCG "AsphaltDamage001" (https://ambientcg.com/a/AsphaltDamage001); alpha = source opacity map (correlation 1.000); checked 2026-11-21 | ambientCG (Lennart Demes) | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/grass_medium_02.glb` | Poly Haven "grass_medium_02" (https://polyhaven.com/a/grass_medium_02); unmodified 1k glTF: node names, vertex counts and bounding boxes identical; checked 2026-11-21 | Rico Cilliers | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/hanging_industrial_lamp.glb` | Poly Haven "hanging_industrial_lamp" (same asset as assets/home/hanging_industrial_lamp.glb, credited there; this copy is a separate export, Blender I/O generator) | Poly Haven contributors | CC0 1.0 | yes | no | assets/CREDITS.md (home list), inferred same source | OK (explicit world/ row added to assets/CREDITS.md) |
+| `world/leak_a.png` | ambientCG "Leaking012A" (https://ambientcg.com/a/Leaking012A); alpha = inverted source colour map (correlation 0.994); checked 2026-11-21 | ambientCG (Lennart Demes) | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/leak_b.png` | ambientCG "Leaking016A" (https://ambientcg.com/a/Leaking016A); alpha = inverted source colour map (correlation 0.998); checked 2026-11-21 | ambientCG (Lennart Demes) | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/pull_chain_light_socket.glb` | Poly Haven "pull_chain_light_socket" (https://polyhaven.com/a/pull_chain_light_socket); unmodified 1k glTF: node names, vertex counts and bounding boxes identical; checked 2026-11-21 | Josh Dean | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/shrub_02.glb` | Poly Haven "shrub_02" (https://polyhaven.com/a/shrub_02); unmodified 1k glTF: node names, vertex counts and bounding boxes identical; checked 2026-11-21 | Rico Cilliers | CC0 1.0 | yes | no | assets/CREDITS.md (re-established 2026-11-21) | OK |
+| `world/shrub_04.glb` | Poly Haven "shrub_04" (same asset as assets/home/shrub_04.glb, credited there; this copy is a separate export, Blender I/O generator) | Poly Haven contributors | CC0 1.0 | yes | no | assets/CREDITS.md (home list), inferred same source | OK (explicit world/ row added to assets/CREDITS.md) |
 | `world/wooden_picnic_table.glb` | Poly Haven "wooden_picnic_table" | Poly Haven contributors | CC0 1.0 | yes | no | assets/credits/world.md + CREDITS.md home list | OK |

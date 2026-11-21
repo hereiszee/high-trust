@@ -310,7 +310,7 @@ J.register('cones',{
   interact(prompt){return undefined},
   test:{give(a){const h=window.__ht,s=a.SV();for(const id of['gary','rick','earl','benny','tail']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
       if(s&&s.world)s.world.bridgeOpen=true;if(s&&s.flags){s.flags.act2Intro=true;s.flags.boxTruckPlate=s.flags.boxTruckPlate||PLATE0}if(h&&h.prog)h.prog.act=Math.max(h.prog.act||1,2);
-      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_gary','dad_dave','earl','nb_gran','thug_hoodie','thug_track','thug_beanie','thug_red','boss','benny','rosa','dee'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
+      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_gary','dad_dave','earl','nb_gran','thug_hoodie','thug_red','thug_cap','thug_jacket','boss','benny','rosa','dee'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),cpNode:false,read:readBlock,
     sample:()=>({ph:'build',stock:{cone:8,sawhorse:2,sign:1,flare:2},lot:[],crew:[]})}
 });

@@ -4,7 +4,7 @@ A browser shooter about a group of suburban dads who restore a high-trust neighb
 
 Play it: https://hereiszee.github.io/high-trust/
 
-It's a single `index.html` built on Three.js r128 (loaded from cdnjs). There's no build step. Open the file in a browser, or serve the folder with any static server.
+It's a single `index.html` built on Three.js r128 (vendored in `vendor/`, no network needed). There's no build step. Open the file in a browser, or serve the folder with any static server.
 
 ## Controls
 
@@ -26,6 +26,10 @@ It's a single `index.html` built on Three.js r128 (loaded from cdnjs). There's n
 | Shift / Space / H | Drive: boost, handbrake, horn |
 
 On a phone, drag on the left half of the screen to move and on the right half to look. Use the on-screen buttons for everything else.
+
+With a controller (Xbox, PlayStation, Steam Deck): left stick moves, right stick looks, RT fires, LT aims while held, A uses or jumps, Y gets in or out, Menu pauses. The menus work with the D-pad, A and B. The full layout is under Pause → Key bindings.
+
+The desktop (Steam) build wraps this same page in Electron (`desktop/`). See `docs/steam/BUILD.md`.
 
 ## Missions
 

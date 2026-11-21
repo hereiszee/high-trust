@@ -402,9 +402,10 @@ function gadget(s,id){s=S(s);return s.gadgets[id]=isObj(s.gadgets[id])?s.gadgets
 /* perk(s,id) reads, perk(s,id,true) grants */
 function perk(s,id,on){s=S(s);if(on!==undefined){on=!!on;if(!!s.perks[id]!==on){s.perks[id]=on;if(mine(s))Save.touch('perks')}}return!!s.perks[id]}
 
-/* storage adapter: localStorage in the browser, a Map elsewhere (tests can swap it with Save.useStorage) */
+/* storage adapter: localStorage in the browser, HTDesktop.storage in the desktop shell, a Map elsewhere (tests can swap it with Save.useStorage) */
 function memStore(){const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),_m:m}}
-let store=(()=>{try{if(root.localStorage){const k='__ht_probe';root.localStorage.setItem(k,'1');root.localStorage.removeItem(k);return root.localStorage}}catch(e){}return memStore()})();
+let store=(()=>{/* desktop shell (desktop/preload.js): a file in the user's profile folder instead of localStorage */if(root.HTDesktop&&root.HTDesktop.storage)return root.HTDesktop.storage;
+  try{if(root.localStorage){const k='__ht_probe';root.localStorage.setItem(k,'1');root.localStorage.removeItem(k);return root.localStorage}}catch(e){}return memStore()})();
 const sGet=k=>{try{return store.getItem(k)}catch(e){return null}};
 const sSet=(k,v)=>{try{store.setItem(k,v);return true}catch(e){return false}};
 const sDel=k=>{try{store.removeItem(k)}catch(e){}};
@@ -1080,7 +1081,7 @@ function navMove(rootEl,dir,from){const list=navList(rootEl);if(!list.length)ret
 let current=null;
 Menus.isOpen=()=>!!current;Menus.close=()=>{if(current)current.close()};
 const LOGOS={
-  dadazon:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 22l24-12 24 12v26L32 60 8 48z" fill="#d7a86e"/><path d="M8 22l24 12 24-12M32 34v26" fill="none"/><path d="M20 16l24 12v8" fill="none" stroke="#f6f1e3" stroke-width="5"/><path d="M20 16l24 12v8" fill="none" stroke="#16181c" stroke-width="1.5"/><path d="M18 42c4 3 8 3 10 0 2 3 6 3 10 0" fill="none" stroke-width="3"/></g></svg>`,
+  dadazon:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 22l24-12 24 12v26L32 60 8 48z" fill="#d7a86e"/><path d="M8 22l24 12 24-12M32 34v26" fill="none"/><path d="M20 16l24 12v8" fill="none" stroke="#f6f1e3" stroke-width="5"/><path d="M20 16l24 12v8" fill="none" stroke="#16181c" stroke-width="1.5"/><path d="M20 46l6-5 6 5v7h-12z" fill="#2e5e3e" stroke-width="2.5"/></g></svg>`,
   hardware:`<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#f6f1e3" stroke="#16181c" stroke-width="3.5"/><path d="M32 8l5 11 7-3-2 11 8-2-4 8 6 3-12 7 2 6-10-2v12h-2V47l-10 2 2-6-12-7 6-3-4-8 8 2-2-11 7 3z" fill="#c23b2e" stroke="#16181c" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
   auto:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ffc94a"/><circle cx="32" cy="32" r="11" fill="#16181c"/><circle cx="32" cy="32" r="5" fill="#ffc94a"/></g></svg>`,
   mart:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 26l6-16h36l6 16z" fill="#f08a2c"/><path d="M8 26c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8" fill="#fff"/><rect x="12" y="34" width="40" height="24" fill="#f6f1e3"/><rect x="18" y="40" width="12" height="18" fill="#2fa39a"/><rect x="35" y="40" width="12" height="9" fill="#9fd1ef"/></g></svg>`,
@@ -1305,7 +1306,7 @@ function shopDetail(m,e){if(e.kind==='resale')return HT.Resale.detail(m,e);
     body=`<div class="htm-cmp">${cmp?`Compared with your <b>${esc(GUNS[cmp].name)}</b> <span class="htm-legend"><i class="up"></i>better <i class="down"></i>worse</span>`:st.state==='equipped'?'In your loadout':'Nothing to compare with'}</div>`+
       barsHTML(other?gunBars(other):null,gunBars(me))+gunFacts(me,other);
     if(g.unlock.collect&&st.state!=='equipped'&&st.state!=='owned'){const c=st.collect||{n:0,need:g.unlock.collect};
-      body+=`<div class="htm-collect"><span>Armory: pick up ${c.need} from thugs to get it free</span><span class="htm-meter"><i style="width:${100*c.n/c.need}%"></i></span><b>${c.n}/${c.need}</b></div>`}}
+      body+=`<div class="htm-collect"><span>Armory: pick up ${c.need} from crooks to get it free</span><span class="htm-meter"><i style="width:${100*c.n/c.need}%"></i></span><b>${c.n}/${c.need}</b></div>`}}
   else if(e.kind==='att'){const a=ATTACHMENTS[e.id];kicker=ATT_SLOTS.find(x=>x[0]===a.slot)[1]+' attachment';
     const owned=a.compat.filter(g=>s.owned.guns.includes(g)),eq=[s.loadout.p1,s.loadout.p2,s.loadout.side].filter(g=>g&&a.compat.includes(g));
     const pool=eq.length?[...new Set([...eq,...owned])]:owned.length?owned:a.compat;
@@ -1608,7 +1609,7 @@ const Locker={
       if(own){if(g.slot==='side')btns=inSlot?'<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>Your sidearm</span></button>':`<button class="htm-btn" data-nav data-act="equip" data-slot="side"><span>Holster it · Sidearm</span></button>`;
         else{btns=['p1','p2',...(s.garage.util.rack?['p3']:[])].map(k=>L[k]===id?`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span>In ${slotName[k]}</span></button>`:`<button class="htm-btn${k===tgt?'':' alt'}" data-nav data-act="equip" data-slot="${k}"><span>${L[k]?'Swap into':'Put in'} ${slotName[k]}</span></button>`).join('');
           if((inSlot==='p1'||inSlot==='p2')&&L.p2)btns+=`<button class="htm-ghost" data-nav data-act="swapp">⇅ Swap primaries</button>`;if(inSlot==='p2'||inSlot==='p3')btns+=`<button class="htm-ghost" data-nav data-act="unequip" data-slot="${inSlot}">Leave it home</button>`}}
-      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from thugs on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
+      else{const a=gunAvail(id);const how=g.unlock.gift==='rick'?'Coach Rick has this one. Maybe he\'ll lend it.':a.collect?`Pick up ${a.collect.need} from crooks on jobs${g.price?' · or '+money(g.price)+' at Maple Hardware':''}`:g.price?money(g.price)+' at Maple Hardware or on Dadazon':'';
         btns=`<button class="htm-btn off" data-nav data-act="noop" aria-disabled="true"><span><i class="htm-lock"></i>Not in your locker</span></button>`+(a.collect?`<div class="htm-collect"><span>${esc(how)}</span><span class="htm-meter"><i style="width:${100*a.collect.n/a.collect.need}%"></i></span><b>${a.collect.n}/${a.collect.need}</b></div>`:`<div class="htm-note">${esc(how)}</div>`)}
       const mods=g.att.map(sl=>{const a=(s.attOn[id]||{})[sl];return a?`<i class="on">${esc(ATTACHMENTS[a].name)}</i>`:''}).join('');
       return`<div class="htm-hero t-gun"><div class="htm-heroimg">${thumbHTML('gun',id,{gun:{type:id,attachments:gunMods(s.attOn[id])}})}</div>${inSlot?`<span class="htm-stamp s-eq">${slotName[inSlot]}</span>`:''}</div>

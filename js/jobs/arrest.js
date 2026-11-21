@@ -70,14 +70,14 @@ const ESCAPES=[{x:410.8,z:6,via:[{x:410.8,z:41.5}]},{x:410.8,z:70,via:[{x:410.8,
 /* ---------------- the cast ---------------- */
 /* four collectors: what they look like is fixed; which one is the skimmer is drawn per run. Vendor gossip splits them by hat and by what they carry. */
 const COLS=[
-  {id:'lime',  vest:'#b9e23f',trim:'#f4f6ef',label:'Lime vest',  hat:'cap',   hatCol:'#26375e',carry:'clip',charity:'the Rotary Club',      logo:'#1f4fa0',logoTxt:'ROTARY',
-    real:["Rotary Club! Twenty years on this corner!","Rotary! Youth league uniforms!","Every dollar to the youth league. Rotary!"],cleared:"I'm with the Rotary Club. I've been with them twenty years."},
+  {id:'lime',  vest:'#b9e23f',trim:'#f4f6ef',label:'Lime vest',  hat:'cap',   hatCol:'#26375e',carry:'clip',charity:'the Golden Spatula Club',      logo:'#1f4fa0',logoTxt:'SPATULA',
+    real:["Golden Spatula Club! Twenty years on this corner!","Spatula Club! Youth league uniforms!","Every dollar to the youth league. Flip for it!"],cleared:"I'm with the Golden Spatula Club. I've been with them twenty years."},
   {id:'orange',vest:'#ff8a2a',trim:'#f4f6ef',label:'Orange vest',hat:null,    carry:'clip',charity:'the Friends of the Library',logo:'#2f7a46',logoTxt:'LIBRARY',
     real:["Friends of the Library! New picture books!","Library fund! Story time needs chairs!","Books for the branch! Every little bit!"],cleared:"Friends of the Library, sir. We do a bake sale too. You'd remember the bake sale."},
   {id:'sky',   vest:'#56b8ec',trim:'#f4f6ef',label:'Blue vest',  hat:'cap',   hatCol:'#7a1f2a',carry:'tin', charity:'the Paws & Claws shelter',logo:'#c2482b',logoTxt:'PAWS',
     real:["Paws and Claws! Kibble for the kennels!","For the shelter dogs! Look at this face!","Paws and Claws! Every dollar feeds a dog!"],cleared:"Paws and Claws. There's a photo of Biscuit on the tin. Biscuit is real."},
-  {id:'violet',vest:'#a072dc',trim:'#f4f6ef',label:'Purple vest',hat:'bucket',hatCol:'#d9cfb1',carry:'tin', charity:'the Riverside Scouts',   logo:'#7a5a1f',logoTxt:'SCOUTS',
-    real:["Riverside Scouts! Camp fund!","Scouts! New tents this year!","Scout camp! Every dollar a marshmallow!"],cleared:"Riverside Scouts. I'm a den leader. I have a whistle. I've never needed the whistle."}];
+  {id:'violet',vest:'#a072dc',trim:'#f4f6ef',label:'Purple vest',hat:'bucket',hatCol:'#d9cfb1',carry:'tin', charity:'the Riverside Trail Club',   logo:'#7a5a1f',logoTxt:'TRAIL CLUB',
+    real:["Riverside Trail Club! Camp fund!","Trail Club! New tents this year!","Trail camp! Every dollar a marshmallow!"],cleared:"Riverside Trail Club. I'm a troop leader. I have a whistle. I've never needed the whistle."}];
 const SKIM_LINES=["For the garden! Every dollar goes to the garden! Mostly.","For the library! Kids need... books!","For the kids! The kids, generally!","Community fund! Very official!","For the garden! The big one. With plants."];
 /* the neighbour pool (SPEC3: casts come from HT.People's mixed pools; no one is marked out by who they are, only by what they do) */
 const ADULTS=['nb_pops','nb_office','nb_sweater','nb_kenji','nb_marcus','nb_mei','nb_lucia','nb_gran','nb_teen'];
@@ -98,7 +98,7 @@ const LINES={
   rosaRed:["Red. There's somebody behind him. Move.","Not with her behind him. Step left.","Crowd behind him. Find an angle."],
   rosaKids:["Stroller. Twenty metres. Not a chance.","There are kids right there. Put that away.","No. Kids. Further east."],
   rosaPanic:["People are looking. Holster it.","They've seen it. Put it away before somebody screams.","Too many eyes. Away. Now."],
-  wrong:[["you","Excuse me, sir—"],["you","...Great work. Love the Rotary."]],
+  wrong:[["you","Excuse me, sir—"],["you","...Great work. Love the spatula."]],
   hit:["OOF. Okay, wow, okay.","OW. That's a— that's a beanbag. Okay. I'm sitting down.","Hhhk. Fine. FINE. I'm down."],
   missRun:["Nope! Nope nope!","Not today, dad!","You MISSED! Ha— ow, my knee—"],
   crowdGasp:["Is that a— is that a gun?","Oh my god, he's got a—","Honey. Honey, walk.","Why does that man have a gun at a farmers' market?","Is this a movie?"],

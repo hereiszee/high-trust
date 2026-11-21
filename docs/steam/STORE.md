@@ -2,6 +2,12 @@
 
 Everything below comes from what is actually in the build (README, `docs/`, `js/jobs/*.js`, `index.html`, and QA-GAPS.md for the job and feature inventory). Asset sizes and rules were checked against Steamworks docs on 2026-11-21, and the sources are linked.
 
+## Developer and publisher
+
+- **Developer:** hereiszee
+- **Publisher:** hereiszee
+- **Copyright line** (store page legal area and the in-game credits): © 2026 hereiszee. All rights reserved. Third-party components remain under their own licences (see THIRD-PARTY-NOTICES.txt).
+
 ## Short description
 
 Valve asks for "a few hundred characters", plain text, with nothing time-based ([description](https://partner.steamgames.com/doc/store/page/description)). The common 300-character cap is not on any official page, but we keep to it anyway.
@@ -45,7 +51,7 @@ Somebody's been taking packages off porches in Maple Heights, and now nobody wav
 *Before publishing, check this copy against CONTENT.md and the open QA items:*
 - *"28 story jobs" counts the 27 story jobs plus the finale; recount if jobs are added or cut.*
 - *Leave "takes about 10 hours" out until timed play-throughs exist.*
-- *Don't claim controller support (see below).*
+- *Controller support can be claimed (Full, see below); key rebinding is in Pause → Key bindings.*
 - *Valve does not allow links or fake Steam UI in this section ([description](https://partner.steamgames.com/doc/store/page/description)).*
 
 ## Genre and tags
@@ -97,9 +103,16 @@ WebGL 2 through the bundled Chromium is the hard floor. Draw-call submission in 
 | Memory | 4 GB RAM | 8 GB RAM |
 | Graphics | WebGL 2 capable, 1 GB VRAM or shared (Intel UHD 620 / Radeon Vega 3, GTX 750) | 2 GB VRAM (GTX 1050 Ti / RX 570 or better) |
 | Storage | 1 GB available space | 1 GB available space |
-| Additional | Requires up-to-date GPU drivers; no internet connection needed (once the libraries are vendored, see QA-GAPS item 1) | — |
+| Additional | Requires up-to-date GPU drivers. No internet connection needed: three.js and every library are bundled with the game. | — |
 
-Add Linux and SteamOS only if a Linux depot is built (CHECKLIST B7). Add macOS only if it is tested.
+**macOS** (universal: Apple silicon and Intel) and **Linux / SteamOS** (x64, runs natively on Steam Deck) builds are produced by CI (`.github/workflows/desktop-build.yml`, docs/steam/BUILD.md), one depot per OS.
+
+| | macOS | Linux / SteamOS |
+|---|---|---|
+| OS | macOS 12 Monterey or later (Electron's floor) | 64-bit distribution with a current Mesa or vendor GPU driver; SteamOS 3 |
+| CPU / memory / graphics / storage | as Windows above | as Windows above |
+
+Tick macOS on the store page only after the first CI build has been played on a real Mac: BUILD.md notes it has not been run on Mac hardware yet.
 
 ## Supported languages
 
@@ -114,13 +127,26 @@ Add Linux and SteamOS only if a Linux depot is built (CHECKLIST B7). Add macOS o
 
 ## Controller support
 
-| Area | Status | Evidence |
-|---|---|---|
-| Shop and locker menus | Gamepad navigation works | `js/save.js:1044-1114`, tested by `dev/menus.e2e.js` |
-| Title, pause, briefs, results, calendar | Keyboard and mouse only | QA-GAPS item 8 |
-| On-foot movement, aiming, shooting, driving, flying | **Keyboard and mouse only** | no Gamepad API polling in the game loop |
+The game plays fully on a controller through the Gamepad API (`js/gamepad.js`; Xbox, PlayStation, Steam Deck and Switch Pro layouts in standard mapping):
+- **Gameplay:** walking, looking, aiming (hold LT), firing, reloading, crouch, jump, use/talk (hold works), switching guns, flashlight and night vision, driving (RT/LT throttle and brake, handbrake, horn, get in and out), map and pause.
+- **Menus:** title, pause, briefs, results, calendar, map and choice strips move focus with the D-pad or stick, A selects, B backs out; the shop and locker have their own pad navigation (`js/save.js`).
+- **Prompts** switch between keycaps and pad glyphs depending on the last device used. Keyboard and mouse keep working side by side.
+- **Key rebinding** for the keyboard: Pause → Key bindings (`js/keys.js`, tested by `dev/keys.e2e.js`), in the web and desktop builds.
+- **Steam Deck defaults:** Interface size 110% at 1280×800 (BUILD.md).
 
-**Declare "keyboard and mouse only" for launch**, or declare **Partial Controller Support** only after publishing a Steam Input template that maps the keyboard and mouse. Do not declare Full: Full requires that the controller reaches all content and that prompts match the controller ([controller questionnaire](https://store.steampowered.com/news/group/4145017/view/3684558162504860650), [Steam Input dev guide](https://partner.steamgames.com/doc/features/steam_controller/getting_started_for_devs)). Full support is also what Deck Verified needs ([steamdeck/compat](https://partner.steamgames.com/doc/steamdeck/compat)).
+**Declare Full Controller Support** in the controller questionnaire. Full requires that a controller reaches all content and that on-screen prompts match it ([controller questionnaire](https://store.steampowered.com/news/group/4145017/view/3684558162504860650), [Steam Input dev guide](https://partner.steamgames.com/doc/features/steam_controller/getting_started_for_devs)), which is also what Deck Verified checks ([steamdeck/compat](https://partner.steamgames.com/doc/steamdeck/compat)). Before ticking it, play one job start to finish on a real pad and on a Deck: the automated checks drive the game by script, not by a controller.
+
+## Content survey: generative AI disclosure
+
+Steamworks puts this in section 3 of the content survey, "Generative Artificial Intelligence Content". It distinguishes **Pre-Generated** content ("Any kind of content that ships with your game and is consumed by players" that is "created with the help of AI tools during development") from **Live-Generated** content ("created with the help of AI tools while the game is running", which also needs a description of guardrails). Valve says efficiency gains from AI tools in development environments are "not the focus of this section"; it is "concerned with the use of AI in creating content that ships with your game, and is consumed by players" ([contentsurvey](https://partner.steamgames.com/doc/gettingstarted/contentsurvey), read 2026-11-21). The public page does not show the form's own field labels; they are visible only inside the survey in Steamworks, so check the wording below against the form when filling it in.
+
+**Pre-Generated: yes.** Paste into the description field:
+
+> Seven small household prop models (an award plaque, a trophy cup, a combination safe, a footlocker, a barbecue grill, a doghouse and a pet bed) were made with an AI model generator by a third party and are used under CC0. They appear as thumbnails on the in-game shop and storage cards, and the safe also appears as one prop in one room. Everything else in the game is hand-written code, procedural art and sound generated by that code, or credited CC0/MIT assets made by people.
+
+**Live-Generated: no.** Nothing in the game generates content with AI while it runs.
+
+If Valve shows the pre-generated text on the store page, it is the paragraph above. Source of the AI status: the dataset page for the Pixel Art Atlas models (LICENCES.md B5, where the seven files and their uses are listed).
 
 ## Graphical assets: exact sizes
 

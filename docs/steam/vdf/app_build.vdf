@@ -1,0 +1,16 @@
+"AppBuild"
+{
+	"AppID" "APP_ID"            // TODO(owner): your app id
+	"Desc" "High Trust BUILD_DESC"
+	"BuildOutput" "../output/"   // steamcmd logs, relative to this file
+	"ContentRoot" "../../../desktop/dist/"
+	"SetLive" ""                // e.g. "beta" to push straight to a branch; never "default" from a script
+	"Preview" "0"               // "1" = dry run: lists files, uploads nothing
+
+	"Depots"
+	{
+		"WINDOWS_DEPOT_ID" "depot_build_windows.vdf"
+		"LINUX_DEPOT_ID"   "depot_build_linux.vdf"
+		"MAC_DEPOT_ID"     "depot_build_mac.vdf"
+	}
+}

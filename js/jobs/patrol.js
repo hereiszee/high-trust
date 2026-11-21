@@ -41,7 +41,7 @@ const LINES={
     bins:{find:"Bins blown into the road. Somebody's recycling is touring the neighbourhood.",fix:"Bins back on the kerb.",note:"Bins in the road by {h}. Stood them back up. Somebody drinks a lot of sparkling water."},
     light:{find:"Porch light's out. A dark porch is an invitation. A rude one.",fix:"Light's back on. It was loose. Most things are.",note:"Porch light out at {h}. Tightened the bulb. Let there be porch."},
     late:{find:"Two kids, out past the streetlights. 'We're going home! Slowly!'",take:"Come on, you two. I'll walk you to your corner.",fix:"Home. Their mom says thank you. And 'INSIDE. NOW.'",note:"Two kids out late near {h}. Walked them to {o}. They told me about Minecraft the whole way."},
-    pirate:{find:"Gray hoodie. Tote bag. He just picked up a parcel that isn't his.",talk:"That's not yours, friend. Put it back on the step.",back:"...Yeah. Okay. Okay. Sorry.",caught:"Okay! Okay! It's a nose hair trimmer, I don't even want it!",
+    pirate:{find:"Tote bag. Fast walk. He just picked up a parcel that isn't his.",talk:"That's not yours, friend. Put it back on the step.",back:"...Yeah. Okay. Okay. Sorry.",caught:"Okay! Okay! It's a nose hair trimmer, I don't even want it!",
       note:"Porch pirate at {h}. {how}. Parcel back on the step."},
     prowler:{find:"Somebody trying car door handles. One by one.",talk:"Evening! That's not your car. Or that one.",back:"I was... checking they were locked. For safety. ...I'm going.",caught:"Okay! I'm sitting! I'm sitting.",note:"Somebody trying car doors near {h}. {how}."}},
   chalkOpts:[{t:"That's a great dragon.",ok:true,a:"It's a DOG! ...It's a dragon-dog. Thanks!"},{t:"Move it to the driveway, buddy, cars come through here.",ok:true,a:"Okay! Driveway chalk is better chalk anyway."},{t:"I'll hose that off later.",ok:false,a:"...You're the worst Watch."}],
@@ -74,7 +74,7 @@ function plane(w,h,tex,x,y,z,p,ry,o){const T=T3();o=o||{};const m=tm(new T.MeshS
   const me=new T.Mesh(geoC('pl',()=>new T.PlaneGeometry(1,1)),m);me.scale.set(w,h,1);me.position.set(x,y,z);me.rotation.y=ry||0;if(o.flat){me.rotation.set(-Math.PI/2,0,ry||0)}me.castShadow=!!o.cast;me.receiveShadow=true;if(p)p.add(me);return me}
 
 /* ================= props ================= */
-function parcel(){const g=new(T3().Group)();bx(.46,.3,.36,'#b8874f',0,.15,0,g);bx(.47,.035,.08,'#d9c9a0',0,.3,0,g);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);bx(.06,.004,.06,'#f0a020',-.14,.302,.11,g);return g}
+function parcel(){const g=new(T3().Group)();bx(.46,.3,.36,'#b8874f',0,.15,0,g);bx(.47,.035,.08,'#d9c9a0',0,.3,0,g);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);bx(.06,.004,.06,'#3f8f5a',-.14,.302,.11,g);return g}
 function binModel(col){const g=new(T3().Group)(),body=new(T3().Group)();g.add(body);cy(.27,.86,col,0,.43,0,body,16);cy(.29,.05,'#2a2c30',0,.88,0,body,16);for(const s of[-1,1])cy(.08,.05,'#1d1f22',s*.2,.08,-.24,body,10,0,Math.PI/2);
   g.userData.body=body;return g}
 function binState(g,t){const b=g.userData.body;b.rotation.x=(1-t)*Math.PI/2;b.position.y=(1-t)*.27}
@@ -167,7 +167,7 @@ function buildEvent(M,s){const a=A(),P_=pt(M),e=s.ev,T=T3(),px=-s.fz,pz=s.fx;/* 
 function buildTrouble(M,t){const P_=pt(M),s=P_.stops[t.at];if(t.k==='pirate'){t.box={m:addP(M,parcel()),x:s.x+s.fx*.4+(-s.fz)*.6,z:s.z+s.fz*.4+s.fx*.6};t.box.m.position.set(t.box.x,0,t.box.z)}
   else{const a=A();/* parked at the kerb by the route, the prowler on the sidewalk side of it */const px_=s.sx+(-s.fz)*3.5,pz_=s.sz+s.fx*3.5;t.spot={x:px_,z:pz_};let x=px_+s.fx*2.3,z=pz_+s.fz*2.3;try{const q=a.wmSnapRoad&&a.wmSnapRoad(x,z);if(q&&Math.hypot(q.x-x,q.z-z)<6){x=q.x;z=q.z}}catch(_){}const car=a.makeVehicle('sedan','#6b6f75');if(car){car.position.set(x,0,z);car.rotation.y=Math.atan2(s.fz,-s.fx);addP(M,car);if(car.userData&&car.userData.dispose)R().own.push(car);a.wmCol({x0:x-2.4,x1:x+2.4,z0:z-1.1,z1:z+1.1})}t.car={x,z}}}
 /* people appear when the models are in (the neighbours stream on demand) */
-function castKeys(M){const P_=pt(M),k=new Set(['nb_kid','nb_teen','thug_hoodie','thug_cap','nb_kenji']);for(const s of P_.stops)k.add(s.role);return[...k]}
+function castKeys(M){const P_=pt(M),k=new Set(['nb_kid','nb_teen','thug_red','thug_cap','nb_kenji']);for(const s of P_.stops)k.add(s.role);return[...k]}
 function loadTick(M,dt,F){const P_=pt(M),pp=PP();P_.loadT=(P_.loadT||0)+dt;F.objs.push(['Doug is handing you the clipboard…',false]);const keys=castKeys(M);
   if(!P_.asked&&pp&&pp.preload){P_.asked=1;try{pp.preload(keys).catch(()=>{})}catch(_){}}const ready=!pp||keys.every(k=>pp.has&&pp.has(k));
   if(ready||P_.loadT>18){const a_=A(),me_=a_.CV?a_.CV.pos:a_.P.pos;P_.phase=Math.hypot(me_.x-P_.start.x,me_.z-P_.start.z)>60?'travel':'walk';spawnPeople(M);const a=A();const L_=P_.variant.night?LINES.doug.night:P_.variant.river?LINES.doug.river:LINES.doug.hi;L_.forEach(([w,t],i)=>a.radio(w,t,i===0));if(P_.variant.night)a.radio('doug',"Flashlight. F. Use it. It's not a weapon, it's a courtesy.");
@@ -176,7 +176,7 @@ function spawnPeople(M){const a=A(),P_=pt(M);for(const s of P_.stops){const e=s.
     if(e.k==='chalk'){const d=dude('nb_kid',{shirt:'#ff7aa8'});const x=s.sx+s.fx*.6+(-s.fz)*1.4,z=s.sz+s.fz*.6+s.fx*1.4;d.root.position.set(x,0,z);a.wmAdd(d.root);e.kid={d,x,z,yaw:0}}
     else if(e.k==='van'&&e.van){const d=dude('nb_kenji',{shirt:'#3a6fa0'});const x=e.van.x-s.fx*1.6,z=e.van.z-s.fz*1.6;d.root.position.set(x,0,z);a.wmAdd(d.root);e.man={d,x,z,yaw:0};turnTo(e.man,s.x,s.z,1,99)}
     else if(e.k==='late'){const roles=['nb_kid','nb_teen'];e.kids=roles.map((r,k)=>{const d=dude(r,{shirt:k?'#7fd1ff':'#ffd23f'});const x=s.sx+(-s.fz)*(1.4+k*.8),z=s.sz+s.fx*(1.4+k*.8);d.root.position.set(x,0,z);a.wmAdd(d.root);return{d,x,z,yaw:0}})}}
-  const t=P_.trouble;if(t){const s=P_.stops[t.at];const role=t.k==='pirate'?'thug_hoodie':'thug_cap';const d=dude(role,{shirt:'#6b6f75',hood:true});
+  const t=P_.trouble;if(t){const s=P_.stops[t.at];const role=t.k==='pirate'?'thug_red':'thug_cap';const d=dude(role,{shirt:'#6b6f75',hood:true});
     const x=t.k==='pirate'?s.sx+(-s.fz)*16:t.spot.x,z=t.k==='pirate'?s.sz+s.fx*16:t.spot.z;d.root.position.set(x,0,z);a.wmAdd(d.root);t.p={d,x,z,yaw:0};d.root.visible=false}}
 
 /* ---------- the notebook ---------- */
@@ -356,7 +356,7 @@ J.register(ID,{
   end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);if(!ok)return;pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBOURHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
   hud(state){state.weapon=null;state.weapons=[]},
   dev:{build,today,stars},
-  test:{give(a){const pp=PP();if(pp&&pp.preload)try{pp.preload(['nb_kid','nb_teen','thug_hoodie','thug_cap','nb_kenji'].concat(NBROLES)).catch(()=>{})}catch(_){}if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},
+  test:{give(a){const pp=PP();if(pp&&pp.preload)try{pp.preload(['nb_kid','nb_teen','thug_red','thug_cap','nb_kenji'].concat(NBROLES)).catch(()=>{})}catch(_){}if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},
     step:(a,t,o)=>bot(a,t,o),sample:()=>({pt:{seed:777,variant:{river:false,night:true,n:1}}}),cpNode:true}
 });
 

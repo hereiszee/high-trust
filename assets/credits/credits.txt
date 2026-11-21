@@ -1,0 +1,42 @@
+HIGH TRUST
+
+Design, code, procedural art, music and sound
+  hereiszee
+
+Built with three.js (r128), (c) three.js authors, MIT License
+Mesh decoding: meshoptimizer, (c) Arseny Kapoulkine, MIT License
+
+PEOPLE
+Characters and motion capture: Microsoft Rocketbox Avatar Library
+  (c) 2020 Microsoft, MIT License (modified: retextured, re-rigged, retargeted)
+Additional animation: Quaternius, Universal Animation Library 1 & 2 (CC0)
+Family stand-ins and animation: Quaternius, Ultimate Modular Characters,
+  Ultimate Animated Animals (CC0)
+
+WORLD
+Textures, HDRI sky and props: Poly Haven (CC0)
+  Rob Tuytel, Greg Zaal, Jarod Guest, Dimitrios Savva, Rico Cilliers,
+  Guillaume Monsergent, Jenelle van Heerden, Charlotte Baglioni,
+  Dario Barresi, Sergej Majboroda, Amal Kumar, Josh Dean, GurJas Studios,
+  Jorge Camacho, Serhii Khromov, Kirill Sannikov, Ethan Place,
+  Aron Łyczek, Benny Weimer, MP, James Ray Cock, Rahul Chaudhary,
+  Jurita Burger, Kuutti Siitonen, Amin, Ulan Cabanilla, Gabriel Radić,
+  Antanas Kep, Yann Kervran, John Hutcheson, Satyaki Mandal,
+  Mateusz Sadek, and the Poly Haven contributors
+Textures and decals: ambientCG, Lennart Demes (CC0)
+Models: Kenney, Car Kit, Furniture Kit, Mini Arena (CC0)
+Models: Quaternius, Stylized Nature MegaKit (CC0)
+Models via OpenGameArt (CC0): lucian-pavel (crates and pallet),
+  braveo (mailbox), nisu (carbine, from 3dmodelscc0.com)
+Furniture icons: Pixel Art Atlas GLB models, CodePawl / Angais (CC0)
+
+TYPE
+Barlow and Barlow Condensed by Jeremy Tribby; Bowlby One by Vernon Adams
+  SIL Open Font License 1.1
+
+MUSIC
+Horn tunes after public-domain compositions by Beethoven, Rossini,
+  Joplin, and von Tilzer & Norworth
+
+Full licence texts: see THIRD-PARTY-NOTICES.txt in the install folder.
+Thank you to everyone who gives their work away.
