@@ -7,10 +7,8 @@
    node dev/people-retry.js */
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
-(async()=>{const {b,p,errs}=await open();const hits={nb_kenji:0,nb_lucia:0};
-  await p.route(/assets\/people\/rocketbox\/(nb_kenji|nb_lucia)\.glb$/,async r=>{const k=/(nb_kenji|nb_lucia)/.exec(r.request().url())[1];hits[k]++;
-    if(k==='nb_lucia'||hits[k]<=2)return r.fulfill({status:404,body:'nope'});
-    const f=path.join(__dirname,'..','assets/people/rocketbox',k+'.glb');r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':'model/gltf-binary'}})});
+(async()=>{const hits={nb_kenji:0,nb_lucia:0};const {b,p,errs}=await open({beforeGoto:async p=>p.route(/rocketbox\/(nb_kenji|nb_lucia)[.\/]/,async r=>{const k=/(nb_kenji|nb_lucia)/.exec(r.request().url())[1];hits[k]++;/* the game asks for assets/opt/.../<key>.l.<hash>.glb */
+    if(k==='nb_lucia'||hits[k]<=2)return r.fulfill({status:404,body:'nope'});return r.fallback()})});
   await p.click('.ht-title [data-act=newgame]');await p.waitForTimeout(300);
   await p.evaluate(async()=>{const H=window.__ht;await H.jobs.ready;H.step(3);const PP=window.HT.People;PP.loadTuning.timeout=4000})/* shorter per-attempt timeout for the test */;
   const t0=Date.now();const pre=await p.evaluate(async()=>{const PP=window.HT.People;const r=await PP.preload(['nb_kenji','nb_lucia']);return{r,missing:Object.keys(PP.missing)}});const dt=Date.now()-t0;
