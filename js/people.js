@@ -16,12 +16,15 @@ const T=window.THREE;
 const BASE='assets/people/rocketbox/';
 const REF_HIP=.8952;
 /* street crews: one neutral streetwear look across a broad, even mix of people (no costume coding) */
-const THUGS=['thug_hoodie','thug_track','thug_beanie','thug_red','thug_fro','thug_jacket','thug_brown','thug_cap','thug_f_hood','thug_f_leather'];
+const THUGS=['thug_hoodie','thug_red','thug_cap','thug_jacket','thug_track','thug_f_hood','thug_fro','thug_f_leather','thug_beanie','thug_brown'];
+/* owner rule: the street crews are a mixed pool with no group in the majority, in every encounter. The first four (title-screen load, the
+   Maple raids) are two and two, and the shuffle bag alternates the two skin-tone halves of the pool so a fight never skews one way. */
+const TONE_A={thug_hoodie:1,thug_cap:1,thug_track:1,thug_fro:1,thug_beanie:1};
 /* Riverside Flats (on demand, only there): four job-givers, and a civilian neighbour pool drawn from the same broad mix as the street crews */
 const GIVERS=['earl','dee','rosa','benny'];
 const NEIGHBOURS=['nb_gran','nb_pops','nb_office','nb_sweater','nb_teen','nb_kid','nb_kenji','nb_marcus','nb_mei','nb_lucia'];
 const NB={};for(const k of NEIGHBOURS)NB[k]=1;
-const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red','boss','wife','son','daughter'].concat(THUGS.slice(4));
+const KEYS=['dad_player','dad_gary','dad_rick','dad_dave','dad_doug','thug_hoodie','thug_red','thug_cap','thug_jacket','boss','wife','son','daughter'].concat(THUGS.slice(4));
 const GAME_KEYS=KEYS.slice(0,10);/* in the ASSETS manifest (title-screen load); the other street-crew variants stream in right after, family on demand */
 const STREAM_KEYS=THUGS.slice(4);
 const ROLE={earl:'earl',dee:'dee',rosa:'rosa',benny:'benny',neighbour:NEIGHBOURS,you:'dad_player',player:'dad_player',gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug',boss:'boss',wife:'wife',son:'son',daughter:'daughter',
@@ -272,6 +275,7 @@ P.batchGun=batchGun;P.mergeStatic=mergeStatic;
 const bags={};
 function draw(list,role){const avail=list.filter(k=>tpl[k]||gltf(k));if(!avail.length)return list[0];let b=bags[role];
   if(!b||!b.q.length||b.n!==avail.length){const q=avail.slice();for(let i=q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q[i],q[j]]=[q[j],q[i]]}
+    if(role==='thug'){const a=q.filter(k=>TONE_A[k]),z=q.filter(k=>!TONE_A[k]);q.length=0;const f=Math.random()<.5;for(let i=0;i<Math.max(a.length,z.length);i++){const x=f?a[i]:z[i],y=f?z[i]:a[i];if(y)q.push(y);if(x)q.push(x)}}
     if(b&&b.last&&q.length>1&&q[q.length-1]===b.last)[q[0],q[q.length-1]]=[q[q.length-1],q[0]];bags[role]=b={q,n:avail.length,last:b&&b.last}}
   const k=b.q.pop();b.last=k;return k}
 function resolveKey(role,variant){let k=ROLE[role]!==undefined?ROLE[role]:role;if(Array.isArray(k))k=variant&&k.includes(variant)?variant:draw(k,role);return k}

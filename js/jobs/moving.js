@@ -364,7 +364,7 @@ J.register('moving',{
       for(const id of['gary','rick','earl','dee','rosa']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
       if(h&&h.prog){h.prog.trustR=Math.max(h.prog.trustR||0,40);h.prog.act=2}if(s){if(s.world)s.world.bridgeOpen=true;s.flags=s.flags||{};s.flags.act2Intro=true}
       /* the Riverside cast the job (and the brief's cast preload) needs, so the harness's synchronous drive finds it cached */
-      const P_=window.HT.People;if(P_&&P_.preload)try{P_.preload(CAST.concat(['dad_gary','dad_rick','dad_dave','rosa','thug_hoodie','thug_track','thug_beanie','thug_red']).filter(k=>P_.keys.includes(k)&&!P_.has(k))).catch(()=>{})}catch(_){}},
+      const P_=window.HT.People;if(P_&&P_.preload)try{P_.preload(CAST.concat(['dad_gary','dad_rick','dad_dave','rosa','thug_hoodie','thug_red','thug_cap','thug_jacket']).filter(k=>P_.keys.includes(k)&&!P_.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o||{}),
     cpNode:false,/* load() rebuilds the stage through the game: the [CP] round trip runs in the browser (jobs-check --retry) */
     sample:()=>({mv:{}})}
