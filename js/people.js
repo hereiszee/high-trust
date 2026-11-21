@@ -89,7 +89,10 @@ const KNOWN=new Set(P.keys.concat(['anims'])),MANIFEST=new Set(GAME_KEYS.concat(
 const LS={},waiters={};const now=()=>(typeof performance!=='undefined'?performance.now():Date.now());
 P.loadStats=()=>{const o={};for(const k in LS)o[k]={tries:LS[k].tries,busy:LS[k].busy,waiting:!!LS[k].timer,have:k==='anims'?!!srcClips:!!tpl[k]};return o};
 function have(key){return key==='anims'?!!srcClips:!!tpl[key]}
-function wanted(key){const s=LS[key];if(s&&s.until>now())return true;if(key==='anims')return pending.length>0||!srcClips;for(const d of pending)if((d.rb||d._rb).key===key)return true;return false}
+/* still needed: preloaded in the last 3 minutes, or a waiting character that is in the scene (or was made in the last 15 s and may be added yet).
+   A character the game dropped stops the retries; if it comes back into the scene, tick() starts them again. */
+function onStage(d){let a=d.root;while(a.parent)a=a.parent;return !!a.isScene||now()-(d.rb||d._rb).t0<15000}
+function wanted(key){const s=LS[key];if(s&&s.until>now())return true;if(key==='anims'&&!srcClips)return true;for(const d of pending)if((key==='anims'||(d.rb||d._rb).key===key)&&onStage(d))return true;return false}
 function settle(key,ok){const w=waiters[key];if(!w)return;delete waiters[key];for(const f of w)try{f(ok)}catch(e){}}
 function arrived(key){try{if(key==='anims')prepareAll();else if(srcClips||gltf(key))prep(key)}catch(e){console.warn('people: prepare failed for',key,e)}
   if(have(key)||(key!=='anims'&&tpl[key]))settle(key,true);tick()}
@@ -348,14 +351,15 @@ function pendVisible(root){root._htVis=root.visible!==false;root._htPend=true;
   Object.defineProperty(root,'visible',{configurable:true,enumerable:true,get(){return this._htVis&&!this._htPend},set(v){this._htVis=!!v}})}
 function makePending(key,role,o){
   const root=new T.Group();root.name='rb_pending_'+key;pendVisible(root);
-  const body=new T.Group();body.name='rb_pending';root.add(body);
+  const body=new T.Group();body.name='rb_'+key;body.userData.pending=true;root.add(body);/* named like a real body, so name-based checks (HT.People.isProtected) see who it is */
   const gunHold=new T.Group();gunHold.name='gunHold';gunHold.visible=false;body.add(gunHold);
   const hb=(h,y,head)=>{const m=new T.Mesh(hbGeo(.42,h,.32,0,y,0),hitMat);m.userData.hitbox=true;m.userData.head=!!head;m.userData.pendingHit=true;m.raycast=noRay;m.castShadow=false;m.frustumCulled=false;body.add(m);return m};
-  const head=hb(.3,1.68,true),torso=hb(1.45,.78,false);
+  /* neighbours carry no hitboxes (not targets); everyone else gets two that rays pass through until the model is in */
+  const head=NB[key]?null:hb(.3,1.68,true),torso=NB[key]?null:hb(1.45,.78,false);
   const sc=(SCALE[key]||1)*(o.scale||1);if(sc!==1)root.scale.setScalar(sc);
   const stub=()=>new T.Object3D();
   const rb={key,pending:true,t0:now(),role,opts:o,acts:{},lw:{},in:{mode:'stand',aim:false,moving:false,pitch:0},dead:false,gunType:null,style:null,v:0,vx:0,vz:0,lx:null,lz:null,acc:0,skip:0,orphan:0,phase:0,female:!!FEMALE[key]};
-  const d={root,body,meshes:[head,torso],head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true,pending:true};if(NB[key])d.neighbour=true;
+  const d={root,body,meshes:head?[head,torso]:[],head,gunHold,gun:null,walk:0,legs:[stub(),stub()],arms:[stub(),stub()],rb,people:true,pending:true};if(NB[key])d.neighbour=true;
   pending.push(d);if(!srcClips)load('anims');load(key);return d}
 /* the ids the game hangs on hitboxes (userData.ent and the like) carry over to the new ones */
 function carryHitData(from,to){const extra={};for(const m of from)for(const k in m.userData)if(k!=='hitbox'&&k!=='head'&&k!=='pendingHit')extra[k]=m.userData[k];for(const m of to)Object.assign(m.userData,extra)}
@@ -368,7 +372,8 @@ function fill(d){const boxed=!!d.boxed,rb0=boxed?d._rb:d.rb,key=rb0.key,t=tpl[ke
   if(oldHold)for(const c of oldHold.children.slice())n.gunHold.add(c);
   if(boxed){for(const o of d._boxParts||[])if(o.parent)o.parent.remove(o);d._boxParts=null;root.rotation.x=0;root.rotation.z=0}
   else if(oldBody){for(const c of oldBody.children.slice())if(c!==oldHold&&!(c.userData&&c.userData.pendingHit))n.body.add(c);root.remove(oldBody)}
-  const meshes=d.meshes;carryHitData(oldMeshes,n.meshes);meshes.length=0;meshes.push(...n.meshes);
+  /* a caller that emptied the hitbox list on purpose (finale cast: not targets) keeps it empty */
+  const meshes=d.meshes,cleared=!boxed&&!meshes.length&&!NB[key];carryHitData(oldMeshes,n.meshes);meshes.length=0;if(!cleared)meshes.push(...n.meshes);
   const savedIn=Object.assign({},rb0.in),dead=rb0.dead,force=rb0.force;
   for(const k in rb0)delete rb0[k];Object.assign(rb0,n.rb);Object.assign(rb0.in,savedIn);if(force)rb0.force=force;
   d.rb=rb0;d.body=n.body;d.head=n.head;d.gunHold=n.gunHold;d.legs=n.legs;d.arms=n.arms;d.people=true;d.pending=false;d.boxed=false;delete d._rb;delete d._rideRig;
@@ -393,9 +398,11 @@ function boxIn(d){const rb=d.rb;let b=null;try{b=P.boxFallback&&P.boxFallback(rb
   return true}
 function tick(){if(!pending.length)return;const t=now();
   for(const d of pending.slice()){const rb=d.boxed?d._rb:d.rb;if(!rb)continue;const key=rb.key;
+    /* dropped by the game long ago: forget it */
+    if(!d.root.parent){d._orph=d._orph||t;if(t-d._orph>600e3){pending.splice(pending.indexOf(d),1);continue}}else d._orph=0;
     if(srcClips&&!tpl[key]&&gltf(key))try{prep(key)}catch(e){}
     if(srcClips&&tpl[key]){try{fill(d)}catch(e){console.warn('people: swap failed for',key,e)}continue}
-    if(!srcClips)load('anims');load(key);
+    if(onStage(d)){if(!srcClips)load('anims');load(key)}
     if(!d.boxed&&d.root.parent&&t-rb.t0>P.PENDING_CEILING*1000)boxIn(d)}}
 P.tick=tick;
 
