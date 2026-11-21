@@ -83,7 +83,7 @@ function mat(name){if(MAT[name])return MAT[name];let m;
     case 'bore':m=std({color:srgb('#0c0c0c'),metalness:.8,roughness:.6});break;
     case 'alloy':m=std({color:srgb('#45484b'),metalness:.6,roughness:1.0,roughnessMap:sr(9),normalMap:sn(14),vertexColors:true});m.normalScale.set(.2,.2);break;
     case 'polymer':case 'polymerTan':case 'orange':case 'yellow':case 'battery':{const p=texSet('polymer');
-      const col={polymer:'#232527',polymerTan:'#8b7a5c',orange:'#e0601a',yellow:'#7d62b8',battery:'#1d1e1f'}[name];
+      const col={polymer:'#232527',polymerTan:'#8b7a5c',orange:'#e0601a',yellow:'#e0ad17',battery:'#1d1e1f'}[name];
       m=std({color:srgb(col),metalness:0,roughness:name==='polymer'||name==='battery'?.95:.8,roughnessMap:rep(p.rough,40),normalMap:rep(p.normal,40)});m.normalScale.set(.35,.35);break}
     case 'rubber':{const p=texSet('rubber');m=std({color:srgb('#161718'),metalness:0,roughness:.9,normalMap:rep(p.normal,30)});m.normalScale.set(.5,.5);break}
     case 'walnut':case 'oak':{const w=texSet(name);m=phy({color:0xffffff,map:rep(w.map,3.2,9),normalMap:rep(w.normal,3.2,9),roughness:1,roughnessMap:rep(w.rough,3.2,9),metalness:0,clearcoat:.5,clearcoatRoughness:.3});m.normalScale.set(.35,.35);break}
@@ -187,7 +187,7 @@ function emptyCase(kind){if(kind==='12ga'||kind==='bean'){const g=group('hull');
 
 /* battery label: generic tool-brand-free lettering */
 let LABEL=null;function labelTex(){if(LABEL)return LABEL;const c=canvas(256,80),x=c.getContext('2d');x.fillStyle='#1c1d1e';x.fillRect(0,0,256,80);
-  x.fillStyle='#7d62b8';x.fillRect(0,0,256,14);x.fillRect(0,66,256,14);x.fillStyle='#f2f2f2';x.font='bold 30px Arial,sans-serif';x.fillText('20V',12,52);
+  x.fillStyle='#e0ad17';x.fillRect(0,0,256,14);x.fillRect(0,66,256,14);x.fillStyle='#f2f2f2';x.font='bold 30px Arial,sans-serif';x.fillText('20V',12,52);
   x.font='bold 17px Arial,sans-serif';x.fillText('Li-ion  5.0Ah',88,38);x.font='12px Arial,sans-serif';x.fillStyle='#bdbdbd';x.fillText('WEEKEND PRO SERIES',88,56);
   LABEL=new T.CanvasTexture(c);LABEL.encoding=T.sRGBEncoding;return LABEL}
 /* ------------------------------------------------------------------ sourced model loading */
