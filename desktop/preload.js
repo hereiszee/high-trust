@@ -19,7 +19,8 @@ const storage = {
   key: i => Object.keys(mem)[i] ?? null,
   clear: () => { for (const k of Object.keys(mem)) storage.removeItem(k) }
 };
-const fsCbs = [];
+const fsCbs = [], susCbs = [];
+ipcRenderer.on('ht:suspend', () => { for (const f of susCbs) { try { f() } catch (e) { } } });
 ipcRenderer.on('ht:fullscreen', (_e, on) => { for (const f of fsCbs) { try { f(!!on) } catch (e) { } } });
 const st = boot.steam || {};
 
@@ -31,6 +32,7 @@ contextBridge.exposeInMainWorld('HTDesktop', {
   quit: () => ipcRenderer.send('ht:quit'),
   fullscreen: on => ipcRenderer.invoke('ht:fullscreen', typeof on === 'boolean' ? on : undefined),
   onFullscreen: cb => { if (typeof cb === 'function') fsCbs.push(cb) },
+  onSuspend: cb => { if (typeof cb === 'function') susCbs.push(cb) },
   setDesktop: (k, v) => ipcRenderer.invoke('ht:desktop-set', String(k), v),
   steam: {
     available: !!st.ok, appId: st.appId || 0, placeholder: !!st.placeholder, why: st.why || '',

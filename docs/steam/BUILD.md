@@ -173,25 +173,26 @@ See `docs/steam/achievements.md` (23 achievements with API names, plus the rich 
 `disable-direct-composition` switches and keeps repainting the window, so the overlay (Shift+Tab) draws over WebGL. Without
 Steam none of that happens.
 
-## Steam Deck checklist
+## Steam Deck checklist (Deck Verified criteria, item by item)
 
-- [ ] Native Linux depot uploaded. Launch option set for Linux. Deck: verify it starts fullscreen at 1280×800 and the title fits (16:10).
-- [ ] Controller-first: when Steam sets `SteamDeck=1`, the game starts with controller prompts before any input (`HTDesktop.deck`) and
-  Interface size starts at 110% (Display → Window). That makes the smallest HUD text (10-11 px CSS) about 11-12 px on screen, above Valve's 9 px guideline,
-  while the layout keeps the 1280×720 CSS height every screen was checked at (115% overflowed the title column at 800 px).
-- [ ] Controller: every menu (title, pause, settings tabs, brief, result, shops, calendar, map) works with the D-pad/stick, A and B.
-  The pause menu "Key bindings" tab lists the controller layout. Prompts switch to pad glyphs as soon as the pad is used.
-- [ ] Steam Input: set the default controller config to **Gamepad** (the game reads the standard mapping). Do not ship a
-  keyboard/mouse template as the default.
-- [ ] Text input: the game has no free-text fields, so no on-screen keyboard is needed.
-- [ ] Performance: Graphics Auto starts on Medium and steps down. On Deck test *Low* + *Resolution scale 75%* + *Frame rate cap 30/60*.
-  The Deck's own frame limiter also works.
-- [ ] Suspend/resume: the shell keeps rendering in the background (throttling off) and Steam suspends the process. Check that audio comes back.
-- [ ] Save: play, quit from the pause menu, relaunch, Continue. Check Steam Cloud sync between Deck and PC.
-- [ ] Fonts: all local (`assets/fonts`). Nothing is fetched.
-- [ ] Offline: works in airplane mode (the shell blocks all network requests anyway).
-- [ ] Deck Verified review: the default controller config, glyphs matching the device (the game shows Xbox glyphs, or PlayStation glyphs for
-  Sony pads), no launcher, readable text at 1280×800 (smallest HUD text is 10-11 px: check it).
+Status key: **done** = implemented and checked in a packaged build with the Deck emulated (`SteamDeck=1`, 1280×800, scripted pad;
+`node desktop/test/e2e.js --exe … --deck-only`); **device** = implemented, needs a real Deck; **owner** = a Steamworks setting.
+
+| Valve criterion | Status | How High Trust meets it |
+|---|---|---|
+| **Input: default controller config** is a gamepad config | owner | Set *Steam Input → Default configuration → Gamepad* (the game reads the standard mapping itself). Do not publish a keyboard/mouse template as the default. |
+| **Input: full controller support**, no keyboard or mouse needed | done (device for feel) | `js/gamepad.js`: on foot, driving, tank, jet, every menu (title, pause, settings, brief, result, calendar, map with pan/zoom/fast travel; shops and locker keep their own pad code). Job keys (G, T, Tab, Z, X, 1-4) via the LB layer. Covered by `dev/pad.e2e.js` and `desktop/test/e2e.js`. Not yet played through every job on a pad. |
+| **Input: glyphs** match the controller (Steam Deck or Xbox) | done | Xbox glyphs by default, PlayStation glyphs for Sony pads. Keycaps and sentences ("hold E" becomes "hold A") switch when the pad is the last device. On a Deck it is pad-first from the first frame. Deck-specific art (Valve's own glyph images) is optional, not added. |
+| **Input: on-screen keyboard** when text entry is needed | done (N/A) | The game has no free-text fields. |
+| **Display: 1280×800 (or 720p) supported, the default** | done | Fullscreen at the display's size by default. A windowed fallback on a Deck opens at 1280×800. Every screen is laid out for 1280×720 CSS px or more. |
+| **Display: text legible**, smallest at least 9 px at 1280×800 | done | On a Deck, Interface size defaults to 110% and `html.ht-deck` raises the 9-10 px HUD text to 11 px CSS, so nothing renders under about 12 px. Screenshot: `docs/screenshots/steam/deck-title.png`. |
+| **Display: default graphics** run well | device | Graphics Auto. On a Deck the first run starts one rung lower (Medium at 85% resolution) and climbs while frames allow; the frame rate cap and the Deck's own limiter both work. Measure on hardware. |
+| **Seamlessness: no launcher**, nothing that needs a mouse before play | done | Electron opens straight to the title screen. Focus starts on a button; A presses it. |
+| **Seamlessness: no unsupported-device warnings** | done | None shown. |
+| **System: runs on SteamOS** | device | Native Linux depot (x64). The Windows build under Proton also works in principle; not tested. |
+| **System: suspend / resume** | done (device) | The OS suspend event (`powerMonitor`) and the page going hidden both write the save and pause the game. On resume, frame time is capped at 50 ms, so nothing jumps. Verify sleep/wake on a Deck. |
+| **System: no anti-cheat or online requirement** | done | None. Offline by design: the shell blocks all network requests. |
+| **Cloud saves** (recommended) | owner | Auto-Cloud on `LinuxXdgConfigHome / High Trust/saves` (table above). |
 
 ## Things only the owner can do
 
