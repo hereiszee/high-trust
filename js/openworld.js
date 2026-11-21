@@ -1470,6 +1470,7 @@ OW.trafficAdd=o=>{const ws=WS,G=OW.roads(),T=ws&&ws.traffic,CA=HT.CarAI;if(!T||!
   const c=CA.make(ty,{x:A.x+ux*at-uz*1.5,z:A.z+uz*at+ux*1.5,yaw:Math.atan2(-ux,-uz),spd:o.spd||0});CA.wander(c,G,{max:o.max||11,seed:o.seed||1});
   c.ai.prev=o.a;c.ai.cur=o.a;c.ai.next=o.b;c.ai.pts=[{x:c.x,z:c.z},...G.lane([o.a,o.b]).slice(1)];c.ai.tr={i:0};
   T.g.add(v);const t={c,v,ty,co,id:++T.id,wait:0,free:0,honkN:0,nextHonk:TR.honk1,barkAt:TR.bark1,hornF:330+(T.id%9)*22,offNow:0,offT:0,mode:null,sg:TR.sg0,reroutes:0,res:-1};T.cars.push(t);trSync(t,ws.lvl,false,0);return t};
+OW.trafficObs=()=>WS&&WS.traffic?WS.traffic.obs||[]:[];/* dev: last frame's obstacles (no player) */
 OW.trafficLog=()=>WS&&WS.traffic?WS.traffic.log:[];
 OW.trafficCars=()=>WS&&WS.traffic?WS.traffic.cars.map(t=>({x:t.c.x,z:t.c.z,spd:t.c.spd,type:t.c.type,yaw:t.c.yaw})):[];
 /* ================= Riverside neighbours (HT.People 'neighbour' pool on HT.WorldGen.neighbourSlots porch anchors) ================= */
