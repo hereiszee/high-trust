@@ -10,18 +10,21 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{const {b,p,errs}=await open({init:()=>{if(!sessionStorage.getItem('s')){sessionStorage.setItem('s','1');localStorage.clear()}}});const ev=(f,a)=>p.evaluate(f,a);
   const live=()=>ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
   const shot=async n=>{if(!SHOTS)return;fs.mkdirSync(DIR,{recursive:true});await p.waitForTimeout(600);await p.screenshot({path:path.join(DIR,n+'.jpg'),type:'jpeg',quality:84})};
+  const run=()=>ev(()=>{const H=window.__ht;if(H.HUD.screen==='pause')H.HUD.hide('pause');H.running=true});
+  const st=()=>ev(()=>{const H=window.__ht;return{mode:H.mode,running:H.running,screen:H.HUD.screen,cur:H.TUT.cur&&H.TUT.cur.id,gap:H.TUT.gap,van:H.VAN.on,job:H.JOB}});
   const tut=()=>ev(()=>{const e=document.querySelector('.ht-tut');return e&&!e.classList.contains('off')?e.querySelector('.tt').textContent:null});
   await live();await p.waitForTimeout(800);
   await p.click('.ht-title [data-act=newgame]');await p.waitForTimeout(2500);
   ok(await ev(()=>window.__ht.mode)==='hub','new game: in the hub');
   /* 1. hints */
   let t=await tut();ok(/look around/i.test(t||''),'first hint: look ('+t+')');await shot('hint-look');
-  /* headless has no pointer lock: turn the camera the way mouse look does */
-  for(let i=0;i<20;i++){await ev(()=>{window.__ht.P.yaw+=.08});await p.waitForTimeout(30)}await p.waitForTimeout(1600);
-  t=await tut();ok(/walk/i.test(t||''),'after looking: walk ('+t+')');
-  await p.keyboard.down('w');await p.waitForTimeout(2200);t=await tut();ok(/jog/i.test(t||''),'after walking (W held): jog ('+t+')');
-  await p.keyboard.down('Shift');await p.waitForTimeout(1800);await p.keyboard.up('Shift');await p.keyboard.up('w');await p.waitForTimeout(1600);
-  t=await tut();ok(/press E/i.test(t||''),'after jogging (Shift+W): talk to someone with a ring ('+t+')');await shot('hint-talk');
+  /* headless SwiftShader runs a few frames a second: hold each action until its hint is dismissed and the next one shows */
+  const until=async(re,ms)=>{try{await p.waitForFunction(r=>{const e=document.querySelector('.ht-tut');return e&&!e.classList.contains('off')&&new RegExp(r,'i').test(e.querySelector('.tt').textContent)},re,{timeout:ms||40000,polling:200});return await tut()}catch(e){return(await tut())+' '+JSON.stringify(await st())}};
+  /* no pointer lock headless: turn the camera the way mouse look does */
+  const turn=setInterval(()=>{ev(()=>{window.__ht.P.yaw+=.05}).catch(()=>{})},60);t=await until('^Walk');clearInterval(turn);ok(/^walk/i.test(t||''),'after looking: walk ('+t+')');
+  await run();await p.keyboard.down('w');t=await until('jog');ok(/jog/i.test(t||''),'after walking (W held): jog ('+t+')');
+  await p.keyboard.down('Shift');t=await until('press E',60000);await p.keyboard.up('Shift');await p.keyboard.up('w');
+  ok(/press E/i.test(t||''),'after jogging (Shift+W): talk to someone with a ring ('+t+')');await shot('hint-talk');
   const done=await ev(()=>Object.keys(JSON.parse(localStorage.getItem('ht-tut')||'{}')));ok(['look','walk','jog'].every(k=>done.includes(k)),'done hints persist: '+done.join(','));
   /* 2. aim toggle on the mouse */
   const box=await p.$eval('#c',c=>{const r=c.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}});
@@ -48,20 +51,21 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await shot('webgl-restored');
   /* 5. finale guidance, decline, zip-tie gate, dedupe */
   await ev(()=>{window.__rafOn=false});
-  const fin=await ev(()=>{const H=window.__ht,S=HT.Save,s=S.data,ids=H.jobs.registry.get('finale').def.unlock.done;
+  await p.evaluate(async()=>{await window.__ht.jobs.ready});
+  const fin=await ev(()=>{const H=window.__ht,S=HT.Save,s=S.data;s.flags.act2Intro=true;H.prog.act=2;const ids=H.jobs.registry.get('finale').def.unlock.done;
     for(const id of ids.slice(0,20)){S.jobRec(s,id).done=true;const i=H.jobs.index(id);if(i>=0)H.prog.done[i]=true}H.prog.trust=61;H.prog.trustR=44;H.enterHub();H.step(3);
     const o1=JSON.stringify(H.UIobj);for(const id of ids){S.jobRec(s,id).done=true;const i=H.jobs.index(id);if(i>=0)H.prog.done[i]=true}H.prog.trust=85;H.prog.trustR=82;H.enterHub();H.step(40);
     return{o1,o2:JSON.stringify(H.UIobj),marker:H.marker,info:H.finaleInfo()}});
-  ok(/Finale: 20 of 27 jobs · Maple trust 61\/80 · Riverside trust 44\/80/.test(fin.o1),'Act 3: objective shows "Finale: 20 of 27 jobs · Maple trust 61/80 · Riverside trust 44/80"');
+  ok(/Finale: 20 of 27 jobs · Maple trust 61\/80 · Riverside trust 44\/80/.test(fin.o1),'Act 3: objective shows "Finale: 20 of 27 jobs · Maple trust 61/80 · Riverside trust 44/80" '+fin.o1+' '+JSON.stringify(fin.info));
   ok(/go home and talk to the family/.test(fin.o2)&&fin.marker&&/Home/.test(fin.marker.label||''),'all done + 80/80: objective says go home, marker points home '+JSON.stringify(fin.marker));
-  if(SHOTS){await live();await p.waitForTimeout(1500);await shot('finale-objective');await ev(()=>{window.__rafOn=false})}
+  if(SHOTS){await ev(()=>{const H=window.__ht;if(H.HUD.screen)H.HUD.hide(H.HUD.screen);H.running=true});await live();await p.waitForTimeout(2500);await shot('finale-objective');await ev(()=>{window.__rafOn=false})}
   const dec=await p.evaluate(async()=>{const H=window.__ht;H.enterHome();for(let i=0;i<200&&H.mode!=='home';i++)await new Promise(r=>setTimeout(r,100));H.step(3);
     const a=H.jobs.homeUse('family');H.step(1);const br=!!(H.UIacts&&H.UIacts['brief:no']);if(br)H.UIacts['brief:no']();H.step(1);const again=H.jobs.homeUse('family');H.step(1);if(H.UIacts&&H.UIacts['brief:no'])H.UIacts['brief:no']();
     H.exitHome('front');H.step(3);H.enterHome();for(let i=0;i<200&&H.mode!=='home';i++)await new Promise(r=>setTimeout(r,100));H.step(3);const next=H.jobs.homeUse('family');H.step(1);const title=H.UIacts&&H.UIacts['brief:no']?document.querySelector('.ht-brief h2')&&document.querySelector('.ht-brief h2').textContent:null;if(H.UIacts&&H.UIacts['brief:no'])H.UIacts['brief:no']();
     return{first:a&&br,sameVisit:!!again,nextVisit:!!next,title}});
   ok(dec.first&&dec.nextVisit&&/Everybody Waves/i.test(dec.title||''),'"Not yet" on the finale: offered again on the next visit home '+JSON.stringify(dec));
-  if(SHOTS){await ev(()=>window.__ht.jobs.calendar());await live();await p.waitForTimeout(900);await shot('calendar-finale');await ev(()=>{window.__rafOn=false})}
-  const cal=await ev(()=>{const g=document.querySelector('.ht-cal .goal');const t=g&&g.textContent;try{window.__ht.UIacts['calendar:close']()}catch(_){}return t});
+  await ev(()=>window.__ht.jobs.calendar());if(SHOTS){await live();await p.waitForTimeout(900);await shot('calendar-finale');await ev(()=>{window.__rafOn=false})}
+  const cal=await ev(()=>{const g=document.querySelector('.ht-cal .goal');const t=g?g.textContent:'none '+JSON.stringify(window.__ht.finaleInfo())+' '+window.__ht.HUD.screen;try{window.__ht.UIacts['calendar:close']()}catch(_){}return t});
   ok(/festival is ready/i.test(cal||''),'fridge calendar shows the finale line ('+cal+')');
   const tie=await ev(()=>{const H=window.__ht,S=HT.Save,s=S.data;s.jobs.talk.done=false;const i=H.jobs.index('talk');if(i>=0)H.prog.done[i]=false;H.prog.cuffed=3;H.exitHome&&H.mode==='home'&&H.exitHome('front');H.enterHub();H.step(3);return{g:H.tieGoal(),o:JSON.stringify(H.UIobj)}});
   ok(/zip-tie 10 people alive · 3\/10/.test(tie.o),'Small Talk gate in the objective: '+tie.g);

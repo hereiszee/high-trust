@@ -34,7 +34,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       /* the hub has no gun mode: fire straight through the game's hit test */const n=K.shootAll(['pistol','beanbag','shotgun'],3);H.hurtEnemy(e,999,'player',{});out.push(key+':'+e.hp+'/'+e.state+'/'+n);K.unEnemy(e);H.scene.remove(d.root)}return{out,log:K.log.slice()}});
   ok(hub.out.every(s=>/:100\/idle\//.test(s))&&!hub.log.length,'hub: pistol, beanbag, shotgun and a direct hurtEnemy on each kid/family member: no damage, no hit '+JSON.stringify(hub));
   /* 3. Riverside: draw refused near a kid, holsters when one walks up, point blank as enemy, ram */
-  const rv=await ev(async()=>{const H=window.__ht,K=window.__K,P=H.P;H.openBridge();const s=H.save;try{H.prog.done[1]=true;H.prog.done[0]=true}catch(_){}
+  const rv=await ev(async()=>{const H=window.__ht,K=window.__K,P=H.P;H.openBridge();try{HT.Save.data.flags.act2Intro=true}catch(_){}const s=H.save;try{H.prog.done[1]=true;H.prog.done[0]=true}catch(_){}
     const T=H.WORLD.places.g_earl||H.WORLD.places.g_dee;H.enterHub();H.step(2);P.pos.set(T.x+3,0,T.z+3);H.step(30);
     for(let i=0;i<30&&H.region!=='river';i++)H.step(5);
     const r={region:H.region};H.give('pistol',{mag:12,extra:24});
@@ -51,7 +51,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   ok(armed0===true&&armedKid===false,'Riverside: key 1 draws with no kid around (key Q) ('+armed0+'), refused with a kid 12 m away ('+armedKid+')');
   const walkUp=await ev(()=>{const H=window.__ht,K=window.__K;H.running=true;K.k1.root.position.x=H.P.pos.x+60;H.frDraw('pistol');H.step(2);const a=H.frArmed;K.k1.root.position.x=H.P.pos.x+20;H.step(3);return{before:a,after:H.frArmed,running:H.running,dist:+Math.hypot(K.k1.root.position.x-H.P.pos.x,K.k1.root.position.z-H.P.pos.z).toFixed(1)}});
   ok(walkUp.before===true&&walkUp.after===false,'Riverside: drawn at 60 m, holstered when the kid comes within 20 m '+JSON.stringify(walkUp));
-  if(SHOTS){fs.mkdirSync(DIR,{recursive:true});await ev(()=>{const H=window.__ht,K=window.__K;K.k1.root.position.set(H.P.pos.x+3,0,H.P.pos.z-6);K.aimAt(H.P.pos.x+3,1.2,H.P.pos.z-6);H.P.fp=false;H.frDraw('pistol');window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
+  if(SHOTS){fs.mkdirSync(DIR,{recursive:true});await ev(()=>{const H=window.__ht,K=window.__K;K.k1.root.position.set(H.P.pos.x+3,0,H.P.pos.z-6);K.aimAt(H.P.pos.x+3,1.2,H.P.pos.z-6);H.P.fp=false;H.frDraw('pistol');window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c);if(H.HUD.screen&&H.HUD.screen!=='pause')H.HUD.hide(H.HUD.screen);H.running=true});
     await p.waitForTimeout(1500);await ev(()=>{window.__rafOn=false;window.__ht.draw()});await p.screenshot({path:path.join(DIR,'riverside-kid-holster.jpg'),type:'jpeg',quality:84})}
   const rvShoot=await ev(()=>{const H=window.__ht,K=window.__K,P=H.P,out=[];for(const key of['nb_kid','nb_teen','son','daughter','wife']){const d=K.kid(key,P.pos.x,P.pos.z-5);const e=K.asEnemy(d);K.cur={x:P.pos.x,y:1.1,z:P.pos.z-5};
       H.frDraw('pistol');const n=K.shootAll(['pistol','beanbag'],3);out.push(key+':'+e.hp+'/'+e.state+'/'+n+'/armed '+H.frArmed);K.unEnemy(e);H.scene.remove(d.root)}return{out,log:K.log.slice()}});
@@ -75,14 +75,14 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     O.kevin={x:395.6,z:35.6,st:'pending',delay:0,t:0,ided:false};for(let i=0;i<10&&!O.kevin.d;i++)H.step(1);const Kv=O.kevin;if(!Kv.d)return{err:'no kevin'};
     O.roof.on=true;O.roof.fade=0;const r=R.roof;P.pos.set((r.x0+r.x1)/2,R.roofY||8,(r.z0+r.z1)/2);P.cur='hunter';P.equipT=0;P.rl=null;O.rifle.boltT=0;
     const look=(x,y,z)=>{const e={x:P.pos.x-Math.sin(P.yaw)*.7,y:(P.visY!=null?P.visY:P.pos.y)+1.62,z:P.pos.z-Math.cos(P.yaw)*.7};P.yaw=Math.atan2(-(x-e.x),-(z-e.z));P.pitch=Math.atan2(y-e.y,Math.hypot(x-e.x,z-e.z))};
-    const shots0=O.stats.shots;look(Kv.x,.9,Kv.z);P.aim=true;H.step(2);H.fire();H.step(2);const refused=O.stats.shots===shots0,dropped=!P.aim,hold=O.stats.holdFire||0;
+    const jt=H.jobs.registry.get('overwatch').test;P.aim=true;H.step(2);const shots0=O.stats.shots;look(Kv.x,.9,Kv.z);look(Kv.x,.9,Kv.z);O.rifle.boltT=0;const fr=jt.friendly();H.fire();H.step(2);const refused=O.stats.shots===shots0,dropped=!P.aim,hold=O.stats.holdFire||0;
     /* off him by 12 m: the shot goes */O.rifle.boltT=0;O.rifle.lowerT=0;look(Kv.x+12,.9,Kv.z+12);P.aim=true;H.step(1);H.fire();const offFired=O.stats.shots>shots0;
     /* rounds fired straight at him from 25 m, both kinds */const T=THREE,hits=[];for(const type of['live','bean']){const from=new T.Vector3(Kv.x+25,1.2,Kv.z),to=new T.Vector3(Kv.x,1,Kv.z),dir=to.clone().sub(from).normalize();
       const mesh=new T.Group();mesh.userData.tail=new T.Object3D();mesh.add(mesh.userData.tail);H.scene.add(mesh);O.proj.push({type,pos:from.clone(),vel:dir.multiplyScalar(type==='bean'?90:300),g:0,t:0,trail:[],mesh,near:new Set()});O.lastHit=null;
       for(let i=0;i<30;i++)H.step(1);hits.push(O.lastHit?O.lastHit.k:'none')}
-    return{refused,dropped,hold,offFired,hits,kevinStat:O.stats.kevin,state:M.state,log:K.log.slice()}});
+    return{fr,y:+P.pos.y.toFixed(2),visY:P.visY,refused,dropped,hold,offFired,hits,kevinStat:O.stats.kevin,state:M.state,log:K.log.slice()}});
   if(ow)ok(ow.refused&&ow.dropped&&ow.hold>0&&ow.offFired&&!ow.hits.includes('kevin')&&ow.kevinStat!==-1&&ow.state==='go'&&!ow.log.length,'Higher Ground: aiming at Kevin refuses the shot and lowers the rifle, 12 m off it fires, rounds at him fly past '+JSON.stringify(ow));
-  if(ow&&SHOTS){await ev(()=>{const H=window.__ht,O=H.M.ow,Kv=O.kevin,P=H.P;Kv.st='aim';O.rifle.lowerT=0;const e={x:P.pos.x,y:P.pos.y+1.62,z:P.pos.z};P.yaw=Math.atan2(-(Kv.x+1.5-e.x),-(Kv.z-e.z));P.pitch=Math.atan2(.9-e.y,Math.hypot(Kv.x-e.x,Kv.z-e.z));P.aim=true;window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
+  if(ow&&SHOTS){await ev(()=>{const H=window.__ht,O=H.M.ow,Kv=O.kevin,P=H.P;Kv.st='aim';O.rifle.lowerT=0;const e={x:P.pos.x,y:P.pos.y+1.62,z:P.pos.z};P.yaw=Math.atan2(-(Kv.x+1.5-e.x),-(Kv.z-e.z));P.pitch=Math.atan2(.9-e.y,Math.hypot(Kv.x-e.x,Kv.z-e.z));P.aim=true;if(H.HUD.screen)H.HUD.hide(H.HUD.screen);H.running=true;window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
     await p.waitForTimeout(1600);await ev(()=>{window.__rafOn=false});await p.screenshot({path:path.join(DIR,'overwatch-friendly.jpg'),type:'jpeg',quality:84})}
   for(const id of['crossing','taxi','finale']){const r=await job(id,sweep);if(r)ok(r.state==='go'&&!r.log.length&&!r.kids.some(k=>/DEAD/.test(k)),id+': every kid on set shot at point blank with guns forced on: no hit '+JSON.stringify(r))}
   const bad=errs.filter(e=>!/favicon|net::ERR/.test(e));ok(!bad.length,'no console errors '+bad.slice(0,3).join(' | '));

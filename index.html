@@ -4044,7 +4044,8 @@ function wmWalkoff(dt,F){M.walkT+=dt;const d=M.dee;
   if(CV===M.car){const f=M.frozen;CV.pos.x=CV.car.x=f.x;CV.pos.z=CV.car.z=f.z;CV.spd=CV.car.spd=0;syncCar(CV)}
   F.objs.push(['Pastor Dee is walking her kids out',M.walkT>4]);if(M.walkT>4.5)wmDeeRaid(false)}
 function wmDeeRaid(loud){if(M.phase==='raid')return;const st=M.site,m=M.def;M.phase='raid';M.noCars=false;M.loud=!!loud;
-  for(const s of M.suspects||[])if(!s.gone){if(s.kind==='courier'||!s.flee){scene.remove(s.dude.root);s.gone=true}}
+  /* the lookouts (kids) are gone before any gun comes out (owner rule: no guns within 25 m of a kid): they've scattered */
+  for(const s of M.suspects||[])if(!s.gone){if(s.kind==='courier'||s.kind==='lookout'||!s.flee){scene.remove(s.dude.root);s.gone=true}}
   if(M.dee){const dd=M.dee.dude;setTimeout(()=>scene.remove(dd.root),3000);M.dee=null}
   if(CV)exitCar();
   activateSite(st);wmExitAt(M.car);
@@ -4438,7 +4439,7 @@ function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.
   if(TUT.cur&&TUT.cur.id==='map')m.mapT+=dt;
   if(TUT.cur&&TUT.cur.id==='tie'&&m.cuffed==null)m.cuffed=prog.cuffed||0;
   let cur=TUT.cur;
-  if(cur){TUT.t+=dt;let fin=false;try{fin=cur.done(m)}catch(_){}if(fin&&TUT.t>.6){TUT.done[cur.id]=1;try{localStorage.setItem('ht-tut',JSON.stringify(TUT.done))}catch(_){}cur=TUT.cur=null;TUT.gap=1.2}
+  if(cur){TUT.t+=dt;let fin=false;try{fin=cur.done(m)}catch(_){}if(fin&&TUT.t>.6){TUT.done[cur.id]=1;try{localStorage.setItem('ht-tut',JSON.stringify(TUT.done))}catch(_){}cur=TUT.cur=null;TUT.gap=.5}
     else{let w=false;try{w=cur.when()}catch(_){}if(!w&&cur.id!=='pause'){cur=TUT.cur=null}}}
   TUT.gap=Math.max(0,(TUT.gap||0)-dt);
   if(!cur&&TUT.gap<=0&&running){for(const st of TUT_STEPS){if(TUT.done[st.id])continue;let w=false;try{w=st.when()}catch(_){}if(w){cur=TUT.cur=st;TUT.t=0;if(st.id==='tie')m.cuffed=prog.cuffed||0;if(st.id==='aim')m.shot=0;break}}

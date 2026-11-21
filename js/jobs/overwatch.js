@@ -221,7 +221,7 @@ J.register('overwatch',{
   end(M,ok){returnRifle(M);if(!ok)return;const s=A().SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'ferreira')}catch(_){}try{SV.perk(s,'doug',true)}catch(_){}s.flags=s.flags||{};s.flags.ferreira=true}},
 
-  test:{give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
+  test:{friendly:()=>{const M=A().M;return!!(M&&M.ow&&friendlyInLine(M))},give(a){const H=G();preloadCast();if(H.openBridge)try{H.openBridge()}catch(_){}a.addTrust&&a.addTrust(30,'river')},
     step:(a,t,o)=>bot(a,t,o||{}),
     sample:()=>({ow:{stage:'court',rifle:{type:'bean',box:{bean:{mag:3,res:9},live:{mag:5,res:5}}},stats:{beaned:2,cuffed:2,lethal:0,spooked:0,civ:0,shots:3,hits:2,kevin:0,flats:0},sight:{done:true},roof:{on:false},
       witHp:87,esc:null,escSaved:{s:40.5,state:'walk',stopK:-1,stopsDone:[4],revived:0,hp:[100,87,100],fired:[0,0]}}})}
