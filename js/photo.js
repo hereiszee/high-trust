@@ -326,15 +326,14 @@ addEventListener('keydown',e=>{if(!R.on||e.repeat||!active())return;const k=e.ke
   else if(k===' '||k==='enter'||k==='e'){Photo.shoot();stop()}
   else if(k==='q'){Photo.raise(false);stop()}else if(k==='escape'){Photo.raise(false)}},{capture:true});
 /* the mouse, before the game sees it (capture on window): in a no-gun job the game never calls fire(), so the phone owns its buttons.
-   Right button: a pure toggle (owner rule; Key bindings → Aim: Hold makes it press-and-hold). Left button: shutter,
+   Right button: toggle (a press longer than 250 ms that was the raise lowers again on release, for people who like holding). Left button: shutter,
    or raise when it's down. With the pointer unlocked the game still gets the click (it asks for pointer lock first). */
 addEventListener('mousedown',e=>{if(!active())return;const a=A(),cv=window.__ht&&window.__ht.renderer?window.__ht.renderer.domElement:null;if(cv&&e.target!==cv&&!(R.ui&&R.ui.root.contains(e.target)))return;
   const locked=!!document.pointerLockElement;let used=false;
   if(e.button===2){if(R.want){R.want=false;R.held=false}else{R.want=true;R.held=true;R.pressT=performance.now()}used=true}
   else if(e.button===0){if(R.on){Photo.shoot();used=true}else if(locked){R.want=true;used=true}}/* a click that only takes the pointer back never raises the phone */
   if(used&&locked){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
-addEventListener('mouseup',e=>{if(e.button!==2||!R.held)return;R.held=false;/* a pure toggle: releasing never lowers the phone, however long the press */
-  const K=window.HT&&HT.Keys;if(K&&K.aimHold&&K.aimHold())R.want=false/* unless the player chose Aim: Hold */},{capture:true});
+addEventListener('mouseup',e=>{if(e.button!==2||!R.held)return;R.held=false;/* a pure toggle: releasing never lowers the phone, however long the press */},{capture:true});
 /* touch: the HUD's aim button toggles the phone, the fire button is the shutter (or raises it) */
 (function hook(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(hook,500);return}a.HUD.on('touch',(k,down)=>{if(!down||!active())return;if(k==='aim')R.want=!R.want;else if(k==='fire'){if(R.on)Photo.shoot();else R.want=true}})})();
 

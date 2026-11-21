@@ -7,7 +7,7 @@
    bunch up when you stop, straggle when you hurry, stop at every kerb until you wave them across, and wander off after dogs,
    cats and chalk. Each kid has a personality (the dog petter, the crack avoider, the runner, the "why" kid, the twins who swap
    places, the tired one, the one who wants the sign, the cool older one, the quiet last one) and a stoop with a grown-up waiting.
-   The sign (its own toggle) stops traffic within 25 m (a driver on the phone takes 3 s, so step in front of him),
+   The sign (hold right mouse / AIM) stops traffic within 25 m (a driver on the phone takes 3 s, so step in front of him),
    makes street-crew members step back, and shields the kids behind it. Crossings are set pieces: sign up in the road, then
    hold E to wave them across. The flare-up is pressure you route around, outwait, de-escalate (talk), block with the sign,
    or hand to Coach Rick (call-in). Nothing violent ever happens near the kids: the crews only shout.

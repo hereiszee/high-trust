@@ -57,17 +57,15 @@ let fails=0;const ok=(m,c,x)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m+(
   await rclick();await step(10);const s2=await sc();ok('right click again lowers the scope',!s2.aim,s2);
   await ev(()=>{try{window.__ht.jobs.finish(false,'test')}catch(e){}window.__ht.step(3);try{window.__ht.HUD.hide('result')}catch(e){}window.__ht.enterHub();window.__ht.step(3)});
   /* 3. the camera (js/photo.js), in the HOA job (the phone item) */
-  const hs=await ev(()=>{const H=window.__ht;H.jobs.start('hoa');H.step(5);/* the job opens the camera at its stakeout; open it now */if(HT.Photo&&!HT.Photo.S)HT.Photo.begin({job:'test'});return{mode:H.mode,item:H.M&&H.M.item,photo:!!(HT.Photo&&HT.Photo.S)}});
+  const hs=await ev(()=>{const H=window.__ht;H.jobs.start('hoa');H.step(5);return{mode:H.mode,item:H.M&&H.M.item,photo:!!(HT.Photo&&HT.Photo.S)}});
   if(hs.mode==='mission'&&hs.photo){await ev(()=>{window.__ht.P.aim=false;HT.Photo.raise(false)});await step(10);
     await rclick();await step(20);const c1=await ev(()=>HT.Photo.isRaised());await step(60);const c1b=await ev(()=>HT.Photo.isRaised());await rclick();await step(20);const c2=await ev(()=>HT.Photo.isRaised());
-    ok('camera: right click raises it, it stays raised, right click lowers',c1&&c1b&&!c2,{c1,c1b,c2})
-    await ev(()=>{HT.Keys.aimMode='hold'});await p.mouse.down({button:'right'});await step(20);const c3=await ev(()=>HT.Photo.isRaised());await p.mouse.up({button:'right'});await step(20);const c4=await ev(()=>HT.Photo.isRaised());await ev(()=>{HT.Keys.aimMode='toggle'});
-    ok('camera, Aim: Hold: up while the button is down, down on release',c3&&!c4,{c3,c4})}
+    ok('camera: right click raises it, it stays raised, right click lowers',c1&&c1b&&!c2,{c1,c1b,c2})}
   else ok('camera: the HOA job starts with the phone',false,hs);
   await ev(()=>{try{window.__ht.jobs.finish(false,'test')}catch(e){}window.__ht.step(3);try{window.__ht.HUD.hide('result')}catch(e){}window.__ht.enterHub();window.__ht.step(3)});
   /* 4. tank gunner's sight */
-  const tk=await ev(()=>{const H=window.__ht,e=(H.vehicles||[]).find(c=>c.type==='tank');return e?{x:e.pos.x,z:e.pos.z}:null});
-  if(tk){await ev(()=>{const H=window.__ht,e=H.vehicles.find(c=>c.type==='tank');H.P.pos.set(e.pos.x+3,0,e.pos.z);H.step(2);H.enterVehicle(e);H.step(4)});
+  const tk=await ev(()=>{const T=HT.Tank&&HT.Tank.state&&HT.Tank.state();return T&&T.e?{x:T.e.x,z:T.e.z}:null});
+  if(tk){await ev(tk=>{const H=window.__ht;H.P.pos.set(tk.x+3.5,0,tk.z);H.step(3)},tk);await p.keyboard.press('e');await step(4);
     const inT=await ev(()=>window.__ht.CV&&window.__ht.CV.type);
     await ev(()=>{window.__ht.P.fp=false});await p.keyboard.press('v');await step(30);const v1=await ev(()=>window.__ht.P.fp);await step(60);const v1b=await ev(()=>window.__ht.P.fp);
     await p.keyboard.press('v');await step(4);const v2=await ev(()=>window.__ht.P.fp);

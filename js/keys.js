@@ -11,14 +11,10 @@ const ACTIONS=[
   {id:'jog',l:'Jog · boost',k:'shift'},{id:'jump',l:'Jump · vault · handbrake',k:' '},{id:'crouch',l:'Crouch',k:'c'},{id:'reload',l:'Reload',k:'r'},
   {id:'use',l:'Use · zip-tie · talk · get in',k:'e'},{id:'gun',l:'Next gun',k:'q'},{id:'view',l:'Camera',k:'v'},{id:'map',l:'Map',k:'m'},
   {id:'deco',l:'Decorate (at home)',k:'b'},{id:'flash',l:'Flashlight',k:'f'},{id:'nvg',l:'Night vision',k:'n'},{id:'horn',l:'Horn',k:'h'},{id:'glove',l:'Glovebox',k:'g'}];
-const FIXED=[['Fire','Mouse 1'],['Aim · scope · binoculars','Mouse 2'],['Switch gun','1 2 3 · Wheel'],['Pause','Esc · P'],['Drive','Same as move']];
+const FIXED=[['Fire','Mouse 1'],['Aim','Mouse 2'],['Switch gun','1 2 3 · Wheel'],['Pause','Esc · P'],['Drive','Same as move']];
 const RESERVED=new Set(['escape','p','1','2','3','enter','tab','meta','alt','f11','f12','contextmenu']);
 const STORE=()=>window.HTDesktop?HTDesktop.storage:window.localStorage;
 let B={};try{B=JSON.parse(STORE().getItem('ht-keys')||'{}')||{}}catch(e){B={}}
-/* owner rule: on keyboard and mouse every aim / raise mode is a TOGGLE (click Mouse 2: the view holds until you click again; Shift on
-   the scope holds your breath until you tap again or run out). 'hold' is an accessibility option for players who want press-and-hold. */
-let AIM='toggle';try{AIM=STORE().getItem('ht-aim')==='hold'?'hold':'toggle'}catch(e){}
-function setAim(m){AIM=m==='hold'?'hold':'toggle';try{STORE().setItem('ht-aim',AIM)}catch(e){}}
 const def=id=>ACTIONS.find(a=>a.id===id).k;
 const get=id=>B[id]||def(id);
 let T={};
@@ -51,7 +47,6 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function table(){return'<h3>Keyboard &amp; mouse</h3><div class="ht-keys ht-rebind">'+
   ACTIONS.map(a=>`<div><span>${esc(a.l)}</span><span><button class="ht-kc ht-rb${B[a.id]?' chg':''}" data-rebind="${a.id}" aria-label="Rebind ${esc(a.l)}">${esc(name(get(a.id)))}</button></span></div>`).join('')+
   FIXED.map(([l,k])=>`<div><span>${esc(l)}</span><span>${k.split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+
-  `<div><span>Aim, scope, binoculars, hold breath</span><span><button class="ht-kc ht-rb${AIM==='hold'?' chg':''}" data-aim-mode aria-label="Aim mode: ${AIM==='hold'?'Hold':'Toggle'}">${AIM==='hold'?'Hold':'Toggle'}</button></span></div>`+
   '</div><p class="ht-rb-note" style="font-size:13px;opacity:.7;margin-top:10px">Click a key, then press the new one (Esc cancels). Taking a key another action uses swaps them.</p>'+
   '<button class="ht-btn ghost" data-rebind-reset style="margin-top:8px">Reset keys to defaults</button>'}
 function bind(pane,rerender){
@@ -63,12 +58,11 @@ function bind(pane,rerender){
       const old=get(id),other=ACTIONS.find(a=>a.id!==id&&get(a.id)===k);
       B[id]=k;if(other)B[other.id]=old;for(const a of ACTIONS)if(B[a.id]===a.k)delete B[a.id];
       capture=null;save();rerender()}});
-  const am=pane.querySelector('[data-aim-mode]');if(am)am.onclick=e=>{e.stopPropagation();setAim(AIM==='hold'?'toggle':'hold');rerender()};
   const r=pane.querySelector('[data-rebind-reset]');if(r)r.onclick=e=>{e.stopPropagation();B={};save();rerender()}}
 /* leaving the screen mid-capture: stop listening */
 setInterval(()=>{if(capture&&!document.querySelector('.ht-rb.wait'))capture=null},500);
 
 HT.Keys={ACTIONS,get:get,relabel,table,bind,get changed(){return Object.keys(B).length>0},
   set(id,k){if(!ACTIONS.some(a=>a.id===id))return false;k=String(k).toLowerCase();if(RESERVED.has(k))return false;const old=get(id),o=ACTIONS.find(a=>a.id!==id&&get(a.id)===k);B[id]=k;if(o)B[o.id]=old;for(const a of ACTIONS)if(B[a.id]===a.k)delete B[a.id];save();return true},
-  reset(){B={};save()},get aimMode(){return AIM},set aimMode(m){setAim(m)},aimHold:()=>AIM==='hold',get map(){return Object.assign({},T)}};
+  reset(){B={};save()},get map(){return Object.assign({},T)}};
 })();

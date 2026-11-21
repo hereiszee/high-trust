@@ -82,11 +82,3 @@ node dev/riverside-ingame.js [--only=0,4,91] [--seeds=10]   # giver -> drive -> 
 node dev/riverside-shots.js                                  # docs/screenshots/riverside-jobs/*.jpg
 ```
 `--only` takes job numbers 0-8, plus 90 (W3 checks: leash, leaving the job, fallback, trust gate) and 91 (chase win/fail over `--seeds`).
-
-## Characters under a bad network, and aim toggles
-```
-node dev/people-load.e2e.js [--shots]   # first 6 model requests per scenario aborted, 3 s latency on the rest: no box figure ever visible,
-                                        # every named character real within 30 s (hub start with crew, Riverside, roundup, hub after a job)
-node dev/aim-toggle.e2e.js              # real mouse/keys: gun aim, overwatch scope + Shift breath (tap toggle, auto-release),
-                                        # camera, tank gunner's sight are toggles; Key bindings → Aim: Toggle/Hold
-```
