@@ -94,6 +94,7 @@ function res(){return RES||(RES={geo:[],mat:[],tex:[],veh:[],cars:[],el:[],kmat:
 function freeRes(){const r=RES;RES=null;if(!r)return;const a=A();
   for(const c of r.cars)unregisterCar(c);for(const o of r.veh){try{o.parent&&o.parent.remove(o);o.userData&&o.userData.dispose&&o.userData.dispose()}catch(_){}}
   for(const g of r.geo)try{g.dispose()}catch(_){}for(const m of r.mat)try{m.dispose()}catch(_){}for(const t of r.tex)try{t.dispose()}catch(_){}
+  if(r.props)try{r.props.dispose()}catch(_){}
   for(const e of r.el)try{e.remove()}catch(_){}for(const p of r.people)try{p.d.root.parent&&p.d.root.parent.remove(p.d.root)}catch(_){}
   if(a&&a.P&&a.P.dude)a.P.dude.root.visible=true}
 FN.res=res;FN.freeRes=freeRes;
