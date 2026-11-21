@@ -759,9 +759,9 @@ function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'co
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';
-  if(tab==='keys'){h='<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'+
+  if(tab==='keys'){h=(window.HT.Keys&&!d.bindings?HT.Keys.table():'<h3>Keyboard &amp; mouse</h3><div class="ht-keys">'+(d.bindings||DEFAULT_KEYS).map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>')+
     '<h3>Controller</h3><div class="ht-keys ht-padkeys">'+PAD_KEYS.map(([a,k])=>`<div><span>${esc(a)}</span><span>${String(k).split(' · ').map(x=>`<b class="ht-kc">${esc(x)}</b>`).join('<em style="opacity:.4;font-style:normal;margin:0 2px">/</em>')}</span></div>`).join('')+'</div>'+
-    '<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>'}
+    (window.HT.Keys?'':'<p style="font-size:13px;opacity:.6;margin-top:12px">Keys can\'t be rebound yet.</p>')}
   else if(tab==='found'){/* easter eggs (js/eggs.js): found ones in full, the rest as ??? with a hint */const f=d.found||[],n=f.filter(x=>x.found).length;
     h=`<h3>Things your dad found · ${n}/${f.length}</h3><div class="ht-keys">`+f.map(x=>`<div style="display:block;padding:8px 0"><b style="display:block;font-size:15px">${x.found?esc(x.name):'???'}</b><span style="opacity:.75;font-size:13px">${esc(x.found?x.text:'Hint: '+x.hint)}</span></div>`).join('')+'</div>'}
   else if(tab==='data'){h=`<h3>Save data</h3><p style="font-size:15px">Progress saves automatically after every job and purchase.</p><div class="ht-danger"><p>Reset the save to start Maple Heights over. Cash, guns, house upgrades and crew are all wiped.</p><button class="ht-btn dng ghost" data-reset>Reset save</button></div>`}
@@ -770,6 +770,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
     else if(it.type==='seg')h+=`<div class="ht-set">${lab}<div class="ht-seg3" data-k="${it.k}">${it.opts.map(([ov,ol])=>`<button aria-pressed="${v===ov}" data-v="${ov}">${ol}</button>`).join('')}</div></div>`;
     else{const val=v??it.min;h+=`<div class="ht-set">${lab}<input type="range" id="hts-${it.k}" min="${it.min}" max="${it.max}" step="${it.step}" value="${val}" data-k="${it.k}" style="--p:${((val-it.min)/(it.max-it.min)*100).toFixed(1)}%"><output class="ht-num">${(it.fmt||String)(val)}</output></div>`}}}
   pane.innerHTML=h;
+  if(tab==='keys'&&window.HT.Keys&&!d.bindings)HT.Keys.bind(pane,()=>renderPane(e,d));/* rebinding (js/keys.js) */
   const set=(k,v)=>{S[k]=v;emit('setting',k,v);if(k==='subs')H.subsOn=v;if(k==='mmRotate')H.mmRotate=v};
   pane.querySelectorAll('input[type=range]').forEach(r=>{const it=SETTINGS.flatMap(g=>g.items).find(i=>i.k===r.dataset.k);r.oninput=()=>{const v=+r.value;r.style.setProperty('--p',((v-it.min)/(it.max-it.min)*100).toFixed(1)+'%');r.nextElementSibling.textContent=(it.fmt||String)(v);set(it.k,v)}});
   pane.querySelectorAll('.ht-tog').forEach(t=>t.onclick=()=>{const v=t.getAttribute('aria-checked')!=='true';t.setAttribute('aria-checked',v);set(t.dataset.k,v)});

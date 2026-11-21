@@ -24,7 +24,7 @@ ipcRenderer.on('ht:fullscreen', (_e, on) => { for (const f of fsCbs) { try { f(!
 const st = boot.steam || {};
 
 contextBridge.exposeInMainWorld('HTDesktop', {
-  shell: 'electron', version: boot.version, electron: boot.electron, platform: boot.platform, dev: !!boot.dev, saveFrom: boot.saveFrom,
+  shell: 'electron', deck: !!boot.deck, version: boot.version, electron: boot.electron, platform: boot.platform, dev: !!boot.dev, saveFrom: boot.saveFrom,
   desktop: Object.assign({}, boot.desktop),
   storage,
   flush: () => ipcRenderer.sendSync('ht:save-flush'),

@@ -1,0 +1,34 @@
+/* Key rebinding (js/keys.js) in the real game, headless: node dev/keys.e2e.js
+   remap at the door (the new key drives the action, the old one is swallowed), swap on conflict, the Key bindings screen captures
+   a key, reserved keys are refused, keycaps relabel, bindings persist, reset. Console errors fail the run. */
+const {open}=require('./ai-ingame-lib.js');
+let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
+(async()=>{const {b,p,errs}=await open();const ev=(f,a)=>p.evaluate(f,a);
+  await ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(2);localStorage.removeItem('ht-keys');HT.Keys.reset()});
+  ok(await ev(()=>!!window.HT.Keys&&HT.Keys.get('fwd')==='w'),'HT.Keys loaded, defaults in place');
+  await ev(()=>HT.Keys.set('fwd','i'));
+  await p.keyboard.down('i');const w1=await ev(()=>window.__ht.keys.w);await p.keyboard.up('i');const w2=await ev(()=>window.__ht.keys.w);
+  ok(w1===true&&w2===false,'rebound key I drives Move forward (keys.w '+w1+' -> '+w2+')');
+  await p.keyboard.down('w');const w3=await ev(()=>window.__ht.keys.w);await p.keyboard.up('w');
+  ok(w3!==true,'the old key W is swallowed');
+  const p0=await ev(()=>({x:__ht.P.pos.x,z:__ht.P.pos.z}));await p.keyboard.down('i');await ev(()=>__ht.step(30));await p.keyboard.up('i');
+  const p1=await ev(()=>({x:__ht.P.pos.x,z:__ht.P.pos.z}));ok(Math.hypot(p1.x-p0.x,p1.z-p0.z)>1,'the dad walks on I');
+  await ev(()=>HT.Keys.set('reload','e'));
+  ok(await ev(()=>HT.Keys.get('use')==='r'&&HT.Keys.get('reload')==='e'),'taking E for Reload swaps Use onto R');
+  ok(await ev(()=>HT.Keys.relabel('E')==='R'&&HT.Keys.relabel('R')==='E'&&HT.Keys.relabel('Space')===null),'keycaps relabel (prompt E shows R)');
+  ok(await ev(()=>JSON.parse(localStorage.getItem('ht-keys')).fwd==='i'),'bindings saved (ht-keys)');
+  ok(await ev(()=>HT.Keys.set('jump','escape')===false&&HT.Keys.set('jump','1')===false),'Esc and 1-3 are reserved');
+  /* the screen */
+  await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
+  await ev(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await p.waitForTimeout(500);
+  await p.click('.ht-pause [data-tab=keys]');
+  ok(await p.isVisible('[data-rebind=crouch]'),'Key bindings tab lists rebindable actions');
+  await p.click('[data-rebind=crouch]');await p.keyboard.press('KeyK');await p.waitForTimeout(200);
+  ok(await ev(()=>HT.Keys.get('crouch')==='k'),'click + press K rebinds Crouch');
+  ok((await p.textContent('[data-rebind=crouch]')).trim()==='K','the button shows K');
+  await p.click('[data-rebind=crouch]');await p.keyboard.press('Escape');await p.waitForTimeout(200);
+  ok(await ev(()=>HT.Keys.get('crouch')==='k'&&window.HT.Input.paused),'Esc cancels a capture without closing the pause menu');
+  await p.click('[data-rebind-reset]');
+  ok(await ev(()=>HT.Keys.get('fwd')==='w'&&HT.Keys.get('crouch')==='c'&&!HT.Keys.changed&&Object.keys(HT.Keys.map).length===0),'reset restores defaults');
+  ok(errs.length===0,'no console errors'+(errs.length?': '+errs.slice(0,3).join(' | '):''));
+  await b.close();console.log(fails?fails+' FAILED':'all ok');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

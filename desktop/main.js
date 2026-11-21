@@ -122,7 +122,7 @@ function createWindow() {
 /* ---------- IPC (the HTDesktop bridge in preload.js) ---------- */
 const fromGame = e => { try { return (e.senderFrame && e.senderFrame.url || '').startsWith(ORIGIN + '/') } catch (_) { return false } };
 ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign({}, store.data), saveFrom: store.lastLoad, desktop: { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false },
-  steam: steam.info(), version: app.getVersion(), electron: process.versions.electron, platform: process.platform, dev: DEV } : null });
+  steam: steam.info(), deck: process.env.SteamDeck === '1', version: app.getVersion(), electron: process.versions.electron, platform: process.platform, dev: DEV } : null });
 ipcMain.on('ht:save-set', (e, k, v) => { if (fromGame(e) && typeof k === 'string' && typeof v === 'string' && k.length < 128 && v.length < 32e6) store.set(k, v) });
 ipcMain.on('ht:save-remove', (e, k) => { if (fromGame(e) && typeof k === 'string') store.remove(k) });
 ipcMain.on('ht:save-flush', e => { e.returnValue = fromGame(e) ? store.flush() : false });
@@ -139,7 +139,8 @@ app.on('window-all-closed', () => { store.flush(); app.quit() });
 process.on('uncaughtException', err => { log('[main] uncaught', err && err.stack || String(err)); store.flush() });
 
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
+  /* no menu bar, except macOS's app menu, which carries Cmd+Q / Cmd+H and Ctrl+Cmd+F (fullscreen) */
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { label: 'Window', submenu: [{ role: 'togglefullscreen' }, { role: 'minimize' }] }]) : null);
   protocol.handle('app', serve);
   /* nothing leaves the machine: block every request that is not local */
   session.defaultSession.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (d, cb) => {
