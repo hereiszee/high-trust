@@ -1211,7 +1211,8 @@ function nextStep(fx,fz,gxw,gzw){
 /* colliders are 2D boxes; c.h (optional) is the world height of a low one's top (crate, table, hedge, car). No h = full height.
    feet (optional, the player's): a box whose top is within MOVE.step of the feet or below them is stood on, not pushed against */
 const MOVE={g:22,v0:6.8,coyote:.1,buf:.12,step:.26,air:2.6,sup:.2,vaultMax:1.3,mantleMax:2.05};
-function collide(p,r,feet){const fy=feet==null?-1e9:feet;for(let pass=L.cgrid?3:1;pass--;)for(const c of L.cgrid?L.cgrid(p,r):L.colliders){if(c.h!=null&&fy>=c.h-MOVE.step)continue;if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){if(c.ob){obPush(p,r,c.ob);continue}
+let COL_NOVEH=false;/* [TRAFFIC] true only while updVan moves the driven car: traffic boxes (c.veh) are left to trafficContact, which resolves them by mass */
+function collide(p,r,feet){const fy=feet==null?-1e9:feet;for(let pass=L.cgrid?3:1;pass--;)for(const c of L.cgrid?L.cgrid(p,r):L.colliders){if(c.h!=null&&fy>=c.h-MOVE.step)continue;if(COL_NOVEH&&c.veh)continue;if(p.x+r>c.x0&&p.x-r<c.x1&&p.z+r>c.z0&&p.z-r<c.z1){if(c.ob){obPush(p,r,c.ob);continue}
   const ox1=p.x+r-c.x0,ox2=c.x1-(p.x-r),oz1=p.z+r-c.z0,oz2=c.z1-(p.z-r);const mx=Math.min(ox1,ox2),mz=Math.min(oz1,oz2);
   if(mx<mz)p.x+=ox1<ox2?-ox1:ox2;else p.z+=oz1<oz2?-oz1:oz2}}}
 /* oriented box colliders (cars): c.ob={x,z,fx,fz,hl,hw}, x0..z1 stays the enclosing box for broad checks */
@@ -1415,8 +1416,10 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   {const amb=OWS.region==='river'&&bT<40?'industrial':'suburb';if(amb!==OWS.amb){OWS.amb=amb;const A=AU();if(A&&A.ambience)try{A.ambience(amb)}catch(e){}}}
   owNeighbours(dt,bT);
   /* ambient traffic around the player (HT.CarAI on the road graph) */
-  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,
-    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):null});/* traffic yields to the escort truck and getaway cars too */
+  if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,want:OWS.trafficWant,
+    pv:CV&&!CV.fly?{x:CV.pos.x,z:CV.pos.z,yaw:CV.yaw,spd:CV.spd,hl:carSize(CV).l/2,hw:carSize(CV).w/2,type:CV.type}:null,/* [TRAFFIC] the player's vehicle, any type */
+    cars:L.cars?L.cars.filter(e=>e!==CV&&e.obj):null,say:(who,txt)=>radio(who,txt),
+    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||null});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
   owNeighbours(dt);
 }
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
@@ -1562,7 +1565,9 @@ function exitCar(){const e=CV;if(!e)return;const f=V3(-Math.sin(e.yaw),0,-Math.c
   CV=null;e.spd=0;e.steer=0;if(e.car){e.car.spd=0;e.car.steer=0}syncCar(e);engine(false,e);if(carBand(e)<5)carFxOff(e);if(DRV.ex){try{DRV.ex.remove()}catch(_){}DRV.ex=null}
   setCarSolid(e,true);const VM=HTM('Vehicles');if(e.obj.userData.mod&&VM&&VM.update)try{VM.update(e.obj,{speed:0,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}carLook(e);
   let ok=false;const side=S.w/2+.75;
-  for(const s of[-side,side]){const p=e.pos.clone().addScaledVector(r,s),q=p.clone();collide(q,.35);if(q.distanceTo(p)<.05&&walkable(tx(p.x),tx(p.z))){P.pos.copy(p);ok=true;break}}
+  /* a spot is free if the player fits there AND a step further out from the car (an angled car against a wall leaves a pocket you can't walk out of) */
+  const free=(v,s)=>{for(const k of[0,.8]){const p=e.pos.clone().addScaledVector(v,s+Math.sign(s)*k),q=p.clone();collide(q,.35);if(q.distanceTo(p)>=.05||!walkable(tx(p.x),tx(p.z)))return false}return true};
+  for(const[v,s]of[[r,-side],[r,side],[f,-(S.l/2+1.1)],[f,S.l/2+1.1]])if(free(v,s)){P.pos.copy(e.pos).addScaledVector(v,s);ok=true;break}/* doors, then behind, then ahead */
   if(!ok){const p=e.pos.clone().addScaledVector(f,-(S.l/2+1.1));collide(p,.35);P.pos.copy(p)}
   P.yaw=e.yaw;P.dude.root.visible=true;P.dude.root.position.set(P.pos.x,0,P.pos.z);P.fp=DRV.fp0;P.crouch=false;
   let i=0;for(const a of allies){if(!a.ride){a.dude.root.visible=true;continue}a.ride=false;a.pos.copy(P.pos).addScaledVector(f,-1.4-(i>>1)).addScaledVector(r,i%2?1.4:-1.4);collide(a.pos,.35);a.dude.root.visible=true;a.dude.root.position.set(a.pos.x,0,a.pos.z);i++}}
@@ -1757,6 +1762,43 @@ function carRepairTarget(e){if(!e||e===VAN)return null;const w=carWear(e);
 function readDrive(){let thr=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),st=(keys.a||keys.arrowleft?1:0)-(keys.d||keys.arrowright?1:0);
   if(tj.id!==null){thr=Math.abs(tj.y)>.15?-tj.y:0;st=Math.abs(tj.x)>.15?-tj.x:0}return{thr,st,hb:!!keys[' '],boost:!!keys.shift}}
 const autoLights=()=>mood===MOODS.dusk||NIGHT.k>.35;/* night: headlights on by themselves (L still overrides) */
+/* ---------- [TRAFFIC] the driven car against ambient traffic (js/openworld.js OW.traffic) ----------
+   Both are oriented boxes. If the player is the one closing (or the overlap is his: traffic separates itself before this runs), the overlap
+   and the impulse are shared by mass (HT.Garage mass; the tank 8, a car towing +1) so the traffic car is shoved, brakes, honks, its hazards
+   and alarm go, it dents (swapped to its hero model) and both cars take damage on the car-damage curve (carImpact / OW.trafficHit: CRASH_MIN,
+   the 45% cap) from the speed change each side feels. A vehicle 3x heavier (the tank against anything) is never moved. If a traffic car ran
+   into the player (it should have braked) only the traffic car moves and nothing is charged to the player. The frame's move is swept in
+   0.25 m sub-steps back to the first touch so nothing tunnels through. Ramming costs -1 trust once per car (at most -3 a session) outside
+   jobs, and +0.25 heat in Riverside (docs/riverside-heat.md; nothing when street trouble is Calm). */
+const TRAFFIC_MASS={tank:8,jet:6,mower:.45},TRAFFIC_BUMP={cars:new WeakSet(),trust:0};
+function vehMass(e){const G=HTM('Garage'),V=G&&G.VEH[e.type];return (TRAFFIC_MASS[e.type]||(V&&V.mass)||1)+(e.car&&e.car.towMul?1:0)}
+function trafficHero(t){const u=t.v.userData;if(u.bodyRoot&&u.body&&u.body.length)return;const nv=carModel(t.ty,t.co,0);if(!nv)return;nv.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});
+  nv.position.copy(t.v.position);nv.rotation.copy(t.v.rotation);const par=t.v.parent;if(par){par.add(nv);par.remove(t.v)}try{u.dispose&&u.dispose()}catch(_){}t.v=nv;t.hazSet=null}
+function trafficContact(e,dt,px0,pz0){const O=OW();if(!O||!O.trafficLive||!L||!L.ow)return;const list=O.trafficLive();if(!list.length)return;
+  const c=e.car,S=carSize(e),mP=vehMass(e),f=[-Math.sin(e.yaw),-Math.cos(e.yaw)],G=HTM('Garage');
+  for(const t of list){const B=O.trafficBox(t);if(Math.abs(B.x-e.pos.x)>12||Math.abs(B.z-e.pos.z)>12)continue;
+    const A={x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2};let h=O.obbSat(A,B);if(!h||h.d<.003)continue;
+    const mv=Math.hypot(e.pos.x-px0,e.pos.z-pz0);if(mv>.3){const n=Math.ceil(mv/.25);for(let k=1;k<n;k++){const q=Object.assign({},A,{x:px0+(e.pos.x-px0)*k/n,z:pz0+(e.pos.z-pz0)*k/n}),hk=O.obbSat(q,B);if(hk){A.x=q.x;A.z=q.z;h=hk;break}}}
+    e.pos.x=c.x=A.x;e.pos.z=c.z=A.z;
+    const nx=h.nx,nz=h.nz,tc=t.c,tf=[-Math.sin(tc.yaw),-Math.cos(tc.yaw)],vdx=c.vdx==null?f[0]:c.vdx,vdz=c.vdz==null?f[1]:c.vdz;
+    const vPn=(vdx*nx+vdz*nz)*c.spd,vQn=(tf[0]*nx+tf[1]*nz)*tc.spd+(t.push?t.push.vx*nx+t.push.vz*nz:0),aP=-vPn,aQ=vQn,closing=aP+aQ;
+    const mQ=(G&&G.VEH[t.ty]&&G.VEH[t.ty].mass)||1,heavy=mP>=3*mQ,mine=heavy||aP>=aQ-.05;
+    const wQ=!mine||heavy?1:mP/(mP+mQ),m=O.trafficShove(t,-nx*h.d*wQ,-nz*h.d*wQ,0,0),rest=h.d+(m.x*nx+m.z*nz);
+    if(mine&&rest>.001){/* (pinned against a wall: the pusher stops, as at a wall) */e.pos.x=c.x+=nx*rest;e.pos.z=c.z+=nz*rest}
+    if(!mine){tc.spd=0;const sQ=closing*2*mP/(mP+mQ);if(sQ>1)O.trafficHit(t,{sp:sQ,byPlayer:false});continue}/* the traffic car's fault: it stops, nothing on the player */
+    if(closing<=.05)continue;/* resting contact: positions only, no impulse, no jitter */
+    const J=(closing<1.5?1:1.1)*closing*mP*mQ/(mP+mQ),/* resting push: no bounce, the two move together */dP=heavy||e.type==='tank'?0:J/mP,dQ=J/mQ;
+    c.spd+=dP*(nx*vdx+nz*vdz);e.spd=c.spd;O.trafficShove(t,0,0,-nx*dQ,-nz*dQ);
+    const spP=closing*2*mQ/(mP+mQ),spQ=closing*2*mP/(mP+mQ),front=nx*f[0]+nz*f[1]<0,push={x:nx,z:nz};
+    if(spP>5&&e.bump<=0){try{if(ENG&&ENG.crash)ENG.crash(Math.min(1,spP/15));else snd('hit',Math.min(1,spP/15))}catch(_){}e.bump=.4;try{FX.shake(Math.min(.4,spP/34))}catch(_){}}
+    const lost=heavy?0:carImpact(e,spP,push,front,{cause:'crash'});if(lost>0){if(e.obj.userData.bodyRoot)dentCar(e,push,spP);carLook(e);if(carSave(e))try{SAVEM.touch('garage')}catch(_){}if(mode==='mission'&&M&&M.world&&carHp(e)<=0)wmVanDown()}
+    if(closing<1.2)continue;/* a steady push: no new hit */
+    const got=O.trafficHit(t,{sp:spQ,byPlayer:true,camera,say:(w,x)=>radio(w,x),player:P.pos});
+    if(got>2.5){trafficHero(t);const ud=t.v.userData;if(ud.bodyRoot)dentCar({obj:t.v,yaw:tc.yaw,dmg:1-tc.hp/tc.stats.hp},{x:-nx,z:-nz},spQ);if(ud.setDamage)try{ud.setDamage(1-tc.hp/tc.stats.hp)}catch(_){}O.trafficSync(t)}
+    /* consequences: a little trust once per car (not during jobs), a little Riverside heat */
+    if(closing>3&&!TRAFFIC_BUMP.cars.has(t)&&mode!=='mission'){TRAFFIC_BUMP.cars.add(t);const river=OW().regionAt(tc.x,tc.z)==='river';
+      if(TRAFFIC_BUMP.trust>-3){TRAFFIC_BUMP.trust--;addTrust(-1,river?'river':'maple');try{FX.trustPop(V3(tc.x,2.2,tc.z),'-1 TRUST',{sub:'You rammed a neighbour',color:'#ff6a4d'})}catch(_){}}
+      if(river&&FR&&frOn())FR.heat=Math.min(FR.cap||0,FR.heat+.25)}}}
 function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=e.base,I=readDrive(),VM=HTM('Vehicles'),mod=e.obj.userData.mod;
   if(keys.l&&!DRV.lPrev)DRV.lights=!(DRV.lights==null?autoLights():DRV.lights);DRV.lPrev=!!keys.l;
   /* type character: launch torque (pickup) and a rear that steps out on the throttle */
@@ -1764,14 +1806,15 @@ function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=
   S.grip=B.grip*(F.rear<1&&I.thr>0&&Math.abs(I.st)>.2&&Math.abs(v0)>3&&Math.abs(v0)<17?F.rear:1);
   if(!I.hb)I.st*=1-.38*clamp(Math.abs(v0)/34,0,1);/* less steering authority at speed: quick but controllable */
   const band=carDrive(e,S,B,I);/* car health: slower, weaker brakes, a pull, limp mode, broken down */
-  c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0};
-  const hit=e.fly?null:drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z});JH.vehicle(e,dt);/* JOBS: tow, g-force, tail. e.fly: a vehicle that moves itself (the jet, js/jet.js) skips the ground physics */
+  c.x=e.pos.x;c.z=e.pos.z;c.yaw=e.yaw;const push={x:0,z:0},px0=c.x,pz0=c.z;
+  let hit=null;COL_NOVEH=true;try{hit=e.fly?null:drivePhys(c,I,dt,(p,r)=>{const x=p.x,z=p.z;collide(p,r);push.x+=p.x-x;push.z+=p.z-z})}finally{COL_NOVEH=false}JH.vehicle(e,dt);/* JOBS: tow, g-force, tail. e.fly: a vehicle that moves itself (the jet, js/jet.js) skips the ground physics */
   if(F.rear<1&&I.thr>0&&Math.abs(I.st)>.3&&Math.abs(c.spd)>3&&Math.abs(c.spd)<15)c.yaw+=I.st*.32*dt;
   e.pos.x=c.x;e.pos.z=c.z;e.yaw=c.yaw;e.spd=c.spd;e.steer=c.steer;e.odo+=Math.abs(c.spd)*dt;
   if(hit){const sp=hit.speed;if(sp>5&&e.bump<=0){if(ENG&&ENG.crash)ENG.crash(Math.min(1,sp/15));else snd('hit',Math.min(1,sp/15));hurtFlash=Math.min(.5,sp/40);e.bump=.4;try{FX.shake(Math.min(.5,sp/34))}catch(_){}
       const lost=carCrash(e,sp,push.x||push.z?push:{x:Math.sin(e.yaw)*(hit.front?1:-1),z:Math.cos(e.yaw)*(hit.front?1:-1)},hit.front),s2=speaker();if(mode==='mission'&&M&&M.world&&carHp(e)<=0)wmVanDown();
       if(lost>0&&sp>11&&Math.random()<.5&&DRV.quipT<=0){if(e===VAN){if(s2)radio(s2,pick(["That's coming out of the HOA fund.","Easy! I just had it detailed.","Was that a mailbox? Tell me that wasn't a mailbox."]))}
         else radio(s2||'you',pick([e.name+" is going to see that.","That's not our car, man!","Maybe "+e.name+" won't notice. "+e.name+" notices everything."]))}}}
+  if(!e.fly)trafficContact(e,dt,px0,pz0);/* [TRAFFIC] pushing traffic cars / being bumped by one, by mass and speed */
   e.bump-=dt;syncCar(e);
   const braking=I.hb||(I.thr<0&&e.spd>.5)||(I.thr>0&&e.spd<-.5),heads=DRV.lights==null?autoLights():DRV.lights;
   if(mod&&VM&&VM.update){try{VM.update(e.obj,{speed:e.spd,steer:e.steer,braking,headlights:heads,auto:false,dt})}catch(err){}const br=e.obj.userData.bodyRoot;if(br){br.rotation.x*=F.roll;br.rotation.z*=.6+.4*F.roll}}
@@ -3727,7 +3770,7 @@ function startMissionWorld(i,o={}){o=jrOpts(o);const m=MISSIONS[i];if(mode==='ho
   else{L.items=[];L.bonus=[];L.stashes=[];L.ammo=[];L.spawns=[];L.waveSpawns=[];L.boss=null;L.grill=null;const c=car.pos;wmSetWindow(wmWindow(c.x,c.z,14))}
   wmExitAt(car);
   const hud_=st&&!stay?st.huddle:null;
-  if(hud_){P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
+  if(hud_){const ex=P.pos.clone();P.pos.set(hud_.x,0,hud_.z);collide(P.pos,.35);if(Math.hypot(P.pos.x-hud_.x,P.pos.z-hud_.z)>.05)P.pos.copy(ex);/* the car is parked on the huddle spot: stay where you got out (squeezing out of it can leave you boxed in against a wall) */const c={x:(st.box.x0+st.box.x1)/2,z:(st.box.z0+st.box.z1)/2};P.yaw=Math.atan2(-(c.x-P.pos.x),-(c.z-P.pos.z))}else if(!stay){P.pos.set(L.exit.x,0,L.exit.z)}
   resetMove();P.pitch=-.05;P.hp=100;P.regenT=0;P.crouch=false;P.aim=false;
   FX.clear();setLoadout(missionLoadout(i),null);metaAmmo();metaMissionStart(i);
   const crew=m.crew.filter(c=>c!=='rosa'||m.self||prog.done[6]||(SV()&&SV().crew.rosa));
