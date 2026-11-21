@@ -9,7 +9,10 @@ const { _electron } = require('playwright'), path = require('path'), fs = requir
 const arg = k => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : null }, has = k => process.argv.includes('--' + k);
 const EXE = arg('exe'), SHOTS = has('shots'), SHOT_DIR = path.join(__dirname, '../../docs/screenshots/steam');
 const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'ht-e2e-'));
-const GPU = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+/* software GL by default (headless Linux, Windows runners); HT_E2E_NATIVE_GPU=1 keeps the platform's own GL (macOS: Metal; SwiftShader isn't usable there) */
+const GPU = process.env.HT_E2E_NATIVE_GPU === '1' ? [] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+/* failure evidence for CI artifacts: desktop/test-output/ */
+const OUT_DIR = path.join(__dirname, '..', 'test-output');
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? 'ok   ' : 'FAIL ') + m) };
 
 async function launch(extra = [], env = {}) {
@@ -41,10 +44,27 @@ async function deckRun() {
   if (has('smoke')) { /* CI on Windows/macOS runners: launch to the title, no console errors, nothing remote, quit */
     const L = await launch(); const { app, p } = L;
     ok(await p.evaluate(() => !!window.HTDesktop), 'HTDesktop bridge present');
-    await p.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 300000 });
-    await p.waitForSelector('.ht-title [data-act=newgame]:not([disabled])', { timeout: 120000 });
+    try {
+      await p.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 300000 });
+      await p.waitForSelector('.ht-title [data-act=newgame]:not([disabled])', { timeout: 120000 });
+    } catch (err) {
+      /* print and keep everything that explains it: page state, WebGL, console errors, the main process output and log, a screenshot */
+      fs.mkdirSync(OUT_DIR, { recursive: true });
+      const state = await p.evaluate(() => { let gl = null; try { const c = document.createElement('canvas'), x = c.getContext('webgl2') || c.getContext('webgl'); if (x) { const d = x.getExtension('WEBGL_debug_renderer_info'); gl = { v: x.getParameter(x.VERSION), r: d ? x.getParameter(d.UNMASKED_RENDERER_WEBGL) : x.getParameter(x.RENDERER) } } } catch (e) { gl = 'error ' + e.message }
+        return { url: location.href, ht: !!window.__ht, assets: window.__ht && window.__ht.assets ? { done: window.__ht.assets.done, progress: window.__ht.assets.progress, failed: (window.__ht.assets.failed || []).slice(0, 10) } : null,
+          title: !!document.querySelector('.ht-title'), loadText: (document.querySelector('.ht-load .st') || {}).textContent || null, webgl: gl } }).catch(e => ({ evalError: e.message }));
+      console.log('     state: ' + JSON.stringify(state));
+      console.log('     console errors: ' + JSON.stringify(L.errs.slice(0, 20)));
+      console.log('     remote requests: ' + JSON.stringify(L.remote.slice(0, 10)));
+      const out = L.out.join(''); console.log('     main process output (tail):\n' + out.split('\n').slice(-40).join('\n'));
+      try { fs.copyFileSync(path.join(PROFILE, 'high-trust.log'), path.join(OUT_DIR, 'high-trust.log')) } catch (e) { }
+      fs.writeFileSync(path.join(OUT_DIR, 'smoke-failure.json'), JSON.stringify({ state, errs: L.errs, remote: L.remote, out }, null, 2));
+      await p.screenshot({ path: path.join(OUT_DIR, 'smoke-failure.png'), timeout: 60000 }).catch(() => { });
+      throw err;
+    }
     ok(true, 'reached the title screen');
-    await p.screenshot({ path: path.join(os.tmpdir(), 'ht-smoke-title.png'), timeout: 180000 }).catch(() => { });
+    fs.mkdirSync(OUT_DIR, { recursive: true }); await p.screenshot({ path: path.join(OUT_DIR, 'smoke-title.png'), timeout: 180000 }).catch(() => { });
+    try { fs.copyFileSync(path.join(PROFILE, 'high-trust.log'), path.join(OUT_DIR, 'high-trust.log')) } catch (e) { }
     ok(L.errs.length === 0, 'zero console errors' + (L.errs.length ? ': ' + L.errs.slice(0, 5).join(' | ') : ''));
     ok(L.remote.length === 0, 'zero remote requests' + (L.remote.length ? ': ' + L.remote.slice(0, 5).join(' ') : ''));
     const exited = new Promise(r => app.process().once('exit', c => r(c)));
