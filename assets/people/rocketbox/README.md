@@ -1,6 +1,6 @@
 # Rocketbox people: realistic skinned characters for High Trust
 
-There are 13 characters, each a single GLB. They all share one skeleton (3ds Max Biped `Bip01`, 52 body bones plus 28 facial bones). One animation file, `anims.glb`, drives all of them. Licensing is in `CREDITS.md`. To see everything, open `test.html` over HTTP: it shows the lineup, and you can drag to orbit.
+There are 33 characters, each a single GLB (5 dads, 3 family, 10 street-crew looks, the boss, 4 Riverside job-givers and 10 neighbours). They all share one skeleton (3ds Max Biped `Bip01`, 52 body bones plus 28 facial bones). One animation file, `anims.glb`, drives all of them. Licensing is in `CREDITS.md`. To see everything, open `test.html` over HTTP: it shows the lineup, and you can drag to orbit.
 
 - **Units and axes:** meters, Y up. Characters face **+Z**, their left is **+X**, and the feet sit at y = 0 in rest.
 - **Rest pose:** A-pose, with the arms about 45° down.

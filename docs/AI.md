@@ -55,7 +55,7 @@ Conventions: `e.yaw` uses the character convention, forward = (sin yaw, cos yaw)
    ```js
    if(mode!=='mission'||!L.nav){/* hub: keep the old idle sway */}
    const I=AI.think(e,aiWorld,dt);AI.move(e,I,dt);collide(e.pos,.35);
-   if(I.bark)radio(e.boss?'The King':'Hoodie',I.bark.text,I.bark.priority>=2);
+   if(I.bark)radio(e.boss?'The King':'Crew',I.bark.text,I.bark.priority>=2);
    if(I.fire){const t=I.targetId==='player'?P:allies.find(a=>a.id===I.targetId);if(t&&!t.down)shootAt(e,t,I.hitChance,I.dmg,true)}
    if(I.wantsSurrender&&!e.triedSurr){e.triedSurr=true;surrender(e)}
    e.alert=e.ai.mode!=='idle';

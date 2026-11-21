@@ -217,7 +217,7 @@ J.register('brake',{
     for(const id of['rick','dave']){const c=M.crew[id];c.who=id;c.st='parked';c.x=STAGE[id].x;c.z=STAGE[id].z;c.yaw=STAGE.yaw;syncC(c,0)}
     /* the people: Rick and Dave in the huddle by your door, two thieves at the ATM */
     M.rick=dad('rick',STAGE.you.x+1.2,STAGE.you.z-3.1,Math.PI);M.dave=dad('dave',STAGE.you.x+3.4,STAGE.you.z-2.6,Math.PI*.85);
-    M.thA=thug('thug_hoodie',ATM.x-.5,ATM.z+.9,Math.PI);M.thB=thug('thug_track',ATM.x+.9,ATM.z+1.3,Math.PI*.8);M.thIn=0;
+    M.thA=thug('thug_hoodie',ATM.x-.5,ATM.z+.9,Math.PI);M.thB=thug('thug_jacket',ATM.x+.9,ATM.z+1.3,Math.PI*.8);M.thIn=0;
     M.ghost=ghostModel();a.wmAdd(M.ghost);M.ghost.visible=false;
     playbook(M,true);
     /* any civilian hit counts: the neighbours' parked cars report through the car-damage hook too */
@@ -255,7 +255,7 @@ J.register('brake',{
   camera(){return undefined},
   test:{give(a){const h=window.__ht,s=a.SV();for(const id of['gary','rick','dave','doug','earl','duke']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}
       if(s&&s.world)s.world.bridgeOpen=true;if(s&&s.flags)s.flags.act2Intro=true;if(h&&h.prog)h.prog.act=Math.max(h.prog.act||1,3);
-      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_rick','dad_dave','thug_hoodie','thug_track','thug_beanie','thug_red'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
+      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_rick','dad_dave','thug_hoodie','thug_red','thug_cap','thug_jacket'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'chase',play:'fence',s:322.5,flags:1,civ:0,kiss:0,chaseT:34.2,crew:[{st:'route',s:330,lat:0},{st:'route',s:314,lat:0}],boxes:0,stopT:null})}
 });

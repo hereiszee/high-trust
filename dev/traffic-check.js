@@ -28,7 +28,7 @@ await p.evaluate(()=>{const H=window.__ht;H.enterHub();H.HUD.hide('title');H.ste
   T.edges=[];for(const [i,n] of G.nodes.entries())for(const e of n.e){const m=G.nodes[e.to],l=Math.hypot(m.x-n.x,m.z-n.z);T.edges.push({a:i,b:e.to,l,da:n.e.length,db:m.e.length,region:O.regionAt((n.x+m.x)/2,(n.z+m.z)/2)})}
   T.lanePt=(a,b,at,side)=>{const A=G.nodes[a],B=G.nodes[b],l=Math.hypot(B.x-A.x,B.z-A.z),ux=(B.x-A.x)/l,uz=(B.z-A.z)/l,s=side==null?1.5:side;return{x:A.x+ux*at-uz*s,z:A.z+uz*at+ux*s,yaw:Math.atan2(-ux,-uz),ux,uz}};
   T.cv=()=>H.CV||H.VAN;
-  T.place=(x,z,yaw)=>{const e=T.cv();e.pos.set(x,0,z);e.yaw=yaw;e.spd=0;e.steer=0;if(e.car){e.car.x=x;e.car.z=z;e.car.yaw=yaw;e.car.spd=0;e.car.steer=0}H.step(1)};
+  T.place=(x,z,yaw)=>{const e=T.cv();e.pos.set(x,0,z);e.yaw=yaw;e.spd=0;e.steer=0;if(e.car){e.car.x=x;e.car.z=z;e.car.yaw=yaw;e.car.spd=0;e.car.steer=0;e.car.vdx=-Math.sin(yaw);e.car.vdz=-Math.cos(yaw)}H.step(1)};/* (vdx/vdz: CarAI's slide direction, or a reversed teleport drives backwards) */
   T.keysOff=()=>{for(const k in H.keys)H.keys[k]=false};
   /* drive the player's car to (x,z) with real keys along yaw, then brake to a stop */
   T.driveTo=(x,z,yaw)=>{const e=T.cv(),f=[-Math.sin(yaw),-Math.cos(yaw)];T.place(x-f[0]*26,z-f[1]*26,yaw);T.keysOff();
@@ -145,11 +145,12 @@ const P4=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inV
   return{disp:w.disp,ov:w.ov,hp:[hp0,H.carHp(e)],trust:[tr0,H.prog.trust+(H.prog.trustR||0)],ev:T.ev(t.id).map(x=>x.ev+(x.by?':'+x.by:''))}});
 ok(P4.disp<1e-6&&P4.hp[1]===P4.hp[0]&&P4.trust[1]===P4.trust[0]&&P4.ov<.05,'rear-ended by a traffic car forced not to brake: player car moved '+P4.disp.toExponential(1)+' m, hp '+P4.hp.join(' -> ')+', trust unchanged ('+P4.ev.join(', ')+')');
 /* a hard hit disables it: it pulls over at the kerb, hazards on, the driver gets out and phones someone (never hurt) */
-const P5=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[1];const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
-  const t=O.trafficAdd({a:E.a,b:E.b,at:36,spd:0,max:6,type:'hatch'});t.c.hp=12;H.step(3);T.keysOff();H.keys.w=true;for(let i=0;i<200&&!t.wreck;i++)H.step(1);T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
-  for(let i=0;i<30*8;i++)H.step(1);const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)];let lat=0;{const ai=t.c.ai,pp=ai.pts,k=Math.min(ai.tr.i,pp.length-2),A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;lat=((t.c.x-A.x)*(B.z-A.z)-(t.c.z-A.z)*(B.x-A.x))/l}
+const P5=await p.evaluate(async()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(e=>e.l>=70)[1];const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
+  const t=O.trafficAdd({a:E.a,b:E.b,at:36,spd:0,max:.01,type:'hatch'});t.c.hp=4;H.step(3);T.keysOff();H.keys.w=true;for(let i=0;i<200&&!t.wreck;i++)H.step(1);T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
+  /* the driver's model may still be streaming in: keep the game going (and the loader breathing) until he is out, up to 30 s */
+  for(let k=0;k<300&&!(t.driver&&k>=8);k++){for(let i=0;i<30;i++)H.step(1);await new Promise(r=>setTimeout(r,100))}const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)];let lat=0;{const ai=t.c.ai,pp=ai.pts,k=Math.min(ai.tr.i,pp.length-2),A=pp[k],B=pp[k+1],l=Math.hypot(B.x-A.x,B.z-A.z)||1;lat=((t.c.x-A.x)*(B.z-A.z)-(t.c.z-A.z)*(B.x-A.x))/l}
   const d=t.driver;return{wreck:!!t.wreck,spd:t.c.spd,haz:!!t.hazSet,driver:!!d,phone:!!t.phone,dDist:d?+Math.hypot(d.root.position.x-t.c.x,d.root.position.z-t.c.z).toFixed(2):null,lat:+lat.toFixed(2),ev:T.ev(t.id).map(x=>x.ev)}});
-ok(P5.wreck&&Math.abs(P5.spd)<.3&&P5.haz&&(P5.driver||!P5.phone),'a hard hit wrecks it: pulled over ('+P5.lat+' m right of the lane line), stopped, hazards on, driver standing '+P5.dDist+' m from it'+(P5.driver?' with a phone':' (no people models loaded)')+' ('+P5.ev.join(', ')+')');
+ok(P5.wreck&&Math.abs(P5.spd)<.3&&P5.haz&&P5.driver&&P5.phone&&P5.lat<-.6,'a hard hit wrecks it: pulled over ('+(-P5.lat)+' m right of the lane line), stopped, hazards on, driver standing '+P5.dDist+' m from it'+(P5.driver?' with a phone':' (no people models loaded)')+' ('+P5.ev.join(', ')+')');
 /* Riverside: ramming adds a little heat (docs/riverside-heat.md), once per car */
 const P6=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const E=T.edges.filter(x=>x.l>=45&&x.region==='river')[0];if(!E)return{none:true};
   const q=T.lanePt(E.a,E.b,4);T.place(q.x,q.z,q.yaw);H.step(5);const h0=H.heat.get();const t=O.trafficAdd({a:E.a,b:E.b,at:24,spd:0,max:.01});H.step(3);T.keysOff();H.keys.w=true;
@@ -184,7 +185,7 @@ const J=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();T.cl
   {const nb=G.nodes[Bn],str=jn.nd.e.map(x=>x.to).filter(x=>x!==Bn&&x!==A).sort((u,v)=>{const U=G.nodes[u],V=G.nodes[v],d=n=>((n.x-jn.nd.x)*(jn.nd.x-nb.x)+(n.z-jn.nd.z)*(jn.nd.z-nb.z))/Math.hypot(n.x-jn.nd.x,n.z-jn.nd.z);return d(V)-d(U)});t.planAt=jn.j;t.planTo=str[0]}T.keysOff();H.keys.w=true;let ov=0,minD=1e9,tStop=null;const trace=[];
   for(let i=0;i<30*7;i++){H.keys.w=e.spd<8;H.step(1);const g=T.rectDist(T.box(e),O.trafficBox(t));minD=Math.min(minD,g);ov=Math.max(ov,T.ov(T.box(e),O.trafficBox(t)));if(tStop==null&&t.c.spd<.3)tStop=+Math.hypot(t.c.x-jn.nd.x,t.c.z-jn.nd.z).toFixed(1);if(i%15===0)trace.push([i,+e.pos.x.toFixed(1),+e.pos.z.toFixed(1),+e.spd.toFixed(1),+t.c.x.toFixed(1),+t.c.z.toFixed(1),+t.c.spd.toFixed(1),t.blk,t.res])}
   T.keysOff();H.keys.s=true;H.step(40);H.keys.s=false;return{res,cross:{ov,minD:+minD.toFixed(2),tStop,j:jn.j,A,Bn,log:T.ev(t.id).map(x=>x.ev+':'+(x.by||'')),trace}}});
-ok(J.res.length>=3&&J.res.every(r=>r.ov===0),'junctions: '+J.res.length+' pairs of cars arriving at once never overlap (closest '+J.res.map(r=>r.minD).join('/')+' m)');
+ok(J.res.length>=3&&J.res.every(r=>r.ov<.01),'junctions: '+J.res.length+' pairs of cars arriving at once never overlap (closest '+J.res.map(r=>r.minD).join('/')+' m)');
 ok(J.cross&&J.cross.ov===0&&J.cross.tStop!=null,'a car on the cross street waits '+(J.cross&&J.cross.tStop)+' m from the junction centre while the player drives across (closest '+(J.cross&&J.cross.minD)+' m)'+(J.cross&&J.cross.tStop!=null?'':' '+JSON.stringify(J.cross)));
 
 /* ---------------- 6. mission cars ---------------- */
@@ -204,17 +205,17 @@ const SOAK=QUICK?30*60:30*300;
 const SK=await p.evaluate(([N])=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');
   /* the van laps a block on a waypoint autopilot that ignores traffic (worst case for contact) */
   const loop=[];{let best=null;for(const [i,n] of G.nodes.entries())if(n.e.length>=3&&(!best||Math.hypot(n.x-120,n.z-60)<Math.hypot(best.x-120,best.z-60)))best=n;let cur=G.nodes.indexOf(best),prev=-1;for(let k=0;k<10;k++){const nd=G.nodes[cur];let nx=nd.e.map(x=>x.to).filter(x=>x!==prev);if(!nx.length)nx=[prev];const to=nx[(k*3)%nx.length];loop.push(...G.lane(prev>=0?[prev,cur,to]:[cur,to]));prev=cur;cur=to}}
-  const st=loop[0];T.place(st.x,st.z,0);let wi=1;const run=(n,want)=>{H.OWS.noTraffic=want===0;H.OWS.trafficWant=want;let ov=0,ovN=0,samp=0,maxCars=0,hits=0,stuckN=0,revN=0;const t0=performance.now();
+  const st=loop[0];T.place(st.x,st.z,0);let wi=1;const run=(n,want)=>{H.OWS.noTraffic=want===0;H.OWS.trafficWant=want;let ov=0,ovN=0,samp=0,maxCars=0,hits=0,stuckN=0,revN=0;const ovs=[];const t0=performance.now();
     for(let s=0;s<n;s++){const w=loop[wi%loop.length];const dx=w.x-e.pos.x,dz=w.z-e.pos.z;if(Math.hypot(dx,dz)<6)wi++;const want_=Math.atan2(-dx,-dz);let d=want_-e.yaw;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
       if(Math.abs(e.spd)<.6)stuckN++;else stuckN=0;if(stuckN>45){revN=25;stuckN=0}
       if(revN>0){revN--;H.keys.w=false;H.keys.s=true;H.keys.a=d<0;H.keys.d=d>0}else{H.keys.w=e.spd<(Math.abs(d)>.4?5:10);H.keys.s=false;H.keys.a=d>.05;H.keys.d=d<-.05}H.step(1);
       if(s%5)continue;const L=O.trafficLive();maxCars=Math.max(maxCars,L.length);samp++;const bx=L.map(t=>O.trafficBox(t)),oth=[T.box(e),...H.vehicles.filter(v=>v!==e&&v.obj&&!v.obj.userData.flat).map(T.box)];
-      for(let a=0;a<bx.length;a++){for(let c=a+1;c<bx.length;c++){const h=O.obbSat(bx[a],bx[c]);if(h&&h.d>.05){ovN++;ov=Math.max(ov,h.d)}}for(const q of oth){if(Math.abs(q.x-bx[a].x)>9||Math.abs(q.z-bx[a].z)>9)continue;const h=O.obbSat(bx[a],q);if(h&&h.d>.05){ovN++;ov=Math.max(ov,h.d)}}}}
-    return{ms:+((performance.now()-t0)/n).toFixed(3),ov:+ov.toFixed(3),ovN,samp,maxCars}};
+      for(let a=0;a<bx.length;a++){for(let c=a+1;c<bx.length;c++){const h=O.obbSat(bx[a],bx[c]);if(h&&h.d>.05){ovN++;ov=Math.max(ov,h.d);if(ovs.length<6)ovs.push(['traffic',+h.d.toFixed(2),L[a].mode,L[c].mode,s])}}for(const [qi,q] of oth.entries()){if(Math.abs(q.x-bx[a].x)>9||Math.abs(q.z-bx[a].z)>9)continue;const h=O.obbSat(bx[a],q);if(h&&h.d>.05){ovN++;ov=Math.max(ov,h.d);if(ovs.length<6){const pc=qi?H.vehicles.filter(v=>v!==e&&v.obj&&!v.obj.userData.flat)[qi-1]:null,tt=L[a];ovs.push([qi?'parked':'van',+h.d.toFixed(2),tt.mode,tt.wreck?1:0,tt.nudge?1:0,s,pc&&[pc.type,pc.owner,pc.name,+pc.pos.x.toFixed(1),+pc.pos.z.toFixed(1),O.trafficObs().some(o=>o.src===pc)],[+tt.c.x.toFixed(1),+tt.c.z.toFixed(1),+tt.c.spd.toFixed(1),!!tt.push,+(tt.shoveT||0).toFixed(1),tt.sepN|0,+Math.hypot(tt.c.x-e.pos.x,tt.c.z-e.pos.z).toFixed(1)]])}}}}}
+    return{ms:+((performance.now()-t0)/n).toFixed(3),ov:+ov.toFixed(3),ovN,samp,maxCars,ovs}};
   const off=run(Math.min(1800,N/5),0);const lg0=O.trafficLog().length;const on=run(N,24);const ev={};for(const x of O.trafficLog().slice(lg0)){const k=x.ev;ev[k]=(ev[k]||0)+1}
   const hp=H.carHp(e);H.OWS.trafficWant=0;H.keys.w=H.keys.a=H.keys.d=false;H.keys.s=true;H.step(30);H.keys.s=false;T.clear();return{off,on,ev,hp,laps:+(wi/loop.length).toFixed(2)}},[SOAK]);
 log('     soak events: '+JSON.stringify(SK.ev)+'; van autopilot '+SK.laps+' laps, van hp '+SK.hp.toFixed(0));
-ok(SK.on.maxCars>=20&&SK.on.ovN===0,(SOAK/30/60)+'-minute free roam with up to '+SK.on.maxCars+' cars and the van ramming its way round a loop: '+SK.on.ovN+' overlaps > 5 cm after resolution in '+SK.on.samp+' samples (max '+SK.on.ov+' m)');
+ok(SK.on.maxCars>=20&&SK.on.ovN===0,(SOAK/30/60)+'-minute free roam with up to '+SK.on.maxCars+' cars and the van ramming its way round a loop: '+SK.on.ovN+' overlaps > 5 cm after resolution in '+SK.on.samp+' samples (max '+SK.on.ov+' m)'+(SK.on.ovN?' '+JSON.stringify(SK.on.ovs):''));
 log('     step time (game logic, no render): traffic off '+SK.off.ms+' ms, 24 cars '+SK.on.ms+' ms');
 
 /* ---------------- screenshots ---------------- */

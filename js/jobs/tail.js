@@ -304,7 +304,7 @@ J.register('tail',{
   camera(dt){const M=A().M;if(!M||M.state!=='go')return undefined;return binoCam(M,dt)||undefined},
   hud(st){const M=A().M;if(!M)return;if(M.ph==='tail'||M.ph==='spook'||M.ph==='lost')st.routeTo=null;if(M.vfOn&&st.crosshair)st.crosshair.hidden=true},
   test:{give(a){const h=window.__ht,s=a.SV();for(const id of['gary','rick']){const i=a.MISSIONS.findIndex(m=>m.id===id);if(i>=0&&h&&h.prog)h.prog.done[i]=true;if(s&&window.HT.Save&&HT.Save.jobRec)HT.Save.jobRec(s,id).done=true}if(s&&s.world)s.world.bridgeOpen=true;/* the Act 2 "bridge is open" card was seen after Rick's job */if(s&&s.flags)s.flags.act2Intro=true;if(h&&h.prog)h.prog.act=Math.max(h.prog.act||1,2);
-      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_doug','thug_hoodie','thug_track','thug_beanie','thug_red'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
+      const PP=window.HT.People;if(PP&&PP.preload)try{PP.preload(['dad_doug','thug_hoodie','thug_red','thug_cap','thug_jacket'].filter(k=>PP.keys&&PP.keys.includes(k)&&!PP.has(k))).catch(()=>{})}catch(_){}},
     step:(a,t,o)=>bot(a,t,o),
     sample:()=>({ph:'tail',s0:412.5,Ts:{sus:22.5,max:48,lose:1.2,fam:{van:.62},made:[],car:'van',type:'minivan'},swaps:0,bi:-1,vanAt:null,pullDone:false,lightDone:false,items:{},photo:null,maxSus:48,everMade:false})}
 });

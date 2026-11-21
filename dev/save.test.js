@@ -368,7 +368,7 @@ test('gadgets, perks, jobRec helpers',()=>{
 
 test("night-vision goggles: Hank's Gadgets tab, buy sets owned, equip toggle",()=>{
   fresh();const d=Save.data;const g=C.gadgets.nvg;
-  assert.equal(g.name,'NightOwl Gen-1 Goggles');assert.ok(g.price>=400&&g.price<=900);assert.match(g.fx,/Toggle with N/);assert.ok(g.blurb);
+  assert.equal(g.name,'Hoot-Vision Gen-1 Goggles');assert.ok(g.price>=400&&g.price<=900);assert.match(g.fx,/Toggle with N/);assert.ok(g.blurb);
   assert.ok(C.stores.hardware.tabs.some(t=>t[0]==='gad'&&t[1]==='Gadgets'));assert.equal(C.gadgets.flashlight.name,"Dad's Maglite");
   assert.equal(E.status('gad','flashlight','hardware').state,'equipped','the Maglite is free and owned');
   assert.equal(E.status('gad','nvg','hardware').state,'poor');d.cash=1000;
