@@ -1009,3 +1009,26 @@ html.ht-deck .ht-drv .hint .ht-kc,html.ht-deck .ht-vf .ft .ht-kc{font-size:11px}
 html.ht-deck .ht-me .zl span,html.ht-deck .ht-ch .op .rg,html.ht-deck .ht-rc .rr .l em,html.ht-deck .ht-root.compact .ht-wi .lb{font-size:11px}
 html.ht-deck .ht-cal .dy .tt{font-size:11px}
 html.ht-deck .htm-slotk{font-size:11px}
+/* title column: up to six buttons (Continue, New game, Restore previous save, Settings, Credits & licences, Quit to desktop).
+   The loading/READY row at the bottom gets its own reserved band, so nothing in the column can sit under it; short screens
+   (720p, Steam Deck 800p at 110%) shrink the logo, premise and buttons instead of overflowing. */
+.ht-title .col{padding-bottom:calc(var(--sa-b) + 104px);width:min(680px,100%)}
+.ht-title .btns{width:min(420px,100%)}
+.ht-title .ht-btn>span:first-of-type,.ht-title .ht-btn .sub{white-space:nowrap}
+.ht-title .ht-btn .sub{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ht-title .ht-load{pointer-events:none}.ht-title .ht-load.warn{pointer-events:auto}
+.ht-title .ht-load.done .tip{visibility:hidden}
+@media (max-height:900px){
+  .ht-root:not(.compact) .ht-title .col{padding-top:calc(var(--sa-t) + 20px);padding-bottom:calc(var(--sa-b) + 84px)}
+  .ht-root:not(.compact) .ht-title .ht-logo{margin-bottom:var(--s4)}
+  .ht-root:not(.compact) .ht-title .ht-logo .w{font-size:clamp(46px,9.4vh,100px)}
+  .ht-root:not(.compact) .ht-title .ht-logo .roof{width:92px;height:26px;margin-bottom:4px}
+  .ht-root:not(.compact) .ht-title .ht-logo .tag{margin-top:10px}
+  .ht-root:not(.compact) .ht-title .premise{font-size:var(--t-m);margin-top:var(--s3)}
+  .ht-root:not(.compact) .ht-title .ht-btns{gap:4px;margin-top:var(--s4)}
+  .ht-root:not(.compact) .ht-title .ht-btn{height:40px;font-size:var(--t-m)}
+  .ht-root:not(.compact) .ht-load{bottom:calc(var(--sa-b) + 18px)}}
+@media (max-height:780px){
+  .ht-root:not(.compact) .ht-title .premise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:56ch}
+  .ht-root:not(.compact) .ht-title .ht-logo .w{font-size:clamp(44px,9vh,80px)}
+  .ht-root:not(.compact) .ht-title .ht-btn{height:38px}}
