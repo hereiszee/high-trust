@@ -141,9 +141,13 @@ const CRED={dur:46};
 function creditsTick(dt,M,F){const a=A(),S=M.fn.sub,R=S.roll;for(const k of['w','a','s','d',' '])a.keys[k]=false;const can=!!M.fn.seen.credits;S.fast=can&&!!a.keys.x;S.rt+=dt*(S.fast?5:1);
   const k=clamp(S.rt/CRED.dur,0,1),h=R.col.offsetHeight||1400,vh=innerHeight;R.col.style.transform=`translateY(${-(k*(h+vh*.2))}px)`;R.hint.textContent=can?'Hold X to fast-forward':'';
   F.objs.push(['Driving home with the family',false]);
-  if(k>=1||S.ds>=S.dP.len-1&&S.rt>CRED.dur*.6){if(S.fin)return;S.fin=true;FN.markSeen(M,'credits');a.overlay('fin-credits',null);S.roll=null;FN.cine(false);M.def.endLine=epilogue()+' '+tail();a.endMission(true)}}
+  if(k>=1||S.ds>=S.dP.len-1&&S.rt>CRED.dur*.6){if(S.fin)return;S.fin=true;FN.markSeen(M,'credits');a.overlay('fin-credits',null);S.roll=null;FN.cine(false);M.def.endLine=tail();if(!M.replay)try{G().prog.trustR=100}catch(_){}M.fn.won=epilogue();a.endMission(true)}}
 function tail(){const c=ctx();return c.fl.salBranch?"The festival lights stay up on Main St. Honest Towing sponsors the bulbs.":"The festival lights stay up on Main St. Nobody wants to take them down."}
 
+/* the result card: the headline is the epilogue (the game picks a random win line; this one isn't random) */
+HT.Jobs.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.fn||!M.fn.won||M.def.id!==FN.ID||M.state!=='won')return;const h=D.querySelector('.ht-result:not(.fail) h2');if(!h||h.dataset.fin)return;
+  h.dataset.fin='1';h.textContent=M.fn.won;const st=D.querySelector('.ht-result .stamp');if(st)st.textContent='The first Riverside Flats Street Festival';
+  for(const d of D.querySelectorAll('.ht-result .ht-stats > div')){const b=d.querySelector('b');if(b&&/trust/i.test(b.textContent)){const n=d.querySelector('.ht-num');if(n&&!M.replay)n.textContent='100%'}}});
 /* ---------------- story effects: what the finale leaves behind (never on a replay) ---------------- */
 FN.storyEnd=function(M){const s=SV(),Sv=HT.Save;if(!s)return;s.flags=s.flags||{};s.flags.festival=true;s.flags.finale2=true;s.flags.festivalCard=false;s.flags.festivalDay=s.day|0;
   try{Sv&&Sv.storefront&&Sv.storefront(s,'festival','lights');Sv&&Sv.perk&&Sv.perk(s,'benny',true);Sv&&Sv.household&&Sv.household(s,'festival')}catch(_){}
