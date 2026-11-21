@@ -60,7 +60,7 @@ function lawnChair(){const a=A(),g=new a.THREE.Group(),al='#c8ccd0';
 /* the watch radius on the ground: shows where the chair scares pirates off (while you carry it, and faintly while you sit) */
 function ringModel(){const a=A(),T=a.THREE,g=new T.RingGeometry(.94,1,64),m=new T.MeshBasicMaterial({color:new T.Color('#ffd23f').convertSRGBToLinear(),transparent:true,opacity:.55,depthWrite:false,side:T.DoubleSide});
   RESL.push(g,m);const r=new T.Mesh(g,m);r.rotation.x=-Math.PI/2;r.position.y=.05;r.renderOrder=2;a.wmAdd(r);return r}
-function truckModel(){const a=A();const o=a.makeVehicle('workvan','#2e4a6b')||a.makeVanBox('#2e4a6b');a.wmAdd(o);if(o.userData&&o.userData.dispose)RESO.push(o);return o}
+function truckModel(){const a=A();const o=a.makeVehicle('workvan','#2e5e3e')||a.makeVanBox('#2e5e3e');a.wmAdd(o);if(o.userData&&o.userData.dispose)RESO.push(o);return o}
 let RESL=[],RESO=[];function freeRes(){for(const r of RESL)try{r.dispose()}catch(_){}for(const o of RESO)try{o.userData.dispose()}catch(_){}RESL=[];RESO=[]}
 
 /* ================= the job ================= */
