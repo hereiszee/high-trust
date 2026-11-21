@@ -107,7 +107,7 @@ function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||prompt)return
   return null}
 
 /* ================= horn rhythm and the glovebox (keys the game passes through while driving) ================= */
-const GLOVE=["Napkins from 2009.","A tire gauge, a single sock and an emergency granola bar from two presidents ago.","Thirty-eight ketchup packets. Organized.","The car's manual, still in the plastic.","A map of a state they don't live in.","Sunglasses. Somebody's been looking for these."];
+const GLOVE=["Napkins from 2009.","A tire gauge, a single sock and an emergency granola bar from the Obama administration.","Thirty-eight ketchup packets. Organized.","The car's manual, still in the plastic.","A map of a state they don't live in.","Sunglasses. Somebody's been looking for these."];
 addEventListener('keydown',e=>{const a=A();if(!a||a.mode!=='hub'||!a.CV||e.repeat)return;const k=e.key.toLowerCase(),c=a.CV;
   if(k==='h'&&c.type!=='jet'){const t=performance.now()/1000;S.honks=S.honks.filter(x=>t-x<2.4);S.honks.push(t);clearTimeout(S.honkTO);
     S.honkTO=setTimeout(()=>{const n=S.honks.length;if(n===5){/* shave and a haircut... */setTimeout(()=>{try{HT.Audio.tone({f:440,type:'square',d:.18,gain:.05});HT.Audio.tone({f:330,type:'square',d:.3,gain:.05,at:.32})}catch(_){}say(pick(['Phil','Marcy','Ted','Gil','Bev']),'*honk honk* ...Two bits!',true);find('honk')},500)}S.honks=[]},900)}

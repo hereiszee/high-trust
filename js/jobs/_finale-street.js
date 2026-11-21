@@ -214,7 +214,7 @@ FN.stages.defend={
       {x:W.porches[1].x,z:W.porches[1].z,face:{x:393,z:40}},{x:W.porches[1].x+1,z:W.porches[1].z,face:{x:394,z:40}},{x:W.porches[2].x,z:W.porches[2].z,face:{x:399,z:40}}]);
     S.adults=[['adeyemi',W.porches[2].x+1.3,W.porches[2].z],['mrsA',W.porches[3].x,W.porches[3].z],[role(M,'porch').id||'rosa',W.porches[1].x-1.6,W.porches[1].z-1.2]].map(([id,x,z])=>{const p=person(id,x,z);if(p)p.face={x,z:40};return p}).filter(Boolean);
     S.stage=[role(M,'stage').id||'benny','dave'].filter((v,i,ar)=>ar.indexOf(v)===i).map((id,i)=>person(id,W.stage.x+1+i*1.6,W.stage.z-1.6)).filter(Boolean);
-    S.benny=FN.car('workvan','#f5d0e0',W.benny.x,W.benny.z,W.benny.yaw);const bs=sign(["BENNY'S COLD FRONT"],{bg:'#f5d0e0',fg:'#b23a6a',w:2.4,ph:80});bs.position.set(0,1.75,1.03);S.benny.obj.add(bs);
+    S.benny=FN.car('workvan','#f5d0e0',W.benny.x,W.benny.z,W.benny.yaw);const bs=sign(["BENNY'S BRAIN FREEZE"],{bg:'#f5d0e0',fg:'#b23a6a',w:2.4,ph:80});bs.position.set(0,1.75,1.03);S.benny.obj.add(bs);
     {const k=kit();for(let i=0;i<6;i++)k.add(.7,.5,.6,'#1e2024',W.benny.x+3.2+(i%2)*.75,.25+Math.floor(i/4)*.5,W.benny.z+.8-((i>>1)%2)*.7);S.pile=k.mesh();a.wmAdd(S.pile)}
     /* the street team: whoever isn't on a post, on the two corners */
     const used=new Set(Object.values((M.fn.plan||{}).assign||{}));const free=FN.PLAN_DEF.crew.map(c=>c.id).filter(id=>!used.has(id));while(free.length<2)free.push(['gary','rick','dave','doug'].find(x=>!free.includes(x)));

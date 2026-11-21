@@ -160,7 +160,7 @@ const TALK={
     {reg:'over',text:"I sold my wedding band once. Bought it back the same day. My wife never knew. She knows now. I just told you.",reply:{hit:"(stares) ...Man. Okay. I sold my uncle's drill. He's still looking for it.",miss:"Why are you telling me this?"}}]},
   mei:{open:"These pigs in blankets are incredible. Who makes pigs in blankets this good at a pawn shop?",opts:[
     {reg:'joke',text:"I'd tell you a joke about pigs in blankets, but it's a little cheesy. And wrapped in pastry.",reply:{hit:"(laughing) Oh no. Oh no, that's awful. Have another one.",miss:"...Is it? Cheesy?"}},
-    {reg:'real',text:"They're from the Gallon Club on Route 9. Box of a hundred.",reply:{hit:"That makes so much sense. Honestly I'm relieved.",miss:"...Oh. Thanks. I guess."}},
+    {reg:'real',text:"They're from the Costco on Route 9. Box of a hundred.",reply:{hit:"That makes so much sense. Honestly I'm relieved.",miss:"...Oh. Thanks. I guess."}},
     {reg:'over',text:"I've eaten twelve. I've been here nine minutes.",reply:{hit:"(delighted) Me too! Eleven! We're the same!",miss:"Okay."}}]},
   darnell:{open:"(quietly) Hey. Do you work here? Do they... check where stuff comes from?",opts:[
     {reg:'joke',text:"I hear they check everything. Twice. Then they forget.",reply:{hit:"(nervous laugh) Ha. Right. Ha.",miss:"(goes pale) Twice?"}},

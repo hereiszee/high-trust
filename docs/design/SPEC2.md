@@ -128,7 +128,7 @@ const WORLD=(()=>{const W=232,H=80;
   rect(176,10,186,18,'r');rect(176,13,186,15,'g');B('A',182,16,186,18,{id:'mart',sign:'RAMOS CORNER MART',face:'s',col:'#e1b866'});
   rect(192,10,202,18,'z');rect(193,11,201,17,'b');                                           // basketball court, chain-link all round
   set(197,10,',');set(197,18,',');                                                          // gates
-  rect(208,10,218,18,',');B('A',210,10,217,13,{id:'benny',sign:"BENNY'S COLD FRONT · DEPOT",face:'s',col:'#f0e6f0'});
+  rect(208,10,218,18,',');B('A',210,10,217,13,{id:'benny',sign:"BENNY'S BRAIN FREEZE · DEPOT",face:'s',col:'#f0e6f0'});
   B('A',208,24,218,29,{id:'center',sign:'RIVERSIDE FLATS COMMUNITY CENTER',face:'s',col:'#cfd8cf'});rect(208,30,218,32,'g');
   rect(160,66,218,78,'x');                                                                  // Warehouse Row (lots overwrite parts)
   for(let x=160;x<=218;x+=1)if((x-160)%12>=10)rect(x,66,x,78,',');                           // service alleys
@@ -446,10 +446,10 @@ Trust awards (in `endMission`): win +14 (Duke: +20 if he's cuffed, +8 if not), e
 | benny | gary, dave, rosa | Benny drives the truck |
 | duke | gary, rick, dave, doug, rosa | everybody |
 
-### B.1 "Exact Change" (Earl): recover stolen bikes
+### B.1 "End of the Line" (Earl): recover stolen bikes
 
 ```js
-{id:'earl',giver:'earl',hood:'river',role:'Earl · Retired, Route 9 Bus, 36 Years',title:'Exact Change',place:'The Spoke Shop, Dock St',
+{id:'earl',giver:'earl',hood:'river',role:'Earl · Retired, Route 9 Bus, 36 Years',title:'End of the Line',place:'The Spoke Shop, Dock St',
  lines:["Thirty-six years I drove the number nine. Never late once. Know every kid in this neighborhood by their stop.",
         "Somebody's been stealing their bikes. Clipping locks right off the school racks. And the converters off every car on 3rd Street.",
         "It all goes to a warehouse on Dock Street they call the Spoke Shop. Six bikes in there belong to kids I know by name. Get 'em back. If you see converters, grab those too."],
@@ -514,11 +514,11 @@ Trust awards (in `endMission`): win +14 (Duke: +20 if he's cuffed, +8 if not), e
  ambush:[{at:2,n:4,from:[[187,30],[191,40],[181,37]]},{at:3,n:5,from:[[155,30],[155,42],[160,37]]},{at:5,n:5,from:[[176,18],[186,24],[170,24]]}],
  chase:{car:'truck',driver:{surrBias:.8},max:19,start:'court'},
  arms:{pistol:45,smg:35,shotgun:20},
- radio:[['benny',"Stay on my bumper. Not literally. It's a new bumper."],['dave',"If we get through this, I'm getting the Patriot Pop."],['rosa',"Nobody eats ice cream in my van. Your van. Anybody's van."]],
+ radio:[['benny',"Stay on my bumper. Not literally. It's a new bumper."],['dave',"If we get through this, I'm getting the Rocket Pop."],['rosa',"Nobody eats ice cream in my van. Your van. Anybody's van."]],
  endLine:"Benny: Two hundred and eleven free cones. A record. The Duke's going to hear about this, and I hope he's lactose intolerant."}
 ```
-- **Escort**: Benny's truck is a live vehicle (`HT.Vehicles.make('workvan',{color:'#f4eef4',upgrades:{lightBar:false}})`, plus a fibreglass cone prop on the roof and a canvas "BENNY'S COLD FRONT" side panel). It follows `route` along road centrelines (B.7 `followPath`) at `speed` (6 m/s), playing "The Entertainer" (C.5 jingle, 0.25 gain, panned). It stops whenever the van is more than `waitDist` behind ("I'm not going without my escort!"), or the path ahead within 10 m is blocked by a character or vehicle.
-- **Ambush** `k`: when the truck reaches `route[at]`, it stops and the horn plays. `n` enemies spawn at the `from` tiles (spread ±1.5 m) with `e.last` = the truck. Crew line "Everybody out!": the player has to get out (prompt) and the crew bails with them. Enemies shoot at the truck (`truck.hp`, 4 per hit) and at people. When the ambush is cleared (all down, cuffed or surrendered), Benny says "Back in the van, I'm moving!" and the truck goes when the player is back in the van, or after 20 s anyway. Surrendered enemies left behind are cuffed automatically by the crew ("Doug's got him.") so the player isn't forced to backtrack, and they count toward `M.cuffs`. `truck.hp<=0` → fail: "They tipped the truck. Benny's okay. The Patriot Pops are not."
+- **Escort**: Benny's truck is a live vehicle (`HT.Vehicles.make('workvan',{color:'#f4eef4',upgrades:{lightBar:false}})`, plus a fibreglass cone prop on the roof and a canvas "BENNY'S BRAIN FREEZE" side panel). It follows `route` along road centrelines (B.7 `followPath`) at `speed` (6 m/s), playing "The Entertainer" (C.5 jingle, 0.25 gain, panned). It stops whenever the van is more than `waitDist` behind ("I'm not going without my escort!"), or the path ahead within 10 m is blocked by a character or vehicle.
+- **Ambush** `k`: when the truck reaches `route[at]`, it stops and the horn plays. `n` enemies spawn at the `from` tiles (spread ±1.5 m) with `e.last` = the truck. Crew line "Everybody out!": the player has to get out (prompt) and the crew bails with them. Enemies shoot at the truck (`truck.hp`, 4 per hit) and at people. When the ambush is cleared (all down, cuffed or surrendered), Benny says "Back in the van, I'm moving!" and the truck goes when the player is back in the van, or after 20 s anyway. Surrendered enemies left behind are cuffed automatically by the crew ("Doug's got him.") so the player isn't forced to backtrack, and they count toward `M.cuffs`. `truck.hp<=0` → fail: "They tipped the truck. Benny's okay. The Rocket Pops are not."
 - **Twist and chase**: at the court gate, Benny gets out to hand out cones. 4 s later a Duke goon jumps in the driver's seat and drives off (banner `THEY TOOK THE TRUCK`, the jingle starts playing at half speed). This is the first **chase** (B.7) with `chase.max` 19 m/s, deliberately slower than the stock van's 25 m/s boost: a tutorial chase. The driver bails when the truck's HP hits 0 and surrenders easily (`surrBias .8`). Zip-tie him → the exit opens at the van ("Drive Benny's truck back?" is not offered: Benny walks over and takes it).
 - **Payout**: base **$1000**; "Truck in one piece" (truck HP > 66% at the court) +$200; "Chase it down under 45 s" +$150; the usual lines.
 - After this job, `SAVE.flags.hotPursuit=true` (B.6) and Benny's truck loops the neighbourhood at tier 4.
@@ -887,7 +887,7 @@ Tests:
 3. Flee AI: spawn a sedan at (189,35) with the van parked 10 m behind it. After `step(300)` the car is > 40 m away and on road tiles. With the van teleported 200 m away, it slows (rubber band) and `escaped` fires after 8 s.
 4. Ram: van at 15 m/s into a stopped sedan, head-on → `car.hp` drops by (15−3)×4=48 (±5). With a bull bar, 96. A second ram above 4 m/s stops it: occupants bail and the objective says "Zip-tie the driver".
 5. Stakeout: hold aim on each of the 4 suspects for 46 ticks → `M.phase==='raid'` with the clean bonus flag. Honk 3 times instead → `M.sus≥100` → every `E` is alerted.
-6. Escort: `truck.hp=0` → fail with the Patriot Pops line. A complete escort → the chase starts with the truck as the car and `max` 19.
+6. Escort: `truck.hp=0` → fail with the Rocket Pops line. A complete escort → the chase starts with the truck as the car and `max` 19.
 7. Garden: wave enemies walk through beds → `bedsStanding` < 12. A win sets `SAVE.crew.rosa`. The next Riverside job's `allies` include `rosa`. A downed ally near Rosa is back up in ≤ 3.5 s.
 8. Duke: `hurtEnemy(boss, 200)` → `state==='flee'`, he enters the car, the chase starts. Kill the car → he bails → surrenders within 15 m → cuff → `M.bossDone==='cuffed'` → the exit opens → the win gives payout lines including "bail refund 600" → the `finale2` card.
 9. Hot Pursuit: `SAVE.flags.hotPursuit=true`, force the roll → a car spawns 60–90 m away on the road graph. Stop it and cuff → +$150 + $60/cuff, `trustR` +3.

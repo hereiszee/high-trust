@@ -3,7 +3,7 @@
    You're on the Community Center roof with Doug's father's hunting rifle and a bag of beanbags. Rosa and Gary walk
    Mr. Ferreira (who saw the Duke's crew stash the converters) from Rosa's garden to the church steps to give his statement.
    Read the street through the scope: spot (hold the scope on someone 0.6 s, "Doug: mark"), then beanbag, spook, or (it's
-   allowed, and it costs) shoot for real. Kevin has a Soak-o-Matic. Hold fire. The last threat is a car: tyres.
+   allowed, and it costs) shoot for real. Kevin has a Super Soaker. Hold fire. The last threat is a car: tyres.
 
    The rifle is its own thing, not the game's hitscan: rounds fly (beanbag 125 m/s and dropping, live .308 820 m/s),
    the reticle has bean holdover marks, the scope breathes (inhale, exhale, a still pause at the bottom; Shift holds it),
@@ -433,7 +433,7 @@ function idStep(dt,M){const a=A(),O=M.ow,R=O.rifle;if(!scoped(M)||R.scopeT<.8){R
   if(!best)return;const o=best.o,need=best.kind==='kevin'?TUNE.kevinT:best.kind==='civ'?TUNE.civT:TUNE.markT;R.need=need;
   if(R.lookT>=need){if(best.kind==='threat'&&!o.marked){o.marked=true;o.markedAt=a.simT;say('doug',o.st==='lurk'?pick(["He's not watching the street, he's watching our guy. Mark.","Mark. That one's waiting for something.","Hands in his pockets, eyes on Ferreira. Mark."]):pick(LINES.mark),true);const Au=AUD();try{Au&&Au.ui&&Au.ui('mark')}catch(_){}}
     else if(best.kind==='civ'&&!o.ided){o.ided=true;say('doug',LINES.civ[o.line]||"Friendly.",true)}
-    else if(best.kind==='kevin'&&!o.ided){o.ided=true;O.stats.kevin=1;say('doug',"That's a Soak-o-Matic. That's Kevin. Hold fire. Kevin, go home.",true);later(M,1.6,()=>{say('kevin',"Aww.")});o.st='leave'}}}
+    else if(best.kind==='kevin'&&!o.ided){o.ided=true;O.stats.kevin=1;say('doug',"That's a Super Soaker. That's Kevin. Hold fire. Kevin, go home.",true);later(M,1.6,()=>{say('kevin',"Aww.")});o.st='leave'}}}
 function rangeStep(dt,M){const a=A(),O=M.ow,R=O.rifle;R.rangeT-=dt;if(R.rangeT>0)return;R.rangeT=.15;const T=a.THREE;if(!_ray.r)_ray.r=new T.Raycaster();
   const eye=sightPos(M),fw=aimDir(M);_ray.r.set(eye,fw);_ray.r.near=1;_ray.r.far=400;let d=null;const sol=a.L&&a.L.solids;if(sol){const h=_ray.r.intersectObjects(sol,false)[0];if(h)d=h.distance}
   if(fw.y<-.001){const k=(eye.y-a.groundAt(eye.x+fw.x*40,eye.z+fw.z*40))/-fw.y;if(k>0&&(d==null||k<d))d=k}
@@ -515,7 +515,7 @@ function garyNext(M){const a=A(),O=M.ow,E=O.esc,g=E.member('gary');O.garyBusy=fa
   E.detach('gary',{x:e.pos.x+.7,z:e.pos.z+.4},3.6,()=>{if(A().M!==M)return;if(e.state==='surrender'){e.state='cuffed';if(e.tag){e.tag.remove();e.tag=null}O.stats.cuffed++;M.cuffs=(M.cuffs||0)+1;a.addTrust(4,'river');a.snd&&a.snd('cuff');a.feed('Zip-tied','trust','+4 Riverside trust');say('gary',pick(LINES.gary),true)}
     later(M,0.7,()=>{garyNext(M)})})}
 
-/* ---------------- Kevin, his Soak-o-Matic, and the neighbours ---------------- */
+/* ---------------- Kevin, his Super Soaker, and the neighbours ---------------- */
 function kevin(M,o){const O=M.ow;O.kevin={x:o.x,z:o.z,st:'pending',delay:o.delay,t:0,ided:false}}
 function kevinStep(dt,M){const a=A(),O=M.ow,K=O.kevin;if(!K||K.st==='gone')return;
   if(K.st==='pending'){K.delay-=dt;if(K.delay>0)return;K.d=dude({role:'neighbour',variant:'nb_kid',shirt:'#3a7bd5',pants:'#444'});a.equip(K.d,'beanbag');if(K.d.gun)K.d.gun.visible=false;

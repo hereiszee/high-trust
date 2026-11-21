@@ -3143,7 +3143,7 @@ const FR_TUNE={shot:.16,firstShot:1.3,hit:.05,kill:.6,stray:.015,fightRise:.035,
 const FR_LINES={
  maple:["Not on Maple. Mrs. Henderson already thinks we're a militia.","Holster stays on in Maple Heights. The HOA has a whole bylaw.","Put that away. The Hendersons are watering their lawn."],
  calm:["Streets are calm today. Let's keep them that way.","Nobody needs a gun to buy jerky at Ramos'."],
- notice:["Whoa, whoa. He's strapped.","Is that dad carrying? At two in the afternoon?","Ay, put that away, man. This is our corner.","You lost, Gallon Club?"],
+ notice:["Whoa, whoa. He's strapped.","Is that dad carrying? At two in the afternoon?","Ay, put that away, man. This is our corner.","You lost, Costco?"],
  back:["Yeah. Keep walking.","Whatever, old man.","Tell your HOA we said hi.","We're done. We're done."],
  war:["{a} on OUR block?!","That's {b}! Get 'em off the corner!","{b} been waiting for this."],
  holster:["Okay. Holstering.","Gun's away. Nobody panic.","Holstered. Deep breaths."],
@@ -3462,7 +3462,7 @@ function frIncUpdate(dt){const I=FR.inc;I.t+=dt;const live=I.members.filter(e=>e
   if(I.members.some(e=>e.hostile)){I.text=I.kind==='scuffle'?'Turf fight':'Deal with them';return}
   /* walking into a break-in in progress: a drawn gun or a 50/50 gets you a fight, otherwise they bolt */
   if(I.kind==='carjack'&&!I.spotted&&(d<(FR.drawn?14:10))&&live.some(e=>frLos(P.pos.x,P.pos.z,e.pos.x,e.pos.z))){I.spotted=true;for(const e of live)e.frScript=null;frNav();
-    if(FR.drawn||Math.random()<.5){frProvoke(I.crew,'draw');for(const e of live)frArm(e);radio(I.crew.short,"Wrong car, Gallon Club.",true)}
+    if(FR.drawn||Math.random()<.5){frProvoke(I.crew,'draw');for(const e of live)frArm(e);radio(I.crew.short,"Wrong car, Costco.",true)}
     else{for(const e of live){e.leave=true;e.run=true;e.leaveAt=simT}radio(I.crew.short,"It's a dad! RUN!",true)}}
   if(I.kind==='scuffle'&&d<12&&!I.spotted&&FR.drawn){I.spotted=true;for(const e of live){e.frScript=null;e.leave=true;e.run=true;e.leaveAt=simT}radio(I.crew.short,'He\'s strapped! Scatter!');end(true,'Broke it up · they scattered')}
   /* fleeing thieves who get caught give up */
@@ -3615,7 +3615,7 @@ function giverModel(id){const h=HOMIES[id]||{},s=GIVER_STAND_IN[id];const pp=peo
   for(const o of hide)o.visible=false;d.standIn=id;return d}
 
 const RIVER_JOBS=[
- {id:'earl',giver:'earl',hood:'river',role:'Earl · Retired, Route 9 Bus, 36 Years',title:'Exact Change',place:'The Spoke Shop, Dock St',
+ {id:'earl',giver:'earl',hood:'river',role:'Earl · Retired, Route 9 Bus, 36 Years',title:'End of the Line',place:'The Spoke Shop, Dock St',
   lines:["Thirty-six years I drove the number nine. Never late once. Know every kid in this neighborhood by their stop.",
          "Somebody's been stealing their bikes. Clipping locks right off the school racks. And the converters off every car on 3rd Street.",
          "It all goes to a warehouse on Dock Street they call the Spoke Shop. Six bikes in there belong to kids I know by name. Get 'em back. If you see converters, grab those too."],
@@ -3642,7 +3642,7 @@ const RIVER_JOBS=[
   obj:'Hold the community garden through 3 waves. Keep them off the beds.',
   radio:[['rosa',"Families are in the church hall. We hold the garden. Stay off the beds, please, I mean it."],['rick',"Set up behind the shed. Make them come to us."],['dave',"If anybody touches that pumpkin I'm going to lose my religion."]],
   endLine:"Rosa: Forty families planted today. You guys are idiots and I love you. Fine. I'll take the polo."},
- {id:'benny',giver:'benny',hood:'river',role:"Benny · Benny's Cold Front Ice Cream, 22 Years on the Route",title:'Brain Freeze',place:"Benny's route, Riverside Flats",
+ {id:'benny',giver:'benny',hood:'river',role:"Benny · Benny's Brain Freeze, 22 Years on the Route",title:'Brain Freeze',place:"Benny's route, Riverside Flats",
   lines:["Twenty-two years I drove this route. Last summer the Duke's guys started 'taxing' me. Then they slashed my tires. Then they took my cash box.",
          "I stopped coming. You know what a summer with no ice-cream truck does to a neighborhood? Neither did I. It's bad.",
          "First run back is Saturday, ending at the basketball court. Free cones. I need an escort. Follow me close. If I stop, it's because somebody's in the road, and that somebody is not getting a cone."],
@@ -3651,7 +3651,7 @@ const RIVER_JOBS=[
   ambush:[{at:2,n:4,from:[[187,30],[191,40],[181,37]]},{at:3,n:5,from:[[155,30],[155,42],[160,37]]},{at:5,n:5,from:[[176,18],[186,24],[170,24]]}],
   chase:{max:19,surrBias:.8},arms:{pistol:45,smg:35,shotgun:20},
   obj:"Escort Benny's truck to the basketball court.",
-  radio:[['benny',"Stay on my bumper. Not literally. It's a new bumper."],['dave',"If we get through this, I'm getting the Patriot Pop."],['rosa',"Nobody eats ice cream in my van. Your van. Anybody's van."]],
+  radio:[['benny',"Stay on my bumper. Not literally. It's a new bumper."],['dave',"If we get through this, I'm getting the Rocket Pop."],['rosa',"Nobody eats ice cream in my van. Your van. Anybody's van."]],
   endLine:"Benny: Two hundred and eleven free cones. A record. The Duke's going to hear about this, and I hope he's lactose intolerant."},
  {id:'duke',giver:'earl',hood:'river',role:'Earl · Retired, Still Never Late',title:'The Duke',place:'The scrapyard on Dock St',
   lines:["The Duke runs it all out of the scrapyard on Dock Street. Bikes, converters, the lookouts, the 'taxes.' His cousin was your Porch Pirate King.",
@@ -4043,7 +4043,7 @@ function wmFlatten(b){const m=new THREE.Mesh(new THREE.PlaneGeometry(b.x1-b.x0-.
 function wmTruckModel(){const o=makeVehicle('workvan','#f4eef4')||makeVanBox('#f4eef4');const S=o.userData.size||{l:5,w:2.1,h:2.3};
   const c=document.createElement('canvas');c.width=1024;c.height=256;const x=c.getContext('2d');x.fillStyle='#f4eef4';x.fillRect(0,0,1024,256);
   x.fillStyle='#e86a92';x.fillRect(0,196,1024,60);x.fillStyle='#7fc8e8';for(let i=0;i<14;i++){x.beginPath();x.arc(36+i*72,212,14,0,6.3);x.fill()}
-  x.font='900 92px Arial';x.textAlign='center';x.fillStyle='#e86a92';x.fillText("BENNY'S",512,96);x.fillStyle='#3a7bd5';x.font='900 70px Arial';x.fillText('COLD FRONT',512,170);
+  x.font='900 92px Arial';x.textAlign='center';x.fillStyle='#e86a92';x.fillText("BENNY'S",512,96);x.fillStyle='#3a7bd5';x.font='900 70px Arial';x.fillText('BRAIN FREEZE',512,170);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const pm=new THREE.MeshStandardMaterial({map:t,roughness:.6,polygonOffset:true,polygonOffsetFactor:-2});
   for(const s of[-1,1]){const p=new THREE.Mesh(new THREE.PlaneGeometry(S.l*.55,S.h*.36),pm);p.position.set(-S.l*.1,S.h*.52,s*(S.w/2+.03));p.rotation.y=s>0?0:Math.PI;o.add(p)}
   const cone=new THREE.Group();const wc=new THREE.Mesh(new THREE.ConeGeometry(.42,1.1,14),new THREE.MeshStandardMaterial({color:lin('#d9a35b'),roughness:.8}));wc.rotation.x=Math.PI;wc.position.y=.55;cone.add(wc);
@@ -4071,7 +4071,7 @@ WJ.benny={start(o){const m=M.def,CA=HTM('CarAI'),G=OW().roads();M.noCars=false;
       const a=m.ambush[M.amb];
       if(M.phase==='escort'&&a){const n=G.nodes[M.escNodes[a.at]];if(Math.hypot(n.x-c.x,n.z-c.z)<10||(M.ambIdx&&c.ai.tr&&c.ai.tr.i>=M.ambIdx[M.amb]))wmAmbush(a)}
       if(M.phase==='ambush')wmAmbushTick(dt);
-      if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Patriot Pops are not.","They got the truck.");
+      if(c.hp<=0)return endMission(false,"They tipped the truck. Benny's okay. The Rocket Pops are not.","They got the truck.");
       /* backstop: CarAI puts a wedged truck back on its lane; if it still makes no headway for 45 s while it isn't waiting, fail cleanly to the retry card rather than soft-lock */
       {const pr=c.ai.tr?c.ai.tr.i:0,w=M.escW||(M.escW={i:pr,x:c.x,z:c.z,t:0});if(c.ai.blocked||M.phase!=='escort'||pr!==w.i||Math.hypot(c.x-w.x,c.z-w.z)>4){w.i=pr;w.x=c.x;w.z=c.z;w.t=0}else w.t+=dt;
         if(w.t>45)return endMission(false,"Benny's truck is wedged and Benny refuses to leave it. Somebody call Sal.","The truck's stuck.")}

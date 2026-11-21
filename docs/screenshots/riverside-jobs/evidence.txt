@@ -7,7 +7,7 @@ ok   job 1 Fourth Quarter: completed and paid $1649 [base:550 cuffs:240 guns:100
 ok   bridge opens after job 2: banner + Act 2 card, Earl is waiting in Riverside next to Dave ([{"bridge":true,"card":true,"act":2,"givers":[4,2]},{"running":true,"givers":[4,2],"first":4,"gps":17}])
 ok   drive across the open bridge into Riverside ({"steps":169,"d":4.052306498266308,"mode":"hub"})
      job 4: talked to the giver, accepted, drove 525 steps to the ring -> world (go)
-ok   job 4 Exact Change: completed and paid $1504 [base:650 cuffs:240 guns:100 hamstring:150 bikes:240 converters:120 quick:100 trust:-96] {"en":8,"bikes":6,"conv":4,"loaded":6,"converters":2,"exit":true}
+ok   job 4 End of the Line: completed and paid $1504 [base:650 cuffs:240 guns:100 hamstring:150 bikes:240 converters:120 quick:100 trust:-96] {"en":8,"bikes":6,"conv":4,"loaded":6,"converters":2,"exit":true}
      job 5: talked to the giver, accepted, drove 333 steps to the ring -> world (stake)
 ok   job 5 Fellowship Hall: completed and paid $1940 [base:800 cuffs:240 guns:100 hamstring:150 stakeout:200 ids:200 courier:250] {"phase":"stake","inCar":true,"sus":[0,0,0],"ids":4,"clean":true,"after":"walkoff","raid":"raid","en":7,"courier":"THE COURIER","smashed":2,"boss":"cuffed"}
 ok   stakeout: three honks -> suspicion 100, the lookouts scatter, every enemy is alerted ({"sus":100,"phase":"raid","loud":true,"alerted":7,"en":7})

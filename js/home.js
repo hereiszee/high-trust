@@ -1266,7 +1266,7 @@ const FAMILY_LINES={
  win_rick:["tyler|Coach Rick gave you his GUN? He won't even let me hold the orange cones."],
  win_dave:["jen|Dave sent home a whole brisket. I'm not saying I married the wrong guy. I'm saying I get it."],
  win_doug:["jen|The Porch Pirate King is coaching T-ball? The Hendersons' kid is on that team!","jen|Doug says it's over. Doug also says the mailman is 'suspicious.' But I believe him this time."],
- fail:["jen|Hey. You came home. That's the part that counts. Ice pack's in the freezer.","tyler|It's okay, Dad. I lose at go-kart games all the time and I'm still pretty great.","maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly songs about highways.",
+ fail:["jen|Hey. You came home. That's the part that counts. Ice pack's in the freezer.","tyler|It's okay, Dad. I lose at Mario Kart all the time and I'm still pretty great.","maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly Springsteen.",
   "jen|Rick called. He said 'we regroup at halftime.' I assume that means dinner.","jen|Sit. Eat something. Then go back and finish it. In that order."],
  trustHigh:["jen|Somebody returned our recycling bin. Washed. With a thank-you note.","maddie|Mr. Henderson waved at me. He has never waved. At anyone.","tyler|I left my bike on the lawn all day and it's STILL THERE.",
   "jen|The block party committee wants you to give a speech. I said you'd bring chairs instead.","maddie|Doug put the binoculars away. Well. Mostly away."],

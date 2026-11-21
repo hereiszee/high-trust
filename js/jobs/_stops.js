@@ -211,9 +211,9 @@ function riders(o={}){const R={list:[],car:null};const a=A();
 
 /* ---------- radio presets ---------- */
 const STATIONS=[{id:'rock',name:'WDAD 101.5',sub:'Soft rock for hard workers',music:'hub',int:.6},
-  {id:'kidz',name:'TOT ROCK 98',sub:'Songs about snacks, all day',music:'combat',int:.25},
+  {id:'kidz',name:'KIDZ 98',sub:'All bop, all day',music:'combat',int:.25},
   {id:'talk',name:'AM 860 THE HUDDLE',sub:'Sports talk',music:null,talk:true},
-  {id:'jazz',name:'MELLOW 88.3',sub:'Music to merge by',music:'home',int:.5},
+  {id:'jazz',name:'SMOOTH 88.3',sub:'Music to merge by',music:'home',int:.5},
   {id:'off',name:'RADIO OFF',sub:'Silence. Glorious silence.',music:null}];
 const TALK=["...and that's why you never punt on fourth and two. Gary in Maple Heights, you're on The Huddle.","Gary: Long-time listener. I have a spreadsheet on this.","...the Cougars' JV squad, folks, that's a team that believes in itself.",
   "...it's the halftime orange slice debate. Rinds on or rinds off. Lines are open.","...caller says the ref was his brother-in-law. We'll allow it.","...forecast for the big game: sunny, light breeze, one dad yelling 'HUSTLE'."];

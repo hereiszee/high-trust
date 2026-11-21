@@ -109,7 +109,7 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
     const res=await p.evaluate(async i=>{const H=window.__ht,T=window.__T;await new Promise(r=>setTimeout(r,1400));return T.result()},i);
     return{pre,r,res}};
   const keep=()=>p.evaluate(()=>{const H=window.__ht;const a=H.UIacts&&H.UIacts['result:retry'];if(a)a();H.step(3);return{mode:H.mode,lvl:H.L.def.id,enemies:H.enemies.length,van:[H.VAN.pos.x|0,H.VAN.pos.z|0]}});
-  const paid=(i,R,extra)=>{const done=R&&R.res.done[i];const gain=R?R.res.cash-R.pre.c0:0;ok(done&&gain>0&&(!extra||extra(R)),'job '+i+' '+['Return to Sender','Fourth Quarter','Block Party','The Kingpin','Exact Change','Fellowship Hall','Garden Variety','Brain Freeze','The Duke'][i]+
+  const paid=(i,R,extra)=>{const done=R&&R.res.done[i];const gain=R?R.res.cash-R.pre.c0:0;ok(done&&gain>0&&(!extra||extra(R)),'job '+i+' '+['Return to Sender','Fourth Quarter','Block Party','The Kingpin','End of the Line','Fellowship Hall','Garden Variety','Brain Freeze','The Duke'][i]+
     ': completed and paid $'+gain+' ['+(R&&R.res.pay||[]).join(' ')+']'+(R&&R.r?' '+JSON.stringify(R.r):''))};
 
   /* ---- 0 Gary: loot in the world ---- */

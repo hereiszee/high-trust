@@ -98,11 +98,11 @@ const DECK=[
   {id:'o_mowers',reg:'over',text:"I have a spreadsheet of every lawn mower I've ever owned. There are four. The spreadsheet has tabs.",
     reply:{hit:"(grinning) Okay but why does it need TABS?",miss:"Why are you like this."},events:{any:[ev('gary',"Mine has seven.")],hit:[ev('tre',"Seven tabs or seven mowers?"),ev('gary',"Yes.")]}},
   {id:'o_phone',reg:'over',text:"I saved my own number in my phone as 'Dad'. In case I forget who I am.",reply:{hit:"...That's kind of sad, man. (small smile) Kind of nice, though.",miss:"...What?"}},
-  {id:'o_van',reg:'over',text:"Sometimes I sit in the van in the driveway for ten minutes. Just to have a minute.",bonus:[3,0],note:"Tre's mom: Pill Hill Pharmacy parking lot, radio off",
-    reply:{hit:"(quiet) ...My mom does that. In the Pill Hill Pharmacy parking lot. With the radio off.",miss:"...Okay?"}},
+  {id:'o_van',reg:'over',text:"Sometimes I sit in the van in the driveway for ten minutes. Just to have a minute.",bonus:[3,0],note:"Tre's mom: Walgreens parking lot, radio off",
+    reply:{hit:"(quiet) ...My mom does that. In the Walgreens parking lot. With the radio off.",miss:"...Okay?"}},
   {id:'o_swing',reg:'over',text:"I got stuck in a toddler swing at Linden Park. The fire department came. There's a photo of me on their wall.",
     reply:{hit:"(grinning) No WAY. Is it a good photo?",miss:"...You're making that up."},events:{hit:[ev('you',"It's a great photo. I'm waving.")]}},
-  {id:'o_jacket',reg:'over',text:"I tried to be cool once. Bought a leather jacket. Wore it to the Gallon Club. A lady asked me where the rotisserie chickens were.",
+  {id:'o_jacket',reg:'over',text:"I tried to be cool once. Bought a leather jacket. Wore it to Costco. A lady asked me where the rotisserie chickens were.",
     reply:{hit:"(snorts) Did you know?",miss:"..."},events:{hit:[ev('you',"Aisle nine. I always know.")]}},
   {id:'o_dj',reg:'over',text:"When I was your age I wanted to be a DJ. 'DJ Dad'. I didn't think the name all the way through.",reply:{hit:"...DJ Dad is kind of hard, honestly.",miss:"...So what happened?"},
     events:{miss:[ev('you',"I had a kid. Now I'm just Dad.")]}},
@@ -436,7 +436,7 @@ function milestones(M){const C=M.cv,S=M.S,st=C.st;
 
 const SHORT={"Mrs. Patel's leaf blower (pulls left)":'Leaf blower',"Last meal: one Wednesday taquito":'Taquito',"Cousin: bad influence. Feet: hurt.":'Cousin',
   "Zip-ties off (we're the good guys)":'Zip-ties',"Fixes bikes. Trued a wheel with a zip-tie once.":'Bikes',"Earl. Bike library. Saturdays.":'Earl, Saturdays',"Retriever commercial (rough)":'Retriever commercial',
-  "Drove to the wrong state (Florida)":'Florida',"Tre's mom: Pill Hill Pharmacy parking lot, radio off":'Pill Hill Pharmacy parking lot',"Cheese (correct)":'Cheese','"The Wholesaler" (capital everything)':'The Wholesaler'};
+  "Drove to the wrong state (Florida)":'Florida',"Tre's mom: Walgreens parking lot, radio off":'Walgreens parking lot',"Cheese (correct)":'Cheese','"The Wholesaler" (capital everything)':'The Wholesaler'};
 /* ---------------- the end of the scene: Gary's notes, the second burger, back to the van ---------------- */
 function outro(M){const a=A(),C=M.cv,S=M.S;M.ph='outro';
   const last=M.notes.filter(n=>SHORT[n]).slice(-2).map(n=>SHORT[n]);

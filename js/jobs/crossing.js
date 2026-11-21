@@ -817,7 +817,7 @@ function meters(M,F){const C=M.cg,a=A(),P=a.P;
 function win(M){const C=M.cg,a=A();music('victory',1);C.traffic.off=true;
   later(M,6.8,()=>{say(M,'dee',"Eleven kids home. Nobody shouted. Somebody tell the Lord, He'll want to hear it.");if(M.cs.talked.A&&M.cs.talked.B){a.addTrust(6,'river');a.feed('Nobody even raised their voice','trust','+6 Riverside trust')}
     if(M.cs.kevin==='line')later(M,4,()=>say(M,'dee',"And somebody walk Kevin home. Kevin's not even in youth group."))});
-  later(M,10.5,()=>{say(M,'dee',"Rick dropped your van on Mill St. He says you're welcome, and that you owe him a Thirst Punch.");vanNearby(M);M.noCars=false;M.exitOpen=true})}
+  later(M,10.5,()=>{say(M,'dee',"Rick dropped your van on Mill St. He says you're welcome, and that you owe him a Gatorade.");vanNearby(M);M.noCars=false;M.exitOpen=true})}
 function vanNearby(M){const a=A(),c=M.car;if(!c||a.CV===c)return;try{c.pos.set(332.5,0,101.25);c.yaw=-Math.PI/2;if(c.spd!=null)c.spd=0;if(c.car)c.car.spd=0;a.syncCar(c)}catch(e){console.warn('[crossing] van',e)}}
 
 /* ---------------- keys and touch chips: G whistle, T wait/go, X call Rick ---------------- */
@@ -908,7 +908,7 @@ J.register('crossing',{
   load(M,s){if(!s)return;const S=Object.assign(freshState(),s);S.home=(s.home||[]).slice();S.talked={A:s.talked&&s.talked.A?1:0,B:s.talked&&s.talked.B?1:0};S.xings=(s.xings||[]).slice();S.trail=(s.trail||[]).slice();S.poiSaid={};S.nearMiss=0;
     M.cs=S;if(M.cg)M.cg.pend=true},
   payout(M,ok){if(!ok||!M.cs)return[];const S=M.cs,out=[['All eleven home',200]];if(S.talked.A&&S.talked.B)out.push(['Talked it down',150]);
-    const clean=S.xings.filter(x=>x.clean).length;if(clean)out.push(['Clean crossings ×'+clean,15*clean]);if(S.kevin==='home')out.push(['Kevin, returned to sender',0]);if(S.rick)out.push(["Coach Rick's Thirst Punch",-12]);return out},
+    const clean=S.xings.filter(x=>x.clean).length;if(clean)out.push(['Clean crossings ×'+clean,15*clean]);if(S.kevin==='home')out.push(['Kevin, returned to sender',0]);if(S.rick)out.push(["Coach Rick's Gatorade",-12]);return out},
   medal(M){const S=M.cs;if(!S)return 1;return S.detour?1:S.rick?2:3},
   end(M,ok){if(!ok)return;const a=A(),s=a.SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'crossing')}catch(_){}s.flags=s.flags||{};s.flags.crossingGuard=s.flags.ferreira?'ferreira':'volunteer';s.flags.crossingKids=11;

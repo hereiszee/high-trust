@@ -23,7 +23,7 @@ const MISSIONS=[
   {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240,hood:'maple',bonus:[]},
   {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300,hood:'maple',
     bonus:[r=>r.bossDone==='cuffed'&&['bail',"King's bail refund",500]]},
-  {id:'earl',giver:'earl',who:'Earl',title:'Exact Change',base:650,par:300,hood:'river',
+  {id:'earl',giver:'earl',who:'Earl',title:'End of the Line',base:650,par:300,hood:'river',
     bonus:[r=>r.bikes&&['bikes','Bikes back with their kids ×'+r.bikes,40*r.bikes],r=>r.converters&&['converters','Converters to the bike library fund ×'+r.converters,60*r.converters]]},
   {id:'dee',giver:'dee',who:'Pastor Dee',title:'Fellowship Hall',base:800,par:0,hood:'river',
     bonus:[r=>r.ok&&r.cleanStakeout&&['stakeout','Clean stakeout',200],r=>r.ids&&['ids','Faces matched to names ×'+r.ids,50*r.ids],r=>r.bossDone==='cuffed'&&['courier','The Courier gets a second chance',250]]},

@@ -481,7 +481,7 @@ let AFTER=null;
 function afterTruck(a){if(a.mode!=='hub'||!a.L||!a.L.ow){return}const s=a.SV();if(!s||!s.flags||!s.flags.towGuy){return}
   if(AFTER&&AFTER.L===a.L&&AFTER.g.parent)return;const Tw=TW();if(!Tw)return;
   const obj=a.makeVehicle('pickup','#f4f1ea');if(!obj)return;const S=a.carSize({obj});Tw.truckRig(obj,S,{color:'#f4f1ea',accent:'#1f4f8c'});
-  const p={x:211.5,z:51,yaw:Math.PI/2};/* in Sal's lot at Dad's Auto, off the carriageway (it used to stand in Dock St's lane, in front of the yard gate of Exact Change) */obj.position.set(p.x,a.groundAt(p.x,p.z),p.z);obj.rotation.set(0,p.yaw+Math.PI/2,0);a.L.group.add(obj);
+  const p={x:211.5,z:51,yaw:Math.PI/2};/* in Sal's lot at Dad's Auto, off the carriageway (it used to stand in Dock St's lane, in front of the yard gate of End of the Line) */obj.position.set(p.x,a.groundAt(p.x,p.z),p.z);obj.rotation.set(0,p.yaw+Math.PI/2,0);a.L.group.add(obj);
   const col={x0:p.x-2.7,z0:p.z-1.05,x1:p.x+2.7,z1:p.z+1.05};a.L.colliders.push(col);AFTER={L:a.L,g:obj,col}}
 
 /* ---------------- the scripted player for dev/jobs-check.js ----------------

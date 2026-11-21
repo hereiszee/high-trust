@@ -8,7 +8,7 @@
    vision cone (pauses at the corner of Maple Ave facing west, and at the south end of Walnut facing south), two loaders carry crates
    from the garage to the truck, the driver stands at the cab on the phone, and a buyer walks up three times to pay him.
    Five vantage points, each with a different view and a different risk: the bushes across the street, Phil's porch (talk your way on),
-   Barb's sister's Dowager (sit in it), Barb's backyard fence (crouch), and the bins by the garage (right next to them: risky).
+   Barb's sister's Buick (sit in it), Barb's backyard fence (crouch), and the bins by the garage (right next to them: risky).
    Being seen on a public sidewalk with a phone is fine while you walk; loitering is not; filming them while they look is worst;
    their lawn is trespassing. Suspicion 100 = they spook: the truck leaves early and the job fails ("They'll be back next week").
    The board needs 2 stars on 5 of the 6 items; 6 at 3 stars is gold. Photo system: js/photo.js (HT.Photo, loaded by this file).
@@ -196,21 +196,21 @@ const LN={
   brief:[['barb',"Article Nine, Section C. Visible evidence. Dated. In focus. I will not be laughed out of my own meeting."],
     ['barb',"Six violations. Two stars on at least five, or the board won't touch it. Three stars and they'll frame them."],
     ['barb',"They load at seven. Every night. Before Jeopardy. You have until that truck leaves."],
-    ['barb',"Phil across the street will let you sit on his porch. My sister's Dowager is on Walnut, unlocked, it's always unlocked. And my backyard is your backyard. Mind the hydrangeas."],
+    ['barb',"Phil across the street will let you sit on his porch. My sister's Buick is on Walnut, unlocked, it's always unlocked. And my backyard is your backyard. Mind the hydrangeas."],
     ['barb',"A blurry photo is a rumour. A sharp photo is a bylaw."]],
   retry:[['barb',"They're back. Of course they're back. Take two. Same bylaws."]],
   look:["...Hm.","Somebody there?","Yo. You see that?","Who's that?"],
   inv:["Yo. Who's back there?","Hold up. Something moved.","Is somebody in the bushes?"],
-  invCar:["Hold up. I'm checking that Dowager.","Who parks a Dowager on Walnut?"],calmCar:["...It's a Dowager. Nobody's in a Dowager on purpose.","Just a Dowager. Smells like butterscotch from here."],
+  invCar:["Hold up. I'm checking that Buick.","Who parks a Buick on Walnut?"],calmCar:["...It's a Buick. Nobody's in a Buick on purpose.","Just a Buick. Smells like butterscotch from here."],
   calm:["Somebody in the hedge? Nah. Hedges don't wear cargo shorts.","...Squirrel. Big squirrel.","Nah. It's nothing. It's Walnut Drive. Nothing happens on Walnut Drive."],
   film:["Is that guy filming us?","Why is that dad pointing his phone at us?","Bro. Is he taking a picture?"],
-  car:["Is that guy just... sitting in a Dowager?","Somebody's in that car.","Why is there a dad in that Dowager?"],
+  car:["Is that guy just... sitting in a Buick?","Somebody's in that car.","Why is there a dad in that Buick?"],
   lawn:["Yo, that's our lawn, man.","Can I help you? That's private property.","Sir. Sir. That's the lawn."],
   driver:["No, the TV's for Kevin. The OTHER Kevin.","We're on Walnut. It's a cul-de-sac. ...No it's not. It's a street.","Ma, I'm at work. ...Moving. I'm a mover.","Tell him seven-fifteen. We gotta be gone before the sprinklers.","Yeah, the kayak's still here. Nobody wants the kayak."],
   loaders:[["loaderA","Who steals a leaf blower?"],["loaderB","It's a really good leaf blower."],["loaderA","Pulls left, though."]],
   phil:["Phil. Hi. Bird.","...Sure. Want an iced tea?"],
   philFilm:"He's photographing the warblers. Big warbler year.",
-  car0:"Barb's sister's Dowager. It smells like butterscotch and regret.",
+  car0:"Barb's sister's Buick. It smells like butterscotch and regret.",
   fence0:"Barb's backyard. Don't step on the hydrangeas. Do not step on the hydrangeas.",
   bins0:"Right next to them. Behind the recycling. This is the most dangerous thing I've ever done near a recycling bin.",
   bush0:"The bushes. Classic. Timeless.",
@@ -227,7 +227,7 @@ J.register('hoa',{
   def:{giver:'barb',giverName:'Barb',giverLook:{role:'nb_gran',shirt:'#5a6f8f',pants:'#3a3a48'},hood:'maple',title:'Exhibit HOA',role:'Barb · HOA President (and realtor)',place:'1418 Walnut Dr',
     lines:["1418 Walnut has been 'for sale' for thirty-one days. A moving truck shows up every evening at seven. It has never sold. Pinnacle Homes has the listing, so I'm not surprised, but I am concerned.",
       "It's a fence. Stolen things go in, stolen things go out. The HOA can act, but the bylaws need photographic evidence. Six violations. Dated. In focus.",
-      "Take this checklist and your phone. Don't let them see you. Phil, my sister's Dowager and my backyard are at your disposal."],
+      "Take this checklist and your phone. Don't let them see you. Phil, my sister's Buick and my backyard are at your disposal."],
     obj:"Photograph the six HOA violations at 1418 Walnut Dr (2 stars on at least five) without the crew noticing you.",
     crew:[],weapons:['pistol'],from:{x:121.6,z:66.7},get start(){const L_=lay();return{x:L_.ring.x,z:L_.ring.z}},site:null,
     unlock:{done:['gary']},pay:500,par:0,winTrust:6,order:20,noGuns:"It's an HOA matter. Bylaws, not bullets.",
@@ -270,7 +270,7 @@ J.register('hoa',{
     sample:()=>({ph:'stake',board:{},susMax:0,flashes:0,shots:0,item:'phone'})}
 });
 
-/* ---------------- the set: truck, crates, bike, hedges, fence, bins, the Dowager, Phil's chair, the meeting ---------------- */
+/* ---------------- the set: truck, crates, bike, hedges, fence, bins, the Buick, Phil's chair, the meeting ---------------- */
 function buildSet(M){const a=A(),L_=lay(),THREE=a.THREE;M.occ=[];
   M.truck=truck(M);M.occ.push(M.truck);
   /* crates just inside the garage door: a pallet, three crates, the Maple porch one on top facing the street */
@@ -287,13 +287,13 @@ function buildSet(M){const a=A(),L_=lay(),THREE=a.THREE;M.occ=[];
   const f=L_.fence,fe=picketFence(f.x0,f.x1,f.z,1.22);a.wmAdd(fe);M.occ.push(fe);a.wmCol({x0:f.x0,z0:f.z-.08,x1:f.x1,z1:f.z+.05,h:1.22,s:'wood'});
   const hy=hedge(1.4,.7,.6,11);hy.position.set(121.8,0,57.7);a.wmAdd(hy);/* the hydrangeas. Do not step on them. */
   for(let i=0;i<9;i++){const fl=mesh(new THREE.SphereGeometry(.09,8,6),M_(i%2?'#9aa8ff':'#c7a3ff',{roughness:.8}),121.2+i*.15,.62+((i*7)%3)*.05,57.55+((i*5)%3)*.12,null);a.wmAdd(fl)}
-  /* Barb's sister's Dowager */
-  const cv=a.makeVehicle('sedan','#d8ccb0')||a.makeVanBox('#d8ccb0');cv.position.set(L_.car.x,0,L_.car.z);cv.rotation.y=L_.car.yaw+Math.PI/2;a.wmAdd(cv);M.dowager=cv;M.occ.push(cv);
+  /* Barb's sister's Buick */
+  const cv=a.makeVehicle('sedan','#d8ccb0')||a.makeVanBox('#d8ccb0');cv.position.set(L_.car.x,0,L_.car.z);cv.rotation.y=L_.car.yaw+Math.PI/2;a.wmAdd(cv);M.buick=cv;M.occ.push(cv);
   a.wmCol({x0:L_.car.x-.95,z0:L_.car.z-2.35,x1:L_.car.x+.95,z1:L_.car.z+2.35,h:1.45,s:'metal'});
   /* Phil's porch chair and his iced tea */
   const ch=lawnChair('#2f7d55');ch.position.set(L_.phil.x,0,L_.phil.z);ch.rotation.y=0;a.wmAdd(ch);M.philChair=ch;
   /* vantage pins: a small eye over each spot (the stakeout only) */
-  M.pins=[];for(const[k,p,lab,tag]of[['bushes',L_.bushHide,'The bushes','close'],['porch',L_.porch,"Phil's porch",'safe'],['car',L_.carDoor,"Barb's sister's Dowager",'safe · 2★ max'],['fence',L_.fenceSpot,"Barb's back fence",'close'],['bins',L_.binHide,'The bins','risky']]){
+  M.pins=[];for(const[k,p,lab,tag]of[['bushes',L_.bushHide,'The bushes','close'],['porch',L_.porch,"Phil's porch",'safe'],['car',L_.carDoor,"Barb's sister's Buick",'safe · 2★ max'],['fence',L_.fenceSpot,"Barb's back fence",'close'],['bins',L_.binHide,'The bins','risky']]){
     const s=eyePin();s.position.set(p.x,2.25,p.z);s.visible=false;a.wmAdd(s);M.pins.push({k,p,lab,tag,s})}
   /* the meeting on Barb's front lawn (props now, people when it starts) */
   const tb=foldTable();tb.position.set(L_.meet.x,0,L_.meet.z);a.wmAdd(tb);M.mtable=tb;
@@ -362,7 +362,7 @@ function guide(M,F,dt){const a=A(),L_=lay(),P=a.P,Ph=PH(),raised=Ph&&Ph.isRaised
   if(M.guide==='go'){F.objs.push(["Walk to Phil's porch across the street · then right-click to raise your phone",false]);F.target={x:L_.porch.x,z:L_.porch.z,label:"Phil's porch · start here"};
     if((atV&&atV.k==='porch')||raised)M.guide='raise'}
   if(M.guide!=='go'&&!M.porch&&Math.hypot(P.pos.x-L_.porch.x,P.pos.z-L_.porch.z)<2.8)F.objs.push(['Press E to say hi to Phil, so he lets you stay on his porch',false]);
-  if(M.guide==='done'&&M.shots&&M.firstT==null)M.firstT=M.st;if(M.firstT!=null&&M.st-M.firstT<30)F.objs.push(['Each spot sees different things: the list says what is in view from where you stand. Try the Dowager on Walnut next',false]);
+  if(M.guide==='done'&&M.shots&&M.firstT==null)M.firstT=M.st;if(M.firstT!=null&&M.st-M.firstT<30)F.objs.push(['Each spot sees different things: the list says what is in view from where you stand. Try the Buick on Walnut next',false]);
   if(M.guide==='raise'){if(!M.shots)F.objs.push([raised?'Left-click (or Space) to take the photo · wheel to zoom':'Right-click to raise your phone · it stays up',false]);
     if(M.shots>0)M.guide='done';else{M.tutT-=dt;if(M.tutT<=0&&Ph){M.tutT=16;const touch=document.querySelector('.ht-root.touch');Ph.notify('Maddie',touch?TUT_TOUCH:TUT_DESK,{color:'linear-gradient(#ff8ad8,#d24fa8)',dur:9000})}}}
   /* which violations can be seen from where you stand (2 Hz): line of sight from your eye, and near enough for 2 stars at 4x */
@@ -406,7 +406,7 @@ function subjects(M){const a=A(),L_=lay(),C=M.A,out=[];if(!C)return out;
     pts:[{x:e.x,y:e.y,z:e.z},{x:e.x,y:e.y+.25,z:e.z-.35},{x:e.x,y:e.y+.25,z:e.z+.35}]})}
   const so=L_.sold;out.push({id:'sold',item:'sold',label:'Fake SOLD sign',pos:{x:so.x,y:.17,z:so.z},h:.8,mid:.38,aspect:1.6,need:'sign',facing:Math.PI,pts:[{x:so.x,y:.55,z:so.z+.05},{x:so.x-.38,y:.55,z:so.z+.05},{x:so.x+.38,y:.55,z:so.z+.05}]});
   return out}
-function occluders(M){const list=(M.occ||[]).filter(o=>!(M.seat&&o===M.dowager));return list}
+function occluders(M){const list=(M.occ||[]).filter(o=>!(M.seat&&o===M.buick));return list}
 function onShot(M,s){const a=A();M.shots++;
   if(s.flash){M.flashes++;flashSeen(M);if(!M.flags.flashTxt){M.flags.flashTxt=true;const Ph=PH();if(Ph)Ph.notify('Maddie','dad turn the flash OFF',{color:'linear-gradient(#ff8ad8,#d24fa8)'})}}
   else if(!s.hits.some(h=>h.stars>0)&&!M.flags.thumb&&M.shots>=2){M.flags.thumb=true;const Ph=PH();if(Ph)Ph.notify('Maddie','that photo is of your thumb',{color:'linear-gradient(#ff8ad8,#d24fa8)'})}
@@ -428,22 +428,22 @@ function vantages(M,F){const a=A(),L_=lay(),P=a.P;
   if(!M.porch&&near(P,L_.porch,2.6))F.taps.push({x:L_.porch.x,z:L_.porch.z,r:2.6,txt:'Talk to Phil',fn:()=>{M.porch=true;M.flags.porchT=a.simT;say(M,'you',LN.phil[0]);say(M,'Phil',LN.phil[1]);say(M,'you',"...Yes. Thank you, Phil.");
     M.A.phil.look=yawTo(M.A.phil,a.P.pos);setTimeout(()=>{if(M.A)M.A.phil.look=null},4000)}});
   M.onPorch=M.porch&&Math.hypot(P.pos.x-L_.porch.x,P.pos.z-L_.porch.z)<2.4&&P.pos.z<50.2;
-  /* the Dowager: get in, get out */
-  if(M.seat){F.objs.push(['In the Dowager · E to get out',false]);F.taps.push({d:0,r:1,txt:'Get out of the Dowager',fn:()=>leaveCar(M)})}
-  else if(near(P,L_.carDoor,1.8))F.holds.push({x:L_.carDoor.x,z:L_.carDoor.z,r:1.8,o:M.vant,txt:"Get in Barb's sister's Dowager",time:.6,fn:()=>enterDowager(M)});
+  /* the Buick: get in, get out */
+  if(M.seat){F.objs.push(['In the Buick · E to get out',false]);F.taps.push({d:0,r:1,txt:'Get out of the Buick',fn:()=>leaveCar(M)})}
+  else if(near(P,L_.carDoor,1.8))F.holds.push({x:L_.carDoor.x,z:L_.carDoor.z,r:1.8,o:M.vant,txt:"Get in Barb's sister's Buick",time:.6,fn:()=>enterBuick(M)});
   /* first time at each spot: one line */
   for(const[k,p,r]of[['bush',L_.bushHide,1.6],['fence',L_.fenceSpot,1.8],['bins',L_.binHide,1.4]])if(!M.flags[k+'0']&&near(P,p,r)){M.flags[k+'0']=true;say(M,'you',LN[k+'0'])}}
-function enterDowager(M){const a=A(),L_=lay(),P=a.P;M.seat=true;M.seatYaw=P.yaw;P.yaw=0;P.pitch=-.05;P.crouch=false;if(P.dude)P.dude.root.visible=false;
+function enterBuick(M){const a=A(),L_=lay(),P=a.P;M.seat=true;M.seatYaw=P.yaw;P.yaw=0;P.pitch=-.05;P.crouch=false;if(P.dude)P.dude.root.visible=false;
   if(!M.flags.car0){M.flags.car0=true;say(M,'you',LN.car0)}a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
-function leaveCar(M){const a=A(),L_=lay(),P=a.P;M.seat=false;if(M.dowager)M.dowager.visible=true;carFrame(M,false);P.pos.set(L_.carDoor.x,0,L_.carDoor.z);a.collide(P.pos,.35);if(P.dude)P.dude.root.visible=true;a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
+function leaveCar(M){const a=A(),L_=lay(),P=a.P;M.seat=false;if(M.buick)M.buick.visible=true;carFrame(M,false);P.pos.set(L_.carDoor.x,0,L_.carDoor.z);a.collide(P.pos,.35);if(P.dude)P.dude.root.visible=true;a.snd&&a.snd('reload',.4);noise(M,L_.carDoor,6)}
 function seatCam(dt){const a=A(),M=a.M,L_=lay(),P=a.P,c=a.camera;for(const k of['w','a','s','d',' ','shift'])a.keys[k]=false;
-  P.pos.set(L_.carDoor.x,0,L_.carDoor.z);if(P.dude)P.dude.root.visible=false;if(M.dowager)M.dowager.visible=false;carFrame(M,!(PH()&&HT.Photo.isRaised()));
+  P.pos.set(L_.carDoor.x,0,L_.carDoor.z);if(P.dude)P.dude.root.visible=false;if(M.buick)M.buick.visible=false;carFrame(M,!(PH()&&HT.Photo.isRaised()));
   if(PH()&&HT.Photo.isRaised())return;/* the phone places the camera */
   c.position.set(L_.seat.x,L_.seat.y,L_.seat.z);c.rotation.set(P.pitch,P.yaw,0);c.fov+=(62-c.fov)*Math.min(1,dt*6);c.updateProjectionMatrix();return true}
 /* the meeting: a wide shot of Barb's lawn from the street, drifting slowly in */
 function meetCam(dt,M){const a=A(),L_=lay(),c=a.camera,k=Math.min(1,M.mt.t/16),m=L_.meet;
   c.position.set(m.x+1.4-k*.5,3.0-k*.35,m.z+6.6-k*1.2);c.lookAt(m.x+.3,.95,m.z+.2);c.fov+=(44-c.fov)*Math.min(1,dt*4);c.updateProjectionMatrix();if(a.P.dude)a.P.dude.root.visible=true;return true}
-/* inside the Dowager: the windshield frame, the dash, the fuzzy dice, a butterscotch air freshener (DOM, so it never reaches a photo) */
+/* inside the Buick: the windshield frame, the dash, the fuzzy dice, a butterscotch air freshener (DOM, so it never reaches a photo) */
 function carFrame(M,on){const a=A();if(!on){if(M.cf){a.overlay('hoaCar',null);M.cf=null}return}if(M.cf)return;const e=document.createElement('div');e.className='hoa-car';
   e.innerHTML='<i class="pl l"></i><i class="pl r"></i><i class="rf"></i><i class="ds"></i><i class="wh"></i><i class="mr"></i><i class="dc"><b></b><b></b></i><i class="af">BUTTERSCOTCH</i>';css();a.overlay('hoaCar',e);M.cf=e}
 /* a door, a footstep, a car door: anyone close turns to look */
@@ -453,7 +453,7 @@ function noise(M,p,r){const C=M.A;if(!C)return;for(const k of['lookout','driver'
 function eyeP(M){const a=A(),P=a.P,L_=lay();if(M.seat)return{x:L_.seat.x,y:L_.seat.y,z:L_.seat.z};return{x:P.pos.x,y:P.crouch?1.05:1.55,z:P.pos.z}}
 const _r={ray:null};
 function clearTo(M,o,p){const a=A(),THREE=a.THREE,L=a.L;if(!_r.ray)_r.ray=new THREE.Raycaster();const e=new THREE.Vector3(o.x,1.6,o.z),d=new THREE.Vector3(p.x-e.x,p.y-e.y,p.z-e.z),l=d.length();if(l<.3)return true;d.multiplyScalar(1/l);
-  _r.ray.set(e,d);_r.ray.near=.2;_r.ray.far=l-.25;const list=(M.detList||(M.detList=[])),base=L?(L.camSolids||L.solids||[]):[];list.length=0;for(const m of base)list.push(m);for(const m of M.occ||[])if(m!==M.dowager)list.push(m);
+  _r.ray.set(e,d);_r.ray.near=.2;_r.ray.far=l-.25;const list=(M.detList||(M.detList=[])),base=L?(L.camSolids||L.solids||[]):[];list.length=0;for(const m of base)list.push(m);for(const m of M.occ||[])if(m!==M.buick)list.push(m);
   return!_r.ray.intersectObjects(list,true).length}
 function tileAt(x,z){const W=A().WORLD;const r=W&&W.map&&W.map[Math.floor(z/2)];return r?r[Math.floor(x/2)]:'g'}
 function inBox(p,b){return p.x>b.x0&&p.x<b.x1&&p.z>b.z0&&p.z<b.z1}
@@ -621,7 +621,7 @@ J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='hoa'){return}
 
 /* ---------------- the scripted player for dev/jobs-check.js ----------------
    Plays it like a careful person: listens to Barb, walks (2.6 m/s) the long way round on the public sidewalks, talks to Phil and works
-   from his porch, waits for the lookout to pause at the corner for his face, crosses to the Dowager for the plate, the SOLD sign and the
+   from his porch, waits for the lookout to pause at the corner for his face, crosses to the Buick for the plate, the SOLD sign and the
    money, takes the crates off the loaders, and turns the flash off after the first flash. o.fail: strolls up their driveway and films
    the lookout from his own lawn until they spook. */
 function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load')return null;const L_=lay(),B=M.bot||(M.bot={}),Ph=PH();
@@ -652,7 +652,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
     case'toPorch':/* west along Elm St, north up the far sidewalk of Walnut, onto Phil's porch */
       lower();P.crouch=false;if(route([{x:112.5,z:70.4},{x:105.8,z:70.4},{x:105.8,z:48.6},{x:L_.porch.x,z:L_.porch.z-.1}]))B.step='phil',B.ri=0;return null;
     case'phil':if(!M.porch){a.useTap=true;return null}B.w=(B.w||0)+1;if(B.w<90)return null;B.step='bike';return null;
-    case'bike':if((have('bike')&&have('crate'))||(st>70&&have('bike'))||st>110){lower();B.step='toCar';B.ri=0;return null}/* the crates come by the Dowager too */shoot(have('bike')?'crate0':'bike',2);return null;
+    case'bike':if((have('bike')&&have('crate'))||(st>70&&have('bike'))||st>110){lower();B.step='toCar';B.ri=0;return null}/* the crates come by the Buick too */shoot(have('bike')?'crate0':'bike',2);return null;
     case'face':/* wait for the lookout's pause at the corner, facing the porch */
       if(have('face')||st>110){lower();B.step='toCar';B.ri=0;return null}
       if(lk.face===Math.PI/2&&!lk.path&&Math.hypot(lk.x-L_.lk.n.x,lk.z-L_.lk.n.z)<.6){shoot('face',2)}else lower();return null;
@@ -662,7 +662,7 @@ function bot(a,t,o){const M=a.M,P=a.P;if(!M||M.state!=='go'||!M.ph||M.ph==='load
       B.want=want||'-';
       if(!want){lower();const n2=ITEMS.filter(it=>have(it.id)).length;if(n2>=6&&!have('face',3)&&M.tc<190&&!o.safe){B.step='face3';return null}if(n2>=6||(n2>=5&&M.tc>215)){B.step='leave';return null}return null}
       shoot(want==='crate'?subjects(M).find(s=>s.id.startsWith('crateloader')&&s.pos.z>52).id:want,want==='money'||want==='sold'?2:want==='face'?1:2);return null}
-    case'face3':{/* the twist needs a 3-star face: out of the Dowager, across to the far kerb south of him, wait for his pause, 4x */
+    case'face3':{/* the twist needs a 3-star face: out of the Buick, across to the far kerb south of him, wait for his pause, 4x */
       if(M.seat){lower();a.useTap=true;return null}if(have('face',3)||M.tc>222){B.step='leave';return null}
       const coming=(lk.path&&lk.z>53&&lk.path[lk.path.length-1].z>60)||(!lk.path&&Math.hypot(lk.x-L_.lk.s.x,lk.z-L_.lk.s.z)<.8);
       if(!coming){lower();P.crouch=true;goTo({x:104.9,z:62.2},1.4);B.want='face3 hide';return null}
