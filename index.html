@@ -2836,8 +2836,9 @@ let HOME3=null,homeReady=false,homeLoading=null;
 /* ---------- title: continue / new game (HUD buttons) ---------- */
 function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
 function metaWhen(t){if(!t)return'earlier';try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}}
+function metaDay(t){try{return t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}catch(e){return''}}
 function metaTitle(dataOnly){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
-  const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaWhen(pv.t)+' · '+pv.jobs+' jobs':'';
+  const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaDay(pv.t)+' · '+pv.jobs+' jobs':'';
   if(has){const s=SV(),done=s.prog.done.slice(0,MISSIONS.length).filter(Boolean).length;UI.title.continueLabel=done+'/'+MISSIONS.length+' jobs · '+money(s.cash)}
   if(!dataOnly&&HUD.screen==='title'){HUD.show('title',UI.title);setTimeout(titleFocus,80)}}
 metaTitle();
@@ -4550,7 +4551,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();
+window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
