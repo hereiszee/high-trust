@@ -51,7 +51,7 @@ function street(hood,seed){const k=hood+':'+(seed>>>0);if(STREETS[k])return STRE
   return STREETS[k]={hood,porches,cx,cz,road:{x:cx,z:cz+face*7},face}}
 /* ================= props ================= */
 function parcel(){const a=A(),g=new a.THREE.Group();a.box(.46,.3,.36,'#b8874f',0,.15,0,g);a.box(.47,.035,.08,'#d9c9a0',0,.3,0,g);a.box(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);
-  a.box(.06,.004,.06,'#f0a020',-.14,.302,.11,g);return g}
+  a.box(.06,.004,.06,'#3f8f5a',-.14,.302,.11,g);return g}
 function lawnChair(){const a=A(),g=new a.THREE.Group(),al='#c8ccd0';
   for(const s of[-1,1]){a.box(.03,.03,.62,al,s*.27,.36,0,g);a.box(.03,.42,.03,al,s*.27,.18,.28,g);a.box(.03,.42,.03,al,s*.27,.18,-.24,g);const back=a.box(.03,.62,.03,al,s*.27,.62,.34,g);back.rotation.x=-.25;a.box(.03,.03,.36,al,s*.27,.58,-.02,g)}
   for(let i=0;i<5;i++){a.box(.54,.012,.07,i%2?'#2f8f5a':'#f4f1ea',0,.37,-.24+i*.12,g)}
@@ -65,7 +65,7 @@ let RESL=[],RESO=[];function freeRes(){for(const r of RESL)try{r.dispose()}catch
 
 /* ================= the job ================= */
 J.register(ID,{
-  def:{giver:'dadazon',giverName:'Dadazon Tracking',giverLook:{shirt:'#f0a020',pants:'#2a2a2a',cap:'#f0a020'},hood:'maple',title:'Porch Light',
+  def:{giver:'dadazon',giverName:'Dadazon Tracking',giverLook:{shirt:'#3f8f5a',pants:'#2a2a2a',cap:'#3f8f5a'},hood:'maple',title:'Porch Light',
     role:'Dadazon · Out for delivery today',place:'A delivery street',
     lines:["OUT FOR DELIVERY: parcels on one street today. Estimated arrival: between 9:00 am and the heat death of the universe.",
       "Doug's group chat says the porch pirates are back. Gray hoodie. Tote bag. And somebody's been cruising in a sedan.",

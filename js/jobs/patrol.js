@@ -40,7 +40,7 @@ const LINES={
     van:{find:"Unfamiliar van. Engine off. Guy in coveralls.",note:"Unfamiliar van at {h}. Asked. It's a plumber. Somebody's water heater gave up. Everyone is fine."},
     bins:{find:"Bins blown into the road. Somebody's recycling is touring the neighbourhood.",fix:"Bins back on the kerb.",note:"Bins in the road by {h}. Stood them back up. Somebody drinks a lot of sparkling water."},
     light:{find:"Porch light's out. A dark porch is an invitation. A rude one.",fix:"Light's back on. It was loose. Most things are.",note:"Porch light out at {h}. Tightened the bulb. Let there be porch."},
-    late:{find:"Two kids, out past the streetlights. 'We're going home! Slowly!'",take:"Come on, you two. I'll walk you to your corner.",fix:"Home. Their mom says thank you. And 'INSIDE. NOW.'",note:"Two kids out late near {h}. Walked them to {o}. They told me about Minecraft the whole way."},
+    late:{find:"Two kids, out past the streetlights. 'We're going home! Slowly!'",take:"Come on, you two. I'll walk you to your corner.",fix:"Home. Their mom says thank you. And 'INSIDE. NOW.'",note:"Two kids out late near {h}. Walked them to {o}. They told me about their block-building game the whole way."},
     pirate:{find:"Gray hoodie. Tote bag. He just picked up a parcel that isn't his.",talk:"That's not yours, friend. Put it back on the step.",back:"...Yeah. Okay. Okay. Sorry.",caught:"Okay! Okay! It's a nose hair trimmer, I don't even want it!",
       note:"Porch pirate at {h}. {how}. Parcel back on the step."},
     prowler:{find:"Somebody trying car door handles. One by one.",talk:"Evening! That's not your car. Or that one.",back:"I was... checking they were locked. For safety. ...I'm going.",caught:"Okay! I'm sitting! I'm sitting.",note:"Somebody trying car doors near {h}. {how}."}},
@@ -74,7 +74,7 @@ function plane(w,h,tex,x,y,z,p,ry,o){const T=T3();o=o||{};const m=tm(new T.MeshS
   const me=new T.Mesh(geoC('pl',()=>new T.PlaneGeometry(1,1)),m);me.scale.set(w,h,1);me.position.set(x,y,z);me.rotation.y=ry||0;if(o.flat){me.rotation.set(-Math.PI/2,0,ry||0)}me.castShadow=!!o.cast;me.receiveShadow=true;if(p)p.add(me);return me}
 
 /* ================= props ================= */
-function parcel(){const g=new(T3().Group)();bx(.46,.3,.36,'#b8874f',0,.15,0,g);bx(.47,.035,.08,'#d9c9a0',0,.3,0,g);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);bx(.06,.004,.06,'#f0a020',-.14,.302,.11,g);return g}
+function parcel(){const g=new(T3().Group)();bx(.46,.3,.36,'#b8874f',0,.15,0,g);bx(.47,.035,.08,'#d9c9a0',0,.3,0,g);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09,g);bx(.06,.004,.06,'#3f8f5a',-.14,.302,.11,g);return g}
 function binModel(col){const g=new(T3().Group)(),body=new(T3().Group)();g.add(body);cy(.27,.86,col,0,.43,0,body,16);cy(.29,.05,'#2a2c30',0,.88,0,body,16);for(const s of[-1,1])cy(.08,.05,'#1d1f22',s*.2,.08,-.24,body,10,0,Math.PI/2);
   g.userData.body=body;return g}
 function binState(g,t){const b=g.userData.body;b.rotation.x=(1-t)*Math.PI/2;b.position.y=(1-t)*.27}

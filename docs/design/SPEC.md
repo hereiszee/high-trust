@@ -399,8 +399,8 @@ const FAMILY_LINES={
            "jen|Doug says it's over. Doug also says the mailman is 'suspicious.' But I believe him this time."],
  fail:[
   "jen|Hey. You came home. That's the part that counts. Ice pack's in the freezer.",
-  "tyler|It's okay, Dad. I lose at Mario Kart all the time and I'm still pretty great.",
-  "maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly Springsteen.",
+  "tyler|It's okay, Dad. I lose at go-kart games all the time and I'm still pretty great.",
+  "maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly songs about highways.",
   "jen|Rick called. He said 'we regroup at halftime.' I assume that means dinner.",
   "jen|Sit. Eat something. Then go back and finish it. In that order."],
  trustHigh:[   // prog.trust >= 70

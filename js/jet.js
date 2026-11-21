@@ -23,7 +23,7 @@ const LINES={
   takeoff:["DAD-1, wheels up. Gear is G. Linda says call when you land.","DAD-1 is airborne. Somebody tell the HOA.","Nice rotation, DAD-1. Climb and enjoy. Stay off the neighbor's satellite dish."],
   stall:["DAD-1, you're stalling. Nose down. Like when you nap in the recliner.","Airspeed, DAD-1. Airspeed! Lower the nose, add throttle."],
   gear:["DAD-1, check your gear. G. The landing kind.","Gear, DAD-1. Planes like wheels when they land."],
-  land:["Nice landing, DAD-1. Tower out.","Wheels down, all in one piece. I'll tell Linda.","Smooth. Smooth like a crockpot. Tower out."],
+  land:["Nice landing, DAD-1. Tower out.","Wheels down, all in one piece. I'll tell Linda.","Smooth. Smooth like a slow cooker. Tower out."],
   far:["DAD-1, you're leaving the neighborhood. Come back, your lasagna is getting cold.","DAD-1, that's the county line. Turn around. That's an order. That's a suggestion. Turn around."],
   boom:["SONIC BOOM. Every window on the block just rattled.","Was that a sonic boom? Over the CUL-DE-SAC?"],
   boomN:["My windows! My good windows!","That rattled my whole china cabinet!","Somebody's showing off.","Was that thunder? The sky is blue. That wasn't thunder."],

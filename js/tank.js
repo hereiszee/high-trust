@@ -281,7 +281,7 @@ function reticle(on){let el=S.ret;if(!on){if(el)el.style.display='none';return}
 
 /* ================= the sergeant (E prompts) and wiring ================= */
 function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||prompt)return null;const sg=S.sarge;if(!sg||!sg.d)return null;
-  if(Math.hypot(a.P.pos.x-sg.p.x,a.P.pos.z-sg.p.z)<2.6)return{txt:'Talk to '+SARGE,fn:()=>say(SARGE,pick(["The tank? Walk up to it and press E. Like any car. That's the problem.","Practice rounds only. They make a big noise and a big cloud and they don't hurt anybody. Mostly they hurt my paperwork.","Neutral steering: A and D turn it on the spot. Like a Roomba. A seventy-ton Roomba."]),true)};return null}
+  if(Math.hypot(a.P.pos.x-sg.p.x,a.P.pos.z-sg.p.z)<2.6)return{txt:'Talk to '+SARGE,fn:()=>say(SARGE,pick(["The tank? Walk up to it and press E. Like any car. That's the problem.","Practice rounds only. They make a big noise and a big cloud and they don't hurt anybody. Mostly they hurt my paperwork.","Neutral steering: A and D turn it on the spot. Like a robot vacuum. A seventy-ton robot vacuum."]),true)};return null}
 function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook,50);return}
   Jb.on('vehicle',(e,dt)=>{try{vehicle(e,dt)}catch(err){if(!S.err){S.err=1;console.warn('[tank]',err)}}});
   Jb.on('camera',dt=>{try{return camera(dt)}catch(err){if(!S.err3){S.err3=1;console.warn('[tank] camera',err)}}});

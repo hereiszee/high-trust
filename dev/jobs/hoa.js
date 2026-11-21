@@ -1,7 +1,7 @@
 /* Exhibit HOA: play it by script, print a timeline (phase, suspicion, the board, who is looking, every line said) and take a
    screenshot of every stage (docs/screenshots/jobs/hoa/).
    node dev/jobs/hoa.js [--fail] [--touch] [--out=dir] [--quiet] [--noshots]
-   default : the jobs-check bot (Phil's porch, the Buick, the meeting), human-ish pacing
+   default : the jobs-check bot (Phil's porch, the Dowager, the meeting), human-ish pacing
    --fail  : strolls up their driveway filming the lookout until they spook (the fail card)
    --touch : a landscape phone viewport (844x390, touch layout)
    --part=1|2 : only the stakeout shots / only the meeting and result shots (headless SwiftShader runs out of memory on all of them in one page) */

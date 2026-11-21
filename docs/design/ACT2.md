@@ -58,7 +58,7 @@ The finale card shows after the Duke. It offers **New Saturday** (reset) or **Ke
 
 | character | where they appear | stand-in today |
 |---|---|---|
-| Earl Booker (retired bus driver, 60s) | giver for End of the Line and The Duke; radio | `boss` base, blue tint |
+| Earl Booker (retired bus driver, 60s) | giver for Exact Change and The Duke; radio | `boss` base, blue tint |
 | Pastor Dee (youth pastor) | giver for Fellowship Hall; walks the kids out during the stakeout | `wife` base, purple tint |
 | Rosa (ER nurse, scrubs) | giver for Garden Variety; then a crew member and medic on later jobs and in the hub | `wife` base, teal tint |
 | Benny (ice-cream man, apron, pink cap) | giver for Brain Freeze; hands out cones at the court | `boss` base, pale pink tint |

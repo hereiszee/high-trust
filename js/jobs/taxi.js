@@ -34,7 +34,7 @@ const ITEMS=[{k:1,id:'shin',name:'shin guard',owner:'ava',where:'Linden Park',
 const CHATTER=[[['Ava',"Mr. Maddie's dad, are we going to be late? Coach makes late kids run laps."],['you',"Nobody's running laps today. Except me, maybe. Emotionally."]],
   [['Mason',"Do you know any jokes?"],['you',"Why did the minivan cross the road?"],['Mason',"Why?"],['you',"Carpool."],['Mason',"...That's not a joke."],['you',"It's a lifestyle."]],
   [['Maddie',"Dad. Ava is breathing on my side."],['Ava',"I'm breathing in the MIDDLE."]],
-  [['Tyler',"Mason says his dad's car goes two hundred."],['you',"Mason's dad drives a Corolla."],['Mason',"A FAST Corolla."]],
+  [['Tyler',"Mason says his dad's car goes two hundred."],['you',"Mason's dad drives a beige hatchback."],['Mason',"A FAST beige hatchback."]],
   [['Mason',"Is this the car that smells like fries?"],['Tyler',"It's the car that smells like fries."]]];
 const REACT={brake:["Whoa!","Dad! My juice box!","I felt that in my teeth.","My whole face went forward.","Mom brakes like a cloud."],
   corner:["Wheee!","I'm on Ava's side now. Sorry, Ava.","Dad, this isn't a race.","The car leaned! The car leaned!","My stomach went left."],
@@ -42,8 +42,8 @@ const REACT={brake:["Whoa!","Dad! My juice box!","I felt that in my teeth.","My 
   speed:["Dad. DAD. The speed limit.","Mom says thirty-five on Oak.","Faster! ...No, Mom said don't say faster."],
   sick:["I don't feel so good.","Can we open a window? All the windows?","I can see my breakfast. In my mind."],
   smooth:["This is the smoothest ride ever.","You drive like a bus driver. A good one.","I didn't even spill my juice."]};
-const RADIO_LINES={like:{kidz:["Yes! KIDZ 98!","This is my SONG.","Turn it up! ...Please?"],talk:["Ooh, is the Huddle on?","Sports talk! Is Gary calling in again?"],rock:["Dad music. Okay. I can work with this."],jazz:["Smooth. Like the ride. Hopefully."]},
-  hate:{kidz:["Nooo. Not the bop one.","Dad, change it, this song is about nothing."],talk:["Not the talk one. Please. They just yell about punting.","Why do grown-ups yell about punting?"],rock:["Is this from the olden days?"],jazz:["This is elevator music. Are we in an elevator?"],off:["Why is it so QUIET.","Silence is weird. Put something on."]}};
+const RADIO_LINES={like:{kidz:["Yes! TOT ROCK 98!","This is my SONG.","Turn it up! ...Please?"],talk:["Ooh, is the Huddle on?","Sports talk! Is Gary calling in again?"],rock:["Dad music. Okay. I can work with this."],jazz:["Smooth. Like the ride. Hopefully."]},
+  hate:{kidz:["Nooo. Not the snack-song one.","Dad, change it, this song is about nothing."],talk:["Not the talk one. Please. They just yell about punting.","Why do grown-ups yell about punting?"],rock:["Is this from the olden days?"],jazz:["This is elevator music. Are we in an elevator?"],off:["Why is it so QUIET.","Silence is weird. Put something on."]}};
 
 /* ---------- places: curbside points computed from the road graph (the school site if the world has one) ---------- */
 function curb(a,x,z,toward,off){/* nearest street from the world's road list (centreline 3 tiles wide), then the kerb lane on the side facing 'toward' */
@@ -382,7 +382,7 @@ function rickRun(dt,M,F){const a=A(),L_=M.live,E=L_.enc,K=L_.K,rk=E.rick,P_=plac
   if(E.state==='bail'){const tgt=E.thieves.find(r=>!r.caught);if(!tgt){E.state='caught';return}
     rk.walk={to:{x:tgt.x,z:tgt.z},sp:5.4};rk.state='walking';F.target={x:tgt.x,z:tgt.z,label:'Rick has it'};
     if(hyp(rk.x-tgt.x,rk.z-tgt.z)<1.3){tgt.caught=true;tgt.walk=null;tgt.state='stand';tgt.mode='hands';rk.walk=null;rk.state='stand';
-      if(!E.said.coach){E.said.coach=1;sayAll(M,[['Kid driving',"Okay! Okay. ...Coach Rick? From Little League?"],['Rick',"Marcus. You had a great swing. What happened?"]],{prio:3})}
+      if(!E.said.coach){E.said.coach=1;sayAll(M,[['Kid driving',"Okay! Okay. ...Coach Rick? From T-ball?"],['Rick',"Marcus. You had a great swing. What happened?"]],{prio:3})}
       if(E.thieves.every(r=>r.caught)){E.state='choice';E.choiceT=0;for(const r of E.thieves){r.walk=null;r.state='stand';r.mode='hands'}}
       else{const o=E.thieves.find(r=>!r.caught);o.speed=2.2}}}
   else if(E.state==='choice'){E.choiceT+=dt;F.target={x:rk.x,z:rk.z,label:'Your call'};choiceCard(M)}

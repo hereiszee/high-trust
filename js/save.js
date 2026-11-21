@@ -23,7 +23,7 @@ const MISSIONS=[
   {id:'dave',giver:'dave',who:'Big Dave',title:'Block Party',base:700,par:240,hood:'maple',bonus:[]},
   {id:'doug',giver:'doug',who:'Doug',title:'The Kingpin',base:1000,par:300,hood:'maple',
     bonus:[r=>r.bossDone==='cuffed'&&['bail',"King's bail refund",500]]},
-  {id:'earl',giver:'earl',who:'Earl',title:'End of the Line',base:650,par:300,hood:'river',
+  {id:'earl',giver:'earl',who:'Earl',title:'Exact Change',base:650,par:300,hood:'river',
     bonus:[r=>r.bikes&&['bikes','Bikes back with their kids ×'+r.bikes,40*r.bikes],r=>r.converters&&['converters','Converters to the bike library fund ×'+r.converters,60*r.converters]]},
   {id:'dee',giver:'dee',who:'Pastor Dee',title:'Fellowship Hall',base:800,par:0,hood:'river',
     bonus:[r=>r.ok&&r.cleanStakeout&&['stakeout','Clean stakeout',200],r=>r.ids&&['ids','Faces matched to names ×'+r.ids,50*r.ids],r=>r.bossDone==='cuffed'&&['courier','The Courier gets a second chance',250]]},
@@ -162,7 +162,7 @@ const SUPPLIES={
 const GADGETS={
   flashlight:{name:"Dad's Maglite",price:0,key:'F',free:true,fx:'Toggle with F · runs forever · doubles as a doorstop',on:'Clip it on',off:'Leave it in the junk drawer',
     blurb:"Four D-cells and thirty years of \"who touched my flashlight.\" Nobody touched your flashlight."},
-  nvg:{name:'NightOwl Gen-1 Goggles',price:650,key:'N',battery:240,fx:'Toggle with N · battery 4 min · recharges at home',on:'Strap them on',off:'Put them back in the box',
+  nvg:{name:'Hoot-Vision Gen-1 Goggles',price:650,key:'N',battery:240,fx:'Toggle with N · battery 4 min · recharges at home',on:'Strap them on',off:'Put them back in the box',
     blurb:"Doug owns two pairs. He won't say why. Now you own one, and you also won't say why."}};
 const GADGET_ORDER=['flashlight','nvg'];
 
@@ -1068,7 +1068,7 @@ function navMove(rootEl,dir,from){const list=navList(rootEl);if(!list.length)ret
 let current=null;
 Menus.isOpen=()=>!!current;Menus.close=()=>{if(current)current.close()};
 const LOGOS={
-  dadazon:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 22l24-12 24 12v26L32 60 8 48z" fill="#d7a86e"/><path d="M8 22l24 12 24-12M32 34v26" fill="none"/><path d="M20 16l24 12v8" fill="none" stroke="#f6f1e3" stroke-width="5"/><path d="M20 16l24 12v8" fill="none" stroke="#16181c" stroke-width="1.5"/><path d="M18 42c4 3 8 3 10 0 2 3 6 3 10 0" fill="none" stroke-width="3"/></g></svg>`,
+  dadazon:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 22l24-12 24 12v26L32 60 8 48z" fill="#d7a86e"/><path d="M8 22l24 12 24-12M32 34v26" fill="none"/><path d="M20 16l24 12v8" fill="none" stroke="#f6f1e3" stroke-width="5"/><path d="M20 16l24 12v8" fill="none" stroke="#16181c" stroke-width="1.5"/><path d="M20 46l6-5 6 5v7h-12z" fill="#2e5e3e" stroke-width="2.5"/></g></svg>`,
   hardware:`<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#f6f1e3" stroke="#16181c" stroke-width="3.5"/><path d="M32 8l5 11 7-3-2 11 8-2-4 8 6 3-12 7 2 6-10-2v12h-2V47l-10 2 2-6-12-7 6-3-4-8 8 2-2-11 7 3z" fill="#c23b2e" stroke="#16181c" stroke-width="2.5" stroke-linejoin="round"/></svg>`,
   auto:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ffc94a"/><circle cx="32" cy="32" r="11" fill="#16181c"/><circle cx="32" cy="32" r="5" fill="#ffc94a"/></g></svg>`,
   mart:`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#16181c" stroke-width="3.5" stroke-linejoin="round"><path d="M8 26l6-16h36l6 16z" fill="#f08a2c"/><path d="M8 26c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8c0 5 4 8 8 8s8-3 8-8" fill="#fff"/><rect x="12" y="34" width="40" height="24" fill="#f6f1e3"/><rect x="18" y="40" width="12" height="18" fill="#2fa39a"/><rect x="35" y="40" width="12" height="9" fill="#9fd1ef"/></g></svg>`,

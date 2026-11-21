@@ -64,7 +64,7 @@ This document answers the owner's question: *"how many missions currently exist?
 | 1 | *Fourth Quarter* (Rick), Birch duplex | live | den-clear → hold E on 3 tables against a 2:30 clock | The only clock in the live game, and it pushes you forward | The clock is the only twist. The rooms play like job 0. |
 | 2 | *Block Party* (Dave), Linden Park | live | hold the grill ring against 3 waves | Open ground, enemies come to you, the `AI.director` | The only defend job, and it's pure combat: nothing to build, carry or protect except a point. |
 | 3 | *The Kingpin* (Doug), Ridgeview compound | live | den-clear → find the boss → he surrenders or drops | The surrender moment (`surrender(e)` on the boss, `HANDS UP`) is the best beat in the game | Structurally job 0 with a boss at the end. |
-| 4 | *End of the Line* (Earl), Spoke Shop | branch | den-clear → **carry** bikes one at a time → load them into the car (`wmCarry`/`wmLoad`, pickup beds hold more) | Carrying (no gun while carrying) and choosing which car to bring | Still a walled lot full of hostiles. Carrying is new, but the job around it isn't. |
+| 4 | *Exact Change* (Earl), Spoke Shop | branch | den-clear → **carry** bikes one at a time → load them into the car (`wmCarry`/`wmLoad`, pickup beds hold more) | Carrying (no gun while carrying) and choosing which car to bring | Still a walled lot full of hostiles. Carrying is new, but the job around it isn't. |
 | 5 | *Fellowship Hall* (Dee), laundromat | branch | **stakeout:** binoculars from the van, ID 4 suspects without suspicion rising → Dee walks the kids off → den raid | First non-combat phase, first suspicion meter (`M.sus`), first social beat (Dee talks kids away) | The stakeout is a 60 s gallery. Nothing moves. It ends in a den raid. |
 | 6 | *Garden Variety* (Rosa), garden | branch | waves + protect beds (`bedHp`) | Area protection: beds trample, and a non-combat stake you can partly lose | It's job 2 with flowerbeds. |
 | 7 | *Brain Freeze* (Benny), route | branch | **escort** the truck (it waits for you) → ambushes → the truck is stolen → **chase** (`chaseUpdate`, rubber band, ram/PIT) | The first job that is mostly driving, the twist, the first chase | The ambushes are small den-clears in the street. The chase is a single target with no tactics. |
@@ -128,7 +128,7 @@ New small sites, specified here once (all stamped by `js/worldgen.js` like the e
   - Doug: "Two cars back. Two. Not one. Not zero. Zero is called 'following'."
   - You: "He's indicating left." Doug: "Nobody indicates. It's a trick."
   - Doug: "He's checked his mirror three times. That's not a mirror check, that's a relationship."
-  - Doug: "Swap. Grab Ted's Buick. Ted won't mind. Ted is at pickleball."
+  - Doug: "Swap. Grab Ted's Dowager. Ted won't mind. Ted is at pickleball."
   - Doug (in Ted's car): "This smells like menthol and regret. Perfect cover."
   - Doug: "Light's red. Do NOT pull up behind him. Pretend you're reading a text. Not while driving. Pretend."
   - Doug: "Box truck. Get the plate. Steady. Steadier. Breathe like a sniper. A sniper who coaches T-ball."
@@ -322,7 +322,7 @@ New small sites, specified here once (all stamped by `js/worldgen.js` like the e
      - **Beanbag** (loaded rounds `bean`): a body hit at any range = they drop and surrender. Gary walks over and zip-ties them.
      - **Hunting rifle**: a lethal option that's allowed but costs trust, and Doug is disappointed.
      - **Spook**: a shot near them (within 2 m) makes 40% of threats flee. A miss counts as a spook.
-  4. One threat is a **decoy**: a kid with a toy water gun. Shooting him at all = −10 trust and a fail-adjacent line. Doug warns you only if you scope him for 1 s ("That's a Super Soaker. Hold fire.").
+  4. One threat is a **decoy**: a kid with a toy water gun. Shooting him at all = −10 trust and a fail-adjacent line. Doug warns you only if you scope him for 1 s ("That's a Soak-o-Matic. Hold fire.").
   5. The escort reaches the church. The last wave is a car: shoot its tyres (new hit zone on AI cars: 4 tyres, 1 hit each) so it stalls before it reaches the steps.
 - **Core new mechanic:** **overwatch**: a fixed vantage, a moving escort that reacts to threats, target identification, and non-lethal shot choice.
 - **Reuses:** the `hunter` scope and `beanbag` weapons (`opt.nonlethal`), surrender, `HT.AI` (threat agents with `investigate` paths), crew zip-ties, AI cars (`HT.CarAI.follow`), and the escort's waiting logic from *Brain Freeze* (rewritten for walking).
@@ -337,7 +337,7 @@ New small sites, specified here once (all stamped by `js/worldgen.js` like the e
   - Doug: "Rooftop, two o'clock. Red hat. He's got a bag. Hold... beanbag him."
   - Hoodie (hit): "OW. Okay. Okay! I'm out. I'm SO out."
   - Gary (arriving to cuff): "Hi. I'll be your zip-tie technician today."
-  - Doug: "That's a Super Soaker. That's Kevin. Hold fire. Kevin, go home."
+  - Doug: "That's a Soak-o-Matic. That's Kevin. Hold fire. Kevin, go home."
   - Kevin: "Aww."
   - Mr. Ferreira: "I've lived on this street forty years. That's the first time I've felt safe walking it."
   - Doug: "Hawk out." Gary: "We're still not doing call signs."
@@ -372,7 +372,7 @@ New small sites, specified here once (all stamped by `js/worldgen.js` like the e
 
 ### 2.10 *Heavy Lifting*: defend while something finishes (Ms. Okafor, Rosa strand 2/2)
 
-- **Giver:** Ms. Okafor (the Okafor twins' mom; her bikes came back in *End of the Line*), on her stoop on 3rd St. **Location:** 3rd St between Ash St and Mill St (x188, z34–48), a rowhouse front.
+- **Giver:** Ms. Okafor (the Okafor twins' mom; her bikes came back in *Exact Change*), on her stoop on 3rd St. **Location:** 3rd St between Ash St and Mill St (x188, z34–48), a rowhouse front.
 - **Premise:** Ms. Okafor's cousin's family, the Adeyemis, are moving into the empty rowhouse next door. It's the first family to move *into* Riverside in two years. The street crew who use that house as a hangout aren't happy about it.
 - **Beat sheet:**
   1. A rental moving truck parks on 3rd St. **The unload bar** (0–100%) fills while movers (the Adeyemis plus 2 neighbours) carry boxes from truck to door, 1% per box. That's slow on its own: about 4 minutes at baseline.
@@ -644,8 +644,8 @@ New small sites, specified here once (all stamped by `js/worldgen.js` like the e
   - Rosa: "Strollers. Toddlers. Mr. Ferreira with his cane. If this turns into a stampede I'm going to be very calm and very angry."
   - Rosa: "Watch his hands. Charity people don't put the money in their own pocket. That's the whole job."
   - Skimmer: "For the garden! Every dollar goes to the garden! Mostly."
-  - You (wrong guy): "Excuse me, sir—" Real volunteer: "I'm with the Rotary Club. I've been with them twenty years."
-  - You: "...Great work. Love the Rotary."
+  - You (wrong guy): "Excuse me, sir—" Real volunteer: "I'm with the Golden Spatula Club. I've been with them twenty years."
+  - You: "...Great work. Love the spatula."
   - Rosa: "Green reticle. Nobody behind him. Now. Not 'in a second'. Now."
   - Skimmer (hit): "OOF. Okay, wow, okay."
   - Market lady: "Did that man just get shot with a beanbag?" Other: "He was skimming the garden money." Market lady: "...Good shot."
@@ -731,7 +731,7 @@ Three acts. Both neighbourhoods interleave from Act 1 (the bridge opens after *F
 | 3 | *Fourth Quarter* | M | combat + timed |
 | — | *bridge opens* (Act 2 card from `work/riverside-jobs`) | | |
 | 4 | *Exhibit HOA* (new) | M | stealth-light / photo |
-| 5 | *End of the Line* | R | combat + carry |
+| 5 | *Exact Change* | R | combat + carry |
 | 6 | *The Grass Is Greener* (new) | M | race / social |
 | 7 | *Block Party* | M | combat / defend |
 | 8 | *Following Distance* (new) | 9→R | driving / stealth |
@@ -781,7 +781,7 @@ Each crew member has a strand of 2 jobs. Finishing a strand unlocks a **perk** (
 | **Big Dave** | *The Grass Is Greener* → *Handle With Care* | **Cookout Morale** | Downed allies revive in 6 s instead of 9 when Dave is within 14 m; a home "grill" interactable gives +25 max HP for the next job. |
 | **Doug** | *Following Distance* → *Higher Ground* | **Hawk** | Enemies you scope for 0.6 s stay marked for 8 s (through walls); [STEALTH] detection fill −20% when Doug is on the crew. |
 | **Rosa** | *Garden Variety* (SPEC2) → *Hands Off* | **Triage+** | Her medic radius 14 → 20 m; zip-ties are 30% faster while she's within 10 m. |
-| **Earl** | *End of the Line* (SPEC2) → *Cone Zone* | **Shortcuts** | GPS uses alleys (alley edges added to `HT.Roads` with cost ×0.8); fast travel to 4 bus-stop pins in Riverside. |
+| **Earl** | *Exact Change* (SPEC2) → *Cone Zone* | **Shortcuts** | GPS uses alleys (alley edges added to `HT.Roads` with cost ×0.8); fast travel to 4 bus-stop pins in Riverside. |
 | **Pastor Dee** | *Grand Opening* → *Crossing Guard* | **Second Chances** | Enemy surrender chance +15% in Riverside; surrendered Riverside enemies sometimes (30%) mark a stash on the minimap. |
 | **Sal** (non-combat) | *Hitch Happens* → *Sign of the Times* | **Shop Account** | Tows are free; repairs −25%; the hitch is permanent and free. |
 | **Benny** (non-combat) | *Brain Freeze* (SPEC2) → finale cameo | **Jingle** | Once per job, call Benny's truck as a distraction (draws idle enemies within 40 m of a road node for 10 s). |
@@ -822,7 +822,7 @@ Perks are all **passive or a single new radio command**, so they don't need new 
 
 | Job | Visible change (permanent, at that address) |
 |---|---|
-| *End of the Line* | Free Bike Library sign (exists: `WM_AFTER`); after *Chain Reaction* the seller kid works the counter |
+| *Exact Change* | Free Bike Library sign (exists: `WM_AFTER`); after *Chain Reaction* the seller kid works the counter |
 | *Fellowship Hall* | Laundromat youth-group folding table (exists) |
 | *Crossing Guard* | A crossing guard at 2nd St & Ash St on weekday mornings (Mr. Ferreira if *Higher Ground* is done) |
 | *Grand Opening* | The pawn shop storefront becomes **Ramos Bakery** (new sign, awning, a queue at 8 am) |
@@ -849,7 +849,7 @@ Kinds: **C** combat, **D** driving, **S** stealth, **So** social, **T** timed, *
  2  Dad Taxi                T     D        ██
  3  Fourth Quarter          C     T        ████
  4  Exhibit HOA             S     So       █
- 5  End of the Line         C              ███
+ 5  Exact Change         C              ███
  6  Grass Is Greener        D     So       ██        <- deliberate breather between two combat jobs
  7  Block Party             C              ████
  8  Following Distance      D     S        ██

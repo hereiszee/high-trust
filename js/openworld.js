@@ -416,7 +416,7 @@ function buildingsInChunk(ws,B,box,blds){const def=ws.def,BUm=BU();const inC=(cx
   ws.whBlocks.forEach((b,i)=>{const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz))return;const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2;
     let g=null;try{if(BUm)g=BUm.shell({kind:'warehouse',w,d,h:6.5+(i%3),seed:'wh'+i,facing:'-z'})}catch(e){g=null}
     if(g){g.position.set(cx,0,cz);g.userData._owCol='#a3a9ac';g.userData._owRoof='#6f7376';blds.push(g)}else B.gbOf('whsWall').box(cx-w/2,0,cz-d/2,cx+w/2,7,cz+d/2,2,null,{})});
-  const NAMES={gas:['FILL-ER-UP','GAS · SNACKS · BAIT'],mart:['RAMOS CORNER MART','GROCERY · DELI · LOTTO'],benny:["BENNY'S BRAIN FREEZE",'ICE CREAM · DEPOT'],center:['RIVERSIDE FLATS','COMMUNITY CENTER'],
+  const NAMES={gas:['FILL-ER-UP','GAS · SNACKS · BAIT'],mart:['RAMOS CORNER MART','GROCERY · DELI · LOTTO'],benny:["BENNY'S COLD FRONT",'ICE CREAM · DEPOT'],center:['RIVERSIDE FLATS','COMMUNITY CENTER'],
     ortho:['BRACE YOURSELF','ORTHODONTICS · SMILES SINCE 1994']};
   for(const b of def.buildings){const cx=(b.x0+b.x1+1)*TILE/2,cz=(b.z0+b.z1+1)*TILE/2;if(!inC(cx,cz)||b.id==='church'||b.custom)continue;   /* custom: a SPEC3 set piece draws it (the school) */
     const w=(b.x1-b.x0+1)*TILE-.2,d=(b.z1-b.z0+1)*TILE-.2,facing=b.face==='s'?'+z':'-z';let g=null;
@@ -1245,7 +1245,7 @@ const TR={look:30,plan:4.5,sg0:2.6,sg1:4,sgK:.14,margin:.3,honk1:2,honkGap:[4,6]
 OW.trafficTune=TR;
 const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
 const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
-  "Buddy. Pal. Champ.","My lasagna is on a timer, friend.","We've all got places to be. Mine is Costco.","Any day now, chief.","I'm not mad. I'm just honking.",
+  "Buddy. Pal. Champ.","My lasagna is on a timer, friend.","We've all got places to be. Mine is the Gallon Club.","Any day now, chief.","I'm not mad. I'm just honking.",
   "Did you get your licence out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
 const TR_HIT=["My BUMPER. I just paid that off.","Oh, come ON. That was a lease!","Hey! I've got pies in the back!","Are you KIDDING me? Brenda's going to kill me.",
   "That's going in the neighbourhood group chat.","I signalled! I SIGNALLED!"];

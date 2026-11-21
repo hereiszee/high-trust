@@ -154,9 +154,9 @@ function drawBroadcast(x,w,h,t){const g=x.createLinearGradient(0,0,0,h);g.addCol
   x.strokeStyle='rgba(255,255,255,.75)';x.lineWidth=3;for(let i=-6;i<=6;i++){const a=(i+(t*.3%1))*70;x.beginPath();x.moveTo(w/2+a*.6,0);x.lineTo(w/2+a*1.8,h);x.stroke()}
   R=rng(Math.floor(t*2));for(let i=0;i<14;i++){const px=w*.2+((i*53+t*20)%(w*.6)),py=h*.3+((i*37)%(h*.5));x.fillStyle=i<7?'#d7dde8':'#b3272b';x.fillRect(px,py,7,14);x.fillStyle='#222';x.fillRect(px,py+14,7,4)}
   x.fillStyle='rgba(10,15,30,.85)';x.fillRect(20,h-46,330,30);x.fillStyle='#fff';x.font='bold 18px sans-serif';x.fillText('DADS  21   HOA  14    4TH  2:0'+(7-Math.floor(t%7)),32,h-25);x.fillStyle='#ffc94a';x.fillRect(20,h-48,330,3)}
-function drawDadazon(x,w,h){x.fillStyle='#f5f6f7';x.fillRect(0,0,w,h);x.fillStyle='#232f3e';x.fillRect(0,0,w,h*.14);x.fillStyle='#ff9900';x.font='bold 30px sans-serif';x.fillText('dadazon',14,h*.1);
+function drawDadazon(x,w,h){x.fillStyle='#f5f6f7';x.fillRect(0,0,w,h);x.fillStyle='#2e5e3e';x.fillRect(0,0,w,h*.14);x.fillStyle='#e9d9a6';x.fillRect(0,h*.14,w,h*.012);x.fillStyle='#f6ecc8';x.font='italic 900 30px Georgia,serif';x.fillText('Dadazon',14,h*.1);x.font='bold 11px sans-serif';x.fillStyle='#cfe3c6';x.fillText("IT'S HERE WHEN IT'S HERE",16,h*.132);
   x.fillStyle='#fff';x.fillRect(w*.42,h*.035,w*.5,h*.07);for(let i=0;i<6;i++){const px=14+(i%3)*(w-28)/3,py=h*.2+Math.floor(i/3)*h*.4;x.fillStyle='#fff';x.fillRect(px,py,(w-40)/3,h*.36);
-    x.fillStyle=['#7a8a99','#c0392b','#2e6b45','#d8b25a','#3b4a3a','#8e6b4a'][i];x.fillRect(px+10,py+10,(w-40)/3-20,h*.2);x.fillStyle='#b12704';x.font='bold 16px sans-serif';x.fillText('$'+[650,90,45,220,900,15][i],px+10,py+h*.27);x.fillStyle='#ffa41c';x.fillText('★★★★☆',px+10,py+h*.33)}}
+    x.fillStyle=['#7a8a99','#c0392b','#2e6b45','#d8b25a','#3b4a3a','#8e6b4a'][i];x.fillRect(px+10,py+10,(w-40)/3-20,h*.2);x.fillStyle='#2e5e3e';x.font='bold 16px sans-serif';x.fillText('$'+[650,90,45,220,900,15][i],px+10,py+h*.27);x.fillStyle='#3a86c8';x.fillText('★★★★☆',px+10,py+h*.33)}}
 
 /* ======================================================================= materials */
 const MC={};
@@ -1266,7 +1266,7 @@ const FAMILY_LINES={
  win_rick:["tyler|Coach Rick gave you his GUN? He won't even let me hold the orange cones."],
  win_dave:["jen|Dave sent home a whole brisket. I'm not saying I married the wrong guy. I'm saying I get it."],
  win_doug:["jen|The Porch Pirate King is coaching T-ball? The Hendersons' kid is on that team!","jen|Doug says it's over. Doug also says the mailman is 'suspicious.' But I believe him this time."],
- fail:["jen|Hey. You came home. That's the part that counts. Ice pack's in the freezer.","tyler|It's okay, Dad. I lose at Mario Kart all the time and I'm still pretty great.","maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly Springsteen.",
+ fail:["jen|Hey. You came home. That's the part that counts. Ice pack's in the freezer.","tyler|It's okay, Dad. I lose at go-kart games all the time and I'm still pretty great.","maddie|I made you a playlist. It's called 'Dad Tried His Best.' It's mostly songs about highways.",
   "jen|Rick called. He said 'we regroup at halftime.' I assume that means dinner.","jen|Sit. Eat something. Then go back and finish it. In that order."],
  trustHigh:["jen|Somebody returned our recycling bin. Washed. With a thank-you note.","maddie|Mr. Henderson waved at me. He has never waved. At anyone.","tyler|I left my bike on the lawn all day and it's STILL THERE.",
   "jen|The block party committee wants you to give a speech. I said you'd bring chairs instead.","maddie|Doug put the binoculars away. Well. Mostly away."],

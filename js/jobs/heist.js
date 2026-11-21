@@ -136,7 +136,7 @@ const L={
     hank:[['Hank',"Walkie-talkies. Range of two miles, or one mile if you're near the river, or zero if you're Doug."],['Hank',"Sixty bucks. Batteries included, because I'm not a monster."]],
     rick:[['rick',"Moving blankets! From when the team moved the trophy case. We don't talk about the trophy case."],['rick',"Wrap it, lift it, move it. Like a play."]],
     dave:[['dave',"Hand truck. I move kegs on it. Root beer kegs. For the block party. It's a lot of root beer."],['dave',"Tip it back, let it do the work. Don't let it do ALL the work."]],
-    doug:[['doug',"Tactical. Fanny. Pack."],['doug',"Zip-ties. Laser pointer. Compass. Three granola bars. One of them is for you. Not the peanut butter one."],['you',"Doug, it says 'Disney' on the strap."],['doug',"Tactical Disney."]]},
+    doug:[['doug',"Tactical. Fanny. Pack."],['doug',"Zip-ties. Laser pointer. Compass. Three granola bars. One of them is for you. Not the peanut butter one."],['you',"Doug, it has a cartoon princess on the strap."],['doug',"Tactical princess."]]},
   ladderGot:"Got the ladder. Now carry it to the van.",ladderVan:['you',"Ladder's on the roof. Linda's ladder. Back by Sunday. Not Sunday-ish."],
   gearNote:{ladder:"Plan: over the fence is an option now",walkies:"Plan: the lookout's on the radio",blankets:"Plan: quieter work, and the bluff",dolly:"Plan: two at a time, heavy things too",pack:"Plan: Doug's laser pointer"},
   poor:['Hank',"Tell you what, pay me after. You've got an honest face. A tired one."],

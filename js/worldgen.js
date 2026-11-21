@@ -292,7 +292,7 @@ function generate(maps){
   B('A',160,10,170,15,{id:'church',sign:'RIVERSIDE COMMUNITY CHURCH & YOUTH CENTER',face:'s',col:'#d8cfc0'});rect(160,16,170,18,'g');
   rect(176,10,186,18,'r');rect(176,13,186,15,'g');B('A',182,16,186,18,{id:'mart',sign:'RAMOS CORNER MART',face:'s',col:'#e1b866'});
   rect(192,10,202,18,'z');rect(193,11,201,17,'b');set(197,10,',');set(197,18,',');
-  rect(208,10,218,18,',');B('A',210,10,217,13,{id:'benny',sign:"BENNY'S BRAIN FREEZE · DEPOT",face:'s',col:'#f0e6f0'});
+  rect(208,10,218,18,',');B('A',210,10,217,13,{id:'benny',sign:"BENNY'S COLD FRONT · DEPOT",face:'s',col:'#f0e6f0'});
   B('A',208,24,218,29,{id:'center',sign:'RIVERSIDE FLATS COMMUNITY CENTER',face:'s',col:'#cfd8cf'});rect(208,30,218,32,'g');
   rect(160,66,218,78,'x');
   for(let x=160;x<=218;x+=1)if((x-160)%12>=10)rect(x,66,x,78,',');

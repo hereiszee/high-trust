@@ -39,8 +39,8 @@ const LANE=204.5,ROAD_X=203;
 const RING={x:199,z:70};
 const PILE={cone:{x:197.4,z:88.4},sawhorse:{x:195.2,z:88.9},sign:{x:195.6,z:86.7},flare:{x:199.2,z:87.6}};
 const EARL={x:197.6,z:86.3},PICKUP={x:196.8,z:82.8,yaw:0};
-const LOT=[{name:'Pam',type:'sedan',color:'#8a2f2a',label:'Buick',why:'in for brakes',x:214,z:77.2,
-    hurt:"Is that my Buick? Why is it SIDEWAYS?",fine:"Not a scratch. Sal, you can do the brakes now."},
+const LOT=[{name:'Pam',type:'sedan',color:'#8a2f2a',label:'Dowager',why:'in for brakes',x:214,z:77.2,
+    hurt:"Is that my Dowager? Why is it SIDEWAYS?",fine:"Not a scratch. Sal, you can do the brakes now."},
   {name:'Hal',type:'hatch',color:'#c79a2b',label:'hatchback',why:'in for an oil change',x:220,z:77.2,
     hurt:"My hatchback was in for an OIL CHANGE.",fine:"Still smells like oil and optimism. Thanks."},
   {name:'Rhonda',type:'suv',color:'#3d4a3a',label:'SUV',why:'in for inspection',x:227,z:77.2,
@@ -714,7 +714,7 @@ function bot(a,t,o){o=o||{};const M=a.M;if(!M||M.state!=='go'||!M.ph)return null
     const p=S.list.find(p=>p.state!=='flying');if(p){if(!at(p.x+.4,p.z+.4))return null;k.e=true;B.hold=(B.hold||0)+1;if(B.hold>30){B.hold=0;k.e=false;S.remove(p)}return null}
     k.e=false;const car=M.car||a.VAN;if(!a.CV){if(!at(car.pos.x+2.6,car.pos.z,1.2))return null;a.useTap=true;pace(20)}return null}
   return null}
-/* the airtight wall at z 104: Pam's Buick and Hal's hatchback nose to tail across the road, a sawhorse in the gap by the fence,
+/* the airtight wall at z 104: Pam's Dowager and Hal's hatchback nose to tail across the road, a sawhorse in the gap by the fence,
    flares lit in front, Dave with the paddle on the verge, the sign 22 m upstream, a cone taper leading in */
 function planSteps(){const W=104;return[
   {car:0,x:198.6,z:W,yaw:Math.PI/2},{car:1,x:203.4,z:W,yaw:Math.PI/2},
