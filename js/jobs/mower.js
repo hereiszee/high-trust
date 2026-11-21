@@ -671,6 +671,10 @@ J.on('hud',st=>{const a=A();if(!a)return;freeRoam();const cv=a.CV;
 /* ---------------------------------------------------------------- the scripted player (dev/jobs-check.js): drives with the keys like
    a person would (steering duty-cycled, throttle, full throttle on straights), stops for Marcus, chases the hustlers on foot.
    opts.fail: rides straight out of the park during qualifying (fails to the 'quali' checkpoint). opts.keep: keeps racing. */
+/* a car parked in the gate walkway (the van on the start ring): step round it like a player, in either walking direction */
+function dodgeCar(a,P,walk){const cv=(a.L.cars||[]).find(c=>c.obj&&!c.convoy&&c!==a.CV&&Math.abs(c.pos.x-92)<2.8&&Math.abs(c.pos.x-P.pos.x)<3.2&&Math.abs(c.pos.z-P.pos.z)<4.6&&P.pos.z<106);
+  if(!cv)return false;const side=P.pos.x<=cv.pos.x?-3.1:3.1,gx=cv.pos.x+side;if(Math.abs(P.pos.x-gx)>.5){walk(gx,P.pos.z);return true}
+  const past=P.pos.z>cv.pos.z?cv.pos.z-3.4:cv.pos.z+3.4;if(Math.abs(P.pos.z-past)>.6){walk(gx,past);return true}return false}
 function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return null;const k=a.keys,P=a.P,ride=M.ride;
   const tp=(x,z)=>{P.pos.set(x,0,z);a.collide(P.pos,.35)};const keysOff=()=>{k.w=k.a=k.s=k.d=k.shift=false;k.e=false};
   const steer=(c,tx,tz,vmax)=>{const dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz);let err=Math.atan2(-dx,-dz)-c.yaw;err=Math.atan2(Math.sin(err),Math.cos(err));const duty=Math.min(1,Math.abs(err)*2.2);
@@ -684,9 +688,9 @@ function bot(a,t,o){const M=a.M;o=o||{};if(!M||M.state!=='go'||!M.phase)return n
      if(cv&&P.pos.z<cv.pos.z+3.2){const side=P.pos.x<=cv.pos.x?-3:3;if(Math.abs(P.pos.x-(cv.pos.x+side))>.5)walk(cv.pos.x+side,P.pos.z);else walk(cv.pos.x+side,cv.pos.z+3.4);return null}}
     /* in through the gate walkway, then across the infield to the paddock */if(P.pos.z<106.5&&Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)>4){if(P.pos.z<105.6)walk(Math.abs(P.pos.x-92)>.6&&P.pos.z<103?92:92,P.pos.z<103&&Math.abs(P.pos.x-92)>.6?P.pos.z:106.2);else walk(98.8,108.8);return null}
     if(walk(e.pos.x,e.pos.z)<1.2||Math.hypot(P.pos.x-e.pos.x,P.pos.z-e.pos.z)<2.2)a.useTap=true;return null}
-  case 'toLine':{if(o.fail&&!a.CV){keysOff();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
+  case 'toLine':{if(o.fail&&!a.CV){keysOff();if(dodgeCar(a,P,walk))return null;const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
     if(a.CV!==ride){keysOff();if(walk(ride.pos.x,ride.pos.z)<1.2||Math.hypot(P.pos.x-ride.pos.x,P.pos.z-ride.pos.z)<2.2)a.useTap=true;return null}const c=ride.car;
-    if(o.fail){/* gives up: off the mower and out of the gate on foot */if(a.CV)a.exitCar();const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
+    if(o.fail){/* gives up: off the mower and out of the gate on foot */if(a.CV)a.exitCar();if(dodgeCar(a,P,walk))return null;const W=[[92,106],[92,101],[92,94],[74,94]];M._bf=M._bf||0;if(walk(W[M._bf][0],W[M._bf][1],4.3)<.4&&M._bf<W.length-1)M._bf++;return null}
     const W=[[99.6,108.6],[90,108.4],[82.8,107.6],[80.5,106.6]];M._bw=M._bw||0;while(M._bw<W.length-1&&Math.hypot(W[M._bw][0]-c.x,W[M._bw][1]-c.z)<2)M._bw++;steer(c,W[M._bw][0],W[M._bw][1],5.5);return null}
   case 'qdone':case 'count':case 'podium':keysOff();return null;
   case 'fix':{keysOff();const mr=M.field.find(r=>r.id==='marcus');if(walk(mr.car.x+1.3,mr.car.z)<.3)k.e=true;return null}
