@@ -53,9 +53,9 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
     for(const e of H.enemies)if(e.state==='surrender'){T.tp(e.pos.x+.8,e.pos.z);for(let i=0;i<30&&e.state==='surrender';i++){H.P.pos.set(e.pos.x+.8,0,e.pos.z);H.step(1);H.use=true;H.step(1)}}};
   T.godmode=()=>{H.P.hp=100};
   T.result=()=>{const el=document.querySelector('.ht-result,[class*=result]');return{acts:Object.keys(H.UIacts||{}),done:H.prog.done.slice(),cash:H.cash,pay:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.id+':'+l.amount):null,total:H.M&&H.M.pay&&H.M.pay.total}};
-  T.giver=i=>{const n=H.npcs.find(n=>n.marker&&n.marker.i===i);return n?{x:n.pos.x,z:n.pos.z,locked:n.locked||null,tag:n.lockTag||null}:null};
-  T.take=i=>{/* walk up to the giver, talk, accept the brief */const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver '+i,givers:H.npcs.map(n=>n.marker&&n.marker.i)};
-    if(H.CV)H.exitVehicle();H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);const br=!!(H.UIacts&&H.UIacts['brief:go']);if(br)H.UIacts['brief:go']();H.step(1);return{brief:br,job:H.JOB}};
+  T.giver=i=>{const n=H.npcs.find(n=>n.marker&&(n.marker.i===i||(n.jobs||[]).includes(i)));return n?{x:n.pos.x,z:n.pos.z,locked:n.locked||null,tag:n.lockTag||null}:null};
+  T.take=i=>{/* walk up to the giver, talk, accept the brief *//* a giver offers every open job on his spot: pick this one on the brief */const n=H.npcs.find(n=>n.marker&&(n.marker.i===i||(n.jobs||[]).includes(i)));if(!n)return{err:'no giver '+i,givers:H.npcs.map(n=>n.marker&&n.marker.i)};
+    if(H.CV)H.exitVehicle();H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);if(n.marker.i!==i&&H.UIacts&&H.UIacts['brief:job:'+i]){H.UIacts['brief:job:'+i]();H.step(1)}const br=!!(H.UIacts&&H.UIacts['brief:go']);if(br)H.UIacts['brief:go']();H.step(1);return{brief:br,job:H.JOB}};
   T.toRing=(i,far=110)=>{/* put the van on the road ~far m out along the route to the job's ring and drive it in */const d=H.L.dests[i],G=H.ow.roads(),V=H.VAN;if(H.CV)H.exitVehicle();
     const st=G.nearestRoad(d.x,d.z),hm=H.WORLD.places.home;const route=G.route({x:hm.x,z:hm.z},d);let p=route.points[0];let acc=0;for(let j=route.points.length-1;j>0;j--){const a=route.points[j],b=route.points[j-1];acc+=Math.hypot(a.x-b.x,a.z-b.z);if(acc>far){p=b;break}}
     const q=route.points[Math.min(route.points.indexOf(p)+1,route.points.length-1)];V.pos.set(p.x,0,p.z);V.yaw=Math.atan2(-(q.x-p.x),-(q.z-p.z));V.spd=0;if(V.car){V.car.spd=0}H.syncVan();
@@ -92,12 +92,12 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
   /* new game from the title screen */
   await p.click('.ht-title [data-act=newgame]').catch(()=>p.evaluate(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));
   await p.waitForTimeout(300);
-  const g0=await p.evaluate(()=>{const H=window.__ht;H.step(3);return{mode:H.mode,lvl:H.L.def.id,n:H.MISSIONS.filter(m=>!m.reg).length,givers:H.npcs.map(n=>n.marker.i),bridge:H.WORLD.bridgeOpen,inWorld:H.CFG.inWorld,cash:H.cash}});
+  const g0=await p.evaluate(()=>{const H=window.__ht;H.step(3);return{mode:H.mode,lvl:H.L.def.id,n:H.MISSIONS.filter(m=>!m.reg).length,givers:H.npcs.flatMap(n=>n.jobs&&n.jobs.length?n.jobs:[n.marker.i]),bridge:H.WORLD.bridgeOpen,inWorld:H.CFG.inWorld,cash:H.cash}});
   ok(g0.mode==='hub'&&g0.lvl==='world'&&g0.n===9&&g0.givers.join()==='0'&&!g0.bridge,'new game: the world hub, 9 jobs, only Gary is waiting, bridge closed ('+JSON.stringify(g0)+')');
 
   /* jump ahead: these jobs done, back in the hub (the Act 2 card, if it shows, is dismissed) */
   const setup=(done,trustR)=>p.evaluate(async([done,trustR])=>{const H=window.__ht;for(const i of done)H.prog.done[i]=true;if(trustR!=null)H.prog.trustR=trustR;H.enterHub();H.step(2);
-    await new Promise(r=>setTimeout(r,1600));const a=H.UIacts&&H.UIacts['result:go'];if(a&&!H.running)a();H.step(1);return{givers:H.npcs.map(n=>n.marker.i)}},[done,trustR]);
+    await new Promise(r=>setTimeout(r,1600));const a=H.UIacts&&H.UIacts['result:go'];if(a&&!H.running)a();H.step(1);return{givers:H.npcs.flatMap(n=>n.jobs&&n.jobs.length?n.jobs:[n.marker.i])}},[done,trustR]);
   /* one job, the whole way: giver -> brief -> drive -> scripted completion -> payout -> Keep driving */
   const run=async(i,body,o={})=>{
     const pre=await p.evaluate(async([i,o])=>{const H=window.__ht,T=window.__T;if(H.mode!=='hub'){H.enterHub();H.step(2)}const c0=H.cash;const t=T.take(i);if(t.err)return t;H.step(1);const d=T.toRing(i,o.far||110);
@@ -120,9 +120,9 @@ const LIB=()=>{const H=window.__ht,k=H.keys,T={};window.__T=T;
   /* ---- 1 Rick: stash + clock; the bridge opens after it ---- */
   if(want(1)){const R=await run(1,()=>p.evaluate(()=>{const H=window.__ht,T=window.__T;T.neutralise(true);for(const s of H.L.stashes){T.tp(s.x+1.2,s.z);T.hold(55)}const r={smashed:H.M.smashed};const x=H.exitAt;T.tp(x.x,x.z);H.step(3);return r}));
     paid(1,R);await keep();
-    const br=await p.evaluate(async()=>{const H=window.__ht;H.step(2);await new Promise(r=>setTimeout(r,1700));const card=H.UIacts&&H.UIacts['result:go'];const r={bridge:H.WORLD.bridgeOpen,card:!!card,act:H.prog.act,givers:H.npcs.map(n=>n.marker.i)};return r});
+    const br=await p.evaluate(async()=>{const H=window.__ht;H.step(2);await new Promise(r=>setTimeout(r,1700));const card=H.UIacts&&H.UIacts['result:go'];const r={bridge:H.WORLD.bridgeOpen,card:!!card,act:H.prog.act,givers:H.npcs.flatMap(n=>n.jobs&&n.jobs.length?n.jobs:[n.marker.i])};return r});
     await shot('bridge-opening-beat');
-    const br2=await p.evaluate(()=>{const H=window.__ht;const a=H.UIacts&&H.UIacts['result:go'];if(a)a();H.step(2);return{running:H.running,givers:H.npcs.map(n=>n.marker.i),first:H.npcs[0]&&H.npcs[0].marker.i,gps:H.gps&&H.gps.points.length}});
+    const br2=await p.evaluate(()=>{const H=window.__ht;const a=H.UIacts&&H.UIacts['result:go'];if(a)a();H.step(2);return{running:H.running,givers:H.npcs.flatMap(n=>n.jobs&&n.jobs.length?n.jobs:[n.marker.i]),first:H.npcs[0]&&H.npcs[0].marker.i,gps:H.gps&&H.gps.points.length}});
     ok(br.bridge&&br.card&&br.act===2&&br2.givers.includes(4)&&br2.givers.includes(2),'bridge opens after job 2: banner + Act 2 card, Earl is waiting in Riverside next to Dave ('+JSON.stringify([br,br2])+')');
     const c=await p.evaluate(()=>{const H=window.__ht,V=H.VAN;if(!H.CV)H.enterVan();V.pos.set(270,0,43);V.yaw=-Math.PI/2;H.syncVan();H.step(2);return window.__T.drive({x:330,z:43},500,{r:4})});
     ok(c.d<6,'drive across the open bridge into Riverside ('+JSON.stringify(c)+')')}
