@@ -1,0 +1,875 @@
+{
+ "steps": [
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Earl has a job for you in Riverside Flats",
+    "Gary has a job for you",
+    "Sal has a job for you",
+    "Tyler has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Side jobs: Hank · Big Dave · Pastor Dee · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Earl",
+    "x": 329,
+    "z": 67
+   },
+   "givers": [
+    {
+     "id": "duke",
+     "also": [],
+     "who": "earl",
+     "x": 329,
+     "z": 67,
+     "lock": null
+    },
+    {
+     "id": "talk",
+     "also": [],
+     "who": "gary",
+     "x": 27,
+     "z": 21,
+     "lock": null
+    },
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "sabotage",
+     "also": [],
+     "who": "sal",
+     "x": 221,
+     "z": 55,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    },
+    {
+     "id": "carwash",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "duke",
+    "blitz",
+    "talk",
+    "mowertt",
+    "sabotage",
+    "arrest",
+    "bike",
+    "patrol",
+    "porch",
+    "carwash"
+   ],
+   "locked": [
+    "brake:locked",
+    "roundup:locked",
+    "heist:locked",
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 25,
+   "act": 2,
+   "day": 1,
+   "cash": 0,
+   "bridge": true,
+   "fin": {
+    "n": 19,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": false,
+    "left": "",
+    "line": "Finale: 19 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": null,
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "benny",
+    "taxi",
+    "mower",
+    "overwatch",
+    "hoa",
+    "tail",
+    "tow",
+    "cargo",
+    "crossing",
+    "pawn",
+    "cones",
+    "moving"
+   ]
+  },
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Gary has a job for you",
+    "Sal has a job for you",
+    "Coach Rick has a job for you",
+    "Tyler has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Finale: 20 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "Side jobs: Hank · Big Dave · Pastor Dee · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Gary",
+    "x": 27,
+    "z": 21
+   },
+   "givers": [
+    {
+     "id": "talk",
+     "also": [],
+     "who": "gary",
+     "x": 27,
+     "z": 21,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "sabotage",
+     "also": [],
+     "who": "sal",
+     "x": 221,
+     "z": 55,
+     "lock": null
+    },
+    {
+     "id": "brake",
+     "also": [],
+     "who": "rick",
+     "x": 75,
+     "z": 49,
+     "lock": null
+    },
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "carwash",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "blitz",
+    "talk",
+    "mowertt",
+    "sabotage",
+    "arrest",
+    "brake",
+    "bike",
+    "patrol",
+    "porch",
+    "carwash"
+   ],
+   "locked": [
+    "roundup:locked",
+    "heist:locked",
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 25,
+   "act": 3,
+   "day": 2,
+   "cash": 1980,
+   "bridge": true,
+   "fin": {
+    "n": 20,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": true,
+    "left": "",
+    "line": "Finale: 20 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": null,
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "benny",
+    "duke",
+    "taxi",
+    "mower",
+    "overwatch",
+    "hoa",
+    "tail",
+    "tow",
+    "cargo",
+    "crossing",
+    "pawn",
+    "cones",
+    "moving"
+   ]
+  },
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Sal has a job for you",
+    "Coach Rick has a job for you",
+    "Tyler has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Gary has a job for you",
+    "Finale: 21 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "Side jobs: Hank · Big Dave · Pastor Dee · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Sal",
+    "x": 221,
+    "z": 55
+   },
+   "givers": [
+    {
+     "id": "sabotage",
+     "also": [],
+     "who": "sal",
+     "x": 221,
+     "z": 55,
+     "lock": null
+    },
+    {
+     "id": "brake",
+     "also": [],
+     "who": "rick",
+     "x": 75,
+     "z": 49,
+     "lock": null
+    },
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "heist",
+     "also": [],
+     "who": "gary",
+     "x": 27,
+     "z": 21,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    },
+    {
+     "id": "carwash",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "blitz",
+    "mowertt",
+    "sabotage",
+    "arrest",
+    "brake",
+    "bike",
+    "heist",
+    "patrol",
+    "porch",
+    "carwash"
+   ],
+   "locked": [
+    "roundup:locked",
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 25,
+   "act": 3,
+   "day": 3,
+   "cash": 2700,
+   "bridge": true,
+   "fin": {
+    "n": 21,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": true,
+    "left": "",
+    "line": "Finale: 21 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": null,
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "benny",
+    "duke",
+    "taxi",
+    "talk",
+    "mower",
+    "overwatch",
+    "hoa",
+    "tail",
+    "tow",
+    "cargo",
+    "crossing",
+    "pawn",
+    "cones",
+    "moving"
+   ]
+  },
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Coach Rick has a job for you",
+    "Tyler has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Gary has a job for you",
+    "Finale: 22 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "Side jobs: Hank · Big Dave · Pastor Dee · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Coach Rick",
+    "x": 75,
+    "z": 49
+   },
+   "givers": [
+    {
+     "id": "brake",
+     "also": [],
+     "who": "rick",
+     "x": 75,
+     "z": 49,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "heist",
+     "also": [],
+     "who": "gary",
+     "x": 27,
+     "z": 21,
+     "lock": null
+    },
+    {
+     "id": "carwash",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "blitz",
+    "mowertt",
+    "arrest",
+    "brake",
+    "bike",
+    "heist",
+    "patrol",
+    "porch",
+    "carwash"
+   ],
+   "locked": [
+    "roundup:locked",
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 25,
+   "act": 3,
+   "day": 4,
+   "cash": 4920,
+   "bridge": true,
+   "fin": {
+    "n": 22,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": true,
+    "left": "",
+    "line": "Finale: 22 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": null,
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "benny",
+    "duke",
+    "taxi",
+    "talk",
+    "mower",
+    "overwatch",
+    "sabotage",
+    "hoa",
+    "tail",
+    "tow",
+    "cargo",
+    "crossing",
+    "pawn",
+    "cones",
+    "moving"
+   ]
+  },
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Tyler has a job for you",
+    "Coach Rick has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Gary has a job for you",
+    "Finale: 23 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "Side jobs: Hank · Big Dave · Pastor Dee · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Tyler",
+    "x": 41.3,
+    "z": 19.9
+   },
+   "givers": [
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "roundup",
+     "also": [],
+     "who": "rick",
+     "x": 75,
+     "z": 49,
+     "lock": null
+    },
+    {
+     "id": "heist",
+     "also": [],
+     "who": "gary",
+     "x": 27,
+     "z": 21,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "carwash",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "blitz",
+    "mowertt",
+    "arrest",
+    "roundup",
+    "bike",
+    "heist",
+    "patrol",
+    "porch",
+    "carwash"
+   ],
+   "locked": [
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 27,
+   "act": 3,
+   "day": 5,
+   "cash": 6924,
+   "bridge": true,
+   "fin": {
+    "n": 23,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": true,
+    "left": "",
+    "line": "Finale: 23 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": null,
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "benny",
+    "duke",
+    "taxi",
+    "talk",
+    "mower",
+    "overwatch",
+    "sabotage",
+    "hoa",
+    "tail",
+    "tow",
+    "cargo",
+    "crossing",
+    "pawn",
+    "cones",
+    "moving",
+    "brake"
+   ]
+  }
+ ],
+ "jobs": [
+  {
+   "id": "duke",
+   "how": "marker",
+   "complete": "finish(true)",
+   "trustGain": 8,
+   "dT": 0,
+   "dR": 0,
+   "cash": 1980,
+   "dCuffed": 0,
+   "day": [
+    1,
+    2
+   ],
+   "pay": 1980,
+   "state": "won",
+   "medal": 1,
+   "cards": [
+    "Job done · The scrapyard on Dock StNobody is proud of this.Earl: Thirty-six years, the number nine was never late. Today the Duke was. Folks are already calling it the Second Gear Auto School. I like that. Neutralized0Zip-tied0Time0:00Trust100%Riverside FlatsMedalBronzePayout$1,980$1,980 savedPayout",
+    "Act 3 · Good People StayPeople are coming home.There's a moving truck on Ash Street. Then another one. Earl's old neighbours, Rosa's kids' friends, somebody's cousins from two towns over. Nobody's selling, and nobody's leaving. Gary has a corkboard now, with red string, and every string ends at one "
+   ]
+  },
+  {
+   "id": "talk",
+   "how": "marker",
+   "complete": "bot",
+   "trustGain": 8,
+   "dT": 0,
+   "dR": 0,
+   "cash": 720,
+   "dCuffed": 0,
+   "day": [
+    2,
+    3
+   ],
+   "pay": 720,
+   "state": "won",
+   "medal": 3,
+   "cards": [
+    "Job done · Big Dave's front lawn, Linden AveNobody is proud of this.Gary: Unit forty-seven. Cheese. Retriever commercial. Got it all. Neutralized0Zip-tied0Time3:01Trust100%MedalGoldRapport 100 in 8 lines or lessPayout$720$2,700 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody pulled a hamst"
+   ]
+  },
+  {
+   "id": "sabotage",
+   "how": "marker",
+   "complete": "bot",
+   "trustGain": 18,
+   "dT": 0,
+   "dR": 0,
+   "cash": 2220,
+   "dCuffed": 0,
+   "day": [
+    3,
+    4
+   ],
+   "pay": 2220,
+   "state": "won",
+   "medal": 3,
+   "cards": [
+    "Job done · Mill St Auto Recovery, RiversideHome in time for dinner.Four trucks sitting on their rims, a new banner over the bay, and nobody hurt. By lunch Sal has a Riverside branch, and two Riverside mechanics who used to drive forty minutes to work now walk there. Neutralized0Zip-tied0Time2:35Trus"
+   ]
+  },
+  {
+   "id": "brake",
+   "how": "marker",
+   "complete": "bot",
+   "trustGain": 18,
+   "dT": 0,
+   "dR": 0,
+   "cash": 2004,
+   "dCuffed": 2,
+   "day": [
+    4,
+    5
+   ],
+   "pay": 2004,
+   "state": "won",
+   "medal": 3,
+   "cards": [
+    "Job done · Fill-Er-Up, Route 9 and RiversideHome in time for dinner.Rick: That's a W. Fourteen seasons and I've never once had all three of my players in position. Today I did. I'm going to frame the whistle. Neutralized0Zip-tied2second chancesTime0:40Trust100%Riverside FlatsMedalGoldClean box in un"
+   ]
+  },
+  {
+   "id": "bike",
+   "how": "marker",
+   "complete": "bot",
+   "trustGain": 26,
+   "dT": 0,
+   "dR": 0,
+   "cash": 1686,
+   "dCuffed": 3,
+   "day": [
+    5,
+    6
+   ],
+   "pay": 1686,
+   "state": "won",
+   "medal": 3,
+   "cards": [
+    "Job done · Maple Heights Elementary → RiversideHome in time for dinner.Tyler: Brrrrrrrrrrrrr! (He is doing laps of the lawn. He will be doing laps of the lawn until dinner.) Neutralized0Zip-tied3second chancesTime1:07Trust100%MedalGoldCaught Dez on footPayout$1,686$8,610 savedPayoutNeighborhood Watc"
+   ]
+  }
+ ],
+ "problems": [],
+ "errs": []
+}

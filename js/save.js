@@ -212,7 +212,7 @@ const SAVE_DEFAULT=()=>({v:SAVE_V,t:0,
   crew:{rosa:false},
   events:[],
   base:{visited:false,met:false,range:{},rentals:0,eggs:{},tank:{borrows:0,shots:0,crushed:0},jet:{flights:0,boom:false,bridge:false,buzz:false,ejects:0}},   /* Fort Sensible (js/base.js, docs/base.md): range bests per gun, easter eggs found */
-  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false,hankDiscount:false},
+  flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false,act3Intro:false,hankDiscount:false},
   world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0,households:[],storefronts:{}},
   garage:defGarage(),
   /* v3 (SPEC3 4.0, 4.5, 4.8). Crew strand perks live in perks[crewId]=true, not crew[id].perk: crew[id] stays the v2 boolean index.html tests for truthiness. */
@@ -308,7 +308,7 @@ function sanitize(s){
   s=deepMerge(SAVE_DEFAULT(),s);s.v=SAVE_V;
   const p=s.prog;
   p.done=MISSIONS.map((m,i)=>!!(Array.isArray(p.done)&&p.done[i]));
-  p.trust=clampN(num(p.trust,12),0,100);p.trustR=clampN(num(p.trustR,5),0,100);p.act=p.act===2?2:1;
+  p.trust=clampN(num(p.trust,12),0,100);p.trustR=clampN(num(p.trustR,5),0,100);p.act=p.act===3?3:p.act===2?2:1;
   for(const k of['cuffed','downed','shotSurr','missionsRun'])p[k]=Math.max(0,Math.floor(num(p[k],0)));
   s.cash=Math.max(0,Math.round(num(s.cash,0)));
   s.stats.earned=Math.max(0,num(s.stats.earned,0));s.stats.spent=Math.max(0,num(s.stats.spent,0));

@@ -1,0 +1,104 @@
+RESUME after gary,taxi,rick,hoa,earl,mower trust 73 / R 22 cuffed 0
+
+== step 0  trust 73 / R 22  cuffed 0  day 1  cash 0  act 2  bridge true
+   OBJECTIVE: Maple Heights | Big Dave has a job for you | Doug has a job for you | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank · Big Dave | Follow the yellow marker.
+   MARKER: {"label":"Big Dave","x":41,"z":65}
+   givers: dave:dave@41,65  tyler:bike@41.3,19.9  doug:tail@89,37  sal:tow@221,55  dee:dee@331,39  hank:blitz@43,11  dave:mowertt@97.6,100.8
+   available: dave dee blitz mowertt tail tow bike porch   home: porch@laptop
+   locked: doug:locked rosa:locked benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked patrol:locked carwash:locked finale:locked
+  ! step 0: dave twice: dave & mowertt
+-> TAKE dave (marker)
+   accepted: {"job":2,"obj":["Block Party","Get in the minivan","Drive the crew to Linden Park"],"marker":"Minivan","screen":null}
+   drive: {"steps":113,"mode":"mission","d":4.5,"dest":{"x":91,"z":97},"markerWhileDriving":"Linden Park"}
+   job objective: ["Block Party","Hold the park · wave 1 of 3","2 left this wave"]
+   RESULT {"id":"dave","how":"marker","complete":"finish(true)","trustGain":16,"dT":16,"dR":0,"cash":1098,"dCuffed":0,"day":[1,2],"pay":1098,"state":"won","medal":1,"cards":["Job done · Linden ParkNobody is proud of this.Big Dave: Brisket survived. Kids never saw a thing. Come eat. Neutralized0Zip-tied0Time0:00Trust89%MedalBronzePayout$1,098$1,098 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody pulled a hamstring+$0Quick work+$0Neighbors chipped in×1.16 at 89% "]}
+
+== step 1  trust 89 / R 22  cuffed 0  day 2  cash 1098  act 2  bridge true
+   OBJECTIVE: Maple Heights | Doug has jobs for you | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank · Big Dave | Follow the yellow marker.
+   MARKER: {"label":"Doug","x":89,"z":37}
+   givers: doug:tail+doug@89,37  tyler:bike@41.3,19.9  sal:tow@221,55  dee:dee@331,39  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: doug dee blitz mowertt tail tow bike porch   home: porch@laptop
+   locked: rosa:locked benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked patrol:locked carwash:locked finale:locked
+-> TAKE tail (marker)
+   accepted: {"job":17,"obj":["Following Distance","Get in the minivan","Drive the crew to Fill-Er-Up to Dock St"],"marker":"Minivan","screen":null}
+   drive: {"steps":128,"mode":"mission","d":0,"dest":{"x":210,"z":18},"markerWhileDriving":"Fill-Er-Up to Dock St"}
+   job objective: ["Following Distance","Wait. Look casual. Doug is watching pump four."]
+   RESULT {"id":"tail","how":"marker","complete":"bot","trustGain":15,"dT":11,"dR":1,"cash":1056,"dCuffed":0,"day":[2,3],"pay":1056,"state":"won","medal":3,"cards":["Job done · Fill-Er-Up to Dock StNobody is proud of this.Doug: A grey sedan, a box truck, and my pressure washer. That's not a coincidence. That's a corkboard. Neutralized0Zip-tied0Time3:42Trust99%MedalGoldSuspicion never above 40%, done in under 4:00Payout$1,056$2,154 savedPayoutNeighborhood Watch f"]}
+
+== step 2  trust 100 / R 23  cuffed 0  day 3  cash 2154  act 2  bridge true
+   OBJECTIVE: Maple Heights | Doug has a job for you | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank · Big Dave | Follow the yellow marker.
+   MARKER: {"label":"Doug","x":89,"z":37}
+   givers: doug:doug+patrol@89,37  sal:tow@221,55  dee:dee@331,39  tyler:bike@41.3,19.9  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: doug dee blitz mowertt tow bike patrol porch   home: porch@laptop
+   locked: rosa:locked benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE doug (marker)
+   accepted: {"job":3,"obj":["The Kingpin","Get in the minivan","Drive the crew to The compound on Ridgeview"],"marker":"Minivan","screen":null}
+   drive: {"steps":197,"mode":"mission","d":4.5,"dest":{"x":131,"z":107},"markerWhileDriving":"The compound on Ridgeview"}
+   job objective: ["The Kingpin","Find the Porch Pirate King"]
+   RESULT {"id":"doug","how":"marker","complete":"finish(true)","trustGain":8,"dT":0,"dR":0,"cash":1500,"dCuffed":0,"day":[3,4],"pay":1500,"state":"won","medal":1,"cards":["Job done · The compound on RidgeviewNobody is proud of this.Doug: It's over. I wish he'd put his hands up. Neutralized0Zip-tied0Time0:00Trust100%MedalBronzePayout$1,500$3,654 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody pulled a hamstring+$0Quick work+$0Neighbors chipped in×1.20 at 100%"]}
+
+== step 3  trust 100 / R 23  cuffed 0  day 4  cash 3654  act 2  bridge true
+   OBJECTIVE: Maple Heights | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank · Big Dave · Doug | Follow the yellow marker.
+   MARKER: {"label":"Pastor Dee","x":331,"z":39}
+   givers: dee:dee@331,39  sal:tow@221,55  tyler:bike@41.3,19.9  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: dee blitz mowertt tow bike patrol porch   home: porch@laptop
+   locked: rosa:locked benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE dee (marker)
+   accepted: {"job":5,"obj":["Fellowship Hall","Get in the minivan","Drive the crew to Spin City Laundromat, Main St"],"marker":"Minivan","screen":null}
+   drive: {"steps":106,"mode":"mission","d":4.4,"dest":{"x":341,"z":43},"markerWhileDriving":"Spin City Laundromat, Main St"}
+   job objective: ["Fellowship Hall","ID the lookouts · 0/3","ID the courier","Suspicion · 0%","120 s before the pickup"]
+   RESULT {"id":"dee","how":"marker","complete":"finish(true)","trustGain":14,"dT":0,"dR":14,"cash":901,"dCuffed":0,"day":[4,5],"pay":901,"state":"won","medal":1,"cards":["Job done · Spin City Laundromat, Main StNobody is proud of this.Pastor Dee: Three kids at basketball tonight. The courier's nineteen. Sal says he can start at the shop Monday. Neutralized0Zip-tied0Time0:00Trust37%Riverside FlatsMedalBronzePayout$901$4,555 savedPayoutNeighborhood Watch fundBake sale "]}
+
+== step 4  trust 100 / R 37  cuffed 0  day 5  cash 4555  act 2  bridge true
+   OBJECTIVE: Maple Heights | Sal has a job for you | Rosa has a job for you in Riverside Flats | Pastor Dee has a job for you in Riverside Flats | Tyler has a job for you | Small Talk (Gary): zip-tie 10 people alive · 0/10 | Side jobs: Hank · Big Dave · Doug | Follow the yellow marker.
+   MARKER: {"label":"Sal","x":221,"z":55}
+   givers: sal:tow@221,55  dee:pawn@323,39  rosa:rosa@411,81  tyler:bike@41.3,19.9  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: rosa blitz mowertt tow pawn bike patrol porch   home: porch@laptop
+   locked: benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:later cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE tow (marker)
+   accepted: {"job":18,"obj":["Hitch Happens","Get in the minivan","Drive the crew to Dock St, Riverside"],"marker":"Minivan","screen":null}
+   drive: {"steps":240,"mode":"mission","d":4.5,"dest":{"x":233,"z":44.5},"markerWhileDriving":"Dock St, Riverside"}
+   job objective: ["Hitch Happens","Sal is fitting the tow hitch"]
+   RESULT {"id":"tow","how":"marker","complete":"bot","trustGain":29,"dT":0,"dR":29,"cash":1954,"dCuffed":4,"day":[5,6],"pay":2304,"state":"won","medal":3,"cards":["Job done · Dock St, RiversideHome in time for dinner.Five cars home. A tow driver with a new job. And a hitch you didn't know you needed. Neutralized0Zip-tied4second chancesTime4:00Trust66%Riverside FlatsMedalGoldAll five home, not a scratch (all 90%+), in under 9 minutesPayout$2,304$6,509 savedPayo"]}
+
+== step 5  trust 100 / R 66  cuffed 4  day 6  cash 6509  act 2  bridge true
+   OBJECTIVE: Maple Heights | Rosa has a job for you in Riverside Flats | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave · Doug | Follow the yellow marker.
+   MARKER: {"label":"Rosa","x":411,"z":81}
+   givers: rosa:rosa@411,81  sal:sabotage@221,55  dee:pawn@323,39  tyler:bike@41.3,19.9  doug:patrol@89,37  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: rosa blitz mowertt sabotage pawn bike patrol porch   home: porch@laptop
+   locked: benny:locked duke:locked talk:locked overwatch:locked cargo:locked crossing:later cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE rosa (marker)
+   accepted: {"job":6,"obj":["Garden Variety","Get in the minivan","Drive the crew to Riverside Community Garden"],"marker":"Minivan","screen":null}
+   drive: {"steps":98,"mode":"mission","d":4.5,"dest":{"x":401,"z":71},"markerWhileDriving":"Riverside Community Garden"}
+   job objective: ["Garden Variety","Hold the garden · wave 1 of 3","2 left this wave","Beds standing · 12/12"]
+   RESULT {"id":"rosa","how":"marker","complete":"finish(true)","trustGain":14,"dT":0,"dR":14,"cash":1400,"dCuffed":0,"day":[6,7],"pay":1400,"state":"won","medal":1,"cards":["Job done · Riverside Community GardenNobody is proud of this.Rosa: Forty families planted today. You guys are idiots and I love you. Fine. I'll take the polo. Neutralized0Zip-tied0Time0:00Trust80%Riverside FlatsMedalBronzePayout$1,400$7,909 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody p"]}
+
+== step 6  trust 100 / R 80  cuffed 4  day 7  cash 7909  act 2  bridge true
+   OBJECTIVE: Maple Heights | Doug has a job for you | Pastor Dee has a job for you in Riverside Flats | Ms. Okafor has a job for you in Riverside Flats | Benny has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave | Follow the yellow marker.
+   MARKER: {"label":"Doug","x":89,"z":37}
+   givers: doug:overwatch+patrol@89,37  okafor:moving@364,95.1  benny:benny@427,31  dee:pawn@323,39  sal:sabotage@221,55  tyler:bike@41.3,19.9  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: benny blitz mowertt overwatch sabotage pawn moving bike patrol porch   home: porch@laptop
+   locked: duke:locked talk:locked cargo:locked crossing:later cones:locked arrest:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE overwatch (marker)
+   accepted: {"job":14,"obj":["Higher Ground","Get in the minivan","Drive the crew to Community Center roof, Riverside"],"marker":"Minivan","screen":null}
+   drive: {"steps":99,"mode":"mission","d":4.5,"dest":{"x":439,"z":55},"markerWhileDriving":"Community Center roof, Riverside"}
+   job objective: ["Higher Ground","Climb the ladder on the east wall"]
+   RESULT {"id":"overwatch","how":"marker","complete":"bot","trustGain":40,"dT":0,"dR":20,"cash":2399,"dCuffed":0,"day":[7,8],"pay":2399,"state":"won","medal":3,"cards":["Job done · Community Center roof, RiversideThat was necessary. Unfortunately.Mr. Ferreira gave his statement. Pastor Dee typed it up with two fingers, and the whole street knows Main St is walkable again. Neutralized0Zip-tied7second chancesTime2:48Trust100%Riverside FlatsMedalGoldAll non-lethal, Mr."]}
+
+== step 7  trust 100 / R 100  cuffed 4  day 8  cash 10308  act 2  bridge true
+   OBJECTIVE: Maple Heights | Pastor Dee has a job for you in Riverside Flats | Ms. Okafor has a job for you in Riverside Flats | Benny has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave · Doug | Follow the yellow marker.
+   MARKER: {"label":"Pastor Dee","x":323,"z":39}
+   givers: dee:pawn@323,39  benny:benny@427,31  rosa:arrest@411,81  okafor:moving@364,95.1  sal:sabotage@221,55  tyler:bike@41.3,19.9  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: benny blitz mowertt sabotage pawn moving arrest bike patrol porch   home: porch@laptop
+   locked: duke:locked talk:locked cargo:locked crossing:later cones:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE pawn (marker)
+   accepted: {"job":21,"obj":["Grand Opening","Get in the minivan","Drive the crew to Cash-4-Yer-Stuff, Main St"],"marker":"Minivan","screen":null}
+   drive: {"steps":98,"mode":"mission","d":4.5,"dest":{"x":337,"z":43},"markerWhileDriving":"Cash-4-Yer-Stuff, Main St"}
+   job objective: ["Grand Opening","Open the back of the van (E): pick a disguise"]
+   RESULT {"id":"pawn","how":"marker","complete":"bot","trustGain":14,"dT":0,"dR":0,"cash":1500,"dCuffed":0,"day":[8,9],"pay":1500,"state":"won","medal":3,"cards":["Job done · Cash-4-Yer-Stuff, Main StNobody is proud of this.Pastor Dee doesn't hand the ledger to anyone. She spends the week at nine kitchen tables. Cash-4-Yer-Stuff closes on Friday, and by the end of the month the storefront smells like bread: Ramos Bakery, with a line out the door at eight. Neut"]}
+
+console errors: 0 
+
+JOBS: dave(M16 R0) tail(M11 R1) doug(M0 R0) dee(M0 R14) tow(M0 R29) rosa(M0 R14) overwatch(M0 R20) pawn(M0 R0)
+problems: 1
+ - step 0: dave twice: dave & mowertt

@@ -1,0 +1,185 @@
+{
+ "steps": [
+  {
+   "mode": "hub",
+   "screen": null,
+   "obj": [
+    "Maple Heights",
+    "Pastor Dee has a job for you in Riverside Flats",
+    "Ms. Okafor has a job for you in Riverside Flats",
+    "Benny has a job for you in Riverside Flats",
+    "Sal has a job for you",
+    "Tyler has a job for you",
+    "Rosa has a job for you in Riverside Flats",
+    "Small Talk (Gary): zip-tie 10 people alive · 4/10",
+    "Side jobs: Hank · Big Dave · Doug",
+    "Follow the yellow marker."
+   ],
+   "marker": {
+    "label": "Pastor Dee",
+    "x": 331,
+    "z": 39
+   },
+   "givers": [
+    {
+     "id": "crossing",
+     "also": [],
+     "who": "dee",
+     "x": 331,
+     "z": 39,
+     "lock": null
+    },
+    {
+     "id": "bike",
+     "also": [],
+     "who": "tyler",
+     "x": 41.3,
+     "z": 19.9,
+     "lock": null
+    },
+    {
+     "id": "sabotage",
+     "also": [],
+     "who": "sal",
+     "x": 221,
+     "z": 55,
+     "lock": null
+    },
+    {
+     "id": "moving",
+     "also": [],
+     "who": "okafor",
+     "x": 364,
+     "z": 95.1,
+     "lock": null
+    },
+    {
+     "id": "arrest",
+     "also": [],
+     "who": "rosa",
+     "x": 411,
+     "z": 81,
+     "lock": null
+    },
+    {
+     "id": "benny",
+     "also": [],
+     "who": "benny",
+     "x": 427,
+     "z": 31,
+     "lock": null
+    },
+    {
+     "id": "blitz",
+     "also": [],
+     "who": "hank",
+     "x": 43,
+     "z": 11,
+     "lock": null
+    },
+    {
+     "id": "patrol",
+     "also": [],
+     "who": "doug",
+     "x": 89,
+     "z": 37,
+     "lock": null
+    },
+    {
+     "id": "mowertt",
+     "also": [],
+     "who": "dave",
+     "x": 97.6,
+     "z": 100.8,
+     "lock": null
+    }
+   ],
+   "avail": [
+    "benny",
+    "blitz",
+    "mowertt",
+    "sabotage",
+    "crossing",
+    "moving",
+    "arrest",
+    "bike",
+    "patrol",
+    "porch"
+   ],
+   "locked": [
+    "duke:locked",
+    "talk:locked",
+    "cargo:locked",
+    "cones:locked",
+    "brake:locked",
+    "roundup:locked",
+    "heist:locked",
+    "carwash:locked",
+    "finale:locked"
+   ],
+   "home": [
+    "porch@laptop"
+   ],
+   "trust": 100,
+   "trustR": 100,
+   "cuffed": 4,
+   "act": 2,
+   "day": 1,
+   "cash": 0,
+   "bridge": true,
+   "fin": {
+    "n": 14,
+    "total": 27,
+    "tM": 100,
+    "tR": 100,
+    "need": 80,
+    "needR": 80,
+    "ready": false,
+    "act3": false,
+    "left": "",
+    "line": "Finale: 14 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80",
+    "hint": "Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"
+   },
+   "tie": "Small Talk (Gary): zip-tie 10 people alive · 4/10",
+   "done": [
+    "gary",
+    "rick",
+    "dave",
+    "doug",
+    "earl",
+    "dee",
+    "rosa",
+    "taxi",
+    "mower",
+    "overwatch",
+    "hoa",
+    "tail",
+    "tow",
+    "pawn"
+   ]
+  }
+ ],
+ "jobs": [
+  {
+   "id": "crossing",
+   "how": "marker",
+   "complete": "bot",
+   "trustGain": 20,
+   "dT": 0,
+   "dR": 0,
+   "cash": 1596,
+   "dCuffed": 0,
+   "day": [
+    1,
+    2
+   ],
+   "pay": 1596,
+   "state": "won",
+   "medal": 3,
+   "cards": [
+    "Job done · 2nd St, RiversideThat was necessary. Unfortunately.Eleven porch lights on Ash and Mill. Pastor Dee put the stop sign on the church wall, next to the bake sale photos. Neutralized0Zip-tied0Time5:19Trust100%Riverside FlatsMedalGoldNo detour and no call-inPayout$1,596$1,596 savedPayoutNeighb"
+   ]
+  }
+ ],
+ "problems": []
+}
