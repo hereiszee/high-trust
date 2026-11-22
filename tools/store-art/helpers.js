@@ -23,9 +23,11 @@ window.T_={noVM:true,
       sun.target.position.set(c[0],0,c[2]);sun.position.copy(sun.target.position).addScaledVector(d,90);sun.target.updateMatrixWorld();
       if(o.ext){Object.assign(sun.shadow.camera,{left:-o.ext,right:o.ext,top:o.ext,bottom:-o.ext});sun.shadow.camera.updateProjectionMatrix()}}
     if(o.envI!=null)H.scene.traverse(m=>{if(m.material&&m.material.envMapIntensity!=null&&!m.material.__st){m.material.envMapIntensity=o.envI}})},
-  cam(p,t,fov){const c=H.camera;if(fov){c.fov=fov;c.updateProjectionMatrix()}c.position.set(...p);c.lookAt(...t);c.updateMatrixWorld();T_.C={p,t,fov}},
+  cam(p,t,fov,shift){const c=H.camera;T_.C={p,t,fov,shift};T_.reCam()},
   /* fixed camera: re-assert it (updCamera is never called by redraw) */
-  reCam(){if(T_.C){const c=H.camera,{p,t,fov}=T_.C;if(fov&&c.fov!==fov){c.fov=fov}c.aspect=innerWidth/innerHeight;c.updateProjectionMatrix();c.position.set(...p);c.lookAt(...t);c.updateMatrixWorld()}},
+  reCam(){if(T_.C){const c=H.camera,{p,t,fov,shift}=T_.C;if(fov&&c.fov!==fov){c.fov=fov}c.aspect=innerWidth/innerHeight;
+    /* lens shift: move the frame by a fraction of its size without turning the camera (shift[0]>0 moves the subject right) */
+    if(shift){const W=innerWidth,Hh=innerHeight;c.setViewOffset(W,Hh,-shift[0]*W,-(shift[1]||0)*Hh,W,Hh)}else if(c.view&&c.view.enabled)c.clearViewOffset();c.updateProjectionMatrix();c.position.set(...p);c.lookAt(...t);c.updateMatrixWorld()}},
   build(){const O=HT.OpenWorld;const c=H.camera.position;if(O&&O.buildNear)try{O.buildNear(c.x,c.z,160,4000)}catch(e){}if(T_.C){const t=T_.C.t;if(O&&O.buildNear)try{O.buildNear(t[0],t[2],120,4000)}catch(e){}}},
   redraw(dt=0){T_.reCam();T_.applyLight();T_.build();
     for(const d of T_.row)if(d.__pose)D.pose(d,dt||1/60,d.__pose);

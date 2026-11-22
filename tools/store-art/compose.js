@@ -18,3 +18,4 @@ async function render(specs,{scale=2}={}){
     s.raw=raw}
   await b.close();return specs}
 module.exports={render};
+if(require.main===module){const specs=JSON.parse(require('fs').readFileSync(process.argv[2],'utf8'));render(specs).then(()=>console.log('rendered',specs.length)).catch(e=>{console.error(e);process.exit(1)})}

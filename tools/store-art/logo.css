@@ -11,8 +11,8 @@ html,body{margin:0;padding:0;background:transparent}
 .logo.center .roof{margin-left:0}
 .logo .roof svg{width:100%;height:100%;display:block;overflow:visible}
 .logo .w{display:block;font:400 var(--u)/.84 "Bowlby One",Impact,sans-serif;color:#fff;text-transform:uppercase;letter-spacing:-.005em;
-  -webkit-text-stroke:calc(var(--u)*.05) var(--ink);paint-order:stroke fill}
+  text-shadow:calc(var(--u)*0.0500) calc(var(--u)*0.0000) 0 var(--ink),calc(var(--u)*0.0483) calc(var(--u)*0.0129) 0 var(--ink),calc(var(--u)*0.0433) calc(var(--u)*0.0250) 0 var(--ink),calc(var(--u)*0.0354) calc(var(--u)*0.0354) 0 var(--ink),calc(var(--u)*0.0250) calc(var(--u)*0.0433) 0 var(--ink),calc(var(--u)*0.0129) calc(var(--u)*0.0483) 0 var(--ink),calc(var(--u)*0.0000) calc(var(--u)*0.0500) 0 var(--ink),calc(var(--u)*-0.0129) calc(var(--u)*0.0483) 0 var(--ink),calc(var(--u)*-0.0250) calc(var(--u)*0.0433) 0 var(--ink),calc(var(--u)*-0.0354) calc(var(--u)*0.0354) 0 var(--ink),calc(var(--u)*-0.0433) calc(var(--u)*0.0250) 0 var(--ink),calc(var(--u)*-0.0483) calc(var(--u)*0.0129) 0 var(--ink),calc(var(--u)*-0.0500) calc(var(--u)*0.0000) 0 var(--ink),calc(var(--u)*-0.0483) calc(var(--u)*-0.0129) 0 var(--ink),calc(var(--u)*-0.0433) calc(var(--u)*-0.0250) 0 var(--ink),calc(var(--u)*-0.0354) calc(var(--u)*-0.0354) 0 var(--ink),calc(var(--u)*-0.0250) calc(var(--u)*-0.0433) 0 var(--ink),calc(var(--u)*-0.0129) calc(var(--u)*-0.0483) 0 var(--ink),calc(var(--u)*-0.0000) calc(var(--u)*-0.0500) 0 var(--ink),calc(var(--u)*0.0129) calc(var(--u)*-0.0483) 0 var(--ink),calc(var(--u)*0.0250) calc(var(--u)*-0.0433) 0 var(--ink),calc(var(--u)*0.0354) calc(var(--u)*-0.0354) 0 var(--ink),calc(var(--u)*0.0433) calc(var(--u)*-0.0250) 0 var(--ink),calc(var(--u)*0.0483) calc(var(--u)*-0.0129) 0 var(--ink)}
 .logo .w.b{color:var(--sun)}
-.logo.noline .w{-webkit-text-stroke:0}
+.logo.noline .w{text-shadow:none}
 .logo.row{flex-direction:row;align-items:flex-end;gap:calc(var(--u)*.28)}
 .logo.row .roofwrap{display:flex;flex-direction:column}
