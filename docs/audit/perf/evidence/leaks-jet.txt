@@ -1,0 +1,15 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":795,"mode":"hub","heapMB":77,"rendererMB":2334,"gpuMB":751,"jsListeners":531,"domNodesAll":925}
+jet 1 {"geo":584,"tex":181,"progs":113,"objs":2233,"dom":606,"listeners":106,"intervals":3,"timeouts":5,"ac":3,"nodes":2222,"mode":"hub","heapMB":79.6,"rendererMB":2494,"gpuMB":967,"jsListeners":451,"domNodesAll":1076}
+jet 2 {"geo":584,"tex":181,"progs":113,"objs":2233,"dom":596,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3001,"mode":"hub","heapMB":81.7,"rendererMB":2366,"gpuMB":943,"jsListeners":362,"domNodesAll":1035}
+jet 3 {"geo":584,"tex":181,"progs":113,"objs":2277,"dom":596,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3252,"mode":"hub","heapMB":82.1,"rendererMB":2383,"gpuMB":943,"jsListeners":373,"domNodesAll":1039}
+jet 4 {"geo":584,"tex":181,"progs":113,"objs":2324,"dom":596,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3502,"mode":"hub","heapMB":82.8,"rendererMB":2364,"gpuMB":943,"jsListeners":366,"domNodesAll":1039}
+jet 5 {"geo":584,"tex":181,"progs":113,"objs":2327,"dom":596,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3676,"mode":"hub","heapMB":83.3,"rendererMB":2422,"gpuMB":944,"jsListeners":362,"domNodesAll":1039}
+jet 6 {"geo":584,"tex":181,"progs":113,"objs":2359,"dom":596,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3874,"mode":"hub","heapMB":84.8,"rendererMB":2370,"gpuMB":945,"jsListeners":364,"domNodesAll":1041}
+SLOPE per cycle (cycles 2..N): {"rendererMB":4.7,"gpuMB":0.5,"jsListeners":-0.7,"domNodesAll":1.2,"heapMB":0.74,"geo":0,"tex":0,"progs":0,"objs":30.2,"dom":0,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":217}
+scene object groups changed (cycle 1 -> last): +39 /Group/traffic/vehicle_workvan, +38 /Group/Group/Mesh, +30 /Group/Group/dressing, +3 /Group/Group/w:imp, +1 /Group/Group/Group, +1 /Group/Group/w:grass, +1 /Group/Group/w:walk, +1 /Group/Group/w:road, +1 /Group/Group/w:lot, +1 /Group/Group/w:curb, +1 /Group/Group/w:gutter, +1 /Group/Group/w:joint, +1 /Group/Group/w:paint, +1 /Group/Group/w:lamphead, +1 /Group/Group/w:lampglass
+listener types changed (cycle 1 -> last): none
+notes: 
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

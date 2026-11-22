@@ -1,15 +1,16 @@
 /* perf audit: the dev/openworld-ingame.js draw-call budget probes (main <= 450, shadow <= 120, worst of 4 headings), in the same
    order, at a given quality, reporting for each probe how many main-pass draw calls belong to the range's rental rack and whether
    the rack was visible. --settle=N steps N frames at each probe before measuring (openworld-ingame uses 2).
-   node dev/audit/perf/budget-probes.js [--q=med,low,high] [--settle=2] */
+   node dev/audit/perf/budget-probes.js [--q=med,low,high] [--settle=2] [--extra (adds two base views)] [--night=dark|flash|nvg] */
 const path=require('path');const lib=require(path.join(process.cwd(),'dev/ai-ingame-lib.js'));
 const args=process.argv.slice(2);const arg=(k,d)=>{const a=args.find(x=>x.startsWith('--'+k+'='));return a?a.split('=')[1]:d};
 (async()=>{const {b,p,errs}=await lib.open();
   await p.evaluate(()=>{const H=window.__ht;H.enterHub();H.HUD.hide('title');H.step(3);window.__sun=null;H.scene.traverse(o=>{if(o.isDirectionalLight)window.__sun=o});
     const R=H.renderer,orig=R.renderBufferDirect.bind(R);window.__rk=-1;
     R.renderBufferDirect=function(c,s,g,m,o,gr){if(window.__rk>=0){let q=o;while(q){if(q.name==='rentalRack'){window.__rk++;break}q=q.parent}}return orig(c,s,g,m,o,gr)}});
+  await p.evaluate(([x,nm])=>{window.__extra=x;const H=window.__ht;if(nm){H.giveNvg(1);H.setNight(1);if(nm==='flash')H.flash(true);if(nm==='nvg')H.nvg(true)}},[args.includes('--extra'),arg('night','')]);
   for(const q of arg('q','med,low').split(',')){const r=await p.evaluate(([q,settle])=>{const H=window.__ht;H.render.apply(q);H.ow.quality(q);H.ow.buildAll();H.dress(5);
-      const probes={home:[39,15],mapleSE:[177,97],dadsAuto:[221,55],midBridge:[294,43],riversideMain3rd:[379,43],scrapyardGate:[400,127]};const out={};
+      const probes={home:[39,15],mapleSE:[177,97],dadsAuto:[221,55],midBridge:[294,43],riversideMain3rd:[379,43],scrapyardGate:[400,127]};if(window.__extra){probes.baseRange=[128,204];probes.baseCenter=[165,200]}const out={};
       for(const n in probes){const[x,z]=probes[n];if(H.VAN.on){H.VAN.spd=0;H.exitVan()}H.P.pos.set(x,0,z);H.step(settle);let w={main:0,shadow:0,tris:0,rack:0};
         const rr=H.scene.getObjectByName('rentalRack');
         for(let h=0;h<4;h++){const a=h*Math.PI/2,fx=Math.sin(a),fz=Math.cos(a);const c=H.camera;c.position.set(x-fx*6,3.2,z-fz*6);c.lookAt(x+fx*20,1.5,z+fz*20);c.updateMatrixWorld();H.ow.update(c);H.ow.update(c);if(HT.World.update)HT.World.update(H.L,c.position);

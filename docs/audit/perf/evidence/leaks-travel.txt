@@ -1,0 +1,20 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2178,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":659,"mode":"hub","heapMB":76.6,"rendererMB":2346,"gpuMB":745,"jsListeners":535,"domNodesAll":926}
+travel 1 {"geo":256,"tex":117,"progs":97,"objs":2256,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":2070,"mode":"hub","heapMB":80.9,"rendererMB":2253,"gpuMB":709,"jsListeners":383,"domNodesAll":911}
+travel 2 {"geo":257,"tex":117,"progs":98,"objs":2259,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":2320,"mode":"hub","heapMB":84.6,"rendererMB":2267,"gpuMB":711,"jsListeners":387,"domNodesAll":924}
+travel 3 {"geo":257,"tex":117,"progs":98,"objs":2287,"dom":522,"listeners":106,"intervals":3,"timeouts":3,"ac":3,"nodes":2629,"mode":"hub","heapMB":83.1,"rendererMB":2261,"gpuMB":712,"jsListeners":372,"domNodesAll":917}
+travel 4 {"geo":257,"tex":117,"progs":98,"objs":2316,"dom":522,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":2933,"mode":"hub","heapMB":84.3,"rendererMB":2279,"gpuMB":713,"jsListeners":368,"domNodesAll":917}
+travel 5 {"geo":273,"tex":117,"progs":99,"objs":2352,"dom":522,"listeners":106,"intervals":3,"timeouts":4,"ac":3,"nodes":3249,"mode":"hub","heapMB":86,"rendererMB":2279,"gpuMB":715,"jsListeners":389,"domNodesAll":918}
+travel 6 {"geo":285,"tex":118,"progs":100,"objs":2419,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":3640,"mode":"hub","heapMB":87.5,"rendererMB":2345,"gpuMB":716,"jsListeners":417,"domNodesAll":919}
+travel 7 {"geo":290,"tex":118,"progs":100,"objs":2447,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":4097,"mode":"hub","heapMB":89.6,"rendererMB":2333,"gpuMB":716,"jsListeners":397,"domNodesAll":907}
+travel 8 {"geo":297,"tex":118,"progs":100,"objs":2475,"dom":522,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":4378,"mode":"hub","heapMB":92,"rendererMB":2276,"gpuMB":718,"jsListeners":390,"domNodesAll":919}
+travel 9 {"geo":297,"tex":118,"progs":100,"objs":2496,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":4927,"mode":"hub","heapMB":94.1,"rendererMB":2286,"gpuMB":717,"jsListeners":398,"domNodesAll":919}
+travel 10 {"geo":297,"tex":118,"progs":100,"objs":2553,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":5348,"mode":"hub","heapMB":95.6,"rendererMB":2307,"gpuMB":717,"jsListeners":396,"domNodesAll":907}
+travel 11 {"geo":297,"tex":118,"progs":100,"objs":2574,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":5827,"mode":"hub","heapMB":97.7,"rendererMB":2288,"gpuMB":717,"jsListeners":401,"domNodesAll":907}
+travel 12 {"geo":337,"tex":132,"progs":103,"objs":2729,"dom":522,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":6215,"mode":"hub","heapMB":98.7,"rendererMB":2344,"gpuMB":752,"jsListeners":428,"domNodesAll":941}
+SLOPE per cycle (cycles 2..N): {"rendererMB":4.745,"gpuMB":2.209,"jsListeners":3.6,"domNodesAll":0.155,"heapMB":1.668,"geo":6.727,"tex":0.764,"progs":0.373,"objs":41.391,"dom":-0.273,"listeners":0,"intervals":0,"timeouts":-0.073,"ac":0,"nodes":396.418}
+listener types changed (cycle 1 -> last): none
+notes: travel {"r1":true,"r2":true,"p1":[31,19,"maple"],"p2":[31,19,"maple"]}
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

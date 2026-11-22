@@ -1,0 +1,13 @@
+start {"geo":256,"tex":117,"progs":98,"objs":2231,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":694,"mode":"hub","heapMB":78,"rendererMB":2346,"gpuMB":753,"jsListeners":535,"domNodesAll":925}
+eject 1 {"geo":596,"tex":180,"progs":113,"objs":2297,"dom":617,"listeners":106,"intervals":3,"timeouts":4,"ac":3,"nodes":2318,"mode":"hub","heapMB":81.6,"rendererMB":2475,"gpuMB":995,"jsListeners":473,"domNodesAll":1124}
+eject 2 {"geo":597,"tex":180,"progs":113,"objs":2344,"dom":612,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3427,"mode":"hub","heapMB":83.7,"rendererMB":2385,"gpuMB":943,"jsListeners":367,"domNodesAll":1056}
+eject 3 {"geo":599,"tex":180,"progs":113,"objs":2360,"dom":612,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3907,"mode":"hub","heapMB":84.1,"rendererMB":2444,"gpuMB":945,"jsListeners":365,"domNodesAll":1056}
+eject 4 {"geo":599,"tex":180,"progs":113,"objs":2347,"dom":607,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4604,"mode":"hub","heapMB":85.6,"rendererMB":2396,"gpuMB":941,"jsListeners":367,"domNodesAll":1050}
+SLOPE per cycle (cycles 2..N): {"rendererMB":5.5,"gpuMB":-1,"jsListeners":0,"domNodesAll":-3,"heapMB":0.95,"geo":1,"tex":0,"progs":0,"objs":1.5,"dom":-2.5,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":588.5}
+scene object groups changed (cycle 1 -> last): +26 /Group/traffic/vehicle_suv, +18 /Group/Group/Mesh, -13 /Group/traffic/vehicle_workvan, +3 /Group/Group/w:imp, +1 /Group/Group/Group, +1 /Group/Group/w:grass, +1 /Group/Group/w:walk, +1 /Group/Group/w:road, +1 /Group/Group/w:lot, +1 /Group/Group/w:curb, +1 /Group/Group/w:gutter, +1 /Group/Group/w:joint, +1 /Group/Group/w:paint, +1 /Group/Group/w:lamphead, +1 /Group/Group/w:lampglass
+listener types changed (cycle 1 -> last): none
+notes: 
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

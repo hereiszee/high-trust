@@ -1,0 +1,20 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":650,"mode":"hub","heapMB":77,"rendererMB":2375,"gpuMB":758,"jsListeners":551,"domNodesAll":929}
+car 1 {"geo":267,"tex":117,"progs":97,"objs":2282,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2225,"mode":"hub","heapMB":79,"rendererMB":2315,"gpuMB":719,"jsListeners":428,"domNodesAll":902}
+car 2 {"geo":290,"tex":117,"progs":97,"objs":2283,"dom":512,"listeners":106,"intervals":3,"timeouts":1,"ac":3,"nodes":2636,"mode":"hub","heapMB":80.5,"rendererMB":2269,"gpuMB":721,"jsListeners":360,"domNodesAll":911}
+car 3 {"geo":295,"tex":117,"progs":97,"objs":2313,"dom":512,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2967,"mode":"hub","heapMB":81.2,"rendererMB":2288,"gpuMB":722,"jsListeners":368,"domNodesAll":916}
+car 4 {"geo":298,"tex":117,"progs":97,"objs":2347,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3324,"mode":"hub","heapMB":81.7,"rendererMB":2281,"gpuMB":722,"jsListeners":376,"domNodesAll":916}
+car 5 {"geo":314,"tex":118,"progs":98,"objs":2350,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3759,"mode":"hub","heapMB":82,"rendererMB":2333,"gpuMB":724,"jsListeners":387,"domNodesAll":902}
+car 6 {"geo":322,"tex":118,"progs":98,"objs":2350,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4041,"mode":"hub","heapMB":83.6,"rendererMB":2274,"gpuMB":724,"jsListeners":380,"domNodesAll":902}
+car 7 {"geo":329,"tex":118,"progs":98,"objs":2356,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4398,"mode":"hub","heapMB":85,"rendererMB":2293,"gpuMB":725,"jsListeners":369,"domNodesAll":902}
+car 8 {"geo":341,"tex":122,"progs":98,"objs":2361,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4740,"mode":"hub","heapMB":85.3,"rendererMB":2279,"gpuMB":727,"jsListeners":367,"domNodesAll":902}
+car 9 {"geo":343,"tex":122,"progs":99,"objs":2366,"dom":503,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":5404,"mode":"hub","heapMB":85.6,"rendererMB":2288,"gpuMB":731,"jsListeners":418,"domNodesAll":913}
+car 10 {"geo":358,"tex":126,"progs":106,"objs":2371,"dom":503,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":5724,"mode":"hub","heapMB":85.8,"rendererMB":2313,"gpuMB":743,"jsListeners":427,"domNodesAll":907}
+car 11 {"geo":360,"tex":126,"progs":106,"objs":2376,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":6485,"mode":"hub","heapMB":86.1,"rendererMB":2298,"gpuMB":744,"jsListeners":381,"domNodesAll":905}
+car 12 {"geo":360,"tex":126,"progs":106,"objs":2381,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":6826,"mode":"hub","heapMB":86.2,"rendererMB":2292,"gpuMB":744,"jsListeners":360,"domNodesAll":905}
+SLOPE per cycle (cycles 2..N): {"rendererMB":1.509,"gpuMB":2.573,"jsListeners":2.309,"domNodesAll":-0.718,"heapMB":0.63,"geo":7.882,"tex":1.091,"progs":1,"objs":7.791,"dom":-0.727,"listeners":0,"intervals":0,"timeouts":-0.045,"ac":0,"nodes":420.1}
+listener types changed (cycle 1 -> last): none
+notes: car {"ok":true,"type":"minivan","cv":false}
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

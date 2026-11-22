@@ -1,0 +1,15 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":647,"mode":"hub","heapMB":76.8,"rendererMB":2355,"gpuMB":738,"jsListeners":577,"domNodesAll":925}
+night 1 {"geo":277,"tex":122,"progs":134,"objs":2348,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":4724,"mode":"hub","heapMB":86.5,"rendererMB":2282,"gpuMB":763,"jsListeners":522,"domNodesAll":907}
+night 2 {"geo":301,"tex":123,"progs":135,"objs":2490,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":6895,"mode":"hub","heapMB":91.1,"rendererMB":2320,"gpuMB":766,"jsListeners":388,"domNodesAll":912}
+night 3 {"geo":342,"tex":137,"progs":139,"objs":2770,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":9125,"mode":"hub","heapMB":98.9,"rendererMB":2356,"gpuMB":808,"jsListeners":477,"domNodesAll":934}
+night 4 {"geo":343,"tex":137,"progs":139,"objs":2770,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":11288,"mode":"hub","heapMB":99.1,"rendererMB":2357,"gpuMB":809,"jsListeners":415,"domNodesAll":934}
+night 5 {"geo":343,"tex":137,"progs":139,"objs":2770,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":13430,"mode":"hub","heapMB":99.2,"rendererMB":2377,"gpuMB":807,"jsListeners":512,"domNodesAll":934}
+night 6 {"geo":344,"tex":137,"progs":139,"objs":2770,"dom":512,"listeners":107,"intervals":3,"timeouts":0,"ac":3,"nodes":15422,"mode":"hub","heapMB":99.4,"rendererMB":2351,"gpuMB":809,"jsListeners":519,"domNodesAll":934}
+SLOPE per cycle (cycles 2..N): {"rendererMB":8.3,"gpuMB":8.5,"jsListeners":29.7,"domNodesAll":4.4,"heapMB":1.69,"geo":8.7,"tex":2.8,"progs":0.8,"objs":56,"dom":0,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":2135.9}
+scene object groups changed (cycle 1 -> last): +142 /Group/Group/Mesh, +26 /Group/Group/Group, +26 /Group/traffic/vehicle_workvan, +24 /Group/Group/w:imp, +21 /Group/Group/m:, +8 /Group/Group/w:grass, +8 /Group/Group/w:lot, +7 /Group/Group/m:base:metal, +6 /Group/Group/w:walk, +6 /Group/Group/w:joint, +6 /Group/Group/m:base:paint, +5 /Group/Group/w:galv, +5 /Group/Group/m:base:sign1, +4 /Group/Group/w:inside, +4 /Group/Group/m:base:mark
+listener types changed (cycle 1 -> last): none
+notes: 
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

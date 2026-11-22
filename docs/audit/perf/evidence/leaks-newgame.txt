@@ -1,0 +1,14 @@
+start {"geo":245,"tex":117,"progs":98,"objs":2178,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":727,"mode":"hub","heapMB":76.7,"rendererMB":2364,"gpuMB":740,"jsListeners":564,"domNodesAll":925}
+newgame 1 {"geo":243,"tex":113,"progs":97,"objs":2199,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":1871,"mode":"hub","heapMB":79.2,"rendererMB":2260,"gpuMB":686,"jsListeners":421,"domNodesAll":1029}
+newgame 2 {"geo":254,"tex":113,"progs":97,"objs":2230,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2370,"mode":"hub","heapMB":80.4,"rendererMB":2312,"gpuMB":687,"jsListeners":431,"domNodesAll":1166}
+newgame 3 {"geo":254,"tex":113,"progs":97,"objs":2230,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2802,"mode":"hub","heapMB":82.6,"rendererMB":2260,"gpuMB":688,"jsListeners":449,"domNodesAll":1303}
+newgame 4 {"geo":254,"tex":113,"progs":97,"objs":2236,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3263,"mode":"hub","heapMB":84.6,"rendererMB":2264,"gpuMB":690,"jsListeners":468,"domNodesAll":1440}
+newgame 5 {"geo":254,"tex":113,"progs":97,"objs":2228,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3806,"mode":"hub","heapMB":85.7,"rendererMB":2303,"gpuMB":691,"jsListeners":520,"domNodesAll":1577}
+newgame 6 {"geo":254,"tex":113,"progs":97,"objs":2246,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4393,"mode":"hub","heapMB":86,"rendererMB":2255,"gpuMB":691,"jsListeners":510,"domNodesAll":1714}
+SLOPE per cycle (cycles 2..N): {"rendererMB":-7.1,"gpuMB":1.1,"jsListeners":22.9,"domNodesAll":137,"heapMB":1.43,"geo":0,"tex":0,"progs":0,"objs":3,"dom":0,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":505}
+listener types changed (cycle 1 -> last): none
+notes: cycle 0: title title -> {"mode":"hub","screen":null}
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

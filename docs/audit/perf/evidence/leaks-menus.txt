@@ -1,0 +1,15 @@
+start {"geo":256,"tex":117,"progs":98,"objs":2230,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":848,"mode":"hub","heapMB":78.4,"rendererMB":2439,"gpuMB":750,"jsListeners":554,"domNodesAll":931}
+menus 1 {"geo":256,"tex":117,"progs":98,"objs":2261,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":2825,"mode":"hub","heapMB":82.1,"rendererMB":2406,"gpuMB":896,"jsListeners":417,"domNodesAll":1084}
+menus 2 {"geo":256,"tex":117,"progs":98,"objs":2308,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":3469,"mode":"hub","heapMB":82.8,"rendererMB":2423,"gpuMB":896,"jsListeners":384,"domNodesAll":1084}
+menus 3 {"geo":256,"tex":117,"progs":98,"objs":2311,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":4048,"mode":"hub","heapMB":83.2,"rendererMB":2483,"gpuMB":897,"jsListeners":418,"domNodesAll":1084}
+menus 4 {"geo":256,"tex":117,"progs":98,"objs":2324,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":4597,"mode":"hub","heapMB":84.6,"rendererMB":2442,"gpuMB":895,"jsListeners":386,"domNodesAll":1084}
+menus 5 {"geo":256,"tex":117,"progs":98,"objs":2330,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":5146,"mode":"hub","heapMB":85.8,"rendererMB":2468,"gpuMB":897,"jsListeners":406,"domNodesAll":1086}
+menus 6 {"geo":256,"tex":117,"progs":98,"objs":2335,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":5660,"mode":"hub","heapMB":86.3,"rendererMB":2479,"gpuMB":897,"jsListeners":409,"domNodesAll":1257}
+menus 7 {"geo":256,"tex":117,"progs":98,"objs":2340,"dom":568,"listeners":111,"intervals":3,"timeouts":0,"ac":3,"nodes":6148,"mode":"hub","heapMB":86.4,"rendererMB":2478,"gpuMB":898,"jsListeners":400,"domNodesAll":1084}
+SLOPE per cycle (cycles 2..N): {"rendererMB":8.257,"gpuMB":0.343,"jsListeners":2.086,"domNodesAll":14.886,"heapMB":0.814,"geo":0,"tex":0,"progs":0,"objs":6.8,"dom":0,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":536.571}
+listener types changed (cycle 1 -> last): none
+notes: cycle 0 after menus: {"htm":false,"screen":null} shop {"shop":true}
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []
