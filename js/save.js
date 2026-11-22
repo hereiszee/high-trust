@@ -352,7 +352,7 @@ function sanitize(s){
 const optN=v=>typeof v==='number'&&isFinite(v)?v:null;
 const normBest=(b,keys)=>{if(!isObj(b))return null;const o={};for(const k of keys)o[k]=k==='clean'?!!b[k]:optN(b[k]);return o};
 function normJob(j){j=deepMerge(JOB_DEFAULT(),j);j.done=!!j.done;
-  for(const k of['medal','medalPaid'])j[k]=clampN(Math.floor(num(j[k],0)),0,3);for(const k of['runs','replays'])j[k]=Math.max(0,Math.floor(num(j[k],0)));
+  for(const k of['medal','medalPaid'])j[k]=clampN(Math.floor(num(j[k],0)),0,3);for(const k of['runs','replays'])j[k]=Math.max(0,Math.floor(num(j[k],0)));if('gasDay'in j)j.gasDay=Math.max(0,Math.floor(num(j.gasDay,0)))/* J-04: the day gas money was last paid */;
   j.best=normBest(j.best,['t','score','trustGain','clean']);if(!isObj(j.plan))j.plan=null;return j}
 function sanitizeV3(s){const w=s.world;
   s.day=Math.max(1,Math.floor(num(s.day,1)));
@@ -808,7 +808,8 @@ function computePayout(r,s){r=r||{};
   const lines=[];let pos=0,pen=0;
   const add=(id,label,amt,kind)=>{amt=Math.round(amt);if(!amt)return;lines.push({id,label,amount:amt,kind:kind||'bonus'});if(amt>0)pos+=amt;else pen-=amt};
   if(ok)add('base','Bake sale fund',m.base*k,'base');
-  else add('gas','Gas money',40,'base');
+  /* JOBS-AUDIT J-04: gas money once per job per in-game day (jobs[id].gasDay), and none for walking off the job (r.noGas); otherwise fail + Retry is a cash loop */
+  else if(!r.noGas&&!(sv&&isObj(sv.jobs)&&isObj(sv.jobs[m.id])&&sv.jobs[m.id].gasDay===sv.day))add('gas','Gas money',40,'base');
   if(n(r.cuffs))add('cuffs','Second chances ×'+n(r.cuffs),60*n(r.cuffs)*k);
   if(n(r.confiscated))add('guns','Guns turned in to Officer Dana ×'+n(r.confiscated),25*n(r.confiscated)*k);
   if(ok&&n(r.allyDowns)===0)add('hamstring','Nobody pulled a hamstring',150*k);
@@ -824,8 +825,9 @@ function computePayout(r,s){r=r||{};
 
 /* Credit a payout to the save and queue the home event (SPEC D.2) */
 function applyPayout(p,s){s=S(s);const old=s.cash;s.cash+=p.total;s.stats.earned+=p.total;s.events.push(p.ok?'win_'+p.mission:'fail');
+  const gas=!p.ok&&p.mission&&p.lines.some(l=>l.id==='gas');if(gas)jobRec(s,p.mission).gasDay=s.day;
   const g=s.garage;if(g&&g.tab>0){const pay=Math.min(g.tab,s.cash);s.cash-=pay;g.tab-=pay;s.stats.spent+=pay;p.tabPaid=pay}
-  if(mine(s)){emit('cash',s.cash,old);Save.touch('stats','events','garage')}return s.cash}
+  if(mine(s)){emit('cash',s.cash,old);Save.touch('stats','events','garage',...(gas?['jobs']:[]))}return s.cash}
 
 const resultLines=p=>p.lines.map(l=>({label:l.label,text:(l.amount<0?'−$':'+$')+Math.abs(l.amount).toLocaleString('en-US'),neg:l.amount<0,kind:l.kind,note:l.note||''}));
 

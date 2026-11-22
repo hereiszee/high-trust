@@ -3871,7 +3871,7 @@ function wmLeash(){const w=L.win;if(!w)return;for(const e of enemies){if(e.state
 function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.def.roam||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
   const b=st.box,q=VAN.on?CV.pos:P.pos,dx=Math.max(b.x0-q.x,0,q.x-b.x1),dz=Math.max(b.z0-q.z,0,q.z-b.z1);
   if(Math.hypot(dx,dz)>30){M.leaveT-=dt;M.leaveLine=['Get back to the job ('+Math.max(0,Math.ceil(M.leaveT))+')',false,'warn'];
-    if(M.leaveT<=0){endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
+    if(M.leaveT<=0){M.payX=M.payX||{};M.payX.noGas=true;/* JOBS-AUDIT J-04: no gas money for walking off */endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
 /* scripted enemy movement (hooked at the top of updEnemy): walking home, the Duke running to his car, a driver bailing out */
 function wmScript(e,dt){const s=e.script,d=e.dude;if(!s)return false;if(e.state==='dead'||e.state==='cuffed'||e.state==='surrender'){e.script=null;return false}
   let moving=false;s.t=(s.t||0)+dt;
