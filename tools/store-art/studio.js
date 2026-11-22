@@ -52,7 +52,8 @@ const log=(...a)=>console.log(new Date().toISOString().slice(11,19),...a);
       if(job.after)await p.evaluate(`(async()=>{${job.after}})()`);
       const pend=await p.evaluate(()=>T_.pending());
       await p.screenshot({path:path.join(OUT,name+'.png')});
-      if(job.matte){try{await p.evaluate(()=>T_.matte());await p.screenshot({path:path.join(OUT,name+'-matte.png')})}finally{await p.evaluate(()=>T_.unmatte())}}
+      if(job.matte){try{await p.evaluate(o=>T_.matte(o),job.only||null);await p.screenshot({path:path.join(OUT,name+'-matte.png')})}finally{await p.evaluate(()=>T_.unmatte())}}
+      if(job.sky){try{await p.evaluate(()=>T_.skymask());await p.screenshot({path:path.join(OUT,name+'-sky.png')})}catch(e){log('skymask failed',e.message)}}
       fs.writeFileSync(path.join(OUT,name+'.json'),JSON.stringify({info,pend,errs:errs.slice(0,20),ms:Date.now()-t0},null,1));
       log('done',name,Date.now()-t0+'ms',JSON.stringify(pend))
     }catch(e){log('job failed',name,e.message);fs.writeFileSync(path.join(OUT,name+'.err'),String(e.stack||e))}

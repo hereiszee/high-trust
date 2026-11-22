@@ -15,11 +15,17 @@ const SCENES={
   C:{set:van(37.8,15.8,-2.1)+walk([['you',30.8,14.9,0],['rosa',32.3,16.2,9],['gary',32.2,13.4,13],['rick',33.5,17.3,6],['dave',33.6,12.1,19],['doug',34.9,18.6,25]],-0.12)+GOLD_BACK,cam:{wide:[[27.6,0.35,14.0],[33,1.9,15.2],46]}},
   /* B: standing by the van, arms folded */
   B:{set:van(35.8,15.2,-2.0)+`const C0=[26.0,1.0,13.4];for(const [r,x,z,idle] of [['you',31.2,14.8,'idle'],['dave',32.4,12.9,'idle_arms_folded'],['gary',32.0,16.3,'idle_look'],['rick',33.3,17.4,'idle_arms_folded'],['rosa',32.9,13.9,'f_idle'],['doug',33.2,11.9,'idle']])T_.put(r,x,z,T_.yawTo(x,z,C0[0],C0[2]),{idle,steps:44});`+GOLD_FRONT,cam:{wide:[[26.0,1.0,13.4],[33,1.35,15.2],36]}},
+  /* K (round 2, used): the dad out front, arms folded; behind him the minivan and, parked beside it like a second car, the tank with
+     Coach Rick waving from the hatch; the jet banking low over the rooftops. Golden hour, a fill light under the cap brim. */
+  K:{set:van(39.6,14.4,-1.8)+`const ty=-2.05,tx=42.4,tz=17.9;T_.prop('tank',tx,0,tz,ty);T_.prop('jet',JX,JY,JZ,-2.8,-0.55,-0.06);
+     const hx=tx+Math.sin(ty)*0.4,hz=tz+Math.cos(ty)*0.4;const r=T_.put('rick',hx,hz,T_.yawTo(hx,hz,29.6,16.4),{y:1.3,idle:'idle'});r.__bones=T_.WAVE;
+     const dd=T_.put('you',31.7,15.75,T_.yawTo(31.7,15.75,29.6,16.4)+0.15,{idle:'idle_arms_folded'});dd.root.traverse(o=>{if(o.name==='rb_cap'&&!o.__lift){o.__lift=1;o.position.x+=0.038;o.position.y-=0.012}});T_.fill(30.5,1.66,15.95,5.5,'#ffe9d2',2.6);`+
+     `T_.light({dir:[-.8,.3,-.5],sun:'#ffb36b',si:2.8,hemi:.6,exp:.98,sky:'#ffcc9c',fog:'#ebbd94',near:60,far:220,center:[38,0,16],ext:24});`,cam:{}},
   /* street only (no crew) for the page background */
   S:{set:van(38.6,14.4,-2.45)+GOLD_FRONT,cam:{}},
 };
 module.exports={SCENES};
-if(require.main===module){const [sc,cams,w,h,name,matte]=process.argv.slice(2);const S=SCENES[sc];
+if(require.main===module){const [sc,cams,w,h,name,matte,jet]=process.argv.slice(2);const S=Object.assign({},SCENES[sc]);if(jet){const j=JSON.parse(jet);S.set=S.set.replace('JX,JY,JZ',j.join(','))}else S.set=S.set.replace('JX,JY,JZ','58,11,21');
   let cam=S.cam[cams];if(!cam)cam=JSON.parse(cams);
   const run=`T_.clear();T_.hideLive();T_.sprOff=true;${S.set}T_.cam(${JSON.stringify(cam[0])},${JSON.stringify(cam[1])},${cam[2]},${JSON.stringify(cam[3]||null)});return 1`;
-  fs.writeFileSync(path.join(__dirname,'jobs',name+'.js'),'module.exports='+JSON.stringify({w:+w,h:+h,matte:matte!=='0',run})+';')}
+  const job={w:+w,h:+h,matte:matte!=='0',run};if(sc==='K'){job.only=[1];job.sky=true}fs.writeFileSync(path.join(__dirname,'jobs',name+'.js'),'module.exports='+JSON.stringify(job)+';')}

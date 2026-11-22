@@ -31,19 +31,21 @@ All sizes are exact. Upload them in Steamworks under **Store presence → Graphi
 | `alternates/` | | — | The other hero compositions, for the owner to choose from (see below) |
 | `contact-sheet.jpg` | | — | Everything at a glance |
 
-### Alternates (owner's choice)
+### Key art: round 2 (used on every capsule)
 
-The key art went through three rounds (round 1: a static line-up; round 2: the walk; round 3: framing per format, low-angle
-and standing variants). Three directions are kept, each as a 3840×2160 master plus a header and main capsule built the same way:
+The concept is the contrast between ordinary suburban dads and absurd escalation. The dad stands out front in his khakis, arms folded, big in the frame. Behind him, parked next to the family minivan like a second car, is the Fort Sensible tank, with Coach Rick waving from the hatch. The jet banks low over the rooftops. The flag and "The Millers, 1412 Maple" mailbox are in frame. Everything is the game's own models: `HT.Tank.model()` and `HT.Jet.model()` with the gear and ladder hidden, Rick posed with the wave the game uses when the family waves at the jet, the dad's cap raised a few cm so his eyes clear the brim, and a fill light on his face. Compositing work, all done on the game renders:
+- a grade;
+- a warm sunset gradient laid over the top of the frame;
+- a slight blur on the background plate, with the dad on his own sharp cut-out from a dad-only matte;
+- a soft warm edge glow on the dad;
+- a vignette.
 
-- **A — "the walk" (used above).** Eye level, low; the crew walking down Maple toward camera, the minivan nose-on behind with its
-  `HT 4DAD` plate, the low sun over the camera's shoulder. Reads best at thumbnail size: one clear focal figure, symmetrical, open sky for the logo.
-- **C — "the low angle".** Camera at knee height, sun behind the crew (rim light), minivan side-on. More dynamic and the dad's face
-  reads a little better under his cap, but the sky is busier and the group is less even.
-- **B — "the line-up".** The crew standing by the van, two with arms folded. Warmer and more comic, but static; weakest at small size.
+Three concepts were roughed at main-capsule size and checked at 231 and 120 px wide (`alternates/round2-roughs/thumbnail_check.jpg`):
+- **A, tank in the driveway (used).** One big figure, the tank and the jet read even at 120 px.
+- **B, the crew on the tank.** The whole crew around and on the tank on the street. Warmer, but at thumbnail size it becomes a row of small people again.
+- **C, the porch pirate.** A pirate with a parcel in the foreground and the crew walking up. Funny at full size, but the focal point splits between the pirate and the dad.
 
-Files: `alternates/key_art_{A,B,C}_3840x2160.jpg`, `alternates/key_art_A_crew_matte.png` (the crew cut-out matte, for
-an illustrator or for event art), `alternates/header_capsule_920x430_{B,C}.jpg`, `alternates/main_capsule_1232x706_{B,C}.jpg`.
+`alternates/key_art_K_3696x2118.jpg` is the flattened master without the logo. `alternates/round1/` keeps the whole first set (the walking line-up A/B/C, its capsules, hero and screenshots).
 
 ## Steamworks rules this follows (checked 2026-11-22)
 
@@ -75,36 +77,27 @@ hero is a PNG; the screenshot content rules and the PG-13 rule are now spelled o
 
 ## Screenshots
 
-Fifteen screenshots, all 1920×1080 JPG, all real gameplay on the High preset with the game's own HUD (the finale shot is the
-in-engine cutscene the player sees, letterbox and subtitle included). Upload them in this order: Steam shows the first few
-first. **All-ages** is the mark to tick in Steamworks ("suitable for all ages": no gore, violence or suggestive themes); Steam
-needs at least four.
+There are thirteen, all 1920×1080 JPG, all real gameplay on High with the game's HUD unless noted. Upload them in this order. **All-ages** is the Steamworks tick (no gore, violence or suggestive themes); at least four are needed.
 
-| # | File | What it shows | Where it came from | All-ages |
+| # | File | What it shows | Source | All-ages |
 |---|---|---|---|---|
-| 1 | `01_maple_heights_free_roam.jpg` | The dad on Maple Heights between jobs: the minivan, Hank's Hardware, the trust meter at 62% ("Borrowing ladders"), Gary's job marker | staged in the hub (`tools/store-art/studio.js`) | yes |
-| 2 | `02_porch_light_talk_first.jpg` | Porch Light: a porch pirate with a parcel, and the three ways to say something first ("That's not yours, friend. Put it back.") | `dev/jobs/porch.js` | yes |
-| 3 | `03_zip_tie_second_chance.jpg` | Return to Sender: a man who gave up, zip-tied, "+TRUST · zip-tied" | staged in the chop-shop job with the real surrender and zip-tie | no (aftermath of a fight) |
-| 4 | `04_higher_ground_scope.jpg` | Higher Ground: overwatch through the scope on the basketball court, Rosa on the radio | `dev/jobs/overwatch.js` | no (rifle scope) |
-| 5 | `05_dad_taxi_route_9_traffic.jpg` | Dad Taxi: the minivan on Route 9 in traffic, Jen's list, the ride meter | `dev/jobs/taxi.js` | yes |
-| 6 | `06_crossing_guard.jpg` | Crossing Guard: walking eleven kids home with a stop sign, the headcount | `dev/jobs/crossing.js` | yes |
-| 7 | `07_dad_taxi_school_pickup.jpg` | Dad Taxi: the school pickup line ("Can we not be the first car in line"), no weapons in frame | `dev/jobs/taxi.js` | yes |
-| 8 | `08_riverside_flats_market.jpg` | Riverside Flats: the farmers' market after Hands Off, trust "Waves from porches" | `dev/jobs/arrest.js` | yes |
-| 9 | `09_everybody_waves_festival.jpg` | The festival finale, Everybody Waves: the crew and both neighbourhoods waving (no spoilers beyond the title) | `dev/jobs/finale.js --from festival` | yes |
-| 10 | `10_fort_sensible_range_rack.jpg` | Fort Sensible: the free rental rack at the public range | `dev/base-check.js` | yes (guns on a rack, nobody threatened) |
-| 11 | `11_jet_under_the_high_bridge.jpg` | The jet under the High Bridge; the tower is "very impressed" | `dev/base-check.js` | yes |
-| 12 | `12_sensible_dragway_staged.jpg` | Sensible Dragway: staged at the tree against Dutch Hendricks's copper-ballast van | `dev/dragstrip-check.js` | yes |
-| 13 | `13_home_kitchen.jpg` | Home: Jen in the kitchen ("Did you remember the milk?") | staged at home | yes |
-| 14 | `14_home_decorate_mode.jpg` | Home, decorate mode: the cut-away house, the family, the minivan in the garage | staged at home (B) | yes |
-| 15 | `15_map_two_neighbourhoods.jpg` | The map: Maple Heights, Route 9 and Riverside Flats with both trust bars | staged in the hub (M) | yes |
+| 1 | `01_jet_low_over_maple_heights.jpg` | DAD-1 at 85 ft over Maple Heights rooftops; the tower: "the jet is fueled, the coffee is not" | studio: jet placed in flight, the game's flight model | yes |
+| 2 | `02_zip_tie_second_chance.jpg` | Return to Sender: hands on the zip-tied man, "+TRUST zip-tied", Gary standing by empty-handed. Lower, closer camera (subtitle only, no HUD) | studio: real surrender and zip-tie, guns holstered with the job's holster flag | no (aftermath of a fight) |
+| 3 | `03_porch_light_talk_first.jpg` | Porch Light: a porch pirate, three ways to say something first | `dev/jobs/porch.js` | yes |
+| 4 | `04_tank_down_maple.jpg` | The tank on Maple's street, the sergeant on the radio ("Please don't left click near my coffee") | studio: the hub, driving the tank | yes |
+| 5 | `05_higher_ground_scope.jpg` | Higher Ground through the scope | `dev/jobs/overwatch.js` | no |
+| 6 | `06_everybody_waves_festival.jpg` | The festival finale, everyone waving (in-engine cutscene) | `dev/jobs/finale.js` | yes |
+| 7 | `07_crossing_guard.jpg` | Crossing Guard: eleven kids and a stop sign | `dev/jobs/crossing.js` | yes |
+| 8 | `08_sensible_dragway_launch.jpg` | The Dragway: tree on green, the launch; "Eighth mile. Two lanes. No tanks." | `tools/store-art/drag-launch.js` (real keys) | yes |
+| 9 | `09_dad_taxi_school_pickup.jpg` | Dad Taxi school pickup | `dev/jobs/taxi.js` | yes |
+| 10 | `10_dad_taxi_route_9_traffic.jpg` | Dad Taxi on Route 9, blocking the red pickup | `dev/jobs/taxi.js` | yes |
+| 11 | `11_night_flashlight.jpg` | Maple at night with the flashlight on | studio | yes |
+| 12 | `12_home_decorate_mode.jpg` | Decorate mode, the family at home | studio | yes |
+| 13 | `13_home_kitchen.jpg` | Jen: "Did you remember the milk?" | studio | yes |
 
-Staging notes, so nothing here misleads: trust values were set (62% for shot 1, 46%/24% for the map) to show the mid-game; in
-shot 3 the crew member standing beside the dad was moved out of frame so nobody is pointing a gun at the man who gave up; every
-other frame is exactly what the harness's play-through showed. The range rack and the scope shot have guns in them; the
-family-friendly shots (5–9, 11–15) have none drawn. Children appear in 6, 7, 9 and 14, never near a drawn weapon.
+Round 1's free roam, Riverside market, range rack, jet-under-the-bridge, staged dragway and map shots were dropped as flat; they are in `alternates/round1/screenshots_round1/`. The old zip-tie frame (03) is gone. In it, the dad's raised hand read as a rude gesture at store size.
 
-Not used: the tank (the frames from the play-through had the dad's hand clipping the camera in the turret view; a clean tank
-shot is the one thing from the list still worth a re-shoot), and the "Hands Off" beanbag moment (readable only with the copy).
+Not shot: a traffic stand-off with a specific bark, night-vision goggles, and the jet in frame from the chase camera. The flight view here is the game's default nose camera.
 
 ## What an illustrator would still do better
 
@@ -114,8 +107,7 @@ Being honest about the limits of rendering the game itself:
   illustrator would give each person a beat (Gary with his spreadsheet, Rick's whistle, Dave's tongs, Doug's call-sign shades)
   and the comedy would read without the page copy. Right now "a little funny" comes from the line-up itself and the
   `HT 4DAD` plate, not from the acting.
-- **The dad's cap.** The player model's cap sits low and its underside shades his eyes; at capsule size it reads fine, but at
-  full size it looks a little like a blindfold. A painted pass would fix the brim.
+- **The dad's cap.** In the key art it is raised a few cm on the model, and a fill light is added, so his eyes show. In gameplay it still sits low.
 - **Faces.** The in-game faces are mid-detail and lit by one sun; key art usually has hand-placed rim and fill light per face.
 - **Atmosphere.** The golden-hour sky is the game's daytime panorama tinted warm, not a painted sunset; there is no light
   bloom through the trees, no lens work.

@@ -2,6 +2,7 @@
 (()=>{
 const H=window.__ht,T=THREE,PP=HT.People,D=H.dude;
 if(window.T_&&T_.row)for(const d of T_.row)if(d.root.parent)d.root.parent.remove(d.root);
+if(window.T_&&T_.props)for(const o of T_.props)if(o.parent)o.parent.remove(o);
 const find=(pred)=>{let r=null;H.scene.traverse(o=>{if(!r&&pred(o))r=o});return r};
 const sun=find(o=>o.isDirectionalLight&&o.castShadow),hemi=find(o=>o.isHemisphereLight);
 const sky=find(o=>o.isMesh&&o.geometry&&o.geometry.parameters&&o.geometry.parameters.radius===380);
@@ -36,19 +37,38 @@ window.T_={noVM:true,
   redraw(dt=0){T_.reCam();T_.applyLight();T_.build();
     for(const d of T_.row)if(d.__pose)D.pose(d,dt||1/60,d.__pose);
     if(PP&&PP.ok)PP.update(dt||1/600,H.camera);
+    T_.applyBones();
     if(T_.sprOff)T_.hideSprites(true);if(T_.onFrame)try{T_.onFrame()}catch(e){console.warn(e)}
     H.scene.updateMatrixWorld();D.groundPass(1);H.render.draw();D.groundPass(-1)},
   /* characters-only matte, same camera: crew white, every other visible mesh black (so occluders cut the matte) */
   /* characters-only matte, same camera: crew meshes white on black, via a camera layer (nothing else is touched) */
-  matte(){const W=new T.MeshBasicMaterial({color:0xffffff}),WS=new T.MeshBasicMaterial({color:0xffffff,skinning:true});const swap=[];
-    for(const d of T_.row)d.root.traverse(o=>{if(!o.isMesh||!o.material)return;const m=o.material;const vis=Array.isArray(m)?m.some(x=>x.visible):m.visible;if(!vis||!o.visible)return;
+  matte(only){const W=new T.MeshBasicMaterial({color:0xffffff}),WS=new T.MeshBasicMaterial({color:0xffffff,skinning:true});const swap=[];
+    for(const d of(only?only.map(i=>T_.row[i]):T_.row))d.root.traverse(o=>{if(!o.isMesh||!o.material)return;const m=o.material;const vis=Array.isArray(m)?m.some(x=>x.visible):m.visible;if(!vis||!o.visible)return;
       const nm=o.isSkinnedMesh?WS:W;swap.push([o,m]);o.material=Array.isArray(m)?m.map(x=>x.visible?nm:x):nm;o.layers.enable(7)});
     T_._swap=swap;const r=H.renderer,c=H.camera;const tm=r.toneMapping,bg=H.scene.background,fog=H.scene.fog;H.scene.background=new T.Color(0);H.scene.fog=null;r.toneMapping=T.NoToneMapping;
     T_.reCam();H.scene.updateMatrixWorld();const lm=c.layers.mask;c.layers.set(7);
     try{r.setRenderTarget(null);r.setClearColor(0x000000,1);r.clear(true,true,true);r.render(H.scene,c)}finally{c.layers.mask=lm;r.toneMapping=tm;H.scene.background=bg;H.scene.fog=fog}return swap.length},
+  /* sky mask: white where the sky dome shows, black where anything else is (same camera) */
+  skymask(){const r=H.renderer,c=H.camera,sc=H.scene;const hid=[];sc.traverse(o=>{if((o.isSprite||o.isPoints||o.isLine||o===T_.sky)&&o.visible){hid.push(o);o.visible=false}});
+    const ov=sc.overrideMaterial,tm=r.toneMapping,bg=sc.background,fog=sc.fog;sc.overrideMaterial=new T.MeshBasicMaterial({color:0});sc.background=new T.Color(0xffffff);sc.fog=null;r.toneMapping=T.NoToneMapping;
+    T_.reCam();sc.updateMatrixWorld();try{r.setRenderTarget(null);r.setClearColor(0xffffff,1);r.clear(true,true,true);r.render(sc,c)}finally{sc.overrideMaterial=ov;r.toneMapping=tm;sc.background=bg;sc.fog=fog;for(const o of hid)o.visible=true}return hid.length},
   unmatte(){for(const[o,m]of(T_._swap||[])){o.material=m;o.layers.disable(7)}T_._swap=null},
   pending(){const c=H.camera.position;const O=HT.OpenWorld;return{people:PP&&PP.pending?PP.pending.filter(d=>d.root&&d.root.parent).length:-1,ow:O&&O.pendingNear?O.pendingNear(c.x,c.z,150):-1,stream:H.assets.stream?H.assets.stream.pending():-1,box:T_.row.filter(d=>d.root.userData.boxDude).length}},
-  clear(){for(const d of T_.row)if(d.root.parent)d.root.parent.remove(d.root);T_.row=[]},
+  clear(){for(const d of T_.row)if(d.root.parent)d.root.parent.remove(d.root);T_.row=[];for(const o of(T_.props||[]))if(o.parent)o.parent.remove(o);T_.props=[]},
+  /* the game's own vehicle models (HT.Tank.model / HT.Jet.model), placed as set dressing */
+  prop(kind,x,y,z,ry,rx=0,rz=0){const m=kind==='tank'?HT.Tank.model():kind==='jet'?HT.Jet.model():null;if(!m)return null;m.position.set(x,y,z);m.rotation.set(rx,ry,rz,'YXZ');
+    m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});H.scene.add(m);(T_.props=T_.props||[]).push(m);
+    if(kind==='jet'){const J=m.userData.jet||{};for(const g of[].concat(J.gear||[]))if(g&&g.isObject3D)g.visible=false;const L=m.userData.ladder;if(L&&L.isObject3D)L.visible=false}
+    return m},
+  /* bone offsets added after every animation update: d.__bones={Bip01_R_UpperArm:[x,y,z],...} (the finale/jet wave is R_UpperArm z-1.9, R_Forearm z-.6) */
+  /* a staging fill light (point light, no shadows), like a bounce card: lifts faces out of cap-brim shade */
+  fill(x,y,z,i=1.2,col='#ffe2c4',dist=6){const l=new T.PointLight(lin(col),i,dist,1.5);l.position.set(x,y,z);H.scene.add(l);(T_.props=T_.props||[]).push(l);return l},
+  /* the porch job's parcel (js/jobs/porch.js parcel(): the same boxes and colours), held in a character's hands */
+  parcel(d,hand='Bip01_R_Hand',off=[0.12,0.02,0.1]){const g=new T.Group(),bx=(w,h,dd,c,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,dd),new T.MeshStandardMaterial({color:lin(c),roughness:.85}));m.position.set(x,y,z);m.castShadow=true;g.add(m)};
+    bx(.46,.3,.36,'#b8874f',0,.15,0);bx(.47,.035,.08,'#d9c9a0',0,.3,0);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09);
+    const B=d.rb&&d.rb.bones&&d.rb.bones[hand];if(B){B.add(g);g.position.set(...off);g.scale.setScalar(1/Math.max(1e-3,B.getWorldScale(new T.Vector3()).x))}else{d.root.add(g);g.position.set(0,1,0.35)}return g},
+  applyBones(){for(const d of T_.row){const b=d.__bones,B=d.rb&&d.rb.bones;if(!b||!B)continue;for(const n in b){const bo=B[n];if(bo){bo.rotation.x+=b[n][0];bo.rotation.y+=b[n][1];bo.rotation.z+=b[n][2]}}d.root.updateMatrixWorld(true)}},
+  WAVE:{Bip01_R_UpperArm:[0.15,0,-1.9],Bip01_R_Forearm:[0,0,-0.6]},
   /* hide the live game characters (player, crew followers, optionally everyone else) */
   hideLive({player=true,allies=true}={}){H.P.fp=false;H.P.aim=false;H.P.scoped=false;try{H.camTick(1/30)}catch(e){}if(player&&H.P.dude)H.P.dude.root.visible=false;if(allies)for(const a of H.allies)if(a.dude)a.dude.root.visible=false},
   /* place a posed character: role (HOMIES key or People role), at [x,z], facing yaw (rad, 0 = +z), opts {gun, mode, aim, moving, variant, steps, scale} */
