@@ -1,0 +1,42 @@
+cycle 1 job mode mission info.memory.geometries 422
+cycle 2 job mode mission info.memory.geometries 527
+cycle 3 job mode mission info.memory.geometries 625
+cycle 4 job mode mission info.memory.geometries 652
+cycle 5 job mode mission info.memory.geometries 653
+geometries drawn at least once, never disposed, no longer in the scene: 27
+      4 Bip01_R_Forearm/Bip01_R_Hand/gunHold/rb_merged [BufferGeometry]
+      2 traffic/vehicle_workvan [PlaneGeometry]
+      2 gun_shotgun/gunBody/shotgun/stock [BufferGeometry]
+      1 Mesh [BufferGeometry]
+      1 rb_thug_brown/Bip01/thug_brown_mesh/Mesh [BufferGeometry]
+      1 rb_thug_red/Bip01/thug_red_mesh/Mesh [BufferGeometry]
+      1 rb_thug_track/Bip01/thug_track_mesh/Mesh [BufferGeometry]
+      1 rb_thug_f_hood/Bip01/thug_f_hood_mesh/Mesh_2 [BufferGeometry]
+      1 rb_thug_f_hood/Bip01/thug_f_hood_mesh/Mesh [BufferGeometry]
+      1 rb_thug_fro/Bip01/thug_fro_mesh/Mesh_2 [BufferGeometry]
+      1 rb_thug_fro/Bip01/thug_fro_mesh/Mesh [BufferGeometry]
+      1 rb_thug_f_leather/Bip01/thug_f_leather_mesh/Mesh_2 [BufferGeometry]
+      1 rb_thug_f_leather/Bip01/thug_f_leather_mesh/Mesh [BufferGeometry]
+      1 rb_thug_beanie/Bip01/thug_beanie_mesh/Mesh [BufferGeometry]
+      1 rb_thug_hoodie/Bip01/thug_hoodie_mesh/Mesh [BufferGeometry]
+      1 rb_thug_red/Bip01/thug_red_mesh/Mesh_2 [BufferGeometry]
+      1 rb_thug_cap/Bip01/thug_cap_mesh/Mesh [BufferGeometry]
+      1 rb_thug_jacket/Bip01/thug_jacket_mesh/Mesh_2 [BufferGeometry]
+      1 rb_thug_jacket/Bip01/thug_jacket_mesh/Mesh [BufferGeometry]
+      1 gunHold/gun_shotgun/gunBody/shotgun [SphereGeometry]
+      1 gun_shotgun/gunBody/shotgun/pump [LatheGeometry]
+      1 gunBody/shotgun/pump/rb_merged [BufferGeometry]
+by cycle (top):
+      4 c5 Bip01_R_Forearm/Bip01_R_Hand/gunHold/rb_merged [BufferGeometry]
+      2 c5 gun_shotgun/gunBody/shotgun/stock [BufferGeometry]
+      1 c0 Mesh [BufferGeometry]
+      1 c1 rb_thug_brown/Bip01/thug_brown_mesh/Mesh [BufferGeometry]
+      1 c1 rb_thug_red/Bip01/thug_red_mesh/Mesh [BufferGeometry]
+      1 c1 rb_thug_track/Bip01/thug_track_mesh/Mesh [BufferGeometry]
+      1 c1 rb_thug_f_hood/Bip01/thug_f_hood_mesh/Mesh_2 [BufferGeometry]
+      1 c1 rb_thug_f_hood/Bip01/thug_f_hood_mesh/Mesh [BufferGeometry]
+      1 c1 rb_thug_fro/Bip01/thug_fro_mesh/Mesh_2 [BufferGeometry]
+      1 c1 rb_thug_fro/Bip01/thug_fro_mesh/Mesh [BufferGeometry]
+      1 c1 rb_thug_f_leather/Bip01/thug_f_leather_mesh/Mesh_2 [BufferGeometry]
+      1 c1 rb_thug_f_leather/Bip01/thug_f_leather_mesh/Mesh [BufferGeometry]
+console errors 0 []

@@ -1300,7 +1300,7 @@ function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...ene
 let spawnedEnemies=[];
 /* a skinned character's bone texture (one GPU texture per skeleton, made on its first render) is only freed by hand: release it when the character leaves
    the scene for good (three.js rebuilds it if the same character is ever drawn again) */
-function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}})}
+function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}});const PP=HTM('People');if(PP&&PP.free)try{PP.free(root)}catch(e){console.warn('people: free',e)}}/* PERF-04: the per-character gun and merged meshes too */
 function clearChars(){if(FR)frReset();try{if(window.HT&&HT.Base&&HT.Base.reset)HT.Base.reset()}catch(e){}/* audit C-2: jet / tank / range state (js/base.js) */for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');

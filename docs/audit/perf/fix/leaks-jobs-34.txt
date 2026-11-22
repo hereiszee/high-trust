@@ -1,0 +1,71 @@
+start {"geo":293,"tex":125,"progs":103,"objs":2124,"dom":529,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":771,"mode":"hub","heapMB":84.9,"rendererMB":2531,"gpuMB":826,"jsListeners":364,"domNodesAll":979}
+jobs 1 {"geo":340,"tex":165,"progs":107,"objs":3148,"dom":660,"listeners":107,"intervals":3,"timeouts":1,"ac":3,"nodes":2535,"mode":"hub","heapMB":96.1,"rendererMB":2465,"gpuMB":901,"jsListeners":444,"domNodesAll":1261}
+jobs 2 {"geo":347,"tex":165,"progs":107,"objs":3189,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3358,"mode":"hub","heapMB":98.8,"rendererMB":2504,"gpuMB":902,"jsListeners":473,"domNodesAll":1344}
+jobs 3 {"geo":347,"tex":165,"progs":107,"objs":3223,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4522,"mode":"hub","heapMB":100.3,"rendererMB":2510,"gpuMB":906,"jsListeners":515,"domNodesAll":1445}
+jobs 4 {"geo":347,"tex":165,"progs":107,"objs":3236,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":5627,"mode":"hub","heapMB":105,"rendererMB":2517,"gpuMB":910,"jsListeners":543,"domNodesAll":1531}
+jobs 5 {"geo":347,"tex":165,"progs":107,"objs":3269,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":6534,"mode":"hub","heapMB":106,"rendererMB":2509,"gpuMB":912,"jsListeners":550,"domNodesAll":1610}
+jobs 6 {"geo":371,"tex":172,"progs":108,"objs":3809,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":7156,"mode":"hub","heapMB":106.5,"rendererMB":2545,"gpuMB":930,"jsListeners":441,"domNodesAll":1741}
+jobs 7 {"geo":371,"tex":172,"progs":108,"objs":3822,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":8041,"mode":"hub","heapMB":110.9,"rendererMB":2552,"gpuMB":923,"jsListeners":554,"domNodesAll":1822}
+jobs 8 {"geo":371,"tex":172,"progs":108,"objs":3822,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":4,"nodes":8778,"mode":"hub","heapMB":110.7,"rendererMB":2529,"gpuMB":927,"jsListeners":522,"domNodesAll":1906}
+jobs 9 {"geo":371,"tex":172,"progs":108,"objs":3809,"dom":642,"listeners":106,"intervals":3,"timeouts":0,"ac":4,"nodes":9785,"mode":"hub","heapMB":113.2,"rendererMB":2537,"gpuMB":932,"jsListeners":547,"domNodesAll":2005}
+jobs 10 {"geo":371,"tex":172,"progs":108,"objs":3822,"dom":644,"listeners":106,"intervals":3,"timeouts":0,"ac":4,"nodes":10459,"mode":"hub","heapMB":111.6,"rendererMB":2614,"gpuMB":936,"jsListeners":582,"domNodesAll":2191}
+jobs 11 {"geo":371,"tex":172,"progs":108,"objs":3809,"dom":645,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":11174,"mode":"hub","heapMB":113,"rendererMB":2603,"gpuMB":939,"jsListeners":581,"domNodesAll":2245}
+jobs 12 {"geo":371,"tex":172,"progs":108,"objs":3822,"dom":645,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":11805,"mode":"hub","heapMB":113.3,"rendererMB":2594,"gpuMB":937,"jsListeners":596,"domNodesAll":2266}
+jobs 13 {"geo":371,"tex":172,"progs":108,"objs":3809,"dom":645,"listeners":108,"intervals":3,"timeouts":1,"ac":4,"nodes":12321,"mode":"hub","heapMB":116,"rendererMB":2657,"gpuMB":951,"jsListeners":616,"domNodesAll":2379}
+jobs 14 {"geo":371,"tex":172,"progs":108,"objs":3822,"dom":645,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":13051,"mode":"hub","heapMB":116.2,"rendererMB":2659,"gpuMB":949,"jsListeners":650,"domNodesAll":2466}
+jobs 15 {"geo":371,"tex":172,"progs":108,"objs":3925,"dom":645,"listeners":108,"intervals":3,"timeouts":1,"ac":4,"nodes":14194,"mode":"hub","heapMB":115.4,"rendererMB":2756,"gpuMB":932,"jsListeners":709,"domNodesAll":2562}
+jobs 16 {"geo":371,"tex":172,"progs":148,"objs":3927,"dom":638,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":14952,"mode":"hub","heapMB":116.5,"rendererMB":3011,"gpuMB":995,"jsListeners":1021,"domNodesAll":2645}
+jobs 17 {"geo":371,"tex":172,"progs":146,"objs":3940,"dom":638,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":17151,"mode":"hub","heapMB":119.7,"rendererMB":2723,"gpuMB":1008,"jsListeners":717,"domNodesAll":2737}
+jobs 18 {"geo":371,"tex":172,"progs":146,"objs":3927,"dom":638,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":18077,"mode":"hub","heapMB":127.4,"rendererMB":2758,"gpuMB":1000,"jsListeners":710,"domNodesAll":2828}
+jobs 19 {"geo":371,"tex":172,"progs":146,"objs":3940,"dom":638,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":19113,"mode":"hub","heapMB":129.2,"rendererMB":2827,"gpuMB":1003,"jsListeners":730,"domNodesAll":2919}
+jobs 20 {"geo":371,"tex":172,"progs":146,"objs":3940,"dom":638,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":19775,"mode":"hub","heapMB":140.4,"rendererMB":2892,"gpuMB":1001,"jsListeners":721,"domNodesAll":3024}
+jobs 21 {"geo":376,"tex":176,"progs":150,"objs":3927,"dom":664,"listeners":108,"intervals":3,"timeouts":1,"ac":4,"nodes":20439,"mode":"hub","heapMB":143.4,"rendererMB":2913,"gpuMB":1001,"jsListeners":762,"domNodesAll":3150}
+jobs 22 {"geo":376,"tex":176,"progs":150,"objs":3940,"dom":643,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":21228,"mode":"hub","heapMB":143.6,"rendererMB":2936,"gpuMB":1016,"jsListeners":780,"domNodesAll":3208}
+jobs 23 {"geo":386,"tex":194,"progs":156,"objs":4154,"dom":665,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":21943,"mode":"hub","heapMB":142.3,"rendererMB":2923,"gpuMB":1064,"jsListeners":814,"domNodesAll":3319}
+jobs 24 {"geo":376,"tex":190,"progs":156,"objs":3940,"dom":643,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":22977,"mode":"hub","heapMB":144.7,"rendererMB":2902,"gpuMB":1065,"jsListeners":809,"domNodesAll":3418}
+jobs 25 {"geo":376,"tex":190,"progs":156,"objs":3940,"dom":644,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":23827,"mode":"hub","heapMB":149.8,"rendererMB":2928,"gpuMB":1065,"jsListeners":839,"domNodesAll":3464}
+jobs 26 {"geo":376,"tex":187,"progs":155,"objs":3927,"dom":644,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":24788,"mode":"hub","heapMB":161.7,"rendererMB":2857,"gpuMB":1055,"jsListeners":827,"domNodesAll":3576}
+jobs 27 {"geo":376,"tex":187,"progs":155,"objs":3940,"dom":644,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":25514,"mode":"hub","heapMB":164.1,"rendererMB":2884,"gpuMB":1041,"jsListeners":813,"domNodesAll":3642}
+jobs 28 {"geo":376,"tex":187,"progs":155,"objs":3927,"dom":656,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":26198,"mode":"hub","heapMB":164,"rendererMB":2917,"gpuMB":1039,"jsListeners":879,"domNodesAll":3747}
+jobs 29 {"geo":376,"tex":188,"progs":176,"objs":3940,"dom":656,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":26982,"mode":"hub","heapMB":164.8,"rendererMB":2886,"gpuMB":1048,"jsListeners":888,"domNodesAll":3835}
+jobs 30 {"geo":376,"tex":188,"progs":176,"objs":3940,"dom":657,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":27759,"mode":"hub","heapMB":165.2,"rendererMB":2884,"gpuMB":1057,"jsListeners":898,"domNodesAll":3925}
+jobs 31 {"geo":376,"tex":188,"progs":176,"objs":3927,"dom":657,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":28777,"mode":"hub","heapMB":165.4,"rendererMB":2893,"gpuMB":1048,"jsListeners":916,"domNodesAll":4011}
+jobs 32 {"geo":376,"tex":188,"progs":176,"objs":3940,"dom":658,"listeners":113,"intervals":3,"timeouts":0,"ac":4,"nodes":29671,"mode":"hub","heapMB":167.4,"rendererMB":2742,"gpuMB":1060,"jsListeners":936,"domNodesAll":4105}
+jobs 33 {"geo":376,"tex":188,"progs":176,"objs":3927,"dom":658,"listeners":113,"intervals":3,"timeouts":0,"ac":4,"nodes":30541,"mode":"hub","heapMB":170.3,"rendererMB":2767,"gpuMB":1069,"jsListeners":954,"domNodesAll":4196}
+jobs 34 {"geo":376,"tex":188,"progs":176,"objs":3940,"dom":658,"listeners":113,"intervals":3,"timeouts":0,"ac":4,"nodes":31701,"mode":"hub","heapMB":173.2,"rendererMB":2804,"gpuMB":1050,"jsListeners":975,"domNodesAll":4284}
+SLOPE per cycle (cycles 2..N): {"rendererMB":13.497,"gpuMB":5.792,"jsListeners":15.416,"domNodesAll":91.559,"heapMB":2.475,"geo":0.704,"tex":0.829,"progs":2.67,"objs":16.972,"dom":0.514,"listeners":0.147,"intervals":0,"timeouts":-0.002,"ac":0.027,"nodes":876.434}
+scene object groups changed (cycle 1 -> last): +291 /Group/rb_son/Bip01, -114 /rb_pending_rosa/rb_rosa/Bip01, +114 /Group/rb_rosa/Bip01, +101 /Group/rb_dad_doug/Bip01, +98 /Group/rb_thug_f_hood/Bip01, +78 /Group/Group/Mesh, +21 /Group/Group/m:, +15 /Group/Group/w:imp, +13 /Group/traffic/vehicle_workvan, +10 /Group/Group/Group, +7 /Group/Group/m:base:metal, +6 /Group/Group/m:base:paint, +5 /Group/Group/w:grass, +5 /Group/Group/w:lot, +5 /Group/Group/m:base:sign1
+listener types changed (cycle 1 -> last): document:keydown +2, window:mouseup +1, window:blur +1, element:click -1, document:wheel +1, document:mousedown +1, document:keyup +1
+notes: job 0: {"mode":"mission","title":"Return to Sender","err":null}
+  job 1: {"mode":"mission","title":"Fourth Quarter","err":null}
+  job 2: {"mode":"mission","title":"Block Party","err":null}
+  job 3: {"mode":"mission","title":"The Kingpin","err":null}
+  job 4: {"mode":"mission","title":"End of the Line","err":null}
+  job 5: {"mode":"mission","title":"Fellowship Hall","err":null}
+  job 6: {"mode":"mission","title":"Garden Variety","err":null}
+  job 7: {"mode":"mission","title":"Brain Freeze","err":null}
+  job 8: {"mode":"mission","title":"The Duke","err":null}
+  job 9: {"mode":"mission","title":"Dad Taxi","err":null}
+  job 10: {"mode":"mission","title":"Honey-Do Blitz","err":null}
+  job 11: {"mode":"mission","title":"Small Talk","err":null}
+  job 12: {"mode":"mission","title":"The Grass Is Greener","err":null}
+  job 13: {"mode":"mission","title":"Mower Time Trial","err":null}
+  job 14: {"mode":"mission","title":"Higher Ground","err":null}
+  job 15: {"mode":"mission","title":"Sign of the Times","err":null}
+  job 16: {"mode":"mission","title":"Exhibit HOA","err":null}
+  job 17: {"mode":"mission","title":"Following Distance","err":null}
+  job 18: {"mode":"mission","title":"Hitch Happens","err":null}
+  job 19: {"mode":"mission","title":"Handle With Care","err":null}
+  job 20: {"mode":"mission","title":"Crossing Guard","err":null}
+  job 21: {"mode":"mission","title":"Grand Opening","err":null}
+  job 22: {"mode":"mission","title":"Cone Zone","err":null}
+  job 23: {"mode":"mission","title":"Heavy Lifting","err":null}
+  job 24: {"mode":"mission","title":"Hands Off","err":null}
+console errors 0 []
+console warnings 4 [
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.'
+]
+unhandled rejections 0 []
