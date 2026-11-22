@@ -1,0 +1,11 @@
+STUDIO = "hereiszee" | in-game lines 41 | credits.txt lines 42
++ credits.txt only :   Dario Barresi, Sergej Majboroda, Amal Kumar, Josh Dean, GurJas Studios,
+- in-game only     :   Dario Barresi, Sergej Majboroda, Josh Dean, GurJas Studios,
++ credits.txt only : Textures and decals: ambientCG, Lennart Demes (CC0)
+- in-game only     : Textures: ambientCG, Lennart Demes (CC0)
++ credits.txt only : Models via OpenGameArt (CC0): lucian-pavel (crates and pallet),
++ credits.txt only :   braveo (mailbox), nisu (carbine, from 3dmodelscc0.com)
++ credits.txt only : Furniture icons: Pixel Art Atlas GLB models, CodePawl / Angais (CC0)
+- in-game only     : Models: lucian-pavel (crates and pallet), braveo (mailbox),
+- in-game only     :   BigWhyaaa (carbine), via OpenGameArt (CC0)
+9 differing lines
