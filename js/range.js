@@ -111,7 +111,7 @@ function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.
 /* the guard and the range officer, from the neighbour pool (never the crew or the family) */
 function people(a,d){const PP=HT.People;const mk=(key,look)=>{let dd=null;try{if(PP&&PP.ok)dd=PP.make('neighbour',{variant:key})}catch(_){dd=null}if(!dd)try{dd=a.makeDude(look)}catch(_){dd=null}return dd};
   const place=(id,key,look,p)=>{if(S.people[id]&&S.people[id].d)return;const dd=mk(key,look);if(!dd)return;dd.root.position.set(p.x,0,p.z);dd.root.rotation.y=p.yaw||0;S.root.add(dd.root);
-    try{if(dd.meshes)for(const m of dd.meshes)m.userData.noBatch=true}catch(_){}cap(dd);S.people[id]={d:dd,p:{x:p.x,z:p.z},yaw:p.yaw||0,home:p}};
+    try{if(dd.meshes)for(const m of dd.meshes)m.userData.noBatch=true}catch(_){}if(HT.Staff&&HT.Staff.dress)HT.Staff.dress(dd);else cap(dd);/* W-07: uniform + cap (js/staff.js) */S.people[id]={d:dd,p:{x:p.x,z:p.z},yaw:p.yaw||0,home:p}};
   place('guard','nb_pops',{shirt:'#55603f',pants:'#4b4f3a',cap:'#55603f'},d.guard);
   place('officer','nb_marcus',{shirt:'#55603f',pants:'#4b4f3a',cap:'#55603f'},d.range.officer)}
 /* a patrol cap so they read as post staff (a small olive cap on the head bone, or the box head) */

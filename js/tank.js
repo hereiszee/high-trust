@@ -123,7 +123,7 @@ function ensure(a){const d=B().def();if(!d||!glue())return;
   e.type='tank';e.name='the motor pool';e.owner='base';e.yaw=p.yaw;e.home={x:d.tank.x,z:d.tank.z,yaw:d.tank.yaw};e.noJobs=LINES.refuse;e.tank=true;a.syncCar(e);S.e=e;S.L=a.L;
   /* the motor pool sergeant */
   if(!S.sarge||!S.sarge.d||!S.sarge.d.root.parent){const PP=HT.People;let dd=null;try{if(PP&&PP.ok)dd=PP.make('neighbour',{variant:'nb_kenji'})}catch(_){}if(!dd)try{dd=a.makeDude({shirt:'#55603f',pants:'#4b4f3a',cap:'#55603f'})}catch(_){}
-    if(dd){dd.root.position.set(d.sarge.x,0,d.sarge.z);dd.root.rotation.y=d.sarge.yaw;a.L.group.add(dd.root);S.sarge={d:dd,yaw:d.sarge.yaw,p:d.sarge}}}
+    if(dd){dd.root.position.set(d.sarge.x,0,d.sarge.z);dd.root.rotation.y=d.sarge.yaw;a.L.group.add(dd.root);if(HT.Staff&&HT.Staff.dress)HT.Staff.dress(dd)/* W-07: Staff Sgt. Ruiz in uniform and cap (js/staff.js) */;S.sarge={d:dd,yaw:d.sarge.yaw,p:d.sarge}}}
   else if(S.sarge.d.root.parent!==a.L.group)a.L.group.add(S.sarge.d.root)}
 
 /* ================= driving extras (vehicle hook, right after the drive physics) ================= */
