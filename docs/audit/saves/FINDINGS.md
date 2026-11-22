@@ -79,7 +79,7 @@ Counts: **0 BLOCKER, 5 MAJOR, 10 MINOR.**
 
 ### SAV-04 · Zip-ties and trust from an abandoned job are kept and saved, so the same job can be farmed
 - **Severity:** MAJOR. Trust and zip-tie counts are duplicated. They gate Small Talk (10 zip-ties), the finale (trust 80/80), and the Steam achievements Due Process and Doors Unlocked.
-- **Confidence:** CONFIRMED by `desktop-session.run1.txt`. The second run's result is in `desktop-session.run2.txt`.
+- **Confidence:** CONFIRMED (two runs: `desktop-session.run1.txt`, `desktop-session.run2.txt`; trust 28→32 and zip-ties 0→1 in both).
 - **Repro:** `xvfb-run -a node dev/audit/saves/desktop-session.js`, stage B.
   1. Start Return to Sender.
   2. An enemy surrenders. Press **E** (the real key) to zip-tie them.
@@ -114,7 +114,7 @@ Counts: **0 BLOCKER, 5 MAJOR, 10 MINOR.**
 
 ### SAV-06 · First session: after Quit to title there is no Continue, and the button reads "Clock in"
 - **Severity:** MINOR. Confusing, but nothing is lost.
-- **Confidence:** CONFIRMED (`desktop-session` stage C).
+- **Confidence:** CONFIRMED (two runs, `desktop-session` stage C).
 - **Repro:** On a fresh profile:
   1. New game.
   2. Finish two jobs (the save now has $1,381 and two jobs done).
@@ -138,7 +138,7 @@ Counts: **0 BLOCKER, 5 MAJOR, 10 MINOR.**
 
 ### SAV-08 · A crash or kill within about 0.4 s of a payout loses it
 - **Severity:** MINOR.
-- **Confidence:** CONFIRMED in run 1 (`desktop-session` stage D1). See run 2.
+- **Confidence:** CONFIRMED (two runs, `desktop-session` stage D1).
 - **Repro:** Finish a job, then SIGKILL the shell 150 ms after the result card.
 - **Actual:** The payout on screen ($1,382 → $1,704) is not on disk ($1,382).
 - **Cause:** The renderer saves at once, but the main process debounces the file write by 400 ms (`desktop/save-store.js:13`). SIGTERM, window close and Quit all flush correctly. A hard kill (Task Manager, OOM, holding the Deck's power button) does not.
