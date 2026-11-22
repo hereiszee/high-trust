@@ -2029,7 +2029,7 @@ function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>Str
 function titleFocus(){if(HUD.screen!=='title'||HUD.dialogOpen)return;const c=document.querySelector('.ht-title [data-act=continue]');const b=(c&&!c.hidden&&!c.disabled)?c:document.querySelector('.ht-title [data-act=newgame]');if(b&&!b.disabled)b.focus({preventScroll:true})}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
-function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';metaJobRollback();engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
+function quitToTitle(){pauseOpen=false;sessionPlayed=true;if(M)M.state='abandoned';metaJobRollback();engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',(a,arg)=>{
   if(a==='continue'){start()}
@@ -2839,7 +2839,9 @@ let HOME3=null,homeReady=false,homeLoading=null;
   const d=document.createElement('div');d.id='deco';d.hidden=true;document.body.appendChild(d)})();
 
 /* ---------- title: continue / new game (HUD buttons) ---------- */
-function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
+/* JOBS-AUDIT J-06: a game started this session and quit to the title has a save too (lastLoad stays 'fresh' until a reload) */
+let sessionPlayed=false;
+function hasSave(){const s=SV();return !!(s&&(SAVEM.lastLoad.status!=='fresh'||sessionPlayed)&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
 function metaWhen(t){if(!t)return'earlier';try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}}
 function metaDay(t){try{return t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}catch(e){return''}}
 function metaTitle(dataOnly){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
@@ -3871,7 +3873,7 @@ function wmLeash(){const w=L.win;if(!w)return;for(const e of enemies){if(e.state
 function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.def.roam||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
   const b=st.box,q=VAN.on?CV.pos:P.pos,dx=Math.max(b.x0-q.x,0,q.x-b.x1),dz=Math.max(b.z0-q.z,0,q.z-b.z1);
   if(Math.hypot(dx,dz)>30){M.leaveT-=dt;M.leaveLine=['Get back to the job ('+Math.max(0,Math.ceil(M.leaveT))+')',false,'warn'];
-    if(M.leaveT<=0){M.payX=M.payX||{};M.payX.noGas=true;/* JOBS-AUDIT J-04: no gas money for walking off */endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
+    if(M.leaveT<=0){M.payX=M.payX||{};M.payX.noGas=true;/* JOBS-AUDIT J-04: no gas money for walking off */endMission(false,"The crew went home. Somebody left a note on your windshield.","You left the job.")/* J-07: not always Doug's job */;return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
 /* scripted enemy movement (hooked at the top of updEnemy): walking home, the Duke running to his car, a driver bailing out */
 function wmScript(e,dt){const s=e.script,d=e.dude;if(!s)return false;if(e.state==='dead'||e.state==='cuffed'||e.state==='surrender'){e.script=null;return false}
   let moving=false;s.t=(s.t||0)+dt;
