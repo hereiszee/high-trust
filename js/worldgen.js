@@ -11,13 +11,13 @@
  */
 (function(root){'use strict';
 const HT=root.HT=root.HT||{};
-const TILE=2,W=232,H=128,CHUNK=32   /* H was 80: rows 80-127 are the Fort Sensible strip (js/base.js, docs/base.md) */,CW=Math.ceil(W/CHUNK),CH=Math.ceil(H/CHUNK);
+const TILE=2,W=232,H=152,CHUNK=32   /* H was 80: rows 80-126 are Fort Sensible (js/base.js, docs/base.md); 127-150 Sensible Dragway (js/dragstrip.js, docs/dragstrip.md) */,CW=Math.ceil(W/CHUNK),CH=Math.ceil(H/CHUNK);
 const tc=i=>i*TILE+TILE/2, tx=m=>Math.floor(m/TILE);
 const SOLID='#hctTfVQ'+'rxAz~|!Go&';      // world-relevant solids (index.html SOLID + SPEC2 A.2)
 const LOSBLOCK='#htVcTf'+'rxA';
 const COLCH=',.gs';                         // chars that are their own ground colour
 const HOODS={maple:{name:'Maple Heights',tx0:0,tx1:99},route9:{name:'Route 9',tx0:100,tx1:151},river:{name:'Riverside Flats',tx0:152,tx1:231},
-  base:{name:'Fort Sensible',tx0:0,tx1:141,tz0:80}};   /* base: the training post south of Industrial Way (rows 80+, west of the river) */
+  base:{name:'Fort Sensible',tx0:0,tx1:141,tz0:80},strip:{name:'Sensible Dragway',tx0:0,tx1:141,tz0:127}};   /* strip: the eighth-mile south of the post (docs/dragstrip.md) */   /* base: the training post south of Industrial Way (rows 80+, west of the river) */
 const TOWN_H=80;                            /* rows 0-79 are the town as it always was */
 const BRIDGE_UNLOCK_JOB=1;                  // owner decision: the bridge opens after Rick's job (prog.done[1])
 
@@ -253,6 +253,37 @@ function stampBase(g,set,rect,buildings){
   for(let x=7;x<138;x+=5)if(x<96||x>106)set(x,81+(x%2),'t');
   for(const[x,z]of[[60,87],[78,86],[78,89],[96,87],[58,93-2]])if(g[z][x]==='g')set(x,z,'t');
 }
+/* ---------- Sensible Dragway (js/dragstrip.js, docs/dragstrip.md): an eighth-mile drag strip in rows 127-150, south of the post ----------
+   The map has no straight 402 m + run-off anywhere (it is 464 m wide and the river cuts it at 284 m), so it is an EIGHTH mile (201.17 m)
+   running west from a start line at x=258 m, with ~50 m of shutdown and a sand trap. Reached from Industrial Way along the old tree line
+   (rows 81-83) and down the grass corridor east of the post's fence (cols 139-141). Spectators are fenced in on the north side ('z' all round:
+   no car or dad gets in); two concrete walls ('A' custom, js/dragstrip.js draws them) keep cars in their lanes. None of this is in def.roads,
+   so the road graph (traffic, AI cars) never comes here; the asphalt is lot (','). */
+const STRIP_T={lanes:[3,137,138,140],wallN:[3,136,130,136],wallS:[6,141,130,141],fenceN:[3,127,138,127],fenceS:[3,135,138,135],fenceW:[2,127,2,135],fenceE:[138,127,138,135],
+  walk:[3,128,137,134],ret:[3,141,5,143],stage:[131,136,138,141],retRoad:[3,142,138,143],paddock:[104,144,141,149],corridor:[139,80,141,149],access:[103,81,141,83],
+  bld:[['d_tower',118,144,121,146,8.6],['d_standE',104,130,124,133,2.6],['d_standW',20,130,36,133,2.6],['d_net',2,136,2,141,2.4]]};
+function stampStrip(g,set,rect,buildings){const R=(a,c)=>rect(a[0],a[1],a[2],a[3],c);
+  for(let z=HOODS.strip.tz0;z<H-1;z++)for(let x=1;x<=HOODS.strip.tx1;x++)set(x,z,'g');
+  for(let z=80;z<H-1;z++)for(let x=139;x<=141;x++)if(g[z][x]==='t')set(x,z,'g');/* the riverbank trees step aside for the corridor */
+  for(let x=104;x<=141;x++)for(let z=80;z<=83;z++)if(g[z][x]==='t')set(x,z,'g');
+  R(STRIP_T.access,',');R(STRIP_T.corridor,',');R(STRIP_T.retRoad,',');R(STRIP_T.paddock,',');R(STRIP_T.ret,',');
+  R(STRIP_T.walk,'s');R(STRIP_T.lanes,',');R(STRIP_T.stage,',');
+  for(const k of['fenceN','fenceS','fenceW','fenceE'])R(STRIP_T[k],'z');
+  for(const[id,a]of[['d_wallN',STRIP_T.wallN],['d_wallS',STRIP_T.wallS]])buildings.push((R(a,'A'),{kind:'A',id,x0:a[0],z0:a[1],x1:a[2],z1:a[3],custom:true,strip:true,roofY:1.05}));
+  for(const[id,x0,z0,x1,z1,roofY]of STRIP_T.bld)buildings.push((rect(x0,z0,x1,z1,'A'),{kind:'A',id,x0,z0,x1,z1,custom:true,strip:true,roofY}));
+  /* a line of trees between the post's fence and the strip, and round the edge of the paddock */
+  for(let x=6;x<136;x+=7)set(x,126,'t');for(let x=8;x<100;x+=9)set(x,147+(x%2),'t');for(let z=145;z<150;z+=2)set(102,z,'t')}
+/* the strip in metres (what js/dragstrip.js reads). Lanes run west: forward is -x (yaw PI/2). Lane 0 is the north (left) lane. */
+function stripData(buildings){const T=TILE,box=a=>({x0:a[0]*T,z0:a[1]*T,x1:(a[2]+1)*T,z1:(a[3]+1)*T}),bl={};
+  for(const b of buildings)if(b.strip)bl[b.id.slice(2)]=Object.assign(box([b.x0,b.z0,b.x1,b.z1]),{roofY:b.roofY});
+  const start=258,len=201.168;
+  return{name:HOODS.strip.name,box:{x0:2,z0:252,x1:284,z1:302},start,finish:start-len,len,yaw:Math.PI/2,laneZ:[276,280],laneW:4,centerZ:278,
+    wallN:bl.wallN,wallS:bl.wallS,track:box(STRIP_T.lanes),walk:box(STRIP_T.walk),fence:box([3,127,138,135]),retRoad:box(STRIP_T.retRoad),paddock:box(STRIP_T.paddock),
+    corridor:box(STRIP_T.corridor),access:box(STRIP_T.access),tower:bl.tower,standE:bl.standE,standW:bl.standW,net:bl.net,
+    tree:{x:start-5.5,z:278},burnout:{x0:262,x1:274},stage:{x:start},shut:{x:10},
+    board:{x:start-200,z:271,yaw:-Math.PI/2},paddockBoard:{x:252.5,z:289.2,yaw:Math.PI},booth:{x:239,z:287.4,yaw:Math.PI},
+    loaners:{x0:214,z:296.4,dx:5.6,yaw:0},park:{x:274,z:292,yaw:Math.PI/2},lineup:{x:272,yaw:Math.PI/2},
+    sign:{x:208,z:166,yaw:0},place:'strip'}}
 /* ---------- the generator (SPEC2 A.2, plus the four Maple giver markers 1-4 from the old HUB) ---------- */
 function generate(maps){
   const g=[...Array(H)].map(()=>Array(W).fill('g'));
@@ -330,6 +361,7 @@ function generate(maps){
   B('A',104,2,111,6,{id:'ortho',sign:'BRACE YOURSELF ORTHODONTICS',face:'s',col:'#e6eef0'});
   {const c=buildings.find(b=>b.id==='center');c.roofY=ROOF_Y;c.parapet=.9}
   stampBase(g,set,rect,buildings);
+  stampStrip(g,set,rect,buildings);
   for(let x=0;x<W;x++){if(g[0][x]!=='~')g[0][x]='t';if(g[H-1][x]!=='~')g[H-1][x]='t'}for(let z=0;z<H;z++){g[z][0]='t';g[z][W-1]='t'}
   for(const r of roads){for(let i=r.a+3;i<r.b-1;i+=8){
     if(r.o==='h'){for(const z of[r.k-1,r.k+3])if(g[z]&&g[z][i]==='s')set(i,z,'l')}else{for(const x of[r.k-1,r.k+3])if(g[i]&&g[i][x]==='s')set(x,i,'l')}}}
@@ -386,7 +418,7 @@ function groundAt(g,x,z,floor){const c=g[z][x];if(COLCH.includes(c))return c;if(
   const n={};for(const[dx,dz]of N8){const cc=g[z+dz]&&g[z+dz][x+dx];if(cc&&COLCH.includes(cc))n[cc]=(n[cc]||0)+1}
   let best=floor,bn=0;for(const k in n)if(n[k]>bn){bn=n[k];best=k}return best}
 const yawOf=(dx,dz)=>Math.atan2(-dx,-dz);   // game convention: forward = (-sin yaw, -cos yaw)
-function hoodOfTile(t,u){if(u!=null&&u>=HOODS.base.tz0&&t<=HOODS.base.tx1)return 'base';return t<=HOODS.maple.tx1?'maple':t<=HOODS.route9.tx1?'route9':'river'}
+function hoodOfTile(t,u){if(u!=null&&u>=HOODS.strip.tz0&&t<=HOODS.strip.tx1)return 'strip';if(u!=null&&u>=HOODS.base.tz0&&t<=HOODS.base.tx1)return 'base';return t<=HOODS.maple.tx1?'maple':t<=HOODS.route9.tx1?'route9':'river'}
 
 /* SPEC3 site data the jobs need (metres unless a field says tiles). solids: extra static colliders {x0,z0,x1,z1,ph,h?,k} that js/openworld.js adds */
 function siteExtras(id,S,marks,g,buildings){const T=TILE,box=(x0,z0,x1,z1)=>({x0:x0*T,z0:z0*T,x1:(x1+1)*T,z1:(z1+1)*T,tx0:x0,tz0:z0,tx1:x1,tz1:z1});const o={solids:[]};
@@ -477,6 +509,7 @@ function build(opts){opts=opts||{};
   /* SPEC3: the orthodontist (a business pin on the Fill-Er-Up lot), Riverside bus stops (Earl's perk), each new site's door / giver spot */
   /* Fort Sensible: the pin outside the gate, fast travel to the main road inside */
   places.base={x:tc(101),z:tc(89),tx:101,tz:89,yaw:Math.PI,label:'Fort Sensible · Public Range',hood:'base',pin:true};
+  places.strip={x:274,z:292,tx:137,tz:146,yaw:Math.PI/2,label:'Sensible Dragway · Eighth-Mile',hood:'strip',pin:true};
   places.ortho={x:tc(108),z:tc(8),tx:108,tz:8,yaw:-Math.PI/2,label:'Brace Yourself Orthodontics',hood:'route9',pin:true,door:pt(107,7)};
   for(const[id,x,z,f,label]of BUS_STOPS)places[id]={x:tc(x),z:tc(z),tx:x,tz:z,yaw:yawOf(f[0],f[1]),label,hood:'river',pin:true,bus:true,face:f};
   for(const[id,x,z,label]of[['school',71,4,'Maple Heights Elementary'],['walnut',61,24,'1418 Walnut Dr'],['storage',107,74,'Discount Storage Unlimited'],
@@ -565,7 +598,7 @@ function build(opts){opts=opts||{};
     trees,lamps,crates,tables,pumps,parked,porches,houses,rowUnits,walls,warehouses,chainlink,hedges,rails,water,court,beds,
     tags,chalk,trash,tiers:TIERS,flags:FLAGS,chunks,
     potholes,housePorches,porchesAll,newSites:Object.keys(NEW_SITES),roofY:ROOF_Y,
-    base:baseData(G.buildings)};
+    base:baseData(G.buildings),strip:stripData(G.buildings)};
   LAST=def;return def}
 
 /* ---------- queries ---------- */
