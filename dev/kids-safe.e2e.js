@@ -87,4 +87,42 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* no scope screenshot: headless, the job's camera hook doesn't draw the roof view reliably; the checks above cover the scope logic */
   for(const id of['crossing','taxi','finale']){const r=await job(id,sweep);if(r)ok(r.state==='go'&&!r.log.length&&!r.kids.some(k=>/DEAD/.test(k)),id+': every kid on set shot at point blank with guns forced on: no hit '+JSON.stringify(r))}
   const bad=errs.filter(e=>!/favicon|net::ERR/.test(e));ok(!bad.length,'no console errors '+bad.slice(0,3).join(' | '));
-  await b.close();console.log(fails?`FAIL ${fails}`:'PASS');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});
+  await b.close();
+  /* 5. W-14, the forced ceiling: a kid's model (and a daughter's) never arrives (every request aborted) and HT.People's pending ceiling is
+     cut from 60 s to 2 s (same code path, sooner). A second browser, after the first is closed. Expected: never a box (hidden, retrying),
+     still protected (character and every mesh it owns), counted by protectedNear (the 25 m no-gun rule, crew holster, jet), real key Q
+     refused near it, holstered when it walks up, point blank and a direct hurtEnemy as a registered enemy: nothing, the minivan through
+     it: nothing. Zero hit/die calls. */
+  {const KIDM=/\/people\/rocketbox\/(nb_kid|daughter)[^/]*\.glb/;const W2=await open({before:async p2=>{await p2.route(KIDM,r=>r.abort())}});const p2=W2.p,ev2=(f,a)=>p2.evaluate(f,a);
+    await p2.click('.ht-title [data-act=newgame]').catch(()=>ev2(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p2.waitForTimeout(400);
+    await ev2(async()=>{const H=window.__ht;await H.jobs.ready;H.step(2);const PP=HT.People,K=window.__K={log:[]};PP.PENDING_CEILING=2;
+      for(const f of['hit','die']){const o=PP[f];PP[f]=function(d){if(PP.isProtected(d)||d&&(d._rb||d.rb)&&/nb_kid|daughter/.test((d._rb||d.rb).key))K.log.push(f+':'+((d._rb||d.rb||{}).key));return o.apply(this,arguments)}}
+      const hu=H.hurtEnemy;K.hurt=0;
+      K.kid=(key,x,z)=>{const role=key==='daughter'?'daughter':'neighbour';const d=PP.make(role,{variant:key});d.root.position.set(x,0,z);H.L.group.add(d.root);return d};
+      H.openBridge();try{HT.Save.data.flags.act2Intro=true}catch(_){}H.prog.done[0]=true;H.prog.done[1]=true;const T=H.WORLD.places.g_earl||H.WORLD.places.g_dee;H.enterHub();H.step(2);H.P.pos.set(T.x+3,0,T.z+3);H.step(30);
+      for(let i=0;i<30&&H.region!=='river';i++)H.step(5);H.give('pistol',{mag:12,extra:24})});
+    const st=await ev2(async()=>{const H=window.__ht,PP=HT.People,K=window.__K,P=H.P;K.k=K.kid('nb_kid',P.pos.x+8,P.pos.z);K.g=K.kid('daughter',P.pos.x-8,P.pos.z);
+      for(let i=0;i<24;i++){await new Promise(r=>setTimeout(r,250));H.step(3);PP.update(1/30,H.camera)}/* 6 s: three times the shortened ceiling; PP.update runs the pending tick */
+      const one=d=>{const m=[];d.root.traverse(o=>{if(o.isMesh)m.push(o)});return{boxed:!!d.boxed,pending:!!d.pending,prot:PP.isProtected(d),meshes:m.length,protMesh:m.every(o=>PP.isProtected(o))}};
+      return{kid:one(K.k),daughter:one(K.g),near:!!PP.protectedNear(P.pos.x,P.pos.z,25),region:H.region}});
+    console.log('info forced ceiling: '+JSON.stringify(st));
+    ok(st.kid.pending&&!st.kid.boxed&&st.daughter.pending&&!st.daughter.boxed,'W-14: past the ceiling a kid and a daughter whose models never arrive stay hidden and retrying, never boxed '+JSON.stringify(st));
+    ok(st.kid.prot&&st.kid.protMesh&&st.daughter.prot&&st.daughter.protMesh,'W-14: both still protected, character and every mesh they own');
+    ok(st.near,'W-14: protectedNear sees them (the 25 m no-gun rule, the crew holster, the jet)');
+    await ev2(()=>{const H=window.__ht;H.frHolster&&H.frHolster();H.step(2);H.running=true;H.HUD.hide('pause')});await p2.keyboard.press('q');await ev2(()=>window.__ht.step(2));
+    const armed=await ev2(()=>window.__ht.frArmed);
+    const walk=await ev2(()=>{const H=window.__ht,K=window.__K;K.k.root.position.x=H.P.pos.x+80;K.g.root.position.x=H.P.pos.x-80;H.step(2);H.frDraw('pistol');H.step(2);const a=H.frArmed;K.k.root.position.x=H.P.pos.x+18;H.step(3);return{before:a,after:H.frArmed}});
+    ok(armed===false&&walk.before===true&&walk.after===false,'W-14: key Q refused 8 m from the loading kid ('+armed+'); drawn at 80 m, holstered when it comes within 18 m '+JSON.stringify(walk));
+    const sh=await ev2(()=>{const H=window.__ht,K=window.__K,P=H.P,out=[];for(const d of[K.k,K.g]){d.root.position.set(P.pos.x,0,P.pos.z-5);
+        const e={kind:'enemy',dude:d,pos:d.root.position,hp:100,maxhp:100,state:'idle',alert:false,fireT:9,id:'kidtest'};d.meshes.forEach(m=>m.userData.ent=e);H.enemies.push(e);H.dude.rebuildTargets();
+        for(const g of['pistol','beanbag']){H.give(g,{mag:30,extra:30});H.swap(g,true);H.step(20);for(let i=0;i<3;i++){const ey=P.pos.y+1.65;P.fp=true;P.yaw=0;P.pitch=Math.atan2(1.1-ey,5);H.draw();P.fireT=0;P.equipT=0;H.fire();H.step(3)}}
+        H.hurtEnemy(e,999,'player',{});out.push((d._rb||d.rb).key+':'+e.hp+'/'+e.state);const i=H.enemies.indexOf(e);if(i>=0)H.enemies.splice(i,1);H.dude.rebuildTargets()}return{out,log:K.log.slice()}});
+    ok(sh.out.every(x=>/:100\/idle$/.test(x))&&!sh.log.length,'W-14: pistol, beanbag and a direct hurtEnemy on the loading kid and daughter (registered as enemies): no damage, no hit '+JSON.stringify(sh));
+    const rm=await ev2(()=>{const H=window.__ht,K=window.__K,V=H.VAN,G=H.ow.roads(),P=H.P;H.frHolster&&H.frHolster();const r=G.nearestRoad(P.pos.x,P.pos.z),A_=G.nodes[r.a],B_=G.nodes[r.b];
+      V.pos.set(A_.x,0,A_.z);V.yaw=Math.atan2(-(B_.x-A_.x),-(B_.z-A_.z));V.spd=0;if(V.car)V.car.spd=0;H.syncVan();P.pos.set(A_.x+2.5,0,A_.z);H.enterVan();H.step(2);
+      const L=Math.hypot(B_.x-A_.x,B_.z-A_.z),f=Math.min(18,L*.6);K.k.root.position.set(A_.x+(B_.x-A_.x)/L*f,0,A_.z+(B_.z-A_.z)/L*f);const p0=K.k.root.position.clone();let minD=99;
+      H.keys.w=true;for(let i=0;i<120;i++){H.step(1);const c=H.CV||V;minD=Math.min(minD,Math.hypot(K.k.root.position.x-c.pos.x,K.k.root.position.z-c.pos.z))}H.keys.w=false;
+      return{minD:+minD.toFixed(1),moved:K.k.root.position.distanceTo(p0)>.01,log:K.log.slice()}});
+    ok(!rm.moved&&!rm.log.length,'W-14: the minivan driven at the loading kid: nothing happens to it '+JSON.stringify(rm));
+    await W2.b.close()}
+  console.log(fails?`FAIL ${fails}`:'PASS');process.exit(fails?1:0)})().catch(e=>{console.error(e);process.exit(1)});

@@ -96,7 +96,7 @@ const L={
     ['dee',"Your disguises are in the back of the van. I did my best. My best was a craft store."]],
   picked:{press:[['you',"Riverside Gazette. Est. ...this morning."],['dee',"Lanyard says PRESS. Act like you've been asked to leave places before."]],
     cousin:[['you',"Cap backwards. I'm the DJ's cousin. From the thing."],['dee',"What thing?"],['you',"The thing. Everybody has a thing."]],
-    mustache:[['you',"Just the mustache."],['dee',"Just the mustache. Bold. Everybody will know. Nobody will say a word. That's the whole neighbourhood in one disguise."]]},
+    mustache:[['you',"Just the mustache."],['dee',"Just the mustache. Bold. Everybody will know. Nobody will say a word. That's the whole neighborhood in one disguise."]]},
   coverTut:['dee',"See that ring? That's your cover. Running, crouching, hanging round the staff door, people notice. Mingle and it comes back. Talk to folks, E, and it comes back faster."],
   fixTut:{press:['dee',"Your lanyard's already twisted. Press G to fix it. You'll have to, now and then."],cousin:['dee',"Your cap's crooked already. G to fix it. Check it now and then."],
     mustache:['dee',"Your mustache is already crooked. Press G to straighten it. It will slip. It's a craft-store mustache."]},
@@ -196,7 +196,7 @@ const TALK={
     {reg:'over',text:"I've bought eleven raffle tickets this year. I won a ham. I ate it in the car.",reply:{hit:"(laughs) Walt won a ham like that! Was it you? Are you Walt?",miss:"...Okay."}}]},
   odette:{open:"Look at all this stuff. Somebody's toolbox. Somebody's drill. Somebody's... everybody's.",opts:[
     {reg:'joke',text:"I like that drill. It's very... boring.",reply:{hit:"(laughs) Boring! That's terrible! Okay, okay.",miss:"...It is a drill."}},
-    {reg:'real',text:"Feels like half of it came from up the street.",reply:{hit:"(quiet) That's my neighbour's drill. It's got his name on it. In marker.",miss:"Don't say that so loud."}},
+    {reg:'real',text:"Feels like half of it came from up the street.",reply:{hit:"(quiet) That's my neighbor's drill. It's got his name on it. In marker.",miss:"Don't say that so loud."}},
     {reg:'over',text:"I tried to sell my kid's drum kit here. To get some quiet. The guy laughed at me.",reply:{hit:"(laughing) I would've bought it just to throw it out!",miss:"...That's mean."}}]},
   mr_b:{open:"These prices. These are not prices. These are suggestions.",opts:[
     {reg:'joke',text:"I asked how much for the watch. He said 'time will tell'.",reply:{hit:"(chuckles) Time will tell. Ha. Should be free, then.",miss:"Nobody said that."}},
@@ -945,7 +945,7 @@ J.on('pose',()=>{const M=LIVE.M;if(!M)return;const a=A(),cur=a&&a.M;if(cur!==M||
 /* touch: the disguise chip fixes the tell */
 let HUDB=false;J.on('hud',()=>{if(HUDB)return;const a=A();if(!a||!a.HUD||!a.HUD.on)return;HUDB=true;a.HUD.on('gadget',id=>{const M=A().M;if(id==='pawnfix'&&M&&M.def.id==='pawn')M.fixTap=true})});
 /* the result card: an infiltration's numbers (cover, conversations, the ledger) instead of the fight stats */
-const HEADS=['Nobody asked a single question.','Nobody asked. A few people almost did.','Everybody noticed. Nobody said a word.','Very polite neighbourhood.'];
+const HEADS=['Nobody asked a single question.','Nobody asked. A few people almost did.','Everybody noticed. Nobody said a word.','Very polite neighborhood.'];
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||M.def.id!=='pawn'||M.state==='go'||M.resDone)return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;const D=M.D;
   if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=D?HEADS[D.started===0?0:D.excused===0?1:D.excused<3?2:3]:HEADS[0]}
   const cells=[...r.querySelectorAll('.ht-stats > div')],set=(d,k,v,sub)=>{if(!d)return;d.innerHTML='';const b=document.createElement('b'),sp=document.createElement('span');b.textContent=k;sp.className='ht-num';sp.textContent=v;d.appendChild(b);d.appendChild(sp);

@@ -90,7 +90,7 @@ const LN={
     W:["They're cutting through the yards off 2nd!","Back alley! Behind the houses!","The alley, the alley!"]},
   hostile:["This is our block!","Who said you could move in here?","That's our stoop, man.","Nobody asked us!","We hang out here. This is OUR house."],
   dave:["It's everybody's block! Coming through!","Excuse me. Lamp coming through. Mind the shade.","It's a free country. And a free sidewalk. Coming through!"],
-  talkL:["...Fine. It's a nice couch, though.","Aight, aight. Welcome to the neighbourhood, I guess.","...My aunt has that same lamp.","Whatever. ...Do they need help with the piano?"],
+  talkL:["...Fine. It's a nice couch, though.","Aight, aight. Welcome to the neighborhood, I guess.","...My aunt has that same lamp.","Whatever. ...Do they need help with the piano?"],
   talkP:["Make me.","Talk to the hand, Dad.","Nah. That box looks expensive.","You talking to me? With a box?"],
   you_talk:["Hey. Hey. It's a moving day. Nobody needs to be a hero.","Look, they're nice people. Grandma brought jollof.","Want to carry a lamp? It's very satisfying.","It's a box. It says 'kitchen'. Let it go."],
   tackle:["Whoa, whoa. Sit down. Hands where I can see 'em.","Gotcha. Nobody steals a box marked 'kitchen' on my watch.","Down you go. Gently. It's a residential street."],
@@ -177,7 +177,7 @@ function TX(){const c=R().cache;if(c.tx)return c.tx;const X={};
     /* the window: sash bars over the room */g.fillStyle='#efe9da';g.fillRect(0,h*.49,w,7);g.fillRect(w*.49,0,6,h);g.strokeStyle='#efe9da';g.lineWidth=10;g.strokeRect(0,0,w,h)});
   X.room=[room(0),room(1),room(2)];
   X.welcome=canvasTex(512,160,(g,w,h)=>{g.fillStyle='#ffd23f';g.fillRect(0,0,w,h);g.strokeStyle='#b8323a';g.lineWidth=8;g.strokeRect(6,6,w-12,h-12);g.fillStyle='#b8323a';g.font='900 54px "Arial Black",Impact,sans-serif';g.textAlign='center';g.fillText('WELCOME HOME!',w/2,78);
-    g.fillStyle='#2b4a6b';g.font='700 italic 30px Georgia,serif';g.fillText('from your neighbours on 3rd St',w/2,124)});
+    g.fillStyle='#2b4a6b';g.font='700 italic 30px Georgia,serif';g.fillText('from your neighbors on 3rd St',w/2,124)});
   return c.tx=X}
 
 /* ---------------- models ---------------- */
@@ -738,7 +738,7 @@ function startLast(M){const a=A(),V=S(M);V.lastBox=true;V.ph='last';V.endT=0;if(
     const sp=L_.spawns[h.from]||L_.spawns.N;h.e.script={kind:'to',x:sp.x,z:sp.z,speed:3,then:()=>vanish(M,h)}}
   const b=cardBox('pillows',1.1);b.position.set(L_.stack.x,0,L_.stack.z+.9);a.wmAdd(b);V.last={box:b,st:'wait',t:0};
   if(V.andre==='cuffed'){/* Andre comes back. Zip-ties off: Rosa's idea */const d=actor('thug_hoodie');d.root.position.set(378.4,0,66);V.last.andre={d,path:[{x:378.4,z:80},{x:376.4,z:91.4}],pi:0,moving:0};V.last.st='andre'}
-  else say(M,'Mr. Adeyemi',"Last one. 'PILLOWS'. Who wants the honour?",true)}
+  else say(M,'Mr. Adeyemi',"Last one. 'PILLOWS'. Who wants the honor?",true)}
 function endTick(M,dt,F){const a=A(),V=S(M),Ls=V.last,P=a.P;if(!Ls)return;Ls.t+=dt;V.endT+=dt;
   if(Ls.st==='andre'){const an=Ls.andre;if(stepAlong(an,dt,1.8)){Ls.st='andreTake';Ls.t=0;sayLater(M,0,LN.andreBack)}posePerson(an,dt);return}
   if(Ls.st==='andreTake'){const an=Ls.andre;if(Ls.t>2.6&&!an.box){an.box=Ls.box;an.path=L_.path.slice(1);an.pi=0;Ls.st='andreCarry'}posePerson(an,dt);return}

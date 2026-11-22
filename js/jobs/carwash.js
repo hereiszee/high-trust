@@ -25,7 +25,7 @@ const SPOT={reel:{x:330.9,z:32.55},spigot:{x:330.2,z:32.08},thermo:{x:322.2,z:33
   sign:{x:342.4,z:39.25},aframe:{x:341.2,z:38.65},chairs:[{x:330.4,z:39.05},{x:331.5,z:39.05},{x:332.6,z:39.05},{x:333.7,z:39.05}],
   bucket:[{x:323.35,z:38.55},{x:339.65,z:38.55}],wash:[{x:323.15,z:36.9},{x:339.85,z:36.9}],dry:{x:334.0,z:37.5},hang:{x:329.4,z:37.2},
   lane:41.7,far:44.6,rival:{x:334.5,z:48.6},rsign:{x:337.0,z:47.6},ring:{x:347,z:28},puddle:{x:333.5,z:40.35}};
-const STN={w0:{label:'Bay 1 · Soap & scrub',short:'Bay 1',icon:'soap'},w1:{label:'Bay 2 · Soap & scrub',short:'Bay 2',icon:'soap'},dry:{label:'Drying',short:'Dry',icon:'dry'},sign:{label:'Sign on the kerb',short:'Sign',icon:'sign'},table:{label:'Hanging out',short:'—',icon:'idle'}};
+const STN={w0:{label:'Bay 1 · Soap & scrub',short:'Bay 1',icon:'soap'},w1:{label:'Bay 2 · Soap & scrub',short:'Bay 2',icon:'soap'},dry:{label:'Drying',short:'Dry',icon:'dry'},sign:{label:'Sign on the curb',short:'Sign',icon:'sign'},table:{label:'Hanging out',short:'—',icon:'idle'}};
 const KIDS=[{id:'jaylen',name:'Jaylen',role:'nb_teen',st:'table',sc:1},{id:'sam',name:'Sam',role:'nb_kid',st:'w0',sc:1},{id:'riley',name:'Riley',role:'nb_kid',st:'dry',sc:.94},{id:'dev',name:'Dev',role:'nb_teen',st:'w1',sc:.97}];
 /* customers: who, model, car, dirt, lines (arrive / pay good / pay meh) */
 const CUST=[
@@ -43,7 +43,7 @@ const CUST=[
   {id:'patel',who:'Mr. Patel',role:'nb_sweater',type:'hatch',col:'#4f6d8f',dirt:'pollen',hi:"Gary says you're the best. Gary says a lot of things.",ok:"Gary was right. Don't tell Gary.",meh:"Gary will hear about this. Gently."},
   {id:'kenji',who:'Kenji',role:'nb_kenji',type:'sedan',col:'#1f2328',dirt:'dust',hi:"Black car. Shows everything. Everything.",ok:"It's black again! Black black!",meh:"Charcoal. It's charcoal now."},
   {id:'adeyemi',who:'Mr. Adeyemi',role:'nb_marcus',type:'suv',col:'#2e4a6b',dirt:'pollen',hh:'adeyemi',hi:"First Saturday on the street. We heard there's a car wash. And a thermometer.",ok:"We're staying, you know. For good.",meh:"Still a few boxes' worth of dust. Like the garage."},
-  {id:'teen',who:'Marcus',role:'nb_marcus',type:'hatch',col:'#d4552f',dirt:'mud',hi:"My first car! It's mostly rust. Wash around the rust.",ok:"She's beautiful. She's MINE.",meh:"Rust is a colour. It's fine."},
+  {id:'teen',who:'Marcus',role:'nb_marcus',type:'hatch',col:'#d4552f',dirt:'mud',hi:"My first car! It's mostly rust. Wash around the rust.",ok:"She's beautiful. She's MINE.",meh:"Rust is a color. It's fine."},
   {id:'lucia',who:'Lucia',role:'nb_lucia',type:'minivan',col:'#6b5aa0',dirt:'washme',hi:"The twins wrote on it again. In the dust. Shapes, mostly.",ok:"Twins! Look! It's clean! ...Don't touch it.",meh:"The shapes are still sort of there."}];
 const DIRT={pollen:{c:'#c9bf4f',top:.6,side:.3,speck:'#e3d873',n:'pollen'},washme:{c:'#9a8a70',top:.55,side:.45,speck:'#b6a68a',n:'dust',text:'WASH ME'},
   sticky:{c:'#d8a7b5',top:.4,side:.3,speck:'#6b3f2a',n:'ice cream',drips:'#8a5a3c'},duke:{c:'#7d6a52',top:.6,side:.52,speck:'#5a4836',n:'grime',hood:'THE DUKE'},
@@ -53,7 +53,7 @@ const DIRT={pollen:{c:'#c9bf4f',top:.6,side:.3,speck:'#e3d873',n:'pollen'},washm
 const LINES={
   hi:[['dee',"You came! Okay. Five dollars a car. Ten if they want the inside. Nobody wants the inside."],['dee',"The kids do the soap. You do the hose. Grab it off the reel by the wall."]],
   hose:"Got it. Now fill both buckets: point at a bucket and hold the mouse button. Or R.",
-  buckets:"Buckets full. Jaylen is 'supervising' by the table. Walk up, press E, then send them to the kerb with the sign.",
+  buckets:"Buckets full. Jaylen is 'supervising' by the table. Walk up, press E, then send them to the curb with the sign.",
   open:["We're OPEN!","SUDS! SUDS! FIVE DOLLARS!"],openDee:"There's the first one. Kids soap, you rinse. Rinse every side: top, both sides, front and back.",
   rinseTip:"Rinse it all. Roof, hood, both sides, the back. Walk around it.",
   kidFollow:["Where do you need me?","Okay okay okay. Where?","On it. Where's 'it'?","Following! Like a duckling!"],
@@ -66,7 +66,7 @@ const LINES={
   rivalGo:["Three dollars? Over there? ...Fine.","Coupon wash? Huh. Cheaper.","No line over there."],
   wetLeave:"I'll just let it air dry. On the highway.",
   free:["It says FREE.","Sign says free! Love it.","Free? Free! I'll tip. A little."],
-  thermo:["The thermometer's going up!","Look at the thermometer!","Every dollar's a van tyre."],
+  thermo:["The thermometer's going up!","Look at the thermometer!","Every dollar's a van tire."],
   gary:{call:"Gary. We've got a situation at the car wash.",hi:"On my way. Bringing the clipboard.",busy:"Gary's busy. He's still on the last one.",none:"Gary's done for today. He's doing inventory on the cash box.",
     rival:"Gentlemen. Temporary vendor permit? ...I'll wait. I've got all day. I brought a chair.",sign:"There. 'Five dollars'. And I corrected your apostrophe.",kink:"Hose is a tube. Tubes go straight. Fixed.",
     mud:"Sir, that bucket is a liability. I'll be holding it. Thank you.",drive:"Sir. Sir. I have your plate. I have everyone's plate.",thief:"I don't run. I invoice."},
@@ -77,7 +77,7 @@ const LINES={
   talk:{prompt:"What do you say?",opts:[["There are kids here.",'real'],["Five dollars a car. Ten for the inside.",'joke'],["I know your aunt.",'over']]},
   rivalSign:"Our sign! Our beautiful cardboard sign!",rivalPack:"Pack it up. Pack it up. They've got a HOSE.",
   zipNear:"Not in front of the kids. Walk him down to the corner first.",zip:"Zip-tie. Right here, away from the kids. Officer Ferreira's on her way.",
-  box:{grab:"HEY! That's the youth group's cash box!",back:"The cash box! Thank you! Gary is going to itemise that man.",lost:"He's gone with the cash box. That's our tyres. Our TYRES."},
+  box:{grab:"HEY! That's the youth group's cash box!",back:"The cash box! Thank you! Gary is going to itemise that man.",lost:"He's gone with the cash box. That's our tires. Our TIRES."},
   ten:"Ten seconds! Last car!",time:"That's TIME! Hoses down! Count it up!",
   tally:{bad:"That's not enough to count, but the kids had fun. Next Saturday?",ok:"That's a good Saturday. A good, wet Saturday.",great:"That's the best Saturday this lot has ever seen. Somebody hug the hose guy."}};
 const pick=(a,r)=>a[Math.floor((r?r():Math.random())*a.length)];
@@ -790,7 +790,7 @@ function setupTick(M,dt,F){const a=A(),C=cw(M),H=C.hose,P=a.P;
   else if(C.tut===1){const b0=C.buckets[0]>=.9,b1=C.buckets[1]>=.9;F.objs.push(['Fill both buckets: aim at a bucket, hold Left Mouse (or R) · '+((b0?1:0)+(b1?1:0))+'/2',b0&&b1]);
     const t=!b0?SPOT.bucket[0]:SPOT.bucket[1];F.target={x:t.x,z:t.z,label:'Bucket'};if(!H.held)F.objs.push(['Pick the hose back up · E',false,'warn']);
     if(b0&&b1){C.tut=2;a.radio('dee',LINES.buckets,true)}C.tutT=(C.tutT||0)+dt;if(C.tutT>40&&!C.said.tutHelp){C.said.tutHelp=1;a.radio('dee',"Point the crosshair right at the orange bucket and hold the button. The water goes where you look.",true)}}
-  else if(C.tut===2){const j=C.kids.find(k=>k.id==='jaylen');F.objs.push(C.follow===j?['Send Jaylen to the kerb with the sign · E at the SIGN spot',false]:['Get Jaylen: walk up and press E',false]);
+  else if(C.tut===2){const j=C.kids.find(k=>k.id==='jaylen');F.objs.push(C.follow===j?['Send Jaylen to the curb with the sign · E at the SIGN spot',false]:['Get Jaylen: walk up and press E',false]);
     F.target=C.follow===j?{x:SPOT.sign.x,z:SPOT.sign.z,label:'Sign spot'}:{x:j.x,z:j.z,label:'Jaylen'}}
   else if(C.tut===3){openShift(M)}
   F.objs.push(['Kids soap and scrub. You rinse with the hose. Kids dry.',false])}

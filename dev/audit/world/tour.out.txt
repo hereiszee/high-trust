@@ -1,0 +1,19 @@
+places home,hank,auto,gas,center,mart,autoBay,sale_workvan,sale_pickup,sale_suv,g_gary,g_rick,g_dave,g_doug,g_earl,g_dee,g_rosa,g_benny,stake,base,ortho,bus1,bus2,bus3,bus4,school,walnut,storage,parkride,pawn,millshop,market,roof base {"gate":{"x":203,"z":169,"w":10},"range":{"x":113,"z":200.9},"tank":{"x":216,"z":199,"yaw":3.141592653589793},"jet":{"x":256,"z":221,"yaw":1.5707963267948966}}
+home-street {"at":[45,19],"region":"maple","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-home-street.jpg
+home-front {"at":[41,21.8],"region":"maple","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-home-front.jpg
+hank {"at":[45.4,27],"region":"maple","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-hank.jpg
+auto {"at":[221,59.8],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-auto.jpg
+gas {"at":[215,29],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-gas.jpg
+center {"at":[427,60.3],"region":"river","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-center.jpg
+bridge-closed {"at":[272,43],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-bridge-closed.jpg
+riverbank {"at":[270,70],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-riverbank.jpg
+mart {"at":[369,55],"region":"river","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-mart.jpg
+base-gate {"at":[203,155],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-base-gate.jpg
+range {"at":[117,200.9],"region":"base","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-range.jpg
+tank {"at":[224,207],"region":"base","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-tank.jpg
+jet {"at":[268,233],"region":"base","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-jet.jpg
+riverside {"at":[356,46],"region":"river","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-riverside.jpg
+bridge-open {"at":[272,43],"region":"route9","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-bridge-open.jpg
+map-edge-east {"at":[460,60],"region":"river","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-map-edge-east.jpg
+map-edge-west {"at":[4,60],"region":"maple","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-map-edge-west.jpg
+night-street {"at":[45,19],"region":"maple","calls":1,"float":[],"cars":[],"pend":0,"mag":1,"box":0,"tags":[],"marks":0,"idle":true} docs/audit/world/tour-night-street.jpg

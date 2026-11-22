@@ -92,7 +92,7 @@ const L_={
   sunday:["He's stuck behind a Sunday driver! Bless that sedan!","He's using the traffic! He's hiding behind that car!"],
   onc:{you:["Car! Oncoming! Tuck in behind him! Tuck in!","Oncoming traffic in your lane! Drop back! DROP BACK!"],rick:["Oncoming! I'm tucking in! Sorry, ma'am!","Car coming! I'm out, I'm out, I'll be right back!"]},
   far:["We're losing him! Close it up!","He's pulling away! The box can't form if you're in a different zip code!"],
-  flag:["Flag on the play! No contact! We're not animals. We're a zone defence.","That's a flag! Hands off the hatchback! We want him stopped, not smooshed.","Contact! Flag! That's coming out of your snack privileges."],
+  flag:["Flag on the play! No contact! We're not animals. We're a zone defense.","That's a flag! Hands off the hatchback! We want him stopped, not smooshed.","Contact! Flag! That's coming out of your snack privileges."],
   fouled:["That was HIS fault. That one's on him. I saw it. The ref saw it. I'm the ref.","He hit YOU. Foul on the hatchback. Fifteen yards. I don't know what that means here."],
   kiss:["You kissed a civilian car. That's a warning. Next one's a card.","Easy! That's somebody's car! That's somebody's MOM's car, probably!"],
   card:"That's a civilian, that's a yellow card, eyes up! Play's dead!",
@@ -111,7 +111,7 @@ const L_={
   box:[["dave","BOX!"],["rick","BOX! ...Okay. Now let's go get those two some juice boxes. And a lawyer."]],
   fail:{escaped:"He got away clean. Rick is drawing the play on a napkin. The napkin is crying.",card:"A civilian car. Yellow card. Rick blew the whistle so hard Dave dropped his sunglasses.",
     flags:"Five flags. That's not a box, that's a demolition derby. Coach is benching you.",broke:"The van's done. Sal's sending the tow truck. Rick is writing 'take care of your equipment' on the whiteboard."}};
-const NOGUN="Rick: No guns. Not from the cars, not from anywhere. We're not animals. We're a zone defence.";
+const NOGUN="Rick: No guns. Not from the cars, not from anywhere. We're not animals. We're a zone defense.";
 
 /* ---------------- resources (disposed when the job ends, any ending) ---------------- */
 let RES=null;const res=()=>RES||(RES={geo:[],mat:[],tex:[],veh:[],ov:{},hooks:[]});
@@ -193,7 +193,7 @@ J.register('brake',{
   def:{giver:'rick',hood:'river',title:'Brake Check',role:'Coach Rick · Youth Soccer, Fourteen Seasons, One Whistle',place:'Fill-Er-Up, Route 9 and Riverside',
     lines:["Fill-Er-Up's ATM gets hit every Thursday. Same teal hatchback, same two guys, same crowbar. They're very consistent. I respect it. I don't like it.",
       "Everybody wants to chase them. No. Chasing is how you end up in somebody's living room. We don't chase. We run a PLAY.",
-      "Three cars. You, me, Big Dave. We box him in: one in front, one beside, one behind, and we brake together. No ramming. No civilians. No guns. We're not animals. We're a zone defence."],
+      "Three cars. You, me, Big Dave. We box him in: one in front, one beside, one behind, and we brake together. No ramming. No civilians. No guns. We're not animals. We're a zone defense."],
     obj:"Run Rick's play: hold your slot around the getaway car until the box closes, brake together, then zip-tie the crew and return the cash box.",
     crew:[],weapons:['pistol'],from:{place:'g_rick'},start:{x:STAGE.you.x,z:STAGE.you.z},site:null,
     unlock:{done:['duke']},pay:K.pay,par:K.par,winTrust:0,roam:true,stay:true,order:14,noGuns:NOGUN,
@@ -261,7 +261,7 @@ J.register('brake',{
 });
 
 /* the result card: a driving play's numbers instead of the fight stats */
-const HEADS=["That's a W.","Hands in. Box on three.","Zone defence. Undefeated.","A muddy W. Still a W."];
+const HEADS=["That's a W.","Hands in. Box on three.","Zone defense. Undefeated.","A muddy W. Still a W."];
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!=='brake'||M.state==='go'||M.resDone||typeof document==='undefined')return;
   const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
   if(M.state==='won'){const h=r.querySelector('h2');if(h)h.textContent=M.flags?HEADS[3]:(M.stopT||1e9)<K.goldT?HEADS[2]:HEADS[0]}

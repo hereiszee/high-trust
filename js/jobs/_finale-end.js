@@ -40,13 +40,13 @@ FN.stages.chase={
     const inSlot=S.called&&S.crew.every(c=>c.in);if(inSlot&&behind)S.box.t+=dt;else S.box.t=Math.max(0,S.box.t-dt*2);
     if(S.box.t>=CK.boxT&&!S.stopping){S.stopping=true;M.fn.st.boxT=Math.round(S.t)}
     F.objs.push([S.called?(inSlot?(behind?'Hold the box · stay on his bumper':'Get right behind him: they have the sides'):'The crew is moving into the box…'):'Catch him: close to '+CK.callD+' m, then press G',false]);
-    F.objs.push(['No ramming the neighbours. No guns. Just cars.',false]);
+    F.objs.push(['No ramming the neighbors. No guns. Just cars.',false]);
     F.target={x:r.x,z:r.z,label:'The Wholesaler'};F.meters.push({id:'gap',label:'Distance',v:Math.min(120,d),max:120,style:'bar',warn:CK.callD,sub:Math.round(d)+' m'});
     if(S.called)F.meters.push({id:'box',label:'Box',v:S.box.t,max:CK.boxT,style:'bar',sub:S.crew.map(c=>c.in?'✓':'…').join(' ')+(behind?' ✓':' …')});
     if(d>CK.lostD)S.lostT+=dt;else S.lostT=0;
     if(S.lostT>CK.lostT||r.done){M.loseWhy='chase:'+(r.done?'escaped':'lost');return a.endMission(false,"He got away down Route 9. Doug got his plate. Doug got his plate three times. It doesn't help.",'He got away.')}
     if(once(M,'chase1')&&S.t>20)say('doug',"He's going round in a loop. People who own warehouses always think they're smarter than the grid.")},
-  fire(M){A().feed('No guns in a car chase through a festival neighbourhood','info');return true},
+  fire(M){A().feed('No guns in a car chase through a festival neighborhood','info');return true},
   clear(M){},
   bot(a,t,o,M,B){const S=M.fn.sub,r=S.rail,P=a.P;if(!a.CV){P.pos.set(a.VAN.pos.x+2.4,0,a.VAN.pos.z);a.collide(P.pos,.35);if(t%6===3)a.enterCar(a.VAN);return}
     const e=a.CV,c=e.car||e;const q=S.P.at(Math.max(0,r.s-7));e.pos.set(q.x,0,q.z);e.yaw=q.yaw;c.spd=r.v;a.syncCar(e);if(t%20===0&&!S.called)FN.press('g')}};
@@ -68,7 +68,7 @@ function crewTick(dt,M,p){const S=M.fn.sub,Tl=FN.TL(),r=S.rail;
 
 /* ===================================================================== STAGE 7: HANDS UP ===================================================================== */
 const ROUNDS=[
-  {w:"You people are fixing a neighbourhood with minivans and traffic cones.",opts:[["And zip-ties.",'real',"...And zip-ties."],["And a pivot table. Gary insisted.",'joke',"A pivot table. Of course. Of course there's a pivot table."],["You should see us with a lawn chair.",'joke',"I've heard about the lawn chair. Everybody's heard about the lawn chair."]]},
+  {w:"You people are fixing a neighborhood with minivans and traffic cones.",opts:[["And zip-ties.",'real',"...And zip-ties."],["And a pivot table. Gary insisted.",'joke',"A pivot table. Of course. Of course there's a pivot table."],["You should see us with a lawn chair.",'joke',"I've heard about the lawn chair. Everybody's heard about the lawn chair."]]},
   {w:"Do you know what I move in a week? Grills. Bikes. Kayaks. Lawn gnomes. This town buys its own stuff back from me and calls it a bargain.",opts:[["Not any more. It all went home. Every grill, every bike, the gnome.",'real',"(a long breath) The gnome was a mistake. I knew the gnome was a mistake."],
     ["Honestly the gnome was the last straw for a lot of people.",'joke',"It was a very ugly gnome. I'm a businessman. Not a monster."],["Out of the car. Slowly. Or else.",'tough',"Or else what? (he looks at the crowd. The crowd looks back. Somebody waves.) ...Okay. Okay."]]},
   {w:"So what now? You're going to shoot me? In front of a funnel cake stand?",opts:[["Nobody's getting shot. Hands where everyone can see them, and we all keep our Saturday.",'real',"...Fine. Fine. Hands up. Is that what you want? Hands up."],

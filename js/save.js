@@ -631,7 +631,7 @@ function garStatus(kind,id,store,s,out){const G=HT.Garage,g=s.garage,v=actV(s);c
   if(kind==='rep'){const q=repairQuote(s);out.hp=q.hp;out.maxHp=q.maxHp;out.car=q.car;
     if(!q.total)return set('maxed',q.car.own?'Not a scratch on her':'Not a scratch on it. '+q.car.owner+' will never know.');
     if(id==='lights'&&!q.rows.some(r=>r.id==='lights'))return set('maxed','Every lamp works');
-    if(id==='tyre'&&!q.rows.some(r=>r.id==='tyre'))return set('maxed','Four round tyres');
+    if(id==='tyre'&&!q.rows.some(r=>r.id==='tyre'))return set('maxed','Four round tires');
     if(id==='patch'&&out.price<2)return set('locked','Sal needs at least $2 to pick up a hammer');return}
   if(kind==='stick'){const i=+id;if(g.stickers.includes(i))return set('equipped');if(g.ownedStickers.includes(i))return set('owned');
     const q=STICKER_REQ[i];if(q){if(q.mart&&store!=='mart')return set('locked','Only at Ramos Corner Mart');const r=cosReq(q,s);if(r)set('locked',r)}return}
@@ -667,7 +667,7 @@ function repairQuote(s){s=S(s);const t=repCar(s),mx=t.maxHp||100,hp=clampN(num(t
   if(body>.5)rows.push({id:'body',label:'Body work',detail:Math.round(body)+' HP of dents, scrapes and a bumper held on by hope',price:Math.ceil(body*2)});
   if(eng>.5)rows.push({id:'engine',label:'Engine & radiator',detail:hp<=0?"Broken down. Sal: \"She's not dead. She's resting.\"":Math.round(eng)+' HP · steam, smoke, the noise',price:Math.ceil(eng*2)});
   if(lamps)rows.push({id:'lights',label:'Lights',detail:lamps+' smashed lamp'+(lamps>1?'s':''),price:lamps*REP_LAMP});
-  if(tyre)rows.push({id:'tyre',label:'Tyre',detail:'Flat. Thump, thump, thump.',price:REP_TYRE});
+  if(tyre)rows.push({id:'tyre',label:'Tire',detail:'Flat. Thump, thump, thump.',price:REP_TYRE});
   return{car:t,rows,total:rows.reduce((a,r)=>a+r.price,0),hp,maxHp:mx}}
 function repPrice(id,s){const q=repairQuote(s),row=k=>(q.rows.find(r=>r.id===k)||{price:0}).price;
   if(id==='lights'||id==='tyre')return row(id);
@@ -1253,7 +1253,7 @@ function itemData(kind,id){if(kind==='gun')return GUNS[id];if(kind==='att')retur
   if(kind==='stick')return{name:'"'+(G?G.COSMETICS.stickers[+id]:id)+'"',blurb:'Bumper sticker. Three slots on the back. Peel one off anytime, Sal has a razor blade.'};
   if(kind==='rep'){const t=repCar(Save.data);
     if(id==='lights')return{name:'New Lamps',blurb:'Bulbs, lenses, a bead of silicone. Sal stopped using tape in 2009.'};
-    if(id==='tyre')return{name:'Fresh Tyre',blurb:'Sal swaps the flat and checks the other three. Thump-free driving.'};
+    if(id==='tyre')return{name:'Fresh Tire',blurb:'Sal swaps the flat and checks the other three. Thump-free driving.'};
     if(id==='patch')return{name:'Patch What You Can Afford',blurb:'Sal starts with whatever is smoking and works outward until the money runs out.'};
     if(!t.own)return{name:'Fixing '+t.name+' before '+t.owner+' notices',blurb:'Sal knows '+t.owner+'. Sal will not tell '+t.owner+'. Dents, lamps, the works, $2 a hit point. Bring it back looking like this and '+t.owner+' might even say thanks.'};
     return{name:'Full Repair',blurb:'Sal hammers out the dents, tapes the mirror, and does not ask what happened. $2 a hit point.'}}
@@ -1278,7 +1278,7 @@ function shopEntries(store,tab){
   else if(tab==='sup'){for(const id in SUPPLIES)E.push({kind:'sup',id})}
   else if(tab==='gad'){for(const id of GADGET_ORDER)E.push({kind:'gad',id})}
   else if(!G){}
-  else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tyres',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility',hitch:'Utility'};
+  else if(tab==='perf'||tab==='prot'||tab==='util'){const secN={engine:'Engine',tyres:'Tires',brakes:'Brakes',sport:'Sport',bullBar:'Front',armor:'Panels',cargo:'Utility',rack:'Utility',aid:'Utility',hitch:'Utility'};
     for(const c of G.CATALOG)if(c.group===tab)E.push({kind:'gar',id:c.id,sec:secN[c.slot]})}
   else if(tab==='looks'){const C=G.COSMETICS;
     for(const o in C.paint)E.push({kind:'cos',id:'paint:'+o,sec:'Paint'});for(const o in C.rims)E.push({kind:'cos',id:'rims:'+o,sec:'Wheels'});
@@ -1292,7 +1292,7 @@ function shopEntries(store,tab){
   for(const e of E){e.key=e.kind+':'+e.id}
   return E}
 function entryName(kind,id){if(kind==='resale')return(HT.Resale.get(id)||{}).title||id;const d=itemData(kind,id);return d&&d.name||id}
-function entrySub(kind,id){const G=HT.Garage;if(kind==='resale'){const l=HT.Resale.get(id)||{};return esc((l.seller||'')+' · '+(l.where||'Neighbourly Resale')+(l.ago?' · '+l.ago:''))}
+function entrySub(kind,id){const G=HT.Garage;if(kind==='resale'){const l=HT.Resale.get(id)||{};return esc((l.seller||'')+' · '+(l.where||'Neighborly Resale')+(l.ago?' · '+l.ago:''))}
   if(kind==='gun'){const g=GUNS[id];return slotName[g.slot]+' · '+AMMO[g.ammo].name}
   if(kind==='att'){const a=ATTACHMENTS[id];return ATT_SLOTS.find(s=>s[0]===a.slot)[1]+' · fits '+a.compat.length+' guns'}
   if(kind==='furn'){const f=FURNITURE[id];return f.room+' · '+f.cells[0]+'×'+f.cells[1]+' m'}

@@ -66,8 +66,8 @@ const L={
   route:['sal',"Ways in: the crack in the gate by Walt's chair, over the east fence, or through the shop bay on Mill. Mind the dog in the bay."],
   sign:['sal',"My sign's in the back of your van. It's big. You'll walk slow and you can't crouch with it, so pick your moment."],
   noGuns:"No guns tonight. Sal's rules: nobody gets hurt, nothing gets broken that a pump can't fix.",
-  hiss:["Tsssss.","That's the sound of justice.","Sorry, buddy. It's for the neighbourhood.","Quarter turn. Tsssss.","Easy... easy..."],
-  tyreDone:["One down.","Flat as a pancake. A sad, expensive pancake.","That one's sitting on its rim now.","Tyre's having a lie-down."],
+  hiss:["Tsssss.","That's the sound of justice.","Sorry, buddy. It's for the neighborhood.","Quarter turn. Tsssss.","Easy... easy..."],
+  tyreDone:["One down.","Flat as a pancake. A sad, expensive pancake.","That one's sitting on its rim now.","Tire's having a lie-down."],
   truckDone:[['sal',"That's one truck taking a personal day."],['sal',"Two trucks down. They'll be calling somebody for a pump. Guess who has a pump."],
     ['sal',"Three. I can hear my phone ringing in the morning already."],['sal',"All four trucks sitting on their rims. Beautiful. Don't get cocky."]],
   heardHiss:[['Kyle',"You hear hissing?"],['Walt',"That's the radiator. It's always the radiator."]],
@@ -79,25 +79,25 @@ const L={
     boss:["Nothing. Great. Love that.","I'm gonna install cameras. Real ones this time.","Back to work. Back to... sitting."]},
   alert:{walt:["Hey! I see you! I see you... slowly!","Hey! Stop right there! Or slow down, at least!"],kyle:["Hey! HEY! ...You again?!","It's the minivan guy! HEY!"],boss:["Kyle. KYLE. It's the minivan guy!","You! From the impound thing!"]},
   lost:{walt:["Where'd he go? I swear he was right there.","Lost him. He's quick for a dad."],kyle:["Where'd he go? Where'd he GO?","He was right... okay. Okay. I'm telling people."],boss:["Find him! ...Somebody find him!","Unbelievable. Un-be-lievable."]},
-  caught:{walt:"Gotcha. Sit down on that tyre, son. I'm calling Officer Dana.",kyle:"Got you! Sit! Sit on that tyre! Walt, call Dana!",boss:"Got you. Sit. Kyle, call Officer Dana. Use your phone, not the fake one."},
+  caught:{walt:"Gotcha. Sit down on that tire, son. I'm calling Officer Dana.",kyle:"Got you! Sit! Sit on that tire! Walt, call Dana!",boss:"Got you. Sit. Kyle, call Officer Dana. Use your phone, not the fake one."},
   tied:{walt:"Is this... is this a zip tie? At my age?",kyle:"Oh, come ON.",boss:"This is a legal impou— mmf. Fine. Fine."},
   tiedYou:["Very assertive cable management.","Sorry. You'll be fine. Morning shift'll cut you loose.","Shh. Think of it as a hug from a hardware store."],
-  findTied:{walt:"Kyle? Why are you zip-tied to a tyre?",kyle:"Walt? Walt, are you... are you in time-out?",boss:"Why is everybody sitting down? Who's sitting everybody down?"},
+  findTied:{walt:"Kyle? Why are you zip-tied to a tire?",kyle:"Walt? Walt, are you... are you in time-out?",boss:"Why is everybody sitting down? Who's sitting everybody down?"},
   bark:["*WOOF* *WOOF*","*WOOF*","*ruff* *WOOF*"],
   treatLand:[['you',"Shh. Shhh. Good boy. Who's a good boy. Not your owner."],['Tiny',"*happy chewing*"]],
   treatMiss:["That landed somewhere. Loudly.","Plap. That's a treat in the dirt."],
-  toy:[['you',"That's yours, buddy. Squeaky hot dog. Sal says it's your favourite."],['Tiny',"*squeak* *squeak* *happy chewing*"]],
+  toy:[['you',"That's yours, buddy. Squeaky hot dog. Sal says it's your favorite."],['Tiny',"*squeak* *squeak* *happy chewing*"]],
   goodBoy:"Good boy. Tiny won't make a peep for the rest of the night.",
   pet:["Shh. Good boy. Keep chewing.","Who's a good boy. You are. Don't tell anyone I was here."],
   ledger:[['you',"Dispatch ledger. 'Impound fees, Riverside: lots.' Sal's going to frame this."]],
   signGrab:"Okay. Big sign. Walk slow. Look like a guy who carries signs at three in the morning.",
-  signUp:[['you',"Bolting it up. Quietly. This drill has one setting and it's 'neighbour'."]],
+  signUp:[['you',"Bolting it up. Quietly. This drill has one setting and it's 'neighbor'."]],
   signDone:[['you',"UNDER NEW MANAGEMENT. Call Sal. Honest Towing."],['sal',"Ooh. Crooked? Doesn't matter. It's perfect."]],
   allDone:['sal',"That's all four and the sign. Back to the van. Walk, don't run. Running is how you get remembered."],
   dawn30:['sal',"Sky's getting lighter. Half an hour till those trucks are supposed to roll."],dawn10:['sal',"Ten minutes. The birds are up. Move it."],
   dawnFail:"The sun's up, the trucks rolled out on time, and somebody on Oak St is about to pay four hundred bucks.",
   leash:"You're wandering off. The yard's back that way.",
-  ending:[['Walt',"'Honest Towing'? ...Who's Sal?"],['sal',"Four trucks with flat tyres. Guess who they'll call. Guess who's honest. Guess who has a payment plan."]],
+  ending:[['Walt',"'Honest Towing'? ...Who's Sal?"],['sal',"Four trucks with flat tires. Guess who they'll call. Guess who's honest. Guess who has a payment plan."]],
   caughtFail:"Caught. Officer Dana gives you a ride back to your van and a long, tired look. Try it again from the checkpoint."};
 
 /* ---------------- small helpers ---------------- */
@@ -511,8 +511,8 @@ J.register('sabotage',{
   def:{giver:'sal',hood:'river',title:'Sign of the Times',role:"Sal · Dad's Auto, Since 1987",place:'Mill St Auto Recovery, Riverside',
     lines:["Remember Quik-Hook? They're back. New paint, new name: Mill St Auto Recovery. Same four trucks, same 'impound' racket.",
       "Those trucks roll out at dawn to hook Riverside cars. I want them to not roll out. Nobody gets hurt, and nothing gets broken that a pump can't fix.",
-      "Valve core tool. Quarter turn. Tsssss. That's the sound of justice. Two tyres a truck, hang my banner over their sign, and don't get seen."],
-    obj:"At night, sneak into the yard, let the air out of two tyres on each of the four tow trucks, hang Sal's banner over their sign and get out unseen.",
+      "Valve core tool. Quarter turn. Tsssss. That's the sound of justice. Two tires a truck, hang my banner over their sign, and don't get seen."],
+    obj:"At night, sneak into the yard, let the air out of two tires on each of the four tow trucks, hang Sal's banner over their sign and get out unseen.",
     crew:[],weapons:[],from:{place:'auto'},start:{x:386,z:125.5},site:'millshop',
     unlock:{done:['tow']},pay:1000,par:420,winTrust:10,roam:true,night:true,order:32,
     noGuns:L.noGuns,
@@ -546,9 +546,9 @@ J.register('sabotage',{
     const nT=M.valves.filter(v=>v.done).length,carry=P.carry&&P.carry.kind==='banner';
     M.allDone=nT>=8&&M.sign===2;
     F.meters.push({id:'eye',label:M.S.max()>=.6?'Searching':M.S.max()>=.35?'Noticed':'Unseen',style:'ring',v:M.S.max(),max:1,icon:'eye'});
-    F.meters.push({id:'tyres',label:'Tyres',v:nT,max:8,style:'pips'});
+    F.meters.push({id:'tyres',label:'Tires',v:nT,max:8,style:'pips'});
     F.widgets.push({id:'dawn',kind:'timer',label:'Dawn',v:Math.max(0,left),max:K.dawn,hot:left<90,sub:clockStr(M)});
-    if(!M.allDone){F.objs.push(['Let the air out: two tyres on each truck · '+nT+'/8',nT>=8]);
+    if(!M.allDone){F.objs.push(['Let the air out: two tires on each truck · '+nT+'/8',nT>=8]);
       F.objs.push([M.sign===2?"Sal's banner is up":carry?'Carry the banner to the sign over the bay on Mill St · no crouching':"Hang Sal's banner over their sign (it's in the back of your van)",M.sign===2]);
       F.objs.push(['Optional: the dispatch ledger on the office desk',M.ledger]);F.objs.push(["Optional: Tiny's squeaky hot dog, in Tiny's bed",M.toyIn])}
     else{F.objs.push(["Back to the van. Walk, don't run.",false]);if(!M.said.all){M.said.all=1;say(M,L.allDone[0],L.allDone[1],true);lineSeq(M,[],1)}}
@@ -557,7 +557,7 @@ J.register('sabotage',{
     /* the marker: the closest thing left to do */
     let tgt=null;if(M.allDone&&M.car)tgt={x:M.car.pos.x,z:M.car.pos.z,label:'Your van'};
     else if(carry)tgt={x:Y.mount.x,z:Y.mount.z,label:'The sign'};
-    else{let bd=1e9;for(let k=0;k<M.valves.length;k++){const v=M.valves[k];if(v.done)continue;const d=hyp(v.x-P.pos.x,v.z-P.pos.z);if(d<bd){bd=d;tgt={x:v.x,z:v.z,label:'Tyre valve'}}}
+    else{let bd=1e9;for(let k=0;k<M.valves.length;k++){const v=M.valves[k];if(v.done)continue;const d=hyp(v.x-P.pos.x,v.z-P.pos.z);if(d<bd){bd=d;tgt={x:v.x,z:v.z,label:'Tire valve'}}}
       if(M.sign===0&&M.rollAt){const d=hyp(M.rollAt.x-P.pos.x,M.rollAt.z-P.pos.z);if(d<bd*.7||!tgt)tgt={x:M.rollAt.x,z:M.rollAt.z,label:"Sal's banner"}}}
     F.target=tgt;
     /* leash: the job is the yard */

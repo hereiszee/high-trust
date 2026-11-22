@@ -78,7 +78,7 @@ const L={
   brake:["Easy on the brakes! The brisket just met the cooler!","That was a stop. I want a glide.","You brake like you're mad at the road.","Tap it. Tap the brake. It's a brake, not a stomp pad."],
   corner:["Corners! Slow in, slow out. Like a canoe.","I felt that corner in my fillings.","The tray slid. I heard the tray slide.","You took that corner like the brisket owes you money."],
   accel:["Gentle on the gas. It's not a drag race. It's a meat race. A slow meat race.","The pickles just went to the tailgate. Gentle on the gas."],
-  kerb:["That was a kerb. The brisket felt that kerb.","We're on the sidewalk. Why are we on the sidewalk.","Kerb! Doug bit his tongue."],
+  kerb:["That was a curb. The brisket felt that curb.","We're on the sidewalk. Why are we on the sidewalk.","Curb! Doug bit his tongue."],
   crash:["WHAT DID WE HIT.","Is it the brisket? Tell me it's not the brisket.","Oh no. Oh no no no."],
   smooth:["Smooth like a parade. Like a parade float. Carrying a baby. Made of glass.","Beautiful. I could do a crossword back here.","This is the drive I dreamed about. I dreamed about this drive.","You drive like my grandmother. That's a compliment. She drove a hearse."],
   slow:["We're getting passed by a man walking his dog. The dog's judging us.","Fourteen hours to cook. Let's not take fourteen hours to drive.","Probe's dropping. It's cooling. I can hear it cooling."],
@@ -383,7 +383,7 @@ function mount(M){const a=A(),e=M.truck;if(!e)return;if(a.CV&&a.CV!==e)a.exitCar
   /* the crew's ride rating: HT.Stops' passenger comfort (js/jobs/_stops.js), which also cues Doug's reactions */
   const St=window.HT&&HT.Stops;if(St&&St.comfort&&!M.ride){M.ride=St.comfort({on:(k,sev)=>crewReact(M,k,sev)});if(M.S.ride)M.ride.load(M.S.ride)}return true}
 const CREW={brake:["I'm wearing the coleslaw!","Brakes! BRAKES! Okay. Okay.","My face hit the cooler. The cooler is fine."],corner:["Whoa, whoa, I'm leaning! The brisket's leaning!","Corner! I'm hugging the cooler!"],
-  kerb:["We hit something! Was it a kerb? It felt like a kerb.","My teeth just clicked."],bump:["Bump! I caught the bread!","Ooh. That one went right up my spine."],speed:["We're going fast! Are we going fast? It feels fast back here."]};
+  kerb:["We hit something! Was it a curb? It felt like a curb.","My teeth just clicked."],bump:["Bump! I caught the bread!","Ooh. That one went right up my spine."],speed:["We're going fast! Are we going fast? It feels fast back here."]};
 function crewReact(M,k,sev){const l=CREW[k];if(l)quip(M,'crew_'+k,l,'doug',12,false)}
 function truckDown(M){const a=A();if(a.CV===M.truck)a.exitCar()}
 
@@ -429,7 +429,7 @@ function hazards(M,e,c,dt){const a=A(),v=Math.abs(c.spd),W_=wheels(c),prev=M.wp;
     for(const sx of SEAMS){if((px-sx)*(x-sx)<=0&&px!==x&&z>SEAM_Z[0]&&z<SEAM_Z[1]){const fx=Math.abs(-Math.sin(c.yaw)),th=Math.acos(clamp(fx,0,1)),fa=th>.26?.3:1-.7*th/.26;
         hit(M,'seam',Math.max(0,v-K.seamSafe)*K.seamK*fa,{sv:Math.min(1.8,.2+.1*v*fa),axl,v,angle:th,fa})}}
     /* kerbs: the ground under a wheel steps up or down */
-    const kp=KW[i],gy=a.groundAt(kp[0],kp[1]);if(M.gh[i]!=null&&Math.abs(gy-M.gh[i])>.07&&v>.8&&!((cd.kerb||0)>0)){cd.kerb=.3;if(M.dbg)M.dbg.push('kerb want'+(M._want||0).toFixed(1)+' c'+M._corner+' w'+i+' '+x.toFixed(2)+','+z.toFixed(2)+' '+M.gh[i].toFixed(2)+'>'+gy.toFixed(2)+' lp'+M.lp.toFixed(2));hit(M,'kerb',K.kerbA+K.kerbB*v,{sv:Math.min(2.2,.4+.13*v),v})}M.gh[i]=gy}}
+    const kp=KW[i],gy=a.groundAt(kp[0],kp[1]);if(M.gh[i]!=null&&Math.abs(gy-M.gh[i])>.07&&v>.8&&!((cd.kerb||0)>0)){cd.kerb=.3;if(M.dbg)M.dbg.push('curb want'+(M._want||0).toFixed(1)+' c'+M._corner+' w'+i+' '+x.toFixed(2)+','+z.toFixed(2)+' '+M.gh[i].toFixed(2)+'>'+gy.toFixed(2)+' lp'+M.lp.toFixed(2));hit(M,'kerb',K.kerbA+K.kerbB*v,{sv:Math.min(2.2,.4+.13*v),v})}M.gh[i]=gy}}
 /* an event: integrity, the cargo hops, the body jolts, a line */
 function hit(M,kind,dmg,o){const a=A(),St=M.S;o=o||{};const v=o.v||0;if(M.dbg&&kind!=='bump'&&kind!=='seam')M.dbg.push(kind+' '+(o.id||'')+' -'+dmg.toFixed(1)+' lp'+M.lp.toFixed(2)+' want'+(M._lat!=null?M._lat.toFixed(2):'-'));
   if(kind==='bump'){M.bumpN=(M.bumpN||0)+1;if(dmg<.6){if(o.axl===1&&!M.cd.bumpGood)quip(M,'bumpGood',L.bumpGood,'dave',14)}else if(o.axl===1)quip(M,'bump',L.bump,'dave',4)}
