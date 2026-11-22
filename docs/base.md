@@ -170,6 +170,17 @@ manufacturer names, designations or real unit insignia.
   (jet 33 incl. the folding gear legs, tank 14; before: 32 and 13). Collision, seats, camera anchors and the userData the game drives
   are unchanged. `jet.js` / `tank.js` fall back to the old model if this file isn't loaded.
 * Before / after from four angles: `docs/screenshots/base/models/{jet,tank}-{front-left,side,rear,top}-{before,after}.jpg`.
+* Second pass (art review): the jet's wings, LERX, stabilators, fins and rudders are aerofoil sections (thickness, rounded leading
+  edges) with slat / flap / aileron lines; the fuselage is area-ruled with a dorsal spine; the intakes are boxy raked ducts with splitter
+  plates and dark ducts down to the engine faces; the nozzles have sixteen petals and a dark liner; the cockpit (seat, consoles, HUD
+  frame) shows through lighter glass; pylons, wingtip rails, nose-gear doors, stencils (generic wording). The paint is a matte two-tone
+  grey by facing with a soft splinter on top, over a skin texture with a few frames, seams and hatches instead of a grid. The tank's
+  turret has sloped walls and arrowhead wedges on the cheeks, a shaped mantlet with coax and sight ports, a bore evacuator and a
+  muzzle-reference housing, the commander's cupola with its MG, smoke launchers on plates, bins and a rear basket; shorter skirts show
+  the road wheels (with bolts) and return rollers; the tracks have thickness, sag between the rollers and guide horns; headlight guards,
+  tow hooks front and back, a side exhaust grille; dust and mud graded by height. Meshes: jet 29 (was 33), tank 16 (was 14); triangles
+  jet 11.4k, tank 19.5k. Shots: `{jet,tank}-{front-left,side,rear,top}-{before2,after2}.jpg` (the tank in the open, off the carport) and
+  `{jet,tank}-golden.jpg` (a low warm sun; the sky panorama itself is fixed).
 
 ## Cost of the rental rack
 
