@@ -45,15 +45,23 @@ Give the App ID and the three depot IDs to whoever is maintaining the repo (or t
 
 ## 5. Upload the build
 
-**Easiest (no command line):** in Steamworks → **SteamPipe → Builds**, use the zip upload for each depot (offered for builds under 2 GB; ours are about 200–270 MB each). Upload each OS's zip to its depot.
+Steam does not take builds as ordinary file uploads. They go in through Valve's upload tool, **SteamPipe**, which logs in with your Steam account and sends the files to your depots. Valve's guide: https://partner.steamgames.com/doc/sdk/uploading
 
-**If the zip upload isn't offered:** install `steamcmd`, unzip the three archives into `desktop/dist/`, and run from the repo folder:
+First, download the **Steamworks SDK** from the Steamworks site and unzip it. The upload tools are in its `tools` folder. The Steam account you upload with needs the "Edit App Metadata" and "Publish App Changes To Steam" permissions on the game.
+
+**Option A, Windows, no command line:** open **SteamPipeGUI** from the SDK's `tools` folder. Give it your App ID, the depot IDs, and the unzipped build folder for each OS, and press upload. It comes with its own short instructions.
+
+**Option B, any OS, one command:** unzip the three archives into `desktop/dist/` in the repo and run, from the repo folder, using the `steamcmd` in the SDK's `tools/ContentBuilder/builder` folder:
 
 ```bash
 steamcmd +login YOUR_STEAM_LOGIN +run_app_build "$(pwd)/docs/steam/vdf/app_build.vdf" +quit
 ```
 
-Then in **SteamPipe → Builds**, set the new build live on the `default` branch.
+It asks for your password and Steam Guard code. The upload scripts in `docs/steam/vdf/` are already written; they only need the IDs from step 4.
+
+(The Steamworks site may also offer a zip upload on the Builds page for small games. Valve's upload guide doesn't describe it, so don't count on it.)
+
+**Then make it live:** in Steamworks open your app's **Builds** page, find the build you just uploaded, and set it live on the `default` branch. The default branch can only be set live there, by hand. Once the game is released, Steam asks you to confirm this on your phone, and after changing your account's email or phone number you must wait 3 days before you can set a build live.
 
 ## 6. Fill in the store page
 
