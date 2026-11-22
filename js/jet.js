@@ -287,13 +287,13 @@ function farFog(a,on){const sc=a.scene,cam=a.camera;if(on){if(!FOG0&&sc.fog)FOG0
 /* the flight draw radius grows with altitude (low: less sky-line to fill, so fewer draw calls); beyond it the painted ground map
    (OW.groundMap: streets, roofs, trees, cars) lies under the streamed ground so the town still reads */
 const flightR=y=>y<45?420:y<130?620:900;
-function flight(on){const R=on?flightR(F.pos.y):0;if(on===F.fly&&R===F.flyR)return;F.fly=on;F.flyR=R;const O=OWm();if(O&&O.flight)O.flight(on?{R,blod:70}:null);groundMap(on);farHouses(on)}
+function flight(on){const R=on?flightR(F.chute?F.chute.p.y:F.pos.y):0;if(on===F.fly&&R===F.flyR)return;F.fly=on;F.flyR=R;const O=OWm();if(O&&O.flight)O.flight(on?{R,blod:70}:null);groundMap(on);farHouses(on)}
 /* the backdrop's ring of far houses (world.js backdrop(), named bd:* in openworld.js) sells "the town carries on" from the street; from
    the air they are lone houses on bare hills, so they step aside while you fly (the ground view is untouched) */
 function farHouses(on){if(!F.fh||!F.fh.length){F.fh=[];try{for(const q of OWm().units())if(q.sp&&q.sp.id==='backdrop'&&q.group)q.group.traverse(m=>{if(m.isMesh&&/bd:(siding|roof|found|glass)$/.test(m.name))F.fh.push(m)})}catch(_){}}
   for(const m of F.fh)m.visible=!on}
 function groundMap(on){const a=A();if(!a||!a.L)return;if(on&&!F.gm){const O=OWm(),tx=O&&O.groundMap&&O.groundMap(),def=a.WORLD;if(!tx||!def)return;const T=T3(),w=def.W*2,h=def.H*2;
-    const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({map:tx}));m.rotation.x=-Math.PI/2;m.position.set(w/2,-1.2,h/2);m.name='groundMap'/* under the river's water (-0.85) and the roads (-0.12) */;m.receiveShadow=false;F.gm=m}
+    const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshLambertMaterial({map:tx})/* matte: no specular, no environment reflection */);m.rotation.x=-Math.PI/2;m.position.set(w/2,-1.2,h/2);m.name='groundMap'/* under the river's water (-0.85) and the roads (-0.12) */;m.receiveShadow=false;F.gm=m}
   if(F.gm){if(on&&F.gm.parent!==a.L.group)a.L.group.add(F.gm);F.gm.visible=!!on}}
 
 /* ================= far terrain: fields and low hills out to the horizon (built on the first flight) ================= */
@@ -536,7 +536,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   if(e&&e.obj&&a.CV!==e)e.obj.visible=Math.hypot(a.camera.position.x-e.pos.x,a.camera.position.z-e.pos.z)<140||a.camera.position.y>40;
   if(F.on&&e&&a.CV===e){if(e.obj){pose(e.obj)}/* the dad in the seat (the game seats him at ground level): hide him, the canopy shows a helmet */
     if(a.P.dude)a.P.dude.root.visible=false;if(F.prev)bridgeCheck(a,F.prev);F.prev=F.pos.clone()}
-  fogLate(a);if(!dt)return;chuteTick(a,dt);chutePose(a,dt);familyTick(a,dt);helpTick(a,dt);if(F.on&&F.air)autoGear(a);if(!F.on&&!F.chute)farFog(a,false)}
+  fogLate(a);if(!dt)return;chuteTick(a,dt);chutePose(a,dt);if(!F.on)flight(!!F.chute&&F.chute.p.y>8);/* under the canopy the town still draws to the flight radius (else the ground past 200 m is a hole showing the sky) */familyTick(a,dt);helpTick(a,dt);if(F.on&&F.air)autoGear(a);if(!F.on&&!F.chute)farFog(a,false)}
 /* keys the game doesn't own while flying (all taps or toggles): G gear, C look back, Shift afterburner, W / S throttle steps; E twice in the air ejects (index.html: e.noExit) */
 addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='jet')return;const k=ev.key.toLowerCase();
   if(k==='g'&&F.air&&!ev.repeat){F.gManT=a.simT;F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}

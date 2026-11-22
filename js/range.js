@@ -97,11 +97,15 @@ function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.
   {const c=document.createElement('canvas');c.width=512;c.height=384;const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;const b=R.board;
     const m=new T.Mesh(new T.PlaneGeometry(2.4,1.8),mt('lbm',{map:t,roughness:.8}));m.position.set(b.x,1.75,b.z);m.rotation.y=Math.PI/2;root.add(m);
     P.box('paint',b.x-.1,0,b.z-1.3,b.x-.02,2.75,b.z+1.3,'#3d4a2c');S.board={c,t,m}}
-  /* the rental rack: an A-frame with long guns and a pistol shelf, and its sign */
-  {const k=R.rack,x=k.x,z=k.z;P.box('paint',x-.35,0,z-1.1,x+.35,.12,z+1.1,'#6b4f37');for(const dz of[-1,1])P.box('paint',x-.05,0,z+dz*1.05-.05,x+.05,1.6,z+dz*1.05+.05,'#6b4f37');
-    P.box('paint',x-.08,1.45,z-1.1,x+.08,1.55,z+1.1,'#6b4f37');P.box('paint',x-.3,.55,z-1.05,x+.3,.62,z+1.05,'#6b4f37');
-    for(let i=0;i<6;i++){const gz=z-.85+i*.34;P.box('metal',x-.06,.62,gz-.03,x+.06,1.52,gz+.03,i%3===2?'#4a3a2a':'#25282a');P.box('metal',x-.1,.62,gz-.04,x+.1,.9,gz+.04,i%2?'#3a3026':'#2c2f31')}
-    P.sign(x-.12,1.95,z,1.9,.55,-Math.PI/2,K.board('rack',['RENTAL RACK','FREE · TRY ANY GUN · BRING IT BACK'],2,1,'yellow'));P.box('paint',x-.04,1.6,z-.95,x+.04,2.25,z+.95,'#4b5055')}
+  /* the rental rack (owner's playtest: "doesn't have everything, hard to figure out what you're choosing"): a wall rack with every gun
+     in the game on its own peg, a name-and-class plate over each one; the real gun models are hung on it in rackGuns() below */
+  {const k=R.rack,x=k.x,z=k.z,n=RACK_IDS.length,W2=RACK_W*n/2;P.box('paint',x-.05,0,z-W2-.12,x+.12,2.35,z+W2+.12,'#c9bc9e');/* back board: light pegboard, so the dark guns read */
+    P.box('paint',x-.3,0,z-W2-.12,x+.12,.12,z+W2+.12,'#4a3626');P.box('paint',x-.22,.12,z-W2-.12,x+.12,.18,z+W2+.12,'#6b4f37');/* foot rail */
+    for(let i=0;i<n;i++){const id=RACK_IDS[i],gz=rackZ(i),w=(a.WEAPONS||{})[id]||{},cls=rackCls(id);
+      if(w.slot==='side')P.box('paint',x-.3,1.06,gz-RACK_W*.42,x-.04,1.1,gz+RACK_W*.42,'#6b4f37');/* a little shelf for a sidearm */
+      else{P.box('metal',x-.16,.18,gz-.05,x-.04,.3,gz+.05,'#2c2f31');/* butt cup */P.box('metal',x-.16,1.48,gz-.06,x-.04,1.54,gz+.06,'#2c2f31')/* peg */}
+      P.sign(x-.07,2.02,gz,RACK_W*.92,.36,Math.PI/2,K.board('rk'+id,[(i+1)+' · '+(w.name||id).toUpperCase(),cls.toUpperCase()],2,1,w.slot==='side'?'brown':'green'))}
+    P.sign(x-.07,2.62,z,Math.min(3.6,W2*2),.42,Math.PI/2,K.board('rack',['RENTAL RACK · FREE · TRY ANY GUN','E AT THE RACK · PICK ONE · IT COMES BACK WHEN YOU LEAVE'],2,1,'yellow'))}
   P.flush(root);drawBoard(true);
   people(a,d)}
 /* the guard and the range officer, from the neighbour pool (never the crew or the family) */
@@ -199,7 +203,7 @@ function showCard(a,c){closeCard();const el=document.createElement('div');el.cla
   const close=()=>closeCard();el.addEventListener('click',close);S.card={el,t:0,close};
   try{if(a.HUD&&a.HUD.overlay)a.HUD.overlay('rangeCard',el);else document.body.appendChild(el)}catch(_){document.body.appendChild(el)}
   /* listen straight away (a short delay here missed fast key presses); auto-repeat from a held key never closes it */
-  document.addEventListener('keydown',S.card.key=e=>{if(e.repeat)return;if(e.code==='KeyE'||e.code==='Enter'||e.code==='NumpadEnter'||e.code==='Space'||e.code==='KeyF'){closeCard()}},true)}
+  document.addEventListener('keydown',S.card.key=e=>{if(e.repeat)return;if(e.code==='KeyE'||e.code==='Enter'||e.code==='NumpadEnter'||e.code==='Space'||e.code==='KeyF'){e.stopImmediatePropagation();/* the key that closes the card doesn't also press the next E prompt (the rack menu) */closeCard()}},true)}
 function closeCard(){const c=S.card;if(!c)return;S.card=null;if(c.key)document.removeEventListener('keydown',c.key,true);try{const a=A();if(a.HUD&&a.HUD.overlay&&a.HUD.overlay('rangeCard'))a.HUD.overlay('rangeCard',null);else c.el.remove()}catch(_){try{c.el.remove()}catch(__){}}}
 R.closeCard=closeCard;
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -213,8 +217,58 @@ function drawBoard(force){const b=S.board;if(!b)return;const s=sv();const RG=s&&
   rows.slice(0,8).forEach(([g,e],i)=>{const y=126+i*31;x.fillStyle=['#9aa0a6','#c98a4a','#c9d1d8','#f0c64a'][e.medal];x.beginPath();x.arc(36,y-8,10,0,6.28);x.fill();
     x.fillStyle='#f1ead2';x.fillText(gunName(g).slice(0,22),56,y);x.textAlign='right';x.fillText(''+e.score,W-30,y);x.textAlign='left'});b.t.needsUpdate=true}
 
+/* ================= the rental rack ================= */
+const RACK_IDS=['pistol','revolver','nailer','shotgun','double','beanbag','rifle','smg','hunter'];/* every gun the player can fire (HT.CATALOG.gunOrder) */
+const RACK_W=.46;
+function rackIds(){try{const o=HT.CATALOG&&HT.CATALOG.gunOrder;const w=A().WEAPONS;if(o&&o.length){const l=o.filter(id=>w[id]);for(const id in w)if(!l.includes(id))l.push(id);return l}}catch(_){}return RACK_IDS}
+function rackZ(i){const k=B().def().range.rack,n=RACK_IDS.length;return k.z+(i-(n-1)/2)*RACK_W}
+function rackCls(id){try{const g=HT.CATALOG&&HT.CATALOG.guns&&HT.CATALOG.guns[id];if(g&&g.cls)return g.cls}catch(_){}const w=(A().WEAPONS||{})[id]||{};return w.slot==='side'?'Sidearm':'Long gun'}
+/* the real models on the pegs (HT.Guns, loaded async), the highlight frame */
+function rackGuns(a){const GN=HT.Guns;if(S.rackG||!GN||!GN.model||!S.root)return;const k=B().def().range.rack,T=THREE,g=new T.Group();g.name='rentalRack';
+  for(let i=0;i<RACK_IDS.length;i++){const id=RACK_IDS[i],w=a.WEAPONS[id];let m=null;try{m=GN.model(id)}catch(_){m=null}if(!m)continue;
+    m.rotation.set(Math.PI/2,0,0);/* muzzle (-Z) up */const side=w&&w.slot==='side';m.position.set(k.x-.16,side?1.16:.62,rackZ(i));if(side){m.rotation.set(Math.PI/2,0,0);m.position.y=1.2}
+    m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.userData.noBatch=true}});g.add(m)}
+  const fr=new T.Mesh(new T.BoxGeometry(.04,1.95,RACK_W*.94),new T.MeshBasicMaterial({color:0xffd34a,transparent:true,opacity:.28,depthWrite:false}));fr.position.set(k.x-.2,1.2,k.z);fr.visible=false;g.add(fr);
+  const edge=new T.LineSegments(new T.EdgesGeometry(fr.geometry),new T.LineBasicMaterial({color:0xffd34a}));fr.add(edge);S.rackFr=fr;
+  S.root.add(g);S.rackG=g}
+/* which gun you mean: the one under the crosshair, else the one nearest you along the rack */
+function rackPick(a){const k=B().def().range.rack,P=a.P,cam=a.camera;const n=RACK_IDS.length;
+  const f=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion);let idx=-1;
+  if(f.x>.15){const t=(k.x-.1-cam.position.x)/f.x;if(t>0&&t<6){const zz=cam.position.z+f.z*t,yy=cam.position.y+f.y*t;if(yy>.1&&yy<2.4)idx=Math.round((zz-k.z)/RACK_W+(n-1)/2)}}
+  if(idx<0||idx>=n)idx=Math.max(0,Math.min(n-1,Math.round((P.pos.z-k.z)/RACK_W+(n-1)/2)));return idx}
+function nearRack(a){const k=B().def().range.rack,P=a.P;return P.pos.x<k.x+.3&&P.pos.x>k.x-3&&Math.abs(P.pos.z-k.z)<RACK_W*RACK_IDS.length/2+.8}
+/* the rack menu: every gun as a card (icon, name, class, ammo, magazine); arrows / 1-9 / mouse choose, E or Enter takes, 0 your own guns */
+function menuOpen(a,idx){if(S.menu)return;const h=HT.HUD,icon=id=>{try{return h&&h.icons&&h.icons.gun?h.icons.gun(id):''}catch(_){return''}};const W=a.WEAPONS;
+  const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,9,12,.55);font-family:"Barlow","Arial Narrow",Arial,sans-serif;color:#eef2f2';
+  const cards=RACK_IDS.map((id,i)=>{const w=W[id]||{};return'<div data-i="'+i+'" style="cursor:pointer;width:178px;padding:10px 12px;border-radius:10px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)">'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;opacity:.7"><b>'+(i+1)+'</b><span>'+rackCls(id).toUpperCase()+'</span></div>'+
+    '<div style="height:44px;display:flex;align-items:center;justify-content:center;fill:#e8eef0">'+icon(id)+'</div>'+
+    '<div style="font-size:17px;font-weight:700;line-height:1.15">'+(w.name||id)+'</div><div style="font-size:13px;opacity:.75">'+(w.ammo||'')+' · '+(w.mag||'?')+' a mag'+(w.auto?' · auto':'')+(id==='beanbag'?' · less-lethal':'')+'</div></div>'}).join('');
+  d.innerHTML='<div style="max-width:min(1000px,94vw);text-align:center"><div style="font-size:30px;font-weight:800;letter-spacing:.04em">RENTAL RACK</div>'+
+    '<div style="font-size:15px;opacity:.8;margin:2px 0 12px">Free on the range. ← → or 1-9 to choose · E / Enter takes it · 0 your own guns · Esc closes</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">'+cards+'</div>'+
+    '<div data-own style="cursor:pointer;margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:8px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)"><b>0</b> · Your own guns'+(S.rent?' (return the rental)':'')+'</div></div>';
+  document.body.appendChild(d);/* pointer lock stays as it is (losing it opens the pause menu): keys choose; the mouse works when the cursor isn't locked */
+  const M=S.menu={el:d,i:idx,cards:[...d.querySelectorAll('[data-i]')]};const sel=i=>{M.i=(i+RACK_IDS.length)%RACK_IDS.length;M.cards.forEach((c,j)=>{c.style.borderColor=j===M.i?'#ffd34a':'rgba(255,255,255,.12)';c.style.background=j===M.i?'rgba(60,52,20,.95)':'rgba(20,26,30,.92)'})};sel(idx);
+  M.cards.forEach((c,j)=>{c.onmouseenter=()=>sel(j);c.onclick=()=>{sel(j);menuTake(a)}});d.querySelector('[data-own]').onclick=()=>{menuClose();rentReturn(a)};
+  M.key=e=>{const k=e.key;e.stopImmediatePropagation();e.preventDefault();if(e.repeat&&!/Arrow/.test(k))return;
+    if(k==='ArrowRight'||k==='ArrowDown'||k==='d'||k==='D')sel(M.i+1);else if(k==='ArrowLeft'||k==='ArrowUp'||k==='a'||k==='A')sel(M.i-1);
+    else if(/^[1-9]$/.test(k)&&+k<=RACK_IDS.length){sel(+k-1);menuTake(a)}else if(k==='0'){menuClose();rentReturn(a)}
+    else if(k==='Enter'||k==='e'||k==='E'||k===' ')menuTake(a);else if(k==='Escape'||k==='Backspace')menuClose()};
+  M.keyup=e=>{e.stopImmediatePropagation()};document.addEventListener('keydown',M.key,true);document.addEventListener('keyup',M.keyup,true);
+  try{for(const kk in a.keys)a.keys[kk]=false}catch(_){}}
+function menuClose(){const M=S.menu;if(!M)return;S.menu=null;document.removeEventListener('keydown',M.key,true);document.removeEventListener('keyup',M.keyup,true);M.el.remove()}
+function menuTake(a){const M=S.menu;if(!M)return;const id=RACK_IDS[M.i];menuClose();rentTake(a,id)}
+/* E at the rack opens the menu straight from the key (with a gun drawn the game's prompt pipeline can be busy with its own prompts) */
+document.addEventListener('keydown',e=>{if(e.repeat||S.menu||S.card)return;const k=(e.key||'').toLowerCase();if(k!=='e')return;const a=A();if(!a||a.mode!=='hub'||a.CV||!B()||!B().def()||!S.root)return;
+  if(document.querySelector('.ht-pause'))return;if(!nearRack(a))return;e.stopImmediatePropagation();menuOpen(a,rackPick(a))},true);
+R.menu=()=>S.menu?{open:true,i:S.menu.i,id:RACK_IDS[S.menu.i]}:{open:false};R.rackIds=()=>RACK_IDS.slice();R.rackPick=()=>rackPick(A());
 /* ================= rentals ================= */
 function rentList(a){const all=Object.keys(a.WEAPONS);let own=[];try{own=a.SV().owned.guns||[]}catch(_){}const not=all.filter(g=>!own.includes(g));return not.length?not:all}
+function rentTake(a,id){const P=a.P,w=a.WEAPONS[id];if(!w)return;if(!S.rent)S.rent={lo:Object.assign({},P.loadout),cur:P.cur};S.rentIdx=RACK_IDS.indexOf(id);const lo=Object.assign({},S.rent.lo);
+  if(w.slot==='side')lo.side=id;else lo.p1=id;RO().setLoadout(lo,id);RO().draw(id);fillUp(a);const s=sv();if(s){s.rentals=(s.rentals|0)+1}
+  say('officer',!S.said.rent?(S.said.rent=1,pick(LINES.rent)):w.name+'. '+rackCls(id)+'. Have fun.',true);
+  teach(a,'rent','Rental: '+w.name+' · '+KE()+' at the rack for another · it goes back when you leave the range')}
 function rentNext(a){const P=a.P,list=rentList(a);if(!S.rent)S.rent={lo:Object.assign({},P.loadout),cur:P.cur};
   S.rentIdx=(S.rentIdx+1)%list.length;const id=list[S.rentIdx],w=a.WEAPONS[id],lo=Object.assign({},S.rent.lo);
   if(w.slot==='side')lo.side=id;else lo.p1=id;RO().setLoadout(lo,id);RO().draw(id);fillUp(a);
@@ -260,13 +314,17 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
     S.tipT=(S.tipT||25)-dt;if(S.tipT<=0&&B().onLine(px,pz)&&!(S.course&&S.course.state!=='done')){S.tipT=35+Math.random()*20;say('officer',pick(LINES.tips))}}
   if(onR)teach(a,'draw','Fort Sensible range · 1 / 2 / 3 or Fire draws your gun · Right mouse aims · H holsters · free ammo on the line');
   courseTick(a,dt);drawBoard(false);
+  /* the rental rack: models once HT.Guns has them, the highlight on the gun you mean */
+  if(!S.rackG)rackGuns(a);if(S.rackFr){const on=!S.menu&&!a.CV&&nearRack(a);S.rackFr.visible=on;if(on)S.rackFr.position.z=rackZ(rackPick(a))}
+  if(S.menu&&(a.CV||!nearRack(a)))menuClose();
 }
 /* HUD (the 'hud' hook, only in the real frame): the course widgets, the last hit, the marker to the range officer on the first visit, the objective on the post */
 function hudPart(st){const a=A();if(!a||!st||a.mode!=='hub'||!B()||!B().def()||!S.root)return;const P=a.P,px=P.pos.x,pz=P.pos.z,inB=B().inBase(px,pz),o=S.people.officer;
   {if(S.course&&S.course.state!=='done'){const c=S.course;st.widgets=st.widgets||[];
       st.widgets.push({id:'rangeT',kind:'timer',label:c.state==='count'?'Get ready':'Course',v:c.state==='count'?Math.max(0,c.t):c.time});st.widgets.push({id:'rangeS',kind:'score',label:'Score',v:c.score});
       if(c.stage)st.meters=(st.meters||[]).concat([{id:'rangeStage',label:c.stage.def.label+' · '+(c.stageI+1)+'/'+STAGES.length,v:Math.max(0,c.stage.t),max:c.stage.def.t,style:'bar'}])}
-    if(S.lastHit&&S.simT-S.lastHit.t<2.2){st.widgets=st.widgets||[];st.widgets.push({id:'rangeHit',kind:'combo',label:'Hit',v:S.lastHit.text})}
+    if(S.lastHit&&S.simT-S.lastHit.t<2.2){st.widgets=st.widgets||[];st.widgets.push({id:'rangeHit',kind:'combo',label:'Hit',v:1,sub:S.lastHit.text})}
+    if(S.rent){const id=P.cur,am=P.ammo&&P.ammo[id],w=a.WEAPONS[id];if(w){st.widgets=st.widgets||[];st.widgets.push({id:'rental',kind:'score',label:'Rental · '+rackCls(id),v:am?am.mag:0,sub:w.name+(am?' · '+am.mag+' / '+am.res:'')})/* widgets are numbers; the words go in sub */}}
     const s=sv();if(inB&&o&&o.d&&s&&!s.met){st.markers=st.markers||[];st.markers.push({id:'rangeOfficer',kind:'obj',label:'Range officer',x:o.p.x,z:o.p.z,screen:a.project(o.p.x,2.2,o.p.z),edge:true,always:true})}
     if(inB&&!(a.CV&&a.CV.type==='jet')){const lines=[];if(a.CV&&a.CV.type==='tank')lines.push({text:'Tank: W/S · A/D on the spot · mouse turret · left click fires'});if(s&&!s.met)lines.push({text:'Talk to '+NAMES.officer+' at the range'});else lines.push({text:'Run the timed course · '+NAMES.officer});lines.push({text:'Rental rack: try any gun'});
       if(!(st.objective&&st.objective.title&&/Job|Objective/.test(st.objective.kicker||'')))st.objective={kicker:'Fort Sensible',title:'Public range',lines}}}}
@@ -291,14 +349,14 @@ function animate(a,d,dt,near){
 /* ================= E prompts (HT.Base.on('interact')) ================= */
 function interact(prompt){const a=A();if(!a||a.mode!=='hub'||a.CV||!B().def())return null;const d=B().def(),P=a.P,px=P.pos.x,pz=P.pos.z;
   if(S.card)return{txt:'Close the results',fn:()=>closeCard()};
+  if(S.menu)return null;
+  if(nearRack(a)){const i=rackPick(a),id=RACK_IDS[i];return{txt:'Take '+gunName(id)+' · '+rackCls(id)+' (rack menu)',fn:()=>menuOpen(a,i)}}/* before the early return: with a rental drawn the game has its own prompt up */
   if(prompt)return null;
   const o=S.people.officer;if(o&&Math.hypot(px-o.p.x,pz-o.p.z)<3.2){const s=sv();
     if(S.course&&S.course.state!=='done')return null;
     return{txt:s&&!s.met?'Talk to '+NAMES.officer:'Run the timed course · '+gunName(P.cur),fn:()=>{const s2=sv();if(s2&&!s2.met){s2.met=true;persist();say('officer',"Sergeant Pruitt. Range officer. Here's the deal: free ammo on the line, rentals on the rack, and the course when you're ready. Talk to me again to run it.",true);
       teach(a,'met','Range: stand on the line (red stripe) and press 1 / 2 / 3 to draw · '+KE()+' at Sgt. Pruitt runs the course · '+KE()+' at the rack rents a gun');return}
       if(!B().onLine(px,pz)){/* step onto the line first */P.pos.x=Math.min(P.pos.x,d.range.line0.x1-.6)}courseStart(a)}}}
-  const rk=d.range.rack;if(Math.hypot(px-rk.x,pz-rk.z)<2.2){const list=rentList(a),nx=list[(S.rentIdx+1)%list.length];return{txt:(S.rent?'Swap the rental · ':'Rental rack · try ')+gunName(nx),fn:()=>rentNext(a)}}
-  if(S.rent&&Math.hypot(px-rk.x,pz-rk.z)<4)return{txt:'Return the rental',fn:()=>rentReturn(a)};
   return null}
 
 /* ================= fire hook: count trigger pulls in a course, keep the muzzle downrange ================= */

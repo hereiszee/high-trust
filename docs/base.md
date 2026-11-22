@@ -43,8 +43,15 @@ officer. Free ammo on the line (the reserve of the gun in hand stays full).
 * **Results card**: score, time, accuracy, the breakdown, medal, and your top five runs with that gun. E / Enter / Space closes it
   (not Esc: that opens the pause menu). Bests live in `SAVE.base.range[gun]` and the best per gun is painted on the board by Range
   Control.
-* **Rental rack**: E rents the next gun in the catalogue you don't own (all of them once you own everything); E again swaps.
-  The rental goes back, and your own loadout returns, when you leave the range or get in a car.
+* **Rental rack** (inside the range shed, by the office): a wall rack with every gun the player can fire (the catalogue's
+  nine: Garage Pistol, The Retirement Plan, Weekend Nailer, Grandpa's Pump, Uncle Ray's Side-by-Side, The Talking-To
+  (less-lethal), Rick's Carbine, The Carpool, Deer Season), each the real model on its own peg or shelf under a numbered plate
+  with its name and class. Walk up: a frame lights the gun under your crosshair (or the one in front of you) and the prompt names
+  it ("E · Take Rick's Carbine · Rifle"). E opens the rack menu on that gun: a card for each one (icon, name, class, ammo,
+  magazine); ← → or 1-9 choose (a number takes it at once), E / Enter takes it, 0 gives your own guns back, Esc closes; the
+  mouse works too when it isn't locked. Choosing never depends on aim. The HUD shows the rental and its ammo. Free ammo on the
+  line, and the rental goes back (your own loadout returns) when you leave the range or get in a car. (The sawed-off in
+  js/guns.js is an enemy-only model with no player stats, so it isn't on the rack.)
 
 ## The tank (LAWN ORDER)
 
