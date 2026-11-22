@@ -2,11 +2,11 @@
 <title>High Trust</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta name="description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="High Trust">
 <meta property="og:title" content="High Trust">
-<meta property="og:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta property="og:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:url" content="https://hereiszee.github.io/high-trust/">
 <meta property="og:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -14,7 +14,7 @@
 <meta property="og:image:alt" content="High Trust: a dad walks down a suburban street toward his minivan">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="High Trust">
-<meta name="twitter:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible.">
+<meta name="twitter:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta name="twitter:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta name="theme-color" content="#16181c">
 <link rel="preload" href="assets/fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
@@ -353,7 +353,7 @@ let envMap=null;const ENV_CLIP=4;
 /* image-based light from the HDR sky; the panorama has no ground, so the lower half is darkened to a dirt/grass bounce first */
 function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap;
   try{const h=ASSETS.hdr;if(h)h.__used=true;
-    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType){const{width:W,height:H,data:D}=h.image;
+    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType&&!h.__prepped){h.__prepped=true;const{width:W,height:H,data:D}=h.image;
       /* the sun disk is clipped too: the directional light already carries it, and leaving it in washes out every shadow */
       for(let y=0;y<H;y++){const below=(y-H/2)/(H*.04),k=clamp(below,0,1),gr=[.16,.15,.11];
         for(let x=0;x<W;x++){const o=(y*W+x)*4,s=Math.pow(2,D[o+3]-128)/255;let c=[D[o]*s,D[o+1]*s,D[o+2]*s];
@@ -361,6 +361,7 @@ function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap
           if(k>0)c=c.map((v,j)=>v*(1-k)+v*gr[j]*k);const m=Math.max(c[0],c[1],c[2]);if(m<1e-6){D[o]=D[o+1]=D[o+2]=D[o+3]=0;continue}
           const e=Math.ceil(Math.log2(m)),sc=255/Math.pow(2,e);D[o]=Math.min(255,Math.round(c[0]*sc));D[o+1]=Math.min(255,Math.round(c[1]*sc));D[o+2]=Math.min(255,Math.round(c[2]*sc));D[o+3]=e+128}}
       h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}
+    else if(h&&h.__prepped){h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}/* rebuilt after a context restore: the darkened data is kept, not darkened twice */
     else if(ASSETS.skyTex){const t=ASSETS.skyTex.clone();t.mapping=THREE.EquirectangularReflectionMapping;t.needsUpdate=true;envMap=pm.fromEquirectangular(t).texture}
   }catch(e){console.warn('environment light failed',e);envMap=null}
   pm.dispose();scene.environment=envMap;if(typeof vmScene!=='undefined')vmScene.environment=envMap;if(old&&old!==envMap)old.dispose()}
@@ -2058,10 +2059,15 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
 /* WebGL context loss (driver reset, GPU hiccup, some fullscreen alt-tabs): pause, say so, let three.js restore everything; offer a reload if it doesn't come back */
 const GLX={lost:false,n:0};
+/* three re-creates programs, buffers and textures by itself after a restore, but anything baked into a render target is gone: the PMREM sky
+   environment, the backdrop tree impostors (js/world.js) and the home's reflection probe. Rebuild them once three has re-initialised. */
+function glRestoreTargets(){setTimeout(()=>{if(GLX.lost)return;try{buildEnv();applyMood()}catch(e){console.warn('env rebuild failed',e)}
+  try{const HW=HTM('World');if(HW&&HW.restoreGL)HW.restoreGL()}catch(e){console.warn('impostor rebuild failed',e)}
+  try{if(HOME3&&HOME3.bakeReflections)HOME3.bakeReflections(renderer,scene)}catch(e){console.warn('home probe rebuild failed',e)}},0)}
 function glLostDialog(){if(!GLX.lost)return;HUD.dialog({kicker:'Graphics',title:'Graphics reset',text:"The graphics driver reset (an alt-tab, a driver update or a GPU hiccup). The game is paused while the picture comes back.\n\nIf it doesn't come back in a few seconds, reload. Your progress is saved after every job and purchase; a job in progress starts over.",
     buttons:[{label:'Reload the game',act:'reload'},{label:'Wait',act:'wait',cls:'pri'}],focus:'wait',cancel:'wait'}).then(r=>{if(r==='reload'){metaSave(true);location.reload()}else if(r==='wait'&&GLX.lost)setTimeout(glLostDialog,2500)})}
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();GLX.lost=true;GLX.n++;if(running)openPause();mouseDown=false;glLostDialog()},false);
-cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
+cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}glRestoreTargets();if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80);if(SAVEM&&!metaLoadNoticed){metaLoadNoticed=true;setTimeout(metaLoadNotice,700)}}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
@@ -4659,8 +4665,24 @@ function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 const FCAP=window.HT&&HT.FrameCap?HT.FrameCap.make(window.HTDesktop&&HTDesktop.refreshRate):null;
+/* PERF-06: nothing that throws in one frame may stop the loop (the next frame is always requested), and nothing renders while the GL
+   context is lost; three rebuilds its programs and buffers itself on 'webglcontextrestored'. A context that is already lost before three
+   hears the event makes a shader compile throw ("reading 'trim'" of a null info log): that frame is dropped, the loop carries on. */
+const FRAME_ERR={n:0,seen:new Set(),key:null,since:0,last:0,told:false};
+/* each distinct error is logged once (console.error, which the desktop shell also writes to high-trust.log). If the same error keeps
+   failing every frame for more than 2 s, a small non-blocking toast says so and the game saves (a job in progress keeps its pre-job save) */
+function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e),t=performance.now();
+  const lost=(()=>{try{return GLX.lost||renderer.getContext().isContextLost()}catch(_){return false}})();
+  if(FRAME_ERR.seen.size<50&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e&&e.stack||e)}
+  if(lost)return;
+  if(FRAME_ERR.key!==k||t-FRAME_ERR.last>1000){FRAME_ERR.key=k;FRAME_ERR.since=t;FRAME_ERR.told=false}FRAME_ERR.last=t;
+  if(!FRAME_ERR.told&&t-FRAME_ERR.since>2000){FRAME_ERR.told=true;try{metaSave(true)}catch(_){}
+    try{HUD.feed("Something went wrong · your progress is saved",'bad')}catch(_){}}}
 function frame(now){
   if(FCAP&&!FCAP.gate(now,+CFG.fpsCap||0)){requestAnimationFrame(frame);return}/* Frame rate cap setting (js/fpscap.js); 0 = display rate (VSync) */
+  try{frameBody(now)}catch(e){frameError(e)}finally{requestAnimationFrame(frame)}
+}
+function frameBody(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
@@ -4673,8 +4695,7 @@ function frame(now){
   nightTick(running?dt:0);
   if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
-  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);RENDER.draw();groundPass(-1);
-  requestAnimationFrame(frame);
+  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);try{if(!GLX.lost)RENDER.draw()}finally{groundPass(-1)}
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.rscale=clamp(+CFG.rscale||100,50,100)/100;RENDER.apply(CFG.gfx);
@@ -4728,7 +4749,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,get camOcc(){re
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
+window.__ht.FRAME_ERR=FRAME_ERR;window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},

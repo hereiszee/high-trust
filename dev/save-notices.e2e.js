@@ -7,6 +7,8 @@
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..');
 const TYPES={'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.glb':'model/gltf-binary','.hdr':'application/octet-stream','.bin':'application/octet-stream','.webp':'image/webp','.woff2':'font/woff2'};
+/* SwiftShader can keep the main thread busy longer than Playwright's click timeout: a real click first, else a DOM click (as dev/audit/saves/lib.js does) */
+const click=async(p,sel)=>{try{await p.click(sel,{timeout:15000})}catch(e){console.log('info (click fell back to a DOM click: '+sel+')');await p.evaluate(s=>document.querySelector(s).click(),sel)}};
 let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
 (async()=>{
   const b=await chromium.launch({args:['--use-gl=swiftshader','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
@@ -35,14 +37,14 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* SAV-06 first session */
   p=await page({});
   ok(!(await dlg(p)),'a fresh profile shows no save dialog');
-  await p.click('.ht-title [data-act=newgame]');await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});
+  await click(p,'.ht-title [data-act=newgame]');await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});
   await p.evaluate(()=>{window.HT.Save.addCash(250,'test');window.HT.Save.saveNow(true)});
   await p.evaluate(()=>window.__ht.quitToTitle());await p.waitForTimeout(800);
   const tb=await p.evaluate(()=>[...document.querySelectorAll('.ht-title .ht-btns .ht-btn')].filter(b=>!b.hidden&&b.offsetParent).map(b=>b.dataset.act+':'+b.textContent.trim()));
   ok(tb.some(x=>x.startsWith('continue'))&&tb.some(x=>x.startsWith('newgame')),'first session, Quit to title: Continue and New game offered: '+tb.join(' | '));
 
   /* SAV-10 failed write (in the street, where the feed shows) */
-  await p.click('.ht-title [data-act=continue]');await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});await p.waitForTimeout(500);
+  await click(p,'.ht-title [data-act=continue]');await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});await p.waitForTimeout(500);
   const r=await p.evaluate(()=>{const S=window.HT.Save;let saved=0;const off=S.on('saved',()=>saved++);const real=Storage.prototype.setItem;
     Storage.prototype.setItem=function(k,v){if(k==='ht-save'){const e=new Error('full');e.name='QuotaExceededError';throw e}return real.call(this,k,v)};
     const ok=S.saveNow(true);Storage.prototype.setItem=real;off();return{ok,saved,failing:S.failing}});

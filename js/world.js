@@ -871,14 +871,17 @@ function buildTufts(B,list,flowers){if(!list||!list.length)return;const geo=new 
 /* ---------- backdrop: rolling terrain, a ring of far houses and tree impostors ---------- */
 const IMP={};
 function impostor(name){if(IMP[name]!==undefined)return IMP[name];const g=C.ASSETS.gltf(name);if(!g||!C.renderer)return null;
-  try{const R=C.renderer,sc=new THREE.Scene();const m=g.scene.clone(true);sc.add(m);const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ctr=bb.getCenter(new THREE.Vector3());
+  try{const sc=new THREE.Scene();const m=g.scene.clone(true);sc.add(m);const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ctr=bb.getCenter(new THREE.Vector3());
     const hw=Math.max(sz.x,sz.z)/2*1.05,hh=sz.y/2*1.02;const cam=new THREE.OrthographicCamera(-hw,hw,hh,-hh,.1,100);cam.position.set(ctr.x,ctr.y,ctr.z+40);cam.lookAt(ctr);
     sc.add(new THREE.HemisphereLight(0xdfeeff,0x4a5a3a,1.1));const dl=new THREE.DirectionalLight(0xfff2dd,1.6);dl.position.set(.5,1,.8);sc.add(dl);
     const rt=new THREE.WebGLRenderTarget(256,512,{minFilter:THREE.LinearMipmapLinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,generateMipmaps:true});
-    const prevT=R.getRenderTarget(),pc=R.getClearColor(new THREE.Color()),pa=R.getClearAlpha(),pe=sc.environment;
-    const fo=FADE.uFadeOn.value;FADE.uFadeOn.value=0;R.setRenderTarget(rt);R.setClearColor(0x3c4a30,0);R.clear();R.render(sc,cam);R.setRenderTarget(prevT);R.setClearColor(pc,pa);FADE.uFadeOn.value=fo;
-    IMP[name]={tex:rt.texture,w:hw*2,h:hh*2,y0:bb.min.y}}catch(e){console.warn('impostor failed',e);IMP[name]=null}
+    /* bake() draws into the same render target, so it can run again after a WebGL context restore (W.restoreGL) */
+    const bake=()=>{const R=C.renderer,prevT=R.getRenderTarget(),pc=R.getClearColor(new THREE.Color()),pa=R.getClearAlpha();
+      const fo=FADE.uFadeOn.value;FADE.uFadeOn.value=0;R.setRenderTarget(rt);R.setClearColor(0x3c4a30,0);R.clear();R.render(sc,cam);R.setRenderTarget(prevT);R.setClearColor(pc,pa);FADE.uFadeOn.value=fo};
+    bake();IMP[name]={tex:rt.texture,w:hw*2,h:hh*2,y0:bb.min.y,bake}}catch(e){console.warn('impostor failed',e);IMP[name]=null}
   return IMP[name]}
+/* after a WebGL context restore every render target comes back empty: re-bake the impostors in place (their materials keep the textures) */
+W.restoreGL=()=>{let n=0;for(const k in IMP){const e=IMP[k];if(e&&e.bake){try{e.bake();n++}catch(err){console.warn('impostor re-bake failed',k,err)}}}return n};
 function backdrop(B){const r=rngOf(hashStr(B.id)+99);const Wm=B.W*TILE,Hm=B.H*TILE;const cx=Wm/2,cz=Hm/2;
   const dOut=(x,z)=>{const dx=Math.max(0,-x,x-Wm),dz=Math.max(0,-z,z-Hm);return Math.hypot(dx,dz)};
   /* roads that reach the map edge carry on into the distance (hub): corridors are cut through the hills */

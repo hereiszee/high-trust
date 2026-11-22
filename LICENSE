@@ -7,14 +7,23 @@ copy, modify, redistribute, sublicense, sell or create derivative works from
 the Game, in whole or in part, without the prior written permission of the
 copyright holder.
 
-You may play the publicly hosted version of the Game for personal,
-non-commercial use.
+You may play the Game for personal, non-commercial use: the publicly hosted
+web version, or a copy obtained through Steam under the Steam Subscriber
+Agreement.
 
 Third-party components (including three.js, the character models, and other
-libraries, models, textures and sounds) remain under their own licences. They
-are listed, with their licences and required notices, in
-docs/steam/LICENCES.md and the asset credits files in this repository. Nothing
-in this notice restricts rights granted to you by those licences.
+libraries, models, textures and sounds) remain under their own licences. Their
+licences and required notices ship with the Game:
+  - THIRD-PARTY-NOTICES.txt (beside the game; macOS: HighTrust.app/Contents),
+    with the full MIT texts, the Steamworks note and the font licences' place;
+  - LICENSE.electron.txt and LICENSES.chromium.html (desktop builds, in the
+    resources folder) for Electron, Chromium and Node.js;
+  - assets/CREDITS.md and assets/credits/credits.txt (in the game folder) for
+    every asset, its author, source and licence;
+  - assets/fonts/OFL-*.txt for the SIL Open Font License texts;
+  - vendor/three-r128/LICENSE and LICENSE-meshoptimizer.
+The in-game Credits & licences screen shows the same credits. Nothing in this
+notice restricts rights granted to you by those licences.
 
 Versions of this repository published before this notice was added were
 offered under CC0 1.0; that dedication cannot be withdrawn for those earlier
