@@ -153,3 +153,38 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
 | Night | `tour-night-street.jpg` | Lamps, windows, moon; no light leaks seen on the home street. |
 | Placeholder/dev strings | static scan of every string literal in index.html, js/, js/jobs/ for TODO/FIXME/lorem/placeholder/debug/TBD | Only the intentional fridge note "TODO: GUTTERS!!" (`js/home.js:563`). |
 | Place and character names | static scan | "Fill-Er-Up", "Dad's Auto", "Maple Heights", "Linden Park", "Fort Sensible", "LAWN ORDER", "DAD-1", "Sgt. Pruitt", "Cpl. Doyle", "Staff Sgt. Ruiz" are spelled one way everywhere ("Route9" only in a function name). See W-11 for the wife. |
+
+## What most undercuts "looks pretty good" (ranked)
+
+1. **W-12, the void after fast travel.** Fast travel is the main way to reach Fort Sensible, Riverside and the far job sites, and it
+   lands the player on a sky mirror with floating people for a beat. It is the only thing seen that looks *broken* rather than plain.
+2. **W-03, cars driving through people.** The crew follow you across every street; a sedan passing through Rick at 30 mph reads as a bug
+   (and through a kid, as something worse) even though nobody is hurt.
+3. **W-06, the backdrop ring of box houses** at both map edges and **W-05, Hangar 2's see-through black interior**: large, static, in
+   plain view at landmark spots (the jet is parked in front of the hangar).
+4. **W-07/W-09/W-08**: Ruiz in a T-shirt, the flat range berm, the dad vanishing behind a lamp post or the yard flag outside the
+   house (`homeexit-street.jpg`: on "Head outside" the camera sits behind the red-and-white flag by the front walk).
+
+Everything else framed in `docs/audit/world/tour-*.jpg` (home street day and night, Hank's, Fill-Er-Up, the closed and open bridge,
+Riverside main street, the Park & Ride, the base gate, the range, the motor pool, the apron) holds up: no missing/pink textures
+(0 placeholder textures still bound at every stop once streaming was idle; the one magenta material is the invisible People hitbox
+material), no floating or sunken characters or cars within 60 m at any stop (feet within 0.2 m of the ground/support), no box figures.
+
+## Could not cover (and why)
+
+- **Vehicle entry from both sides for every type, limp mode, the tow and the shop repair by real keys** (`vehicles.e2e.js`): the run
+  lost keyboard input after its first exit (top speed 0 with W held, E ignored), so none of its results are used. Covered instead by
+  `dev/car-damage/flows.js` (repair, dents, lamps; baseline, see below), `dev/base-check.js` (tank/jet boarding from any side) and the
+  wall-exit test above. The mower (free roam only after the Grand Prix) and the tow truck (job-only) were not driven.
+- **Kids standing in a traffic lane**: the probe's first kid run built the kid model incorrectly (probe bug, fixed); rerun results are
+  in `traffic-peds.out.txt`. The neighbour and crew cases are confirmed.
+- **The 60 s People ceiling** (`HT.People.PENDING_CEILING`, after which a named character *may* get the box stand-in by design): the
+  probe blocked a model that had already loaded, so it proved nothing. By code, a named character whose model fails for over 60 s will
+  be boxed (`js/people.js:389-406`), which conflicts with the owner rule; on a packaged build (local files) that is unlikely.
+- **Festival crowd (finale) and job casts** under a failing network: finale/job territory, not reached from free roam here.
+- **Jet crash next to the family / tank driving through kids at runtime**: checked by reading the code (no damage path exists, see the
+  coverage table); not run.
+- **Real GPU**: shadow acne, light leaks and pop-in were judged from SwiftShader frames at Medium; frame times are never reported.
+- **Pointer lock / raw mouse**: headless refuses pointer lock; the view was set directly where aiming mattered.
+- **Minimap mismatches**: under stepped time the minimap and region banner don't update (harness artefact); with the page's own loop
+  running (`lib.js live()`), the minimap matched the location in the shots checked (`sneak-closed.jpg`, `homeexit-*.jpg`).

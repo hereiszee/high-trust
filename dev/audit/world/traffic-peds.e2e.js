@@ -18,7 +18,7 @@ const {open,log,ok,out}=require('./lib.js');
       H.P.pos.set(q.x+q.uz*-6,0,q.z-q.ux*-6);
       let d,hits=0,pos;
       if(who==='crew'){let a=H.allies[0];if(!a)return{err:'no ally'};a.pos.set(q.x,0,q.z);a.target=null;a.hold={x:q.x,z:q.z};d=a.dude;pos=()=>a.pos}
-      else{d=PP.make('neighbour',{variant:who==='kid'?'nb_kid':'nb_pops'});if(!d)return{err:'no model'};H.L.group.add(d.root);d.root.position.set(q.x,0,q.z);PP.live.includes(d)||PP.live.push(d);pos=()=>d.root.position}
+      else{d=PP.make('neighbour',{variant:who==='kid'?'nb_kid':'nb_pops'});if(!d)return{err:'no model'};H.L.group.add(d.root);d.root.position.set(q.x,0,q.z);pos=()=>d.root.position}
       const hit0=PP.hit,die0=PP.die;PP.hit=(x,...a)=>{if(x===d)hits++;return hit0(x,...a)};PP.die=(x,...a)=>{if(x===d)hits++;return die0(x,...a)};
       const t=O.trafficAdd({a:E.a,b:E.b,at:4,spd:v,max:v,type:'sedan'});
       let minD=1e9,stopAt=null,through=false;for(let i=0;i<30*9;i++){if(who==='crew'){const a=H.allies[0];a.pos.set(q.x,0,q.z)}H.step(1);const p=pos();const dd=T.boxD(t,p.x,p.z);minD=Math.min(minD,dd);if(dd===0)through=true;if(stopAt==null&&Math.abs(t.c.spd)<.2&&i>20)stopAt=+dd.toFixed(2)}
