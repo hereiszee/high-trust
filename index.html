@@ -4518,8 +4518,17 @@ function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 const FCAP=window.HT&&HT.FrameCap?HT.FrameCap.make(window.HTDesktop&&HTDesktop.refreshRate):null;
+/* PERF-06: nothing that throws in one frame may stop the loop (the next frame is always requested), and nothing renders while the GL
+   context is lost; three rebuilds its programs and buffers itself on 'webglcontextrestored'. A context that is already lost before three
+   hears the event makes a shader compile throw ("reading 'trim'" of a null info log): that frame is dropped, the loop carries on. */
+const FRAME_ERR={n:0,seen:new Set()};
+function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e);if(FRAME_ERR.seen.size<20&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);
+  const lost=(()=>{try{return renderer.getContext().isContextLost()}catch(_){return false}})();(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e)}}
 function frame(now){
   if(FCAP&&!FCAP.gate(now,+CFG.fpsCap||0)){requestAnimationFrame(frame);return}/* Frame rate cap setting (js/fpscap.js); 0 = display rate (VSync) */
+  try{frameBody(now)}catch(e){frameError(e)}finally{requestAnimationFrame(frame)}
+}
+function frameBody(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
@@ -4532,8 +4541,7 @@ function frame(now){
   nightTick(running?dt:0);
   if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
-  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);RENDER.draw();groundPass(-1);
-  requestAnimationFrame(frame);
+  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);try{if(!GLX.lost)RENDER.draw()}finally{groundPass(-1)}
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.rscale=clamp(+CFG.rscale||100,50,100)/100;RENDER.apply(CFG.gfx);

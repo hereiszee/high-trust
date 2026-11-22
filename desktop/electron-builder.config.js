@@ -10,7 +10,7 @@ const NOTARIZE_MAC = SIGN_MAC && !!((E.APPLE_ID && E.APPLE_APP_SPECIFIC_PASSWORD
    build the release on Windows (or install wine) so HighTrust.exe gets the High Trust icon. */
 const canEditExe = process.platform === 'win32' || (() => { try { require('child_process').execSync('command -v wine || command -v wine64', { stdio: 'ignore' }); return true } catch (e) { return false } })();
 const game = ['index.html', 'LICENSE', 'js/**', 'css/**', 'vendor/**',
-  ...(FULL ? ['assets/**', '!assets/**/*.md', 'assets/CREDITS.md'] : ['assets/opt/**', 'assets/fonts/**', 'assets/CREDITS.md', 'assets/credits/**', '!assets/opt/boot.jpg*', '!assets/opt/.cache.json']),
+  ...(FULL ? ['assets/**', '!assets/**/*.md', 'assets/CREDITS.md'] : ['assets/opt/**', 'assets/fonts/**', 'assets/CREDITS.md', 'assets/credits/**', '!assets/opt/boot.jpg*', '!assets/opt/boot.*.pack.*', '!assets/opt/.cache.json']),
   '!**/.DS_Store', '!**/*.psd', '!**/*.blend'];
 module.exports = {
   appId: 'com.hightrust.game', /* PLACEHOLDER (owner input, docs/steam/CHECKLIST.md "Owner inputs"): your reverse-domain id */
