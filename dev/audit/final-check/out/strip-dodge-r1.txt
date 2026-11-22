@@ -1,0 +1,33 @@
+== control: a red light played out to the slip
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   red light, LOSS: [["Rental",-20],["Entry",-25],["Your bet on yourself",-100]]
+  cash 1500 -> 1355 (-145), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+== A: red light (certain loss), then Esc -> Quit to title -> Continue
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   the red bulb is lit in our lane, race still on (phase tree)
+  pause screen: pause, after quit: title, Continue offered: true, mode now hub
+  cash 1355 -> 1355 (saved: 1355), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  FAIL A: the certain loss costs what the played-out loss cost ($145): it cost $0
+== B: the same race, never let go of the brake (the opponent runs, "asleep" after 8 s)
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  opponent finished his pass while we sat: null; cash 1355 -> 1355, today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  FAIL B: sitting it out costs what a loss costs ($145): it cost $0
+== C: a bet on another race, watched from the tower; mid-race P (pause) -> Quit to title -> Continue
+  ok   office
+  FAIL watching (null), stake $100
+  mid-race: null
+  after P: screen null, still watching false
+  cash at the bet 1355, after quit + Continue 1355; lastWatch null
+  FAIL C: a spectator bet abandoned mid-race is settled (cash 1355 -> 1355)
+== D: bracket night round 1, never launch
+  FAIL office
+  feed: null; cash 1500 -> 1500; bracket lastDay 0
+  FAIL D: a forfeited round 1 costs the entry or uses up tonight's bracket (cost $0, lastDay 0)
+no console errors
+6 FAIL (each FAIL = a loss that was dodged)

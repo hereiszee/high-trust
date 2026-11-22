@@ -1,0 +1,14 @@
+== C: a bet on another race, watched from the tower; mid-race P (pause) -> Quit to title -> Continue
+  ok   office
+  menu stake: $10 | $25 | $50 | $100
+  ok   watching (walt vs dutch), stake $100
+  mid-race: {"phase":"go","t":3.0000000000000995}
+  after P: screen pause, still watching true
+  cash at the bet 1500, after quit + Continue 1500; lastWatch null
+  FAIL C: a spectator bet abandoned mid-race is settled (cash 1500 -> 1500)
+== D: bracket night round 1, never launch
+  ok   office
+  feed: null; cash 1500 -> 1500; bracket lastDay 0
+  FAIL D: a forfeited round 1 costs the entry or uses up tonight's bracket (cost $0, lastDay 0)
+no console errors
+2 FAIL (each FAIL = a loss that was dodged)
