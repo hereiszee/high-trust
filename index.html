@@ -1436,9 +1436,24 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,want:OWS.trafficWant,
     pv:CV&&!CV.fly?{x:CV.pos.x,z:CV.pos.z,yaw:CV.yaw,spd:CV.spd,hl:carSize(CV).l/2,hw:carSize(CV).w/2,type:CV.type}:null,/* [TRAFFIC] the player's vehicle, any type */
     cars:L.cars?L.cars.filter(e=>e!==CV&&e.obj):null,say:(who,txt)=>radio(who,txt),
+    people:trafficPeople(dt),/* everyone on foot but the dad: traffic stops for them (wider for a child, and never goes round one) */
     others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||null});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
   owNeighbours(dt);
 }
+/* the people ambient traffic must see (W-03): every HT.People character standing in the world (neighbours, kids, family, crew, givers,
+   job casts, the festival crowd, a wreck's driver) plus crew/npcs drawn as box figures; position from the last drawn frame, velocity from
+   the frame before. The dad on foot is passed separately (player). One shared array, no per-frame allocation past the first. */
+const TRP={list:[],pool:[]};
+function trafficPeople(dt){const PP=HTM('People'),out=TRP.list;out.length=0;let n=0;const slot=()=>TRP.pool[n]||(TRP.pool[n]={x:0,z:0,vx:0,vz:0,kid:false,ref:null});
+  const add=(ref,x,z,kid)=>{const q=slot();n++;const k=ref._trk;q.vx=k&&dt>0&&k.t===TRP.t?(x-k.x)/Math.max(dt,1e-3):0;q.vz=k&&dt>0&&k.t===TRP.t?(z-k.z)/Math.max(dt,1e-3):0;
+    if(Math.abs(q.vx)>12||Math.abs(q.vz)>12){q.vx=0;q.vz=0}/* a teleport, not a walk */q.x=x;q.z=z;q.kid=kid;q.ref=ref;if(k){k.x=x;k.z=z;k.t=TRP.t+1}else ref._trk={x,z,t:TRP.t+1};out.push(q)};
+  const shown=o=>{for(;o;o=o.parent){if(!(o._htPend?o._htVis:o.visible))return false;if(o===scene)return true}return false};/* a model still loading counts as there (it pops in where it stands) */
+  const one=d=>{if(!d||!d.root||d===P.dude||d.rb&&d.rb.dead||!shown(d.root))return;const r=d.root,par=r.parent,top=par===scene||L&&par===L.group;/* at the top: its own position (fresh this frame); else last frame's world matrix */
+    const e=r.matrixWorld.elements;if(d._kid==null)d._kid=!!(PP.isProtected&&PP.isProtected(d));add(d,top?r.position.x:e[12],top?r.position.z:e[14],d._kid)};
+  if(PP){if(PP.live)for(const d of PP.live)one(d);if(PP.pending)for(const d of PP.pending)one(d)}/* still loading: there all the same */
+  for(const a of allies)if(!a.ride&&a.dude&&!a.dude.rb&&a.dude.root&&shown(a.dude.root))add(a,a.pos.x,a.pos.z,false);/* box-figure crew (People still loading) */
+  for(const c of npcs)if(c.dude&&!c.dude.rb&&c.dude.root&&shown(c.dude.root))add(c,c.pos.x,c.pos.z,false);
+  TRP.t=(TRP.t|0)+1;return out}
 /* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
    Until that role exists the porches stay empty. */
 function owNeighbours(dt,bT){const PP=HTM('People'),G=HTM('WorldGen');OWS.nbT=(OWS.nbT||0)-dt;const pool=OWS.nb||(OWS.nb=[]);

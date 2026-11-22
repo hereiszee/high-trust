@@ -1256,7 +1256,8 @@ OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY
 const TRAFFIC_TYPES=['sedan','hatch','suv','pickup','workvan','sedan'],TRAFFIC_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#6d7378','#7a5a3a','#c9b48a'];
 /* tuning (metres, seconds, m/s, m/s^2) */
 const TR={look:30,plan:4.5,sg0:2.6,sg1:4,sgK:.14,margin:.3,honk1:2,honkGap:[4,6],honkLong:9,bark1:3,barkGap:12,barkCd:7,haz:10,round:6,roundSpd:4.5,roundOff:3.1,roundClear:45,
-  rev:25,gone:40,box:6.5,stopLine:9.5,yieldR:18};
+  rev:25,gone:40,box:6.5,stopLine:9.5,yieldR:18,
+  ped:.45,kid:.95,pedBody:.3,pedCell:16};/* people on the road (o.people): ped/kid = the radius traffic keeps clear (a child gets the wider berth), pedBody = the body itself */
 OW.trafficTune=TR;
 const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
 const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
@@ -1331,6 +1332,12 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked',src:e})}
   for(const S of TR_PROPS)for(const q of S.list||[]){if(q.state!=='placed'||Math.abs(q.x-p.x)>160||Math.abs(q.z-p.z)>160)continue;const K=HT.Props.KINDS&&HT.Props.KINDS[q.kind]||{w:.5,d:.5},f=trFwd(q.yaw||0);
     obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop',src:q})}
+  /* people (o.people: everyone standing or walking in the world but the dad: neighbours, kids, family, crew, job casts, the festival crowd)
+     go in a 16 m bucket grid; each car only looks at the cells round its own look-ahead (trPeopleNear), so 40 people cost 24 cars little */
+  const pg=T.pg||(T.pg=new Map());for(const a of pg.values())a.length=0;let npl=0;
+  for(const q of o.people||[]){if(Math.abs(q.x-p.x)>170||Math.abs(q.z-p.z)>170)continue;const r=q.kid?TR.kid:TR.ped,key=Math.floor(q.x/TR.pedCell)*4096+Math.floor(q.z/TR.pedCell);
+    let a=pg.get(key);if(!a)pg.set(key,a=[]);a.push({x:q.x,z:q.z,fx:0,fz:-1,hl:r,hw:r,vx:q.vx||0,vz:q.vz||0,k:q.kid?'kid':'ped',body:TR.pedBody,src:q.ref||q});npl++}
+  T.npl=npl;
   T.obs=obs.filter(q=>q.k!=='player'&&q.k!=='foot');
   const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t,src:t});t.ob=ob;tro.push(ob);obs.push(ob)}
   /* spawn */
@@ -1351,9 +1358,12 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
   /* junction reservations: drop holders that are gone */
   for(const[n,h]of T.res)if(!T.cars.includes(h))T.res.delete(n);
   const pvMover=pv&&{x:pv.x,z:pv.z,vx:obs[0].vx,vz:obs[0].vz,spd:Math.abs(pv.spd)};
+  const obsAll=obs;
   for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai,S=c.stats;const f=trFwd(c.yaw),hl=S.len/2;
+    const near=npl?trPeopleNear(T,c.x,c.z,TR.look+hl+8):null,obs=near&&near.length?obsAll.concat(near):obsAll;t.peds=near&&near.length?near:null;
     /* shoved (index.html trafficContact): slide, the driver stands on the brake */
-    if(t.push){c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-(4+.5*sp)*dt)/(sp||1);/* the driver is on the brake, but a minivan can still shove it */t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
+    if(t.push){const x0=c.x,z0=c.z;c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);if(t.peds&&trPedCloser(t,t.peds,x0,z0)){c.x=x0;c.z=z0;t.push=null;log(t,'pushStop',{})}/* a shoved car stops dead before anyone, like at a wall */}
+    if(t.push){const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-(4+.5*sp)*dt)/(sp||1);/* the driver is on the brake, but a minivan can still shove it */t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
     if(t.shoveT>0)t.shoveT-=dt;if(t.hazT>0)t.hazT-=dt;
     let cap=Infinity,blk=null;
     /* 0. plan the turn after the next node early (CarAI picks it only 5 m out) so the look-ahead can follow the lane round the corner
@@ -1401,7 +1411,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     const stopped=Math.abs(c.spd)<.5&&cap<.8&&t.mode!=='rev';
     const qHead=blk&&!(blk.k==='traffic'&&blk.ref&&(blk.ref.wait>.5||blk.ref.cap<.8))&&blk.k!=='junction';
     if(stopped&&blk){if(!t.wait)log(t,'stop',{by:blk.k,gap:hit?+hit.gap.toFixed(2):null});t.wait+=dt;t.free=0}else if(Math.abs(c.spd)>2||!blk){t.free+=dt;if(t.free>1.2&&t.wait){t.wait=0;t.honkN=0;t.nextHonk=TR.honk1;t.barkAt=TR.bark1;if(!t.wreck)t.hazOn=false}}
-    const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'),stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
+    const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'||blk.k==='ped'),/* a child in the road: no horn, no bark, it just waits */stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
     if(t.wait>0&&!t.wreck){
       if(qHead&&atPlayer&&t.wait>=t.nextHonk&&T.honkT<=0&&T.clock-(t.lastHonk||-9)>=4){t.lastHonk=T.clock;const n=t.honkN++,long=n===2||n>=4&&n%2===0;
         trHorn(t,long?.85:.22,cam,long?null:n===1?[[0,.12],[.2,.14]]:null);T.honkT=.5;log(t,'honk',{long,at:+t.wait.toFixed(2)});t.nextHonk=t.wait+(t.wait>14?6+Math.random()*3:TR.honkGap[0]+Math.random()*(TR.honkGap[1]-TR.honkGap[0]))}
@@ -1410,7 +1420,7 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
         if(near&&T.barkT<=0&&o.say&&(!t.barkN||Math.random()<.35)){/* the first one always: dads always say something */T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line})}}
       if(t.wait>=TR.haz&&!t.hazOn&&qHead){t.hazOn=true;log(t,'haz',{at:+t.wait.toFixed(2)})}
       /* go round: the blocker has stopped, the oncoming lane is clear for TR.roundClear m */
-      if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
+      if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&blk.k!=='kid'&&/* never round a child: wait */(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
         const clear=!trSweep(t,obs,TR.roundClear,TR.roundOff,TR.roundOff,blk);
         if(clear&&hit){t.mode='round';t.offT=TR.roundOff;t.odo=0;t.modeT=0;t.roundLen=hit.gap+2*(blk.hl+blk.hw)+2*hl+3;
           if(hit.gap<7&&!trBehind(t,obs,4)){c.revT=.7;c.revDir=-1;t.roundLen+=3}/* too close to swing out: back up a car's length first */
@@ -1443,9 +1453,16 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
         const ca=T.cars[a].c,cb=T.cars[b].c,k=h.d/2;ca.x+=h.nx*k;ca.z+=h.nz*k;cb.x-=h.nx*k;cb.z-=h.nz*k;B[a].x=ca.x;B[a].z=ca.z;B[b].x=cb.x;B[b].z=cb.z}
       for(const q of fixed){if(Math.abs(q.x-B[a].x)>9||Math.abs(q.z-B[a].z)>9)continue;const h=obbSat(B[a],q);if(!h||h.d<.001)continue;any=true;const ca=T.cars[a].c;ca.x+=h.nx*h.d;ca.z+=h.nz*h.d;B[a].x=ca.x;B[a].z=ca.z}}
     if(!any)break;for(const t of T.cars)trSync(t,lvl,t.cap<.8,0)}};
-/* push this traffic car (only it) out of anything it overlaps */
+/* people in the cells round (x,z) within r (T.pg, filled once a frame in OW.traffic) */
+function trPeopleNear(T,x,z,r){const out=[],C=TR.pedCell,i0=Math.floor((x-r)/C),i1=Math.floor((x+r)/C),j0=Math.floor((z-r)/C),j1=Math.floor((z+r)/C);
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const a=T.pg.get(i*4096+j);if(a)for(const q of a)if(Math.abs(q.x-x)<r&&Math.abs(q.z-z)<r)out.push(q)}return out}
+/* is anyone within (their body + pad) of this traffic car's box? */
+function trPedTouch(t,peds,pad){const A=trBox(t);for(const q of peds){const r=q.body+pad;if(Math.abs(q.x-A.x)>9||Math.abs(q.z-A.z)>9)continue;if(obbSat(A,{x:q.x,z:q.z,fx:0,fz:-1,hl:r,hw:r}))return q}return null}
+/* a move from (x0,z0) that brings the car within reach of someone (or closer to someone it already touches) */
+function trPedCloser(t,peds,x0,z0){const q=trPedTouch(t,peds,.25);if(!q)return null;const c=t.c;return Math.hypot(c.x-q.x,c.z-q.z)<=Math.hypot(x0-q.x,z0-q.z)+1e-4?q:null}
+/* push this traffic car (only it) out of anything it overlaps (people by their bodies, not the berth the look-ahead keeps) */
 function trSep(t,obs){const c=t.c;for(let pass=0;pass<4;pass++){const A=trBox(t);let any=false;
-  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
+  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o.body?{x:o.x,z:o.z,fx:0,fz:-1,hl:o.body,hw:o.body}:o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
     c.x+=h.nx*h.d;c.z+=h.nz*h.d;A.x=c.x;A.z=c.z;any=true;const f=trFwd(c.yaw),toward=-(h.nx*f[0]+h.nz*f[1]);if(toward*c.spd>0)c.spd=0;t.sepN=(t.sepN|0)+1}if(!any)break}}
 /* model, lamps and collider */
 function trSync(t,lvl,braking,dt){const c=t.c,f=trFwd(c.yaw);t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
@@ -1473,6 +1490,7 @@ OW.trafficBox=trBox;
 /* move a traffic car by (dx,dz) (it slides against buildings), give it a shove velocity; returns how far it actually moved */
 OW.trafficShove=(t,dx,dz,vx,vz)=>{const ws=WS;if(!ws||!ws.traffic)return{x:0,z:0};const c=t.c,x0=c.x,z0=c.z;c.x+=dx;c.z+=dz;if(ws.traffic.statics)ws.traffic.statics(c,c.stats.wid/2);
   if(ws.traffic.obs)trSep(t,ws.traffic.obs);/* it can't be shoved into a parked car or another car either: what it can't take, the pusher does */
+  if(ws.traffic.pg&&ws.traffic.npl){const near=trPeopleNear(ws.traffic,c.x,c.z,12);if(near.length&&trPedCloser(t,near,x0,z0)){c.x=x0;c.z=z0;t.push=null;trSync(t,ws.lvl,true,0);return{x:0,z:0}}}/* never shoved into a person: it stops dead, the pusher takes it all, like a wall */
   if(vx||vz){const p=t.push||(t.push={vx:0,vz:0});p.vx+=vx;p.vz+=vz;const s=Math.hypot(p.vx,p.vz);if(s>14){p.vx*=14/s;p.vz*=14/s}t.shoveT=Math.max(t.shoveT||0,1.2);c.spd=0}
   trSync(t,ws.lvl,true,0);return{x:c.x-x0,z:c.z-z0}};
 OW.trafficSync=t=>{if(WS)trSync(t,WS.lvl,true,0)};
