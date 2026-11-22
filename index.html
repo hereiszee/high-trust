@@ -352,7 +352,7 @@ let envMap=null;const ENV_CLIP=4;
 /* image-based light from the HDR sky; the panorama has no ground, so the lower half is darkened to a dirt/grass bounce first */
 function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap;
   try{const h=ASSETS.hdr;if(h)h.__used=true;
-    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType){const{width:W,height:H,data:D}=h.image;
+    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType&&!h.__prepped){h.__prepped=true;const{width:W,height:H,data:D}=h.image;
       /* the sun disk is clipped too: the directional light already carries it, and leaving it in washes out every shadow */
       for(let y=0;y<H;y++){const below=(y-H/2)/(H*.04),k=clamp(below,0,1),gr=[.16,.15,.11];
         for(let x=0;x<W;x++){const o=(y*W+x)*4,s=Math.pow(2,D[o+3]-128)/255;let c=[D[o]*s,D[o+1]*s,D[o+2]*s];
@@ -360,6 +360,7 @@ function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap
           if(k>0)c=c.map((v,j)=>v*(1-k)+v*gr[j]*k);const m=Math.max(c[0],c[1],c[2]);if(m<1e-6){D[o]=D[o+1]=D[o+2]=D[o+3]=0;continue}
           const e=Math.ceil(Math.log2(m)),sc=255/Math.pow(2,e);D[o]=Math.min(255,Math.round(c[0]*sc));D[o+1]=Math.min(255,Math.round(c[1]*sc));D[o+2]=Math.min(255,Math.round(c[2]*sc));D[o+3]=e+128}}
       h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}
+    else if(h&&h.__prepped){h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}/* rebuilt after a context restore: the darkened data is kept, not darkened twice */
     else if(ASSETS.skyTex){const t=ASSETS.skyTex.clone();t.mapping=THREE.EquirectangularReflectionMapping;t.needsUpdate=true;envMap=pm.fromEquirectangular(t).texture}
   }catch(e){console.warn('environment light failed',e);envMap=null}
   pm.dispose();scene.environment=envMap;if(typeof vmScene!=='undefined')vmScene.environment=envMap;if(old&&old!==envMap)old.dispose()}
@@ -2024,10 +2025,15 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
 /* WebGL context loss (driver reset, GPU hiccup, some fullscreen alt-tabs): pause, say so, let three.js restore everything; offer a reload if it doesn't come back */
 const GLX={lost:false,n:0};
+/* three re-creates programs, buffers and textures by itself after a restore, but anything baked into a render target is gone: the PMREM sky
+   environment, the backdrop tree impostors (js/world.js) and the home's reflection probe. Rebuild them once three has re-initialised. */
+function glRestoreTargets(){setTimeout(()=>{if(GLX.lost)return;try{buildEnv();applyMood()}catch(e){console.warn('env rebuild failed',e)}
+  try{const HW=HTM('World');if(HW&&HW.restoreGL)HW.restoreGL()}catch(e){console.warn('impostor rebuild failed',e)}
+  try{if(HOME3&&HOME3.bakeReflections)HOME3.bakeReflections(renderer,scene)}catch(e){console.warn('home probe rebuild failed',e)}},0)}
 function glLostDialog(){if(!GLX.lost)return;HUD.dialog({kicker:'Graphics',title:'Graphics reset',text:"The graphics driver reset (an alt-tab, a driver update or a GPU hiccup). The game is paused while the picture comes back.\n\nIf it doesn't come back in a few seconds, reload. Your progress is saved after every job and purchase; a job in progress starts over.",
     buttons:[{label:'Reload the game',act:'reload'},{label:'Wait',act:'wait',cls:'pri'}],focus:'wait',cancel:'wait'}).then(r=>{if(r==='reload'){metaSave(true);location.reload()}else if(r==='wait'&&GLX.lost)setTimeout(glLostDialog,2500)})}
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();GLX.lost=true;GLX.n++;if(running)openPause();mouseDown=false;glLostDialog()},false);
-cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
+cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}glRestoreTargets();if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80);if(SAVEM&&!metaLoadNoticed){metaLoadNoticed=true;setTimeout(metaLoadNotice,700)}}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */

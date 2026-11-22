@@ -37,7 +37,11 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   ok(['On foot','Guns','Cars','Tank','Jet','Afterburner','Landing gear','Flashlight','Zip-tie','Aim (click to raise'].every(w=>keysTxt.includes(w)),'pause → Controls lists foot, guns, cars, tank, jet');
   await shot('controls');
   await p.keyboard.press('Escape');await p.waitForTimeout(400);
-  /* 4. WebGL context loss */
+  /* 4. WebGL context loss. The picture is compared with itself before the loss (a grid of pixels read right after a draw): the centre
+     pixel alone is often the dad's dark jacket. dev/ctxrestore.e2e.js loops lose/restore 10x in the hub, at Fort Sensible and mid-job. */
+  const grid=()=>ev(()=>{const H=window.__ht;H.draw();const gl=H.renderer.getContext(),W=gl.drawingBufferWidth,Hh=gl.drawingBufferHeight,b=new Uint8Array(4);let s=0,n=0;
+    for(let i=1;i<8;i++)for(let j=1;j<6;j++){gl.readPixels(Math.floor(W*i/8),Math.floor(Hh*j/6),1,1,gl.RGBA,gl.UNSIGNED_BYTE,b);s+=(b[0]+b[1]+b[2])/3;n++}return Math.round(s/n)});
+  const g0=await grid();
   await ev(()=>{window.__ht.running=true});await ev(()=>window.__ht.renderer.forceContextLoss());await p.waitForTimeout(600);
   const lost=await ev(()=>({dlg:document.querySelector('.ht-dlg h3')&&document.querySelector('.ht-dlg h3').textContent,running:window.__ht.running,lost:window.__ht.GLX.lost}));
   ok(lost.lost&&/graphics/i.test(lost.dlg||'')&&!lost.running,'context lost: paused with a message '+JSON.stringify(lost));await shot('webgl-lost');
@@ -47,7 +51,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await p.keyboard.press('Escape');await p.waitForTimeout(1200);
   const px=await p.screenshot({type:'png'});const {PNG}=(()=>{try{return require('pngjs')}catch(e){return{}}})();
   if(PNG){const im=PNG.sync.read(px);let s=0,n=0;for(let i=0;i<im.data.length;i+=4*97){s+=im.data[i]+im.data[i+1]+im.data[i+2];n++}ok(s/n/3>25,'the world draws again after the restore (mean '+(s/n/3).toFixed(0)+')')}
-  else{const r=await ev(()=>{const H=window.__ht;H.draw();const gl=H.renderer.getContext(),b=new Uint8Array(4);gl.readPixels(gl.drawingBufferWidth>>1,gl.drawingBufferHeight>>1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,b);return[...b]});ok(r[0]+r[1]+r[2]>30,'the world draws again after the restore (centre pixel '+r+')')}
+  else{const g1=await grid();ok(g1>20&&g1>=g0*.75,'the world draws again after the restore (picture mean '+g1+', before the loss '+g0+')')}
   await shot('webgl-restored');
   /* 5. finale guidance, decline, zip-tie gate, dedupe */
   await ev(()=>{window.__rafOn=false});
