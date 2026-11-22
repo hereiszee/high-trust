@@ -1,0 +1,23 @@
+RESUME after gary,taxi,rick,hoa,earl,mower,dave,tail,doug,dee,tow,rosa,overwatch,pawn trust 100 / R 100 cuffed 4
+
+== step 0  trust 100 / R 100  cuffed 4  day 1  cash 0  act 2  bridge true
+   OBJECTIVE: Maple Heights | Pastor Dee has a job for you in Riverside Flats | Ms. Okafor has a job for you in Riverside Flats | Benny has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave · Doug | Follow the yellow marker.
+   MARKER: {"label":"Pastor Dee","x":331,"z":39}
+   givers: dee:crossing@331,39  tyler:bike@41.3,19.9  sal:sabotage@221,55  okafor:moving@364,95.1  rosa:arrest@411,81  benny:benny@427,31  hank:blitz@43,11  doug:patrol@89,37  dave:mowertt@97.6,100.8
+   available: benny blitz mowertt sabotage crossing moving arrest bike patrol porch   home: porch@laptop
+   locked: duke:locked talk:locked cargo:locked cones:locked brake:locked roundup:locked heist:locked carwash:locked finale:locked
+-> TAKE crossing (marker)
+   accepted: {"job":20,"obj":["Crossing Guard","Get in the minivan","Drive the crew to 2nd St, Riverside"],"marker":"Minivan","screen":null}
+   drive: {"steps":88,"mode":"mission","d":4.5,"dest":{"x":315,"z":29},"markerWhileDriving":"2nd St, Riverside"}
+   job objective: ["Crossing Guard","Pastor Dee is getting the kids together..."]
+   RESULT {"id":"crossing","how":"marker","complete":"bot","trustGain":20,"dT":0,"dR":0,"cash":1596,"dCuffed":0,"day":[1,2],"pay":1596,"state":"won","medal":3,"cards":["Job done · 2nd St, RiversideThat was necessary. Unfortunately.Eleven porch lights on Ash and Mill. Pastor Dee put the stop sign on the church wall, next to the bake sale photos. Neutralized0Zip-tied0Time5:19Trust100%Riverside FlatsMedalGoldNo detour and no call-inPayout$1,596$1,596 savedPayoutNeighb"]}
+
+== step 1  trust 100 / R 100  cuffed 4  day 2  cash 1596  act 2  bridge true
+   OBJECTIVE: Maple Heights | Ms. Okafor has a job for you in Riverside Flats | Benny has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Ms. Okafor","x":364,"z":95.1}
+   givers: okafor:moving@364,95.1  sal:sabotage@221,55  rosa:arrest@411,81  benny:benny@427,31  tyler:bike@41.3,19.9  dee:carwash@331,39  doug:patrol@89,37  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: benny blitz mowertt sabotage moving arrest bike patrol porch carwash   home: porch@laptop
+   locked: duke:locked talk:locked cargo:locked cones:locked brake:locked roundup:locked heist:locked finale:locked
+-> TAKE moving (marker)
+CRASH page.evaluate: Target crashed 
+    at /home/user/high-trust/dev/audit/playthrough/story-walk.js:76:13

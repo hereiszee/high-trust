@@ -10,7 +10,7 @@
    so a copy started outside Steam relaunches through Steam (DRM-free builds can leave it at 0). */
 'use strict';
 const fs = require('fs'), path = require('path');
-const RELEASE_APP_ID = 0; /* TODO(owner): your Steam app id */
+const RELEASE_APP_ID = 0; /* PLACEHOLDER (owner input, docs/steam/CHECKLIST.md "Owner inputs"): your Steam app id */
 
 const S = { ok: false, client: null, appId: 0, why: 'not started', unlocked: new Set(), presence: {} };
 

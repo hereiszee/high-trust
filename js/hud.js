@@ -71,9 +71,10 @@ const ICON={
   mart:{shape:'c',g:'M5.5 7h2.2l1.6 7h7.4l1.6-5.4H9.1L8.8 7.6 8.5 7zM10 15.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm6 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'},
   star:{shape:'c',g:'M12 5.6l1.9 4 4.3.5-3.2 3 .9 4.3L12 15.3l-3.9 2.1.9-4.3-3.2-3 4.3-.5z'},
   range:{shape:'c',g:'M12 5.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2.3a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4z'},   /* Fort Sensible (js/base.js) */
+  side:{shape:'c',g:'M8 7.5h8v1.8H8zM8 11.1h8v1.8H8zM8 14.7h5.5v1.8H8z'},   /* a side job (repeatable): a short list */
   site:{shape:'d',g:'M12 7.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 2.2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z'}
 };
-const KIND_COL={obj:'#ffc94a',job:'#ffc94a',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a',range:'#b9d36a'};
+const KIND_COL={obj:'#ffc94a',job:'#ffc94a',side:'#8fd3ff',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a',range:'#b9d36a'};
 const SHAPE_D={d:'M12 1.5l10.5 10.5L12 22.5 1.5 12z',c:'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z',s:'M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z'};
 function iconSVG(kind){const ic=ICON[kind]||ICON.obj;const col='currentColor';
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SHAPE_D[ic.shape]}" fill="${col}" stroke="rgba(10,12,16,.55)" stroke-width="1.2"/>`+
@@ -624,7 +625,7 @@ function drawMinimap(st){
   (st.crew||[]).forEach((m,i)=>{if(m.x==null)return;let[x,y]=w2s(m.x,m.z);const d=Math.hypot(x-cx,y-cy);if(d>Rr-8){const f=(Rr-8)/d;x=cx+(x-cx)*f;y=cy+(y-cy)*f}
     if(m.down){drawIcon(c,'revive',x,y,14,.6+.4*Math.abs(Math.sin(T*4)))}else{c.fillStyle=m.color||'#7fdc6e';c.strokeStyle='#fff';c.lineWidth=1.6;c.beginPath();c.arc(x,y,3.8,0,TAU);c.fill();c.stroke()}});
   /* markers / pins (pinned to rim when out of range) */
-  const pinKinds={obj:1,job:1,shop:1,home:1,garage:1,van:1,revive:1,travel:1,gas:1,mart:1,star:1};
+  const pinKinds={obj:1,job:1,side:1,shop:1,home:1,garage:1,van:1,revive:1,travel:1,gas:1,mart:1,star:1};
   const all=[...(MM.pins||[]),...(st.markers||[])];
   for(const m of all){if(m.minimap===false||!ICON[m.kind]||m.kind==='enemy'||m.kind==='crew')continue;let[x,y]=w2s(m.x,m.z);const d=Math.hypot(x-cx,y-cy),lim=Rr-11;
     if(d>lim){if(!(pinKinds[m.kind]&&m.rim!==false))continue;const f=lim/d;x=cx+(x-cx)*f;y=cy+(y-cy)*f}
@@ -746,7 +747,8 @@ function updTitle(e,d){const L=e.querySelector('.ht-load'),f=clamp(d.progress??0
 function portraitColor(n){let h=0;for(const ch of String(n||''))h=(h*31+ch.charCodeAt(0))>>>0;return CREW_COL[h%CREW_COL.length]}
 function screenBrief(d){const e=el('div','ht-scr ht-brief');
   const meta=(d.meta||[]).map(([k,v,c])=>`<div><b>${esc(k)}</b><span class="${c||''}">${esc(v)}</span></div>`).join('');
-  e.innerHTML=`<div class="scrim"></div><div class="col"><div class="kick">${esc(d.kicker||'New job')}</div><h2>${esc(d.title||'')}</h2>
+  const jobs=d.jobs&&d.jobs.length>1?`<div class="ht-jobs" role="group" aria-label="Jobs here">${d.jobs.map(j=>`<button class="ht-btn ghost sm" data-act="${esc(j.act)}" aria-pressed="${j.on?'true':'false'}">${esc(j.title)}</button>`).join('')}</div>`:'';
+  e.innerHTML=`<div class="scrim"></div><div class="col"><div class="kick">${esc(d.kicker||'New job')}${jobs?' · '+d.jobs.length+' jobs here':''}</div>${jobs}<h2>${esc(d.title||'')}</h2>
   <div class="who"><div class="pt" style="--c:${d.color||portraitColor(d.giver)}">${esc(initials(d.giver||'?'))}</div><div><div class="r">${esc(d.role||'')}</div><div class="n">${esc(d.place||'')}</div></div></div>
   <div class="lns" style="margin-top:14px">${(d.lines||[]).map(l=>`<p class="ln">${esc(l)}</p>`).join('')}</div>
   ${meta?`<div class="ht-meta">${meta}</div>`:''}

@@ -1,0 +1,57 @@
+RESUME after gary,taxi,rick,hoa,earl,mower,dave,tail,doug,dee,tow,rosa,overwatch,pawn,crossing trust 100 / R 100 cuffed 4
+
+== step 0  trust 100 / R 100  cuffed 4  day 1  cash 0  act 2  bridge true
+   OBJECTIVE: Maple Heights | Ms. Okafor has a job for you in Riverside Flats | Benny has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Small Talk (Gary): zip-tie 10 people alive · 4/10 | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Ms. Okafor","x":364,"z":95.1}
+   givers: okafor:moving@364,95.1  tyler:bike@41.3,19.9  sal:sabotage@221,55  rosa:arrest@411,81  benny:benny@427,31  hank:blitz@43,11  doug:patrol@89,37  dave:mowertt@97.6,100.8  dee:carwash@331,39
+   available: benny blitz mowertt sabotage moving arrest bike patrol porch carwash   home: porch@laptop
+   locked: duke:locked talk:locked cargo:locked cones:locked brake:locked roundup:locked heist:locked finale:locked
+-> TAKE moving (marker)
+   accepted: {"job":23,"obj":["Heavy Lifting","Get in the minivan","Drive the crew to 3rd St at Mill St, Riverside"],"marker":"Minivan","screen":null}
+   drive: {"steps":95,"mode":"mission","d":4.5,"dest":{"x":380.6,"z":63.5},"markerWhileDriving":"3rd St at Mill St, Riverside"}
+   job objective: ["Heavy Lifting","Unload the truck · 0%","Crew: Rick north · Big Dave south · Rosa alley · Gary truck"]
+   RESULT {"id":"moving","how":"marker","complete":"bot","trustGain":31,"dT":0,"dR":0,"cash":2772,"dCuffed":16,"day":[1,2],"pay":2772,"state":"won","medal":3,"cards":["Job done · 3rd St at Mill St, RiversideHome in time for dinner.The Adeyemis are home. The lights are on at 3rd and Mill, and the boys on the stoop found somewhere else to be. Neutralized0Zip-tied16second chancesTime3:20Trust100%Riverside FlatsMedalGoldMoved in under 3:30Payout$2,772$2,772 savedPayou"]}
+
+== step 1  trust 100 / R 100  cuffed 20  day 2  cash 2772  act 2  bridge true
+   OBJECTIVE: Maple Heights | Benny has a job for you in Riverside Flats | Gary has a job for you | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Benny","x":427,"z":31}
+   givers: benny:benny@427,31  rosa:arrest@411,81  sal:sabotage@221,55  tyler:bike@41.3,19.9  gary:talk@27,21  dee:carwash@331,39  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: benny blitz talk mowertt sabotage arrest bike patrol porch carwash   home: porch@laptop
+   locked: duke:locked cargo:locked cones:locked brake:locked roundup:locked heist:locked finale:locked
+-> TAKE benny (marker)
+   accepted: {"job":7,"obj":["Brain Freeze","Get in the minivan","Drive the crew to Benny's route, Riverside Flats"],"marker":"Minivan","screen":null}
+   drive: {"steps":106,"mode":"mission","d":26.7,"dest":{"x":435,"z":43},"markerWhileDriving":"Benny's route, Riverside Flats"}
+   job objective: ["Brain Freeze","Follow Benny's truck to the court","Truck · 100%"]
+   RESULT {"id":"benny","how":"marker","complete":"finish(true)","trustGain":14,"dT":0,"dR":0,"cash":1380,"dCuffed":0,"day":[2,3],"pay":1380,"state":"won","medal":1,"cards":["Job done · Benny's route, Riverside FlatsThat was necessary. Unfortunately.Benny: Two hundred and eleven free cones. A record. The Duke's going to hear about this, and I hope he's lactose intolerant. Neutralized0Zip-tied0Time0:00Trust100%Riverside FlatsMedalBronzePayout$1,380$4,152 savedPayoutNeighb"]}
+
+== step 2  trust 100 / R 100  cuffed 20  day 3  cash 4152  act 2  bridge true
+   OBJECTIVE: Maple Heights | Earl has jobs for you in Riverside Flats | Big Dave has a job for you | Gary has a job for you | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Side jobs: Hank · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Earl","x":329,"z":67}
+   givers: earl:cones+duke@329,67  rosa:arrest@411,81  sal:sabotage@221,55  tyler:bike@41.3,19.9  dave:cargo@41,65  gary:talk@27,21  dee:carwash@331,39  doug:patrol@89,37  hank:blitz@43,11
+   available: duke blitz talk mowertt sabotage cargo cones arrest bike patrol porch carwash   home: porch@laptop
+   locked: brake:locked roundup:locked heist:locked finale:locked
+-> TAKE cones (marker)
+   accepted: {"job":22,"obj":["Cone Zone","Get in the minivan","Drive the crew to Industrial Way"],"marker":"Minivan","screen":null}
+   drive: {"steps":96,"mode":"mission","d":4.5,"dest":{"x":199,"z":70},"markerWhileDriving":"Industrial Way"}
+   job objective: ["Cone Zone","Build a roadblock before the convoy rolls","Stock: 12 cones · 3 sawhorses · 1 sign · 2 flares","Sal's lot: 3 borrowable cars next door","They'll take the gap down the middle."]
+   RESULT {"id":"cones","how":"marker","complete":"bot","trustGain":42,"dT":0,"dR":0,"cash":2280,"dCuffed":5,"day":[3,4],"pay":2280,"state":"won","medal":3,"cards":["Job done · Industrial WayHome in time for dinner.Earl: Twenty converters back in twenty driveways. A goat back in a yard. And not one cone on Industrial Way. Thursday. RoadblockAirtighttwo cars and a lit flareConvoyGave up4 props knocked flyingShots fired0not oneZip-tied5Cones left0clean roadTime0:4"]}
+
+== step 3  trust 100 / R 100  cuffed 25  day 4  cash 6432  act 2  bridge true
+   OBJECTIVE: Maple Heights | Big Dave has a job for you | Earl has a job for you in Riverside Flats | Gary has a job for you | Sal has a job for you | Tyler has a job for you | Rosa has a job for you in Riverside Flats | Side jobs: Hank · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Big Dave","x":41,"z":65}
+   givers: dave:cargo@41,65  sal:sabotage@221,55  earl:duke@329,67  tyler:bike@41.3,19.9  gary:talk@27,21  rosa:arrest@411,81  doug:patrol@89,37  dee:carwash@331,39  hank:blitz@43,11
+   available: duke blitz talk mowertt sabotage cargo arrest bike patrol porch carwash   home: porch@laptop
+   locked: brake:locked roundup:locked heist:locked finale:locked
+-> TAKE cargo (marker)
+   accepted: {"job":19,"obj":["Handle With Care","Get in the minivan","Drive the crew to Dave's house → the Riverside block party"],"marker":"Minivan","screen":null}
+   drive: {"steps":124,"mode":"mission","d":12.5,"dest":{"x":47,"z":69.4},"markerWhileDriving":"Dave's house → the Riverside block party"}
+   job objective: ["Handle With Care","Pick up the brisket from Dave's table"]
+   bot result {"t":1515,"state":"lost","stage":"drive"} -> finish(true)
+   RESULT {"id":"cargo","how":"marker","complete":"bot failed, finish(true)","trustGain":null,"dT":0,"dR":0,"cash":48,"dCuffed":0,"day":[4,4],"pay":48,"state":"lost","medal":0,"cards":["Job failed · Dave's house → the Riverside block partyPulled porkIt's... it's pulled pork now. Neutralized0Zip-tied0Time0:51Trust100%Riverside FlatsPayout$48$6,480 savedPayoutBetter luck next SaturdayGas money+$0Neighbors chipped in×1.20 at 100% Riverside trust+$0Total$0Gas money Head homeRetry from "]}
+  ! cargo did not end won: lost
+
+console errors: 0 
+
+JOBS: moving(M0 R0) benny(M0 R0) cones(M0 R0) cargo(M0 R0)
+problems: 1
+ - cargo did not end won: lost
