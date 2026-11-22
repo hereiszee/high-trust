@@ -41,8 +41,12 @@ const pad=()=>!!(HT.Pad&&HT.Pad.active);
 const PADB={use:'A',jump:'A',fwd:'RT',back:'LT',ok:'A',back2:'B',alt:'X'};
 function kl(act){if(pad())return HT.Pad.btn(PADB[act]||act);const K=HT.Keys;if(act==='ok')return'Enter';if(act==='back2')return K&&K.keyLabel?K.keyLabel('Escape'):'Esc';return K&&K.label?K.label(act):act}
 function sv(){try{const s=A().SV();if(!s)return null;if(!s.strip)s.strip={};const x=s.strip;
-  for(const[k,v]of Object.entries({visited:false,taught:{},book:{},hist:[],ladder:{beaten:{},wins:{}},days:{},stats:{passes:0,races:0,wins:0,reds:0,bestRt:null,perfect:false,bets:0},bracket:{lastDay:0,won:0},barked:false}))if(x[k]==null)x[k]=JSON.parse(JSON.stringify(v));
+  for(const[k,v]of Object.entries({visited:false,taught:{},book:{},hist:[],ladder:{beaten:{},wins:{}},days:{},stats:{passes:0,races:0,wins:0,reds:0,bestRt:null,perfect:false,bets:0},bracket:{lastDay:0,won:0},barked:false,pending:[],odds:{},rts:null}))if(x[k]==null&&v!=null)x[k]=JSON.parse(JSON.stringify(v));
+  if(!Array.isArray(x.pending))x.pending=[];
+  if(!Array.isArray(x.rts)){/* an older save: the best reaction times it already has (the last passes, the book's bests) */const r=[];for(const h of x.hist||[])if(h&&h.rt!=null&&h.rt>=0)r.push(h.rt);for(const k in x.book){const b=x.book[k];if(b&&b.best&&b.best.rt!=null&&b.best.rt>=0)r.push(b.best.rt)}x.rts=r.sort((a,b)=>a-b).slice(0,3)}
   return x}catch(_){return null}}
+/* money taken or paid: written now, on the urgent path (a reload or a closed game can't undo it) */
+function saveNow(){try{HT.Save.saveNow(true)}catch(_){persist()}}
 function persist(){try{A().save()}catch(_){}}
 function dayN(){try{return A().SV().day||1}catch(_){return 1}}
 function cash(){try{return Math.max(0,Math.round(HT.Save.data.cash||0))}catch(_){return 0}}
@@ -340,7 +344,7 @@ function startTune(a,type){const d=ST.def();if(a.CV&&a.CV!==S.loaner)try{a.exitC
 const TREE={a:.5,green:1.5};/* a full ("sportsman") tree: three ambers half a second apart, green half a second after the last */
 function newRun(a,o){const d=ST.def(),e=o.e,lane=o.lane||0;const sp=o.spec||D().spec(o.type||e.type,o.veh||null,o.veh?o.util||null:null);
   const R={mode:o.mode,phase:'roll',t:0,e,lane,type:o.type||e.type,spec:sp,run:D().run(sp),tree0:null,offs:[0,0],opp:null,dial:o.dial||null,racer:o.racer||null,bet:o.bet||null,
-    entry:o.entry||0,rent:o.rent||0,bracket:o.bracket||null,turf:!!o.turf,shutX:null,res:null,lights:[{},{}],noLaunchT:0,said:{}};
+    entry:o.entry||0,rent:o.rent||0,bracket:o.bracket||null,pend:o.pend||null,turf:!!o.turf,shutX:null,res:null,lights:[{},{}],noLaunchT:0,said:{}};
   S.run=R;e.fly=true;e.noExit=true;if(!e.stripLoaner)e.loaner='Finish the pass first. Fast travel waits for the slip.';placeCar(a,e,lane,4);/* rolls up from 4 m back */
   if(o.racer){const r=o.racer,osp=D().spec(r.car);R.opp={racer:r,spec:osp,lane:1-lane,ctl:null,model:oppModel(a,r,1-lane,osp),x:0,v:0,done:false}}
   if(R.dial){/* bracket: the quicker dial waits the difference */const dm=R.dial[0],do_=R.dial[1];R.offs[lane]=Math.max(0,do_-dm);R.offs[1-lane]=Math.max(0,dm-do_)}
@@ -374,7 +378,7 @@ function runTick(a,dt){const R=S.run;if(!R)return;const d=ST.def(),e=R.e;R.t+=dt
       const red=rr.leave!=null&&rr.leave<g;R.lights[ln]={pre:rr.x<.6,stage:rr.leave==null,a1:t>=g-1.5&&t<g&&!red,a2:t>=g-1&&t<g&&!red,a3:t>=g-.5&&t<g&&!red,green:t>=g&&!red,red}}
     if(R.phase==='tree'&&R.t>=TREE.green)R.phase='go';
     if(me.launched&&!R.said.red&&me.leave!=null&&me.leave<me.green){R.said.red=1;beep(180,.4)}
-    if(!me.launched&&R.t>me.green+8){endRun(a,'asleep');return}
+    if(!me.launched&&R.t>me.green+10){endRun(a,'asleep');return}/* ten seconds after the green and still at the line: timed out (a money race: a forfeit) */
     const done=me.done&&me.v<.6&&(!R.opp||R.opp.ctl.R.done&&R.opp.ctl.R.v<.6||R.t>me.split.et+6);
     if(done){finishRun(a);return}}
   /* the car: the race model's distance along the lane, a wiggle when the tyres spin */
@@ -397,7 +401,9 @@ function finishRun(a){const R=S.run,me=R.run,sl=D().slip(me);R.phase='done';cons
   if(s){s.stats.passes++;if(sl.red)s.stats.reds++;if(sl.rt!=null&&sl.rt>=0&&(s.stats.bestRt==null||sl.rt<s.stats.bestRt))s.stats.bestRt=sl.rt;if(sl.rt!=null&&sl.rt>=0&&sl.rt<=.05)s.stats.perfect=true;
     s.hist.push({rt:sl.rt,launchQ:sl.launchQ,type:R.type});if(s.hist.length>20)s.hist.splice(0,s.hist.length-20);
     const key=D().bookKey(R.spec);const b=s.book[key]||(s.book[key]={best:null,n:0,last:null});b.type=R.type;b.label=D().upText(R.spec);b.n++;b.last=slim(sl);
-    sl.prevBest=b.best?b.best.et:null;if(!sl.red&&(!b.best||sl.et<b.best.et)){b.best=slim(sl);sl.newBest=true}}
+    sl.prevBest=b.best?b.best.et:null;if(!sl.red&&(!b.best||sl.et<b.best.et)){b.best=slim(sl);sl.newBest=true}
+    /* the best three clean passes in this car and the best three lights anywhere: what a bet on yourself is priced from */
+    if(!sl.red){b.top=D().keepBest(b.top||(sl.prevBest!=null?[{et:sl.prevBest,rt:null}]:[]),{et:sl.et,rt:sl.rt},3,x=>x.et);if(sl.rt!=null&&sl.rt>=0)s.rts=D().keepBest(s.rts,sl.rt,3)}}
   let res=null;
   if(R.opp){const o=R.opp,osl=D().slip(o.ctl.R),l0=R.lane===0;res=D().judge(l0?[me,o.ctl.R]:[o.ctl.R,me],l0?[sl,osl]:[osl,sl],R.dial?(l0?R.dial:[R.dial[1],R.dial[0]]):null);
     res.me=R.lane;res.won=res.win===R.lane;res.oppSlip=osl}
@@ -414,12 +420,35 @@ const slim=sl=>({rt:sl.rt,t60:sl.t60,t330:sl.t330,et:sl.et,mph:sl.mph,et14:sl.et
 /* the pass is over without a slip (got out, fell asleep at the tree, a reset) */
 function freeCar(e){if(!e)return;e.fly=false;e.noExit=false;if(!e.stripLoaner)delete e.loaner}
 function endRun(a,why){const R=S.run;if(!R)return;S.run=null;dropOpp(R);hudOff();treeSet([{},{}]);const e=R.e;freeCar(e)
-  if(why==='asleep')feed('The tree went green a while ago. The tower would like the lane back.','info');
-  if(why==='dnf')feed('No time on that one.','info');
-  if(R.bracket&&why!=='quiet')feed('Bracket night: that counts as a loss in round '+R.bracket.round+'. Entry refunded.','info');
+  if(R.pend)forfeitNow(R.pend,why);
+  else{if(why==='asleep')feed('The tree went green a while ago. The tower would like the lane back.','info');
+    if(why==='dnf')feed('No time on that one.','info')}
   if(e&&e.stripLoaner&&why!=='keep'){dropLoaner(a,why==='quiet');if(why!=='quiet')walkTo(a,ST.def().paddockBoard,0)}}
 
-/* ================= money (HT.Drag.ECON; docs/dragstrip.md): settled only when a race is over, so a quit mid-race changes nothing ================= */
+/* ================= money (HT.Drag.ECON; docs/dragstrip.md "When the money is taken") =================
+   Entry, rental and a bet's stake are taken (and saved) the moment you commit; the pending race or bet is in SAVE.strip.pending. A race
+   that isn't run to its slip is a forfeit: the money stays taken and the racer isn't beaten. A bet on two regulars that you stop watching
+   is settled from its seed, exactly as it would have run. Winnings are paid only at the slip / the result. */
+let PID=0;
+function commit(kind,o){const s=sv();if(!s)return null;const p=Object.assign({id:kind[0]+Date.now().toString(36)+(++PID),kind,day:dayN(),t:Date.now()},o);
+  if(!(p.cost>=0)||p.cost>cash())return null;if(p.cost)addCash(-p.cost,'strip');if(p.stake)D().stakeIn(D().day(s,p.day),p.stake);s.pending.push(p);saveNow();return p}
+const isPending=p=>{const s=sv();return!!(s&&p&&s.pending.some(x=>x.id===p.id))};
+const raceWho=p=>{const r=p&&p.racer&&D().racer(p.racer);return r?r.name:'the other lane'};
+/* a race or bracket left before its slip: a forfeit (the money stays taken, nobody is marked beaten) */
+function forfeitNow(p,why){if(!isPending(p))return;const s=sv();D().forfeit(s,p);saveNow();
+  const what='The entry'+(p.rent?', the rental':'')+(p.stake?' and your $'+p.stake+' on yourself':'')+' stay with the tower.';
+  if(p.kind==='bracket')feed(why==='asleep'?'Bracket night: the tree went green ten seconds ago and you never left. That\'s a forfeit. '+what:'Bracket night: you left before it was over. That\'s a forfeit. '+what,'bad');
+  else if(why==='asleep')feed('The tree went green ten seconds ago. '+raceWho(p)+' takes it: that\'s a forfeit. '+what,'bad');
+  else feed('Race office: you left before your race with '+raceWho(p)+' was run. That\'s a forfeit. '+what,'bad')}
+/* a bet on two regulars nobody watched to the end: the tower runs it from its seed */
+function settleOrphanBet(p){const s=sv();const r=D().settleBet(s,p);if(r.pay)addCash(r.pay,'strip');saveNow();
+  const w=D().racer(p.m.ids[r.res.win]),me=D().racer(p.m.ids[p.lane]);ST.lastOrphan={id:p.id,win:r.res.win,net:r.net,margin:r.res.margin};
+  feed('The tower ran your race without you: '+(w?w.name:'?')+' won'+(r.res.how==='red'?' (a red light in the other lane)':r.res.margin!=null?' by '+r.res.margin.toFixed(3)+' s':'')+'. Your $'+p.stake+' on '+(me?me.name:'?')+(r.won?' pays +$'+r.net+'.':' is gone.'),r.won?'good':'info')}
+/* anything pending that nothing on screen is running: settle it now (after a quit, a reload, a job, a teleport) */
+function resolvePending(){const s=sv();if(!s||!s.pending.length)return;
+  for(const p of s.pending.slice()){if(S.run&&S.run.pend&&S.run.pend.id===p.id)continue;if(S.watch&&S.watch.pend&&S.watch.pend.id===p.id)continue;
+    if(p.kind==='bet'){try{settleOrphanBet(p)}catch(e){console.warn('[strip] bet',e);D().dropPending(s,p.id);saveNow()}}else forfeitNow(p,'left')}}
+ST.resolvePending=resolvePending;
 function settleRace(a,R,res,sl){const E=D().ECON,s=sv(),Dd=D().day(s,dayN()),r=R.racer,lines=[];let net=0;const add=(l,n)=>{if(!n)return;lines.push([l,n]);net+=n};
   s.stats.races++;if(res.won)s.stats.wins++;
   if(R.bracket){const b=R.bracket;if(res.won&&b.round<b.field.length){lines.push(['Round '+b.round+' won · round '+(b.round+1)+' next',0]);return{lines,net:0,next:true}}
@@ -434,8 +463,9 @@ function settleRace(a,R,res,sl){const E=D().ECON,s=sv(),Dd=D().day(s,dayN()),r=R
       if(first){const bonus=turf?E.turf.first:E.firstWin[clamp(r.tier-1,0,E.firstWin.length-1)];s.ladder.beaten[r.id]=true;add('First win over '+r.name,bonus)}
       s.ladder.wins[r.id]=(s.ladder.wins[r.id]|0)+1}
     else add('Entry',-entry)}
-  if(R.bet&&R.bet.stake){const w=res.won;const n=D().settle(Dd,R.bet.stake,R.bet.mult,w);add(w?'Your bet on yourself · '+R.bet.mult.toFixed(2)+'x':'Your bet on yourself',n);s.stats.bets++}
-  if(net)addCash(net,'strip');return{lines,net}}
+  if(R.bet&&R.bet.stake){if(res.won){const w=D().betWon(Dd,R.bet.stake,R.bet.mult);add('Your bet on yourself · '+R.bet.mult.toFixed(2)+'x',w.net)}else add('Your bet on yourself',-R.bet.stake);s.stats.bets++}
+  /* entry, rental and stake were taken when you committed (R.pend.cost): pay what's left of the net */
+  const P=R.pend,pay=net+(P?P.cost:0);if(P)D().dropPending(s,P.id);if(pay>0)addCash(pay,'strip');saveNow();return{lines,net}}
 
 /* ================= the timeslip ================= */
 const f3=x=>x==null?'—':(x<0?'-':'')+Math.abs(x).toFixed(3).replace(/^0\./,'.');
@@ -499,18 +529,27 @@ function pickCar(a,r,o){const d=ST.def(),E=D().ECON,items=[];const turf=!!o.turf
     for(const t of D().CLASSES.street.types){const s2=D().spec(t);items.push({label:'Rent: '+s2.name,sub:carLine(s2)+' · stock',right:'$'+E.rent,act:()=>pickBet(a,r,{type:t,rent:E.rent,bracket:o.bracket})})}}
   menu({id:'car',title:o.bracket?'BRACKET NIGHT · YOUR CAR':'RACE '+r.name.toUpperCase(),sub:o.bracket?'One car for all three rounds.':r.name+' runs '+D().spec(r.car).name+'. '+r.bio,items,back:()=>o.bracket?openOffice(a):turf?openOffice(a):openLadder(a)})}
 /* a bet on yourself, priced from your own history in that car against him */
-function myProfile(){const s=sv();return D().playerProfile(s?s.hist:[])}
+/* the price is fixed for the day (HT.Drag.cachedP): from your best passes in that car and your best lights, never your recent average */
+function selfPrice(a,r,c){const s=sv(),sp=c.own?D().spec(c.type,ownVeh(a),ownUtil(a)):D().spec(c.type),prof=D().selfProfile(sp,s&&s.book[D().bookKey(sp)],s&&s.rts),key=D().selfKey(sp,r,prof);
+  const p=D().cachedP(s,dayN(),key,()=>D().priceP({spec:sp,driver:prof,etAdj:prof.etAdj},{spec:D().spec(r.car),driver:r.d},key));return{p,prof,sp,key}}
+ST.selfPrice=(type,rid,own)=>{const a=A();const c={type,own:!!own,rent:0};return selfPrice(a,D().racer(rid),c)};
 function pickBet(a,r,c){const E=D().ECON;if(c.bracket){startBracket(a,c);return}
   const entry=c.turf?E.turf.entry:E.entry,need=entry+c.rent;if(cash()<need){feed("You need "+money(need)+" for that (entry"+(c.rent?' and rental':'')+"). You have "+money(cash())+'.','bad');return}
-  const sp=c.own?D().spec(c.type,ownVeh(a),ownUtil(a)):D().spec(c.type),prof=myProfile();const p=D().winP({spec:sp,driver:prof},{spec:D().spec(r.car),driver:r.d},240,(Math.random()*1e9)|0),m=D().payout(p),Dd=today();
+  const{p,prof}=selfPrice(a,r,c),m=D().payout(p),Dd=today();
   const left=cash()-need,mx=D().maxStake(left,Dd,m);const items=[{label:'No bet',sub:'Just the race',act:()=>{closeMenu();startRace(a,r,c,null)}}];
   for(const st of[10,25,50,100]){const why=D().canBet(left,Dd,st,m);items.push({label:'Bet $'+st+' on yourself',right:'pays '+m.toFixed(2)+'× · +$'+Math.round(st*(m-1)),off:why,act:()=>{closeMenu();startRace(a,r,c,{stake:st,mult:m,p})}})}
-  menu({id:'selfbet',title:'BET ON YOURSELF?',sub:'The tower makes you '+Math.round(p*100)+'% to win ('+(prof.novice?'a new driver: it watches your next few passes':'from your last '+Math.min(12,sv().hist.length)+' passes')+'). Payout '+m.toFixed(2)+'× your stake with an '+Math.round(E.bet.edge*100)+'% house edge. You can stake up to $'+mx+' right now.',items,back:()=>pickCar(a,r,c)})}
+  menu({id:'selfbet',title:'BET ON YOURSELF?',sub:'The tower makes you '+Math.round(p*100)+'% to win ('+(prof.shown?'from your best '+(prof.shown>1?prof.shown+' passes':'pass')+' in this car and your best lights':prof.novice?'no passes yet: an average driver':'your best lights, an average pass in this car')+'). Today\'s price, it won\'t change. Payout '+m.toFixed(2)+'× your stake with an '+Math.round(E.bet.edge*100)+'% house edge. You can stake up to $'+mx+' right now.',items,back:()=>pickCar(a,r,c)})}
 function racerIntro(r){say(r.name,r.lines.hello,true)}
 function laneCar(a,c){const d=ST.def();if(c.own){const e=a.VAN;if(a.CV&&a.CV!==e)try{a.exitCar()}catch(_){}dropLoaner(a,true);if(a.CV!==e){placeCar(a,e,0,4);a.enterCar(e)}return e}
   if(a.CV&&a.CV!==S.loaner)try{a.exitCar()}catch(_){}const e=spawnLoaner(a,c.type,d.start+8,d.laneZ[0],d.yaw);if(e)a.enterCar(e);return e}
-function startRace(a,r,c,bet){const e=laneCar(a,c);if(!e){feed('That car would not start.','bad');return}racerIntro(r);
-  newRun(a,{mode:'race',e,lane:0,type:c.type,veh:c.own?ownVeh(a):null,util:c.own?ownUtil(a):null,racer:r,bet,rent:c.rent,turf:!!c.turf,entry:c.turf?D().ECON.turf.entry:D().ECON.entry})}
+function startRace(a,r,c,bet){const E=D().ECON,entry=c.turf?E.turf.entry:E.entry,stake=bet?bet.stake:0,cost=entry+c.rent+stake;
+  /* checked again here, before any money moves: the entry and rental, then the bet against the floor and today's caps */
+  if(cash()<cost){feed('You need '+money(cost)+' for that. You have '+money(cash())+'.','bad');return}
+  if(bet){const why=D().canBet(cash()-entry-c.rent,today(),stake,bet.mult);if(why){feed(why,'bad');return}}
+  const e=laneCar(a,c);if(!e){feed('That car would not start.','bad');return}
+  const P=commit('race',{racer:r.id,car:c.type,own:!!c.own,entry,rent:c.rent,stake,mult:bet?bet.mult:0,p:bet?+bet.p.toFixed(4):null,turf:!!c.turf,cost});
+  if(!P){feed('The race office could not take the entry.','bad');return}racerIntro(r);
+  newRun(a,{mode:'race',e,lane:0,type:c.type,veh:c.own?ownVeh(a):null,util:c.own?ownUtil(a):null,racer:r,bet,rent:c.rent,turf:!!c.turf,entry,pend:P})}
 /* bracket night: three ladder racers, dial-ins from their own typical runs and your best in that car */
 function openBracket(a){const E=D().ECON;if(cash()<E.bracket.entry){feed('Bracket entry is '+money(E.bracket.entry)+'. You have '+money(cash())+'.','bad');return}pickCar(a,null,{bracket:true})}
 function dialFor(sp,drv,n){const rnd=D().rng(4242);let t=0;for(let i=0;i<n;i++)t+=D().slip(D().sim(sp,drv,rnd)).et;return Math.round((t/n+.04)*100)/100}
@@ -520,9 +559,11 @@ function startBracket(a,c){const E=D().ECON;if(cash()<E.bracket.entry+c.rent){fe
   const sp=c.own?D().spec(c.type,ownVeh(a),ownUtil(a)):D().spec(c.type),key=D().bookKey(sp),b=s.book[key];
   const myDial=b&&b.best?Math.round((b.best.et+.05)*100)/100:dialFor(sp,{rt:.3,rtSd:0,redP:0,launchQ:.6,missP:0},4)+.1;
   feed('Bracket night: your dial-in is '+myDial.toFixed(2)+' s'+(b&&b.best?' (your best in this car + .05)':' (no book time in this car: the tower guessed)')+'. Run quicker than your dial and you break out.','info');
-  const br={field,round:1,dial:myDial,c};const e=laneCar(a,c);if(!e)return;bracketRound(a,br,e)}
+  const br={field,round:1,dial:myDial,c};const e=laneCar(a,c);if(!e)return;
+  br.pend=commit('bracket',{car:c.type,own:!!c.own,entry:E.bracket.entry,rent:c.rent,cost:E.bracket.entry+c.rent,field:field.map(r=>r.id)});if(!br.pend){feed('The race office could not take the entry.','bad');return}
+  bracketRound(a,br,e)}
 function bracketRound(a,br,e){const r=br.field[br.round-1];racerIntro(r);const od=dialFor(D().spec(r.car),r.d,6);
-  newRun(a,{mode:'bracket',e,lane:0,type:br.c.type,veh:br.c.own?ownVeh(a):null,util:br.c.own?ownUtil(a):null,racer:r,rent:br.round===1?br.c.rent:0,bracket:br,dial:[br.dial,od]});
+  newRun(a,{mode:'bracket',e,lane:0,type:br.c.type,veh:br.c.own?ownVeh(a):null,util:br.c.own?ownUtil(a):null,racer:r,rent:br.round===1?br.c.rent:0,bracket:br,pend:br.pend,dial:[br.dial,od]});
   feed('Round '+br.round+': you '+br.dial.toFixed(2)+' · '+r.name+' '+od.toFixed(2)+'. '+(br.dial>od?'You leave first.':'They leave first.'),'info')}
 function nextRound(a,R){const br=R.bracket;br.round++;S.run=null;dropOpp(R);bracketRound(a,br,R.e)}
 
@@ -531,32 +572,43 @@ function nextRound(a,R){const br=R.bracket;br.round++;S.run=null;dropOpp(R);brac
    the third is in their own cars (often lopsided: the price says so) */
 function matchup(){const L=D().LADDER.map(D().racer);const i=Math.floor(Math.random()*L.length);const near=L.filter((r,k)=>k!==i&&Math.abs(k-i)<=2);const y=near[Math.floor(Math.random()*near.length)];
   const m=Math.random()<.5?[L[i],y]:[y,L[i]];const T=D().CLASSES.street.types;if(Math.random()<.67){const t=T[Math.floor(Math.random()*T.length)];m.cars=[t,t];m.spec=true}else m.cars=[m[0].car,m[1].car];return m}
+/* the booth's price for a matchup: counted once (HT.Drag.priceP), kept for the in-game day (SAVE.strip.odds) */
+const mOf=m=>({ids:[m[0].id,m[1].id],cars:m.cars.slice(),spec:!!m.spec});
+function boothP(m){const mm=mOf(m),key=D().matchKey(mm);return D().cachedP(sv(),dayN(),key,()=>D().priceP({spec:D().spec(mm.cars[0]),driver:m[0].d},{spec:D().spec(mm.cars[1]),driver:m[1].d},key))}
+ST.boothP=(ids,cars)=>{const m=ids.map(D().racer);m.cars=cars;return boothP(m)};
 function openBet(a,m){m=m||S.nextMatch||(S.nextMatch=matchup());const[x,y]=m,E=D().ECON,Dd=today();
-  const p=D().winP({spec:D().spec(m.cars[0]),driver:x.d},{spec:D().spec(m.cars[1]),driver:y.d},500,(m.seed=m.seed||((Math.random()*1e9)|0)));const mx=D().payout(p),my=D().payout(1-p);
+  const p=boothP(m);const mx=D().payout(p),my=D().payout(1-p);
   const side=(r,mult,pp,lane)=>({label:'Back '+r.name,tags:[[D().spec(m.cars[lane]).name.toUpperCase(),'']],sub:(lane?'Left':'Right')+' lane · the tower makes it '+Math.round(pp*100)+'%',right:'pays '+mult.toFixed(2)+'×',act:()=>stakeMenu(a,m,lane,mult,pp)});
   menu({id:'bet',title:'BET ON THE NEXT RACE',sub:x.name+' vs '+y.name+(m.spec?', a spec race: both in the strip\'s '+D().spec(m.cars[0]).name+'s':', in their own cars')+'. Payouts come from the tower\'s numbers (the same model that runs the race) less an '+Math.round(E.bet.edge*100)+'% house edge. $'+E.bet.min+'-$'+E.bet.max+' a bet; today +$'+Dd.betWon+' / -$'+Dd.betLost+' of +$'+E.bet.winCap+' / -$'+E.bet.lossCap+'. The booth never takes you under $'+E.bet.floor+'.',
     items:[side(x,mx,p,0),side(y,my,1-p,1),{label:'Just watch',sub:'No money on it',act:()=>{closeMenu();startWatch(a,m,null)}},{label:'Different race',sub:'Two other regulars',act:()=>{S.nextMatch=matchup();openBet(a)}}],back:()=>openOffice(a)})}
 function stakeMenu(a,m,lane,mult,p){const Dd=today(),c=cash(),items=[];
   for(const st of[10,25,50,100]){const why=D().canBet(c,Dd,st,mult);items.push({label:'$'+st,right:'wins +$'+Math.round(st*(mult-1)),off:why,act:()=>{closeMenu();startWatch(a,m,{lane,stake:st,mult,p})}})}
   menu({id:'stake',title:'HOW MUCH?',sub:'On '+m[lane].name+' at '+mult.toFixed(2)+'×. You have '+money(c)+'.',items,back:()=>openBet(a,m)})}
-function startWatch(a,m,bet){const d=ST.def();S.nextMatch=null;const W=S.watch={m,bet,t:0,phase:'roll',models:[],ctl:[null,null],res:null,skip:false};
+function startWatch(a,m,bet){const d=ST.def();let pend=null;const seed=(ST.nextSeed>>>0)||((Math.random()*4294967295)>>>0)||1;ST.nextSeed=0;/* nextSeed: dev/dragstrip-check.js picks a winning / losing race */
+  if(bet){/* the stake is taken now, and the race is decided by its seed (saved with it) */const why=D().canBet(cash(),today(),bet.stake,bet.mult);if(why){feed(why,'bad');return}
+    pend=commit('bet',{m:mOf(m),lane:bet.lane,stake:bet.stake,mult:bet.mult,p:+bet.p.toFixed(4),seed,cost:bet.stake});if(!pend){feed('The booth could not take that bet.','bad');return}}
+  S.nextMatch=null;const W=S.watch={m,bet,pend,seed,acc:0,t:0,phase:'roll',models:[],ctl:[null,null],res:null,skip:false};
   for(let ln=0;ln<2;ln++){const r=m[ln];let v=null;try{v=HT.Vehicles.make(m.cars[ln],{color:RCOL[r.id]||'#888',lod:1})}catch(_){}if(v){v.traverse(o=>{if(o.isMesh)o.userData.noBatch=true});(S.root||a.L.group).add(v)}W.models.push(v)}
   boardsSet([{name:m[0].name},{name:m[1].name}]);say(NAMES.starter,m[1].name+' in the left lane, '+m[0].name+' in the right. '+(bet?'You\'re on '+m[bet.lane].name+'.':''),true);
   W.key=e=>{if(!S.watch||S.menu)return;const k=(e.key||'').toLowerCase();if(k==='e'||k==='enter'||k===' '||k==='escape'){e.stopImmediatePropagation();e.preventDefault();W.skip=true}};document.addEventListener('keydown',W.key,true);
   if(HT.Pad&&HT.Pad.modal)W.unpad=HT.Pad.modal({move:()=>{},ok:()=>{W.skip=true},back:()=>{W.skip=true}});hudOn(a,true)}
 function watchTick(a,dt){const W=S.watch;if(!W)return;W.t+=dt;
   if(W.phase==='roll'){const k=clamp(W.t/1.6,0,1),back=4*(1-k*k*(3-2*k));W.models.forEach((v,ln)=>v&&placeModel(v,ln,back,0,dt));treeSet([{pre:k>.5,stage:k>=1},{pre:k>.5,stage:k>=1}]);
-    if(W.t>2.6){W.phase='go';W.t=0;W.ctl=W.m.map((r,ln)=>D().ai(D().spec(W.m.cars[ln]),r.d,Math.random,{greenAt:TREE.green}))}}
-  else if(W.phase==='go'){if(W.skip){for(const c of W.ctl){let n=0;while(!c.R.done&&n++<40000)c.tick(1/120)}}
-    for(const c of W.ctl){if(!c.R.done)c.tick(dt);else shut(null,c.R,dt)}
+    if(W.t>2.6){W.phase='go';W.t=0;W.acc=0;const mm=mOf(W.m);W.ctl=[0,1].map(ln=>D().watchCtl(mm,ln,W.seed))}}
+  else if(W.phase==='go'){/* fixed steps from the seed: the same race HT.Drag.watchRace settles without the camera */const DT=D().WATCH_DT,TMAX=D().WATCH_GREEN+60;
+    const adv=c=>{if(!c.R.done&&c.R.t<TMAX){c.tick(DT);return true}return false};
+    if(W.skip){for(const c of W.ctl){while(adv(c));}}
+    W.acc+=dt;while(W.acc>=DT){W.acc-=DT;for(const c of W.ctl)adv(c)}
+    for(const c of W.ctl)if(c.R.done)shut(null,c.R,dt);
     W.models.forEach((v,ln)=>v&&placeModel(v,ln,-W.ctl[ln].R.x,W.ctl[ln].R.v,dt));
     const lights=W.ctl.map(c=>{const g=TREE.green,t=W.t,red=c.R.leave!=null&&c.R.leave<g;return{pre:c.R.x<.6,stage:c.R.leave==null,a1:t>=g-1.5&&t<g&&!red,a2:t>=g-1&&t<g&&!red,a3:t>=g-.5&&t<g&&!red,green:t>=g&&!red,red}});treeSet(lights);
     if(W.ctl.every(c=>c.R.done)&&(W.skip||W.ctl.every(c=>c.R.v<.8)||W.t>W.ctl[0].R.split.et+5))watchDone(a)}}
 function watchDone(a){const W=S.watch;W.phase='done';const sl=W.ctl.map(c=>D().slip(c.R)),res=D().judge(W.ctl.map(c=>c.R),sl,null);W.res=res;
   boardsSet(sl.map((x,i)=>({name:W.m[i].name,et:x.et,mph:x.mph,rt:x.rt,red:x.red,win:res.win===i,margin:res.win===i&&res.margin!=null?'by '+res.margin.toFixed(3):''})));
-  let line='';const lines=[];if(W.bet){const won=res.win===W.bet.lane,Dd=today();const n=D().settle(Dd,W.bet.stake,W.bet.mult,won);addCash(n,'strip');const s=sv();s.stats.bets++;persist();
+  let line='';const lines=[];if(W.bet){const won=res.win===W.bet.lane,s=sv(),P=W.pend,Dd=D().day(s,P?P.day:dayN());let n=-W.bet.stake;
+    if(P&&isPending(P)){if(won){const w=D().betWon(Dd,W.bet.stake,W.bet.mult);n=w.net;addCash(w.pay,'strip')}D().dropPending(s,P.id);s.stats.bets++;saveNow()}
     line=won?'Your $'+W.bet.stake+' on '+W.m[W.bet.lane].name+' pays +$'+n+'.':'Your $'+W.bet.stake+' on '+W.m[W.bet.lane].name+' is gone.';lines.push([won?'Bet won':'Bet lost',n])}
-  ST.lastWatch={win:res.win,how:res.how,margin:res.margin,net:lines.length?lines[0][1]:0,slips:sl};
+  ST.lastWatch={win:res.win,how:res.how,margin:res.margin,net:lines.length?lines[0][1]:0,slips:sl,seed:W.seed,m:mOf(W.m)};
   const winner=W.m[res.win];say(winner.name,winner.lines.win);
   const h=`<div class="sub" style="font-size:20px"><b>${esc(winner.name)}</b> wins${res.how==='red'?' (a red light in the other lane)':res.margin!=null?' by '+res.margin.toFixed(3)+' s ('+res.marginM.toFixed(1)+' m)':''}</div><table>${sl.map((x,i)=>`<tr><td>${esc(W.m[i].name)} · ${esc(D().spec(W.m.cars[i]).name)}</td><td class="v">R/T ${f3(x.rt)}${x.red?' RED':''}</td><td class="v">${f3(x.et)} s</td><td class="v">${x.mph!=null?x.mph.toFixed(1):'—'} mph</td></tr>`).join('')}</table>${line?`<div class="sub" style="font-size:17px" class="${res.win===(W.bet&&W.bet.lane)?'cash':''}">${esc(line)}</div>`:''}`;
   endWatch(a,true);menu({id:'watched',title:'RACE RESULT',html:h,items:[{label:'Another race',act:()=>openBet(a)},{label:'Done',act:()=>closeMenu()}]})}
@@ -600,7 +652,7 @@ function tick(){const a=A(),d=ST.def();if(!a||!a.L||!a.L.ow||!d)return;
   /* a teleport (fast travel, the tow, a respawn) mid-anything leaves nothing behind */
   if(S.lastPos&&Math.hypot(px-S.lastPos.x,pz-S.lastPos.z)>45&&!S.run&&(S.loaner||S.watch)){if(S.watch)endWatch(a);if(S.loaner)dropLoaner(a,true);if(S.menu)closeMenu()}
   S.lastPos={x:px,z:pz};
-  const s=sv();
+  const s=sv();if(s&&s.pending.length)resolvePending();/* a race or bet left behind (quit, reload, a job, a teleport): forfeit / settle it now */
   /* first time it's available: a crew bark and one line on the feed; the pin is on the map already */
   if(s&&!s.barked&&a.simT>25&&!a.M){s.barked=true;const al=(a.allies||[]).find(x=>!x.down);try{a.radio(al?al.id:'you',pick(LINES.bark))}catch(_){}feed('New on the map: Sensible Dragway, south of Fort Sensible · test & tune any car, race, bet','info');persist()}
   /* first visit: fast travel opens, the office says hello */
@@ -639,6 +691,8 @@ function hudPart(st){const a=A(),d=ST.def();if(!a||!st||a.mode!=='hub'||!d)retur
   if(s&&!s.stats.passes&&!a.CV&&!S.menu){st.markers=st.markers||[];const b=d.paddockBoard;st.markers.push({id:'stripBoard',kind:'obj',label:'Test & tune',x:b.x,z:b.z,screen:a.project(b.x,2.6,b.z),edge:true,always:true})}}
 
 /* ================= reset: quit to title, job start, home, the tow, death (HT.Base.reset from index.html clearChars) ================= */
+/* money already taken stays taken: a race in progress is forfeited and a watched bet is settled from its seed (resolvePending, the next
+   frame back in free roam, or the next load) */
 function reset(){const a=A();try{closeMenu()}catch(_){}try{if(S.watch)endWatch(a)}catch(_){}
   try{if(S.run){const R=S.run;S.run=null;dropOpp(R);freeCar(R.e)}}catch(_){}
   try{if(S.loaner)dropLoaner(a,true)}catch(_){S.loaner=null}hudOff();try{treeSet([{},{}])}catch(_){}S.nextMatch=null}
@@ -658,6 +712,6 @@ hook();
 
 /* test hooks (dev/dragstrip-check.js) */
 ST.state=()=>({run:S.run&&{phase:S.run.phase,mode:S.run.mode,t:S.run.t,x:S.run.run.x,v:S.run.run.v,rpm:S.run.run.rpm,launched:S.run.run.launched,done:S.run.run.done,green:S.run.run.green,lane:S.run.lane,type:S.run.type,opp:S.run.opp&&S.run.opp.racer.id},
-  loaner:S.loaner&&{type:S.loaner.type,x:S.loaner.pos.x,z:S.loaner.pos.z},menu:ST.menu(),watch:ST.watch(),built:!!S.root,people:S.people.length,loanRow:S.loanRow.length,hud:!!S.hud,last:ST.lastRun||null,lastWatch:ST.lastWatch||null});
+  loaner:S.loaner&&{type:S.loaner.type,x:S.loaner.pos.x,z:S.loaner.pos.z},menu:ST.menu(),watch:ST.watch(),built:!!S.root,people:S.people.length,loanRow:S.loanRow.length,hud:!!S.hud,last:ST.lastRun||null,lastWatch:ST.lastWatch||null,pending:(sv()||{pending:[]}).pending.map(p=>({id:p.id,kind:p.kind,cost:p.cost,stake:p.stake||0,seed:p.seed,lane:p.lane,m:p.m}))});
 ST.open=(what)=>{const a=A();if(what==='picker')openPicker(a);else if(what==='office')openOffice(a);else if(what==='bet')openBet(a)};
 })();

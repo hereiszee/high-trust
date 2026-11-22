@@ -54,4 +54,50 @@ test('achievements (js/platform.js) read the strip from the save: first pass, th
   const ids=P.ACHIEVEMENTS.map(a=>a.id);for(const id of['ACH_EIGHTH_MILE','ACH_TOP_OF_THE_LADDER','ACH_PERFECT_LIGHT'])assert(ids.includes(id),id);
   const beaten={};const s={strip:{stats:{passes:1,perfect:false},ladder:{beaten}}};assert(P.evaluate(s).includes('ACH_EIGHTH_MILE'));assert(!P.evaluate(s).includes('ACH_TOP_OF_THE_LADDER'));
   for(const id of D.LADDER)beaten[id]=true;assert(P.evaluate(s).includes('ACH_TOP_OF_THE_LADDER'));s.strip.stats.perfect=true;assert(P.evaluate(s).includes('ACH_PERFECT_LIGHT'))});
+
+/* ---------- the money rules after the final check (DS-1 and the two pricing minors) ---------- */
+const newDay=()=>({won:0,betWon:0,betLost:0,beat:{}});
+test('a watched bet is the race its seed says: frame-by-frame (any frame rate) and the settle-without-watching agree to the thousandth',()=>{
+  const m={ids:['walt','priya'],cars:['minivan','minivan']};
+  for(const seed of[11,222,3333,44444]){const ref=D.watchRace(m,seed),C=[0,1].map(ln=>D.watchCtl(m,ln,seed));const fr=D.rng(seed+1);let acc=0;
+    for(let k=0;k<20000&&!C.every(c=>c.R.done);k++){acc+=.004+fr()*.09;while(acc>=D.WATCH_DT){acc-=D.WATCH_DT;for(const c of C)if(!c.R.done&&c.R.t<D.WATCH_GREEN+60)c.tick(D.WATCH_DT)}}
+    const sl=C.map(c=>D.slip(c.R)),res=D.judge(C.map(c=>c.R),sl,null);assert.strictEqual(res.win,ref.win,'seed '+seed);assert.strictEqual(res.margin,ref.margin,'seed '+seed);
+    assert.deepStrictEqual(sl.map(x=>x.et),ref.slips.map(x=>x.et))}});
+test('an abandoned bet settles exactly as watching it would: a winning seed pays stake + winnings, a losing seed pays nothing',()=>{
+  const m={ids:['june','rook'],cars:['sedan','sedan']};let win=null,lose=null;for(let s=1;s<400&&(win==null||lose==null);s++){const r=D.watchRace(m,s);if(r.win===0&&win==null)win=s;if(r.win===1&&lose==null)lose=s}
+  for(const[seed,want]of[[win,true],[lose,false]]){const st={pending:[],stats:{bets:0,races:0},days:{}},Dd=D.day(st,1),stake=50,mult=2.9;
+    D.stakeIn(Dd,stake);const p={id:'b1',kind:'bet',day:1,m,lane:0,stake,mult,seed,cost:stake};st.pending.push(p);
+    const saved=JSON.parse(JSON.stringify(st));/* a reload: the save as written */const r=D.settleBet(saved,saved.pending[0]);
+    assert.strictEqual(r.won,want);assert.strictEqual(r.res.win,D.watchRace(m,seed).win);assert.strictEqual(saved.pending.length,0);
+    const d=D.day(saved,1);if(want){assert.strictEqual(r.pay,stake+Math.round(stake*(mult-1)));assert.strictEqual(d.betLost,0);assert.strictEqual(d.betWon,r.net)}
+    else{assert.strictEqual(r.pay,0);assert.strictEqual(d.betLost,stake);assert.strictEqual(d.betWon,0)}}});
+test('a forfeited race: the money already taken stays taken, nothing is paid back, the racer is not beaten, the stake counts against the day',()=>{
+  const st={pending:[],stats:{bets:0,races:0},days:{},ladder:{beaten:{},wins:{}},bracket:{lastDay:0}},Dd=D.day(st,1);
+  const p={id:'r1',kind:'race',day:1,racer:'dutch',entry:25,rent:20,stake:100,mult:1.4,cost:145};D.stakeIn(Dd,p.stake);st.pending.push(p);
+  const r=D.forfeit(st,p);assert.strictEqual(r.lost,145);assert(!('pay' in r));assert.strictEqual(st.pending.length,0);assert(!st.ladder.beaten.dutch);assert.strictEqual(Dd.betLost,100);
+  /* the loss cap now sees it: only $100 more can be staked today */assert.strictEqual(D.maxStake(5000,Dd,2),D.ECON.bet.lossCap-100);
+  const b={id:'k1',kind:'bracket',day:3,entry:60,rent:0,cost:60};st.pending.push(b);D.forfeit(st,b);assert.strictEqual(st.bracket.lastDay,3,'tonight\'s bracket is used up')});
+test('caps and the floor hold across a reload: stakes are in the day\'s tally the moment they are placed',()=>{
+  const st={pending:[],days:{}};let Dd=D.day(st,1);for(const s of[100,100]){assert(!D.canBet(1000,Dd,s,2));D.stakeIn(Dd,s)}
+  const re=JSON.parse(JSON.stringify(st));Dd=D.day(re,1);assert(D.canBet(1000,Dd,10,2),'loss cap after a reload');assert.strictEqual(D.maxStake(1000,Dd,2),0);
+  assert(D.canBet(D.ECON.bet.floor+20,D.day({days:{}},1),25,2),'floor');assert(D.canBet(5,D.day({days:{}},1),10,2),'no stake you do not have')});
+test('a bet on yourself is priced from your best passes: twelve slow or red-lit passes do not change it',()=>{
+  const sp=D.spec('hatch'),r=D.racer('marisol');let top=[],rts=[];for(const x of[{et:10.05,rt:.14},{et:10.12,rt:.17},{et:10.2,rt:.19}]){top=D.keepBest(top,x,3,y=>y.et);rts=D.keepBest(rts,x.rt,3)}
+  const P0=D.selfProfile(sp,{top},rts),k0=D.selfKey(sp,r,P0);
+  for(let i=0;i<12;i++){const slow={et:11.5+i*.1,rt:i%3?.6:-.05};top=D.keepBest(top,slow,3,y=>y.et);if(slow.rt>=0)rts=D.keepBest(rts,slow.rt,3)}
+  const P1=D.selfProfile(sp,{top},rts);assert.strictEqual(D.selfKey(sp,r,P1),k0);assert.deepStrictEqual(P1,P0);
+  const st={};const p0=D.cachedP(st,1,k0,()=>D.priceP({spec:sp,driver:P0,etAdj:P0.etAdj},{spec:D.spec(r.car),driver:r.d},k0,300));
+  assert.strictEqual(D.cachedP(st,1,D.selfKey(sp,r,P1),()=>{throw new Error('re-priced')}),p0);
+  /* and a slow history can't make you look worse than an average driver */const Pslow=D.selfProfile(sp,{top:[{et:12.5,rt:.7}]},[.7]);
+  assert.strictEqual(Pslow.etAdj,0);assert.strictEqual(Pslow.rt,D.AVG_DRIVER.rt);assert(P0.etAdj<0&&P0.rt<D.AVG_DRIVER.rt,'quicker passes do shorten it')});
+test('the booth gives one price per matchup per day (50 asks, one number; a different race and back: the same number)',()=>{
+  const st={},mA={ids:['walt','priya'],cars:['minivan','minivan']},mB={ids:['dutch','marisol'],cars:['workvan','hatch']};let n=0;
+  const ask=m=>D.cachedP(st,4,D.matchKey(m),()=>{n++;return D.priceP({spec:D.spec(m.cars[0]),driver:D.racer(m.ids[0]).d},{spec:D.spec(m.cars[1]),driver:D.racer(m.ids[1]).d},D.matchKey(m),200)});
+  const ps=new Set();for(let i=0;i<50;i++)ps.add(ask(mA));assert.strictEqual(ps.size,1);ask(mB);assert(ps.has(ask(mA)));assert.strictEqual(n,2);
+  /* the save keeps it across a reload; a new day prices afresh (the same seed: the same number) */const re=JSON.parse(JSON.stringify(st));assert.strictEqual(D.cachedP(re,4,D.matchKey(mA),()=>-1),[...ps][0]);
+  assert.strictEqual(D.cachedP(re,5,D.matchKey(mA),()=>-1),-1)});
+test('the fixed booth price matches 5,000 fresh races (within 2.5 points) and is stable (two keys a day apart agree within 2 points)',()=>{
+  for(const[x,y,cars]of[['june','rook',['sedan','sedan']],['walt','priya',['minivan','suv']]]){const A=D.racer(x),B=D.racer(y),a={spec:D.spec(cars[0]),driver:A.d},b={spec:D.spec(cars[1]),driver:B.d};
+    const p=D.priceP(a,b,'w|'+x+'>'+y+'|'+cars.join('>'));const p2=D.priceP(a,b,'other-seed|'+x+y);let w=0;const rnd=D.rng(5151);for(let i=0;i<5000;i++)if(D.race(a,b,rnd).win===0)w++;
+    assert(Math.abs(w/5000-p)<.025,x+' vs '+y+': priced '+p.toFixed(3)+', 5,000 races '+(w/5000).toFixed(3));assert(Math.abs(p-p2)<.02,'stable: '+p.toFixed(3)+' / '+p2.toFixed(3))}});
 if(require.main===module)done();

@@ -1,0 +1,39 @@
+== control: a red light played out to the slip
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   red light, LOSS: [["Rental",-20],["Entry",-25],["Your bet on yourself",-100]]
+  cash 1500 -> 1355 (-145), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+== A: red light (certain loss), then Esc -> Quit to title -> Continue
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   the red bulb is lit in our lane, race still on (phase tree)
+  pause screen: pause, after quit: title, Continue offered: true, mode now hub
+  cash 1355 -> 1210 (saved: 1210), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  ok   A: the certain loss costs what the played-out loss cost ($145): it cost $145
+== B: the same race, never let go of the brake (the opponent runs, "asleep" after 8 s)
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  opponent finished his pass while we sat: null; cash 1210 -> 1065, today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  ok   B: sitting it out costs what a loss costs ($145): it cost $145
+== C: a bet on another race, watched from the tower; mid-race P (pause) -> Quit to title -> Continue
+  ok   office
+  menu stake: $10 | $25 | $50 | $100
+  stakes the booth allows: $10 $25 $50 $100
+  ok   watching (tomas vs marisol), stake $100
+  mid-race: {"phase":"go","t":3.033333333333161}
+  the saved bet: {"won":true,"net":5,"stake":100}
+  ok   C: the stake was taken when the bet was placed
+  after P: screen pause, still watching true
+  cash at the bet 1065, after quit + Continue 1070; lastWatch null
+  ok   C: a spectator bet abandoned mid-race is settled exactly as its race runs (won: cash 1065 -> 1070, want 5)
+== D: bracket night round 1, never launch
+  ok   office
+  ok   D: bracket night round 1 is on
+  feed: null; cash 1500 -> 1420; bracket lastDay 3
+  ok   D: a forfeited round 1 costs the entry and the rental and uses up tonight's bracket (cost $80, lastDay 3)
+  office menu at D: []
+no console errors
+all ok

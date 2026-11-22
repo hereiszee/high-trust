@@ -1,0 +1,19 @@
+== C: a bet on another race, watched from the tower; mid-race P (pause) -> Quit to title -> Continue
+  ok   office
+  menu stake: $10 | $25 | $50 | $100
+  stakes the booth allows: $10 $25
+  ok   watching (priya vs rook), stake $25
+  mid-race: {"phase":"go","t":3.0000000000000995}
+  the saved bet: {"won":false,"net":-25,"stake":25}
+  ok   C: the stake was taken when the bet was placed
+  after P: screen pause, still watching true
+  cash at the bet 1500, after quit + Continue 1475; lastWatch null
+  ok   C: a spectator bet abandoned mid-race is settled exactly as its race runs (lost: cash 1500 -> 1475, want -25)
+== D: bracket night round 1, never launch
+  ok   office
+  ok   D: bracket night round 1 is on
+  feed: null; cash 1500 -> 1420; bracket lastDay 3
+  ok   D: a forfeited round 1 costs the entry and the rental and uses up tonight's bracket (cost $80, lastDay 3)
+  office menu at D: []
+no console errors
+all ok
