@@ -25,7 +25,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 | W-10 | MINOR | Mixed UK/US spelling in player text (neighbour/neighbor 39/37, tyre/tire, colour/color) in an American setting | CONFIRMED |
 | W-11 | MINOR | The dad's wife is "Jen" at home but "Linda" in the jet lines (and the buzz subtitle is captioned Linda) | CONFIRMED |
 
-_Details, coverage and gaps below. (Draft: sections still being filled in as probes finish.)_
+**Counts:** 0 BLOCKER · 5 MAJOR · 8 MINOR. Details, what was covered clean, and what could not be covered follow.
 
 ## Findings
 
