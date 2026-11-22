@@ -54,7 +54,7 @@ function teach(id,text){const s=sv();if(!s||s.taught[id])return;s.taught[id]=1;f
 const COL={conc:'#b8b4aa',conc2:'#cfcbc1',asph:'#2c2e30',rubber:'#18191a',white:'#f2f1ea',yellow:'#f0c23a',red:'#c0322d',blue:'#2c4e8a',steel:'#8d9399',dark:'#25292c',
   alu:'#c4c9cc',wood:'#8a6a45',green:'#2f7a46',navy:'#1e2c46',orange:'#e46d1f',sand:'#cdb68a',stripe:'#f4f2ea'};
 function units(){const O=HT.OpenWorld,Bs=B();if(!O||!O.addSetpiece||!Bs||!Bs.kit){setTimeout(units,0);return}
-  const unit=(id,box,fn,r)=>O.addSetpiece({id,r,box:()=>box,build(ws,u){const d=ws.def.strip;if(!d||!(HT.World&&HT.World.GB))return;const P=Bs.kit.painter();fn(P,d,Bs.kit);P.flush(u.group)}});
+  const unit=(id,box,fn,r)=>O.addSetpiece({id,r,box:()=>box,build(ws,u){const d=ws.def.strip;if(!d||!(HT.World&&HT.World.GB))return;u.group.name=id;/* dev/dragstrip-check.js counts our draw calls by these names */const P=Bs.kit.painter();fn(P,d,Bs.kit);P.flush(u.group)}});
   unit('strip_e',{x0:160,z0:250,x1:284,z1:302,y1:12},(P,d,K)=>{track(P,d,K,160,280);startArea(P,d,K);tower(P,d,K);stand(P,d.standE,K,'E');paddock(P,d,K);poles(P,d,160,284)},230);
   unit('strip_w',{x0:0,z0:250,x1:162,z1:302,y1:10},(P,d,K)=>{track(P,d,K,4,162);finishArea(P,d,K);stand(P,d.standW,K,'W');poles(P,d,4,160)},230);
   unit('strip_sign',{x0:200,z0:158,x1:216,z1:172,y1:8},(P,d,K)=>roadSign(P,d,K),140)}
@@ -251,7 +251,7 @@ const CSS=`.ht-dr{position:fixed;inset:0;z-index:41;display:flex;align-items:cen
 .ht-dr .foot{padding:10px 18px 14px;font-size:13px;opacity:.75;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ht-dr table{width:calc(100% - 36px);margin:6px 18px;border-collapse:collapse;font-size:14px}.ht-dr td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.07)}.ht-dr td.v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .ht-dr .dl{color:#7fdc6e}.ht-dr .dl.bad{color:#ff8a6b}.ht-dr .cash{color:#9fe58a}
-.ht-drhud{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);z-index:30;display:flex;gap:14px;align-items:flex-end;pointer-events:none;font-family:"Barlow","Arial Narrow",Arial,sans-serif;color:#f2f2ee;text-shadow:0 1px 2px #000}
+.ht-drhud{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:30;display:flex;gap:14px;align-items:flex-end;pointer-events:none;font-family:"Barlow","Arial Narrow",Arial,sans-serif;color:#f2f2ee;text-shadow:0 1px 2px #000}
 .ht-drhud .tree{background:#0c0e10;border-radius:8px;padding:6px 7px;display:grid;grid-template-columns:repeat(2,18px);gap:4px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
 .ht-drhud .b{width:18px;height:18px;border-radius:50%;background:#2a2a2a}.ht-drhud .b.sm{height:9px;border-radius:5px}
 .ht-drhud .panel{background:rgba(10,14,18,.78);border-radius:10px;padding:8px 12px;min-width:300px}
@@ -260,7 +260,7 @@ const CSS=`.ht-dr{position:fixed;inset:0;z-index:41;display:flex;align-items:cen
 .ht-drhud .row{display:flex;justify-content:space-between;gap:14px;font-size:15px}.ht-drhud .big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
 .ht-drhud .tip{font-size:14px;opacity:.9;margin-top:4px}`;
 function css(){if(document.getElementById('ht-dr-css'))return;const s=document.createElement('style');s.id='ht-dr-css';s.textContent=CSS;document.head.appendChild(s)}
-function hint(extra){if(pad()){const b=HT.Pad.btn;return'D-pad to choose · '+b('A')+' picks · '+b('B')+' back'+(extra?' · '+extra:'')}return'↑ ↓ or 1-9 to choose · '+kl('use')+' / Enter picks · Esc back'+(extra?' · '+extra:'')}
+function hint(extra){if(pad()){const b=HT.Pad.btn;return'D-pad to choose · '+b('A')+' picks · '+b('B')+' back'+(extra?' · '+extra:'')}return'↑ ↓ or 1-9 to choose · '+kl('use')+' / Enter picks · Esc closes'+(extra?' · '+extra:'')}
 /* items: [{label, sub, right, tags:[[text,cls]], off (reason), act}] */
 function menu(o){closeMenu();css();const d=document.createElement('div');d.className='ht-dr';d.dataset.menu=o.id||'';
   const its=o.items.map((it,i)=>`<div class="it${it.off?' off':''}" data-i="${i}"><div class="n">${i<9?i+1:''}</div><div class="m"><b>${esc(it.label)}</b>${(it.tags||[]).map(t=>`<span class="tag ${t[1]||''}">${esc(t[0])}</span>`).join('')}${it.sub?`<div class="s">${it.html?it.sub:esc(it.sub)}</div>`:''}${it.off?`<div class="s" style="color:#ff9a7a">${esc(it.off)}</div>`:''}</div>${it.right!=null?`<div class="r">${it.html?it.right:esc(it.right)}</div>`:''}</div>`).join('');

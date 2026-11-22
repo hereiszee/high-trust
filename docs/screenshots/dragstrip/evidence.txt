@@ -1,13 +1,23 @@
+== travel: the minivan from home to the strip (Industrial Way, the tree line, the corridor)
+  ok   E gets in the minivan
+  ok   drove to the paddock (278,290)
+  ok   region is the strip
+  ok   the strip pin opens for fast travel after the visit
+  ok   out of the minivan in the paddock
+  (crew bark given: true)
 == test & tune: three cars, three slips, the quickest car quickest
   ok   E at the paddock board opens the car picker (7 cars)
   ok   every car the strip lends is in the picker (HT.Garage six + the mower): Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+  shot picker.jpg
   ok   a sedan loaner at the line
+  shot tree-staged.jpg
   ok   sedan: slip RT 0.318 60ft 2.315 330 6.254 ET 9.467 @ 76.6 mph (1/4 est 14.77)
+  shot timeslip.jpg
   ok   the timeslip card is up
   ok   Done hands the loaner back
   ok   E at the paddock board opens the car picker (7 cars)
   ok   a minivan loaner at the line
-  ok   minivan: slip RT 0.333 60ft 2.877 330 7.4 ET 10.925 @ 70.1 mph (1/4 est 17.04)
+  ok   minivan: slip RT 0.366 60ft 2.877 330 7.402 ET 10.927 @ 70.1 mph (1/4 est 17.05)
   ok   the timeslip card is up
   ok   Done hands the loaner back
   ok   E at the paddock board opens the car picker (7 cars)
@@ -15,6 +25,10 @@
   ok   workvan: slip RT 0.354 60ft 2.479 330 7.121 ET 11.029 @ 62.7 mph (1/4 est 17.21)
   ok   the timeslip card is up
   ok   Done hands the loaner back
-  ok   order: sedan 9.467 < minivan 10.925 < work van 11.029
+  ok   order: sedan 9.467 < minivan 10.927 < work van 11.029
   ok   the garage book has sedan, minivan, workvan
-== done in 82 s; console errors: 0
+== red light: leaving on the last amber
+  ok   red light: RT -0.142
+  ok   the red bulb is lit in our lane
+  shot red-light.jpg
+== done in 304 s; console errors: 0

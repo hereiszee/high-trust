@@ -54,6 +54,10 @@ Somebody's been taking packages off porches in Maple Heights, and now nobody wav
 - *Controller support can be claimed (Full, see below); key rebinding is in Pause → Controls & keys.*
 - *Valve does not allow links or fake Steam UI in this section ([description](https://partner.steamgames.com/doc/store/page/description)).*
 
+## Content note: simulated gambling
+
+Sensible Dragway lets the player bet in-game cash on drag races (theirs and AI racers'). In-game currency only: no real money, no purchases, no cash-out. Declare it in the content survey and age-rating questionnaires (IARC: "simulated gambling").
+
 ## Genre and tags
 
 - **Genre fields:** Action, Adventure, Indie.
