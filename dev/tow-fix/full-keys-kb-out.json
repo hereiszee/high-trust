@@ -1,0 +1,120 @@
+{
+ "out": [
+  {
+   "resets": [],
+   "car": "kim",
+   "pickup": {
+    "id": "kim",
+    "ok": true,
+    "revS": 28.7
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 66,
+   "sweep": 93,
+   "events": [
+    "79 hitch",
+    "102 detach:drop",
+    "102 drop"
+   ]
+  },
+  {
+   "resets": [],
+   "car": "hollis",
+   "pickup": {
+    "id": "hollis",
+    "ok": true,
+    "revS": 17.2
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 146,
+   "sweep": 247,
+   "resetShownAfterS": 4.1,
+   "prompt": "Reset the rig",
+   "reset": true,
+   "sweepCost": 8.9,
+   "to": [
+    316.5,
+    124
+   ],
+   "events": [
+    "216 hitch",
+    "224 stuck",
+    "225 reset",
+    "248 detach:drop",
+    "248 drop"
+   ]
+  },
+  {
+   "resets": [],
+   "car": "rosa",
+   "pickup": {
+    "id": "rosa",
+    "ok": true,
+    "revS": 19.4
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 107,
+   "sweep": 354,
+   "events": [
+    "330 hitch",
+    "355 detach:drop",
+    "355 drop"
+   ]
+  },
+  {
+   "resets": [],
+   "car": "benny",
+   "pickup": {
+    "id": "benny",
+    "ok": true,
+    "revS": 19.9
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 126,
+   "sweep": 481,
+   "events": [
+    "428 hitch",
+    "441 scrape:6.2",
+    "449 yield",
+    "450 yield",
+    "459 yield",
+    "460 yield",
+    "465 yield",
+    "481 detach:drop",
+    "481 drop"
+   ]
+  },
+  {
+   "id": "earl",
+   "fail": "no line-up {\"x\":406.5,\"z\":81.76,\"yaw\":5.97,\"rel\":null,\"contacts\":{\"truck\":[\"bed@402,81\",\"bed@402,85\"]}} cand null"
+  }
+ ],
+ "res": {
+  "state": "go",
+  "sweep": 682,
+  "elapsed": 683,
+  "drops": [
+   "kim:100",
+   "hollis:100",
+   "rosa:100",
+   "benny:92",
+   "earl:0"
+  ]
+ }
+}

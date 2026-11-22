@@ -15,20 +15,21 @@ const {startTow}=require('./lib.js');
     const order=[['kim',[]],['hollis',[]],['rosa',['kim','hollis']],['benny',['kim','hollis']],['earl',['kim','hollis','rosa','benny']]];
     const SL={},home={};M.cars.forEach(e=>{SL[e.o.id]={x:e.pos.x,z:e.pos.z,yaw:e.yaw};home[e.o.id]={x:-4000-e.i*20,z:-4000}});
     const out=[];
-    for(const [id,gone] of order)for(const exit of['north','east']){
+    for(const [id,gone] of order)for(const exit of['north','east'])for(const [ox,oy] of[[0,0],[.6,8],[-.6,-8],[.6,-8],[-.6,8]]){
       M.cars.forEach(e=>{const s=gone.includes(e.o.id)?home[e.o.id]:SL[e.o.id];e.pos.set(s.x,0,s.z);e.yaw=0;a.syncCar(e)});
       const t=M.cars.find(e=>e.o.id===id),St=a.carSize(t),fb=t.pos.z-St.l/2;/* front bumper */
-      const c=CA.make('minivan',{x:t.pos.x,z:fb-Tw.T.gap-Tw.T.hitchBack-Sv.l/2,yaw:0,stats:Object.assign({},st)});c.towMul=Tw.towMul();
+      const yo=oy*Math.PI/180,hb=Tw.T.gap+Tw.T.hitchBack+Sv.l/2,c=CA.make('minivan',{x:t.pos.x+ox+Math.sin(yo)*hb*0,z:fb-hb,yaw:yo,stats:Object.assign({},st)});/* hooked up off-line: the truck ox m to the side and oy degrees skewed (inside the hitch zone); the winch has pulled the car in line behind it */c.towMul=Tw.towMul();
       const tw=()=>({x:c.x,z:c.z,yaw:c.yaw,spd:c.spd,len:Sv.l}),body={x:t.pos.x,z:t.pos.z,yaw:0,len:St.l,wid:St.w},k=Tw.make(tw(),body,{instant:true});
+      /* (the hitch is ahead of the bumper; with the car pulled into line its own slot is empty: park its collider away) */const tcol=t.col,tsv=Object.assign({},tcol);tcol.x0=tcol.z0=-1e4;tcol.x1=tcol.z1=-1e4+1;tcol.ob=null;
       /* the towed car's own collider is off while hooked (js/tow.js): skip it */
       const W=exit==='north'?[{x:t.pos.x,z:124},{x:t.pos.x<314.5?313.5:316.5,z:110},{x:t.pos.x<314.5?313.5:316.5,z:96}]:[{x:t.pos.x,z:130.6},{x:322,z:128.5},{x:332,z:128.5},{x:346,z:128.5}];
       let wi=0,bad=[],maxRel=0,frames=0;
       for(let i=0;i<30*40&&wi<W.length;i++){const w=W[wi];if(Math.hypot(w.x-c.x,w.z-c.z)<2.5){wi++;continue}
         const dy=wrap(Math.atan2(-(w.x-c.x),-(w.z-c.z))-c.yaw);CA.drive(c,{thr:c.spd<4?1:0,st:Math.max(-1,Math.min(1,dy*2.2))},1/30,null);Tw.step(k,tw(),1/30);frames++;
         maxRel=Math.max(maxRel,Math.abs(k.rel||wrap(c.yaw-k.psi)));
-        const h1=hits(c.x,c.z,c.yaw,st.len,st.wid/2+.05,null),h2=hits(body.x,body.z,body.yaw,St.l,Math.max(.5,St.w/2-Tw.T.bodyIn),t.col);
+        const h1=hits(c.x,c.z,c.yaw,st.len,st.wid/2+.05,null),h2=hits(body.x,body.z,body.yaw,St.l,Math.max(.5,St.w/2-(Tw.T.bodyIn!=null?Tw.T.bodyIn:-.05)),t.col);
         for(const x of h1)bad.push('truck '+x+' at '+c.x.toFixed(1)+','+c.z.toFixed(1));for(const x of h2)bad.push('towed '+x+' at '+body.x.toFixed(1)+','+body.z.toFixed(1))}
-      out.push({car:id,exit,reached:wi>=W.length,secs:+(frames/30).toFixed(1),maxHitchDeg:Math.round(maxRel*57.3),overlaps:[...new Set(bad.map(s=>s.replace(/ at .*/,'')))],first:bad[0]||null})}
+      Object.assign(tcol,tsv);out.push({car:id,exit,off:ox+'m/'+oy+'deg',reached:wi>=W.length,secs:+(frames/30).toFixed(1),maxHitchDeg:Math.round(maxRel*57.3),overlaps:[...new Set(bad.map(s=>s.replace(/ at .*/,'')))],first:bad[0]||null})}
     /* put the lot back */M.cars.forEach(e=>{const s=SL[e.o.id];e.pos.set(s.x,0,s.z);e.yaw=0;a.syncCar(e)});return out});
   let fail=0;for(const x of res){const ok=x.reached&&!x.overlaps.length;if(!ok)fail++;console.log((ok?'ok   ':'FAIL ')+JSON.stringify(x))}
   const bad=errs.filter(e=>!/favicon/.test(e));if(bad.length){fail++;console.log('ERRORS '+bad.join('|'))}

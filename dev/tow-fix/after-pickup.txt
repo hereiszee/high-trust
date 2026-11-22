@@ -1,0 +1,27 @@
+start {"t":1083,"mode":"mission","ph":"tow","cv":true,"state":"go"}
+{"car":"kim","off":"0m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"kim","off":"0.7m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"kim","off":"-0.7m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"kim","off":"0m/7deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"kim","off":"0.5m/-6deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"hollis","off":"0m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"hollis","off":"0.7m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"hollis","off":"-0.7m/0deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"hollis","off":"0m/7deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"hollis","off":"0.5m/-6deg","hitched":true,"secsToHitch":9.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"rosa","off":"0m/0deg","hitched":true,"secsToHitch":11.8,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"rosa","off":"0.7m/0deg","hitched":true,"secsToHitch":11.6,"out":true,"fail":"","truckTouched":["out:job-fence@323.5,127","out:job-fence@323,127","out:job-fence@322.6,127","out:job-fence@322.3,127","out:job-fence@322,127","out:job-fence@321.3,127","out:job-fence@320.9,127","out:job-fence@320.5,127","out:job-fence@320.2,127"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"rosa","off":"-0.7m/0deg","hitched":true,"secsToHitch":11.6,"out":true,"fail":"","truckTouched":["out:job-fence@325.3,126.3","out:job-fence@324.8,126.4","out:job-fence@324.4,126.4","out:job-fence@323,126.6"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"rosa","off":"0m/7deg","hitched":true,"secsToHitch":11.8,"out":true,"fail":"","truckTouched":["out:job-fence@325.3,126.4","out:job-fence@324.9,126.4"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"rosa","off":"0.5m/-6deg","hitched":true,"secsToHitch":11.8,"out":true,"fail":"","truckTouched":["out:job-fence@325.5,126.3","out:job-fence@325,126.4","out:job-fence@323.6,126.5","out:job-fence@323.2,126.5"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"benny","off":"0m/0deg","hitched":true,"secsToHitch":11.8,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"benny","off":"0.7m/0deg","hitched":true,"secsToHitch":11.6,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"benny","off":"-0.7m/0deg","hitched":true,"secsToHitch":11.6,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"benny","off":"0m/7deg","hitched":true,"secsToHitch":11.6,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"benny","off":"0.5m/-6deg","hitched":true,"secsToHitch":11.8,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"earl","off":"0m/0deg","hitched":true,"secsToHitch":14,"out":true,"fail":"","truckTouched":["out:job-fence@321.9,126.6","out:job-fence@321.4,126.7","out:job-fence@321,126.7"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"earl","off":"0.7m/0deg","hitched":true,"secsToHitch":14.2,"out":true,"fail":"","truckTouched":["out:job-fence@320.1,126.7","out:job-fence@319.6,126.7","out:job-fence@319.3,126.8"],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"earl","off":"-0.7m/0deg","hitched":true,"secsToHitch":14.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"earl","off":"0m/7deg","hitched":true,"secsToHitch":14,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+{"car":"earl","off":"0.5m/-6deg","hitched":true,"secsToHitch":14.2,"out":true,"fail":"","truckTouched":[],"towedTouched":[],"events":["hitch"],"why":["stop","far","ok"]}
+no console errors

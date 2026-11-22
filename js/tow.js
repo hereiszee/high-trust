@@ -34,7 +34,7 @@ const T={
   bodyIn:.12,             /* the towed body's collision probes are this much slimmer each side than its visual width */
   straight:1.8,straightFrom:38*D2R, /* reversing: beyond straightFrom the towed car straightens itself back (rad/s at the stop), so it never locks */
   stuckT:3,stuckD:.7,     /* no progress (< stuckD m) for stuckT s on the throttle -> offer "Reset the rig" */
-  yieldV:1.1,yieldMax:3.5,yieldSpd:4.5, /* a parked car the rig leans on at walking pace slides aside at yieldV m/s, at most yieldMax m from where it was parked */
+  yieldV:1.1,yieldMax:2.6,yieldSpd:4.5, /* a parked car the rig leans on at walking pace slides aside at yieldV m/s, at most yieldMax m from where it was parked */
   mul:{max:.7,acc:.6,brake:.8,steer:.8},
   resp:28,respV:7,        /* towed yaw-rate response 1/s: resp/(1+(v/respV)^2) -> laggy (wide) at speed, exact when slow */
   brakePush:.055,         /* hard braking in a bend: extra articulation rate per (m/s^2 of decel x sin(angle) x v/10) */
@@ -85,7 +85,10 @@ function step(k,tw,dt,o){o=o||{};const car=k.car,v=tw.spd||0,H=hitchPoint(tw),ev
     for(const s of[1,-1]){const p={x:C.x+f[0]*q*s,z:C.z+f[1]*q*s},p0={x:p.x,z:p.z};o.collide(p,Math.max(.5,k.wid/2-T.bodyIn));px+=p.x-p0.x;pz+=p.z-p0.z}
     if(px*px+pz*pz>1e-6){const l=Math.hypot(px,pz),nx=px/l,nz=pz/l,
         /* closing speed into the obstacle: the body's own motion this frame (before the push-out) against the push normal */
-        vx=k.Cp?(C.x-k.Cp.x)/Math.max(dt,1e-3):0,vz=k.Cp?(C.z-k.Cp.z)/Math.max(dt,1e-3):0,sp=Math.min(30,Math.max(0,-(vx*nx+vz*nz)));
+        vx=k.Cp?(C.x-k.Cp.x)/Math.max(dt,1e-3):0,vz=k.Cp?(C.z-k.Cp.z)/Math.max(dt,1e-3):0,
+        /* (bounded by what the truck can give it: last frame's push-out re-aims the body, and that jump is not a speed. A truck creeping
+           back at 2 m/s can't fire a 15 m/s "crash" that snaps the hitch) */
+        sp=Math.min(30,Math.abs(v)*1.6+1.5,Math.max(0,-(vx*nx+vz*nz)));
       const Cx=C.x+px,Cz=C.z+pz,np=yawTo(H.x-Cx,H.z-Cz);k.psi=np;k.w*=.3;C=centreFrom(H,k.psi,k.len);
       ev.hit={sp,push:{x:px/l,z:pz/l}};rel=wrap(tw.yaw-k.psi);ev.rel=rel}}
   car.x=C.x;car.z=C.z;car.yaw=k.side==='rear'?wrap(k.psi+Math.PI):k.psi;
@@ -263,6 +266,9 @@ function yieldTick(e,c,k,dt){const a=A(),L=a.L;if(!L||!L.cars||Math.abs(c.spd)>T
   for(const p of more.length?L.cars.concat(more):L.cars){if(p===e||p===t||!p.obj||!p.col||p.col.x0<-1e3||p.towed||p===a.CV)continue;if(Math.abs(p.pos.x-c.x)>16||Math.abs(p.pos.z-c.z)>16)continue;
     for(const q of pr){const h=obDist(q.x,q.z,p.col);if(h.d>q.r+.06)continue;
       let nx=h.x-q.x,nz=h.z-q.z,l=Math.hypot(nx,nz);if(l<1e-4){nx=p.pos.x-q.x;nz=p.pos.z-q.z;l=Math.hypot(nx,nz)||1}nx/=l;nz/=l;
+      /* mostly sideways, toward the kerb side it is already on (relative to the rig's way): a car shoved along the lane would just stay in the way */
+      {const fp0=fwd(p.yaw),lat=[fp0[1],-fp0[0]],side=Math.sign((p.pos.x-c.x)*-f[1]+(p.pos.z-c.z)*f[0])||1,rx=-f[1]*side,rz=f[0]*side,sl=Math.sign(lat[0]*rx+lat[1]*rz)||1;
+        nx=nx*.35+lat[0]*sl*.94;nz=nz*.35+lat[1]*sl*.94;const l2=Math.hypot(nx,nz)||1;nx/=l2;nz/=l2}
       const home=p.yHome||(p.yHome={x:p.pos.x,z:p.pos.z});const st=T.yieldV*dt,nxp=p.pos.x+nx*st,nzp=p.pos.z+nz*st;
       if(Math.hypot(nxp-home.x,nzp-home.z)>T.yieldMax)continue;
       /* it slides only where there's room (another car, a wall, a post: it stays put and the rig has to go round) */
@@ -371,7 +377,7 @@ function interact(prompt){const a=A();if(!a||!a.CV)return undefined;const r=acti
 
 /* ---------------- HUD: the line-up meters, the towing meter ---------------- */
 function hud(st){const a=A();if(!a||!a.CV){return}const m=st.meters||(st.meters=[]);if(m.length>=3)return;
-  if(S.link){const k=S.link,rel=Math.abs(k.rel||0)/D2R;if(S.stuck)m.push({id:'tow_stuck',label:'Stuck?',v:1,max:1,style:'bar',sub:'Hold E · reset the rig'});m.push({id:'tow_angle',label:'Hitch angle',v:Math.min(90,rel),max:90,style:'bands',zones:[[0,35,'good','Tracking'],[35,60,'warn','Swinging'],[60,90,'bad','Jackknife!']],marker:Math.min(90,rel)});return}
+  if(S.link){const k=S.link,rel=Math.abs(k.rel||0)/D2R;if(S.stuck)m.push({id:'tow_stuck',label:'Stuck?',v:1,max:1,style:'bar',sub:'Hold E · reset the rig'});m.push({id:'tow_angle',label:'Hitch angle',v:Math.min(90,rel),max:90,style:'bands',zones:[[0,35,'good','Tracking'],[35,55,'warn','Swinging'],[55,90,'bad',Math.abs((A().CV.car||A().CV).spd||0)>T.jackSpd*.8?'Jackknife!':'Full lock']],marker:Math.min(90,rel)});return}
   const cd=S.cand;if(!cd)return;const ch=cd.chk;
   m.push({id:'tow_line',label:'Line up',v:Math.max(0,8-Math.min(8,ch.d)),max:8,style:'bands',zones:[[0,3,'bad','Far'],[3,5.5,'warn','Closer'],[5.5,8,'good','In range']],sub:ch.ok?'Hold E · hitch up':(ch.why==='stop'?'Stop':ch.why==='angle'?'Straighten up · '+Math.round(ch.rel/D2R)+'°':ch.why==='under'?'Too close':ch.d.toFixed(1)+' m')});
   if(a.mode==='hub'&&S.hint&&m.length<3)m.push({id:'tow_e',label:S.hint.info?S.hint.txt:'Hold E · '+S.hint.txt,v:S.hold||0,max:1,style:'bar'})}

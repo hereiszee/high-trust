@@ -27,7 +27,7 @@ const D2R=Math.PI/180;
 /* the lot: grass at the river end of Dock St, in line with River Rd; gate on the north side */
 /* (the gate spans nearly the whole north side and the two columns sit 0.8 m west of the pen's middle line: every car pulls straight out
    onto River Rd with a metre and a half to spare to the posts, the east wall and its lamp; dev/tow-fix/sweep.js checks the swept path) */
-const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:309.2,g1:318.9,desk:{x:309.6,z:131.3},ring:{x:322,z:127}};
+const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:309.2,g1:318.9,desk:{x:308.7,z:131.3},ring:{x:322,z:127}};
 const SLOTS=[{x:312.6,z:136.7},{x:316.3,z:136.7},{x:312.6,z:143.5},{x:316.3,z:143.5},{x:312.6,z:150.3}];/* front bumper points; cars face north */
 const QH_WAIT={x:339,z:124.9};/* the Quik-Hook truck's waiting spot while you're at the lot: Dock St's north kerb, east of the junction */
 const SAL={x:221,z:55},SAL_RING={x:233,z:44.5},SAL_BAY={x:224,z:51};

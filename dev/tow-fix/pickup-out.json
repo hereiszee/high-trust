@@ -3,7 +3,7 @@
   "car": "kim",
   "off": "0m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -21,7 +21,7 @@
   "car": "kim",
   "off": "0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -39,7 +39,7 @@
   "car": "kim",
   "off": "-0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -57,7 +57,7 @@
   "car": "kim",
   "off": "0m/7deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -75,7 +75,7 @@
   "car": "kim",
   "off": "0.5m/-6deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -93,20 +93,10 @@
   "car": "hollis",
   "off": "0m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
-  "truckTouched": [
-   "out:impound:hollis@316.6,131",
-   "out:impound:hollis@316.7,130.7",
-   "out:impound:hollis@316.8,130.5",
-   "out:impound:hollis@316.9,130.3",
-   "out:impound:hollis@317.1,130",
-   "out:impound:hollis@317.2,129.8",
-   "out:impound:hollis@317.4,129.6",
-   "out:impound:hollis@317.5,129.5",
-   "out:impound:hollis@317.6,129.4"
-  ],
+  "truckTouched": [],
   "towedTouched": [],
   "events": [
    "hitch"
@@ -121,20 +111,10 @@
   "car": "hollis",
   "off": "0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
-  "truckTouched": [
-   "out:impound:hollis@316.7,131",
-   "out:impound:hollis@316.8,130.7",
-   "out:impound:hollis@316.9,130.5",
-   "out:impound:hollis@317,130.2",
-   "out:impound:hollis@317.1,130",
-   "out:impound:hollis@317.2,129.8",
-   "out:impound:hollis@317.4,129.6",
-   "out:impound:hollis@317.5,129.4",
-   "out:impound:hollis@317.7,129.3"
-  ],
+  "truckTouched": [],
   "towedTouched": [],
   "events": [
    "hitch"
@@ -149,20 +129,13 @@
   "car": "hollis",
   "off": "-0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
-  "truckTouched": [
-   "out:impound:hollis@316.6,131",
-   "out:impound:hollis@316.7,130.7",
-   "out:impound:hollis@316.8,130.4",
-   "out:impound:hollis@316.9,130.1"
-  ],
+  "truckTouched": [],
   "towedTouched": [],
   "events": [
-   "hitch",
-   "detach:jack",
-   "jackknife"
+   "hitch"
   ],
   "why": [
    "stop",
@@ -174,20 +147,13 @@
   "car": "hollis",
   "off": "0m/7deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
-  "truckTouched": [
-   "out:impound:hollis@316.6,131",
-   "out:impound:hollis@316.7,130.7",
-   "out:impound:hollis@316.8,130.4",
-   "out:impound:hollis@317,130.2"
-  ],
+  "truckTouched": [],
   "towedTouched": [],
   "events": [
-   "hitch",
-   "detach:jack",
-   "jackknife"
+   "hitch"
   ],
   "why": [
    "stop",
@@ -199,20 +165,10 @@
   "car": "hollis",
   "off": "0.5m/-6deg",
   "hitched": true,
-  "secsToHitch": 9.8,
+  "secsToHitch": 9.2,
   "out": true,
   "fail": "",
-  "truckTouched": [
-   "out:impound:hollis@316.7,131",
-   "out:impound:hollis@316.8,130.7",
-   "out:impound:hollis@316.9,130.5",
-   "out:impound:hollis@317,130.3",
-   "out:impound:hollis@317.2,130",
-   "out:impound:hollis@317.3,129.8",
-   "out:impound:hollis@317.5,129.6",
-   "out:impound:hollis@317.6,129.5",
-   "out:impound:hollis@317.7,129.4"
-  ],
+  "truckTouched": [],
   "towedTouched": [],
   "events": [
    "hitch"
@@ -227,7 +183,7 @@
   "car": "rosa",
   "off": "0m/0deg",
   "hitched": true,
-  "secsToHitch": 12.2,
+  "secsToHitch": 11.8,
   "out": true,
   "fail": "",
   "truckTouched": [],
@@ -245,14 +201,19 @@
   "car": "rosa",
   "off": "0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 12.2,
+  "secsToHitch": 11.6,
   "out": true,
   "fail": "",
   "truckTouched": [
-   "out:job-fence@315,126.6",
-   "out:job-fence@315,127",
-   "out:job-fence@315,127.3",
-   "out:job-fence@314.9,127.5"
+   "out:job-fence@323.5,127",
+   "out:job-fence@323,127",
+   "out:job-fence@322.6,127",
+   "out:job-fence@322.3,127",
+   "out:job-fence@322,127",
+   "out:job-fence@321.3,127",
+   "out:job-fence@320.9,127",
+   "out:job-fence@320.5,127",
+   "out:job-fence@320.2,127"
   ],
   "towedTouched": [],
   "events": [
@@ -268,11 +229,14 @@
   "car": "rosa",
   "off": "-0.7m/0deg",
   "hitched": true,
-  "secsToHitch": 12.2,
+  "secsToHitch": 11.6,
   "out": true,
   "fail": "",
   "truckTouched": [
-   "out:job-fence@317.2,127.1"
+   "out:job-fence@325.3,126.3",
+   "out:job-fence@324.8,126.4",
+   "out:job-fence@324.4,126.4",
+   "out:job-fence@323,126.6"
   ],
   "towedTouched": [],
   "events": [
@@ -288,11 +252,12 @@
   "car": "rosa",
   "off": "0m/7deg",
   "hitched": true,
-  "secsToHitch": 14.5,
+  "secsToHitch": 11.8,
   "out": true,
   "fail": "",
   "truckTouched": [
-   "rev:job-fence@317,126.1"
+   "out:job-fence@325.3,126.4",
+   "out:job-fence@324.9,126.4"
   ],
   "towedTouched": [],
   "events": [
@@ -307,12 +272,149 @@
  {
   "car": "rosa",
   "off": "0.5m/-6deg",
+  "hitched": true,
+  "secsToHitch": 11.8,
+  "out": true,
+  "fail": "",
+  "truckTouched": [
+   "out:job-fence@325.5,126.3",
+   "out:job-fence@325,126.4",
+   "out:job-fence@323.6,126.5",
+   "out:job-fence@323.2,126.5"
+  ],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "benny",
+  "off": "0m/0deg",
+  "hitched": true,
+  "secsToHitch": 11.8,
+  "out": true,
+  "fail": "",
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "benny",
+  "off": "0.7m/0deg",
+  "hitched": true,
+  "secsToHitch": 11.6,
+  "out": true,
+  "fail": "",
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "benny",
+  "off": "-0.7m/0deg",
+  "hitched": true,
+  "secsToHitch": 11.6,
+  "out": true,
+  "fail": "",
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "benny",
+  "off": "0m/7deg",
+  "hitched": true,
+  "secsToHitch": 11.6,
+  "out": true,
+  "fail": "",
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "benny",
+  "off": "0.5m/-6deg",
+  "hitched": true,
+  "secsToHitch": 11.8,
+  "out": true,
+  "fail": "",
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "earl",
+  "off": "0m/0deg",
+  "hitched": true,
+  "secsToHitch": 14,
+  "out": true,
+  "fail": "",
+  "truckTouched": [
+   "out:job-fence@321.9,126.6",
+   "out:job-fence@321.4,126.7",
+   "out:job-fence@321,126.7"
+  ],
+  "towedTouched": [],
+  "events": [
+   "hitch"
+  ],
+  "why": [
+   "stop",
+   "far",
+   "ok"
+  ]
+ },
+ {
+  "car": "earl",
+  "off": "0.7m/0deg",
   "hitched": true,
   "secsToHitch": 14.2,
   "out": true,
   "fail": "",
   "truckTouched": [
-   "rev:job-fence@317.1,126.9"
+   "out:job-fence@320.1,126.7",
+   "out:job-fence@319.6,126.7",
+   "out:job-fence@319.3,126.8"
   ],
   "towedTouched": [],
   "events": [
@@ -325,159 +427,57 @@
   ]
  },
  {
-  "car": "benny",
-  "off": "0m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "",
-  "truckTouched": [
-   "rev:job-fence@316,127.8",
-   "rev:job-fence@319.1,133"
-  ],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far",
-   "stop"
-  ]
- },
- {
-  "car": "benny",
-  "off": "0.7m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "",
-  "truckTouched": [
-   "rev:job-fence@316,127.8",
-   "rev:job-fence@319.1,133"
-  ],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far",
-   "stop"
-  ]
- },
- {
-  "car": "benny",
-  "off": "-0.7m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "",
-  "truckTouched": [
-   "rev:job-fence@316,127.8",
-   "rev:job-fence@319.1,133"
-  ],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far",
-   "stop"
-  ]
- },
- {
-  "car": "benny",
-  "off": "0m/7deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "",
-  "truckTouched": [
-   "rev:job-fence@316,127.8",
-   "rev:job-fence@319.1,133"
-  ],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far",
-   "stop"
-  ]
- },
- {
-  "car": "benny",
-  "off": "0.5m/-6deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 317.6,112.0",
-  "truckTouched": [],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far"
-  ]
- },
- {
-  "car": "earl",
-  "off": "0m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 313.4,112.0",
-  "truckTouched": [],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far"
-  ]
- },
- {
-  "car": "earl",
-  "off": "0.7m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 314.1,112.0",
-  "truckTouched": [],
-  "towedTouched": [],
-  "events": [],
-  "why": [
-   "far"
-  ]
- },
- {
   "car": "earl",
   "off": "-0.7m/0deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 312.7,112.0",
+  "hitched": true,
+  "secsToHitch": 14.2,
+  "out": true,
+  "fail": "",
   "truckTouched": [],
   "towedTouched": [],
-  "events": [],
+  "events": [
+   "hitch"
+  ],
   "why": [
-   "far"
+   "stop",
+   "far",
+   "ok"
   ]
  },
  {
   "car": "earl",
   "off": "0m/7deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 313.4,112.0",
+  "hitched": true,
+  "secsToHitch": 14,
+  "out": true,
+  "fail": "",
   "truckTouched": [],
   "towedTouched": [],
-  "events": [],
+  "events": [
+   "hitch"
+  ],
   "why": [
-   "far"
+   "stop",
+   "far",
+   "ok"
   ]
  },
  {
   "car": "earl",
   "off": "0.5m/-6deg",
-  "hitched": false,
-  "secsToHitch": null,
-  "out": false,
-  "fail": "stuck reversing at 313.9,112.0",
+  "hitched": true,
+  "secsToHitch": 14.2,
+  "out": true,
+  "fail": "",
   "truckTouched": [],
   "towedTouched": [],
-  "events": [],
+  "events": [
+   "hitch"
+  ],
   "why": [
-   "far"
+   "stop",
+   "far",
+   "ok"
   ]
  }
 ]
