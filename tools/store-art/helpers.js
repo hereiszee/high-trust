@@ -14,7 +14,11 @@ window.T_={noVM:true,
   H,sun,hemi,sky,base,row:[],
   /* light: {dir:[x,y,z] towards the sun, sun:'#hex', si, hemi, exp, sky:'#tint', fog:'#hex', near, far} ; null resets */
   L:null,
-  light(o){T_.L=o||null;T_.applyLight()},
+  light(o){T_.L=o||null;if(!o){sun.color.copy(base.sunCol);sun.intensity=base.sunI;hemi.intensity=base.hemiI;H.renderer.toneMappingExposure=base.exp;if(sky&&base.sky)sky.material.color.copy(base.sky);
+      if(H.scene.fog&&base.fog){H.scene.fog.color.copy(base.fog);H.scene.fog.near=base.near;H.scene.fog.far=base.far}}T_.applyLight()},
+  /* back to the game's own camera, lighting, characters and HUD (for gameplay screenshots) */
+  game(){T_.clear();T_.light(null);T_.C=null;T_.sprOff=false;T_.hideSprites(false);T_.noVM=false;const c=H.camera;if(c.view&&c.view.enabled)c.clearViewOffset();c.fov=70;c.aspect=innerWidth/innerHeight;c.updateProjectionMatrix();
+    if(H.P.dude)H.P.dude.root.visible=true;for(const a of H.allies)if(a.dude)a.dude.root.visible=true},
   applyLight(){const o=T_.L;if(!o)return;
     if(o.sun)sun.color.copy(lin(o.sun));if(o.si!=null)sun.intensity=o.si;if(o.hemi!=null)hemi.intensity=o.hemi;if(o.hemiSky)hemi.color.copy(lin(o.hemiSky));if(o.hemiGround)hemi.groundColor.copy(lin(o.hemiGround));
     if(o.exp!=null)H.renderer.toneMappingExposure=o.exp;if(o.sky&&sky)sky.material.color.copy(lin(o.sky));

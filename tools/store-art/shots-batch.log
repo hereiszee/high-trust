@@ -1,0 +1,66 @@
+=== dev/jobs/overwatch.js --only=03-garden-scope --quiet 18:28:34
+END won @168.8s stats {"beaned":6,"cuffed":7,"lethal":0,"spooked":0,"civ":1,"shots":13,"hits":7,"kevin":1,"flats":2}
+no console errors
+=== end 18:29:34
+=== dev/jobs/overwatch.js --only=05-court-scope --quiet --human 18:29:34
+     shot 05-court-scope
+=== end 18:30:52
+=== dev/jobs/crossing.js --only=03-main-crossing --quiet 18:30:52
+     shot 03-main-crossing {"calls":512,"kidMeshes":24,"tris":1181459,"geo":635,"tex":182,"progs":118}
+=== end 18:32:19
+=== dev/jobs/arrest.js --shots --only=08-down,09-chase,11-win 18:32:19
+04-notebook true
+  shot 08-down
+  shot 09-chase
+  shot 11-win
+@6.3   [feed] Rosa gave you a notebook · the collectors are listed on the left
+@8.8   [feed] Notebook · a clue · Honey Lady: the fifty guy wore a ball cap.
+@11.5   [feed] Notebook · a clue · Peach Lady: clipboard, never writes on it.
+@14.5   rosa: Your notebook says it's the lime vest. Watch him to be sure, or walk up and point him out.
+@21.2   [feed] Notebook · Lime vest · On his phone when the duffel guy waved
+@28.8   [feed] Notebook · Lime vest · Pocketed the bills, not the tin
+@70.9   [feed] One beanbag · one shot
+@83.6   [feed] One shot, nobody hurt · +6 Riverside trust
+{"state":"won","stage":"aside","panicPeak":0,"oneShot":true,"wrong":0,"pay":["Bake sale fund:850","Second chances ×2:120","Nobody pulled a hamstring:150","Quick work:100","One shot:300","Nobody noticed · panic 0:150","Proof, not a hunch:100","Neighbors chipped in:42"]}
+no console errors
+=== end 18:38:54
+=== dev/jobs/finale.js --from festival --shots 18:38:54
+ok   finale registered and unlocked with a clean history {"lock":null,"j":true}
+ok   cast streamed in before any scene (true)
+     shot 01-festival-wave
+     shot 17b-festival-wave-wide
+     shot 02-festival-credits
+     shot 19-result
+     shot 20-postgame
+ok   run won (won)
+ok   no console errors
+=== end 18:52:21
+=== dev/jobs/porch.js --shots --quiet 18:52:21
+  shot 00-brief
+  shot 01-start
+  shot 03-sit
+  shot 04-truck
+  shot 05-pirate
+  shot 06-word
+  shot 16-result
+no console errors
+=== end 18:55:00
+=== dev/jobs/taxi.js --shots 18:55:00
+  shot 01-start
+  shot 02-school-pickup
+  shot 03-park
+  shot 04-hank
+  shot 03b-forgot-something
+  shot 05-ortho
+  shot 06-the-call
+  shot 07-pickup-coming
+  shot 07b-blocking
+  shot 08-blocked
+  shot 09-choice
+  shot 10-back-to-school
+  shot 11-bikes-back
+  shot 12-home
+  shot 13-result
+no console errors
+=== end 18:58:57
+=== dev/base-check.js range,tank,jet --shots 18:58:57

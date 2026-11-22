@@ -44,6 +44,8 @@ const log=(...a)=>console.log(new Date().toISOString().slice(11,19),...a);
         s.textContent=h?'#strm{visibility:hidden!important}':'.ht-root,#lock,.hud,#banner,#strm{visibility:hidden!important}'},!!job.hud);
       await p.evaluate(()=>{__ht.render.apply('high');window.dispatchEvent(new Event('resize'))});
       const info=await p.evaluate(`(async()=>{${job.run}})()`);
+      for(const k of(job.press||[])){if(typeof k==='number'){await p.waitForTimeout(k);continue}await p.keyboard.press(k);await p.waitForTimeout(350)}
+      if(job.run2)await p.evaluate(`(async()=>{${job.run2}})()`);
       /* settle: stream chunks / characters around the camera, re-render from the same camera */
       for(let k=0;k<60;k++){await p.waitForTimeout(job.settleMs||500);await p.evaluate(`(async()=>{${job.frame||'T_.redraw()'}})()`);
         if(k+1>=(job.settle||4)){const pe=await p.evaluate(()=>T_.pending());if(!pe.people&&!pe.ow&&!pe.stream&&!pe.box)break}}
