@@ -8,14 +8,15 @@ const {boot,click,live,waitCard}=require('./lib.js');const [JOB,STAGE,HOW]=proce
   const base=await ev(()=>window.__A.snap());
   await ev(id=>{window.__ht.jobs.start(id);window.__ht.step(3)},JOB);
   const adv=await ev(([id,st])=>window.__A.play(id,{},15000,"M.stage==='"+st+"'"),[JOB,STAGE]);console.log('advanced',JSON.stringify(adv));
-  await live(p,800);const mid=await ev(()=>window.__A.snap());console.log('mid-job: night',JSON.stringify(mid.night),'overlays',JSON.stringify(mid.overlays),'fov',mid.fov);
+  /* step() never runs hud(); real frames do, and some jobs hang their cleanup on the hud hook: draw() = one real frame's camera+night+hud */
+  await ev(()=>{for(let i=0;i<3;i++)window.__ht.draw()});await live(p,800);const mid=await ev(()=>window.__A.snap());console.log('mid-job: night',JSON.stringify(mid.night),'overlays',JSON.stringify(mid.overlays),'fov',mid.fov);
   if(HOW==='abandon'){await p.keyboard.press('Escape');await p.waitForTimeout(300);console.log('Abandon clicked',await click(p,'abandon'))}
   else if(HOW==='home'){await ev(()=>window.__ht.jobs.api.endMission(false,'audit: forced fail'));const c=await waitCard(p);console.log('card',JSON.stringify(c&&c.btns));console.log('Head home clicked',await click(p,'result:go'))}
   else if(HOW==='title'){await p.keyboard.press('Escape');await p.waitForTimeout(300);await click(p,'quit');await p.waitForTimeout(400);
     await ev(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Quit to title'&&b.offsetParent&&b.closest('[class*=dialog],[class*=dlg]'));if(b)b.click()});await p.waitForTimeout(600);
     await live(p,1500);const t=await ev(()=>({mode:window.__ht.mode,night:window.__ht.night.target,ov:[...document.querySelectorAll('.ht-ovl > *')].filter(e=>!e.classList.contains('out')).map(e=>e.dataset.ov)}));console.log('on the title screen',JSON.stringify(t));
     console.log('Continue clicked',await click(p,'continue'))}
-  await p.waitForTimeout(300);await live(p,4000);const after=await ev(()=>window.__A.snap());
+  await p.waitForTimeout(300);await ev(()=>{const H=window.__ht;for(let i=0;i<4;i++){H.step(5);H.draw()}});await live(p,3000);const after=await ev(()=>window.__A.snap());
   const keys=['mode','night','loadout','CV','vanOn','wmInScene','enemies','allies','overlays','fov','keysHeld','widgets','carsHidden','gunShown','noTraffic'];
   const d={};for(const k of keys)if(JSON.stringify(base[k])!==JSON.stringify(after[k]))d[k]=[base[k],after[k]];
   console.log('hub after leaving vs hub before the job:',JSON.stringify(d));

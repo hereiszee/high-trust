@@ -42,7 +42,7 @@ const log=(step,o)=>{const l=Object.assign({step},o);LOG.push(l);console.log(JSO
     if(!s1.M||s1.M.state!=='go'){log('stop',{why:'not running after '+act});break}
     if(act==='result:restart')break}
   /* ---- leave the job ---- */
-  const pre=await ev(()=>window.__A.snap());log('preQuit',pre);
+  await ev(()=>{for(let i=0;i<2;i++)window.__ht.draw()});const pre=await ev(()=>window.__A.snap());log('preQuit',pre);
   if(QUIT==='go'){const f=await fail('bot');if(f.state==='go')await fail('down');const c=await waitCard(p);log('card',{c});await click(p,'result:go')}
   else if(QUIT==='abandon'||QUIT==='title'){await p.keyboard.press('Escape');await p.waitForTimeout(300);const ps=await ev(()=>({screen:window.__ht.HUD.screen,btns:[...document.querySelectorAll('.ht-pause [data-act],[data-act=quit],[data-act=abandon]')].filter(b=>b.offsetParent).map(b=>b.dataset.act+':'+b.textContent.trim())}));log('pause',ps);
     if(QUIT==='abandon')log('abandon',{clicked:await click(p,'abandon')});
@@ -51,7 +51,7 @@ const log=(step,o)=>{const l=Object.assign({step},o);LOG.push(l);console.log(JSO
       log('title',{screen:await ev(()=>window.__ht.HUD.screen),mode:await ev(()=>window.__ht.mode)});await click(p,'continue');await p.waitForTimeout(500)}}
   else if(QUIT==='reload'){await p.reload();await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:90000});await p.evaluate(()=>{window.__rafOn=false});
     await click(p,'continue');await p.waitForTimeout(500);await p.evaluate(async()=>{await window.__ht.jobs.ready});await p.evaluate(install)}
-  await ev(()=>window.__ht.step(30));await live(p,1500);
+  await ev(()=>{const H=window.__ht;for(let i=0;i<4;i++){H.step(5);if(H.L)H.draw()}});await live(p,1500);
   const after=await ev(()=>window.__A?window.__A.snap():null);log('hub',after);
   if(after){const keys=['mode','night','loadout','CV','vanOn','wmObjs','wmInScene','enemies','overlays','fov','keysHeld','noTraffic','widgets','cars','carsHidden','solids','cols','lgroup','gunShown','obj'];
     const d={};for(const k of keys)if(JSON.stringify(base[k])!==JSON.stringify(after[k]))d[k]=[base[k],after[k]];log('hubDiff',{quit:QUIT,d})}
