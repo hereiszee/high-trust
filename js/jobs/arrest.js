@@ -841,7 +841,7 @@ J.register('arrest',{
 });
 /* restoring a checkpoint: the clues and notes come back onto the fresh crowd */
 function applyLoad(O){if(!O.spawned)return;O.pendingLoad=false;(O.savedNotes||[]).forEach((ns,i)=>{const c=O.cols[i];if(!c)return;c.notes=ns.map(n=>({k:n[0],icon:n[1],txt:n[2],bad:!!n[3]}));for(const n of c.notes)c['n_'+n.k]=1});
-  O.nbDirty=true;if(O.stage==='aside'){const sk=O.cols[O.skim];sk.seen=K.idTell}O.nbOn=O.talked}
+  O.nbDirty=true;if(O.stage==='aside'){const sk=O.cols[O.skim];sk.seen=K.idTell;/* JOBS-AUDIT: what identify() sets up: Rosa watching from the east end, Gary closer, the music */try{if(O.rosa)crewUp(O)}catch(_){}try{music('tension',.3)}catch(_){}}O.nbOn=O.talked}
 
 /* ---------------- objectives, markers, prompts ---------------- */
 function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();
@@ -887,9 +887,10 @@ J.on('pose',()=>{const O=H();if(!O||O.stage!=='market'||O.saidWatch)return;if((O
 /* ---------------- input: G and right-click toggle the draw; touch: the aim button or the gadget chip ---------------- */
 if(typeof addEventListener==='function'){
   addEventListener('keydown',e=>{if(e.repeat)return;const O=H();if(!O||A().M.state!=='go')return;const k=(e.key||'').toLowerCase();if(k==='g'&&!O.chat)toggleDraw(O)});
-  addEventListener('mousedown',e=>{if(e.button!==2)return;const O=H();if(!O||A().M.state!=='go'||!(O.stage==='aside'||O.run))return;if(!document.pointerLockElement&&!(e.target&&e.target.tagName==='CANVAS'))return;toggleDraw(O)},true)}
+  (function claim(){const K=window.HT&&HT.Keys;if(!K||!K.claim){setTimeout(claim,400);return}/* Aim (Mouse 2 or its binding, the pad's LT) toggles the draw too */
+    K.claim('aim',down=>{const O=H();if(!O||A().M.state!=='go'||!(O.stage==='aside'||O.run))return false;if(down)toggleDraw(O);return true})})()}
 function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return;hookTouch.done=true;
-  a.HUD.on('gadget',id=>{const O=H();if(O&&id==='ho-draw')toggleDraw(O)});a.HUD.on('touch',(id,down)=>{const O=H();if(O&&id==='aim'&&down&&(O.stage==='aside'||O.run))toggleDraw(O)})}
+  a.HUD.on('gadget',id=>{const O=H();if(O&&id==='ho-draw')toggleDraw(O)});}
 
 /* ---------------- cleanup: free everything when the job ends, is retried or replayed ---------------- */
 const LIVE={M:null};

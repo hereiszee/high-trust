@@ -18,10 +18,14 @@ for (const src of CFG.roots.flatMap(walk).filter(p => /\.(jpg|png|glb|hdr)$/.tes
   else for (const t of ['m', 'l']) for (const u of Object.values((man.files[src][t] || {}).f || {})) if (!fs.existsSync(u)) bad.push('missing output: ' + u);
 }
 if (man) for (const b of Object.values(man.boot || {})) if (!fs.existsSync(b.url)) bad.push('missing boot pack: ' + b.url);
+/* PERF-03: no stray boot-pack twin (boot.<fmt>.pack.<hash>.bin) left next to the real one */
+for (const f of fs.existsSync(CFG.out) ? fs.readdirSync(CFG.out) : []) if (/^boot\.\w+\.pack\./.test(f)) bad.push('stray boot pack copy (not in the manifest): ' + path.join(CFG.out, f));
 /* P-3: every third-party module packed into the desktop app has a notice; Electron's licence files are in a built dist */
 { const NOTICES = fs.readFileSync('assets/credits/THIRD-PARTY-NOTICES.txt', 'utf8');
   let lock = null; try { lock = JSON.parse(fs.readFileSync('desktop/package-lock.json', 'utf8')) } catch (e) { bad.push('desktop/package-lock.json unreadable') }
+  const excluded = (require('../desktop/electron-builder.config.js').files || []).filter(f => /^!node_modules\/.+\/\*\*$/.test(f)).map(f => f.slice(14, -3));
   if (lock) for (const [k, v] of Object.entries(lock.packages || {})) { if (!k.startsWith('node_modules/') || v.dev) continue; const name = k.replace(/^.*node_modules\//, '');
+    if (excluded.some(x => name === x || name.startsWith(x + '/'))) continue;/* not packaged (electron-builder files exclusion) */
     if (!NOTICES.includes(name)) bad.push('packaged npm module without a notice in assets/credits/THIRD-PARTY-NOTICES.txt: ' + name) }
   for (const w of ['Electron', 'Chromium', 'Node.js', 'Steamworks SDK', 'LICENSE.electron.txt', 'LICENSES.chromium.html']) if (!NOTICES.includes(w)) bad.push('THIRD-PARTY-NOTICES.txt does not mention ' + w);
   const dist = path.join('desktop', 'dist');

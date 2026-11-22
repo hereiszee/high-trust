@@ -46,8 +46,9 @@ FN.stages.roof={
   build(M){const a=A(),S=M.fn.sub;FN.festSet(M,1);FN.extras(M,'stoops');measureRoof();crowd(M);S.scope=false;S.zoom=0;S.bolt=0;S.beans=RK.beans;S.focus=null;S.focusT=0;S.handled=0;S.smokes=[];S.up=false;S.t=0;
     const sp=role(M,'spotter'),wk=role(M,'walker');S.tellT=sp.v;S.walkV=wk.v;S.walker=person(wk.id||'dee',W.hq.x-1,W.hq.z+1.5);if(S.walker){S.walker.st='idle';S.walker.home={x:W.hq.x-1,z:W.hq.z+1.5}}
     S.spotter=person(sp.id||'doug',437,51.5);if(S.spotter)S.spotter.hidden=true;
-    /* right mouse toggles the scope (a pure toggle); Z zooms */
-    S.onDown=e=>{if(e.button===2&&S.up&&!M.fn.fade&&(D.pointerLockElement||(matchMedia&&matchMedia('(pointer:coarse)').matches))&&!(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())){S.scope=!S.scope;if(!S.scope)a.P.aim=false;e.preventDefault()}};D.addEventListener('mousedown',S.onDown,true);
+    /* Aim toggles the scope (a pure toggle); Z zooms */
+    /* the Aim action (Mouse 2 or its binding, the pad's LT: js/keys.js) toggles the scope; the game's aim follows as before (not claimed) */
+    {const K=window.HT&&HT.Keys;if(S.unAim)S.unAim();S.unAim=K&&K.claim?K.claim('aim',down=>{if(down&&S.up&&!M.fn.fade&&!(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())){S.scope=!S.scope;if(!S.scope)a.P.aim=false}return false}):null}
     S.lab=D.createElement('div');S.lab.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;font:600 13px/1.25 var(--ui,system-ui,sans-serif)';D.body.appendChild(S.lab);FN.res().el.push(S.lab);
     if(once(M,'roof0'))sayAll([['doug',"Ladder's on the east wall of the Community Center. Hold E at the bottom. I'm already up here. I brought snacks and the beanbags."]])},
   upd(dt,M,F,fading){const a=A(),S=M.fn.sub,P=a.P,R=roofInfo();S.t+=dt;measureRoof();
@@ -77,7 +78,7 @@ FN.stages.roof={
   fire(M){const S=M.fn.sub;if(!S.up)return false;S.fires=(S.fires||0)+1;if(S.scope)shoot(M);else A().feed('Scope in first (right mouse)','info');return true},
   hud(st,M){const S=M.fn.sub;if(!S.up)return;st.crosshair=Object.assign({},st.crosshair||{},{hidden:!!S.scope});st.gadgets=[{id:'fin-beans',label:'Beanbags ×'+S.beans,key:'Click',on:true},{id:'fin-zoom',label:RK.zoom[S.zoom]+'× zoom',key:'Z',on:S.zoom>0}];
     labels(M);if(D.body.classList.contains('ow-scoped')!==!!S.scope)D.body.classList.toggle('ow-scoped',!!S.scope)},
-  clear(M){const a=A(),S=M.fn.sub;if(S.onDown)D.removeEventListener('mousedown',S.onDown,true);roofOn(M,false);returnRifle(M);D.body.classList.remove('ow-scoped');if(a.P.dude)a.P.dude.root.visible=true;
+  clear(M){const a=A(),S=M.fn.sub;if(S.unAim){S.unAim();S.unAim=null}roofOn(M,false);returnRifle(M);D.body.classList.remove('ow-scoped');if(a.P.dude)a.P.dude.root.visible=true;
     if(S.lab)S.lab.innerHTML='';a.camera.fov=70;a.camera.updateProjectionMatrix();for(const p of(S.crowd||[]).concat(S.kids||[],[S.walker,S.spotter]))unperson(p);S.smokes&&S.smokes.forEach(s=>s.g.parent&&s.g.parent.remove(s.g))},
   bot(a,t,o,M,B){const S=M.fn.sub,P=a.P,R=roofInfo();if(!S.up){if(S.handled>=S.plants.length){if(!B.down){B.down=1;climb(M,false,true)}return}if(!B.c){B.c=1;climb(M,true,true)}return}
     if(S.handled>=S.plants.length){if(!B.down){B.down=1;climb(M,false,true)}return}

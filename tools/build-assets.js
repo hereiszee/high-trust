@@ -158,8 +158,11 @@ async function encodeImage(src, max, fmt, exact) {
     const head = Buffer.alloc(8); head.write('HTPK', 0, 'latin1'); head.writeUInt32LE(json.length + jpad.length, 4);
     const pack = Buffer.concat([head, json, jpad, ...blobs]);
     man.boot[fmt] = { url: emit('assets/boot.' + fmt + '.bin', 'pack', 'bin', pack).replace(/\.pack\./, '.'), kb: Math.round(pack.length / 1024), n: entries.length };
-    const real = path.join(ROOT, man.boot[fmt].url); if (!fs.existsSync(real)) fs.renameSync(path.join(OUT, path.basename(man.boot[fmt].url).replace(/^boot\.(\w+)\./, 'boot.$1.pack.')), real);
-    written.add(path.basename(real));
+    /* emit() wrote boot.<fmt>.pack.<hash>.bin; the manifest names boot.<fmt>.<hash>.bin. Keep exactly one copy (PERF-03: an incremental build
+       with an unchanged hash used to leave the .pack. twin behind, and the stale-output sweep kept it because emit() had listed it) */
+    const real = path.join(ROOT, man.boot[fmt].url), packed = path.join(OUT, path.basename(man.boot[fmt].url).replace(/^boot\.(\w+)\./, 'boot.$1.pack.'));
+    if (!fs.existsSync(real)) fs.renameSync(packed, real); else if (fs.existsSync(packed)) fs.unlinkSync(packed);
+    written.delete(path.basename(packed)); written.add(path.basename(real));
     console.log('boot pack', fmt, man.boot[fmt].n, 'files', man.boot[fmt].kb + 'k');
   }
   man.v = hash(JSON.stringify(man.files) + JSON.stringify(man.boot));

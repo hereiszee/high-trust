@@ -255,8 +255,11 @@ J.register('tail',{
     /* the ambient traffic froze where it was when the job began: clear it, the job runs its own */
     try{const O=H().ow;if(O&&O.traffic)O.traffic(0,{player:a.P.pos,car:null,camera:a.camera,off:true})}catch(_){}
     a.wmSetWindow(a.wmWindow(START.x,START.z,20));
-    /* the binoculars are a toggle (nothing held down): right-click raises and lowers, left-click / E / Space shoots, Esc lowers */
-    if(typeof window!=='undefined'&&window.addEventListener){listen(window,'mousedown',e=>{if(M!==A().M||M.state!=='go')return;if(e.button===2)binoToggle(M);else if(e.button===0&&M.vfOn)snap(M)});
+    /* the binoculars follow the Aim setting (default Toggle): Aim raises and lowers, Fire / E / Space shoots, Esc lowers */
+    if(typeof window!=='undefined'&&window.addEventListener){const K=window.HT&&HT.Keys,live=()=>M===A().M&&M.state==='go';
+      /* Aim (Mouse 2 or its binding, the pad: js/gamepad.js) raises / lowers them per the Aim setting; Fire takes the photo */
+      if(K&&K.claim){const u1=K.claim('aim',(down,o)=>{if(!live())return false;if(o.mode==='hold'){if(down!==!!M.binoUp)binoToggle(M,down)}else if(down)binoToggle(M);return true}),
+        u2=K.claim('fire',down=>{if(!live()||!M.vfOn)return false;if(down)snap(M);return true});res().listeners.push([{removeEventListener(){u1();u2()}},'claim',null])}
       listen(window,'keydown',e=>{if(M!==A().M||M.state!=='go'||e.repeat)return;if(e.key==='Escape'&&M.binoUp)binoToggle(M,false);else if((e.key===' '||e.code==='Space')&&M.vfOn)snap(M)})}
     if(o&&o.checkpoint)return;
     /* parked properly: nose toward the exit, so getting out after him is a drive, not a seven-point turn */

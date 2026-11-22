@@ -1,0 +1,9 @@
+{
+ "default_rightClick": true,
+ "aimOnK_pressK": false,
+ "aimOnK_rightClick": false,
+ "aimOnMouse5_pressMouse5": false,
+ "objectiveText": "",
+ "chipKeycap": ""
+}
+errs []

@@ -105,7 +105,7 @@ function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.
       if(w.slot==='side')P.box('paint',x-.3,1.06,gz-RACK_W*.42,x-.04,1.1,gz+RACK_W*.42,'#6b4f37');/* a little shelf for a sidearm */
       else{P.box('metal',x-.16,.18,gz-.05,x-.04,.3,gz+.05,'#2c2f31');/* butt cup */P.box('metal',x-.16,1.48,gz-.06,x-.04,1.54,gz+.06,'#2c2f31')/* peg */}
       P.sign(x-.07,2.02,gz,RACK_W*.92,.36,Math.PI/2,K.board('rk'+id,[(i+1)+' · '+(w.name||id).toUpperCase(),cls.toUpperCase()],2,1,w.slot==='side'?'brown':'green'))}
-    P.sign(x-.07,2.62,z,Math.min(3.6,W2*2),.42,Math.PI/2,K.board('rack',['RENTAL RACK · FREE · TRY ANY GUN','E AT THE RACK · PICK ONE · IT COMES BACK WHEN YOU LEAVE'],2,1,'yellow'))}
+    P.sign(x-.07,2.62,z,Math.min(3.6,W2*2),.42,Math.PI/2,K.board('rack',['RENTAL RACK · FREE · TRY ANY GUN','WALK UP · PICK ONE · IT COMES BACK WHEN YOU LEAVE'],2,1,'yellow'))}
   P.flush(root);drawBoard(true);
   people(a,d)}
 /* the guard and the range officer, from the neighbour pool (never the crew or the family) */
@@ -262,15 +262,15 @@ function rackPick(a){const k=B().def().range.rack,P=a.P,cam=a.camera;const n=RAC
 function nearRack(a){const k=B().def().range.rack,P=a.P;return P.pos.x<k.x+.3&&P.pos.x>k.x-3&&Math.abs(P.pos.z-k.z)<RACK_W*RACK_IDS.length/2+.8}
 /* the rack menu: every gun as a card (icon, name, class, ammo, magazine); arrows / 1-9 / mouse choose, E or Enter takes, 0 your own guns */
 function menuOpen(a,idx){if(S.menu)return;const h=HT.HUD,icon=id=>{try{return h&&h.icons&&h.icons.gun?h.icons.gun(id):''}catch(_){return''}};const W=a.WEAPONS;
-  const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,9,12,.55);font-family:"Barlow","Arial Narrow",Arial,sans-serif;color:#eef2f2';
+  const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,9,12,.88);font-family:"Barlow","Arial Narrow",Arial,sans-serif;color:#eef2f2';
   const cards=RACK_IDS.map((id,i)=>{const w=W[id]||{};return'<div data-i="'+i+'" style="cursor:pointer;width:178px;padding:10px 12px;border-radius:10px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)">'+
     '<div style="display:flex;justify-content:space-between;font-size:13px;opacity:.7"><b>'+(i+1)+'</b><span>'+rackCls(id).toUpperCase()+'</span></div>'+
     '<div style="height:44px;display:flex;align-items:center;justify-content:center;fill:#e8eef0">'+icon(id)+'</div>'+
     '<div style="font-size:17px;font-weight:700;line-height:1.15">'+(w.name||id)+'</div><div style="font-size:13px;opacity:.75">'+(w.ammo||'')+' · '+(w.mag||'?')+' a mag'+(w.auto?' · auto':'')+(id==='beanbag'?' · less-lethal':'')+'</div></div>'}).join('');
   d.innerHTML='<div style="max-width:min(1000px,94vw);text-align:center"><div style="font-size:30px;font-weight:800;letter-spacing:.04em">RENTAL RACK</div>'+
-    '<div style="font-size:15px;opacity:.8;margin:2px 0 12px">Free on the range. ← → or 1-9 to choose · E / Enter takes it · 0 your own guns · Esc closes</div>'+
+    '<div style="font-size:15px;opacity:.8;margin:2px 0 12px">Free on the range. '+rackHint()+'</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">'+cards+'</div>'+
-    '<div data-own style="cursor:pointer;margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:8px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)"><b>0</b> · Your own guns'+(S.rent?' (return the rental)':'')+'</div></div>';
+    '<div data-own style="cursor:pointer;margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:8px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)"><b>'+(HT.Pad&&HT.Pad.active?HT.Pad.btn('X'):'0')+'</b> · Your own guns'+(S.rent?' (return the rental)':'')+'</div></div>';
   document.body.appendChild(d);/* pointer lock stays as it is (losing it opens the pause menu): keys choose; the mouse works when the cursor isn't locked */
   const M=S.menu={el:d,i:idx,cards:[...d.querySelectorAll('[data-i]')]};const sel=i=>{M.i=(i+RACK_IDS.length)%RACK_IDS.length;M.cards.forEach((c,j)=>{c.style.borderColor=j===M.i?'#ffd34a':'rgba(255,255,255,.12)';c.style.background=j===M.i?'rgba(60,52,20,.95)':'rgba(20,26,30,.92)'})};sel(idx);
   M.cards.forEach((c,j)=>{c.onmouseenter=()=>sel(j);c.onclick=()=>{sel(j);menuTake(a)}});d.querySelector('[data-own]').onclick=()=>{menuClose();rentReturn(a)};
@@ -279,12 +279,18 @@ function menuOpen(a,idx){if(S.menu)return;const h=HT.HUD,icon=id=>{try{return h&
     else if(/^[1-9]$/.test(k)&&+k<=RACK_IDS.length){sel(+k-1);menuTake(a)}else if(k==='0'){menuClose();rentReturn(a)}
     else if(k==='Enter'||k==='e'||k==='E'||k===' ')menuTake(a);else if(k==='Escape'||k==='Backspace')menuClose()};
   M.keyup=e=>{e.stopImmediatePropagation()};document.addEventListener('keydown',M.key,true);document.addEventListener('keyup',M.keyup,true);
+  /* controller (js/gamepad.js): D-pad / stick / LB RB choose, A takes, X your own guns, B closes */
+  if(HT.Pad&&HT.Pad.modal)M.unpad=HT.Pad.modal({move:(dx,dy)=>sel(M.i+(dx||dy)),ok:()=>menuTake(a),back:()=>menuClose(),x:()=>{menuClose();rentReturn(a)}});
   try{for(const kk in a.keys)a.keys[kk]=false}catch(_){}}
-function menuClose(){const M=S.menu;if(!M)return;S.menu=null;document.removeEventListener('keydown',M.key,true);document.removeEventListener('keyup',M.keyup,true);M.el.remove()}
+/* the menu's key line, for the device in use */
+function rackHint(){const P=HT.Pad;if(P&&P.active)return'D-pad to choose · '+P.btn('A')+' takes it · '+P.btn('X')+' your own guns · '+P.btn('B')+' closes';
+  const K=HT.Keys,u=K&&K.label?K.label('use'):'E';return'← → or 1-9 to choose · '+u+' / Enter takes it · 0 your own guns · Esc closes'}
+function menuClose(){const M=S.menu;if(!M)return;S.menu=null;if(M.unpad)M.unpad();document.removeEventListener('keydown',M.key,true);document.removeEventListener('keyup',M.keyup,true);M.el.remove()}
 function menuTake(a){const M=S.menu;if(!M)return;const id=RACK_IDS[M.i];menuClose();rentTake(a,id)}
 /* E at the rack opens the menu straight from the key (with a gun drawn the game's prompt pipeline can be busy with its own prompts) */
 document.addEventListener('keydown',e=>{if(e.repeat||S.menu||S.card)return;const k=(e.key||'').toLowerCase();if(k!=='e')return;const a=A();if(!a||a.mode!=='hub'||a.CV||!B()||!B().def()||!S.root)return;
   if(document.querySelector('.ht-pause'))return;if(!nearRack(a))return;e.stopImmediatePropagation();menuOpen(a,rackPick(a))},true);
+(function padUse(){if(!(HT.Pad&&HT.Pad.useAt)){if(typeof setTimeout==='function'&&typeof document!=='undefined')setTimeout(padUse,500);return}HT.Pad.useAt(()=>{const a=A();return !!(a&&a.mode==='hub'&&!a.CV&&!S.menu&&!S.card&&S.root&&B()&&B().def()&&nearRack(a))})})();/* pad A at the rack opens it (no HUD prompt there) */
 R.menu=()=>S.menu?{open:true,i:S.menu.i,id:RACK_IDS[S.menu.i]}:{open:false};R.rackIds=()=>RACK_IDS.slice();R.rackPick=()=>rackPick(A());
 /* ================= rentals ================= */
 function rentList(a){const all=Object.keys(a.WEAPONS);let own=[];try{own=a.SV().owned.guns||[]}catch(_){}const not=all.filter(g=>!own.includes(g));return not.length?not:all}

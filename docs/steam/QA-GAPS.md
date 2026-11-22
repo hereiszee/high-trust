@@ -25,7 +25,7 @@ Items are ranked by severity. "Not verifiable here" means it needs a real GPU, a
 ## Start-to-finale: what unlocks what
 
 There are 27 story jobs:
-- **9 built-in:** the four Maple raids (`index.html:947-1020`) and five Riverside jobs (`index.html:3572-3616`).
+- **9 built-in:** the four Maple raids (`const MISSIONS=` in index.html) and five Riverside jobs (`const RIVER_JOBS=`); `node dev/store-claims.test.js` counts them.
 - **18 registered** in `js/jobs/*.js`.
 
 There are also 5 repeatables (Honey-Do Blitz, Watch Your Step, Porch Light, Suds Up, Mower Time Trial) and the finale. The repeatables are not required.
@@ -65,8 +65,8 @@ Trust from first-time wins alone comes to about 122 for Maple and about 126 for 
 
 1. **FIXED (work/steam-desktop): vendored in `vendor/three-r128/`, Google Fonts import removed, the desktop shell blocks all network requests.** ~~The game cannot start offline.~~ three.js r128 is loaded from cdnjs (`index.html:26`, `71`), and the loaders, meshopt decoder, SkeletonUtils and post-processing come from a jsDelivr combine URL (`index.html:73`). `css/menus.css:5` also `@import`s Google Fonts. The service worker is skipped on `file://` (`index.html:45`). Fix: vendor everything into the build (LICENCES.md, CHECKLIST B4).
 2. **One key press on the title screen deletes the save.** When loading finishes, focus moves to the **New game** button even when a save exists (`index.html:4358`). Pressing Enter or Space (or A, if gamepad navigation reaches the title later) runs `metaTitleAction('newgame')` (`index.html:1949`, `2744`). That calls `SAVEM.reset()`, which deletes **both** `ht-save` and the backup `ht-save-bak` (`js/save.js:455`), with no confirmation. Pause → Reset save has a two-tap guard (`js/hud.js:770`); New game does not. Fix: focus Continue when a save exists, add an "Overwrite your save?" confirmation, and keep the backup.
-3. **Saves are tied to the browser storage origin.** They live in `localStorage` (`js/save.js:407`). In a wrapper, any change to the origin between builds (port, custom-protocol host, app id, profile path) makes all saves silently "disappear": the game starts fresh with no error. There is no Steam Cloud. Fix: write the save JSON to the user-data folder and enable Steam Auto-Cloud (CHECKLIST B6). Not verifiable here.
-4. **No credits or licence screen.** MIT notices must ship with the game (LICENCES.md B6).
+3. **FIXED (desktop/save-store.js): the shell keeps the save in `<userData>/saves/save.json` (Steam Auto-Cloud), independent of the page origin.** ~~Saves are tied to the browser storage origin.~~ They live in `localStorage` (`js/save.js:407`). In a wrapper, any change to the origin between builds (port, custom-protocol host, app id, profile path) makes all saves silently "disappear": the game starts fresh with no error. There is no Steam Cloud. Fix: write the save JSON to the user-data folder and enable Steam Auto-Cloud (CHECKLIST B6). Not verifiable here.
+4. **FIXED: title and pause have "Credits & licences" (generated from `assets/credits/credits.txt`); THIRD-PARTY-NOTICES.txt and Electron's licence files ship.** ~~No credits or licence screen.~~
 
 ### High
 
@@ -85,24 +85,21 @@ Trust from first-time wins alone comes to about 122 for Maple and about 126 for 
 ### Medium
 
 12. **No tutorial.** Onboarding is the title premise, random loading tips (`js/hud.js:712`), a 6-second home hint (`index.html:2976`), "Follow the yellow marker", and Rick's scripted rifle hand-over. There is no controls overlay on first launch, and zip-tying (the core "trust" mechanic) is taught only by a tip. Suggest a skippable first-5-minutes card set: move, look, talk (E), fire and ADS, zip-tie a surrendering enemy, enter the van.
-13. **Missing settings:**
-    - key rebinding (the key list is display-only and leaves out F, N, G, X and Z; `js/hud.js:129`)
-    - fullscreen and resolution
+13. **Missing settings** (key rebinding is now in Pause → Controls & keys, `js/keys.js`; Display mode, VSync, Interface size, Resolution scale and Frame rate cap exist, `js/platform.js`, index.html CFG; still missing below):
     - a difficulty choice (`AI.DIFFICULTY` exists in `js/ai.js:51-60` but has no UI)
     - colour-blind support (trust and alert rely on colour)
     - a voice/dialogue volume (dropped, `index.html:1246`)
-    - UI scale (matters on Deck)
-14. **No WebGL context-loss handling.** There is no `webglcontextlost` listener. A driver reset or a fullscreen alt-tab on some GPUs leaves a frozen black canvas.
-15. **Save-write failures are silent.** `sSet` returns false on a quota error (`js/save.js:409`), and nothing shows it. Photos are stored inside the save as JPEG data URLs (up to 24).
+14. **FIXED: index.html handles webglcontextlost/restored (pause + "Graphics reset" dialog), and frame() never stops on an exception and skips rendering while lost (PERF-06).** ~~No WebGL context-loss handling.~~ There is no `webglcontextlost` listener. A driver reset or a fullscreen alt-tab on some GPUs leaves a frozen black canvas.
+15. **FIXED (SAV-10): a failed write fires `savefail`, not `saved`; the game shows "Couldn't save the game · trying again" and retries.** ~~Save-write failures are silent.~~ `sSet` returns false on a quota error (`js/save.js:409`), and nothing shows it. Photos are stored inside the save as JPEG data URLs (up to 24).
 16. **Save export/import exists but has no menu.** `HT.Save.export/import` (`js/save.js:470-479`) is never called from the UI. It is a cheap manual backup.
-17. **Repeatables die after the story.** The day counter freezes once no story jobs remain (`save.js:389`). Porch Light (odd days, `porch.js:76`) and Suds Up (Saturdays, `carwash.js:910`) can then never come round again, even though the end card promises "Every job is on the fridge calendar" (`_finale-fest.js:178`).
+17. **Probably not a problem (PAPERWORK P-17, from the code): a fresh save ends the story on day 29, which is odd (Porch Light) and a Saturday (Suds Up). Not traced for migrated v1/v2 saves.** Original note: Repeatables die after the story. The day counter freezes once no story jobs remain (`save.js:389`). Porch Light (odd days, `porch.js:76`) and Suds Up (Saturdays, `carwash.js:910`) can then never come round again, even though the end card promises "Every job is on the fridge calendar" (`_finale-fest.js:178`).
 18. **FIXED (work/steam-desktop): the shell never registers it and answers sw.js with 404.** ~~The service worker can serve stale files in a wrapper.~~ `sw.js` caches the shell and the CDN, and `SHELL_VERSION` is bumped by hand. Disable it in the desktop build.
-19. **Web-store copy is shipped in the HTML.** "Play free in your browser" (`index.html:5`, `9`), plus og/twitter metadata pointing at the GitHub Pages URL.
+19. **FIXED (P-16): the meta description and og/twitter text no longer say "taking their neighborhood back" or "Play free in your browser".** ~~Web-store copy is shipped in the HTML.~~ "Play free in your browser" (`index.html:5`, `9`), plus og/twitter metadata pointing at the GitHub Pages URL.
 20. **No difficulty or assist options for fail loops.** Death or failure means retry from the stage checkpoint, with gold capped after a retry (`_registry.js:82`). That is fair, but a player stuck on a hard stage has no assist.
 
 ### Low
 
-21. **`js/carai.js` is loaded twice** (`index.html:81` and `86`). It is harmless (it reassigns `HT.Garage` and `HT.CarAI` before use) and costs one extra parse. Delete line 86.
+21. **`js/carai.js` is loaded twice** (the two `<script src="js/carai.js">` tags in index.html). It is harmless (it reassigns `HT.Garage` and `HT.CarAI` before use) and costs one extra parse. Delete the second tag.
 22. **`window.__ht` is exposed in production** (`index.html:4372-4403`): `jobs.start`/`finish`, `setHeat` and similar. Once Steam achievements exist, anyone can unlock them from the console. Gate it behind a dev flag.
 23. **Build hygiene.** Keep `legacy/` (a 2D prototype that also uses Google Fonts), `dev/`, `docs/`, `tools/`, `pause.png`, `assets/og.jpg` and `.git` out of the depot.
 24. **Leftovers.** Touch/phone code paths, and the README's "On a phone" section. Harmless.
@@ -112,7 +109,7 @@ Trust from first-time wins alone comes to about 122 for Maple and about 126 for 
 ### Checked and fine
 
 - **Pointer lock:** uses unadjusted movement with a fallback (`index.html:1910`), losing the lock opens pause, and there is a cursor-free fallback.
-- **Alt-tab and resize:** blur clears held keys (`index.html:1981`), and resize is handled (`index.html:117`, `js/hud.js:197`). In Electron, keep `backgroundThrottling` on so a minimised game doesn't keep running unpaused.
+- **Alt-tab and resize:** blur clears held keys (`index.html:1981`), and resize is handled (`index.html:117`, `js/hud.js:197`). The Electron shell turns `backgroundThrottling` off (desktop/main.js) and pauses the game itself on blur, minimise and suspend (js/platform.js), so a minimised game doesn't keep running unpaused.
 - **Placeholder text:** none a player sees. The only hit is the intentional in-world fridge note "TODO: GUTTERS!!" (`js/home.js:566`).
 - **Audio:** complete but entirely synthesized (`docs/AUDIO.md:3`). The procedural music has states hub, tension, combat, victory and home; voices are synthesized babble with subtitles. No files are missing. Set store expectations: no recorded soundtrack or voice acting.
 - **No required job can be failed permanently.** Fail and death always offer a retry, and a free-roam death means being towed home for $40 (`index.html:3265`).

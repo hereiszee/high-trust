@@ -643,6 +643,8 @@ J.register('cargo',{
     if(S.ph!=='load'&&S.ph!=='board'){putFlat(M,true);if(a.CV!==M.truck)mount(M);M.dave&&seat(M.dave,M.truck,SEAT.sh,1/30)}
     /* the stage we're back at */
     if(S.ph==='bridge'||S.ph==='party'){placeGaryBehind(M,S.ph==='party')}
+    /* JOBS-AUDIT: what startDrive() gives a first drive (the G-ball, Gary pulling out behind you) */
+    if(S.ph==='drive'||S.ph==='bridge'||S.ph==='party')gBall(M,true);if(S.ph==='drive'&&M.gy)M.gy.st='follow';
     if(S.ph==='party'){buildParty(M);partyCrowd(M)}
     if(S.ph==='scene'){S.ph='party'}
     textures();redrawSplat(M)},

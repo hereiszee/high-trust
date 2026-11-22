@@ -18,7 +18,13 @@ const IN=()=>HT.Input;
 const DZ=.2,LOOK=1500;/* px per second of mouse-equivalent motion at full deflection (scaled again by Look speed) */
 const B={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,VIEW:8,MENU:9,L3:10,R3:11,UP:12,DOWN:13,LEFT:14,RIGHT:15};
 const S={pad:null,kind:'xbox',prev:[],last:'kb',held:{},sprint:false,lt:false,rt:false,stickOn:false,rep:{},t:0,focus:null,scrollT:0};
-const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind}};
+const MODALS=[],USE_AT=[];
+const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind},
+  /* a picker that owns the pad while it is up: HT.Pad.modal({move(dx,dy), ok(), back(), x(), y()}) -> call the result to remove it */
+  useAt(f){USE_AT.push(f)},
+  modal(h){MODALS.push(h);return()=>{const i=MODALS.indexOf(h);if(i>=0)MODALS.splice(i,1)}},get modalOpen(){return MODALS.length>0},
+  /* the label of a pad button by name ('A', 'B', 'LT', 'D↑'...) in the pad's own glyphs */
+  btn(n){const g=GL[S.kind]||GL.xbox;return String(n).split('+').map(x=>g[x]||x).join('+')}};
 
 /* ---------- synthetic keys ---------- */
 const CODES={' ':'Space',escape:'Escape',shift:'ShiftLeft',enter:'Enter',tab:'Tab','+':'NumpadAdd','-':'NumpadSubtract',arrowleft:'ArrowLeft',arrowright:'ArrowRight',arrowup:'ArrowUp',arrowdown:'ArrowDown'};
@@ -28,44 +34,65 @@ function keyEv(type,k,extra){const key=k===' '?' ':k.length===1?k:k.startsWith('
 function press(k){if(S.held[k])return;S.held[k]=true;keyEv('keydown',k)}
 function release(k){if(!S.held[k])return;S.held[k]=false;keyEv('keyup',k)}
 function tap(k){keyEv('keydown',k);setTimeout(()=>keyEv('keyup',k),50)}
-function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stick.id==='pad'&&(I.stick.id=null,I.stick.x=I.stick.y=0);if(S.rt)I.fire(false);if(S.lt)I.aim(false)}S.rt=S.lt=false;S.sprint=false;S.stickOn=false}
+const aimIn=d=>{const K=HT.Keys;if(K&&K.aimInput)return K.aimInput(d,'pad');const I=IN();if(I)I.aim(d)};
+const fireIn=d=>{const K=HT.Keys;if(K&&K.fireInput)return K.fireInput(d,'pad');const I=IN();if(I)I.fire(d);return'game'};
+function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stick.id==='pad'&&(I.stick.id=null,I.stick.x=I.stick.y=0);if(S.rt)fireIn(false);if(S.lt)aimIn(false);if(S.carAim)aimIn(false)}S.rt=S.lt=S.carAim=false;S.sprint=false;S.stickOn=false;S.yHeld=false}
 
 /* ---------- glyphs ---------- */
 const GL={xbox:{A:'A',B:'B',X:'X',Y:'Y',LB:'LB',RB:'RB',LT:'LT',RT:'RT',VIEW:'View',MENU:'Menu',L3:'L3',R3:'R3',LS:'L',RS:'R'},
   ps:{A:'✕',B:'○',X:'□',Y:'△',LB:'L1',RB:'R1',LT:'L2',RT:'R2',VIEW:'Create',MENU:'Options',L3:'L3',R3:'R3',LS:'L',RS:'R'}};
 /* keycap text -> pad button; driving hints read E as get out (Y) */
-const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
+const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'RT',B:'B',RMB:'LT','RIGHT CLICK':'LT',LMB:'RT','LEFT CLICK':'RT',WASD:'LS',MOUSE:'RS',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
   F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',
   /* job keys through the LB layer */G:'LB',T:'LB+↑',Z:'LB+←',X:'LB+→','1':'LB+A','2':'LB+B','3':'LB+X','4':'LB+Y'};
 const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
-function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;if(ctx&&ctx.closest('.ht-drv')&&k==='E')b='Y';if(ctx&&ctx.closest('.ht-drv')&&k==='SPACE')b='A';
-  const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
+function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b&&!(ctx&&ctx.closest&&ctx.closest('.htm')&&/^\d$/.test(k)))return null;
+  const drv=!!(IN()&&IN().driving)||!!(ctx&&ctx.closest&&ctx.closest('.ht-drv'));
+  if(drv&&k==='E')b='Y';/* behind the wheel Use (get out, hold to hitch) is Y; A is the handbrake */if(drv&&k==='SPACE')b='A';
+  if(drv&&(k==='MOUSE 2'||k==='RMB'||k==='RIGHT CLICK'))b='D↑';/* Aim in a car: binoculars */
+  if(drv&&k==='V'&&IN()&&vehicleKind(IN())==='tank')b='LT';/* the tank: LT is the gunner's sight */
+  if(decoOn()){if(k==='Q')b='D←';else if(k==='TAB')b='RB'}/* decorating: RB / D-pad → next, D-pad ← previous */
+  if(ctx&&ctx.closest&&ctx.closest('.htm')){/* shops and the locker (js/save.js) run their own pad keys: LB / RB tabs, B back, D-pad + A for slots */
+    const o={Q:'LB',E:'RB',ESC:'B',ENTER:'A'}[k];if(o)b=o;else if(/^\d$/.test(k))return{b:'',label:''}}
+  if(ctx&&ctx.closest&&ctx.closest('.ht-map')){const o={CLICK:'A',WHEEL:'RT/LT',TAB:'LB/RB',ENTER:'A',M:'B',DRAG:'LS'}[k];if(o)b=o}/* the full map's own pad controls */
+  const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:b.split(/([+\/ ])/).map(x=>g[x]||x).join('')}}
 let swapping=false;
 /* ---------- key names inside sentences ("hold E at the ladder", "Press G to call the box") ----------
    The one helper every prompt goes through while a pad is in use: HUD text nodes are rewritten in place (and put back for the keyboard).
    Jobs can call HT.Pad.keyText(str) for text they draw themselves (canvas, alerts). */
-const TXT_KEY=/\b(press|hold|tap|Press|Hold|Tap|PRESS|HOLD|TAP)(\s+the)?\s+(E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT)\b(?![\w'’])/g;
-const TXT_EXTRA={W:'RT',S:'LT',B:'B'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
-function keyText(str){if(S.last!=='pad'||typeof str!=='string'||!TXT_KEY.test(str)){TXT_KEY.lastIndex=0;return str}TXT_KEY.lastIndex=0;
-  const drv=!!(IN()&&IN().driving);
-  return str.replace(TXT_KEY,(m,verb,the,k)=>{const K=k.toUpperCase();let g=null;
-    if(TXT_EXTRA[K]&&!KEY2PAD[K])g={label:TXT_EXTRA[K]};else g=glyphFor(K==='SPACE'?'Space':K==='TAB'?'Tab':K==='SHIFT'?'Shift':K,null);
-    if(g&&drv&&K==='E')g={label:(GL[S.kind]||GL.xbox).Y};
-    return g?verb+(the||'')+' '+g.label:m})}
+const KEYS_RX='E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT|Esc|ESC|Enter|ENTER';
+/* "press E", "hold the E key", "Tap W" */
+const TXT_KEY=new RegExp("\\b(press|hold|tap|use|with|release|or|Press|Hold|Tap|Use|With|Release|PRESS|HOLD|TAP|USE)(\\s+the)?\\s+("+KEYS_RX+")(\\s+key)?\\b(?![\\w'’])",'g');
+/* a key that leads a line or follows a separator: "E · zip-tie", "G to draw", "X: call Rick", "E/Enter takes it", "Z zooms" */
+const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?:]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|W|A|S|D|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
+/* mouse words */
+const TXT_MOUSE=/\b(right[- ]click(?:ing)?|right mouse(?: button)?|left[- ]click|left mouse(?: button)?|RMB|LMB|Mouse ?[12]|(?:Right|Left)[- ]click|(?:Right|Left) mouse(?: button)?|[Cc]lick(?=\s+(?:to|again|fires?|shoots?|or|for)\b|\s*(?:$|·|\/|\)|:)))/g;
+const TXT_EXTRA={W:'RT',S:'LT'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
+const MOUSE_CAP=m=>/right|rmb|mouse ?2/i.test(m)?'RMB':'Click';
+/* the label of a default key name for the device in use, or null to leave it */
+function capLabel(K,pad){if(pad){if(TXT_EXTRA[K]&&!KEY2PAD[K])return TXT_EXTRA[K];const g=glyphFor(K==='SPACE'?'Space':K==='TAB'?'Tab':K==='SHIFT'?'Shift':K,null);return g?g.label:null}
+  const r=HT.Keys&&HT.Keys.relabel?HT.Keys.relabel(K==='CLICK'?'Click':K):null;return r||null}
+function keyText(str){if(typeof str!=='string'||!str)return str;const pad=S.last==='pad',kb=!pad&&kbRelabel();if(!pad&&!kb)return str;
+  let out=str.replace(TXT_KEY,(m,verb,the,k,key)=>{const l=capLabel(k.toUpperCase(),pad);return l?verb+(the||'')+' '+l:m});
+  out=out.replace(TXT_LEAD,(m,pre,k)=>{const l=capLabel(k.toUpperCase(),pad);return l?pre+l:m});
+  out=out.replace(TXT_MOUSE,m=>{const c=MOUSE_CAP(m),l=pad?(glyphFor(c==='RMB'?'RMB':'LMB',null)||{}).label:(HT.Keys&&HT.Keys.relabel(c));return l||m});
+  if(kb)out=out.replace(/\b([WASD])(\s*\/\s*|\s+)([WASD])\b/g,(m,a,sep,b)=>(HT.Keys.relabel(a)||a)+sep+(HT.Keys.relabel(b)||b));
+  if(pad)out=out.replace(/\bW ?A ?S ?D\b/g,(GL[S.kind]||GL.xbox).LS+' stick').replace(/\b(?:the )?mouse wheel\b|\b(?:the )?wheel\b(?= to\b)/gi,'D-pad ←').replace(/\bW\s*\/\s*S\b/g,'Left stick ↕').replace(/\bA\s*\/\s*D\b/g,'left stick ↔').replace(/\bmove the mouse\b/gi,'Move the right stick').replace(/\bthe mouse\b/gi,'the right stick');
+  return out}
 const TXT_ORIG=new WeakMap();
-function swapText(root){if(!root)return;const on=S.last==='pad';
-  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,script,style')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
+function swapText(root){if(!root)return;const on=S.last==='pad'||kbRelabel();
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,kbd,.ht-paddia,.ht-rb-note,script,style,textarea')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
   for(let n=w.nextNode();n;n=w.nextNode()){const o=TXT_ORIG.get(n);
     if(o&&n.nodeValue!==o.out){TXT_ORIG.delete(n)}/* the HUD wrote new text */
     const base=TXT_ORIG.has(n)?TXT_ORIG.get(n).src:n.nodeValue;
     if(on){const out=keyText(base);if(out!==base){if(n.nodeValue!==out){n.nodeValue=out}TXT_ORIG.set(n,{src:base,out})}else if(TXT_ORIG.has(n)){n.nodeValue=base;TXT_ORIG.delete(n)}}
     else if(TXT_ORIG.has(n)){n.nodeValue=TXT_ORIG.get(n).src;TXT_ORIG.delete(n)}}}
-const textRoots=()=>[...document.querySelectorAll('.ht-root,.ht-scr,.card,.ht-map')];
+const textRoots=()=>[document.body];/* every HUD, job overlay, teach box and panel (the controls tables stay literal) */
 /* keyboard: keycaps of rebound keys show the player's key (js/keys.js) */
 const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
 function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabel();
   if(on||kb)MO.observe(document.documentElement,{subtree:true,childList:true,characterData:true});else MO.disconnect();
-  document.querySelectorAll('.ht-kc').forEach(e=>{if(e.closest('.ht-keys'))return;/* the controls tables stay literal */
+  document.querySelectorAll('.ht-kc,kbd').forEach(e=>{if(e.closest('.ht-keys,.ht-paddia'))return;/* the controls tables stay literal */
     const cur=e.textContent;if(e.dataset.padG!=null&&cur!==e.dataset.padG){delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}/* the HUD rewrote it */
     const base=e.dataset.padK!=null?e.dataset.padK:cur;
     if(on){const g=glyphFor(base,e);if(!g){if(e.dataset.padK!=null)restore(e);return}if(e.dataset.padG===g.label&&e.classList.contains('pad-g'))return;
@@ -73,11 +100,12 @@ function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabe
     else if(kb){const r=HT.Keys.relabel(base);if(!r){if(e.dataset.padK!=null)restore(e);return}if(e.classList.contains('pad-g')){e.classList.remove('pad-g');e.style.removeProperty('--pg')}
       e.dataset.padK=base;e.textContent=r;e.dataset.padG=r}
     else if(e.dataset.padK!=null)restore(e)});
-  if(on||TXT_ORIG.dirty){for(const r of textRoots())swapText(r);TXT_ORIG.dirty=on}}finally{swapping=false}}
+  const txt=on||kb;if(txt||TXT_ORIG.dirty){for(const r of textRoots())swapText(r);TXT_ORIG.dirty=txt}}finally{swapping=false}}
 function restore(e){if(e.textContent===e.dataset.padG)e.textContent=e.dataset.padK;delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}
 /* the HUD rewrites keycaps when prompts change: re-apply */
 const MO=new MutationObserver(()=>{if(!swapping)schedule()});/* connected only while the pad is the last device, or keys are rebound */
-let swapQ=0;function schedule(){if(!swapQ)swapQ=requestAnimationFrame(()=>{swapQ=0;swapGlyphs()})||setTimeout(()=>{swapQ=0;swapGlyphs()},50)}
+/* next frame, or 60 ms if frames are held (a hidden tab, the test harness): whichever comes first */
+let swapQ=0;function schedule(){if(swapQ)return;const run=()=>{if(!swapQ)return;swapQ=0;swapGlyphs()};swapQ=1;requestAnimationFrame(run);setTimeout(run,60)}
 function setLast(dev){if(S.last===dev)return;S.last=dev;document.documentElement.classList.toggle('ht-pad',dev==='pad');swapGlyphs();if(dev!=='pad'){releaseAll();const I=IN();if(I&&I.relock)I.relock()}}
 addEventListener('keydown',e=>{if(e.isTrusted)setLast('kb')},true);
 addEventListener('mousedown',e=>{if(e.isTrusted)setLast('kb')},true);
@@ -124,6 +152,9 @@ function vehicleKind(I){if(!I.driving)return null;const g=window.__ht,e=g&&g.CV;
 function choiceStrip(){const c=document.querySelector('.ht-ch');return c&&!c.classList.contains('off')&&!c.hidden&&visible(c)?c:null}
 function inMenu(){const I=IN();if(!I)return true;if(!I.running||I.paused)return true;if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return true;
   return mapOpen()}
+/* modules with an E action that has no HUD prompt (the range rack) say so here, so A uses rather than jumps */
+function useHere(){for(const f of USE_AT){try{if(f())return true}catch(_){}}return false}
+function decoOn(){const g=window.__ht;return !!(g&&g.deco&&g.deco.on)}
 function promptUp(){const p=document.querySelector('.ht-pr');return !!p&&!p.classList.contains('off')}
 let lastT=performance.now(),polling=false;
 /* the loop only runs once a controller has shown up (pages without one pay nothing) */
@@ -131,7 +162,7 @@ function startPoll(){if(polling)return;polling=true;lastT=performance.now();requ
 function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
   const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];
   let g=pads.find(p=>p.mapping==='standard'&&p.connected)||pads.find(p=>p.connected);if(!g){if(S.pad!=null){S.pad=null;releaseAll();setLast('kb')}polling=false;return}
-  if(S.pad!==g.index){S.pad=g.index;S.kind=/054c|sony|dualsense|dualshock|playstation/i.test(g.id)?'ps':'xbox';S.prev=[]}
+  if(S.pad!==g.index){S.pad=g.index;S.detected=/054c|sony|dualsense|dualshock|playstation/i.test(g.id)?'ps':'xbox';S.kind=GLYPHS==='auto'?S.detected:GLYPHS;S.prev=[]}
   const btn=i=>pressed(g,i),was=i=>!!S.prev[i],down=i=>btn(i)&&!was(i),up=i=>!btn(i)&&was(i);
   const [lx,ly]=dz(g.axes[0]||0,g.axes[1]||0),[rx,ry]=dz(g.axes[2]||0,g.axes[3]||0);
   const lt=val(g,B.LT),rt=val(g,B.RT);
@@ -140,8 +171,15 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
   if(S.last!=='pad'){S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
   /* shops and the gun locker (HT.Menus, js/save.js) run their own pad navigation: stay out of their way */
   if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen()){if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
-  const I=IN(),menu=inMenu(),map=mapOpen();
-  if(map){/* the full map: stick / D-pad pan, RS pans finer, RT / LT zoom, LB / RB cycle places, A fast-travels, B or View closes */
+  const I=IN(),menu=inMenu(),map=mapOpen(),md=MODALS[MODALS.length-1];
+  if(md&&!menu){/* a module's own picker over live play (the range rack, conversation replies): it gets the pad, gameplay gets nothing */
+    if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}
+    const L=btn(B.LEFT)||lx<-.5,R=btn(B.RIGHT)||lx>.5,U=btn(B.UP)||ly<-.5,Dn=btn(B.DOWN)||ly>.5,mv=(dx,dy)=>{try{md.move&&md.move(dx,dy)}catch(e){console.warn(e)}};
+    repeat('ml',L,now,()=>mv(-1,0));repeat('mr',R,now,()=>mv(1,0));repeat('mu',U,now,()=>mv(0,-1));repeat('md',Dn,now,()=>mv(0,1));
+    if(down(B.RB))mv(1,0);if(down(B.LB))mv(-1,0);
+    const call=f=>{try{f&&f()}catch(e){console.warn(e)}};
+    if(down(B.A))call(md.ok);if(down(B.B))call(md.back);if(down(B.X))call(md.x);if(down(B.Y))call(md.y);if(down(B.MENU))call(md.back||md.ok);
+  }else if(map){/* the full map: stick / D-pad pan, RS pans finer, RT / LT zoom, LB / RB cycle places, A fast-travels, B or View closes */
     if(S.wasGame){releaseAll();S.wasGame=false}
     const L=btn(B.LEFT)||lx<-.4,R=btn(B.RIGHT)||lx>.4,U=btn(B.UP)||ly<-.4,Dn=btn(B.DOWN)||ly>.4;
     repeat('ml',L,now,()=>tap('arrowleft'),90);repeat('mr',R,now,()=>tap('arrowright'),90);repeat('mu',U,now,()=>tap('arrowup'),90);repeat('md',Dn,now,()=>tap('arrowdown'),90);
@@ -180,29 +218,47 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
       let mx=lx,my=ly;if(veh==='car'){my=-(rt-lt)||(Math.abs(ly)>.5?ly:0)}
       const on=Math.abs(mx)>.01||Math.abs(my)>.01;
       if(on){st.id='pad';st.x=mx;st.y=my;S.stickOn=true}else if(S.stickOn){if(st.id==='pad'){st.id=null;st.x=st.y=0}S.stickOn=false}
-      if(dn(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
-      if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift');
+      /* L3: jog (a click, stays on until the stick is let go). Aiming (a scope: hold breath) it is Jog itself, held as long as L3 is,
+         so the Aim setting decides tap-to-hold or press-and-hold exactly as Shift does on the keyboard */
+      const scoped=!car&&I.aiming;
+      if(scoped){S.sprint=false;if(btn(B.L3))press('shift');else release('shift')}
+      else{if(dn(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
+        if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift')}
       if(rx||ry)I.look(c2(rx)*LOOK*dt,c2(ry)*LOOK*dt);
       if(!car||veh==='tank'){
-        if(rt>.5&&!S.rt){S.rt=true;I.fire(true)}else if(rt<.3&&S.rt){S.rt=false;I.fire(false)}else if(S.rt&&I.auto&&!car)I.fire(true);
+        /* RT / LT are the Fire / Aim actions (js/keys.js): a tool (the phone, the stop sign, binoculars) can claim them before the gun does */
+        if(rt>.5&&!S.rt){S.rt=true;S.rtWho=fireIn(true)}else if(rt<.3&&S.rt){S.rt=false;fireIn(false)}else if(S.rt&&S.rtWho!=='claim'&&I.auto&&!car)I.fire(true);
         if(veh==='tank'){if(lt>.5&&!S.lt){S.lt=true;tap('v')}else if(lt<.3)S.lt=false}/* tank: LT = gunner's sight */
-        else{const tog=HT.Keys&&(HT.Keys.padAimMode||HT.Keys.aimMode)==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
-          if(lt>.5&&!S.lt){S.lt=true;I.aim(tog?!I.aiming:true)}else if(lt<.3&&S.lt){S.lt=false;if(!tog)I.aim(false)}}
-      }else{if(S.rt){S.rt=false;I.fire(false)}if(S.lt){S.lt=false;I.aim(false)}}
+        else{if(lt>.5&&!S.lt){S.lt=true;aimIn(true)}else if(lt<.3&&S.lt){S.lt=false;aimIn(false)}}/* Aim: Hold / Toggle (Controls & keys) */
+      }else{if(S.rt){S.rt=false;fireIn(false)}if(S.lt){S.lt=false;aimIn(false)}}
+      /* at home B opens / closes Decorate (nothing to crouch behind in the kitchen); while decorating A places, X rotates,
+         RB / D-pad → next item, D-pad ← previous, LB+→ puts away, View moves, B done */
+      const home=I.mode==='home',deco=home&&decoOn();
       if(!ch){
-        if(dn(B.A)){S.aKey=car?' ':promptUp()?'e':' ';press(S.aKey)}
-        if(dn(B.UP))tap('f');if(dn(B.DOWN))tap('n')}
-      if(dn(B.B)&&!car)tap('c');
+        if(dn(B.A)){S.aKey=car?' ':(deco||promptUp()||useHere())?'e':' ';press(S.aKey)}
+        if(veh==='car'){/* in a car D-pad ↑ is Aim: the binoculars (a flashlight is no use behind the wheel) */
+          if(dn(B.UP)){S.carAim=true;aimIn(true)}}
+        else if(dn(B.UP))tap('f');
+        if(dn(B.DOWN))tap('n')}
+      if(S.carAim&&!btn(B.UP)){S.carAim=false;aimIn(false)}
+      if(dn(B.B)&&!car)tap(home?'b':'c');
       if(dn(B.X))tap(car?'h':'r');
-      if(!car&&(dn(B.RB)||dn(B.RIGHT)))tap('q');
-      if(!car&&dn(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}));
+      if(deco){if(dn(B.RB)||dn(B.RIGHT))tap('tab');if(dn(B.LEFT))tap('q')}
+      else{if(!car&&(dn(B.RB)||dn(B.RIGHT)))tap('q');
+        if(!car&&dn(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}))}
       if(dn(B.R3))tap('v')}
     if(up(B.A)&&S.aKey){release(S.aKey);S.aKey=null}
-    if(dn(B.Y))tap('e');
+    /* Y is Use held for as long as the button is (towing: hold to hitch, tap to get out; ladders; the jet's double tap) */
+    if(dn(B.Y)){press('e');S.yHeld=true}if(S.yHeld&&!btn(B.Y)){S.yHeld=false;if(S.aKey!=='e')release('e')}
     if(dn(B.VIEW))tap('m');
     if(down(B.MENU)){releaseAll();tap('escape')}
   }
   S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5))}
+/* Pause → Controls → Button prompts: Auto (from the pad's id) / Xbox / PlayStation (Steam Input shows every pad as Xbox) */
+let GLYPHS='auto';try{const st=window.HTDesktop?HTDesktop.storage:localStorage;const c=JSON.parse(st.getItem('ht-cfg')||'{}');if(c.padGlyphs==='xbox'||c.padGlyphs==='ps')GLYPHS=c.padGlyphs}catch(_){}
+if(GLYPHS!=='auto')S.kind=GLYPHS;
+try{const H=window.__ht&&window.__ht.HUD;if(H){H.settings={padGlyphs:GLYPHS};H.on('setting',(k,v)=>{if(k!=='padGlyphs')return;GLYPHS=v==='xbox'||v==='ps'?v:'auto';S.kind=GLYPHS==='auto'?(S.detected||'xbox'):GLYPHS;
+  document.querySelectorAll('.ht-kc.pad-g').forEach(e=>{delete e.dataset.padG});swapGlyphs()})}}catch(_){}
 try{if([...navigator.getGamepads()].some(Boolean))startPoll()}catch(_){}
 /* Steam Deck (desktop shell): controller-first from the first frame, before any input */
 if(window.HTDesktop&&HTDesktop.deck){setLast('pad');startPoll()}

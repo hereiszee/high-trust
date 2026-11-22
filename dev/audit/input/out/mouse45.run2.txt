@@ -1,0 +1,3 @@
+{"case":"A: playing, Mouse 4 unbound","url":"http://ht.local/index.html","gameAlive":true,"jumpBuf":" "}
+{"case":"B: playing, Jump on Mouse 4","url":"http://ht.local/index.html","gameAlive":true,"jumpBuf":"mouse4"}
+{"case":"C: Key bindings screen, capturing Jump","url":"about:blank","gameAlive":false}

@@ -262,7 +262,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
     if(S.e&&S.e.obj)S.e.obj.visible=a.CV===S.e||Math.hypot(c.x-S.e.pos.x,c.z-S.e.pos.z)<130||c.y>40;if(S.sarge&&S.sarge.d)S.sarge.d.root.visible=!far;if(S.propRoot)S.propRoot.visible=!far}
   const e=S.e;if(e&&a.mode==='hub'){
     if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank){s.tank.borrows=(s.tank.borrows|0)+1;try{if(HT.Save&&HT.Save.saveNow)HT.Save.saveNow();else a.save()}catch(_){}}/* audit SAV-02: saved now (ACH_BORROWED reads it) */say(SARGE,pick(LINES.borrow),true);
-      teach(a,'drive','Tank: W/S drive · A/D turn on the spot · mouse aims the turret · left click fires · V gunner sight · E gets out')}
+      teach(a,'drive',teachText())}
     if(a.CV!==e&&S.inside){S.inside=false;S.drive=false;const d=B().def();if(Math.hypot(e.pos.x-d.tank.x,e.pos.z-d.tank.z)<14)say(SARGE,pick(LINES.back))}
     /* left far away and out of sight: the motor pool brings it home */
     if(a.CV!==e){const d=B().def(),far=Math.hypot(e.pos.x-d.tank.x,e.pos.z-d.tank.z)>30,away=a.camera.position.distanceTo(e.obj.position)>120;S.parkT=far&&away?S.parkT+dt:0;
@@ -277,6 +277,10 @@ function letter(a){const el=document.createElement('div');el.className='ht-hoa';
   <div class="p"><h3>${L[0]}</h3><h4>${L[1]}</h4>${L.slice(2).map(t=>`<p style="margin:6px 0">${t}</p>`).join('')}<small>Any key · close</small></div>`;
   const close=()=>{document.removeEventListener('keydown',kd);try{if(a.HUD.overlay('hoaLetter'))a.HUD.overlay('hoaLetter',null);else el.remove()}catch(_){el.remove()}};const kd=e=>{if(!e.repeat)close()};
   el.addEventListener('click',close);try{a.HUD.overlay('hoaLetter',el)}catch(_){document.body.appendChild(el)}document.addEventListener('keydown',kd);say('you',"There's a letter from the HOA. About the tank. They said it's very nice.")}
+/* for the device in use (js/gamepad.js: the tank drives on the left stick, RT fires, LT the sight, Y out) and the player's keys (HT.Keys) */
+function teachText(){const P=HT.Pad,K=HT.Keys,b=n=>P&&P.btn?P.btn(n):n,l=(id,d)=>{try{return K&&K.label?K.label(id):d}catch(_){return d}};
+  if(P&&P.active)return'Tank: left stick drives and turns on the spot · right stick aims the turret · '+b('RT')+' fires · '+b('LT')+' gunner sight · '+b('Y')+' gets out';
+  return'Tank: '+l('fwd','W')+'/'+l('back','S')+' drive · '+l('left','A')+'/'+l('right','D')+' turn on the spot · mouse aims the turret · '+l('fire','Mouse 1')+' fires · '+l('view','V')+' gunner sight · '+l('use','E')+' gets out'}
 function teach(a,id,t){const s=sv();const m=s?(s.taught||(s.taught={})):S.taught;if(m[id])return;m[id]=1;try{a.feed(t,'info')}catch(_){}}
 
 /* ================= HUD: the reticle in the gunner's sight, the reload meter, the name ================= */

@@ -120,6 +120,18 @@ test('bindProg shares the live prog object',()=>{
   Save.reset();assert.equal(prog.trust,12);assert.equal(Save.data.prog,prog);Save.bindProg(null);
 });
 
+test('gas money on a fail: once per job per day, none for walking off (JOBS-AUDIT J-04)',()=>{
+  fresh();const d=Save.data;const fail=o=>{const p=E.computePayout(Object.assign({mission:'rick',ok:false,trust:50},o));E.applyPayout(p);return p};
+  const gas=p=>p.lines.some(l=>l.id==='gas');
+  assert.ok(!gas(fail({noGas:true})),'walking off the job pays no gas money');assert.equal(d.cash,0);
+  const a=fail();assert.ok(gas(a));const c1=d.cash;assert.ok(c1>0);
+  for(let i=0;i<5;i++)assert.ok(!gas(fail()),'a second fail the same day pays nothing');assert.equal(d.cash,c1,'fail + retry is not a cash loop');
+  assert.ok(gas(E.computePayout({mission:'doug',ok:false,trust:50})),'another job still pays once');
+  d.day++;assert.ok(gas(fail()),'a new day pays once again');
+  /* survives a save/load round trip */
+  Save.saveNow();Save.load();assert.ok(!gas(E.computePayout({mission:'rick',ok:false,trust:50})),'still paid after a reload');
+  assert.ok(E.computePayout({mission:'rick',ok:true,trust:50}).lines.some(l=>l.id==='base'),'a win is unaffected')});
+
 test('payout matches SPEC L3-2',()=>{
   const base={mission:0,ok:true,cuffs:2,confiscated:1,allyDowns:0,got:4,elapsed:200,exec:0,trust:50};
   const p=E.computePayout(base);assert.equal(p.total,915);

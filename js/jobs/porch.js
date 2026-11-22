@@ -110,7 +110,9 @@ J.register(ID,{
   save:M=>({seed:(M.pc&&M.pc.seed)>>>0,hood:M.pc&&M.pc.hood||'maple',porches:M.porches.map(p=>p.state==='carry'||p.state==='dropped'||p.state==='stolen'||p.state==='car'?'porch':p.state),lost:M.lost,chair:M.chair.placed?{x:M.chair.x,z:M.chair.z}:null,truck:M.truck.done}),
   load(M,s){const a=A();M.porches.forEach((p,k)=>{p.state=s.porches[k]||'wait';if(p.state==='porch'){p.mesh=parcel();a.wmAdd(p.mesh);p.mesh.position.set(p.x,0,p.z)}});M.lost=s.lost||0;
     if(s.chair){M.chair.placed=true;M.chair.x=s.chair.x;M.chair.z=s.chair.z;M.chair.mesh.position.set(s.chair.x,0,s.chair.z)}
-    if(s.truck){M.truck.done=true;M.truck.obj.visible=false}M.spawned=0;M.spawnT=4},
+    /* JOBS-AUDIT: the 'pirates' mark fires while the truck drives off its last point (truck.done still false); every parcel already out means it's gone,
+       or it drives the street again and re-drops parcels (lost ones come back, restored ones get a second box) */
+    if(s.truck||(s.porches||[]).length&&s.porches.every(x=>x&&x!=='wait')){M.truck.done=true;M.truck.obj.visible=false}M.spawned=0;M.spawnT=4},
   payout:(M,ok)=>ok?[['Parcels saved ×'+M.saved,15*M.saved],...(M.talked?[['A word first ×'+M.talked,10*M.talked]]:[]),...(M.caught?[['Pirates zip-tied ×'+M.caught,0]]:[]),...(ok&&!M.lost&&!M.hurt?[['Not a scratch on a single box',40]]:[])]:[],
   medal:M=>{const soft=M.deterred+M.talked+M.blocked,all=M.npir+(M.carPir?1:0);M.score=M.porches.filter(p=>p.state==='porch').length;return M.lost?1:(!M.hurt&&soft>=all)?3:2},
   end(M,ok){const s=SV();if(!s||!ok)return;const pl=plan(s);pl.runs=(pl.runs|0)+1;try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},

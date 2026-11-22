@@ -1,0 +1,149 @@
+[
+ {
+  "tag": "title",
+  "shot": "001-title.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE",
+  "leaks": []
+ },
+ {
+  "tag": "hub",
+  "shot": "002-hub.jpg",
+  "prompt": "",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ },
+ {
+  "tag": "at the giver",
+  "shot": "003-at-the-giver.jpg",
+  "prompt": "U TALK TO GARY",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ },
+ {
+  "tag": "pause",
+  "shot": "004-pause.jpg",
+  "prompt": "",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "map: [ opens it, Tab picks a place, Enter fast-travels end",
+  "shot": "005-map-opens-it-Tab-picks-a-place-Enter-fas.jpg",
+  "prompt": "U GET OUT",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "drive: U gets in, I drives, U gets out end",
+  "shot": "006-drive-U-gets-in-I-drives-U-gets-out-end.jpg",
+  "prompt": "U DRIVE THE MINIVAN",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "crossing",
+  "shot": "007-crossing.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE CROSSING GUARD Walk the kids home · 2 to go Next stop: Theo's house",
+  "leaks": []
+ },
+ {
+  "tag": "tow",
+  "shot": "008-tow.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE HITCH HAPPENS Bring Sal's hitch home · Dad's Auto",
+  "leaks": []
+ },
+ {
+  "tag": "Hitch Happens to a win: the job's player drives; U held hitches and drops end",
+  "shot": "009-Hitch-Happens-to-a-win-the-job-s-player-.jpg",
+  "prompt": "U DRIVE THE MINIVAN",
+  "obj": "SATURDAY MAPLE HEIGHTS Big Dave has a job for you Pastor Dee has a job for you in Riverside Flats Barb has a job for you Doug has a job for you Sal has a job for you in Riverside Flats Hank has a job ",
+  "leaks": []
+ },
+ {
+  "tag": "overwatch",
+  "shot": "010-overwatch.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE HIGHER GROUND Back to your ride and head out",
+  "leaks": []
+ },
+ {
+  "tag": "Higher Ground to a win: scope on Aim (Numpad 2), fire on Fire (Numpad 1) end",
+  "shot": "011-Higher-Ground-to-a-win-scope-on-Aim-Nump.jpg",
+  "prompt": "U DRIVE THE MINIVAN",
+  "obj": "SATURDAY MAPLE HEIGHTS Big Dave has a job for you Pastor Dee has a job for you in Riverside Flats Barb has a job for you Doug has a job for you Rosa has a job for you in Riverside Flats Sal has a job ",
+  "leaks": []
+ },
+ {
+  "tag": "rack",
+  "shot": "012-rack.jpg",
+  "prompt": "",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "range rack: U opens it, arrows pick, U takes; Fire shoots end",
+  "shot": "013-range-rack-U-opens-it-arrows-pick-U-take.jpg",
+  "prompt": "U TAKE UNCLE RAY'S SIDE-BY-SIDE · SHOTGUN (RACK MENU)",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank",
+  "shot": "014-tank.jpg",
+  "prompt": "U GET OUT",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Tank: I/S · J/D on the spot · mouse turret · Num 1 fires Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank fired",
+  "shot": "015-tank-fired.jpg",
+  "prompt": "",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Tank: I/S · J/D on the spot · mouse turret · Num 1 fires Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank: U in, I drives, Numpad 1 fires, U out end",
+  "shot": "016-tank-U-in-I-drives-Numpad-1-fires-U-out-.jpg",
+  "prompt": "U BORROW THE MOTOR POOL'S TANK",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "jet",
+  "shot": "017-jet.jpg",
+  "prompt": "U GET OUT",
+  "obj": "SATURDAY MAPLE HEIGHTS Big Dave has a job for you Pastor Dee has a job for you in Riverside Flats Barb has a job for you Doug has a job for you Rosa has a job for you in Riverside Flats Sal has a job ",
+  "leaks": []
+ },
+ {
+  "tag": "airborne",
+  "shot": "018-airborne.jpg",
+  "prompt": "U EJECT (PRESS TWICE)",
+  "obj": "SATURDAY MAPLE HEIGHTS Big Dave has a job for you Pastor Dee has a job for you in Riverside Flats Barb has a job for you Doug has a job for you Rosa has a job for you in Riverside Flats Sal has a job ",
+  "leaks": []
+ },
+ {
+  "tag": "parachute",
+  "shot": "019-parachute.jpg",
+  "prompt": "",
+  "obj": "SATURDAY MAPLE HEIGHTS Big Dave has a job for you Pastor Dee has a job for you in Riverside Flats Barb has a job for you Doug has a job for you Rosa has a job for you in Riverside Flats Sal has a job ",
+  "leaks": []
+ },
+ {
+  "tag": "home",
+  "shot": "020-home.jpg",
+  "prompt": "U HEAD OUTSIDE",
+  "obj": "SATURDAY HOME Gun locker in the garage · laptop on the kitchen desk $ · decorate the house",
+  "leaks": []
+ },
+ {
+  "tag": "decorate",
+  "shot": "021-decorate.jpg",
+  "prompt": "",
+  "obj": "SaturdayHomeGun locker in the garage · laptop on the kitchen desk$ · decorate the house",
+  "leaks": []
+ }
+]

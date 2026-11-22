@@ -31,6 +31,23 @@ With a controller (Xbox, PlayStation, Steam Deck): left stick moves, right stick
 
 The desktop (Steam) build wraps this same page in Electron (`desktop/`). See `docs/steam/BUILD.md`.
 
+## Releasing on Steam
+
+Start with `docs/steam/START-HERE.md`: a one-page, step-by-step walkthrough from downloading the builds to pressing Release.
+
+| File | What it's for |
+| --- | --- |
+| `docs/steam/START-HERE.md` | The short walkthrough. Read this first. |
+| `docs/steam/BUILD.md` | Building the Windows, macOS and Linux packages, uploading with steamcmd, Steam Cloud, Steam Deck, Mac signing. |
+| `docs/steam/CHECKLIST.md` | Every release step in order, with what only the owner can do and the placeholders still to fill in (App ID, depot IDs). |
+| `docs/steam/STORE.md` | Store page text, tags, system requirements, required image sizes, the AI disclosure text. |
+| `docs/steam/achievements.md` | The 23 achievements to enter in Steamworks. |
+| `docs/steam/PLAYTEST.md` | How to download and launch a build, and what to check on real hardware. |
+| `docs/steam/LICENCES.md` | Every third-party asset and library, with its licence. |
+| `.github/workflows/desktop-build.yml` | Builds all three packages on GitHub (Actions → Desktop build → Run workflow). |
+| `docs/steam/vdf/` | steamcmd upload scripts with `APP_ID` and depot ID placeholders. |
+
+
 ## Missions
 
 Talk to each dad at his yellow marker in Maple Heights. Take the job, get in the minivan, and drive the crew to the job site at the edge of the neighborhood (or pick "Skip the drive" in the brief). Finish his job and he joins the crew for every raid after it.

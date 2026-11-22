@@ -24,9 +24,18 @@ let fails=0;const ok=(m,c,x)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m+(
   await rclick();let a1=await aim();if(!a1){await rclick();a1=await aim()}
   await step(60);const a1b=await aim();await rclick();const a2=await aim();
   ok('gun aim: right click raises and it stays up 2 s after the button is released, right click lowers',a1&&a1b&&!a2,{a1,a1b,a2});
-  const ui=await ev(()=>{const d=document.createElement('div');document.body.appendChild(d);HT.Keys.reset();const pad0=HT.Keys.padAimMode;const render=()=>{d.innerHTML=HT.Keys.table();HT.Keys.bind(d,render)};render();
-    const on=()=>{const b=d.querySelector('[data-aim] button[aria-pressed=true]');return b&&b.dataset.v};const t0=on();d.querySelector('[data-aim] button[data-v=hold]').click();const t1=on(),m=HT.Keys.aimMode;const pad1=HT.Keys.padAimMode;d.remove();return{t0,t1,m,pad0,pad1}});
-  ok('Key bindings: Aim is Toggle by default (also after Reset; the pad LT keeps hold until a mode is picked) and the Hold button switches it',ui.t0==='toggle'&&ui.t1==='hold'&&ui.m==='hold'&&ui.pad0==='hold'&&ui.pad1==='hold',ui);
+  /* the real menu (SAV-01): Esc → Pause → Controls & keys → click Hold, all real clicks inside js/hud.js's renderPane */
+  await ev(()=>{HT.Keys.reset()});
+  const pad0=await ev(()=>HT.Keys.padAimMode);
+  await p.keyboard.press('Escape');await p.waitForTimeout(200);
+  await p.click('.ht-pause [data-tab=keys]');await p.waitForTimeout(100);
+  const on=()=>ev(()=>{const b=document.querySelector('.ht-pause [data-aim] button[aria-pressed=true]');return b&&b.dataset.v});
+  const t0=await on();await p.click('.ht-pause [data-aim] button[data-v=hold]');await p.waitForTimeout(100);const t1=await on();
+  const ui=await ev(()=>{const st=window.HTDesktop?HTDesktop.storage:localStorage;return{m:HT.Keys.aimMode,pad1:HT.Keys.padAimMode,keys:st.getItem('ht-keys'),cfgUndefined:'undefined' in JSON.parse(st.getItem('ht-cfg')||'{}')}});
+  Object.assign(ui,{t0,t1,pad0});
+  await p.keyboard.press('Escape');await p.waitForTimeout(200);await step(2);
+  ok('Key bindings (real pause pane): Aim is Toggle by default (the pad LT keeps hold until a mode is picked), clicking Hold switches it, it is saved, and ht-cfg gets no "undefined" key',
+    ui.t0==='toggle'&&ui.t1==='hold'&&ui.m==='hold'&&ui.pad0==='hold'&&ui.pad1==='hold'&&/"__aim":"hold"/.test(ui.keys||'')&&!ui.cfgUndefined,ui);
   await p.mouse.click(C.x,C.y);await ev(()=>{window.__ht.P.aim=false});
   await p.mouse.down({button:'right'});await step(10);const h1=await aim();await p.mouse.up({button:'right'});await step(2);const h2=await aim();
   ok('Aim: Hold brings back press-and-hold (down: up, release: down)',h1&&!h2,{h1,h2});
@@ -57,7 +66,7 @@ let fails=0;const ok=(m,c,x)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m+(
   /* 3. the camera (js/photo.js), in the HOA job (the phone item) */
   const hs=await ev(()=>{const H=window.__ht;H.jobs.start('hoa');H.step(5);/* the job opens the camera at its stakeout; open it now */if(HT.Photo&&!HT.Photo.S)HT.Photo.begin({job:'test'});return{mode:H.mode,item:H.M&&H.M.item,photo:!!(HT.Photo&&HT.Photo.S)}});
   if(hs.mode==='mission'&&hs.photo){await ev(()=>{window.__ht.P.aim=false;HT.Photo.raise(false)});await step(10);
-    await rclick();await step(20);const c1=await ev(()=>HT.Photo.isRaised());await step(60);const c1b=await ev(()=>HT.Photo.isRaised());await rclick();await step(20);const c2=await ev(()=>HT.Photo.isRaised());
+    await rclick();await step(20);let c1=await ev(()=>HT.Photo.isRaised());/* a click that only took the pointer back (the job's re-lock) does nothing else: once more */if(!c1){await rclick();await step(20);c1=await ev(()=>HT.Photo.isRaised())}await step(60);const c1b=await ev(()=>HT.Photo.isRaised());await rclick();await step(20);const c2=await ev(()=>HT.Photo.isRaised());
     ok('camera: right click raises it, it stays raised, right click lowers',c1&&c1b&&!c2,{c1,c1b,c2})
     await ev(()=>{HT.Keys.aimMode='hold'});await p.mouse.down({button:'right'});await step(20);const c3=await ev(()=>HT.Photo.isRaised());await p.mouse.up({button:'right'});await step(20);const c4=await ev(()=>HT.Photo.isRaised());await ev(()=>{HT.Keys.aimMode='toggle'});
     ok('camera, Aim: Hold: up while the button is down, down on release',c3&&!c4,{c3,c4})}

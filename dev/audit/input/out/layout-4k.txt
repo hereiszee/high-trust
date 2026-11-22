@@ -1,0 +1,6 @@
+page.evaluate: Target page, context or browser has been closed
+    at open (/home/user/high-trust/dev/ai-ingame-lib.js:21:11)
+    at async boot (/home/user/high-trust/dev/audit/input/lib.js:4:35)
+    at async /home/user/high-trust/dev/audit/input/layout.js:23:20 {
+  log: []
+}

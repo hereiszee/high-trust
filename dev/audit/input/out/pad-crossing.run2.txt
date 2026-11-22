@@ -1,0 +1,7 @@
+job state {"f":310,"gear":true,"stage":"main","state":"go","cv":false}
+sign up after each pad input: {"LT_held":false,"LT_released":false,"A":false,"B":false,"X":false,"Y":false,"RB":false,"LB":false,"L3":false,"R3":false,"DUP":false,"LB_layer_all":false}
+HUD on pad: {"obj":"OBJECTIVE","chips":[]}
+leaks: []
+shot docs/audit/input/pad-crossing-sign.png
+control: real right click -> true
+errs []

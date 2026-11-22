@@ -2,11 +2,11 @@
 <title>High Trust</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta name="description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="High Trust">
 <meta property="og:title" content="High Trust">
-<meta property="og:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta property="og:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:url" content="https://hereiszee.github.io/high-trust/">
 <meta property="og:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -14,7 +14,7 @@
 <meta property="og:image:alt" content="High Trust: a dad walks down a suburban street toward his minivan">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="High Trust">
-<meta name="twitter:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible.">
+<meta name="twitter:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta name="twitter:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta name="theme-color" content="#16181c">
 <link rel="preload" href="assets/fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
@@ -78,6 +78,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="vendor/three-r128/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="vendor/three-r128/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/keys.js"></script><!-- the input action layer: bindings by physical key, Aim / Fire claims, labels (first, so its capture listeners run before every module's) -->
 <script src="js/hud.js"></script>
 <script src="js/credits.js"></script><!-- Credits & licences text (title and pause menus) -->
 <script src="js/fpscap.js"></script><!-- Frame rate cap limiter -->
@@ -352,7 +353,7 @@ let envMap=null;const ENV_CLIP=4;
 /* image-based light from the HDR sky; the panorama has no ground, so the lower half is darkened to a dirt/grass bounce first */
 function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap;
   try{const h=ASSETS.hdr;if(h)h.__used=true;
-    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType){const{width:W,height:H,data:D}=h.image;
+    if(h&&h.image&&h.image.data&&h.type===THREE.UnsignedByteType&&!h.__prepped){h.__prepped=true;const{width:W,height:H,data:D}=h.image;
       /* the sun disk is clipped too: the directional light already carries it, and leaving it in washes out every shadow */
       for(let y=0;y<H;y++){const below=(y-H/2)/(H*.04),k=clamp(below,0,1),gr=[.16,.15,.11];
         for(let x=0;x<W;x++){const o=(y*W+x)*4,s=Math.pow(2,D[o+3]-128)/255;let c=[D[o]*s,D[o+1]*s,D[o+2]*s];
@@ -360,6 +361,7 @@ function buildEnv(){const pm=new THREE.PMREMGenerator(renderer);const old=envMap
           if(k>0)c=c.map((v,j)=>v*(1-k)+v*gr[j]*k);const m=Math.max(c[0],c[1],c[2]);if(m<1e-6){D[o]=D[o+1]=D[o+2]=D[o+3]=0;continue}
           const e=Math.ceil(Math.log2(m)),sc=255/Math.pow(2,e);D[o]=Math.min(255,Math.round(c[0]*sc));D[o+1]=Math.min(255,Math.round(c[1]*sc));D[o+2]=Math.min(255,Math.round(c[2]*sc));D[o+3]=e+128}}
       h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}
+    else if(h&&h.__prepped){h.needsUpdate=true;envMap=pm.fromEquirectangular(h).texture;h.dispose()}/* rebuilt after a context restore: the darkened data is kept, not darkened twice */
     else if(ASSETS.skyTex){const t=ASSETS.skyTex.clone();t.mapping=THREE.EquirectangularReflectionMapping;t.needsUpdate=true;envMap=pm.fromEquirectangular(t).texture}
   }catch(e){console.warn('environment light failed',e);envMap=null}
   pm.dispose();scene.environment=envMap;if(typeof vmScene!=='undefined')vmScene.environment=envMap;if(old&&old!==envMap)old.dispose()}
@@ -1276,6 +1278,7 @@ try{Object.assign(CFG,JSON.parse(CFG_STORE().getItem('ht-cfg')||'{}'))}catch(e){
 try{const d=JSON.parse(CFG_DEV_STORE().getItem('ht-cfg-device')||'null');if(d&&typeof d==='object')for(const k of CFG_DEVICE)if(k in d)CFG[k]=d[k]}catch(e){}
 function saveCfg(){const sync={},dev={};for(const k in CFG)(CFG_DEVICE.includes(k)?dev:sync)[k]=CFG[k];
   try{CFG_STORE().setItem('ht-cfg',JSON.stringify(sync))}catch(e){}try{CFG_DEV_STORE().setItem('ht-cfg-device',JSON.stringify(dev))}catch(e){}}
+if('undefined' in CFG){delete CFG.undefined;saveCfg()}/* an old Pause → Controls & keys bug wrote "undefined":"hold" here */
 
 /* ================= UI helpers ================= */
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
@@ -1304,7 +1307,7 @@ function rebuildTargets(){rayTargets=[...(L?L.solids:[])];for(const e of [...ene
 let spawnedEnemies=[];
 /* a skinned character's bone texture (one GPU texture per skeleton, made on its first render) is only freed by hand: release it when the character leaves
    the scene for good (three.js rebuilds it if the same character is ever drawn again) */
-function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}})}
+function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}});const PP=HTM('People');if(PP&&PP.free)try{PP.free(root)}catch(e){console.warn('people: free',e)}}/* PERF-04: the per-character gun and merged meshes too */
 function clearChars(){if(FR)frReset();try{if(window.HT&&HT.Base&&HT.Base.reset)HT.Base.reset()}catch(e){}/* audit C-2: jet / tank / range state (js/base.js) */for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
@@ -2027,10 +2030,12 @@ function releaseLock(){lockWanted=false;try{if(document.pointerLockElement){self
 document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){selfExit=true;try{document.exitPointerLock()}catch(e){}}}
   if(was&&!locked){if(selfExit)selfExit=false;else if(lockWanted&&running&&!metaLockLost())openPause()}});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
-cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
-  if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
-  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=aimHoldMode()?true:!P.aim;/* owner rule: aim is a toggle on mouse (click to raise, click again to lower); Key bindings → Aim: Hold makes it press-and-hold */e.preventDefault()});
-addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2&&aimHoldMode())P.aim=false});
+/* a click on the view while the game runs unlocked only takes the pointer back. js/keys.js asks this first for every click on the view,
+   whatever the buttons are bound to (C-1); Aim (Mouse 2 by default) arrives through HT.Keys.aimInput, never here */
+function lockClick(){initAudio();if(!running)return false;canvasFocus();if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();return true}return false}
+cv.addEventListener('mousedown',e=>{if(lockClick()){e.preventDefault();return}if(!running)return;
+  if(e.button===0)mouseDown=true;e.preventDefault()});
+addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false});
 function aimHoldMode(){const K=window.HT&&HT.Keys;return!!(K&&K.aimMode==='hold')}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function look(dx,dy){camLookT=1.3;const gw=WEAPONS[P.cur],base=CFG.sens*.00032,s=base*((P.adsT>.5||(P.aim&&!gw))?CFG.ads/100*(gw&&gw.scope?gw.ads.zoom:1):1);P.yaw-=dx*s;
@@ -2044,7 +2049,7 @@ addEventListener('mousemove',e=>{if(!running||pauseOpen)return;
 cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 /* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
 function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
-HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
+HUD.on('setting',(k,v)=>{if(k==null||k==='undefined')return;if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
   if(k==='gfx')RENDER.apply(v);if(k==='rscale'){RENDER.rscale=clamp(+v||100,50,100)/100;RENDER.apply(RENDER.sel||CFG.gfx)}if(k in VOL_DEF)setVolume();saveCfg()});
 /* Resolution scale and Frame rate cap (js/hud.js SETTINGS) */
 HUD.settings={rscale:clamp(+CFG.rscale||100,50,100),fpsCap:String(CFG.fpsCap||'0')};
@@ -2058,10 +2063,15 @@ function openPause(){if(pauseOpen||!running)return;pauseOpen=true;running=false;
   HUD.show('pause',{canAbandon:mode==='mission',settings:syncPause(),found:window.HT&&HT.Eggs?HT.Eggs.list():null})}/* found: the easter eggs (js/eggs.js) for the 'Things your dad found' tab */
 /* WebGL context loss (driver reset, GPU hiccup, some fullscreen alt-tabs): pause, say so, let three.js restore everything; offer a reload if it doesn't come back */
 const GLX={lost:false,n:0};
+/* three re-creates programs, buffers and textures by itself after a restore, but anything baked into a render target is gone: the PMREM sky
+   environment, the backdrop tree impostors (js/world.js) and the home's reflection probe. Rebuild them once three has re-initialised. */
+function glRestoreTargets(){setTimeout(()=>{if(GLX.lost)return;try{buildEnv();applyMood()}catch(e){console.warn('env rebuild failed',e)}
+  try{const HW=HTM('World');if(HW&&HW.restoreGL)HW.restoreGL()}catch(e){console.warn('impostor rebuild failed',e)}
+  try{if(HOME3&&HOME3.bakeReflections)HOME3.bakeReflections(renderer,scene)}catch(e){console.warn('home probe rebuild failed',e)}},0)}
 function glLostDialog(){if(!GLX.lost)return;HUD.dialog({kicker:'Graphics',title:'Graphics reset',text:"The graphics driver reset (an alt-tab, a driver update or a GPU hiccup). The game is paused while the picture comes back.\n\nIf it doesn't come back in a few seconds, reload. Your progress is saved after every job and purchase; a job in progress starts over.",
     buttons:[{label:'Reload the game',act:'reload'},{label:'Wait',act:'wait',cls:'pri'}],focus:'wait',cancel:'wait'}).then(r=>{if(r==='reload'){metaSave(true);location.reload()}else if(r==='wait'&&GLX.lost)setTimeout(glLostDialog,2500)})}
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();GLX.lost=true;GLX.n++;if(running)openPause();mouseDown=false;glLostDialog()},false);
-cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
+cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}glRestoreTargets();if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
 function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80);if(SAVEM&&!metaLoadNoticed){metaLoadNoticed=true;setTimeout(metaLoadNotice,700)}}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
@@ -2130,12 +2140,14 @@ HUD.on('touch',(a,down)=>{initAudio();
   if(!down)return;
   if(a==='pause'){if(running)openPause();else if(pauseOpen)closePause();return}
   if(!running)return;
-  if(a==='aim')P.aim=!P.aim;else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
+  if(a==='aim'){const K=window.HT&&HT.Keys;if(K&&K.aimInput){K.aimInput(true,'touch');K.aimInput(false,'touch')}else P.aim=!P.aim}else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
   else if(a==='swap')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);else if(a==='view')P.fp=!P.fp;else if(a==='jump'&&!VAN.on)P.jumpBuf=MOVE.buf});
 /* controller hook (js/gamepad.js): the left stick shares the touch stick's path (analog walk, throttle/steer), the right stick calls look() */
 window.HT.Input={stick:tj,look:(dx,dy)=>{if(running&&!pauseOpen)look(dx,dy)},fire:down=>{mouseDown=!!down&&running},aim:on=>{if(running)P.aim=!!on},
   get running(){return running},get paused(){return pauseOpen},get mode(){return mode},get driving(){return !!VAN.on},
-  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},get aiming(){return !!P.aim},relock(){if(!everLocked)lockFailed=false}};
+  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},get aiming(){return !!P.aim},relock(){if(!everLocked)lockFailed=false},lockClick};
+/* web build: the browser's back button, a mouse back button or closing the tab during a job asks first (the desktop shell has its own quit flow) */
+addEventListener('beforeunload',e=>{if(window.HTDesktop||window.__htNoUnloadGuard)return;if(!(mode==='mission'&&M&&M.state==='go'))return;/* only a job in progress is unsaved */e.preventDefault();e.returnValue=''});
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);
@@ -2540,7 +2552,7 @@ function updEnemy(e,dt){
     else if(dist<want[0]){moving=moveToward(e,e.pos.x-(t.pos.x-e.pos.x)*.3,e.pos.z-(t.pos.z-e.pos.z)*.3,sp*.7,dt)}
     else{const px=Math.cos(e.yaw)*e.strafe,pz=-Math.sin(e.yaw)*e.strafe;const nx=e.pos.x+px*.8,nz=e.pos.z+pz*.8;if(walkable(tx(nx),tx(nz))){e.pos.x+=px*sp*.55*dt;e.pos.z+=pz*sp*.55*dt;collide(e.pos,.35);moving=true}else e.strafe*=-1}
     e.fireT-=dt;
-    if(e.fireT<=0){const G=npcGun(e.gun,dist);
+    if(e.fireT<=0&&e.gun){/* J-01: a disarmed job enemy (gun=null) never fires; npcGun(null) would hand him a pistol */const G=npcGun(e.gun,dist);
       let acc=G[0]*clamp(1.15-dist/32,.12,1)*(t===P&&P.moving?(keys.shift?.85:.7):1)*(t===P&&P.crouch?.75:1);if(e.boss)acc*=1.2;
       shootAt(e,t,acc,G[1]*(e.boss?1.4:1)*(M&&M.i===0?.8:1),true);e.burst++;if(e.burst>=G[2]){e.burst=0;e.fireT=G[3]*rand(.8,1.4)}else e.fireT=.12}
   }else if(e.alert&&e.last&&e.hearT>0){e.hearT-=dt;faceTo(e,e.last.x,e.last.z,dt,3)}
@@ -2869,7 +2881,7 @@ function hud(dt){
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
     enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):frBlips(),
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tire':''):'',
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vehicleType:drv&&CV?CV.type:null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tire':''):'',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,gadgets:nightGadgets(),routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
   JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
@@ -2927,7 +2939,7 @@ let HOME3=null,homeReady=false,homeLoading=null;
 #deco .strip{display:flex;gap:6px;overflow:hidden;margin:8px 0 9px;mask-image:linear-gradient(90deg,#000 85%,transparent);-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent)}
 #deco .strip span{flex:none;padding:3px 8px;border:1px solid rgba(255,255,255,.25);border-radius:4px;font-size:12px;white-space:nowrap;opacity:.75}
 #deco .strip span.on{background:#ffc94a;color:#0f1216;border-color:#ffc94a;opacity:1}
-#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;opacity:.92}#deco .k i{font:700 11px ui-monospace,Menlo,Consolas,monospace;background:#f6f1e3;color:#0f1216;padding:0 5px;border-radius:3px;margin-right:4px}
+#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;opacity:.92}#deco .k .ht-kc{height:17px;min-width:17px;font-size:11px;margin-right:2px}#deco .k i{font:700 11px ui-monospace,Menlo,Consolas,monospace;background:#f6f1e3;color:#0f1216;padding:0 5px;border-radius:3px;margin-right:4px}
 @media (max-width:520px){#deco .k{display:none}#deco{top:calc(env(safe-area-inset-top,0px) + 70px)}}`;document.head.appendChild(st);
   const d=document.createElement('div');d.id='deco';d.hidden=true;document.body.appendChild(d)})();
 
@@ -3262,18 +3274,23 @@ function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
   else if(a==='move'){if(D.move())decoFlash('Picked it up. Click to put it down.');else decoFlash('Aim at something you placed',true)}
   else if(a==='next')D.cycle(1);else if(a==='prev')D.cycle(-1)}
 function decoPeople(){const out=[P.pos];if(HOME3&&HOME3.family)for(const m of HOME3.family)out.push(m.pos);return out}
+/* the panel's keys: real keycaps (.ht-kc), so js/gamepad.js shows pad glyphs and js/keys.js the player's bindings / layout */
+function decoKeys(){const k=t=>'<b class="ht-kc">'+t+'</b>',pad=document.documentElement.classList.contains('ht-pad');
+  const rows=pad?[[k(KE),'place'],[k('R'),'rotate'],[k('Tab'),'next item'],[k('Q'),'previous'],[k('M'),'move'],[k('X'),'put away'],[k('B'),'done']]
+    :[[k('Click')+'/'+k(KE),'place'],[k('R'),'rotate'],[k('Tab')+'/wheel','next item'],[k('M'),'move'],[k('X')+'/'+k('RMB'),'put away'],[k('B'),'done']];
+  return '<div class="k">'+rows.map(([a,b])=>'<span>'+a+' '+b+'</span>').join('')+'</div>'}
 function decoUpd(dt){const D=HOMEM.decorate;
   UI.obj=null;/* the panel says it all */
   if(mouseDown){mouseDown=false;decoAct('place')}if(P.aim){P.aim=false;decoAct('remove')}
   const info=D.aim(camera.position,camFwd(),decoPeople());
   DECO.msgT-=dt;const inv=D.inventory(),sel=D.selected?HOMEM.catalogById[D.selected]:null;const cnt=sel?(inv.find(i=>i.id===sel.id)||{count:0}).count:0;
-  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aim + M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
+  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aimed at it · M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
   const bad=DECO.msgT>0?DECO.bad:!!(sel&&(!info||info.why));
   const strip=inv.slice(0,14).map(i=>'<span class="'+(i.id===D.selected?'on':'')+'">'+i.name.replace(/\s*\(.*\)/,'')+(i.count>1?' ×'+i.count:'')+'</span>').join('');
   const h='<div class="h"><b>Decorating</b><span>'+(inv.length?inv.reduce((a,i)=>a+i.count,0)+' in storage':'Storage empty')+'</span></div>'+
     '<div class="it">'+(sel?sel.name+'<small>'+(D.moving?'moving':cnt+' left')+'</small>':'Nothing selected')+'</div><div class="why'+(bad?' bad':'')+'">'+why+'</div>'+
     (strip?'<div class="strip">'+strip+'</div>':'')+
-    '<div class="k"><span><i>Click</i>/<i>'+KE+'</i>place</span><span><i>R</i>rotate</span><span><i>Tab</i>/<i>wheel</i>next item</span><span><i>M</i>move</span><span><i>X</i>/<i>right click</i>put away</span><span><i>B</i>done</span></div>';
+    decoKeys();
   if(h!==DECO.html){DECO.html=h;$('deco').innerHTML=h}
   if(useTap){useTap=false;decoAct('place')}}
 function homeCam(dt){if(!HOME3)return;
@@ -3981,7 +3998,7 @@ function wmLeash(){const w=L.win;if(!w)return;for(const e of enemies){if(e.state
 function wmLeaving(dt){const st=M.site;M.leaveLine=null;if(!st||M.def.roam||M.chase||['stake','escort','ambush','court','chase'].includes(M.phase))return false;
   const b=st.box,q=VAN.on?CV.pos:P.pos,dx=Math.max(b.x0-q.x,0,q.x-b.x1),dz=Math.max(b.z0-q.z,0,q.z-b.z1);
   if(Math.hypot(dx,dz)>30){M.leaveT-=dt;M.leaveLine=['Get back to the job ('+Math.max(0,Math.ceil(M.leaveT))+')',false,'warn'];
-    if(M.leaveT<=0){endMission(false,"The crew went home. Doug left a note on your windshield.","You left the job.");return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
+    if(M.leaveT<=0){M.payX=M.payX||{};M.payX.noGas=true;/* JOBS-AUDIT J-04: no gas money for walking off */endMission(false,"The crew went home. Somebody left a note on your windshield.","You left the job.")/* J-07: not always Doug's job */;return true}}else M.leaveT=Math.min(8,M.leaveT+dt*2);return false}
 /* scripted enemy movement (hooked at the top of updEnemy): walking home, the Duke running to his car, a driver bailing out */
 function wmScript(e,dt){const s=e.script,d=e.dude;if(!s)return false;if(e.state==='dead'||e.state==='cuffed'||e.state==='surrender'){e.script=null;return false}
   let moving=false;s.t=(s.t||0)+dt;
@@ -4607,17 +4624,17 @@ const TUT={done:{},cur:null,t:0,el:null,m:{look:0,walk:0,jog:0,drive:0,yaw:null,
 try{TUT.done=JSON.parse(CFG_STORE().getItem('ht-tut')||'{}')||{}}catch(e){TUT.done={}}/* in the shell: the save file, so Steam Cloud carries it (SAV-12) */
 const foot=()=>mode==='hub'&&!VAN.on&&!CV,gunsOn=()=>mode==='mission'&&M&&M.state==='go'&&!M.noGuns&&!M.holster&&P.weapons.length>0&&!VAN.on;
 const TUT_STEPS=[
-  {id:'look',k:'Mouse',t:'Move the mouse to look around',when:foot,done:m=>m.look>1.1},
-  {id:'walk',k:'WASD',t:'Walk',when:foot,done:m=>m.walk>4},
-  {id:'jog',k:'Shift',t:'Hold Shift while walking to jog',when:()=>foot()&&TUT.done.walk,done:m=>m.jog>.8},
+  {id:'look',k:'Mouse',t:'Move the mouse to look around',p:()=>'Move the right stick to look around',when:foot,done:m=>m.look>1.1},
+  {id:'walk',k:'WASD',t:'Walk',p:()=>'Left stick to walk',when:foot,done:m=>m.walk>4},
+  {id:'jog',k:'Shift',t:'Hold Shift while walking to jog',p:()=>'Click '+padB('L3')+' while walking to jog (it stays on until you stop)',when:()=>foot()&&TUT.done.walk,done:m=>m.jog>.8},/* prompt-ok: p is the pad line */
   {id:'talk',k:'E',t:'Walk up to someone with a ring and press E · follow the yellow marker',when:()=>foot()&&JOB===null&&npcs.some(n=>n.marker),done:()=>JOB!==null||HUD.screen==='brief'},
   {id:'van',k:'E',t:'Walk up to the minivan and press E to drive',when:()=>foot()&&JOB!==null,done:()=>VAN.on},
-  {id:'drive',k:'WASD',t:'W S drive · A D steer · Shift boost · Space handbrake',when:()=>mode==='hub'&&VAN.on,done:m=>m.drive>40},
+  {id:'drive',k:'WASD',t:()=>kl('fwd')+' '+kl('back')+' drive · '+kl('left')+' '+kl('right')+' steer · '+kl('jog')+' boost · '+kl('jump')+' handbrake',p:()=>padB('RT')+' gas · '+padB('LT')+' brake · left stick steers · '+padB('RB')+' boost · '+padB('A')+' handbrake',when:()=>mode==='hub'&&VAN.on,done:m=>m.drive>40},
   {id:'map',k:'M',t:'Map: the yellow line leads to the job',when:()=>mode==='hub'&&VAN.on&&JOB!==null&&TUT.done.drive,done:m=>HUD.minimap.mapOpen||m.mapT>14},
-  {id:'aim',k:'RMB',t:'Right mouse raises your aim, click again to lower · left mouse fires',when:gunsOn,done:m=>P.aim&&m.shot>0},
+  {id:'aim',k:'RMB',t:()=>kl('aim')+' raises your aim, '+kl('aim')+' again to lower · '+kl('fire')+' fires',p:()=>padB('LT')+' raises your aim'+(HT.Keys&&HT.Keys.padAimMode==='toggle'?', '+padB('LT')+' again to lower':' while held')+' · '+padB('RT')+' fires',when:gunsOn,done:m=>P.aim&&m.shot>0},
   {id:'reload',k:'R',t:'Reload',when:()=>gunsOn()&&P.ammo[P.cur]&&WEAPONS[P.cur]&&P.ammo[P.cur].mag<=WEAPONS[P.cur].mag/2,done:()=>!!P.rl},
   {id:'tie',k:'E',t:'Hands up: hold E next to him to zip-tie · zip-ties earn trust',when:()=>mode==='mission'&&enemies.some(e=>e.state==='surrender'&&e.pos.distanceTo(P.pos)<16),done:m=>m.cuffed!=null&&(prog.cuffed||0)>m.cuffed},
-  {id:'pause',k:'Esc',t:'Esc pauses · Controls lists every key',when:()=>TUT.done.aim||TUT.done.map,done:()=>pauseOpen}];
+  {id:'pause',k:'Esc',t:'Esc pauses · Controls lists every key',p:()=>padB('MENU')+' pauses · Controls & keys shows the controller',when:()=>TUT.done.aim||TUT.done.map,done:()=>pauseOpen}];/* prompt-ok: p is the pad line */
 function tutEl(){if(TUT.el&&TUT.el.isConnected)return TUT.el;const h=document.querySelector('.ht-hud');if(!h)return null;const e=document.createElement('div');e.className='ht-pr ht-tut off tx';
   e.innerHTML='<div class="gl"><b class="ht-kc"></b></div><div class="tt"></div>';h.appendChild(e);TUT.el=e;return e}
 function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.missionsRun||0)>2){TUT.all=true;return}}const m=TUT.m;
@@ -4634,7 +4651,13 @@ function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.
   if(!cur&&TUT.gap<=0&&running){for(const st of TUT_STEPS){if(TUT.done[st.id])continue;let w=false;try{w=st.when()}catch(_){}if(w){cur=TUT.cur=st;TUT.t=0;if(st.id==='tie')m.cuffed=prog.cuffed||0;if(st.id==='aim')m.shot=0;break}}
     if(TUT_STEPS.every(st=>TUT.done[st.id])){TUT.all=true}}
   const e=tutEl();if(!e)return;const on=!!cur&&running&&!HUD.screen;e.classList.toggle('off',!on);
-  if(cur&&e._id!==cur.id){e._id=cur.id;e.querySelector('.ht-kc').textContent=cur.k;e.querySelector('.tt').textContent=cur.t}}
+  if(cur&&e._id!==cur.id){e._id=cur.id;e.querySelector('.ht-kc').textContent=cur.k;e.querySelector('.tt').textContent=tutText(cur)}
+  else if(cur&&e._pad!==padOn()){e._pad=padOn();e.querySelector('.tt').textContent=tutText(cur)}}
+/* the hint for the device in use: pad steps have their own words (js/gamepad.js glyphs); keyboard steps name the player's keys (js/keys.js) */
+function padOn(){return!!(window.HT&&HT.Pad&&HT.Pad.active)}
+function padB(n){return window.HT&&HT.Pad&&HT.Pad.btn?HT.Pad.btn(n):n}
+function kl(id){const K=window.HT&&HT.Keys;return K&&K.label?K.label(id):id}
+function tutText(st){const t=padOn()&&st.p?st.p:st.t;return typeof t==='function'?t():t}
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
@@ -4646,8 +4669,24 @@ function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
 const FCAP=window.HT&&HT.FrameCap?HT.FrameCap.make(window.HTDesktop&&HTDesktop.refreshRate):null;
+/* PERF-06: nothing that throws in one frame may stop the loop (the next frame is always requested), and nothing renders while the GL
+   context is lost; three rebuilds its programs and buffers itself on 'webglcontextrestored'. A context that is already lost before three
+   hears the event makes a shader compile throw ("reading 'trim'" of a null info log): that frame is dropped, the loop carries on. */
+const FRAME_ERR={n:0,seen:new Set(),key:null,since:0,last:0,told:false};
+/* each distinct error is logged once (console.error, which the desktop shell also writes to high-trust.log). If the same error keeps
+   failing every frame for more than 2 s, a small non-blocking toast says so and the game saves (a job in progress keeps its pre-job save) */
+function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e),t=performance.now();
+  const lost=(()=>{try{return GLX.lost||renderer.getContext().isContextLost()}catch(_){return false}})();
+  if(FRAME_ERR.seen.size<50&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e&&e.stack||e)}
+  if(lost)return;
+  if(FRAME_ERR.key!==k||t-FRAME_ERR.last>1000){FRAME_ERR.key=k;FRAME_ERR.since=t;FRAME_ERR.told=false}FRAME_ERR.last=t;
+  if(!FRAME_ERR.told&&t-FRAME_ERR.since>2000){FRAME_ERR.told=true;try{metaSave(true)}catch(_){}
+    try{HUD.feed("Something went wrong · your progress is saved",'bad')}catch(_){}}}
 function frame(now){
   if(FCAP&&!FCAP.gate(now,+CFG.fpsCap||0)){requestAnimationFrame(frame);return}/* Frame rate cap setting (js/fpscap.js); 0 = display rate (VSync) */
+  try{frameBody(now)}catch(e){frameError(e)}finally{requestAnimationFrame(frame)}
+}
+function frameBody(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
@@ -4660,8 +4699,7 @@ function frame(now){
   nightTick(running?dt:0);
   if(L){updPickupsVis(dt);FX.setHealth(P.hp/100);const A=AU();if(A&&A.listener)try{A.listener(camera.position.x,camera.position.y,camera.position.z,P.yaw)}catch(_){}}FX.update(dt);if(L&&!(VAN.on&&mode!=='home'))FX.applyCamera(camera);
   if(L)hud(dt);
-  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);RENDER.draw();groundPass(-1);
-  requestAnimationFrame(frame);
+  {const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera)}JH.pose(dt);/* JOBS: pose layers after the people update */groundPass(1);try{if(!GLX.lost)RENDER.draw()}finally{groundPass(-1)}
 }
 function start(){if(!ASSETS.done||mode!=='title')return;cv.style.opacity='1';initAudio();HUD.hide('title');enterHub();canvasFocus();requestLock()}
 RENDER.rscale=clamp(+CFG.rscale||100,50,100)/100;RENDER.apply(CFG.gfx);
@@ -4680,7 +4718,7 @@ showTitle();
 cv.style.transition='opacity .7s';cv.style.opacity='0';const showScene=()=>{cv.style.opacity='1'};setTimeout(showScene,20000);
 function ldStatus(){const off=ASSETS.offline();
   HUD.set('title',{progress:ASSETS.done?1:ASSETS.progress,ready:ASSETS.done,warn:off,
-    status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});
+    status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});/* prompt-ok: the web build's title status, a link */
   const ld=document.querySelector('.ht-title .ht-load');if(ld){ld.style.pointerEvents=off?'auto':'';ld.style.cursor=off?'pointer':''}}
 document.addEventListener('click',e=>{const ld=e.target.closest&&e.target.closest('.ht-title .ht-load.warn');if(ld)ASSETS.retry()});
 ASSETS.onProgress(()=>{if(!ASSETS.done)ldStatus()});
@@ -4715,7 +4753,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,get camOcc(){re
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
+window.__ht.FRAME_ERR=FRAME_ERR;window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},
@@ -4742,6 +4780,5 @@ window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get sol
 requestAnimationFrame(frame);
 })();
 </script>
-<script src="js/keys.js"></script><!-- key rebinding (Pause → Key bindings) -->
 <script src="js/gamepad.js"></script><!-- controllers: Gamepad API, menu navigation, pad glyphs -->
 <script src="js/platform.js"></script><!-- desktop shell + Steam glue; no-op on the web (docs/steam/BUILD.md) -->

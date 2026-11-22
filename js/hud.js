@@ -114,6 +114,8 @@ const SETTINGS=[
     {k:'ads',l:'Aim speed',sub:'Look speed while aiming down sights',min:20,max:100,step:5,fmt:v=>v+'%'},
     {k:'invert',l:'Invert look',type:'bool'},
     {k:'fp',l:'First person',sub:'Or press V any time',type:'bool'}]},
+  {tab:'controls',h:'Controller',items:[
+    {k:'padGlyphs',l:'Button prompts',type:'seg',opts:[['auto','Auto'],['xbox','Xbox'],['ps','PlayStation']],sub:'Auto reads the controller · Steam Input can present a PlayStation pad as an Xbox one'}]},
   {tab:'display',h:'Camera',items:[
     {k:'fov',l:'Field of view',min:60,max:100,step:1,fmt:v=>v+'°'}]},
   {tab:'display',h:'Graphics',items:[
@@ -139,10 +141,10 @@ const KEY_GROUPS=[
   ['Jobs and home',[['Scope zoom (Higher Ground)','Z'],['Hold breath (scoped; tap, tap again to breathe)','Shift'],['Camera: raise (toggle) · shoot · lower','Mouse 2 · Space · Q'],['Decorate (at home)','B'],['Menus: browse · choose · back','Arrows · Enter · Esc']]]];
 const DEFAULT_KEYS=KEY_GROUPS.flatMap(g=>g[1]);
 /* controller layout (js/gamepad.js), shown under Key bindings */
-const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
-  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
-  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],
-  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder'],
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim · raise the phone, stop sign, binoculars (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (press in; stops when the stick is let go) · hold breath on a scope','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
+  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],['Replies, the range rack, pickers','D-pad / stick · A pick · B back'],['Binoculars in a car','D-pad ↑'],['Decorate (at home)','B · then A place · X rotate · RB next · B done'],
+  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder · B look back · Y twice eject'],
   ['Map open','Stick pan · RT / LT zoom · LB / RB places · A travel · B close'],['Menus','D-pad / left stick · A select · B back · LB / RB tabs']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};
@@ -374,6 +376,7 @@ function updDrive(st){
   const f=clamp(mph/80,0,1);const len=+R.drvVal.dataset.len;attr(R.drvVal,'stroke-dashoffset',(len*(1-f)).toFixed(1));
   attr(R.drvNdl,'transform',`rotate(${(-225+270*f).toFixed(1)} 110 96)`);
   const g=st.gear!=null?String(st.gear):(st.speedMph<-0.5?'R':'D');txt(R.drvGear,g);cls(R.drvGear,'r',g==='R');
+  {const tk=st.vehicleType==='tank';cls(R.drv,'tank',tk);const hs=R.drv.querySelectorAll('.hint span');const last=hs[hs.length-1];if(last&&last.lastChild&&last.lastChild.nodeType===3){const w=tk?'Sight':'Hood';if(last.lastChild.nodeValue!==w)last.lastChild.nodeValue=w}}/* the tank's V is the gunner's sight */
   let vh=st.vanHealth??1;if(vh>1)vh/=100;vh=clamp(vh,0,1);txt(R.drvVh,Math.round(vh*100)+'%');sty(R.drvVbI,'transform',`scaleX(${vh})`);cls(R.drvVb,'low',vh<.3);/* car health bands (index.html CAR_BAND): 0 fine · 1 dented · 2 pulling · 3 smoking · 4 limp · 5 broken down */
   const band=clamp(st.vehicleBand|0,0,5);if(R.drvVh0&&R.drvVh0.dataset.band!==String(band))R.drvVh0.dataset.band=band;const vw=st.vehicleWarn||'';txt(R.drvWarn,vw);show(R.drvWarn,!!vw);
   txt(R.drvName,st.vehicleName||'Minivan');
@@ -789,7 +792,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
   const set=(k,v)=>{S[k]=v;emit('setting',k,v);if(k==='subs')H.subsOn=v;if(k==='mmRotate')H.mmRotate=v};
   pane.querySelectorAll('input[type=range]').forEach(r=>{const it=SETTINGS.flatMap(g=>g.items).find(i=>i.k===r.dataset.k);r.oninput=()=>{const v=+r.value;r.style.setProperty('--p',((v-it.min)/(it.max-it.min)*100).toFixed(1)+'%');r.nextElementSibling.textContent=(it.fmt||String)(v);set(it.k,v)}});
   pane.querySelectorAll('.ht-tog').forEach(t=>t.onclick=()=>{const v=t.getAttribute('aria-checked')!=='true';t.setAttribute('aria-checked',v);set(t.dataset.k,v)});
-  pane.querySelectorAll('.ht-seg3').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
+  pane.querySelectorAll('.ht-seg3[data-k]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
   const rs=pane.querySelector('[data-reset]');if(rs)rs.onclick=()=>{if(rs.dataset.arm){emit('action','resetSave');rs.textContent='Save reset';rs.disabled=true}else{rs.dataset.arm=1;rs.textContent='Tap again to wipe everything';rs.classList.remove('ghost')}};
 }
 /* modal dialog above every screen: HUD.dialog({kicker,title,text|html,buttons:[{label,act,cls}],focus,cancel,wide})
