@@ -1,0 +1,53 @@
+RESUME after gary,taxi,rick,hoa,earl,mower,dave,tail,doug,dee,tow,rosa,overwatch,pawn,crossing,moving,benny,cones,cargo,duke,talk,sabotage,brake,bike trust 100 / R 100 cuffed 30
+cards on resume [{"screen":"result","text":"Act 3 · Good People StayPeople are coming home.There's a moving truck on Ash Street. Then another one. Earl's old neighbours, Rosa's kids' friends, somebody's cousins from two towns over. Nobody's selling, and nobody's leaving. Gary has a corkboard now, with red string, and every string ends at one card: The Wholesaler. He bought what the King stole. He bought what the Duke stole. He's still buying. Riverside trust100%People wave back nowThe festival24 of 27 jobsThe first Riverside street festival Back to work","acts":["result:go"]}]
+
+== step 0  trust 100 / R 100  cuffed 30  day 1  cash 0  act 3  bridge true
+   OBJECTIVE: Maple Heights | Coach Rick has a job for you | Rosa has a job for you in Riverside Flats | Gary has a job for you | Finale: 24 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80 | 3 left: Hands Off (Rosa), Good Fences (Gary), Minivan Roundup (Coach Rick) | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Coach Rick","x":75,"z":49}
+   givers: rick:roundup@75,49  gary:heist@27,21  rosa:arrest@411,81  hank:blitz@43,11  doug:patrol@89,37  dave:mowertt@97.6,100.8  dee:carwash@331,39
+   available: blitz mowertt arrest roundup heist patrol porch carwash   home: porch@laptop
+   locked: finale:locked
+-> TAKE roundup (marker)
+   accepted: {"job":26,"obj":["Minivan Roundup","Get in the minivan","Drive the crew to Route 9 Park & Ride"],"marker":"Minivan","screen":null}
+   drive: {"steps":362,"mode":"mission","d":8.3,"dest":{"x":256.4,"z":56.6},"markerWhileDriving":"Route 9 Park & Ride"}
+   job objective: ["Minivan Roundup","The attendant is coming over"]
+   RESULT {"id":"roundup","how":"marker","complete":"bot","trustGain":32.7,"dT":0,"dR":0,"cash":2736,"dCuffed":3,"day":[1,2],"pay":2736,"state":"won","medal":3,"cards":["Job done · Route 9 Park & RideThat was necessary. Unfortunately.Five vans, five driveways, and a tournament that started on time. Marcy has updated the spreadsheet. It has a new column now. It's called 'Dads'. Neutralized0Zip-tied3second chancesTime2:52Trust100%MedalGoldAll five home and nobody saw "]}
+
+== step 1  trust 100 / R 100  cuffed 33  day 2  cash 2736  act 3  bridge true
+   OBJECTIVE: Maple Heights | Rosa has a job for you in Riverside Flats | Gary has a job for you | Finale: 25 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80 | 2 left: Hands Off (Rosa), Good Fences (Gary) | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Rosa","x":411,"z":81}
+   givers: rosa:arrest@411,81  gary:heist@27,21  dee:carwash@331,39  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: blitz mowertt arrest heist patrol porch carwash   home: porch@laptop
+   locked: finale:locked
+-> TAKE arrest (marker)
+   accepted: {"job":24,"obj":["Hands Off","Get in the minivan","Drive the crew to Riverside Farmers' Market, Main St"],"marker":"Minivan","screen":null}
+   drive: {"steps":96,"mode":"mission","d":4.5,"dest":{"x":379,"z":51},"markerWhileDriving":"Riverside Farmers' Market, Main St"}
+   job objective: ["Hands Off","Find Rosa at the garden stall"]
+   RESULT {"id":"arrest","how":"marker","complete":"bot","trustGain":21,"dT":0,"dR":0,"cash":2124,"dCuffed":1,"day":[2,3],"pay":2124,"state":"won","medal":3,"cards":["Job done · Riverside Farmers' Market, Main StThat was necessary. Unfortunately.The tin had $412 in it. Every dollar went to the garden. The market voted to give the real charities a proper table next Saturday. Neutralized0Zip-tied2second chancesTime1:10Trust100%Riverside FlatsMedalGoldOne shot, pani"]}
+
+== step 2  trust 100 / R 100  cuffed 34  day 3  cash 4860  act 3  bridge true
+   OBJECTIVE: Maple Heights | Gary has a job for you | Finale: 26 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80 | 1 left: Good Fences (Gary) | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Gary","x":27,"z":21}
+   givers: gary:heist@27,21  dee:carwash@331,39  dave:mowertt@97.6,100.8  doug:patrol@89,37  hank:blitz@43,11
+   available: blitz mowertt heist patrol porch carwash   home: porch@laptop
+   locked: finale:locked
+-> TAKE heist (marker)
+   accepted: {"job":28,"obj":["Good Fences","Get in the minivan","Drive the crew to Discount Storage Unlimited, Industrial Way"],"marker":"Minivan","screen":null}
+   drive: {"steps":268,"mode":"mission","d":4.4,"dest":{"x":204.6,"z":139.5},"markerWhileDriving":"Discount Storage Unlimited, Industrial Way"}
+   job objective: ["Good Fences","Scope the place with your phone. Raise it: RIGHT mouse button (press again to lower)","The gate keypad (on the sidewalk by the gate)","A security camera (on the corner posts)","The guard rota board (on the office wall)","Dwayne, at the office door (get his face)","Required: Unit 47 (the far end of the middle aisle)"]
+   RESULT {"id":"heist","how":"marker","complete":"bot","trustGain":31,"dT":0,"dR":0,"cash":3396,"dCuffed":0,"day":[3,4],"pay":3456,"state":"won","medal":3,"cards":["Job done · Discount Storage Unlimited, Industrial WayHome in time for dinner.Sunday morning, Gary's driveway: a folding table, a hand-lettered LOST & FOUND sign, and a line of neighbours down the block. Some of them came from Riverside. A couple of them stayed for coffee. Neutralized0Zip-tied0Time2:"]}
+
+== step 3  trust 100 / R 100  cuffed 34  day 4  cash 8256  act 3  bridge true
+   OBJECTIVE: Maple Heights | The festival: go home and talk to the family | Side jobs: Hank · Big Dave · Pastor Dee · Doug | Follow the yellow marker.
+   MARKER: {"label":"Home · the family","x":37.8,"z":21.1}
+   givers: dave:mowertt@97.6,100.8  doug:patrol@89,37  dee:carwash@331,39  hank:blitz@43,11
+   available: blitz mowertt patrol porch carwash finale   home: porch@laptop finale@family
+   locked: 
+-> TAKE finale (marker-home)
+   home objective: ["Home","The family wants to talk: press E near Jen or the kids"]
+   FINALE brief: New jobEverybody Waves EEveryone · The first Riverside Flats Street FestivalMain St, Riverside Flats Jen: "Honey. There are eleven people in our kitchen. Earl brought a bus schedule. Benny brought a cooler. Hank brought two hundred zip-ties and says not to tell his wife."Dee: "The first Riverside street festival is today. Everybody's coming. And I do mean everybody. Even the ones who used to stand outside the laundromat."Gary: "The Wholesaler wants it to fail. Smoke bombs, our stage truck, a crew in the crowd. So: a plan. Posts for everyone. Then we stop him, without ruining a single funnel cake." JobRun the festival: assign the whole cast to posts, tail his courier, watch the crowd from the roof, stop the stage truck, hold the street, box him in, and finish it with a conversation and a zip-tie.CrewJust youGunsGarage Pistol · The Talking-To Load the vanSkip the driveNot yet
+
+console errors: 0 
+
+JOBS: roundup(M0 R0) arrest(M0 R0) heist(M0 R0) finale(Mundefined Rundefined)
+problems: 0
