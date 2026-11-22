@@ -24,9 +24,9 @@ let fails=0;const ok=(m,c,x)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m+(
   await rclick();let a1=await aim();if(!a1){await rclick();a1=await aim()}
   await step(60);const a1b=await aim();await rclick();const a2=await aim();
   ok('gun aim: right click raises and it stays up 2 s after the button is released, right click lowers',a1&&a1b&&!a2,{a1,a1b,a2});
-  const ui=await ev(()=>{const d=document.createElement('div');document.body.appendChild(d);HT.Keys.reset();const render=()=>{d.innerHTML=HT.Keys.table();HT.Keys.bind(d,render)};render();
-    const on=()=>{const b=d.querySelector('[data-aim] button[aria-pressed=true]');return b&&b.dataset.v};const t0=on();d.querySelector('[data-aim] button[data-v=hold]').click();const t1=on(),m=HT.Keys.aimMode;d.remove();return{t0,t1,m}});
-  ok('Key bindings: Aim is Toggle by default (also after Reset) and the Hold button switches it',ui.t0==='toggle'&&ui.t1==='hold'&&ui.m==='hold',ui);
+  const ui=await ev(()=>{const d=document.createElement('div');document.body.appendChild(d);HT.Keys.reset();const pad0=HT.Keys.padAimMode;const render=()=>{d.innerHTML=HT.Keys.table();HT.Keys.bind(d,render)};render();
+    const on=()=>{const b=d.querySelector('[data-aim] button[aria-pressed=true]');return b&&b.dataset.v};const t0=on();d.querySelector('[data-aim] button[data-v=hold]').click();const t1=on(),m=HT.Keys.aimMode;const pad1=HT.Keys.padAimMode;d.remove();return{t0,t1,m,pad0,pad1}});
+  ok('Key bindings: Aim is Toggle by default (also after Reset; the pad LT keeps hold until a mode is picked) and the Hold button switches it',ui.t0==='toggle'&&ui.t1==='hold'&&ui.m==='hold'&&ui.pad0==='hold'&&ui.pad1==='hold',ui);
   await p.mouse.click(C.x,C.y);await ev(()=>{window.__ht.P.aim=false});
   await p.mouse.down({button:'right'});await step(10);const h1=await aim();await p.mouse.up({button:'right'});await step(2);const h2=await aim();
   ok('Aim: Hold brings back press-and-hold (down: up, release: down)',h1&&!h2,{h1,h2});

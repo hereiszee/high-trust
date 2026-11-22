@@ -27,7 +27,9 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   ok(e1===true&&e2===false,'Use on Mouse 3: middle button holds E ('+e1+' -> '+e2+')');
   ok(await ev(()=>HT.Keys.relabel('E')==='Mouse 3'),'the E prompt reads Mouse 3');
   await ev(()=>{HT.Keys.reset();HT.Keys.aimMode='toggle'});await p.mouse.click(cx,cy);/* first click on the view asks for pointer lock (refused headless) */await ev(()=>{window.__ht.P.aim=false;window.HT.Roam.mouseDown=false});
-  await p.mouse.down({button:'right'});await p.mouse.up({button:'right'});const a1=await ev(()=>window.__ht.P.aim);
+  await p.mouse.down({button:'right'});await p.mouse.up({button:'right'});let a1=await ev(()=>window.__ht.P.aim);
+  /* headless pointer lock is racy: a click that only asked for the lock never reaches the aim, so try once more */
+  if(!a1){await p.mouse.down({button:'right'});await p.mouse.up({button:'right'});a1=await ev(()=>window.__ht.P.aim)}
   await p.mouse.down({button:'right'});await p.mouse.up({button:'right'});const a2=await ev(()=>window.__ht.P.aim);
   ok(a1===true&&a2===false,'Aim: Toggle: right click on, right click off ('+a1+', '+a2+')');
   await ev(()=>{HT.Keys.aimMode='hold'});await p.mouse.click(cx,cy);/* first click on the view asks for pointer lock (refused headless) */await ev(()=>{window.__ht.P.aim=false;window.HT.Roam.mouseDown=false});

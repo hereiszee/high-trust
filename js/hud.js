@@ -131,7 +131,7 @@ const SETTINGS=[
 /* every binding, grouped (pause → Controls). ' · ' separates alternatives. Aim and raise modes are toggles (owner rule). */
 const KEY_GROUPS=[
   ['On foot',[['Move','W A S D'],['Look','Mouse'],['Jog (hold)','Shift'],['Jump · vault','Space'],['Crouch (toggle)','C · Ctrl'],['Talk · use · get in a car','E'],['Zip-tie someone with hands up','E (hold)'],['Camera: first / third person','V'],['Map','M'],['Flashlight · night vision','F · N'],['Pause','Esc · P']]],
-  ['Guns',[['Fire','Mouse 1'],['Aim · scope · binoculars (click to raise, click again to lower)','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Draw in Riverside · holster','1 2 3 · H']]],
+  ['Guns',[['Fire','Mouse 1'],['Aim (click to raise, click again to lower) · scope · binoculars','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Draw in Riverside · holster','1 2 3 · H']]],
   ['Cars and the minivan',[['Accelerate · brake / reverse','W · S'],['Steer','A D'],['Boost · handbrake','Shift · Space'],['Horn','H'],['Get out (slow down first)','E'],['Glovebox (parked, a neighbour\'s car)','G']]],
   ['Tank',[['Drive · turn on the spot','W S · A D'],['Turret','Mouse'],['Fire the main gun','Mouse 1'],["Gunner's sight (toggle)",'V'],['Get out','E']]],
   ['Jet',[['Throttle up · down','W · S'],['Pitch and roll','Mouse · Arrow keys'],['Roll (steer on the ground)','A D'],['Rudder','Z · X'],['Afterburner (toggle, at full throttle)','Shift'],['Landing gear','G'],['Cockpit view · look back (toggle)','V · C'],['Eject (in the air)','E twice']]],
