@@ -1,0 +1,38 @@
+== bracket night (day 3): dial-ins, handicap starts, up to three rounds, one settlement
+  ok   entry and rental taken when the bracket is accepted ($80)
+  round 1 vs dutch, handicap [1.7899999999999991,0]
+  {"won":false,"how":"breakout","margin":0.191,"red":[false,false]}
+  ok   bracket settled once at the end: {"lines":[["Bracket entry",-60],["Rental",-20]],"net":-80}
+  ok   cash moved by the bracket net exactly: -80
+  ok   tonight's bracket is done (next one in 3 days)
+== the money is taken when you commit: reload and never-launch forfeit; an abandoned bet settles as watched; one price per matchup; caps across a reload
+  ok   mid-race (staged)
+  ok   reload mid-race: a forfeit, cost 70 (entry + rental + stake = 70)
+  ok   no ladder change
+  ok   never released the brake: timed out 10.0 s after the green, cost 70
+  ok   office
+  matchup dutch vs walt in pickup/pickup; a winning seed for the right lane 2, a losing one 1
+  ok   office
+  ok   watch (winning seed): stake taken at once (Back Dutch Hendricks, On Dutch Hendricks at 4.38×)
+  ok   watched: winner lane 0, net 85
+  ok   office
+  ok   reload (winning seed): stake taken at once (Back Dutch Hendricks, On Dutch Hendricks at 4.38×)
+  ok   mid-race at the reload (2.5 s)
+  ok   reloaded mid-watch: settled from the seed, net 85 = watched 85 (winner lane 0)
+  ok   winning seed: paid both ways
+  ok   office
+  ok   watch (losing seed): stake taken at once (Back Dutch Hendricks, On Dutch Hendricks at 4.38×)
+  ok   watched: winner lane 1, net -25
+  ok   office
+  ok   reload (losing seed): stake taken at once (Back Dutch Hendricks, On Dutch Hendricks at 4.38×)
+  ok   mid-race at the reload (2.5 s)
+  ok   reloaded mid-watch: settled from the seed, net -25 = watched -25 (winner lane 1)
+  ok   losing seed: lost both ways
+  ok   50 asks of the booth for dutch vs walt: 1 price (0.2101)
+  ok   the first matchup (pays 4.38× / pays 1.16×), a different race (Marisol Vega vs Dutch Hendricks, a spec race: both in the strip's Hatchbacks), back to the first: pays 4.38× / pays 1.16×
+  ok   12 of 12 slow passes run
+  ok   12 slow passes in the hatchback (book: 12 passes): the self-bet price vs Marisol 0.5872 -> 0.5872
+  ok   after a reload, $180 down today (loss cap $200): $10:yes $25:no $50:no $100:no
+  ok   after a reload, $170 in hand (floor $150): $10:yes $25:no $50:no $100:no
+== done in 217 s; console errors: 0
+ALL OK

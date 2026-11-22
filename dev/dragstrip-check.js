@@ -177,6 +177,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 
   if(phases.includes('money')){say('== the money is taken when you commit: reload and never-launch forfeit; an abandoned bet settles as watched; one price per matchup; caps across a reload');
     const lossOf=25+20+25;
+    const closeMenus=async()=>{for(let i=0;i<4;i++){if((await menu()).open)await press('Escape',1);else break}if(await ev(()=>window.__ht.HUD.screen==='pause'))await press('Escape',1)};
     /* a page reload mid-race (the game closed) */
     await ev(()=>{HT.Save.data.cash=1500;HT.Save.saveNow(true)});let c0=await cashNow();const w0=await ev(()=>JSON.stringify(HT.Save.data.strip.ladder));
     await office();await pickItem(/^Race the ladder$/);await pickItem(/^Dutch/);await pickItem(/^Rent: Hatchback$/);await pickItem(/^Bet \$25 on yourself$/);await step(2);
@@ -196,7 +197,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       let win=0,lose=0;for(let s=1;s<500&&(!win||!lose);s++){const r=HT.Drag.watchRace(o,s);if(r.win===0&&!win)win=s;if(r.win===1&&!lose)lose=s}return{o,win,lose}});
     say('  matchup '+mm.o.ids.join(' vs ')+' in '+mm.o.cars.join('/')+'; a winning seed for the right lane '+mm.win+', a losing one '+mm.lose);await press('Escape',1);await press('Escape',1);await step(2);
     for(const[seed,label]of[[mm.win,'winning'],[mm.lose,'losing']]){const nets=[];
-      for(const how of['watch','reload']){await ev(s=>{const H=HT.Strip;H.S.nextMatch=window.__m;H.nextSeed=s},seed);ok(await office(),'office');await pickItem(/^Bet on the next race$/);
+      for(const how of['watch','reload']){await ev(([s,o])=>{const H=HT.Strip,m=o.ids.map(HT.Drag.racer);m.cars=o.cars.slice();m.spec=o.cars[0]===o.cars[1];window.__m=m;H.S.nextMatch=m;H.nextSeed=s},[seed,mm.o]);ok(await office(),'office');await pickItem(/^Bet on the next race$/);
         let m=await menu();const back=m.items[0];await press('1',1);c0=await cashNow();const price=await ev(()=>HT.Strip.S.menu.o.sub);await pickItem(/^\$25$/);await step(2);
         let w=await ev(()=>HT.Strip.watch());ok(!!w&&(await cashNow())===c0-25,how+' ('+label+' seed): stake taken at once ('+back+', '+price.replace(/\. You have.*/,'')+')');
         if(how==='watch'){for(let n=0;n<1500;n++){w=await ev(()=>HT.Strip.watch());if(!w)break;await step(1)}const lw=await ev(()=>HT.Strip.state().lastWatch);c1=await cashNow();nets.push(c1-c0);
@@ -206,22 +207,24 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
           ok(pend===0&&lo&&c1-c0===nets[0],'reloaded mid-watch: settled from the seed, net '+(c1-c0)+' = watched '+nets[0]+' (winner lane '+(lo&&lo.win)+')')}}
       ok(label==='winning'?nets[0]>0:nets[0]===-25,label+' seed: '+(label==='winning'?'paid':'lost')+' both ways')}
     /* one price per matchup per day: fifty asks, and back after "Different race" */
+    await ev(o=>{const m=o.ids.map(HT.Drag.racer);m.cars=o.cars.slice();m.spec=o.cars[0]===o.cars[1];window.__m=m},mm.o);
     const pr=await ev(()=>{const m=window.__m,S=HT.Strip,o=[];for(let i=0;i<50;i++)o.push(S.boothP([m[0].id,m[1].id],m.cars));return[...new Set(o)]});ok(pr.length===1,'50 asks of the booth for '+mm.o.ids.join(' vs ')+': '+pr.length+' price ('+pr[0]+')');
     await ev(()=>{HT.Strip.S.nextMatch=window.__m});await office();await pickItem(/^Bet on the next race$/);const r1=await ev(()=>HT.Strip.S.menu.o.items.slice(0,2).map(x=>x.right).join(' / '));
     await pickItem(/^Different race$/);const r2=await ev(()=>HT.Strip.S.menu.o.sub.split('.')[0]);await press('Escape',1);await ev(()=>{HT.Strip.S.nextMatch=window.__m});await press('Escape',1);
     await office();await pickItem(/^Bet on the next race$/);const r3=await ev(()=>HT.Strip.S.menu.o.items.slice(0,2).map(x=>x.right).join(' / '));
-    ok(r1===r3,'the first matchup ('+r1+'), a different race ('+r2+'), back to the first: '+r3);for(let i=0;i<3;i++)await press('Escape',1);
+    ok(r1===r3,'the first matchup ('+r1+'), a different race ('+r2+'), back to the first: '+r3);await closeMenus();
     /* the self-bet price: twelve slow passes (real keys: late off the line, floored into wheelspin) don't lengthen it */
     const sp0=await ev(()=>{const x=HT.Strip.selfPrice('hatch','marisol');return{p:x.p,key:x.key}});const NS=+(process.env.SANDBAG||12);
-    for(let i=0;i<NS;i++){const bd=def.paddockBoard;await walk(bd.x,bd.z+2.2,.8);await ev(()=>{window.__ht.P.yaw=0});await step(2);await press('e',2);await pickItem(/^Hatchback$/);await step(2);
-      await pass({late:25+i%3*15,flat:true});await pickItem(/^Done$/);await step(4)}
+    let ran=0;for(let i=0;i<NS;i++){const bd=def.paddockBoard;await ev(([x,z])=>{const H=window.__ht;H.P.pos.set(x,0,z);H.P.yaw=0;H.step(2)},[bd.x,bd.z+2.2]);await step(2);await press('e',2);await pickItem(/^Hatchback$/);await step(2);
+      if(!(await S()).run){const dbg=await ev(()=>({m:HT.Strip.menu(),cv:!!window.__ht.CV,mode:window.__ht.mode,pos:[window.__ht.P.pos.x,window.__ht.P.pos.z],scr:window.__ht.HUD.screen}));say('  (pass '+(i+1)+' did not start: '+JSON.stringify(dbg)+')');continue}ran++;await pass({late:25+i%3*15,flat:true});await pickItem(/^Done$/);await step(4)}
+    ok(ran===NS,ran+' of '+NS+' slow passes run');
     const sp1=await ev(()=>{const x=HT.Strip.selfPrice('hatch','marisol');return{p:x.p,key:x.key,n:(HT.Save.data.strip.book.hatch||{}).n}});
     ok(sp1.p===sp0.p&&sp1.key===sp0.key,NS+' slow passes in the hatchback (book: '+sp1.n+' passes): the self-bet price vs Marisol '+sp0.p+' -> '+sp1.p);
     /* caps and the floor across a reload: (a) $180 down today with plenty of cash; (b) nothing down, cash $20 over the floor. Saved, reloaded */
     for(const[lost,cashV,want,what]of[[180,1500,'$10:yes,$25:no,$50:no,$100:no','$180 down today (loss cap $200)'],[0,170,'$10:yes,$25:no,$50:no,$100:no','$170 in hand (floor $150)']]){
       await ev(([l,c])=>{const s=HT.Save.data,D=HT.Drag.day(s.strip,s.day||1);D.betLost=l;D.betWon=0;s.cash=c;HT.Save.saveNow(true)},[lost,cashV]);await reload();
       await office();await pickItem(/^Bet on the next race$/);await press('1',1);const offs=await ev(()=>HT.Strip.S.menu.o.items.map(x=>x.label+':'+(x.off?'no':'yes')));
-      ok(offs.join(',')===want,'after a reload, '+what+': '+offs.join(' '));for(let i=0;i<3;i++)await press('Escape',1)}
+      ok(offs.join(',')===want,'after a reload, '+what+': '+offs.join(' '));await closeMenus()}
     await ev(()=>{const s=HT.Save.data,D=HT.Drag.day(s.strip,s.day||1);D.betLost=0;s.cash=1500})}
 
   if(phases.includes('pad')){say('== controller only: the picker, a pass, the slip, with a scripted pad');
