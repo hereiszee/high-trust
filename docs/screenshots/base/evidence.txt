@@ -1,3 +1,63 @@
+== drive: home to Fort Sensible in the minivan
+  ok   E gets in the minivan
+  shot drive-start.jpg
+  ok   drove through the gate (203,182)
+  ok   region is the base
+  ok   Fort Sensible pin is open for fast travel after the visit
+  perf base gate (driving) {"calls":460,"tris":589090,"drawMs":27.5,"stepMs":4.14}
+== range
+  ok   out of the car by the range
+  on foot at 128,189
+  ok   walked to the range officer
+  shot range-arrive.jpg
+  ok   E talks to Sgt. Pruitt
+  ok   E again starts the timed course
+  shot range-course.jpg
+  ok   course finished: score 662, medal 2, 50 shots
+  shot range-result.jpg
+  ok   best saved per gun: {"pistol":[{"score":662,"time":22,"acc":0.22,"medal":2,"day":1,"rental":false}]}
+  ok   Enter closes the results card
+  ok   E closes it too
+  ok   looking at a gun on the rack names it: "Take Rick's Carbine · Rifle (rack menu)"
+  shot range-rack.jpg
+  ok   E opens the rack menu on the gun you looked at (rifle)
+  shot range-rack-menu.jpg
+  ok   → moves along the rack (smg)
+  ok   Enter takes it: smg
+  ok   the HUD shows the rental with its ammo: The Carpool · 32 / 192
+  ok   number keys pick straight away (1 · pistol)
+  ok   9 · the .308 (hunter)
+  shot range-rental.jpg
+  ok   free ammo on the line
+  ok   firing away from downrange is refused
+  ok   leaving the range returns the rental (pistol) and holsters
+  ok   the gun stays holstered elsewhere on the post
+  ok   no heat from range shooting
+  perf range {"calls":465,"tris":634421,"drawMs":11.5,"stepMs":2.18}
+== tank
+  ok   walked to the motor pool
+  ok   the tank is parked in the motor pool
+  shot tank-outside.jpg
+  ok   the tank can be boarded from every side (front:yes left:yes back:yes right:yes)
+  ok   E borrows the tank
+  ok   the borrow is on disk at once (0 → 1) and meets ACH_BORROWED
+  ok   A turns it on the spot (0.85 rad)
+  ok   W drives it (19.1 m, top 10.5 m/s)
+  ok   the turret follows the mouse look (turret 1.07 rad, off by -0.000)
+  shot tank-turret.jpg
+  ok   left click fires the main gun
+  shot tank-firing.jpg
+  shot tank-impact.jpg
+  ok   a second click while reloading does nothing (3.1 s left)
+  ok   a hidden, still-loading child 45 m down the line of fire: the main gun refuses ({"r0":{"hidden":true,"last":114.46666666666273,"prot":true},"r1":{"last":114.46666666666273,"reload":0.5666666666666667}})
+  ok   with the child gone it fires again
+  shot tank-sight.jpg
+  ok   drove through the cones and hay bales (13 knocked over)
+  ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
+  shot tank-flattened.jpg
+  perf tank driving {"calls":399,"tris":402688,"drawMs":13.5,"stepMs":2.86}
+  ok   jobs refuse the tank: "You can't bring that to the bake sale."
+  ok   E gets out
 == jet
   ok   walked to the jet on the apron
   ok   the jet is parked by Hangar 2
@@ -11,12 +71,12 @@
   ok   took off (101 mph at x 167)
   ok   wheels-up counts the flight on disk (0 → 1) and meets ACH_CLEARED_FOR_TAKEOFF
   ok   G raises the gear
-  perf jet climbing out {"calls":51,"tris":140131,"drawMs":24.5,"stepMs":10.64}
+  perf jet climbing out {"calls":53,"tris":140687,"drawMs":8.4,"stepMs":12.05}
   shot jet-cockpit.jpg
   ok   C toggles the look back on and off (no held keys)
   ok   the throttle holds with no key down (100%)
   shot jet-inbound.jpg
-  perf jet inbound to Maple Heights {"calls":121,"tris":287693,"drawMs":10.2,"stepMs":11.56}
+  perf jet inbound to Maple Heights {"calls":123,"tris":288229,"drawMs":8.5,"stepMs":18.5}
   shot jet-family.jpg
   ok   buzzed the house: the family came out (3 waving)
   ok   sonic boom over the neighborhood
@@ -28,8 +88,8 @@
   ok   E twice ejects (one tap arms it): parachute at 115 m
   shot jet-parachute.jpg
   ok   under the canopy the screen says E cuts to the landing (chute)
-  ok   landed under the parachute at 3,233 (back on the post)
-  FAIL E cut to the landing: by the jet's ladder (249.7 m, facing it)
+  ok   landed under the parachute at 128,190 (back on the post)
+  ok   E cut to the landing: by his van (0.0 m, facing it)
   shot jet-chute-landing.jpg
   ok   the jet is back on the apron (it was a rental)
 == a new pilot who only does what the screen says
@@ -53,22 +113,37 @@
   ok   the parachute ride took 12.3 s (owner: not "forever"; cap ~13 s from any height)
   ok   hanging under the canopy the whole way down (pose "chute" 92/92, no run cycle)
   ok   no follower ever left the ground (highest 0.00 m)
-  ok   landed where he came down, 304 m from the jet (no long drift)
-  ok   the screen offers the ride back (ride)
+  FAIL landed where he came down, 137 m from the jet (no long drift)
+  FAIL the screen offers the ride back (null)
   ok   the feed says where the jet went
   ok   a marker on the jet (DAD-1 · Hangar 2)
   ok   landed far out: the crew appeared out of the camera's view (2 spawned, 0 in view)
   shot jet-crew-jog.jpg
-  ok   and jogged up (3.7 m)
+  ok   and jogged up (3.9 m)
   shot jet-ride-prompt.jpg
-  ok   E: dropped by the jet's ladder (0.0 m, facing it); the van is elsewhere
-  ok   the feed says the van is elsewhere
-  ok   a marker on the van
+  FAIL E: dropped by his van (7.0 m, facing it)
   ok   no ride-back prompt at the base afterwards (null)
   shot jet-ride-back.jpg
   ok   (set up: far out, the ride is offered: ride)
   ok   at the base by other means (by the range): no ride-back prompt (null)
   shot jet-no-prompt-at-base.jpg
   ok   the crew rode back too: at the apron with him (1.7 m)
+== easter eggs
+  ok   found the gnome (E at 89,19)
+  shot egg-gnome.jpg
+  ok   found the lights (E at 121,67)
+  shot egg-lights.jpg
+  ok   found the phone (E at 245,35)
+  shot egg-phone.jpg
+  ok   found the smoker (E at 195,177)
+  shot egg-smoker.jpg
+  ok   shave and a haircut on the horn: two bits
+  shot egg-mug.jpg
+  ok   G in Walt's car finds the mug
+  shot egg-bigfoot.jpg
+  ok   hit the cardboard Bigfoot at 100 m
+  ok   pause menu has "Things your dad found"
+  ok   the list fills in: 7/7
+  shot eggs-pause.jpg
 no console errors
-1 FAILED · 618 s
+3 FAILED · 1062 s
