@@ -279,17 +279,19 @@ await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.p
     {const dt=await ev(()=>HT.Jobs.api.simT)-t0;ok(dt<=15.5,'the parachute ride took '+dt.toFixed(1)+' s (owner: not "forever"; cap ~13 s from any height)')}
     ok(poseN>0&&poseOk===poseN,'hanging under the canopy the whole way down (pose "chute" '+poseOk+'/'+poseN+', no run cycle)');
     ok((await ev(()=>window.__crew.maxY))<.5,'no follower ever left the ground (highest '+(await ev(()=>window.__crew.maxY)).toFixed(2)+' m)');
-    const where=await st();const far=Math.hypot(where.x-d.jet.x,where.z-d.jet.z);ok(far>200,'landed where he came down, '+far.toFixed(0)+' m from the jet (no long drift)');
-    let t=await tip();ok(t==='ride','the screen offers the ride back ('+t+')');ok(fed,'the feed says where the jet went');
+    const where=await st();const far=Math.hypot(where.x-d.jet.x,where.z-d.jet.z);let t=await tip();const dpL=await ev(()=>HT.Jet.dropPoint());const nearCar=Math.hypot(where.x-dpL.x,where.z-dpL.z);
+    const farCase=t==='ride';/* the van parked at the base gate (the 'drive' phase) is within reach from Maple: then the canopy steers him to it */
+    if(farCase)ok(far>200,'landed where he came down, '+far.toFixed(0)+' m from the jet (no long drift)');else ok(nearCar<8,'within reach of his car: the canopy steered him down by '+(dpL.by==='van'?'his van':'the jet\'s ladder')+' ('+nearCar.toFixed(1)+' m)');
+    ok(farCase||nearCar<8,'the screen offers the ride back only when far ('+t+')');ok(fed,'the feed says where the jet went');
     const mk=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='DAD-1 · Hangar 2')});ok(mk,'a marker on the jet (DAD-1 · Hangar 2)');
     /* far from the base: the crew turn up out of sight and jog over */
     {await step(2);const log=await ev(()=>HT.Jet.crewLog.slice(-2));const seen=await ev(lg=>{const H=window.__ht,cam=H.camera;H.draw();const fr=new THREE.Frustum();cam.updateMatrixWorld();fr.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse));return lg.filter(q=>fr.containsPoint(new THREE.Vector3(q.x,1,q.z))).length},log);
      ok(log.length===2&&seen===0,'landed far out: the crew appeared out of the camera\'s view ('+log.length+' spawned, '+seen+' in view)');let shotDone=false;
      for(let i=0;i<300;i++){const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});if(!shotDone&&dd<16){shotDone=true;await ev(()=>{const H=window.__ht,P=H.P;P.yaw=Math.atan2(-(HT.Jobs.api.allies[0].pos.x-P.pos.x),-(HT.Jobs.api.allies[0].pos.z-P.pos.z))});await step(2);await shot('jet-crew-jog')}if(dd<4)break;await step(4)}
      const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});ok(dd<4.5,'and jogged up ('+dd.toFixed(1)+' m)')}
-    await shot('jet-ride-prompt');const dp2=await ev(()=>HT.Jet.dropPoint());await press('e');await step(10);s=await st();const back=Math.hypot(s.x-dp2.x,s.z-dp2.z);
-    {let dy=s.yaw-dp2.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));ok(back<8&&Math.abs(dy)<.4,'E: dropped by '+(dp2.by==='van'?'his van':'the jet\'s ladder')+' ('+back.toFixed(1)+' m, facing it)'+(dp2.vanAway?'; the van is elsewhere':''))}
-    if(dp2.vanAway){const fed2=await ev(()=>document.body.textContent.includes('Your van is still where you left it'));ok(fed2,'the feed says the van is elsewhere');const mk2=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='Your van')});ok(mk2,'a marker on the van')}
+    await shot('jet-ride-prompt');const dp2=await ev(()=>HT.Jet.dropPoint());if(farCase){await press('e');await step(10);s=await st();const back=Math.hypot(s.x-dp2.x,s.z-dp2.z);
+    {let dy=s.yaw-dp2.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));ok(back<8&&Math.abs(dy)<.4,'E: dropped by '+(dp2.by==='van'?'his van':'the jet\'s ladder')+' ('+back.toFixed(1)+' m, facing it)'+(dp2.vanAway?'; the van is elsewhere':''))}}
+    if(farCase&&dp2.vanAway){const fed2=await ev(()=>document.body.textContent.includes('Your van is still where you left it'));ok(fed2,'the feed says the van is elsewhere');const mk2=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='Your van')});ok(mk2,'a marker on the van')}
     await step(20);{const t2=await tip();ok(t2!=='ride','no ride-back prompt at the base afterwards ('+t2+')')}
     await p.waitForTimeout(800);await shot('jet-ride-back');
     /* owner's screenshot: he landed far out, then got to the post another way (fast travel / a teleport): the prompt must go at once */
