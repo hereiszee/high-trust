@@ -91,7 +91,7 @@ Console errors over the whole run: 0.
 - **When it clears:** only when you get in a car, because `objKey` changes then.
 - **Suspected cause:**
   - In `enterHub`, `wmHubEnter()` → `jrHubEnter()` sets `JOB` and calls `hubObj()` (`index.html:4406`).
-  - Then `wmHubGivers()` (`index.html:1899`) overwrites the panel with `setObj`.
+  - Then `wmHubGivers()` (`index.html:1898`) overwrites the panel with `setObj`.
   - `objKey` is left equal to `JOB|false`, so `hubObj()` never re-applies.
   - The same path serves Porch Light.
 
