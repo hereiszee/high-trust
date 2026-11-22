@@ -126,7 +126,7 @@ function judge(runs,sl,dial){const fin=sl.map((x,i)=>x&&x.et!=null?runs[i].split
   else if(dial){const bo=sl.map((x,i)=>x&&x.et!=null&&x.et<dial[i]?dial[i]-x.et:0);
     if(bo[0]&&bo[1]){win=bo[0]>bo[1]?1:0;how='breakout'}else if(bo[0]||bo[1]){win=bo[0]?1:0;how='breakout'}else win=fin[0]<=fin[1]?0:1}
   else win=fin[0]<=fin[1]?0:1;
-  const dt=Math.abs(fin[0]-fin[1]),lose=runs[1-win];const mv=lose&&lose.v?lose.v:30;
+  const dt=Math.abs(fin[0]-fin[1]),ls=sl[1-win];const mv=ls&&ls.mph?ls.mph/MPH:30;/* metres: the loser's speed through the trap */
   return{win,how,red,margin:isFinite(dt)?+dt.toFixed(3):null,marginM:isFinite(dt)?+(dt*mv).toFixed(2):null,slips:sl}}
 /* P(a wins) from n races with a seeded stream (the same model; the odds the booth shows) */
 function winP(a,b,n,seed,o){const rnd=rng(seed||12345);let w=0;for(let i=0;i<n;i++)if(race(a,b,rnd,o).win===0)w++;return w/n}

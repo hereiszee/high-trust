@@ -53,10 +53,15 @@ function teach(id,text){const s=sv();if(!s||s.taught[id])return;s.taught[id]=1;f
 /* ================= THE PLACE: static set pieces (js/openworld.js culls each unit) ================= */
 const COL={conc:'#b8b4aa',conc2:'#cfcbc1',asph:'#2c2e30',rubber:'#18191a',white:'#f2f1ea',yellow:'#f0c23a',red:'#c0322d',blue:'#2c4e8a',steel:'#8d9399',dark:'#25292c',
   alu:'#c4c9cc',wood:'#8a6a45',green:'#2f7a46',navy:'#1e2c46',orange:'#e46d1f',sand:'#cdb68a',stripe:'#f4f2ea'};
+/* fewer materials, fewer draw calls: a handful of the base kit's materials stand in for the rest (vertex colours carry the look) */
+const MATMAP={stucco:'paint',wood:'paint',dark:'paint',corr:'metal',earth:'paint'};
+function wrapP(P){const W=Object.create(P);for(const f of['box','obox','cyl','quad','geo'])W[f]=(k,...r)=>{P[f](MATMAP[k]||k,...r);return W};W.g=k=>P.g(MATMAP[k]||k);return W}
 function units(){const O=HT.OpenWorld,Bs=B();if(!O||!O.addSetpiece||!Bs||!Bs.kit){setTimeout(units,0);return}
-  const unit=(id,box,fn,r)=>O.addSetpiece({id,r,box:()=>box,build(ws,u){const d=ws.def.strip;if(!d||!(HT.World&&HT.World.GB))return;u.group.name=id;/* dev/dragstrip-check.js counts our draw calls by these names */const P=Bs.kit.painter();fn(P,d,Bs.kit);P.flush(u.group)}});
-  unit('strip_e',{x0:160,z0:250,x1:284,z1:302,y1:12},(P,d,K)=>{track(P,d,K,160,280);startArea(P,d,K);tower(P,d,K);stand(P,d.standE,K,'E');paddock(P,d,K);poles(P,d,160,284)},230);
-  unit('strip_w',{x0:0,z0:250,x1:162,z1:302,y1:10},(P,d,K)=>{track(P,d,K,4,162);finishArea(P,d,K);stand(P,d.standW,K,'W');poles(P,d,4,160)},230);
+  const unit=(id,box,fn,r)=>O.addSetpiece({id,r,box:()=>box,build(ws,u){const d=ws.def.strip;if(!d||!(HT.World&&HT.World.GB))return;u.group.name=id;/* dev/dragstrip-check.js counts our draw calls by these names */const P=wrapP(Bs.kit.painter());fn(P,d,Bs.kit);P.flush(u.group);
+    /* draw calls: only the near unit's paint and concrete cast shadows (the walls, the stands, the tower); the rest don't */
+    u.group.traverse(o=>{if(o.isMesh)o.castShadow=id==='strip_e'&&/base:(paint|concrete)$/.test(o.name)})}});
+  unit('strip_e',{x0:160,z0:250,x1:284,z1:302,y1:12},(P,d,K)=>{track(P,d,K,160,280);startArea(P,d,K);tower(P,d,K);stand(P,d.standE,K,'E');paddock(P,d,K);poles(P,d,160,284)},150);
+  unit('strip_w',{x0:0,z0:250,x1:162,z1:302,y1:10},(P,d,K)=>{track(P,d,K,4,162);finishArea(P,d,K);stand(P,d.standW,K,'W');poles(P,d,4,160)},150);
   unit('strip_sign',{x0:200,z0:158,x1:216,z1:172,y1:8},(P,d,K)=>roadSign(P,d,K),140)}
 units();
 /* the lanes from x0 to x1: launch pad concrete, rubber in the grooves, lane lines, walls with a catch fence on the spectator side */
@@ -181,8 +186,8 @@ function buildBoards(d){const T=THREE,c=document.createElement('canvas');c.width
 function drawBoards(force){const b=S.boards;if(!b)return;const key=JSON.stringify(b.lanes);if(!force&&key===b.key)return;b.key=key;const x=b.c.getContext('2d'),W=b.c.width,H=b.c.height;
   x.fillStyle='#0b0d0f';x.fillRect(0,0,W,H);x.strokeStyle='#30363c';x.lineWidth=8;x.strokeRect(4,4,W-8,H-8);
   x.fillStyle='#e9e2c8';x.font='700 30px "Arial Narrow",Arial';x.textAlign='center';x.fillText('SENSIBLE DRAGWAY · 1/8 MILE',W/2,42);
-  for(let i=0;i<2;i++){const l=b.lanes[i],x0=i?W/2+8:16,w=W/2-24;x.fillStyle='#14181b';x.fillRect(x0,58,w,H-74);
-    x.fillStyle='#9aa3a8';x.font='700 24px "Arial Narrow",Arial';x.textAlign='left';x.fillText(i?'RIGHT LANE':'LEFT LANE',x0+14,88);
+  for(let i=0;i<2;i++){const l=b.lanes[i],x0=i?16:W/2+8,w=W/2-24;/* read from the start line: lane 0 (north) is on the right */x.fillStyle='#14181b';x.fillRect(x0,58,w,H-74);
+    x.fillStyle='#9aa3a8';x.font='700 24px "Arial Narrow",Arial';x.textAlign='left';x.fillText(i?'LEFT LANE':'RIGHT LANE',x0+14,88);
     if(l&&l.name){x.textAlign='right';x.fillText(String(l.name).toUpperCase().slice(0,22),x0+w-14,88)}
     const seg=(t,y,sz,c)=>{x.fillStyle=c;x.font='700 '+sz+'px "Courier New",monospace';x.textAlign='right';x.fillText(t,x0+w-18,y)};
     if(l&&l.red){x.fillStyle='#ff2a1a';x.font='900 92px "Arial Narrow",Arial';x.textAlign='center';x.fillText('RED LIGHT',x0+w/2,200)}
@@ -194,37 +199,53 @@ function drawBoards(force){const b=S.boards;if(!b)return;const key=JSON.stringif
 function boardsSet(lanes){if(!S.boards)return;S.boards.lanes=lanes;drawBoards()}
 /* pools of light on the track at night (additive quads under the poles) */
 function buildPools(d){const T=THREE,P=[],U=[],I=[];const add=(x,z,r)=>{const o=P.length/3;P.push(x-r,.04,z-r,x+r,.04,z-r,x+r,.04,z+r,x-r,.04,z+r);U.push(0,0,1,0,1,1,0,1);I.push(o,o+2,o+1,o,o+3,o+2)};
-  for(let x=6;x<=280;x+=40){add(x,d.laneZ[0],7.5);add(x,d.laneZ[1],7.5)}
+  for(let x=6;x<=280;x+=20){add(x,d.centerZ,9)}/* the track */for(let x=206;x<=252;x+=12)add(x,265,7);for(let x=38;x<=76;x+=12)add(x,265,7);/* the stands */for(let x=210;x<=272;x+=14)add(x,293,9);/* the paddock */
   const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),gr=g.createRadialGradient(64,64,4,64,64,64);gr.addColorStop(0,'rgba(255,240,210,.85)');gr.addColorStop(.5,'rgba(255,230,190,.32)');gr.addColorStop(1,'rgba(255,230,190,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
   const tex=own(new T.CanvasTexture(c)),geo=own(new T.BufferGeometry());geo.setAttribute('position',new T.Float32BufferAttribute(P,3));geo.setAttribute('uv',new T.Float32BufferAttribute(U,2));geo.setIndex(I);geo.computeBoundingSphere();
   const m=new T.Mesh(geo,own(new T.MeshBasicMaterial({map:tex,transparent:true,blending:T.AdditiveBlending,depthWrite:false,opacity:0,toneMapped:false})));m.renderOrder=2;m.name='strip:pools';m.userData.noBatch=true;m.visible=false;S.root.add(m);S.pools=m}
 /* the loaners lined up in the paddock: one of every car the strip lends (parked LOD1 models; colliders so you can't walk through them) */
 const LOAN_COL={hatch:'#c8312c',minivan:'#35577d',sedan:'#1f2226',suv:'#d8d4c8',pickup:'#e8742a',workvan:'#f2f2ee',mower:'#2e7d3a'};
-function buildLoaners(a,d){const V=HT.Vehicles;if(!V||!V.make)return;const L=d.loaners,types=D().types();
+function buildLoaners(a,d){const V=HT.Vehicles;if(!V||!V.make)return;const L=d.loaners,types=D().types().filter(t=>t!=='mower');/* the mower (29 parts) lives in the shed: the picker lends it */
   types.forEach((t,i)=>{let v=null;try{v=V.make(t,{color:LOAN_COL[t]||'#888',lod:1})}catch(_){v=null}if(!v)return;const x=L.x0+i*L.dx;
-    v.position.set(x,0,L.z);v.rotation.y=Math.PI/2;/* front faces north, toward the track */v.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.userData.noBatch=true}});S.root.add(v);
+    v.position.set(x,0,L.z);v.rotation.y=Math.PI/2;/* front faces north, toward the track */v.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;o.userData.noBatch=true}});S.root.add(v);
     const sz=v.userData.size||{l:4.5,w:2};const col={x0:x-sz.w/2,z0:L.z-sz.l/2,x1:x+sz.w/2,z1:L.z+sz.l/2,strip:true};S.cols.push(col);S.loanRow.push({t,v,x,z:L.z})});
-  addCols(a)}
+  mergeRow();addCols(a)}
+/* draw calls: each parked car's body and wheels become one mesh (same material), the six contact shadows one mesh: 18 calls -> 7 */
+function mergeRow(){const T=THREE,g=new T.Group();g.name='strip:loaners';const shadows=[];S.root.updateMatrixWorld(true);
+  const merge=(parts,mat)=>{const names=new Set();for(const m of parts)for(const k in m.geometry.attributes)names.add(k);let nv=0,ni=0;for(const m of parts){nv+=m.geometry.attributes.position.count;ni+=m.geometry.index?m.geometry.index.count:m.geometry.attributes.position.count}
+    const out={},size={};for(const k of names){for(const m of parts){const at=m.geometry.attributes[k];if(at){size[k]=at.itemSize;break}}out[k]=new Float32Array(nv*size[k])}
+    const idx=new Uint32Array(ni),v=new T.Vector3(),M=new T.Matrix4(),N=new T.Matrix3();let vo=0,io=0;
+    for(const m of parts){const geo=m.geometry,n=geo.attributes.position.count;M.copy(m.matrixWorld);N.getNormalMatrix(M);
+      for(const k of names){const at=geo.attributes[k],o=out[k],sz=size[k];if(!at)continue;for(let i=0;i<n;i++){if(k==='position'){v.fromBufferAttribute(at,i).applyMatrix4(M);o.set([v.x,v.y,v.z],(vo+i)*3)}else if(k==='normal'){v.fromBufferAttribute(at,i).applyMatrix3(N).normalize();o.set([v.x,v.y,v.z],(vo+i)*3)}else for(let j=0;j<sz;j++)o[(vo+i)*sz+j]=at.array[i*sz+j]}}
+      const ix=geo.index?geo.index.array:null,c=ix?ix.length:n;for(let i=0;i<c;i++)idx[io++]=(ix?ix[i]:i)+vo;vo+=n}
+    const geo=own(new T.BufferGeometry());for(const k of names)geo.setAttribute(k,new T.BufferAttribute(out[k],size[k]));geo.setIndex(new T.BufferAttribute(idx,1));geo.computeBoundingSphere();
+    const mesh=new T.Mesh(geo,mat);mesh.userData.noBatch=true;mesh.castShadow=false;mesh.receiveShadow=true;g.add(mesh);return mesh};
+  for(const r of S.loanRow){const v=r.v,sh=v.userData.contactShadow,body=[];v.traverse(o=>{if(!o.isMesh)return;if(o===sh||(o.material&&o.material.type==='MeshBasicMaterial'))shadows.push(o);else body.push(o)});
+    const byMat=new Map();for(const m of body){const k=m.material.uuid;(byMat.get(k)||byMat.set(k,[]).get(k)).push(m)}
+    for(const[,parts]of byMat){const mm=merge(parts,parts[0].material);mm.renderOrder=parts[0].renderOrder}
+    S.root.remove(v)}
+  if(shadows.length){const sm=merge(shadows,shadows[0].material);sm.renderOrder=shadows[0].renderOrder;sm.receiveShadow=false}
+  S.root.add(g);S.loanG=g}
 function addCols(a){const C=a.L.colliders;for(const c of S.cols)if(!C.includes(c))C.push(c)}
 function dropCols(a){try{const C=a.L.colliders;for(const c of S.cols){const k=C.indexOf(c);if(k>=0)C.splice(k,1)}}catch(_){}}
 /* people: a few spectators seated in the stands (fenced in: the 'z' tiles all round, no car or dad can reach them), the race office */
-const SPECS=[['nb_gran','E',3,6],['nb_sweater','E',2,14],['nb_mei','E',4,22],['nb_kenji','E',1,30],['nb_lucia','W',2,9],['nb_pops','W',3,20]];
+const SPECS=[['nb_gran','E',3,6],['nb_sweater','E',2,14],['nb_mei','E',4,24],['nb_kenji','E',1,32],['nb_lucia','W',2,12]];
 function buildPeople(a,d){const PP=HT.People;if(!PP||!PP.ok)return false;
   for(const[key,which,tier,off]of SPECS){const st=which==='E'?d.standE:d.standW;if(!st)continue;let dd=null;try{dd=PP.make('neighbour',{variant:key})}catch(_){dd=null}if(!dd)continue;
     const n=5,zf=st.z1-.5,dz=(zf-(st.z0+.3))/n,y=.42+tier*.42,z=zf-tier*dz-dz*.45;dd.root.position.set(st.x0+.3+off,y-.55,z);dd.root.rotation.y=0;/* facing the track (south, +z) */
-    try{for(const m of dd.meshes||[])m.userData.noBatch=true}catch(_){}S.root.add(dd.root);S.people.push({d:dd,sit:true,cheer:0,ph:Math.random()*6})}
+    try{dd.root.traverse(m=>{if(m.isMesh){m.userData.noBatch=true;m.castShadow=false}})}catch(_){}S.root.add(dd.root);S.people.push({d:dd,sit:true,cheer:0,ph:Math.random()*6})}
   let o=null;try{o=PP.make('neighbour',{variant:'nb_office'})}catch(_){o=null}
-  if(o){const t=d.tower;o.root.position.set(t.x0+.75,0,(t.z0+t.z1)/2);o.root.rotation.y=-Math.PI/2;/* behind the counter, facing west */S.root.add(o.root);S.office={d:o};S.people.push({d:o,sit:false,office:true})}
+  if(o){const t=d.tower;o.root.position.set(t.x0-.75,0,(t.z0+t.z1)/2+1.85);o.root.rotation.y=-Math.PI/2;/* by the window, under the awning, facing west */S.root.add(o.root);S.office={d:o};S.people.push({d:o,sit:false,office:true})}
   return true}
 function dropPeople(){const PP=HT.People;for(const p of S.people){try{if(p.d.root.parent)p.d.root.parent.remove(p.d.root);if(PP&&PP.free)PP.free(p.d.root)}catch(_){}}S.people=[];S.office=null}
 /* build the runtime pieces when you come near; hide them farther out; drop them (geometry, people, colliders) when you leave the area */
-const NEAR=190,FAR=320;
-function center(d){return{x:(d.box.x0+d.box.x1)/2,z:(d.box.z0+d.box.z1)/2}}
-function ensure(a,d){const c=a.camera.position,cc=center(d),dist=Math.hypot(c.x-cc.x,c.z-cc.z);
+const NEAR=60,FAR=200;/* metres from the strip's box: built within 60, hidden beyond 75, dropped beyond 200 */
+function boxDist(d,x,z){const b=d.box;return Math.hypot(Math.max(b.x0-x,0,x-b.x1),Math.max(b.z0-z,0,z-b.z1))}
+function ensure(a,d){const c=a.camera.position,dist=boxDist(d,c.x,c.z);
   if(S.L!==a.L){teardown(a,true);S.L=a.L}
   if(!S.root&&dist<NEAR){const T=THREE;S.root=new T.Group();S.root.name='dragstrip';a.L.group.add(S.root);buildTree(d);buildBoards(d);buildPools(d);buildLoaners(a,d);treeSet([{},{}])}
   if(S.root&&!S.people.length&&!S.peopleTried&&dist<NEAR){S.peopleTried=buildPeople(a,d)}
-  if(S.root){if(S.root.parent!==a.L.group)a.L.group.add(S.root);S.root.visible=dist<FAR-60;addCols(a);if(dist>FAR&&!S.run&&!S.loaner&&!S.watch)teardown(a)}}
+  if(S.root){if(S.root.parent!==a.L.group)a.L.group.add(S.root);S.root.visible=dist<NEAR+15;addCols(a);if(dist>FAR&&!S.run&&!S.loaner&&!S.watch)teardown(a)}}
 function teardown(a,levelGone){if(S.root){try{if(S.root.parent)S.root.parent.remove(S.root)}catch(_){}for(const r of S.loanRow){try{r.v.userData.dispose&&r.v.userData.dispose()}catch(_){}}}
   dropPeople();if(a&&!levelGone)dropCols(a);S.cols=[];S.loanRow=[];S.peopleTried=false;
   for(const x of GEO)try{x.dispose()}catch(_){}GEO.length=0;S.root=null;S.tree=null;S.boards=null;S.pools=null}
@@ -316,7 +337,7 @@ const TREE={a:.5,green:1.5};/* a full ("sportsman") tree: three ambers half a se
 function newRun(a,o){const d=ST.def(),e=o.e,lane=o.lane||0;const sp=o.spec||D().spec(o.type||e.type,o.veh||null);
   const R={mode:o.mode,phase:'roll',t:0,e,lane,type:o.type||e.type,spec:sp,run:D().run(sp),tree0:null,offs:[0,0],opp:null,dial:o.dial||null,racer:o.racer||null,bet:o.bet||null,
     entry:o.entry||0,rent:o.rent||0,bracket:o.bracket||null,turf:!!o.turf,shutX:null,res:null,lights:[{},{}],noLaunchT:0,said:{}};
-  S.run=R;e.fly=true;e.noExit=true;placeCar(a,e,lane,4);/* rolls up from 4 m back */
+  S.run=R;e.fly=true;e.noExit=true;if(!e.stripLoaner)e.loaner='Finish the pass first. Fast travel waits for the slip.';placeCar(a,e,lane,4);/* rolls up from 4 m back */
   if(o.racer){const r=o.racer,osp=D().spec(r.car);R.opp={racer:r,spec:osp,lane:1-lane,ctl:null,model:oppModel(a,r,1-lane,osp),x:0,v:0,done:false}}
   if(R.dial){/* bracket: the quicker dial waits the difference */const dm=R.dial[0],do_=R.dial[1];R.offs[lane]=Math.max(0,do_-dm);R.offs[1-lane]=Math.max(0,dm-do_)}
   boardsSet([null,null]);hudOn(a);ST.lastRun=null}
@@ -387,7 +408,8 @@ function finishRun(a){const R=S.run,me=R.run,sl=D().slip(me);R.phase='done';cons
   persist();hudOff();showSlip(a,R,sl,res,money)}
 const slim=sl=>({rt:sl.rt,t60:sl.t60,t330:sl.t330,et:sl.et,mph:sl.mph,et14:sl.et14,mph14:sl.mph14,day:dayN()});
 /* the pass is over without a slip (got out, fell asleep at the tree, a reset) */
-function endRun(a,why){const R=S.run;if(!R)return;S.run=null;dropOpp(R);hudOff();treeSet([{},{}]);const e=R.e;if(e){e.fly=false;e.noExit=false}
+function freeCar(e){if(!e)return;e.fly=false;e.noExit=false;if(!e.stripLoaner)delete e.loaner}
+function endRun(a,why){const R=S.run;if(!R)return;S.run=null;dropOpp(R);hudOff();treeSet([{},{}]);const e=R.e;freeCar(e)
   if(why==='asleep')feed('The tree went green a while ago. The tower would like the lane back.','info');
   if(why==='dnf')feed('No time on that one.','info');
   if(R.bracket&&why!=='quiet')feed('Bracket night: that counts as a loss in round '+R.bracket.round+'. Entry refunded.','info');
@@ -437,7 +459,7 @@ function showSlip(a,R,sl,res,money){const items=[];
   else items.push({label:'Done',sub:R.e===a.VAN?'Park in the paddock':'Hand the car back',act:()=>{closeMenu();doneRun(a,R)}});
   menu({id:'slip',title:R.opp?(R.bracket?'BRACKET NIGHT · ROUND '+R.bracket.round:'HEADS-UP'):'TIMESLIP',kicker:'SENSIBLE DRAGWAY · 1/8 MILE',html:slipHtml(R,sl,res,money),items,back:()=>{closeMenu();R.mode==='tune'?doneRun(a,R):items[0].act()}})}
 function again(a,R){S.run=null;newRun(a,{mode:'tune',e:R.e,lane:0,type:R.type,spec:R.spec})}
-function doneRun(a,R){S.run=null;dropOpp(R);const d=ST.def(),e=R.e;if(e){e.fly=false;e.noExit=false}
+function doneRun(a,R){S.run=null;dropOpp(R);const d=ST.def(),e=R.e;freeCar(e)
   if(e&&e.stripLoaner){dropLoaner(a);walkTo(a,R.mode==='tune'?{x:d.paddockBoard.x,z:d.paddockBoard.z+1.4}:{x:d.booth.x-1.6,z:d.booth.z},R.mode==='tune'?Math.PI:Math.PI/2)}
   else if(e){e.pos.set(d.park.x,0,d.park.z);e.yaw=d.park.yaw;try{a.owStopCar(e)}catch(_){}a.syncCar(e);a.P.pos.set(e.pos.x,0,e.pos.z)}
   treeSet([{},{}])}
@@ -502,7 +524,7 @@ function nextRound(a,R){const br=R.bracket;br.round++;S.run=null;dropOpp(R);brac
 function matchup(){const L=D().LADDER.map(D().racer);let i=Math.floor(Math.random()*L.length),j=Math.floor(Math.random()*(L.length-1));if(j>=i)j++;return[L[i],L[j]]}
 function openBet(a,m){m=m||S.nextMatch||(S.nextMatch=matchup());const[x,y]=m,E=D().ECON,Dd=today();
   const p=D().winP({spec:D().spec(x.car),driver:x.d},{spec:D().spec(y.car),driver:y.d},500,(m.seed=m.seed||((Math.random()*1e9)|0)));const mx=D().payout(p),my=D().payout(1-p);
-  const side=(r,mult,pp,lane)=>({label:'Back '+r.name,tags:[[D().spec(r.car).name.toUpperCase(),'']],sub:(lane?'Right':'Left')+' lane · the tower makes it '+Math.round(pp*100)+'%',right:'pays '+mult.toFixed(2)+'×',act:()=>stakeMenu(a,m,lane,mult,pp)});
+  const side=(r,mult,pp,lane)=>({label:'Back '+r.name,tags:[[D().spec(r.car).name.toUpperCase(),'']],sub:(lane?'Left':'Right')+' lane · the tower makes it '+Math.round(pp*100)+'%',right:'pays '+mult.toFixed(2)+'×',act:()=>stakeMenu(a,m,lane,mult,pp)});
   menu({id:'bet',title:'BET ON THE NEXT RACE',sub:x.name+' vs '+y.name+'. Payouts come from the tower\'s numbers (the same model that runs the race) less an '+Math.round(E.bet.edge*100)+'% house edge. $'+E.bet.min+'-$'+E.bet.max+' a bet; today +$'+Dd.betWon+' / -$'+Dd.betLost+' of +$'+E.bet.winCap+' / -$'+E.bet.lossCap+'. The booth never takes you under $'+E.bet.floor+'.',
     items:[side(x,mx,p,0),side(y,my,1-p,1),{label:'Just watch',sub:'No money on it',act:()=>{closeMenu();startWatch(a,m,null)}},{label:'Different race',sub:'Two other regulars',act:()=>{S.nextMatch=matchup();openBet(a)}}],back:()=>openOffice(a)})}
 function stakeMenu(a,m,lane,mult,p){const Dd=today(),c=cash(),items=[];
@@ -510,7 +532,7 @@ function stakeMenu(a,m,lane,mult,p){const Dd=today(),c=cash(),items=[];
   menu({id:'stake',title:'HOW MUCH?',sub:'On '+m[lane].name+' at '+mult.toFixed(2)+'×. You have '+money(c)+'.',items,back:()=>openBet(a,m)})}
 function startWatch(a,m,bet){const d=ST.def();S.nextMatch=null;const W=S.watch={m,bet,t:0,phase:'roll',models:[],ctl:[null,null],res:null,skip:false};
   for(let ln=0;ln<2;ln++){const r=m[ln];let v=null;try{v=HT.Vehicles.make(r.car,{color:RCOL[r.id]||'#888',lod:1})}catch(_){}if(v){v.traverse(o=>{if(o.isMesh)o.userData.noBatch=true});(S.root||a.L.group).add(v)}W.models.push(v)}
-  boardsSet([{name:m[0].name},{name:m[1].name}]);say(NAMES.starter,m[0].name+' in the left lane, '+m[1].name+' in the right. '+(bet?'You\'re on '+m[bet.lane].name+'.':''),true);
+  boardsSet([{name:m[0].name},{name:m[1].name}]);say(NAMES.starter,m[1].name+' in the left lane, '+m[0].name+' in the right. '+(bet?'You\'re on '+m[bet.lane].name+'.':''),true);
   W.key=e=>{if(!S.watch||S.menu)return;const k=(e.key||'').toLowerCase();if(k==='e'||k==='enter'||k===' '||k==='escape'){e.stopImmediatePropagation();e.preventDefault();W.skip=true}};document.addEventListener('keydown',W.key,true);
   if(HT.Pad&&HT.Pad.modal)W.unpad=HT.Pad.modal({move:()=>{},ok:()=>{W.skip=true},back:()=>{W.skip=true}});hudOn(a,true)}
 function watchTick(a,dt){const W=S.watch;if(!W)return;W.t+=dt;
@@ -532,14 +554,15 @@ function watchDone(a){const W=S.watch;W.phase='done';const sl=W.ctl.map(c=>D().s
 function endWatch(a,keepModels){const W=S.watch;if(!W)return;S.watch=null;if(W.key)document.removeEventListener('keydown',W.key,true);if(W.unpad)W.unpad();hudOff();
   for(const v of W.models)if(v){try{if(v.parent)v.parent.remove(v);v.userData.dispose&&v.userData.dispose()}catch(_){}}treeSet([{},{}])}
 /* the tower camera: high on the tower, following the leading car down the track */
-function camera(dt){const W=S.watch;if(!W)return;const a=A(),cam=a.camera,d=ST.def();const xs=W.models.map(v=>v?v.position.x:d.start);const lead=Math.min(...xs),mid=(Math.min(...xs)+Math.max(...xs))/2;
+function camera(dt){if(ST.debugCam){const a=A(),c=ST.debugCam;a.camera.position.set(c.p[0],c.p[1],c.p[2]);a.camera.lookAt(c.l[0],c.l[1],c.l[2]);a.camera.fov=c.fov||50;a.camera.updateProjectionMatrix();return true}/* screenshots (dev/dragstrip-check.js) */
+  const W=S.watch;if(!W)return;const a=A(),cam=a.camera,d=ST.def();const xs=W.models.map(v=>v?v.position.x:d.start);const lead=Math.min(...xs),mid=(Math.min(...xs)+Math.max(...xs))/2;
   const far=d.start-lead;const px=far<20?d.start+16:Math.max(d.finish+30,lead+28),py=far<20?4.2:7.5,pz=far<20?290.5:293;
   cam.position.set(px,py,pz);cam.lookAt(far<20?d.start-6:mid-8,1,d.centerZ);const fov=far<20?52:46;cam.fov+=(fov-cam.fov)*Math.min(1,dt*3);cam.updateProjectionMatrix();return true}
 ST.watch=()=>S.watch?{phase:S.watch.phase,t:S.watch.t,bet:S.watch.bet,m:S.watch.m.map(r=>r.id)}:null;
 
 /* ================= the in-car HUD: the tree for your lane, the tach with the launch window, speed, the clock ================= */
 function hudOn(a,watch){hudOff();css();const el=document.createElement('div');el.className='ht-drhud';
-  el.innerHTML=`<div class="tree">${['pre','stage'].map(b=>`<div class="b sm" data-b="${b}0"></div><div class="b sm" data-b="${b}1"></div>`).join('')}${['a1','a2','a3','green','red'].map(b=>`<div class="b" data-b="${b}0"></div><div class="b" data-b="${b}1"></div>`).join('')}</div>
+  el.innerHTML=`<div class="tree">${['pre','stage'].map(b=>`<div class="b sm" data-b="${b}1"></div><div class="b sm" data-b="${b}0"></div>`).join('')}${['a1','a2','a3','green','red'].map(b=>`<div class="b" data-b="${b}1"></div><div class="b" data-b="${b}0"></div>`/* as the driver sees the tree: lane 0 (north) on the right */).join('')}</div>
   <div class="panel"><div class="row"><span data-k="who"></span><span data-k="clock"></span></div>${watch?'':'<div class="tach"><i data-k="band"></i><u data-k="rpm"></u></div>'}<div class="row"><span class="big" data-k="spd"></span><span data-k="gear"></span></div><div class="tip" data-k="tip"></div></div>`;
   document.body.appendChild(el);S.hud={el,q:k=>el.querySelector('[data-k="'+k+'"]'),bulbs:[...el.querySelectorAll('[data-b]')],watch:!!watch,key:''}}
 function hudOff(){if(S.hud){S.hud.el.remove();S.hud=null}}
@@ -583,8 +606,8 @@ function tick(){const a=A(),d=ST.def();if(!a||!a.L||!a.L.ow||!d)return;
   if(L&&a.CV!==L&&!S.run){/* got out: it goes back */dropLoaner(a)}
   if(S.run&&!S.menu)runTick(a,dt);if(S.watch)watchTick(a,dt);
   hudTick(a);animate(a,d,dt)}
-function animate(a,d,dt){if(!S.root)return;
-  /* night: the light pools come up */const nk=RO()&&RO().nightK?RO().nightK():0;if(S.pools){S.pools.visible=nk>.05;S.pools.material.opacity=clamp(nk*1.1,0,.9)}
+function animate(a,d,dt){if(!S.root)return;{const c=a.camera.position,b=d.paddockBoard,nearP=Math.hypot(c.x-b.x+20,c.z-b.z)<48&&!(S.run&&S.run.phase!=='roll')&&!S.watch;if(S.loanG)S.loanG.visible=nearP}/* the loaner row: only from the paddock */
+  /* night: the light pools come up */const nk=RO()&&RO().nightK?RO().nightK():0;if(S.pools){S.pools.visible=nk>.05;S.pools.material.opacity=clamp(nk*1.3,0,1)}
   /* the crowd: seated, a little fidget; on their feet when something's on */const live=!!(S.run&&S.run.phase==='go'||S.watch&&S.watch.phase==='go');
   for(const p of S.people){try{const cp=a.camera.position;if(Math.hypot(cp.x-p.d.root.position.x,cp.z-p.d.root.position.z)>90)continue;a.pose(p.d,dt,p.sit?{mode:live?'stand':'sit',moving:false,aim:false}:{moving:false,aim:false})}catch(_){}}}
 /* the car during a pass: the race model has it (the game's physics are off: e.fly) */
@@ -608,7 +631,7 @@ function hudPart(st){const a=A(),d=ST.def();if(!a||!st||a.mode!=='hub'||!d)retur
 
 /* ================= reset: quit to title, job start, home, the tow, death (HT.Base.reset from index.html clearChars) ================= */
 function reset(){const a=A();try{closeMenu()}catch(_){}try{if(S.watch)endWatch(a)}catch(_){}
-  try{if(S.run){const R=S.run;S.run=null;dropOpp(R);if(R.e){R.e.fly=false;R.e.noExit=false}}}catch(_){}
+  try{if(S.run){const R=S.run;S.run=null;dropOpp(R);freeCar(R.e)}}catch(_){}
   try{if(S.loaner)dropLoaner(a,true)}catch(_){S.loaner=null}hudOff();try{treeSet([{},{}])}catch(_){}S.nextMatch=null}
 ST.reset=reset;
 

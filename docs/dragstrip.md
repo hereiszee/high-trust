@@ -26,8 +26,8 @@ Two 4 m lanes; a concrete launch pad with rubber laid down in the grooves; a bur
 (pre-stage and stage bulbs, three ambers, green, red, per lane); timing boards (ET, trap speed, reaction time, the win lamp and the
 margin per lane) at the finish (facing the start) and on the tower (facing the stands); the timing tower with the race office window;
 two small grandstands with a canopy and seated spectators from the neighbour pool (adults only; fenced in on all four sides with the
-'z' chain-link tiles and the track wall, so no car and no dad can reach them); the paddock with one of every loaner lined up under a
-canopy, the test & tune board, tyre stacks, a fuel cage; light poles that glow at night with pools of light on the track; distance
+'z' chain-link tiles and the track wall, so no car and no dad can reach them); the paddock with the six street loaners lined up under a
+canopy (the mower is lent from the picker; its 29-part model would cost more draw calls than the other six together), the test & tune board, tyre stacks, a fuel cage; light poles that glow at night with pools of light on the track; distance
 boards (60 ft, 330 ft, trap, 1/8); a road sign on Industrial Way.
 
 Static parts are three open-world set pieces (`strip_e`, `strip_w`, `strip_sign`, merged per material through the base kit's painter,
@@ -123,8 +123,24 @@ quitting, a job start, fast travel or a reset mid-race changes no money and no l
 
 ## Draw calls
 
-Measured by dev/dragstrip-check.js `perf` (our meshes only, counted in the renderer): see docs/screenshots/dragstrip/evidence.txt.
-0 at Maple Heights and the Fort Sensible gate.
+Counted per draw in the renderer (`renderBufferDirect`, our objects only: the `strip_*` units and the `dragstrip` group), main pass +
+shadows, by dev/dragstrip-check.js `perf` (Medium):
+
+| Where | Ours | Whole frame |
+|---|---|---|
+| Paddock, looking down the track | 37 | 266 |
+| Start line | 38 | 253 |
+| Stands | 30 | 120 |
+| Finish line | 27 | 242 |
+| The Industrial Way sign | 16 | 312 |
+| Fort Sensible range / gate (the strip is in view across the fence) | 24 / 15 | 412 / 304 |
+| Maple Heights, Riverside | 0 | 319 / 483 |
+
+How: the base kit's materials folded to seven (vertex colours carry the look); only the near unit's paint and concrete cast shadows;
+the six parked loaners merged to 7 calls (body + wheels per car, one mesh for all the contact shadows) and only drawn from the paddock
+and not during a pass; spectators don't cast shadows; the tree, both boards and the night light pools are one mesh each. Runtime
+pieces are built within 60 m of the strip and dropped (geometry, people, colliders) beyond 200 m. A race adds the opponent's car
+(LOD1, 3) while the loaner row (7) is hidden.
 
 ## Tests
 

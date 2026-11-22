@@ -1490,8 +1490,8 @@ function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.
    of it (he gets in), the car, the dad and the crew go; on foot further away, or in anything else, it is refused and nothing moves. */
 function ftRefusal(){const e=CV;
   if(!e)return Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30?null:'Fast travel is by minivan. Get back to the minivan first.';
+  if(e.loaner)return e.loaner;/* Sensible Dragway (js/dragstrip.js): its loaners stay at the strip; your own car mid-pass waits for the pass */
   if(e===VAN)return null;
-  if(e.loaner)return e.loaner;/* Sensible Dragway's loaners stay at the strip (js/dragstrip.js) */
   if(e.type==='tank')return "The tank doesn't fast travel. It goes 25 mph, everywhere, on purpose. Take it back to the motor pool.";
   if(e.type==='jet')return "You're in a fighter jet. You are the fast travel.";
   if(e.type==='mower')return "The mower doesn't fast travel. It goes at mowing speed, like Big Dave intended.";

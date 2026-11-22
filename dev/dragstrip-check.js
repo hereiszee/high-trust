@@ -7,7 +7,7 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path'),DR=require('../js/dragsim.js');
 const OUT=path.join(__dirname,'../docs/screenshots/dragstrip');fs.mkdirSync(OUT,{recursive:true});
 const args=process.argv.slice(2),SHOTS=args.includes('--shots');let phases=(args.find(a=>!a.startsWith('--'))||'all').split(',');
-if(phases.includes('all'))phases=['travel','tune','red','race','bets','caps','quit','pad','perf'];
+if(phases.includes('all'))phases=['travel','tune','red','race','bets','bracket','caps','quit','pad','perf'];
 const log=[];const say=(...a)=>{const s=a.join(' ');console.log(s);log.push(s)};let fails=0;
 const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
@@ -49,6 +49,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     while(n++<900){const r=await S();if(!r.run||r.run.phase==='done')break;const lt=await tree(),L=lt[lane]||{};
       if(!r.run.launched){if(r.run.phase==='roll'){await step(1);continue}
         const want=(band[0]+band[1])/2;await key('w',o.flat?true:r.run.rpm<want-.04);
+        if(o.treeShot&&L.a2&&!o._ts){o._ts=1;await ev(()=>{HT.Strip.debugCam={p:[256.8,1.7,281.2],l:[252.5,2.1,278],fov:46}});await shot('tree',{hideHud:true});await ev(()=>{HT.Strip.debugCam=null})}
         const jumped=o.jump&&L.a3&&!L.green;if(L.green&&o.late&&(o._w=(o._w||0)+1)<o.late){await step(1);continue}if(L.green||jumped){await key(' ',false);await key('w',true);launched=true}}
       else{const sp=await ev(()=>HT.Strip.S.run.run.spin);await key('w',o.flat?true:sp<.32)}
       await step(1)}
@@ -85,7 +86,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 
   if(phases.includes('red')){say('== red light: leaving on the last amber');
     const b=def.paddockBoard;await walk(b.x,b.z+2.2,.8);await press('e',2);await pickItem(/^Hatchback$/);await step(2);
-    const r=await pass({jump:true});const sl=r.last&&r.last.slip;ok(sl&&sl.red&&sl.rt<0,'red light: RT '+(sl&&sl.rt));
+    const r=await pass({jump:true,treeShot:true});const sl=r.last&&r.last.slip;ok(sl&&sl.red&&sl.rt<0,'red light: RT '+(sl&&sl.rt));
     const lt=await tree();ok(lt[0].red,'the red bulb is lit in our lane');await shot('red-light');
     await pickItem(/^Done$/);await step(4)}
 
@@ -120,9 +121,18 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await ev(()=>{const s=HT.Save.data;s.cash=1500;const D=HT.Drag.day(s.strip,s.day||1);D.betWon=0;D.betLost=0});
     for(const skip of[false,true]){ok(await office(),'office');await pickItem(/^Bet on the next race$/);let m=await menu();ok(m.id==='bet'&&/^Back /.test(m.items[0]),'two racers on offer: '+m.items.slice(0,2).join(' | '));if(!skip)await shot('betting-booth');
       await press('1',1);m=await menu();ok(m.id==='stake','stake menu');const c0=await cashNow();await pickItem(/^\$25$/);await step(2);let w=await ev(()=>HT.Strip.watch());ok(!!w,'watching from the tower ('+(w&&w.m.join(' vs '))+')');
-      let n=0;while(n++<400){w=await ev(()=>HT.Strip.watch());if(!w)break;if(skip&&w.phase==='go'&&w.t>.4){await press('e',1);continue}if(!skip&&SHOTS&&w.phase==='go'&&Math.abs(w.t-3.2)<.05)await shot('spectator-race');await step(1)}
+      let n=0,shotDone=false;while(n++<1200){w=await ev(()=>HT.Strip.watch());if(!w)break;if(skip&&w.phase==='go'&&w.t>.4){await press('e',1);continue}if(!skip&&SHOTS&&!shotDone&&w.phase==='go'&&w.t>3.2){shotDone=true;await shot('spectator-race')}await step(1)}
       const lw=await ev(()=>HT.Strip.state().lastWatch),c1=await cashNow();ok(lw&&(c1-c0===lw.net)&&(lw.net===-25||lw.net>0),(skip?'skipped: ':'watched: ')+'winner lane '+(lw&&lw.win)+' by '+(lw&&lw.margin)+', bet '+(lw&&lw.net)+', cash '+(c1-c0));
       if(!skip)await shot('spectator-result');await press('Escape',1);await step(2)}}
+
+  if(phases.includes('bracket')){say('== bracket night (day 3): dial-ins, handicap starts, up to three rounds, one settlement');
+    await ev(()=>{const s=HT.Save.data;s.day=3;s.cash=1500;s.strip.bracket.lastDay=0});await office();await pickItem(/^Bracket night$/);await pickItem(/^Rent: Sedan$/);await step(2);
+    const c0=await cashNow();let rounds=0,L=null;
+    for(let k=0;k<3;k++){let r=await S();if(!r.run)break;rounds++;const offs=await ev(()=>HT.Strip.S.run.offs.slice());say('  round '+rounds+' vs '+r.run.opp+', handicap '+JSON.stringify(offs));
+      r=await pass({});L=r.last;say('  '+JSON.stringify(L&&L.res));const m=await menu();if(m.items[0]==='Next round'){await pickItem(/^Next round$/);await step(2)}else break}
+    const c1=await cashNow();ok(L&&L.money&&L.money.lines.some(x=>x[0]==='Bracket entry'&&x[1]===-60),'bracket settled once at the end: '+JSON.stringify(L&&L.money));
+    ok(L&&c1-c0===L.money.net,'cash moved by the bracket net exactly: '+(c1-c0));const ld=await ev(()=>HT.Save.data.strip.bracket.lastDay);ok(ld===3,'tonight\'s bracket is done (next one in 3 days)');
+    await pickItem(/^Done$/);await step(4);await ev(()=>{HT.Save.data.day=1})}
 
   if(phases.includes('caps')){say('== caps and the floor (in the page) and the odds sweep (pure sim, 2,000 races)');
     const r=await ev(()=>{const D=HT.Drag,E=D.ECON.bet,d={won:0,betWon:0,betLost:0,beat:{}};const o={};
@@ -139,7 +149,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 
   if(phases.includes('quit')){say('== quit to title mid-race: nothing left behind');
     const c0=await cashNow(),s0=await ev(()=>JSON.stringify(HT.Save.data.strip.ladder));await office();await pickItem(/^Race the ladder$/);await pickItem(/^Dutch/);await pickItem(/^Rent: Hatchback$/);await pickItem(/^Bet \$25 on yourself$/);await step(2);
-    await key(' ',true);await key('w',true);for(let i=0;i<70;i++)await step(1);await release();let r=await S();ok(r.run&&(r.run.phase==='go'||r.run.phase==='tree'),'mid-race ('+(r.run&&r.run.phase)+')');
+    await key(' ',true);await key('w',true);for(let i=0;i<115;i++)await step(1);await release();let r=await S();ok(r.run&&(r.run.phase==='go'||r.run.phase==='tree'),'mid-race ('+(r.run&&r.run.phase)+')');
     await ev(()=>{window.__ht.HUD.emit?0:0});await ev(()=>{const H=window.__ht;H.quitToTitle?H.quitToTitle():document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))});await step(2);
     const q=await ev(()=>{const H=window.__ht;return{st:HT.Strip.state(),cars:(H.L&&H.L.cars||[]).filter(e=>e.stripLoaner).length,hud:!!document.querySelector('.ht-drhud'),menus:document.querySelectorAll('.ht-dr').length,cash:Math.round(HT.Save.data.cash),lad:JSON.stringify(HT.Save.data.strip.ladder),fly:!!(H.CV&&H.CV.fly)}});
     ok(!q.st.run&&!q.st.loaner&&!q.st.watch&&q.cars===0&&!q.hud&&!q.menus&&!q.fly,'no run, no loaner, no HUD, no menu: '+JSON.stringify({cars:q.cars,hud:q.hud,menus:q.menus}));
@@ -157,11 +167,11 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await ev(()=>{__T.tap(13);__T.tap(13);__T.tap(12)});m=await menu();ok(m.i===1,'D-pad moves the selection (on '+m.items[m.i]+')');
     await ev(()=>{__T.tap(0)});await step(2);let r=await S();ok(r.run&&r.loaner&&r.loaner.type==='minivan','A takes the minivan loaner');
     /* the pass: hold A (brake) and RT, let go of A on the green, keep RT down */
-    const band=await ev(()=>HT.Strip.S.run.spec.band);let n=0,launched=false;await ev(()=>{__T.set({buttons:{0:1}})});
+    const band=await ev(()=>HT.Strip.S.run.spec.band);let n=0,launched=false,o_tip=0;await ev(()=>{__T.set({buttons:{0:1}})});
     while(n++<900){r=await S();if(!r.run||r.run.phase==='done')break;const lt=await tree(),Lt=lt[r.run.lane]||{};
       if(!launched){const want=(band[0]+band[1])/2;await ev(v=>{__T.set({buttons:{0:1,7:v}})},r.run.rpm<want-.04?1:0);
         if(Lt.green){await ev(()=>{__T.set({buttons:{0:0,7:1}})});launched=true}}else{const sp=await ev(()=>HT.Strip.S.run.run.spin);await ev(v=>{__T.set({buttons:{7:v}})},sp<.32?1:.4)}
-      if(n===8){const tip=await ev(()=>document.querySelector('.ht-drhud .tip').innerText);ok(/\bA\b/.test(tip)&&/\bRT\b/.test(tip)&&!/Space|\bW\b/.test(tip),'the teach line names A and RT: '+tip)}
+      if(r.run.phase==='staged'&&!o_tip){o_tip=1;const tip=await ev(()=>document.querySelector('.ht-drhud .tip').innerText);ok(/\bA\b/.test(tip)&&/\bRT\b/.test(tip)&&!/Space|\bW\b/.test(tip),'the teach line names A and RT: '+tip)}
       await ev(()=>__T.tick());await step(1)}
     await ev(()=>{__T.set({buttons:{0:0,7:0}})});for(let i=0;i<100;i++){m=await menu();if(m.open)break;await step(2)}
     r=await S();ok(m.open&&m.id==='slip'&&r.last&&r.last.slip&&r.last.slip.et>8,'slip after a controller pass: ET '+(r.last&&r.last.slip&&r.last.slip.et));
@@ -172,10 +182,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await ev(()=>{const H=window.__ht,R=H.renderer,orig=R.renderBufferDirect.bind(R);window.__sk=-1;R.renderBufferDirect=function(c,s,g,m,o,gr){if(window.__sk>=0){let q=o;while(q){if(q.name==='dragstrip'||/^strip_/.test(q.name||'')){window.__sk++;break}q=q.parent}}return orig(c,s,g,m,o,gr)}});
     const probe=(x,z,lx,lz,h)=>ev(([x,z,lx,lz,h])=>{const H=window.__ht,c=H.camera;H.P.pos.set(x,0,z);H.step(3);c.position.set(x,h||3,z);c.lookAt(lx,1.5,lz);c.updateMatrixWorld();H.ow.update(c);H.ow.update(c);
       const R=H.renderer;R.info.autoReset=false;R.info.reset();window.__sk=0;R.render(H.scene,c);const all=R.info.render.calls,ours=window.__sk;window.__sk=-1;R.info.autoReset=true;return{all,ours}},[x,z,lx,lz,h]);
-    for(const[n,v]of[['paddock',[262,292,150,278]],['start line',[262,278,60,278]],['stands',[230,262,240,280,4]],['finish',[50,286,120,276]],['the Route 9 sign',[208,160,208,170]],['Maple Heights',[39,15,80,15]],['Fort Sensible gate',[203,170,203,200]]]){await settle(3);const r=await probe(...v);
-      const lim=/Maple|Sensible gate/.test(n)?0:40;ok(r.ours<=lim,n+': ours '+r.ours+' of '+r.all+' calls (limit '+lim+')')}
+    for(const[n,v]of[['paddock',[262,292,150,278]],['start line',[262,278,60,278]],['stands',[230,262,240,280,4]],['finish',[50,286,120,276]],['the Route 9 sign',[208,160,208,170]],['Maple Heights',[39,15,80,15]],['Riverside',[379,43,340,43]],['Fort Sensible range',[128,204,200,204]],['Fort Sensible gate',[203,170,203,200]]]){await settle(3);const r=await probe(...v);
+      const lim=/Maple|Riverside/.test(n)?0:40;ok(r.ours<=lim,n+': ours '+r.ours+' of '+r.all+' calls (limit '+lim+')')}
     if(SHOTS){await ev(()=>{const H=window.__ht;H.P.pos.set(262,0,268);H.P.yaw=Math.PI/2+.35;H.P.pitch=-.08;H.step(3)});await settle(6);await shot('strip-day',{hideHud:true});
-      await ev(()=>{const H=window.__ht;H.P.pos.set(250,0,284.6);H.P.yaw=Math.PI/2-.25;H.P.pitch=.02;H.step(3)});await settle(4);await shot('tree-closeup',{hideHud:true});
       await ev(()=>{const H=window.__ht;H.setNight(1);H.P.pos.set(262,0,268);H.P.yaw=Math.PI/2+.35;H.P.pitch=-.08;H.step(3)});await settle(8);await shot('strip-night',{hideHud:true});await ev(()=>window.__ht.setNight(0))}}
 
   say('== done in '+((Date.now()-T0)/1000).toFixed(0)+' s; console errors: '+errs.length);for(const e of errs.slice(0,6))say('   '+e);if(errs.length)fails++;
