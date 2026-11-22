@@ -159,9 +159,12 @@ ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign
 ipcMain.on('ht:device-set', (e, k, v) => { if (!fromGame(e) || typeof k !== 'string' || k.length > 64 || (v != null && (typeof v !== 'string' || v.length > 4096))) return;
   cfg.device = Object.assign({}, cfg.device); if (v == null) delete cfg.device[k]; else cfg.device[k] = v; saveCfg() });
 /* a save the game couldn't read is copied next to the save before anything else happens to it (SAV-07); returns the file's path */
-ipcMain.on('ht:keep-file', (e, name, text) => { e.returnValue = null; if (!fromGame(e) || typeof name !== 'string' || typeof text !== 'string' || text.length > 32e6) return;
-  const safe = name.replace(/[^\w.-]/g, '_').slice(0, 80); if (!safe || safe.startsWith('.')) return;
-  try { const dir = path.join(USER, 'saves'); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, safe); fs.writeFileSync(f, text); e.returnValue = f } catch (err) { log('[save] keep failed', err && err.message) } });
+ipcMain.on('ht:keep-file', (e, name, text) => { let out = null; /* returnValue answers the sync call the moment it is set: set it once */
+  if (fromGame(e) && typeof name === 'string' && typeof text === 'string' && text.length <= 32e6) {
+    const safe = name.replace(/[^\w.-]/g, '_').slice(0, 80);
+    if (safe && !safe.startsWith('.')) { try { const dir = path.join(USER, 'saves'); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, safe); fs.writeFileSync(f, text); out = f } catch (err) { log('[save] keep failed', err && err.message) } }
+  }
+  e.returnValue = out });
 ipcMain.on('ht:save-set', (e, k, v) => { if (fromGame(e) && typeof k === 'string' && typeof v === 'string' && k.length < 128 && v.length < 32e6) store.set(k, v) });
 ipcMain.on('ht:save-remove', (e, k) => { if (fromGame(e) && typeof k === 'string') store.remove(k) });
 ipcMain.on('ht:save-flush', e => { e.returnValue = fromGame(e) ? store.flush() : false });

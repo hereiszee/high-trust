@@ -13,10 +13,10 @@ const game = ['index.html', 'LICENSE', 'js/**', 'css/**', 'vendor/**',
   ...(FULL ? ['assets/**', '!assets/**/*.md', 'assets/CREDITS.md'] : ['assets/opt/**', 'assets/fonts/**', 'assets/CREDITS.md', 'assets/credits/**', '!assets/opt/boot.jpg*', '!assets/opt/.cache.json']),
   '!**/.DS_Store', '!**/*.psd', '!**/*.blend'];
 module.exports = {
-  appId: 'com.hightrust.game', /* TODO(owner): your reverse-domain id */
+  appId: 'com.hightrust.game', /* PLACEHOLDER (owner input, docs/steam/CHECKLIST.md "Owner inputs"): your reverse-domain id */
   productName: 'High Trust',
   executableName: 'HighTrust',
-  copyright: 'Copyright © High Trust',
+  copyright: 'Copyright © 2026 hereiszee',
   directories: { output: 'dist', buildResources: 'build' },
   files: ['main.js', 'preload.js', 'save-store.js', 'steam.js', 'package.json', 'build/icon.png', '!test/**', '!scripts/**', '!dist/**', '!steam_appid.txt', '!STEAM_APPID_README.txt'],
   extraResources: [{ from: '..', to: 'game', filter: game }],

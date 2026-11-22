@@ -12,7 +12,7 @@ Steam Deck or Linux box. It ends with a 20-minute checklist of things only a per
    |---|---|
    | `high-trust-windows-x64` | Windows 10/11 (x64) |
    | `high-trust-linux-x64` | Linux, Steam Deck desktop mode |
-   | `high-trust-macos-universal-archive` | macOS 12+ on Apple Silicon or Intel: the zip inside holds `HighTrust.app` (only the zip keeps the app bundle intact) |
+   | `high-trust-macos-universal-archive` | macOS 12+ on Apple Silicon or Intel: the zip inside holds `High Trust.app` (only the zip keeps the app bundle intact) |
    | `high-trust-windows-x64-archive`, `high-trust-linux-x64-archive` | the Windows / Linux builds as one zip / tar.gz |
    | `*-test-output` | screenshots and logs from the CI test (ignore unless something failed) |
    Artifacts expire after 14 days. GitHub needs you to be signed in to download them.
@@ -22,11 +22,11 @@ Steam Deck or Linux box. It ends with a 20-minute checklist of things only a per
 **Windows.** Unzip anywhere, then run `HighTrust.exe`. SmartScreen may say "Windows protected your PC" because the exe isn't code-signed yet.
 Click **More info → Run anyway**. Steam installs don't show this.
 
-**macOS.** Download `high-trust-macos-universal-archive`, unzip it, then unzip `High Trust-…-universal-mac.zip` inside (double-click it in Finder; Finder keeps the bundle intact), then move `HighTrust.app` (it may show as "High Trust") to Applications or anywhere.
+**macOS.** Download `high-trust-macos-universal-archive`, unzip it, then unzip `High Trust-…-universal-mac.zip` inside (double-click it in Finder; Finder keeps the bundle intact), then move `High Trust.app` (it may show as "High Trust") to Applications or anywhere.
 The CI build is **ad-hoc signed but not notarised** (that needs your Apple Developer ID, see BUILD.md), so Gatekeeper blocks a double-click:
 - **Right-click the app → Open → Open.** You only need to do this once. On recent macOS you may also have to allow it under
   **System Settings → Privacy & Security → "HighTrust was blocked" → Open Anyway**.
-- Or in Terminal: `xattr -dr com.apple.quarantine /path/to/HighTrust.app`, then open it normally.
+- Or in Terminal: `xattr -dr com.apple.quarantine "/path/to/High Trust.app"`, then open it normally.
 - If it says the app "is damaged and can't be opened", that is the quarantine flag on an un-notarised download. Run the `xattr`
   line above.
 - Players won't see any of this once the build is signed and notarised.
@@ -60,7 +60,7 @@ Tick these on each machine you have. Write down the machine (CPU/GPU, OS, displa
 **Mouse and keyboard (3 min)**
 - [ ] Click to lock the cursor. Look speed feels right at the default, and Invert look works.
 - [ ] Esc opens pause and a second Esc resumes. Alt-tab or Cmd-Tab away pauses the game, and coming back doesn't spin the camera.
-- [ ] Settings → Key bindings: rebind Reload to T and Fire to Mouse 4 (if your mouse has it). Both work in game, and the prompts show the new keys.
+- [ ] Pause → Controls & keys: rebind Reload to T and Fire to Mouse 4 (if your mouse has it). Both work in game, and the prompts show the new keys.
   Then Reset to defaults.
 
 **Controller (5 min).** Use whatever you have: Xbox, PlayStation, the Deck itself.
