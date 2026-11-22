@@ -1,5 +1,16 @@
 bay {"x":221,"z":53,"door":{"x":221,"z":55,"yaw":3.141592653589793,"label":"Dad's Auto","hood":"route9","pin":true,"tx":110,"tz":27}}
 van {"type":"minivan","name":"","hp":70} prompt ["Dad's Auto","Pull into Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"] after E {"open":true,"tab":"repair","txt":"\n    \n      Route 9 · Sal Benedetto, proprietorDad's Auto\n      Family discount after 5 more\n      Cash$0\n      Esc✕\n    \n    QPerformanceProtectionUtilityLooks"}
 ok   in the van at the service bay: "Pull into Dad's Auto" shows and E opens the shop {"prompt":["Dad's Auto","Pull into Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"],"shop":{"open":true,"tab":"repair","txt":"\n    \n      Route 9 · Sal Benedetto, proprietorDad's Auto\n      Family discount after 5 more\n      Cash$0\n      Esc✕\n    \n    QPerformanceProtectionUtilityLooks"}}
-borrowed {"type":"sedan","name":"Linda","hp":73} prompt ["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"] after E {"open":false,"tab":null,"txt":""}
-FAIL in the borrowed at the service bay: "Pull into Dad's Auto" shows and E opens the shop {"prompt":["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"],"shop":{"open":false,"tab":null,"txt":""}}
+borrowed {"type":"sedan","name":"Linda","hp":73} prompt ["Dad's Auto","Pull into Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"] after E {"open":true,"tab":"repair","txt":"\n    \n      Route 9 · Sal Benedetto, proprietorDad's Auto\n      Family discount after 5 more\n      Cash$0\n      Esc✕\n    \n    QPerformanceProtectionUtilityLooks"}
+ok   in the borrowed at the service bay: "Pull into Dad's Auto" shows and E opens the shop {"prompt":["Dad's Auto","Pull into Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"],"shop":{"open":true,"tab":"repair","txt":"\n    \n      Route 9 · Sal Benedetto, proprietorDad's Auto\n      Family discount after 5 more\n      Cash$0\n      Esc✕\n    \n    QPerformanceProtectionUtilityLooks"}}
+repair target {"name":"Linda's sedan","own":false,"hp":45.41359513095986}
+ok   the Repair tab is for the borrowed car, not the minivan {"name":"Linda's sedan","own":false,"hp":45.41359513095986}
+repaired {"hp":100,"fixed":true,"name":"Linda"}
+ok   paid at Dad's Auto: the borrowed car is back to 100 HP {"hp":100,"fixed":true,"name":"Linda"}
+trust {"r":1,"d":1,"again":0,"d2":0}
+ok   handing it back fixed: +1 trust, once per car {"r":1,"d":1,"again":0,"d2":0}
+tank prompt ["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"] said ["Sal took one look at the tank: \"That's a government problem.\" Back to the motor pool with it."] after E {"open":false,"cv":null}
+ok   in the tank at the bay: Sal says no as you roll in, no shop, and E still gets you out {"pr":["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"],"said":["Sal took one look at the tank: \"That's a government problem.\" Back to the motor pool with it."],"after":{"open":false,"cv":null}}
+jet prompt ["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"] said ["Sal doesn't have a lift for a fighter jet. Nobody in town does."] after E {"open":false,"cv":null}
+ok   in the jet at the bay: Sal says no as you roll in, no shop, and E still gets you out {"pr":["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"],"said":["Sal doesn't have a lift for a fighter jet. Nobody in town does."],"after":{"open":false,"cv":null}}
+mower not available here null

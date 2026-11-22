@@ -1477,7 +1477,7 @@ function ftRefusal(){const e=CV;
   if(e.type==='jet')return "You're in a fighter jet. You are the fast travel.";
   if(e.type==='mower')return "The mower doesn't fast travel. It goes at mowing speed, like Big Dave intended.";
   if(e.type==='bike')return 'Fast travel is by minivan. The bike goes where your legs take it.';
-  return 'Fast travel is by minivan. Get '+(e.name||'the owner')+"'s "+feel(e).label+' back first.'}
+  return 'Fast travel is by minivan. Take '+(e.name||'the owner')+"'s "+feel(e).label+' back first.'}
 function owFade(){let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}return f}
 /* hold a fade until the open world around (x,z) is built (OW.buildNear in 50 ms slices, so the page stays alive), 3 s at most, then done() */
 function owArrive(x,z,done){const O=OW(),t0=performance.now();
@@ -3040,7 +3040,8 @@ function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprit
      the tank, the jet, the mower and the bike get a no from Sal instead of a shop */
   const bayNo=CV?autoRefusal(CV):null;
   for(const c of cand){if(!!c.van!==!!CV)continue;const p=CV?CV.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&(d-(c.pri?1.5:0))<bd){bd=d-(c.pri?1.5:0);best=c}}
-  if(best&&best.id==='autobay'&&bayNo){if(CV&&Math.abs(CV.spd)>3)return null;if(useTap){useTap=false;HUD.feed(bayNo,'info')}return KE+" · Dad's Auto · cars only"}
+  if(best&&best.id==='autobay'&&bayNo){if(HUBX.bayNo!==CV){HUBX.bayNo=CV;HUD.feed(bayNo,'info')}return null}/* said once as you roll in; E still gets you out */
+  if(!best||best.id!=='autobay')HUBX.bayNo=null;
   if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
   if(CV&&Math.abs(CV.spd)>3)return null;
   if(useTap){useTap=false;if(best.id==='porch'){metaOpenPorch();return null}if(best.id==='home'){if(homeReady)enterHome();else{homeInit();homeWant=true;HUD.feed('Unlocking the front door…','info')}}

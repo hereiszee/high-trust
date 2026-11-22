@@ -210,9 +210,9 @@ const PL=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow,PP=HT.People,G=
   
   const boxD=(t,x,z)=>{const b=O.trafficBox(t);const dx=x-b.x,dz=z-b.z,a=dx*b.fx+dz*b.fz,c=dx*-b.fz+dz*b.fx;return Math.hypot(Math.max(0,Math.abs(a)-b.hl),Math.max(0,Math.abs(c)-b.hw))};
   const kid=PP.make('neighbour',{variant:'nb_kid'}),adult=PP.make('neighbour',{variant:'nb_pops'});
-  const who=[];const mine=d=>d===kid||d===adult||H.allies.some(a=>a.dude===d);PP.hit=function(d){if(mine(d)){hits++;if(who.length<6)who.push('hit:'+(d.rb&&d.rb.key)+':'+(new Error().stack.split('\n')[2]||'').trim().slice(0,90))}return hit0.apply(this,arguments)};PP.die=function(d){if(mine(d)){hits++;if(who.length<6)who.push('die:'+(d.rb&&d.rb.key))}return die0.apply(this,arguments)};/* only the people under test (Riverside free roam has its own scuffles) */
+  const who=[],made=[];const mine=d=>d===kid||made.includes(d)||H.allies.some(a=>a.dude===d);PP.hit=function(d){if(mine(d)){hits++;if(who.length<6)who.push('hit:'+(d.rb&&d.rb.key)+':'+(new Error().stack.split('\n')[2]||'').trim().slice(0,90))}return hit0.apply(this,arguments)};PP.die=function(d){if(mine(d)){hits++;if(who.length<6)who.push('die:'+(d.rb&&d.rb.key))}return die0.apply(this,arguments)};/* only the people under test (Riverside free roam has its own scuffles) */
   const person=who=>{if(who==='crew'){const a=H.allies[0];if(!a)return null;return{set:(x,z)=>{a.pos.set(x,0,z);a.target=null;if(a.dude)a.dude.root.position.set(x,0,z)},at:()=>a.pos,drop:()=>{}}}
-    const d=who==='kid'?kid:adult;if(!d)return null;H.L.group.add(d.root);return{set:(x,z)=>d.root.position.set(x,0,z),at:()=>d.root.position,drop:()=>{d.root.parent&&d.root.parent.remove(d.root)}}};/* at(): where they really are after the step (the crew's own AI moves them too) */
+    const d=PP.make('neighbour',{variant:who==='kid'?'nb_kid':'nb_pops'});if(!d)return null;made.push(d);H.L.group.add(d.root);/* a fresh one each trial (People drops a model orphaned for 90 frames from its live list) */return{set:(x,z)=>d.root.position.set(x,0,z),at:()=>d.root.position,drop:()=>{d.root.parent&&d.root.parent.remove(d.root)}}};/* at(): where they really are after the step (the crew's own AI moves them too) */
   const farNode=E=>{const A=G.nodes[E.a],B=G.nodes[E.b];let best=null,bd=1e9;for(const n of G.nodes){const d=Math.min(Math.hypot(n.x-A.x,n.z-A.z),Math.hypot(n.x-B.x,n.z-B.z));if(d>=45&&d<bd){bd=d;best=n}}return best};/* the player's car out of the way but near (traffic over 170 m from the player is dropped) */
   for(const region of['maple','river']){const Es=T.edges.filter(e=>e.l>=(region==='river'?30:44)&&e.region===region).sort((a,b)=>b.l-a.l);if(!Es.length){res.push({region,none:true});continue}let k=0;
     for(const who of['kid','adult','crew'])for(const motion of['still','cross','along'])for(const v of[9,13]){const E=Es[(k++)%Es.length];T.clear();T.inVan();
@@ -231,9 +231,9 @@ const PL=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow,PP=HT.People,G=
   /* pushed toward a kid: a stopped traffic car, the kid 3 m in front of it, the player drives into it from behind */
   let push=null;{const E=T.edges.filter(e=>e.l>=70&&e.region==='maple')[1];T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
     const t=O.trafficAdd({a:E.a,b:E.b,at:30,spd:0,max:.01,type:'sedan'});H.step(5);const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)],hl=t.c.stats.len/2;
-    const kx=t.c.x+f[0]*(hl+1.3),kz=t.c.z+f[1]*(hl+1.3);kid.root.position.set(kx,0,kz);H.L.group.add(kid.root);H.step(2);const x0=t.c.x,z0=t.c.z;
+    const kx=t.c.x+f[0]*(hl+1.3),kz=t.c.z+f[1]*(hl+1.3);const k2=PP.make('neighbour',{variant:'nb_kid'});made.push(k2);k2.root.position.set(kx,0,kz);H.L.group.add(k2.root);H.step(2);const x0=t.c.x,z0=t.c.z;
     T.keysOff();H.keys.w=true;let minD=1e9,maxV=0;for(let i=0;i<150;i++){H.step(1);maxV=Math.max(maxV,e.spd);minD=Math.min(minD,boxD(t,kx,kz))}T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
-    push={minD:+minD.toFixed(2),moved:+Math.hypot(t.c.x-x0,t.c.z-z0).toFixed(2),maxV:+maxV.toFixed(1),ev:[...new Set(T.ev(t.id).map(x=>x.ev))]};kid.root.parent&&kid.root.parent.remove(kid.root)}
+    push={minD:+minD.toFixed(2),moved:+Math.hypot(t.c.x-x0,t.c.z-z0).toFixed(2),maxV:+maxV.toFixed(1),ev:[...new Set(T.ev(t.id).map(x=>x.ev))]};k2.root.parent&&k2.root.parent.remove(k2.root)}
   PP.hit=hit0;PP.die=die0;T.clear();return{res,hits,who,push}});
 for(const r of PL.res)log('     people: '+JSON.stringify(r));
 {const rs=PL.res.filter(r=>!r.none),ov=rs.filter(r=>r.minD<.3);
