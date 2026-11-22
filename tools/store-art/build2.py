@@ -23,7 +23,7 @@ def layers(name, W, H, blur=2, sky=.55, vig=.45, glow=True):
     h += ('<div style="position:absolute;inset:0;background:radial-gradient(ellipse 75%% 70%% at 45%% 55%%,rgba(0,0,0,0) 55%%,'
           'rgba(14,10,8,%.2f) 100%%)"></div>' % vig)
     eg = ('drop-shadow(0 0 %dpx rgba(255,200,130,.35)) ' % max(2, W // 900)) if glow else ''
-    h += B.img(cut, 'width:%dpx;height:%dpx;filter:%ssaturate(1.12) contrast(1.05) sepia(.14) brightness(.97)' % (W, H, eg))
+    h += B.img(cut, 'width:%dpx;height:%dpx;filter:%ssaturate(1.12) contrast(1.05) brightness(1.0)' % (W, H, eg))
     return h
 
 def spec(dest, W, H, size, html, **k):
