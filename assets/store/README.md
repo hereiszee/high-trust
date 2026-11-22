@@ -35,7 +35,7 @@ All sizes are exact. Upload them in Steamworks under **Store presence → Graphi
 
 The concept is the contrast between ordinary suburban dads and absurd escalation. The dad stands out front in his khakis, arms folded, big in the frame. Behind him, parked next to the family minivan like a second car, is the Fort Sensible tank, with Coach Rick waving from the hatch. The jet banks low over the rooftops. The flag and "The Millers, 1412 Maple" mailbox are in frame. Everything is the game's own models: `HT.Tank.model()` and `HT.Jet.model()` with the gear and ladder hidden, Rick posed with the wave the game uses when the family waves at the jet. A finishing pass (scene K2 in `scenes.js`) made these fixes:
 - **The jet** is about a fifth of the frame wide and sits back over the rooftops. It banks in three-quarter view so the twin tails and swept wings read as a fighter. It has the game's own afterburner cones lit and a faint vapour trail, and it is kept clear of the logo.
-- **The dad's cap** sits where it does in-game. His head is tilted up slightly, a warm fill light lifts his face, and his skin is graded warm to match the evening light.
+- **The dad** is rendered as the game shows him: the cap sits exactly as it does in-game, his head is level, and there is no skin tint. A soft key light from camera-left, set low enough to light the underside of the brim, plus a gentle rim light keep his eyes open and visible from the low camera. `alternates/dad-face-check.jpg` compares him with the in-game player model. Note: at eye level, the in-game cap itself covers his eyes.
 - **The tank** is closer and angled so Coach Rick's wave reads at header size. The dad stays the single dominant figure, left of centre. Compositing work, all done on the game renders:
 - a grade;
 - a warm sunset gradient laid over the top of the frame;
@@ -110,7 +110,7 @@ Being honest about the limits of rendering the game itself:
   illustrator would give each person a beat (Gary with his spreadsheet, Rick's whistle, Dave's tongs, Doug's call-sign shades)
   and the comedy would read without the page copy. Right now "a little funny" comes from the line-up itself and the
   `HT 4DAD` plate, not from the acting.
-- **The dad's cap.** In gameplay it sits low over his eyes. In the key art a slight head tilt and a fill light show them.
+- **The dad's cap.** The in-game cap model covers his eyes when seen at eye level; the key art shows them by using a low camera and a key light under the brim.
 - **The mailbox.** The tank, now closer, hides "The Millers" mailbox. The flag and the house stay in frame.
 - **Faces.** The in-game faces are mid-detail and lit by one sun; key art usually has hand-placed rim and fill light per face.
 - **Atmosphere.** The golden-hour sky is the game's daytime panorama tinted warm, not a painted sunset; there is no light
