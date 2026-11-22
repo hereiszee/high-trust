@@ -1,18 +1,15 @@
-== red light: leaving on the last amber
-  shot tree.jpg
-  ok   red light: RT -0.142
-  ok   the red bulb is lit in our lane
-  shot red-light.jpg
-== draw calls at the strip (ours vs everything), 0 away from it; day and night shots
-  ok   paddock: ours 37 of 246 calls (limit 40)
-  ok   start line: ours 38 of 235 calls (limit 40)
-  ok   stands: ours 30 of 100 calls (limit 40)
-  ok   finish: ours 27 of 245 calls (limit 40)
-  ok   the Route 9 sign: ours 16 of 308 calls (limit 40)
-  ok   Maple Heights: ours 0 of 323 calls (limit 0)
-  ok   Riverside: ours 0 of 503 calls (limit 0)
-  ok   Fort Sensible range: ours 24 of 393 calls (limit 40)
-  ok   Fort Sensible gate: ours 15 of 305 calls (limit 40)
-  shot strip-day.jpg
-  shot strip-night.jpg
-== done in 213 s; console errors: 0
+== bets on other races: watch one to the end, skip one, settle both from the race model
+  ok   office
+  ok   two racers on offer: Back June Abernathy | Back Tomás Reyes
+  shot betting-booth.jpg
+  ok   stake menu
+  ok   watching from the tower (june vs tomas)
+  shot spectator-race.jpg
+  ok   watched: winner lane 0 by 0.606, bet 1, cash 1
+  shot spectator-result.jpg
+  ok   office
+  ok   two racers on offer: Back Priya Raman | Back Tomás Reyes
+  ok   stake menu
+  ok   watching from the tower (priya vs tomas)
+  ok   skipped: winner lane 1 by 0.017, bet -25, cash -25
+== done in 111 s; console errors: 0

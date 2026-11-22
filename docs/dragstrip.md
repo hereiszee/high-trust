@@ -84,7 +84,9 @@ gearbox is an automatic for everyone; no clutch; weight transfer is a fixed lean
 
 * **On yourself**, before a race: the tower prices you from your own last 12 passes (reaction times, red lights, launch quality; a new
   driver is priced as a novice until three passes) against the racer, by 240 simulated races of the same model.
-* **On other races**, at the office: two regulars; both lanes priced by 500 simulated races; back one, pick a stake, watch it from the
+* **On other races**, at the office: two regulars within two rungs of each other. Two races in three are **spec races** (both in the
+  same loaner, so the drivers decide it: odds around 25-35% / 65-75%, payouts ~1.3× / ~3×); the third is in their own cars, which is
+  often lopsided (a car gap is worth more than a driver gap) and priced that way (down to 1.05× / up to 12×). Both lanes priced by 500 simulated races; back one, pick a stake, watch it from the
   tower camera (any `use`/Enter/Esc or pad A/B skips to the result, which is then simulated to the end by the same model).
 * Payout multiplier = (1 − 8% house edge) / p, kept to 1.05×-12×. The result is a fresh run of the model after the bet (nothing is
   rigged). dev/test-dragsim.js and dev/dragstrip-check.js run 2,000 races per matchup against the stated p (within 3.5 points).
