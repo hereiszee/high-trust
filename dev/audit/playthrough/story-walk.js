@@ -82,7 +82,7 @@ const L=[];const log=(...a)=>{const s=a.map(x=>typeof x==='string'?x:JSON.string
       if(!brief||!brief.acts.includes('brief:go')){prob('E at the giver of '+pick+' did not open a brief ('+JSON.stringify(g)+' '+JSON.stringify(brief)+')');
         await ev(i=>{const H=window.__ht;H.use=true;H.step(1)},idx);brief=await ev(()=>window.__W.screenText());if(!brief||!brief.acts.includes('brief:go'))break}
       await ev(()=>{const H=window.__ht;H.UIacts['brief:go']();H.step(2)})}
-    const accepted=await ev(()=>{const H=window.__ht;H.step(2);return{job:H.JOB,obj:H.UIobj?[H.UIobj.title,...H.UIobj.lines.map(l=>l.text)]:null,marker:H.marker&&H.marker.label,screen:H.HUD.screen}});
+    const accepted=await ev(()=>{const H=window.__ht;H.step(90);try{H.draw()}catch(e){}return{job:H.JOB,obj:H.UIobj?[H.UIobj.title,...H.UIobj.lines.map(l=>l.text)]:null,marker:H.marker&&H.marker.label,screen:H.HUD.screen}});
     log('   accepted: '+JSON.stringify(accepted));
     if(accepted.screen){const s=await ev(()=>window.__W.screenText());log('   a screen is open after accepting: '+JSON.stringify(s));}
     let dr=await ev(i=>window.__W.toRing(i),idx);
@@ -97,7 +97,7 @@ const L=[];const log=(...a)=>{const s=a.map(x=>typeof x==='string'?x:JSON.string
     const res=await ev(()=>{const H=window.__ht,el=[...document.querySelectorAll('.ht-result')].filter(e=>e.offsetParent!==null).pop();return{state:H.M&&H.M.state,pay:H.M&&H.M.pay?H.M.pay.total:null,lines:H.M&&H.M.pay?H.M.pay.lines.map(l=>l.label+':'+l.amount):null,trustGain:H.M&&H.M.trustGain,medal:H.M&&H.M.medal,card:el?el.textContent.replace(/\s+/g,' ').trim().slice(0,500):null}});
     cards=await settle();
     const after=await ev(()=>{const H=window.__ht;return{t:H.prog.trust,r:H.prog.trustR||0,cash:(HT.Save.data||{}).cash,cuffed:H.prog.cuffed,day:(HT.Save.data||{}).day,done:H.jobs.lock?null:null}});
-    const rec={id:pick,how,complete:how2,dT:+(after.t-before.t).toFixed(1),dR:+(after.r-before.r).toFixed(1),cash:after.cash-before.cash,dCuffed:after.cuffed-before.cuffed,day:[before.day,after.day],pay:res.pay,state:res.state,medal:res.medal,cards:cards.map(c=>c.text&&c.text.slice(0,300))};
+    const rec={id:pick,how,complete:how2,trustGain:res.trustGain!=null?+res.trustGain.toFixed(1):null,dT:+(after.t-before.t).toFixed(1),dR:+(after.r-before.r).toFixed(1),cash:after.cash-before.cash,dCuffed:after.cuffed-before.cuffed,day:[before.day,after.day],pay:res.pay,state:res.state,medal:res.medal,cards:cards.map(c=>c.text&&c.text.slice(0,300))};
     jobsLog.push(rec);log('   RESULT '+JSON.stringify(rec));if(res.state!=='won')prob(pick+' did not end won: '+res.state);
     fs.writeFileSync(OUT,JSON.stringify({steps,jobs:jobsLog,problems},null,1))}
   const bad=errs.filter(e=>!/favicon/.test(e));log('\nconsole errors: '+bad.length+' '+bad.slice(0,8).join(' | '));
