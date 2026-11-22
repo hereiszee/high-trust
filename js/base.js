@@ -172,11 +172,13 @@ function rangeOffice(P,b){const x0=b.x0+.2,x1=b.x1-.2,z0=b.z0+.2,z1=b.z1-.2,H=3.
 
 /* ---------- hangar: a vault over 34 m, open on the apron side (+z) ---------- */
 function hangar(P,b){const x0=b.x0+.3,x1=b.x1-.3,z0=b.z0+.3,z1=b.z1-.3,cx=(x0+x1)/2,R=(x1-x0)/2,H=9.2,N=18,base=1.4;
-  P.box('concrete',x0-.2,0,z0-.2,x1+.2,base,z1,COL.conc);
+  /* audit W-05: knee walls round the edge (not a solid 1.4 m slab: the inside has a floor at ground level now) */
+  P.box('concrete',x0-.2,0,z0-.2,x0+.35,base,z1,COL.conc);P.box('concrete',x1-.35,0,z0-.2,x1+.2,base,z1,COL.conc);P.box('concrete',x0-.2,0,z0-.2,x1+.2,base,z0+.35,COL.conc);
+  P.box('concrete',x0-.2,0,z1-.35,cx-9.2,base,z1,COL.conc);P.box('concrete',cx+9.2,0,z1-.35,x1+.2,base,z1,COL.conc);
   const pt=(i,z,inset)=>{const a=Math.PI*i/N;return[cx+Math.cos(a)*(R-inset),base+Math.sin(a)*(H-base-inset*.6),z]};
   for(let i=0;i<N;i++){const a=pt(i,z0,0),b2=pt(i+1,z0,0),c=pt(i+1,z1,0),d=pt(i,z1,0),L=(z1-z0)/2.4,s0=i*(R*Math.PI/N)/2.4,s1=(i+1)*(R*Math.PI/N)/2.4;
     P.g('corr').quad(a,b2,c,d,[[s0,0],[s1,0],[s1,L],[s0,L]],C3('#a7aca7'),[a[0]-cx,1,0]);
-    P.g('dark').quad(pt(i,z0,.25),pt(i+1,z0,.25),pt(i+1,z1-.3,.25),pt(i,z1-.3,.25),[[0,0],[1,0],[1,1],[0,1]],C3('#1d2022'),[cx-a[0],-1,0])}
+    P.g('corr').quad(pt(i,z0,.25),pt(i+1,z0,.25),pt(i+1,z1-.3,.25),pt(i,z1-.3,.25),[[s0,0],[s1,0],[s1,L],[s0,L]],C3('#9da29b'),[cx-a[0],-1,0],[0,.45,.89])}/* the roof's underside (shaded as if it faced the door: facing down it only got the hemisphere's dark ground term): corrugated, lit (was a black void) */
   /* ribs every 4 m */
   for(let z=z0+.2;z<=z1;z+=4)for(let i=0;i<N;i++){const a=pt(i,z,-.08),b2=pt(i+1,z,-.08),m=[(a[0]+b2[0])/2,(a[1]+b2[1])/2,z],L=Math.hypot(b2[0]-a[0],b2[1]-a[1]);
     P.obox('metal',m[0],m[1],m[2],L+.05,.12,.22,0,'#8f948f',0,Math.atan2(b2[1]-a[1],b2[0]-a[0]))}
@@ -186,8 +188,29 @@ function hangar(P,b){const x0=b.x0+.3,x1=b.x1-.3,z0=b.z0+.3,z1=b.z1-.3,cx=(x0+x1
         const ya=Math.max(a[1],0),yb=Math.max(b2[1],0);if(Math.abs((a[0]+b2[0])/2-cx)<dw){if(Math.min(ya,yb)>dh)P.g('stucco').quad([a[0],dh,z],[b2[0],dh,z],[b2[0],yb,z],[a[0],ya,z],[[0,0],[1,0],[1,1],[0,1]],C3('#cfd2cc'),[0,0,nz]);continue}}
       P.g('stucco').quad([a[0],0,z],[b2[0],0,z],b2,a,[[a[0]/3,0],[b2[0]/3,0],[b2[0]/3,b2[1]/3],[a[0]/3,a[1]/3]],C3('#cfd2cc'),[0,0,nz])}};
   front(z0,-1,false);front(z1,1,true);
-  P.box('dark',cx-9,0,z0+.4,cx+9,6.4,z0+.5,'#121416');                    /* the dark inside, seen through the door */
-  P.g('dark').quad([cx-9,.02,z0+.5],[cx+9,.02,z0+.5],[cx+9,.02,z1],[cx-9,.02,z1],[[0,0],[1,0],[1,1],[0,1]],C3('#2a2c2e'),[0,1,0]);
+  /* audit W-05: the inside (it was a black box with the sky showing through the back wall's missing inner face) */
+  {const inner=(z,nz,door)=>{for(let i=0;i<N;i++){const a=pt(i,z,0),b2=pt(i+1,z,0);/* the end walls seen from inside: same outline, wound the other way */
+      if(door&&Math.abs((a[0]+b2[0])/2-cx)<9){const dh=6.4;if(Math.min(a[1],b2[1])>dh)P.g('stucco').quad([b2[0],dh,z],[a[0],dh,z],a,b2,[[0,0],[1,0],[1,1],[0,1]],C3('#b9bdb6'),[0,0,nz]);continue}
+      P.g('stucco').quad([b2[0],0,z],[a[0],0,z],a,b2,[[b2[0]/3,0],[a[0]/3,0],[a[0]/3,a[1]/3],[b2[0]/3,b2[1]/3]],C3('#b9bdb6'),[0,0,nz])}};
+    inner(z0+.06,1,false);inner(z1-.06,-1,true)}
+  {const fx0=x0+.35,fx1=x1-.35,fz0=z0+.35,fz1=z1;   /* floor: sealed concrete, a yellow safety line round the bay, a parking T, oil stains */
+    P.g('concrete').quad([fx0,.025,fz1],[fx1,.025,fz1],[fx1,.025,fz0],[fx0,.025,fz0],[[0,0],[(fx1-fx0)/4,0],[(fx1-fx0)/4,(fz1-fz0)/4],[0,(fz1-fz0)/4]],C3('#a9aaa4'),[0,1,0]);
+    const Y='#e8c13a';P.box('paint',cx-11,.03,fz0+2.5,cx+11,.04,fz0+2.7,Y);for(const s2 of[-1,1])P.box('paint',cx+s2*11-.1,.03,fz0+2.5,cx+s2*11+.1,.04,fz1-.8,Y);
+    P.box('paint',cx-.12,.03,fz0+6,cx+.12,.04,fz1-1,Y);P.box('paint',cx-2.4,.03,fz0+6,cx+2.4,.04,fz0+6.25,Y);
+    for(const[ox,oz,r2]of[[-2.5,9,1.1],[1.8,13,.8],[4.6,7.5,.6],[-6,15,.9]])P.cyl('dark',cx+ox,.032,fz0+oz,r2,r2,.004,'#3e3f3c',14)}
+  {const bz=z0+.6,R2=rng(11);   /* along the back wall: a workbench, tool chests, a parts shelf, drums; a tug and a maintenance stand on the floor */
+    P.box('paint',cx-7,.88,bz,cx-2,.95,bz+.9,'#8a6a45');for(const x of[cx-6.9,cx-2.1])for(const z of[bz+.05,bz+.85])P.box('metal',x-.04,0,z-.04,x+.04,.88,z+.04,'#3a3d3a');
+    P.box('metal',cx-7,.95,bz,cx-2,2.1,bz+.06,'#6f7570');for(let k=0;k<7;k++)P.box('metal',cx-6.6+k*.65,1.3+(k%3)*.22,bz+.06,cx-6.4+k*.65,1.5+(k%3)*.22,bz+.12,'#2f3133');
+    for(const[x,h]of[[cx-1.2,1.15],[cx-.3,.95]]){P.box('paint',x-.4,0,bz,x+.4,h,bz+.55,'#b2352a');for(let y=.2;y<h-.05;y+=.18)P.box('metal',x-.36,y,bz+.55,x+.36,y+.025,bz+.57,'#d9d9d4')}
+    P.box('metal',cx+1.4,0,bz,cx+4.4,2.4,bz+.6,'#5d635e');for(const y of[.5,1.2,1.9])P.box('metal',cx+1.4,y,bz,cx+4.4,y+.04,bz+.6,'#7b827c');
+    for(let k=0;k<9;k++)P.box('paint',cx+1.5+(k%4)*.72,(k>>2)*.7+.54,bz+.08,cx+2.1+(k%4)*.72,(k>>2)*.7+.54+.3+R2()*.2,bz+.5,['#6b5a3c','#8c8a80','#4f6a3d'][k%3]);
+    for(let k=0;k<4;k++)P.cyl('metal',cx+6+(k%2)*.7,.46,bz+.4+(k>>1)*.7,.29,.29,.92,['#3f5530','#7a3a2a'][k%2],12);
+    for(let k=0;k<4;k++)P.cyl('dark',cx+8.4,.12+k*.22,bz+.6,.38,.38,.2,'#1e1f20',14);   /* stacked tyres */
+    {const tx=cx+6.5,tz=z1-9;P.box('paint',tx-1,.35,tz-.65,tx+1,1.05,tz+.65,'#e2b129');P.box('paint',tx-1,1.05,tz-.65,tx-.2,1.5,tz+.65,'#e2b129');P.box('metal',tx-.15,1.05,tz-.35,tx+.05,1.6,tz+.35,'#2d2f30');
+      for(const ax of[-.65,.65])for(const az of[-.72,.72])P.box('dark',tx+ax-.28,0,tz+az-.12,tx+ax+.28,.56,tz+az+.12,'#1c1d1e');P.box('metal',tx+1,.4,tz-.08,tx+2.1,.48,tz+.08,'#2d2f30')}   /* the tug and its tow bar */
+    {const sx=cx-8.5,sz=z1-12;for(let k=0;k<5;k++)P.box('metal',sx,0,sz+k*.32,sx+1.1,.35+k*.35,sz+k*.32+.34,'#c9cbc4');P.box('metal',sx,1.75,sz+1.3,sx+1.1,1.8,sz+2.4,'#c9cbc4');
+      for(const z of[sz+1.35,sz+2.35])for(const x of[sx+.05,sx+1.05])P.box('metal',x-.03,0,z-.03,x+.03,2.8,z+.03,'#e2b129');P.box('metal',sx,2.75,sz+1.3,sx+.05,2.8,sz+2.4,'#e2b129');P.box('metal',sx+1.05,2.75,sz+1.3,sx+1.1,2.8,sz+2.4,'#e2b129')}   /* a rolling maintenance stand */
+    P.sign(cx,4.2,z0+.45,5.4,1.25,Math.PI,board('hgsafe',['SAFETY FIRST','DAYS SINCE THE LAST "WATCH THIS": 0'],2,1,'yellow'))}
   P.box('paint',cx-9.4,6.4,z1-.1,cx+9.4,6.8,z1+.25,'#3c4146');                 /* door header and the slid-open door panels */
   for(const s of[-1,1])P.box('corr',cx+s*9.1-(s>0?0:4.2),0,z1+.2,cx+s*9.1+(s>0?4.2:0),6.4,z1+.45,'#9ea39e',3);
   for(let x=cx-8;x<=cx+8;x+=4)P.box('glow',x-.8,6.0,z0+1,x+.8,6.08,z1-2,'#fff2d6');   /* lights inside */
@@ -206,9 +229,27 @@ function motorPool(P,m){const x0=m.x0+.6,x1=m.x1-.6,z0=m.z0+.4,z1=z0+6.2,H=4.6;
 /* ---------- the range: berms, the firing shed, benches, lane and distance boards, flags ---------- */
 function range(P,d){const R=d.range,bx=R.box,line=R.line,lanes=R.lanes,zN=bx.z0+1,zS=bx.z1-1;
   /* side berms (trapezoid earth mounds), the backstop, gravel strips under the target lines */
-  const berm=(x0,x1,zc,w,h,top)=>{const g=P.g('earth'),c=C3('#9a9b6a'),c2=C3('#7f7652');const a=[[x0,0,zc-w/2],[x1,0,zc-w/2],[x1,h,zc-top/2],[x0,h,zc-top/2]],b=[[x1,0,zc+w/2],[x0,0,zc+w/2],[x0,h,zc+top/2],[x1,h,zc+top/2]];
-    g.quad(a[0],a[1],a[2],a[3],[[x0/4,0],[x1/4,0],[x1/4,1],[x0/4,1]],[c2,c2,c,c],[0,1,-1]);g.quad(b[0],b[1],b[2],b[3],[[x1/4,0],[x0/4,0],[x0/4,1],[x1/4,1]],[c2,c2,c,c],[0,1,1]);
-    g.quad(a[3],a[2],b[3],b[2],[[x0/4,0],[x1/4,0],[x1/4,.3],[x0/4,.3]],c,[0,1,0])};
+  /* audit W-09: the side berms are earth mounds now (were a flat tan prism with hard facets and a vertical end): a heightfield along the
+     lane with a rounded section, a little noise, tapered ends, a skirt into the grass, smooth normals and grass-to-earth colour.
+     Written straight into the 'earth' painter's buffers so it stays one merged mesh. */
+  const berm=(x0,x1,zc,w,h,top)=>{const g=P.g('earth'),r=rng(Math.round(zc*7)),ph=[r()*9,r()*9,r()*9];const xa=Math.min(x0,x1),xb=Math.max(x0,x1),L=xb-xa;
+    const NX=Math.max(8,Math.round(L/1.25)),T=[-1.5,-1.22,-1,-.8,-.6,-.4,-.2,0,.2,.4,.6,.8,1,1.22,1.5],NZ=T.length,hw=w/2+.25,tw=top/w;
+    const nse=(x,t)=>Math.sin(x*.37+ph[0])*.5+Math.sin(x*.91+t*2.3+ph[1])*.3+Math.sin(x*2.1-t*3.1+ph[2])*.2;
+    const Y=(x,t)=>{const e=Math.min(1,Math.min(x-xa,xb-x)/2.8),end=e*e*(3-2*e),at=Math.abs(t);if(at>=1.5)return -.06;
+      const prof=at<=tw?1:at>=1?0:Math.pow(Math.cos((at-tw)/(1-tw)*Math.PI/2),1.15);const skirt=at>1?-.06*(at-1)/.5:0;
+      return Math.max(-.06,(h*prof*(.88+.12*nse(x,t))+(at<1?.08*nse(x*1.7,t):0))*(.25+.75*end)*(at<1?1:0)+skirt)};
+    const Z=(x,t)=>zc+t*hw*(1+.06*Math.sin(x*.23+ph[1]));
+    const P0=[],H0=[];for(let i=0;i<=NX;i++){const x=xa+L*i/NX;for(let k=0;k<NZ;k++){const y=Y(x,T[k]);P0.push([x,y,Z(x,T[k])]);H0.push(y)}}
+    const at=(i,k)=>P0[Math.max(0,Math.min(NX,i))*NZ+Math.max(0,Math.min(NZ-1,k))];
+    const gr=C3('#97a362'),ea=C3('#a08a63'),dk=C3('#76664a'),i0=g.n;/* the old berm's tones, greener on top */
+    for(let i=0;i<=NX;i++)for(let k=0;k<NZ;k++){const p=at(i,k),ax=at(i+1,k),bx=at(i-1,k),az=at(i,k+1),bz=at(i,k-1);
+      const dx=[ax[0]-bx[0],ax[1]-bx[1],ax[2]-bx[2]],dz=[az[0]-bz[0],az[1]-bz[1],az[2]-bz[2]];let n=[dz[1]*dx[2]-dz[2]*dx[1],dz[2]*dx[0]-dz[0]*dx[2],dz[0]*dx[1]-dz[1]*dx[0]];
+      if(n[1]<0)n=n.map(v=>-v);const l=Math.hypot(...n)||1;n=n.map(v=>v/l);
+      const slope=1-n[1],hk=Math.max(0,p[1])/h,v=.9+.2*(nse(p[0]*3.1,T[k]*2)*.5+.5),m=Math.min(1,slope*2.2+(1-hk)*.25);
+      const c=gr.map((q,j)=>(q*(1-m)+ea[j]*m)*v*(p[1]<.05?.92:1));if(Math.abs(T[k])>1.3)c.forEach((q,j)=>c[j]=q*.6+dk[j]*.4);
+      g.P.push(p[0],p[1],p[2]);g.N.push(n[0],n[1],n[2]);g.U.push(p[0]/3,p[2]/3);g.K.push(c[0],c[1],c[2]);g.n++}
+    for(let i=0;i<NX;i++)for(let k=0;k<NZ-1;k++){const a=i0+i*NZ+k,b=a+NZ;g.I.push(a,a+1,b+1,a,b+1,b)}};
+
   berm(d.bld.bermW.x1,line-1.5,zN,3.4,2.4,.8);berm(d.bld.bermW.x1,line-1.5,zS,3.4,2.4,.8);
   {const g=P.g('earth'),c=C3('#b39d6c'),c2=C3('#8d7a52'),bw=d.bld.bermW,xf=bw.x1+1,xt=bw.x1-.8,xb=bw.x0-1;   /* backstop: a sand face toward the shooter, over its collider */
     g.quad([xf,0,zN-1],[xf,0,zS+1],[xt,4.6,zS+1],[xt,4.6,zN-1],[[0,0],[8,0],[8,1],[0,1]],[c2,c2,c,c],[1,1,0]);
@@ -327,10 +368,15 @@ addPieces();
 const HOOKS={interact:[]};
 /* Base.on('interact', fn(prompt,dt)) -> null | 'text' | {txt,fn,key?} | {txt,hold,fn}: the first answer wins (index.html updHub, roamPrompt) */
 Base.on=(h,fn)=>{(HOOKS[h]||(HOOKS[h]=[])).push(fn);return()=>{const a=HOOKS[h],k=a.indexOf(fn);if(k>=0)a.splice(k,1)}};
+/* audit C-2: Base.reset() runs every 'reset' hook (jet, tank, range): index.html clearChars calls it on quit to title, new game / continue,
+   job start, going home and the free-roam tow, so no vehicle or range state outlives the session it belongs to */
+Base.reset=()=>{for(const fn of (HOOKS.reset||[]))try{fn()}catch(e){console.warn('[base] reset',e)}};
 Base.interact=(prompt,dt)=>{for(const fn of HOOKS.interact){let r=null;try{r=fn(prompt,dt)}catch(e){console.warn('[base] interact',e)}if(r)return r}return null};
 /* the training areas: the range compound (firing line, lanes, range control). The rest of the post is a gun-free zone like Maple */
 Base.rangeBox=()=>{const d=Base.def();if(!d)return null;const R=d.range;return{x0:R.box.x0+2,z0:R.box.z0-2,x1:d.bld.range.x1+3,z1:R.box.z1+2}};
 Base.armOk=(x,z)=>{const b=Base.rangeBox();return !!b&&x>=b.x0&&x<=b.x1&&z>=b.z0&&z<=b.z1};
+/* audit W-05: no grass tufts on Hangar 2's floor (js/openworld.js chunk tufts ask this) */
+Base.noTuft=(x,z)=>{const d=Base.def();if(!d||!d.bld||!d.bld.hangar)return false;const h=d.bld.hangar;return x>h.x0-.2&&x<h.x1+.2&&z>h.z0-.2&&z<h.z1+.3};
 Base.inBase=(x,z)=>{const d=Base.def();if(!d)return false;const f=d.fence;return x>=f.x0-4&&x<=f.x1+4&&z>=f.z0-6&&z<=f.z1+4};
 Base.onLine=(x,z)=>{const d=Base.def();if(!d)return false;const b=d.range.line0;return x>=b.x0&&x<=b.x1&&z>=b.z0&&z<=b.z1};
 const pickL=a=>a[Math.floor(Math.random()*a.length)];

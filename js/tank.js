@@ -43,7 +43,8 @@ function stencilTex(){if(MT._sten)return MT._sten;const c=document.createElement
 function sideTex(){if(MT._side)return MT._side;const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');x.clearRect(0,0,256,128);
   if(B()&&B().badge)B().badge(x,52,64,46);x.fillStyle='#ece6cc';x.font='900 52px "Arial Narrow", Arial';x.textBaseline='middle';x.fillText('FS-02',112,66);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return MT._side=t}
-function model(opts){const T=THREE,K=B().kit,root=new T.Group(),O='#5a6438',O2='#4d5730',DK='#2b2c27',MET='#3f423c';
+function model(opts){if(HT.HiVeh&&HT.HiVeh.tank)try{return HT.HiVeh.tank({sideTex:sideTex(),stencilTex:stencilTex()})}catch(err){console.warn('[tank] model',err)}/* the detailed model (js/hiveh.js); this one is the fallback */
+  const T=THREE,K=B().kit,root=new T.Group(),O='#5a6438',O2='#4d5730',DK='#2b2c27',MET='#3f423c';
   const hull=K.painter(),tur=K.painter(),gun=K.painter();
   /* hull: lower tub between the tracks, sloped glacis, deck, fenders, side skirts, engine deck grilles, lights, tow hooks */
   hull.box('paint',-3.4,.55,-1.12,3.2,1.25,1.12,O2);
@@ -122,7 +123,7 @@ function ensure(a){const d=B().def();if(!d||!glue())return;
   e.type='tank';e.name='the motor pool';e.owner='base';e.yaw=p.yaw;e.home={x:d.tank.x,z:d.tank.z,yaw:d.tank.yaw};e.noJobs=LINES.refuse;e.tank=true;a.syncCar(e);S.e=e;S.L=a.L;
   /* the motor pool sergeant */
   if(!S.sarge||!S.sarge.d||!S.sarge.d.root.parent){const PP=HT.People;let dd=null;try{if(PP&&PP.ok)dd=PP.make('neighbour',{variant:'nb_kenji'})}catch(_){}if(!dd)try{dd=a.makeDude({shirt:'#55603f',pants:'#4b4f3a',cap:'#55603f'})}catch(_){}
-    if(dd){dd.root.position.set(d.sarge.x,0,d.sarge.z);dd.root.rotation.y=d.sarge.yaw;a.L.group.add(dd.root);S.sarge={d:dd,yaw:d.sarge.yaw,p:d.sarge}}}
+    if(dd){dd.root.position.set(d.sarge.x,0,d.sarge.z);dd.root.rotation.y=d.sarge.yaw;a.L.group.add(dd.root);if(HT.Staff&&HT.Staff.dress)HT.Staff.dress(dd)/* W-07: Staff Sgt. Ruiz in uniform and cap (js/staff.js) */;S.sarge={d:dd,yaw:d.sarge.yaw,p:d.sarge}}}
   else if(S.sarge.d.root.parent!==a.L.group)a.L.group.add(S.sarge.d.root)}
 
 /* ================= driving extras (vehicle hook, right after the drive physics) ================= */
@@ -254,7 +255,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   {/* far away it isn't drawn: the tank, its sergeant and the training-lane props (the camera is the judge) */const c=a.camera.position,d=B().def(),far=Math.hypot(c.x-d.tank.x,c.z-d.tank.z)>110;
     if(S.e&&S.e.obj)S.e.obj.visible=a.CV===S.e||Math.hypot(c.x-S.e.pos.x,c.z-S.e.pos.z)<130||c.y>40;if(S.sarge&&S.sarge.d)S.sarge.d.root.visible=!far;if(S.propRoot)S.propRoot.visible=!far}
   const e=S.e;if(e&&a.mode==='hub'){
-    if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank)s.tank.borrows=(s.tank.borrows|0)+1;say(SARGE,pick(LINES.borrow),true);
+    if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank){s.tank.borrows=(s.tank.borrows|0)+1;try{if(HT.Save&&HT.Save.saveNow)HT.Save.saveNow();else a.save()}catch(_){}}/* audit SAV-02: saved now (ACH_BORROWED reads it) */say(SARGE,pick(LINES.borrow),true);
       teach(a,'drive','Tank: W/S drive · A/D turn on the spot · mouse aims the turret · left click fires · V gunner sight · E gets out')}
     if(a.CV!==e&&S.inside){S.inside=false;S.drive=false;const d=B().def();if(Math.hypot(e.pos.x-d.tank.x,e.pos.z-d.tank.z)<14)say(SARGE,pick(LINES.back))}
     /* left far away and out of sight: the motor pool brings it home */
@@ -294,6 +295,16 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
   Jb.on('pose',()=>{try{tick()}catch(err){if(!S.err2){S.err2=1;console.warn('[tank] tick',err)}}});
   Jb.on('hud',st=>{try{hud(st)}catch(_){}});Bs.on('interact',p=>interact(p));
   (function touch(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(touch,500);return}a.HUD.on('touch',(k,down)=>{const c=A().CV;if(down&&k==='fire'&&c&&c.type==='tank')S.touchFire=true})})()}
+/* audit C-2: one clean slate (HT.Base.reset from index.html clearChars: quit to title, new game / continue, job start, home, the tow).
+   Out of the hull (so the game's own exit restores the camera), gunner sight off, shells in flight gone, knocked lane props rebuilt */
+function reset(){const a=A();try{if(a&&a.CV&&a.CV.type==='tank'&&a.exitCar)a.exitCar()}catch(_){}
+  reticle(false);S.inside=false;S.drive=false;S.yawRate=0;S.reload=0;S.parkT=0;
+  for(const sh of S.shells){try{sh.mesh&&sh.mesh.parent&&sh.mesh.parent.remove(sh.mesh)}catch(_){}}S.shells=[];
+  if(S.propRoot){S.propRoot.parent&&S.propRoot.parent.remove(S.propRoot);S.propRoot=null}S.props=[];S.flat.clear();S.cars.clear()}
+Tank.reset=reset;
+/* fast travel (index.html, fix/world) asks this: true while the dad is in the tank */
+Object.defineProperty(Tank,'on',{get:()=>{const a=A();return !!(a&&a.CV&&a.CV.type==='tank')}});
+(function hookReset(){const Bs=B();if(!Bs||!Bs.on){setTimeout(hookReset,50);return}Bs.on('reset',reset)})();
 hook();
 /* test hooks */
 Tank.fire=()=>{const a=A();if(a.CV&&a.CV.type==='tank')fire(a,a.CV)};Tank.state=()=>({e:!!S.e,inside:!!(A().CV&&A().CV.type==='tank'),reload:S.reload,shells:S.shells.length,flat:S.flat.size,turret:S.turretYaw,props:S.props.filter(p=>p.down).length,pos:S.e?{x:S.e.pos.x,z:S.e.pos.z}:null});
