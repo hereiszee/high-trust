@@ -1185,7 +1185,7 @@ OW.update=(camera,dt)=>{const ws=WS;if(ws&&!ws.lvl.group.parent)ws.camAt=null;/*
   const cx=camera.position.x,cz=camera.position.z;
   /* a jump (teleport of any kind: the camera moved 40 m+ since the last update, or the world was away): build what is around the
      arrival before this frame draws, 400 ms at most (the rest streams as usual). Callers that hold a fade use OW.buildNear/pendingNear. */
-  if(!ws.fly&&(!ws.camAt||Math.hypot(cx-ws.camAt.x,cz-ws.camAt.z)>40))buildNear(cx,cz,ARRIVE_R,400);ws.camAt={x:cx,z:cz};
+  if(!ws.fly&&(!ws.camAt||Math.hypot(cx-ws.camAt.x,cz-ws.camAt.z)>40)){ws.jumpN=(ws.jumpN|0)+1;buildNear(cx,cz,ARRIVE_R,400)}ws.camAt={x:cx,z:cz};
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
   const BR=Math.max(R,ws.buildR||0)+40;   /* ws.buildR (OW.buildAhead) builds past the draw radius without drawing it */
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
@@ -1237,7 +1237,7 @@ OW.roads=()=>{const ws=WS;if(!ws)return null;if(!ws.roads&&HT.Roads)try{ws.roads
 OW.gps=(from,to)=>{const ws=WS;if(!ws||!HT.Roads||!HT.Roads.gps)return null;try{return HT.Roads.gps(ws.def,from,to)}catch(e){console.warn('gps failed',e);return null}};
 OW.regionAt=(x,z)=>{const G=HT.WorldGen;return G&&G.regionAt?G.regionAt(x,z):'maple'};
 OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:ws.built,visible:ws.units.filter(u=>u.visible).length,chunks:ws.chunks.map(u=>({cx:u.ch.cx,cz:u.ch.cz,visible:u.visible,built:u.built,ms:u.ms&&Math.round(u.ms)})),
-  buildMs:Math.round(ws.tBuild||0),maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
+  buildMs:Math.round(ws.tBuild||0),jumps:ws.jumpN|0,maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
 OW.units=()=>WS?WS.units:[];
 OW.camOccluders=()=>WS&&WS.camOcc||[];/* boxes the camera can't see through but nobody collides with (the home's wall flag) */
 OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY.x0+PARTY.x1)/2,(PARTY.z0+PARTY.z1)/2);return{truck:T&&T.visible?{x:T.position.x,z:T.position.z,yaw:T.rotation.y}:null,party:ws.blockT&&ws.blockT[pb]>=90?{x:(PARTY.x0+PARTY.x1)/2,z:(PARTY.z0+PARTY.z1)/2}:null}};
