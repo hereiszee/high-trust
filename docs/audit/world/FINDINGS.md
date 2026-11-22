@@ -14,6 +14,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 | W-01 | MAJOR | Map fast travel on foot both refuses ("Get back to the minivan") and teleports you, stranding the van | CONFIRMED |
 | W-02 | MAJOR | Map fast travel moves the borrowed tank into Maple Heights (any borrowed vehicle goes too) | CONFIRMED |
 | W-03 | MAJOR | Traffic drives straight through people standing in the road (neighbours; crew; kids) | CONFIRMED (neighbour) |
+| W-12 | MAJOR | Arriving by fast travel (or any jump) shows the destination unbuilt: no ground, no buildings, the dad on a sky-reflecting void, for the first ~15-60 frames | CONFIRMED (headless) |
 | W-04 | MINOR | "Saved you 8 seconds…" after every fast travel, whatever the distance | CONFIRMED |
 | W-05 | MINOR | Hangar 2: open doors show a black void with sky visible through the inside of the roof | LIKELY |
 | W-06 | MINOR | Backdrop houses at the map edge are plain boxes with black squares for windows, 20–40 m from where you can stand | CONFIRMED |
@@ -61,6 +62,21 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
   parked cars and props. Allies, givers, neighbours and kids are not obstacles for traffic. Nothing hurts them (no hit path), so
   this is visual, but it is a car at speed driving through a person, and the crew follow the dad across roads all the time.
   The player's own car also passes through kids by design (`dev/kids-safe.e2e.js` asserts "nothing happens").
+
+### W-12 · MAJOR · Fast travel lands you in a void until the destination streams in
+- **Repro:** `node dev/audit/world/base-arrive.e2e.js` (fresh game, jump to the Fort Sensible motor pool, then N calls of
+  `OW.update`, one per real frame). Also seen through the real flow in `home-exit.e2e.js` (house, Head outside, then the motor
+  pool) and `people-wide.e2e.js`.
+- **Expected:** the 0.35 s fast-travel fade hides the streaming; the player fades in on a built street.
+- **Actual:** after 15 frames there is no ground under the camera (`groundHit:null`), 9 of 69 units visible; the dad, the tank and
+  Staff Sgt. Ruiz stand on a mirror of the sky (`base-arrive-A-15.jpg`, `homeexit-base.jpg`, `people-base.jpg`). By 60 frames the
+  lot and buildings are in (`groundHit w:lot`, 33 visible). At 60 fps that is ~0.25-1 s of void after the fade; at 30 fps (Deck)
+  twice as long.
+- **Cause:** units are built in 6 ms slices per frame (`js/openworld.js:253-259`, `stepUnit(u, ws.SLICE||6)` in `OW.update`
+  at 1171-1177), and `owFastTravel`'s `go()` calls `O.update(camera)` once before fading back in (`index.html:1468-1470`). The
+  map handler (`index.html:2050-2051`) does not even do that. `OW.buildAhead` exists (the jet uses it) but fast travel does not.
+- **Confidence:** CONFIRMED headless in two independent probes; frame counts are a simulation of real frames, so the duration on
+  real hardware is an estimate. Fort Sensible, Riverside and the far job sites (the ones fast travel exists for) are affected the most.
 
 ### W-04 · MINOR · "Saved you 8 seconds and one argument about directions." for every trip
 - **Repro:** fasttravel probe part B: in the minivan at Dad's Auto, map to Home (187 m). Also part C (tank, ~250 m).
