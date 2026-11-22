@@ -43,7 +43,8 @@ function stencilTex(){if(MT._sten)return MT._sten;const c=document.createElement
 function sideTex(){if(MT._side)return MT._side;const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');x.clearRect(0,0,256,128);
   if(B()&&B().badge)B().badge(x,52,64,46);x.fillStyle='#ece6cc';x.font='900 52px "Arial Narrow", Arial';x.textBaseline='middle';x.fillText('FS-02',112,66);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return MT._side=t}
-function model(opts){const T=THREE,K=B().kit,root=new T.Group(),O='#5a6438',O2='#4d5730',DK='#2b2c27',MET='#3f423c';
+function model(opts){if(HT.HiVeh&&HT.HiVeh.tank)try{return HT.HiVeh.tank({sideTex:sideTex(),stencilTex:stencilTex()})}catch(err){console.warn('[tank] model',err)}/* the detailed model (js/hiveh.js); this one is the fallback */
+  const T=THREE,K=B().kit,root=new T.Group(),O='#5a6438',O2='#4d5730',DK='#2b2c27',MET='#3f423c';
   const hull=K.painter(),tur=K.painter(),gun=K.painter();
   /* hull: lower tub between the tracks, sloped glacis, deck, fenders, side skirts, engine deck grilles, lights, tow hooks */
   hull.box('paint',-3.4,.55,-1.12,3.2,1.25,1.12,O2);

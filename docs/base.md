@@ -12,6 +12,7 @@ now runs south through the old tree line to the gate), and fast-travel from the 
 | `js/tank.js` | LAWN ORDER, the motor pool's tank. |
 | `js/jet.js` | DAD-1, the Air Wing's trainer; the High Bridge; far terrain and roof lids while flying. |
 | `js/eggs.js` | Seven easter eggs and the pause-menu list. |
+| `js/hiveh.js` | The jet and tank models (procedural, PBR, merged per material); see "Models". |
 | `js/openworld.js` | `OW.addSetpiece`, `OW.kit`, `OW.flight({R,blod})` (wider draw radius while flying). |
 | `index.html` | Small, commented hooks: `HT.Roam` (the free-roam surface these files use), `baseArmOk`/`baseLine` in `frDraw`/`frUpdate`, `roamPrompt` in `updHub`, `userData.onShot` in `fire()`, `e.fly` (skip ground physics) in `updVan`, `e.noExit` and `e.noJobs` in `updHub`, the base region subtitle, the pin kind, the pause menu's `found` list. |
 | `js/hud.js` | A `range` pin icon; the pause menu's "Things your dad found" tab. |
@@ -142,6 +143,29 @@ altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the call
   a 100 ft look across the whole town; prints draw calls, triangles and frame ms; jpgs and numbers in
   `docs/screenshots/base/air-check/` (`-before` = the previous commit, `-after` = now). Medium, headless (warm frame): Maple 830 /
   706 / 286 calls at 100 / 300 / 800 ft, Riverside 643 / 477 / 116, the base 366 / 270 / 54, the street pass 280; 10-22 ms.
+
+## Models (jet and tank art)
+
+`js/hiveh.js` builds both vehicles in code: no downloaded meshes, textures or files of any kind. Proportions and panel layout
+follow public three-view drawings and dimension tables of a modern twin-tail fighter (scaled to the game's 11.4 m trainer, wing
+span 8.6 m) and of a modern main battle tank (7.6 m hull, 3.6 m over the skirts), used as reference only; every vertex and every
+texture pixel is ours. Names and markings are generic and fictional (DAD-1, LAWN ORDER, FS-02, a shield-and-star badge): no
+manufacturer names, designations or real unit insignia.
+
+* Jet: a lofted fuselage (superellipse cross-sections, separate radome), raked boxy intakes with dark mouths, bevelled extruded
+  wings / stabilators / canted twin fins with rudders and blue caps, turned nozzles, a tinted reflective canopy with bows over a
+  cockpit (seat, displays, stick), pitot and blade antennas, formation-light strips, landing gear with strut, oleo, torque link,
+  fork, tyre, hub and doors, the yellow boarding ladder.
+* Tank: hull with sloped glacis, fenders, bolted skirt segments, seven rubber-tyred road wheels a side, return rollers, a toothed
+  drive sprocket and idler, tracks with thickness and a link-pattern tread (scrolled per side), engine-deck grilles and exhaust
+  louvres, lights and tow hooks; an angular bevelled turret with roof plate, bustle rack, the commander's cupola with vision
+  blocks and the hatch open, the loader's hatch and MG, smoke dischargers, sights and antennas; a long barrel with thermal-sleeve
+  bands, fume extractor and muzzle sensor; and the dad's stowage (jerry cans, cooler, lawn chair).
+* Materials are PBR (MeshStandard) with procedural canvas textures: panel lines, rivets, access hatches, streaks, chips, and a
+  matching roughness map. Geometry is merged per material, with vertex colours for the tints, so each vehicle is a handful of meshes
+  (jet 33 incl. the folding gear legs, tank 14; before: 32 and 13). Collision, seats, camera anchors and the userData the game drives
+  are unchanged. `jet.js` / `tank.js` fall back to the old model if this file isn't loaded.
+* Before / after from four angles: `docs/screenshots/base/models/{jet,tank}-{front-left,side,rear,top}-{before,after}.jpg`.
 
 ## Easter eggs ("Things your dad found", pause menu)
 

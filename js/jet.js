@@ -42,7 +42,8 @@ function decalTex(){if(MT._dec)return MT._dec;const c=document.createElement('ca
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return MT._dec=t}
 function tailTex(){if(MT._tail)return MT._tail;const c=document.createElement('canvas');c.width=256;c.height=256;const x=c.getContext('2d');x.clearRect(0,0,256,256);if(B()&&B().badge)B().badge(x,128,118,80);
   x.fillStyle='#1e3a6e';x.font='900 34px Arial';x.textAlign='center';x.fillText('FS',128,236);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return MT._tail=t}
-function model(o){const T=T3(),K2=B().kit,root=new T.Group(),W='#e9ebe8',G2='#a9afb4',BL='#2b4d86',DK='#2a2d31';
+function model(o){if(HT.HiVeh&&HT.HiVeh.jet)try{return HT.HiVeh.jet({decalTex:decalTex(),tailTex:tailTex()})}catch(err){console.warn('[jet] model',err)}/* the detailed model (js/hiveh.js); this one is the fallback */
+  const T=T3(),K2=B().kit,root=new T.Group(),W='#e9ebe8',G2='#a9afb4',BL='#2b4d86',DK='#2a2d31';
   const body=new T.Group();root.add(body);const P=K2.painter();
   /* fuselage: a lathe along x (nose at +x), the canopy, intakes, spine */
   const prof=[[-5.2,.0],[-5.1,.42],[-4.4,.62],[-2.6,.72],[-.6,.78],[1.4,.72],[2.8,.6],[4.2,.38],[5.2,.14],[5.6,.0]];
