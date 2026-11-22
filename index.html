@@ -458,10 +458,14 @@ function setNight(k,now){k=clamp(+k||0,0,1);NIGHT.target=k;if(now||mode==='title
 const NR={ready:false,pts:[],spot:null,list:[],ver:-1,litT:0,litKey:'',pool:null,halo:null,flashDir:null,swayT:0};
 function nightGlowTex(inner,outer){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);
   g.addColorStop(0,inner);g.addColorStop(.35,outer);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)}
+/* the one spot light (flashlight on foot, headlights in a car) is in the scene from the first frame at intensity 0, so turning the
+   flashlight on never changes the scene's light count: a new count recompiles every material (a ~4.7 s freeze under the parachute,
+   with the whole town in the flight draw radius; dev/base-flash.js). The lamp lights still arrive with the night (nightRig). */
+function nightSpot(){if(NR.spot)return;const s=new THREE.SpotLight(0xfff1dc,0,25,25*Math.PI/180,.6,1.3);s.castShadow=false;scene.add(s);scene.add(s.target);NR.spot=s;NR.flashDir=V3(0,0,-1)}
 function nightRig(){if(NR.ready)return;NR.ready=true;
   for(let i=0;i<NIGHT.T.lampN;i++){const l=new THREE.PointLight(0xffd29a,0,18,1.6);l.castShadow=false;l.userData.f=0;l.userData.src=null;scene.add(l);NR.pts.push(l)}
   /* one spot light: the flashlight on foot, the player's headlights in a car (never both) */
-  const s=new THREE.SpotLight(0xfff1dc,0,25,25*Math.PI/180,.6,1.3);s.castShadow=false;scene.add(s);scene.add(s.target);NR.spot=s;NR.flashDir=V3(0,0,-1);
+  nightSpot();
   const pm=new THREE.MeshBasicMaterial({map:nightGlowTex('rgba(255,255,255,.55)','rgba(255,255,255,.2)'),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,
     polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
   const pg=new THREE.PlaneGeometry(1,1);pg.rotateX(-Math.PI/2);NR.pool=new THREE.InstancedMesh(pg,pm,640);NR.pool.count=0;NR.pool.frustumCulled=false;NR.pool.renderOrder=2;NR.pool.visible=false;scene.add(NR.pool);
@@ -549,7 +553,7 @@ function nvgTick(dt){const g=nvgGad();
 function nightSfx(on){const A=AU();if(!A||!A.ui)return;try{A.ui('click');if(on==='nvg')A.ui('hover')}catch(e){}}
 /* keys: F flashlight, N goggles. Returns what changed (for tests) */
 function nightToggle(what,on){
-  if(what==='flash'){const v=on==null?!NIGHT.flash:!!on;if(v&&VAN.on&&mode!=='home')return NIGHT.flash;/* headlights instead */if(v!==NIGHT.flash){NIGHT.flash=v;nightRig();nightSfx(true)}return NIGHT.flash}
+  if(what==='flash'){const v=on==null?!NIGHT.flash:!!on;if(v&&VAN.on&&mode!=='home')return NIGHT.flash;/* headlights instead */if(v!==NIGHT.flash){NIGHT.flash=v;nightSpot();nightSfx(true)}return NIGHT.flash}
   if(what==='nvg'){const v=on==null?!NIGHT.nvg:!!on;if(v&&!nvgUsable()){if(on==null){try{HUD.feed('No night-vision goggles equipped','info')}catch(e){}const A=AU();if(A&&A.ui)try{A.ui('denied')}catch(e){}}return false}
     if(v&&nvgCharge()<=0){if(on==null){try{radio('you','Goggles are dead. Like my phone. Like my knees.',true)}catch(e){}const A=AU();if(A&&A.ui)try{A.ui('denied')}catch(e){}}return false}
     if(v!==NIGHT.nvg){NIGHT.nvg=v;nightSfx(v?'nvg':true)}return NIGHT.nvg}}
@@ -560,8 +564,8 @@ function nightTick(dt){
   if(NIGHT.t!==NIGHT.target){const d=NIGHT.target-NIGHT.t,s=dt>0?dt/NIGHT.ease:1;nightSetK(Math.abs(d)<=s?NIGHT.target:NIGHT.t+Math.sign(d)*s)}
   if(NIGHT.k>0&&NIGHT.post!==RENDER.post)applyMood();/* quality changed: Low takes its own exposure */
   if(NIGHT.flash&&VAN.on&&mode!=='home')NIGHT.flash=false;
-  if(NIGHT.k>0||NIGHT.flash)nightRig();
-  if(NR.ready){nightLampTick(dt);nightSpotTick(dt)}
+  nightSpot();if(NIGHT.k>0)nightRig();/* the flashlight alone needs only the spot (see nightSpot) */
+  if(NR.ready)nightLampTick(dt);if(NR.spot)nightSpotTick(dt);
   nightSkyFollow();nvgTick(dt);
   const T=NIGHT.T,k=NIGHT.k;NIGHT.sight=nlerp(1,T.nightSight/T.daySight,k);
   NIGHT.psight=k>0&&(NIGHT.flash||nightLight(P.pos.x,P.pos.z)>=nlerp(1,T.lit,k)-1e-6)?1:null}
