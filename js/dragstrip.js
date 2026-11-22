@@ -521,23 +521,26 @@ function bracketRound(a,br,e){const r=br.field[br.round-1];racerIntro(r);const o
 function nextRound(a,R){const br=R.bracket;br.round++;S.run=null;dropOpp(R);bracketRound(a,br,R.e)}
 
 /* ================= BETS ON OTHER RACES (the tower camera) ================= */
-function matchup(){const L=D().LADDER.map(D().racer);let i=Math.floor(Math.random()*L.length),j=Math.floor(Math.random()*(L.length-1));if(j>=i)j++;return[L[i],L[j]]}
+/* two regulars. Two races in three are spec races (both in the same loaner, so it's the drivers that differ: closer odds);
+   the third is in their own cars (often lopsided: the price says so) */
+function matchup(){const L=D().LADDER.map(D().racer);const i=Math.floor(Math.random()*L.length);const near=L.filter((r,k)=>k!==i&&Math.abs(k-i)<=2);const y=near[Math.floor(Math.random()*near.length)];
+  const m=Math.random()<.5?[L[i],y]:[y,L[i]];const T=D().CLASSES.street.types;if(Math.random()<.67){const t=T[Math.floor(Math.random()*T.length)];m.cars=[t,t];m.spec=true}else m.cars=[m[0].car,m[1].car];return m}
 function openBet(a,m){m=m||S.nextMatch||(S.nextMatch=matchup());const[x,y]=m,E=D().ECON,Dd=today();
-  const p=D().winP({spec:D().spec(x.car),driver:x.d},{spec:D().spec(y.car),driver:y.d},500,(m.seed=m.seed||((Math.random()*1e9)|0)));const mx=D().payout(p),my=D().payout(1-p);
-  const side=(r,mult,pp,lane)=>({label:'Back '+r.name,tags:[[D().spec(r.car).name.toUpperCase(),'']],sub:(lane?'Left':'Right')+' lane · the tower makes it '+Math.round(pp*100)+'%',right:'pays '+mult.toFixed(2)+'×',act:()=>stakeMenu(a,m,lane,mult,pp)});
-  menu({id:'bet',title:'BET ON THE NEXT RACE',sub:x.name+' vs '+y.name+'. Payouts come from the tower\'s numbers (the same model that runs the race) less an '+Math.round(E.bet.edge*100)+'% house edge. $'+E.bet.min+'-$'+E.bet.max+' a bet; today +$'+Dd.betWon+' / -$'+Dd.betLost+' of +$'+E.bet.winCap+' / -$'+E.bet.lossCap+'. The booth never takes you under $'+E.bet.floor+'.',
+  const p=D().winP({spec:D().spec(m.cars[0]),driver:x.d},{spec:D().spec(m.cars[1]),driver:y.d},500,(m.seed=m.seed||((Math.random()*1e9)|0)));const mx=D().payout(p),my=D().payout(1-p);
+  const side=(r,mult,pp,lane)=>({label:'Back '+r.name,tags:[[D().spec(m.cars[lane]).name.toUpperCase(),'']],sub:(lane?'Left':'Right')+' lane · the tower makes it '+Math.round(pp*100)+'%',right:'pays '+mult.toFixed(2)+'×',act:()=>stakeMenu(a,m,lane,mult,pp)});
+  menu({id:'bet',title:'BET ON THE NEXT RACE',sub:x.name+' vs '+y.name+(m.spec?', a spec race: both in the strip\'s '+D().spec(m.cars[0]).name+'s':', in their own cars')+'. Payouts come from the tower\'s numbers (the same model that runs the race) less an '+Math.round(E.bet.edge*100)+'% house edge. $'+E.bet.min+'-$'+E.bet.max+' a bet; today +$'+Dd.betWon+' / -$'+Dd.betLost+' of +$'+E.bet.winCap+' / -$'+E.bet.lossCap+'. The booth never takes you under $'+E.bet.floor+'.',
     items:[side(x,mx,p,0),side(y,my,1-p,1),{label:'Just watch',sub:'No money on it',act:()=>{closeMenu();startWatch(a,m,null)}},{label:'Different race',sub:'Two other regulars',act:()=>{S.nextMatch=matchup();openBet(a)}}],back:()=>openOffice(a)})}
 function stakeMenu(a,m,lane,mult,p){const Dd=today(),c=cash(),items=[];
   for(const st of[10,25,50,100]){const why=D().canBet(c,Dd,st,mult);items.push({label:'$'+st,right:'wins +$'+Math.round(st*(mult-1)),off:why,act:()=>{closeMenu();startWatch(a,m,{lane,stake:st,mult,p})}})}
   menu({id:'stake',title:'HOW MUCH?',sub:'On '+m[lane].name+' at '+mult.toFixed(2)+'×. You have '+money(c)+'.',items,back:()=>openBet(a,m)})}
 function startWatch(a,m,bet){const d=ST.def();S.nextMatch=null;const W=S.watch={m,bet,t:0,phase:'roll',models:[],ctl:[null,null],res:null,skip:false};
-  for(let ln=0;ln<2;ln++){const r=m[ln];let v=null;try{v=HT.Vehicles.make(r.car,{color:RCOL[r.id]||'#888',lod:1})}catch(_){}if(v){v.traverse(o=>{if(o.isMesh)o.userData.noBatch=true});(S.root||a.L.group).add(v)}W.models.push(v)}
+  for(let ln=0;ln<2;ln++){const r=m[ln];let v=null;try{v=HT.Vehicles.make(m.cars[ln],{color:RCOL[r.id]||'#888',lod:1})}catch(_){}if(v){v.traverse(o=>{if(o.isMesh)o.userData.noBatch=true});(S.root||a.L.group).add(v)}W.models.push(v)}
   boardsSet([{name:m[0].name},{name:m[1].name}]);say(NAMES.starter,m[1].name+' in the left lane, '+m[0].name+' in the right. '+(bet?'You\'re on '+m[bet.lane].name+'.':''),true);
   W.key=e=>{if(!S.watch||S.menu)return;const k=(e.key||'').toLowerCase();if(k==='e'||k==='enter'||k===' '||k==='escape'){e.stopImmediatePropagation();e.preventDefault();W.skip=true}};document.addEventListener('keydown',W.key,true);
   if(HT.Pad&&HT.Pad.modal)W.unpad=HT.Pad.modal({move:()=>{},ok:()=>{W.skip=true},back:()=>{W.skip=true}});hudOn(a,true)}
 function watchTick(a,dt){const W=S.watch;if(!W)return;W.t+=dt;
   if(W.phase==='roll'){const k=clamp(W.t/1.6,0,1),back=4*(1-k*k*(3-2*k));W.models.forEach((v,ln)=>v&&placeModel(v,ln,back,0,dt));treeSet([{pre:k>.5,stage:k>=1},{pre:k>.5,stage:k>=1}]);
-    if(W.t>2.6){W.phase='go';W.t=0;W.ctl=W.m.map(r=>D().ai(D().spec(r.car),r.d,Math.random,{greenAt:TREE.green}))}}
+    if(W.t>2.6){W.phase='go';W.t=0;W.ctl=W.m.map((r,ln)=>D().ai(D().spec(W.m.cars[ln]),r.d,Math.random,{greenAt:TREE.green}))}}
   else if(W.phase==='go'){if(W.skip){for(const c of W.ctl){let n=0;while(!c.R.done&&n++<40000)c.tick(1/120)}}
     for(const c of W.ctl){if(!c.R.done)c.tick(dt);else shut(null,c.R,dt)}
     W.models.forEach((v,ln)=>v&&placeModel(v,ln,-W.ctl[ln].R.x,W.ctl[ln].R.v,dt));
@@ -549,7 +552,7 @@ function watchDone(a){const W=S.watch;W.phase='done';const sl=W.ctl.map(c=>D().s
     line=won?'Your $'+W.bet.stake+' on '+W.m[W.bet.lane].name+' pays +$'+n+'.':'Your $'+W.bet.stake+' on '+W.m[W.bet.lane].name+' is gone.';lines.push([won?'Bet won':'Bet lost',n])}
   ST.lastWatch={win:res.win,how:res.how,margin:res.margin,net:lines.length?lines[0][1]:0,slips:sl};
   const winner=W.m[res.win];say(winner.name,winner.lines.win);
-  const h=`<div class="sub" style="font-size:20px"><b>${esc(winner.name)}</b> wins${res.how==='red'?' (a red light in the other lane)':res.margin!=null?' by '+res.margin.toFixed(3)+' s ('+res.marginM.toFixed(1)+' m)':''}</div><table>${sl.map((x,i)=>`<tr><td>${esc(W.m[i].name)} · ${esc(D().spec(W.m[i].car).name)}</td><td class="v">R/T ${f3(x.rt)}${x.red?' RED':''}</td><td class="v">${f3(x.et)} s</td><td class="v">${x.mph!=null?x.mph.toFixed(1):'—'} mph</td></tr>`).join('')}</table>${line?`<div class="sub" style="font-size:17px" class="${res.win===(W.bet&&W.bet.lane)?'cash':''}">${esc(line)}</div>`:''}`;
+  const h=`<div class="sub" style="font-size:20px"><b>${esc(winner.name)}</b> wins${res.how==='red'?' (a red light in the other lane)':res.margin!=null?' by '+res.margin.toFixed(3)+' s ('+res.marginM.toFixed(1)+' m)':''}</div><table>${sl.map((x,i)=>`<tr><td>${esc(W.m[i].name)} · ${esc(D().spec(W.m.cars[i]).name)}</td><td class="v">R/T ${f3(x.rt)}${x.red?' RED':''}</td><td class="v">${f3(x.et)} s</td><td class="v">${x.mph!=null?x.mph.toFixed(1):'—'} mph</td></tr>`).join('')}</table>${line?`<div class="sub" style="font-size:17px" class="${res.win===(W.bet&&W.bet.lane)?'cash':''}">${esc(line)}</div>`:''}`;
   endWatch(a,true);menu({id:'watched',title:'RACE RESULT',html:h,items:[{label:'Another race',act:()=>openBet(a)},{label:'Done',act:()=>closeMenu()}]})}
 function endWatch(a,keepModels){const W=S.watch;if(!W)return;S.watch=null;if(W.key)document.removeEventListener('keydown',W.key,true);if(W.unpad)W.unpad();hudOff();
   for(const v of W.models)if(v){try{if(v.parent)v.parent.remove(v);v.userData.dispose&&v.userData.dispose()}catch(_){}}treeSet([{},{}])}
