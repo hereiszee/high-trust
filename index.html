@@ -4536,7 +4536,7 @@ function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e),t=performan
   const lost=(()=>{try{return GLX.lost||renderer.getContext().isContextLost()}catch(_){return false}})();
   if(FRAME_ERR.seen.size<50&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e&&e.stack||e)}
   if(lost)return;
-  if(FRAME_ERR.key!==k||t-FRAME_ERR.last>250){FRAME_ERR.key=k;FRAME_ERR.since=t;FRAME_ERR.told=false}FRAME_ERR.last=t;
+  if(FRAME_ERR.key!==k||t-FRAME_ERR.last>1000){FRAME_ERR.key=k;FRAME_ERR.since=t;FRAME_ERR.told=false}FRAME_ERR.last=t;
   if(!FRAME_ERR.told&&t-FRAME_ERR.since>2000){FRAME_ERR.told=true;try{metaSave(true)}catch(_){}
     try{HUD.feed("Something went wrong · your progress is saved",'bad')}catch(_){}}}
 function frame(now){

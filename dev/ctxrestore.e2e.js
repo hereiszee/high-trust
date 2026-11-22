@@ -14,10 +14,11 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     return{mean:Math.round(s/n),lit,of:n}});
   /* SwiftShader draws the heavy scenes at about 1 fps: alive = the page's own loop draws a new frame within 5 s */
   const loop=async()=>{const a=await ev(()=>window.__ht.renderer.info.render.frame);try{await p.waitForFunction(a=>window.__ht.renderer.info.render.frame>a,a,{timeout:5000,polling:100})}catch(e){}return(await ev(()=>window.__ht.renderer.info.render.frame))-a};
-  const cycles=async(label)=>{const p0=await picture();let worst=null,dead=0;
+  const cycles=async(label)=>{const p0=await picture();let worst=null,dead=0;const means=[];
     for(let i=0;i<N;i++){await ev(()=>window.__ht.renderer.forceContextLoss());await wait(250);await ev(()=>window.__ht.renderer.forceContextRestore());await wait(600);
       await ev(()=>{const H=window.__ht;if(H.HUD.dialogOpen)H.HUD.closeDialog('wait');if(H.HUD.screen==='pause')document.querySelector('.ht-pause [data-act=resume]')?.click()});await wait(200);
-      const f=await loop();if(f<=0)dead++;const pic=await picture();if(!worst||pic.mean<worst.mean)worst=pic}
+      const f=await loop();if(f<=0)dead++;const pic=await picture();means.push(pic.mean);if(!worst||pic.mean<worst.mean)worst=pic}
+    console.log('info '+label+' picture means per cycle: '+means.join(' ')+' · '+JSON.stringify(await ev(()=>({mode:window.__ht.mode,M:window.__ht.M&&window.__ht.M.state,hp:Math.round(window.__ht.P.hp),screen:window.__ht.HUD.screen}))));
     ok(dead===0,`${label}: render loop alive after each of ${N} lose/restore cycles (dead ${dead})`);
     ok(worst.mean>20&&worst.lit>=worst.of*.6,`${label}: the picture comes back every time (before ${JSON.stringify(p0)}, worst after ${JSON.stringify(worst)})`)};
   await cycles('hub');
