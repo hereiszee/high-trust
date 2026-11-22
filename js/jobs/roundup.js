@@ -90,7 +90,7 @@ const L={
   feePrompt:"Release fee's forty bucks a van. Cash. It's, uh, a new policy.",
   nudge:[['rick',"Pick one. Number keys. I believe in you."]],
   pay:[['gary',"I have exactly two hundred dollars in my emergency envelope. It says EMERGENCY on it."],['Attendant',"Pleasure doing business."],['rick',"That's not a fee. That's a shakedown. We'll get that back."]],
-  receipt:[['Attendant',"A... receipt."],['dave',"For our records. We're very organised."],['Attendant',"The receipt machine is, uh. Broken."],['doug',"That's a cooler."],
+  receipt:[['Attendant',"A... receipt."],['dave',"For our records. We're very organized."],['Attendant',"The receipt machine is, uh. Broken."],['doug',"That's a cooler."],
     ['Attendant',"(into his phone) Dante. Dante, we got... dads."],['rick',"He's gone to 'find the receipt book'. The barrier's on a button in the booth. Hop out and press it."]],
   coach:[['rick',"Brandon Pruitt? Left back. Under-tens. You cried when we lost to Linden and then scored on our own goal to make it fair."],['Attendant',"...Coach Rick?"],
     ['rick',"You still tuck your shirt in?"],['Attendant',"...Yes, Coach."],['rick',"Barrier, son."],
@@ -121,11 +121,11 @@ const L={
   tight:["Tight formation! Like a warm-up lap!","Closing up! Bumper to bumper! Not literally!","Tighten up, gentlemen. Nobody gets between us."],
   spread:["Spread out! Give everyone room!","Opening up the gaps. Three seconds. Like the internet says.","Spreading out. If I'd wanted to be this close to Dave I'd have carpooled with him."],
   hold:["Holding! Hazards on. Like professionals.","Everybody stop. Nobody move. Nobody honk.","Holding here. I'll do my stretches."],
-  go:["And we're rolling.","Moving! Mirror, signal, manoeuvre!","Go go go. Gently."],
+  go:["And we're rolling.","Moving! Mirror, signal, maneuver!","Go go go. Gently."],
   bump:[[['rick',"Doug, you're tailgating."],['doug',"I'm DRAFTING."]],[['dave',"Somebody just kissed my bumper."],['gary',"It was affectionate."]],[['rick',"Gaps! Gaps, people!"],['doug',"The gap was there! Then it wasn't!"]]],
   playerBump:["You just backed into your own convoy. That's a first. For the convoy.","Hey! We're on your SIDE.","That was me. You hit me. I'm the van behind you. Hi."],
   fast:["Convoy pace! This is a warm-up lap, not a breakaway!","We're minivans! We go one speed! Medium!","You're losing us. I can see your brake lights. Barely. Like a star."],
-  kerb:["Did you just hit the kerb? With the whole convoy watching?","Everybody behind you just hit that too. Thanks."],
+  kerb:["Did you just hit the curb? With the whole convoy watching?","Everybody behind you just hit that too. Thanks."],
   lag:n=>[n,"I've lost you. I'm pulling over by a hydrant with my hazards on. Come and get me. That's the rule."],
   back:n=>[n,"There you are! I waved at three wrong minivans."],
   stuckRed:n=>[n,"Red light. I'm stopping. I have a family. Well, I have somebody else's family's van."],
@@ -135,7 +135,7 @@ const L={
   idle:[[['dave',"This is nice. Five minivans. Nobody's arguing about the radio."],['gary',"I'd like to argue about the radio."]],
     [['earl',"Signal, check your mirror, ease out. Thirty-six years. Never once honked."],['doug',"Never ONCE?"],['earl',"Once. A goose."]],
     [['doug',"Do you think the vans know they're going home?"],['rick',"Eyes on the road, Doug."]]],
-  pursuit:[['doug',"Grey sedan behind us. Coming up fast. He is not commuting."],['rick',"He wants the back van. Press 4, I'll take the lead, and you get between him and the line."]],
+  pursuit:[['doug',"Gray sedan behind us. Coming up fast. He is not commuting."],['rick',"He wants the back van. Press 4, I'll take the lead, and you get between him and the line."]],
   pursuitLead:[['rick',"You're out front. He's at the back. Press 4: I take the lead, you drop back and sweep."]],
   thief:[['Thief',"Why are there five minivans?"],['Thief 2',"It's a coordinated minivan attack, Dante!"]],
   tapped:n=>[n,pick(["He tapped me! He TAPPED me!","He's on my bumper! He's ON my bumper!","That's going to need a touch-up pen."])],
@@ -158,7 +158,7 @@ const L={
   failNoon:"12:00. The Hornets forfeit. Marcy has added a column to the spreadsheet. It's red.",
   failCar:"Your van's done. The convoy has nobody to follow. They're just... idling. Sadly.",
   failWreck:"Two vans wrecked. The carpool is now a walkpool.",
-  wrecked:n=>[n,"I'm out. She's done. She's resting. I'm going to sit on the kerb and think about my choices."],
+  wrecked:n=>[n,"I'm out. She's done. She's resting. I'm going to sit on the curb and think about my choices."],
   noGuns:"Rick: Nobody's shooting out of a carpool van. Drive."};
 
 /* ---------------- resources (disposed when the job ends, even on a replay or a retry) ---------------- */
@@ -552,7 +552,7 @@ function lotWatch(M,dt,F,nf,ns,nb,ready){const a=A(),pr=M.prog||(M.prog={t:0,sig
   const step=M.relay?'relay:'+M.relay.v.f.id:M.alarm&&M.guards.some(g=>!['dead','cuffed','surrender'].includes(g.e.state))?'alarm':walk?'crew:'+walk.walk.who+'>'+walk.f.id:blk?'shove:'+blk:nf<5?'find':ns<nf?'hood':ready>=Math.min(5,Math.max(K.minVans,nf))?'leave':'wait';
   const sig=[nf,ns,ready,Object.values(M.blk).filter(k=>k.done).length,!!M.alarm,step].join('|');
   if(sig!==pr.sig){pr.sig=sig;pr.t=0;pr.step=step;pr.hint=false}else pr.t+=dt;
-  if(pr.t>K.stallHint){const H={find:'Look for the yellow hang tag and the bee sticker on the windscreen. The marker points at the next row.',hood:'Walk to the front bumper of a Hornets van: the ring is by the hood. E, then 1, 2, 3.',relay:'Match the wire colours to the terminals with 1, 2, 3. Walk away to close the panel.',
+  if(pr.t>K.stallHint){const H={find:'Look for the yellow hang tag and the bee sticker on the windscreen. The marker points at the next row.',hood:'Walk to the front bumper of a Hornets van: the ring is by the hood. E, then 1, 2, 3.',relay:'Match the wire colors to the terminals with 1, 2, 3. Walk away to close the panel.',
       shove:'Get in your van (E), nose into the hatchback and keep pushing until it rolls clear of the van.',crew:'Your crew are walking to the vans. Give them a moment, or keep going.',alarm:'Deal with the guards: tie them up (F) from behind, or fight. The vans go once the lot is quiet.',
       leave:'Get in your van (E) and drive out the gate: the vans follow.',wait:'Start the rest of the vans, or drive out the gate with what you have.'};
     F.objs.push(['Hint: '+(H[step.split(':')[0]]||H.wait),false,'warn']);if(!pr.hint){pr.hint=true;sfx.tick&&sfx.tick(true)}}
@@ -810,7 +810,7 @@ const tailOf=C=>{const l=C.chain().filter(m=>m!==C.lead&&ROLL[m.st]);return l[l.
 function pursuitBegin(M){const a=A(),CA=a.CarAI();const obj=a.makeVehicle('sedan','#596068',{rims:'stock'})||a.makeVanBox('#596068');a.wmAdd(obj);if(obj.userData&&obj.userData.dispose)res().veh.push(obj);
   const tl=tailOf(M.C),sx=tl&&tl.car.z<50&&tl.car.x<250?Math.min(262,tl.car.x+55):262,c=CA.make('sedan',{x:sx,z:44.6,yaw:Math.PI/2});c.stats=Object.assign({},c.stats,{brake:20});c.len=4.6;
   M.pursuit={obj,c,st:'chase',t:0,shake:0,lat:0,latK:0,passT:0,blockT:0,harT:2,rT:0,route:null,blockSay:0,col:a.wmCol({x0:-1e4,z0:-1e4,x1:-1e4+1,z1:-1e4+1}),gone:false};
-  seq(M,M.C.head?L.pursuit.slice(0,1):L.pursuit,true);setTimeout0(M,6,()=>seq(M,L.thief));music('combat',.65);a.feed('A grey sedan is after the vans','bad')}
+  seq(M,M.C.head?L.pursuit.slice(0,1):L.pursuit,true);setTimeout0(M,6,()=>seq(M,L.thief));music('combat',.65);a.feed('A gray sedan is after the vans','bad')}
 function syncPursuer(M,p,dt){const a=A(),c=p.c;p.obj.position.set(c.x,a.groundAt(c.x,c.z),c.z);p.obj.rotation.set(0,c.yaw+Math.PI/2,0);
   const VM=window.HT&&HT.Vehicles;if(VM&&VM.update)try{VM.update(p.obj,{speed:c.spd,steer:c.steer||0,braking:(c.ai&&c.ai.speed<c.spd-.5),headlights:false,dt})}catch(_){}
   if(!a.CV){const hl=2.35,hw=1.0,s=Math.abs(Math.sin(c.yaw)),co=Math.abs(Math.cos(c.yaw));Object.assign(p.col,{x0:c.x-(s*hl+co*hw),x1:c.x+(s*hl+co*hw),z0:c.z-(co*hl+s*hw),z1:c.z+(co*hl+s*hw),ph:1.5,ob:{x:c.x,z:c.z,fx:-Math.sin(c.yaw),fz:-Math.cos(c.yaw),hl,hw}})}

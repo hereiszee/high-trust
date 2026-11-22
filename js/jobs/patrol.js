@@ -23,13 +23,13 @@ const RESERVED=/Ferreira|Adeyemi|Patel|Okafor|Lindqvist|Ramos|Hollis|Alvarez|Kim
 const NBROLES=['nb_gran','nb_pops','nb_office','nb_sweater','nb_kenji','nb_marcus','nb_mei','nb_lucia'];
 const MOODS=['chatty','busy','jokey'];
 const LINES={
-  doug:{hi:[['doug',"Watch tip: wave at everyone. If they wave back, they're neighbours. If they don't, they're also neighbours. Wave harder."],['doug',"Here's the route. Check every porch. Look, don't lurk. Knock if you want. Write it all down."]],
+  doug:{hi:[['doug',"Watch tip: wave at everyone. If they wave back, they're neighbors. If they don't, they're also neighbors. Wave harder."],['doug',"Here's the route. Check every porch. Look, don't lurk. Knock if you want. Write it all down."]],
     night:[['doug',"Evening patrol. Flashlight's on F. Porch lights, kids out late, anybody trying car doors. Calm voice. Big wave."]],
     river:[['doug',"Riverside asked for a Watch walk-through. We're guests. Smile first. Ask second. Zip-ties never, unless they run."]],
     done:"That's the route. Come back to your ride and I'll read your notes. Out loud. With voices.",half:"Halfway. Good pace. Doug-approved pace.",late:"Patrol window's closing. Get the last few porches."},
   chat:{first:["Oh! Is it Thursday already? Hi, Watch!","Oh, hello! Are you the Watch? You're the Watch!","Hi! Is everything okay? It's okay? Okay. Hi!"],
     second:["Back again! You're good at this.","The Watch! Twice in one month. I feel safe. And watched.","Oh, it's you. Good. Hi."],
-    friend:["{me}! Come up, I made lemonade. Too much lemonade.","There's my favourite Watch dad. Don't tell the other one.","{me}! You want a cookie for the road? You want a cookie for the road."],
+    friend:["{me}! Come up, I made lemonade. Too much lemonade.","There's my favorite Watch dad. Don't tell the other one.","{me}! You want a cookie for the road? You want a cookie for the road."],
     tip:["Waffles got out again, didn't he. That dog has a plan.","Somebody's van has been on the street since nine. Probably fine.","The kids are chalking again. It's very good this time.","Somebody up the street left their garage open. Again."],
     opts:[{t:"Just making the rounds. Lovely evening.",r:'real'},{t:"Watch tip: lock it, light it, love it.",r:'joke'},{t:"Honestly I just like walking. My knee says otherwise.",r:'over'}],
     good:["Ha! Same time next week?","You're sweet. Doug's lucky.","I'll wave from the window!"],meh:["...Okay! Bye, Watch.","Mm-hm. Well. Carry on.","Right. Yes. Good."]},
@@ -38,7 +38,7 @@ const LINES={
     dog:{find:"A dog with a tag. 'WAFFLES. If found, I live at {o}.' Hi, Waffles.",take:"Come on, Waffles. Home.",fix:"Waffles is home.",owner:"WAFFLES! You absolute menace. Thank you, Watch!",note:"Waffles (dog, very good) found by {h}. Walked him home to {o}. He walked me, technically."},
     chalk:{find:"Chalk. Across the whole sidewalk. There's a dragon.",note:"Chalk at {h}. A dragon, a sun and a very long hopscotch. Admired it. Rated it. 10/10."},
     van:{find:"Unfamiliar van. Engine off. Guy in coveralls.",note:"Unfamiliar van at {h}. Asked. It's a plumber. Somebody's water heater gave up. Everyone is fine."},
-    bins:{find:"Bins blown into the road. Somebody's recycling is touring the neighbourhood.",fix:"Bins back on the kerb.",note:"Bins in the road by {h}. Stood them back up. Somebody drinks a lot of sparkling water."},
+    bins:{find:"Bins blown into the road. Somebody's recycling is touring the neighborhood.",fix:"Bins back on the curb.",note:"Bins in the road by {h}. Stood them back up. Somebody drinks a lot of sparkling water."},
     light:{find:"Porch light's out. A dark porch is an invitation. A rude one.",fix:"Light's back on. It was loose. Most things are.",note:"Porch light out at {h}. Tightened the bulb. Let there be porch."},
     late:{find:"Two kids, out past the streetlights. 'We're going home! Slowly!'",take:"Come on, you two. I'll walk you to your corner.",fix:"Home. Their mom says thank you. And 'INSIDE. NOW.'",note:"Two kids out late near {h}. Walked them to {o}. They told me about Minecraft the whole way."},
     pirate:{find:"Tote bag. Fast walk. He just picked up a parcel that isn't his.",talk:"That's not yours, friend. Put it back on the step.",back:"...Yeah. Okay. Okay. Sorry.",caught:"Okay! Okay! It's a nose hair trimmer, I don't even want it!",
@@ -97,7 +97,7 @@ function chalkTex(R){return canvasTex(512,256,(g,w,h)=>{g.clearRect(0,0,w,h);g.l
 function vanSide(){return canvasTex(512,128,(c,w,h)=>{c.clearRect(0,0,w,h);c.fillStyle='#2f6f8f';c.textAlign='center';c.font='900 56px '+uiFont();c.fillText("DRIPPY'S",w/2,58);c.fillStyle='#c0392b';c.font='800 34px '+uiFont();c.fillText('PLUMBING · SINCE 1987',w/2,104)})}
 function noteCard(){return canvasTex(256,192,(c,w,h)=>{c.fillStyle='#fff7c2';c.fillRect(0,0,w,h);c.fillStyle='#1d2a6b';c.font='700 26px "Comic Sans MS",sans-serif';c.fillText('Hi! Sorry!',20,48);c.font='700 22px "Comic Sans MS",sans-serif';c.fillText('Fixed it for you.',20,92);c.fillText(':) — THE WATCH',20,140)})}
 function watchSign(){const T=T3(),g=new T.Group();cy(.04,2.3,'#9aa3a8',0,1.15,0,g,8);const tex=canvasTex(320,320,(c,w,h)=>{c.fillStyle='#f6f1e3';c.fillRect(0,0,w,h);c.strokeStyle='#1d4f8f';c.lineWidth=14;c.strokeRect(8,8,w-16,h-16);c.fillStyle='#1d4f8f';c.textAlign='center';
-    c.font='900 40px '+uiFont();c.fillText('NEIGHBOURHOOD',w/2,64);c.font='900 64px '+uiFont();c.fillText('WATCH',w/2,128);c.fillStyle='#c0392b';c.font='900 44px '+uiFont();c.fillText('WE WAVE',w/2,196);c.fillStyle='#1d4f8f';c.font='700 26px '+uiFont();c.fillText('(WAVE BACK)',w/2,244);
+    c.font='900 40px '+uiFont();c.fillText('NEIGHBORHOOD',w/2,64);c.font='900 64px '+uiFont();c.fillText('WATCH',w/2,128);c.fillStyle='#c0392b';c.font='900 44px '+uiFont();c.fillText('WE WAVE',w/2,196);c.fillStyle='#1d4f8f';c.font='700 26px '+uiFont();c.fillText('(WAVE BACK)',w/2,244);
     c.beginPath();c.arc(w/2,284,16,0,7);c.fill()});plane(.8,.8,tex,0,2.0,.05,g,0,{side:true,cast:true});return g}
 function bulbGlow(){const T=T3(),g=new T.Group();const m=tm(new T.MeshBasicMaterial({color:new T.Color('#ffd98a').convertSRGBToLinear().multiplyScalar(2.2),toneMapped:false}));const b=new T.Mesh(USPH(),m);b.scale.setScalar(.06);g.add(b);
   const tex=canvasTex(64,64,(c,w,h)=>{const r=c.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,220,150,.9)');r.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=r;c.fillRect(0,0,64,64)});
@@ -204,7 +204,7 @@ function upd(dt,M,F){const a=A(),P_=pt(M),P=a.P;if(!P_)return;P_.t+=dt;P_.dt=dt;
   if(!F.target){const fe=P_.follow;if(fe&&fe.kind==='dog'){const o=P_.stops[fe.s.ev.home];F.target={x:o.sx,z:o.sz,label:'Waffles lives here'}}else if(fe&&fe.kind==='late'){const o=P_.stops[fe.s.ev.home];F.target={x:o.sx,z:o.sz,label:'Their corner'}}
     else if(next)F.target={x:next.sx,z:next.sz,label:'Porch '+(next.i+1)}}
   F.widgets.push({id:'pt-clock',kind:'timer',label:'Patrol',v:Math.max(0,P_.clock),hot:P_.clock<45});F.widgets.push({id:'pt-chk',kind:'score',label:'Checked',v:P_.checked,max:P_.stops.length});F.widgets.push({id:'pt-ev',kind:'score',label:'Handled',v:P_.handled});
-  if(!todo.length&&!M.exitOpen&&!(P_.follow)){M.exitOpen=true;P_.done=true;a.radio('doug',LINES.doug.done,true);logLine(M,'Route done. Feet: sore. Neighbourhood: watched.')}
+  if(!todo.length&&!M.exitOpen&&!(P_.follow)){M.exitOpen=true;P_.done=true;a.radio('doug',LINES.doug.done,true);logLine(M,'Route done. Feet: sore. Neighborhood: watched.')}
   if(P_.checked>=Math.ceil(P_.stops.length/2)&&!P_.said.half){P_.said.half=1;a.radio('doug',LINES.doug.half,true)}
   if(P_.clock<=0&&!P_.ending){P_.ending=true;if(P_.checked>=Math.ceil(P_.stops.length*TUNE.passFrac)){M.exitOpen=true;P_.done=true;a.endMission(true)}else a.endMission(false,"Doug: Patrol window's closed. I'll finish the route myself. In the vest. You'll hear the vest.","The window closed on the route.")}
   interact(M,F,me);hudTick(M,dt)}
@@ -248,7 +248,7 @@ function troubleTick(M,t,dt,F,me){const a=A(),P_=pt(M),p=t.p,P=a.P;if(!p)return;
 function dropBox(M,t){const a=A(),P_=pt(M),s=P_.stops[t.at];if(!t.box)return;const m=t.box.m;if(m.parent)m.parent.remove(m);a.wmAdd(m);m.position.set(t.box.x,0,t.box.z);m.rotation.set(0,1,0)}
 function settleTrouble(M,t,how){const a=A(),P_=pt(M),s=P_.stops[t.at];const L=LINES.ev[t.k];
   if(how==='talk'){t.st='leave';if(t.k==='pirate'){dropBox(M,t)}t.exit=t.exit||{x:t.p.x+(-s.fz)*-60,z:t.p.z+s.fx*-60};a.radio(t.k==='pirate'?'Porch pirate':'Car prowler',L.back);award(M,s,true,fill(L.note,s,P_).replace('{how}',t.k==='pirate'?'Asked him to put it back. He did. Proportionate. Doug cried a little':'Said good evening. He went home. Calm voice, big wave'));P_.proportionate=true}
-  else if(how==='cuff'){t.st='cuffed';M.cuffs=(M.cuffs||0)+1;a.feed('Zip-tied','cuff','he ran; you caught him');award(M,s,true,fill(L.note,s,P_).replace('{how}','He ran. I caught him. Zip-tied, sitting on the kerb, very sorry'))}
+  else if(how==='cuff'){t.st='cuffed';M.cuffs=(M.cuffs||0)+1;a.feed('Zip-tied','cuff','he ran; you caught him');award(M,s,true,fill(L.note,s,P_).replace('{how}','He ran. I caught him. Zip-tied, sitting on the curb, very sorry'))}
   else{t.st='leave';award(M,s,false,fill(L.note,s,P_).replace('{how}','Yelled. He dropped it and bolted. Felt big. Was not big'))}}
 
 /* ---------- chats on the doorstep ---------- */
@@ -259,7 +259,7 @@ function knock(M,s){const a=A(),P_=pt(M),pl=plan();if(P_.talk)return;SFX.knock()
   const H=a.HUD;const opts=LINES.chat.opts.map(o=>({text:o.t,reg:o.r}));const right=s.mood==='busy'?0:s.mood==='jokey'?1:2;
   const done=i=>{if(!P_.talk)return;P_.talk=null;try{a.overlay('pt-chat',null)}catch(_){}P_.chats++;const good=i===right||(i===0&&s.mood!=='jokey'&&Math.random()<.4);if(good)P_.goodChats++;
     a.radio('you',opts[i]?opts[i].text:'...',true);a.radio(s.name,pick(good?LINES.chat.good:LINES.chat.meh));pl.rel[s.id]=(pl.rel[s.id]||0)+(good?2:1);s.rel=pl.rel[s.id];
-    logLine(M,'Knocked at '+hname(s)+'. '+(good?pick(['Good chat. '+s.name+' is a delight.','We talked about gutters. Peak neighbourhood.',s.name+' laughed. At me or with me. Counts.']):pick(['Short chat. '+s.name+' was busy. Respect.','Awkward wave. Recovered. Mostly.'])));if(good)addTrust(M,.2)};
+    logLine(M,'Knocked at '+hname(s)+'. '+(good?pick(['Good chat. '+s.name+' is a delight.','We talked about gutters. Peak neighborhood.',s.name+' laughed. At me or with me. Counts.']):pick(['Short chat. '+s.name+' was busy. Respect.','Awkward wave. Recovered. Mostly.'])));if(good)addTrust(M,.2)};
   let ch=null;try{ch=H&&H.kit&&H.kit.choices?H.kit.choices({speaker:s.name,color:'#7fd1ff',prompt:hi,tell:s.mood==='busy'?'keys in hand, half out the door':s.mood==='jokey'?'grinning, holding a mug that says WORLD\'S OKAYEST':'leaning on the door frame, settling in',options:opts,onPick:i=>done(i)}):null}catch(_){ch=null}
   if(ch){try{a.overlay('pt-chat',ch.el)}catch(_){}}P_.talk={t:7,ch,done,s}}
 function chooser(M,who,prompt,list,cb){const a=A(),P_=pt(M),H=a.HUD;if(P_.talk)return;const opts=list.map(o=>({text:o.t}));const done=i=>{if(!P_.talk)return;P_.talk=null;try{a.overlay('pt-chat',null)}catch(_){}cb(i)};
@@ -339,21 +339,21 @@ function signTick(){const a=A(),s=SV();const want=a.mode==='hub'&&a.L&&a.L.ow&&s
 
 /* ================= register ================= */
 J.register(ID,{
-  def:{giver:'doug',hood:'maple',title:'Watch Your Step',role:'Doug · Neighbourhood Watch',place:'The neighbourhood, on foot',
-    lines:["Neighbourhood Watch. Walk the route, check the porches, handle what you find. Calmly. With a wave.",
+  def:{giver:'doug',hood:'maple',title:'Watch Your Step',role:'Doug · Neighborhood Watch',place:'The neighborhood, on foot',
+    lines:["Neighborhood Watch. Walk the route, check the porches, handle what you find. Calmly. With a wave.",
       "Look at every porch on the list. Knock if you want; people like a knock. Write everything down. I mean everything.",
       "No guns. The Watch doesn't carry. The Watch waves. If somebody's up to something, a word first. Always a word first."],
     obj:'Walk the watch route: check every porch (look from the sidewalk or knock), handle what you find with good judgement.',
     crew:[],weapons:[],noGuns:LINES.noGuns,get start(){const v=today(),c=centre(v.river);return{x:c.x,z:c.z}},
     unlock:{done:['tail']},repeatable:true,pay:TUNE.pay,par:0,winTrust:0,roam:true,order:96,stages:['route'],stageLabels:{route:'The route'},failPolicy:'soft',
     medals:['Finished the route','Four-star patrol','Five-star patrol (every porch, every call right)'],
-    radio:[['doug',"Clipboard's in your seat. Start where the route starts."]],endLine:"The porches are checked, the bins are up, and somebody's dog is home. The neighbourhood got watched. Nicely."},
+    radio:[['doug',"Clipboard's in your seat. Start where the route starts."]],endLine:"The porches are checked, the bins are up, and somebody's dog is home. The neighborhood got watched. Nicely."},
   start(M,o){if(RES)disposeRes();hudKill();setupRun(M,o);M.score=0;const a=A();if(a.P.dude)a.equip(a.P.dude,null)},
   upd,
   save:M=>{const P_=M.pt||{},v=P_.variant||{};return{seed:(P_.seed)>>>0,v:{r:v.river?1:0,n:v.night?1:0,k:v.n|0}}},load(M,s){},
-  payout(M,ok){const P_=pt(M);if(!ok||!P_)return[];const l=[['Things handled ×'+P_.handled,TUNE.perEv*P_.handled]];if(P_.proportionate)l.push(['A word first: proportionate',25]);if(P_.goodChats)l.push(['Neighbours charmed ×'+P_.goodChats,0]);return l},
+  payout(M,ok){const P_=pt(M);if(!ok||!P_)return[];const l=[['Things handled ×'+P_.handled,TUNE.perEv*P_.handled]];if(P_.proportionate)l.push(['A word first: proportionate',25]);if(P_.goodChats)l.push(['Neighbors charmed ×'+P_.goodChats,0]);return l},
   medal(M){const s=stars(M);M.score=s;return s>=5?3:s>=4?2:1},
-  end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);if(!ok)return;pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBOURHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
+  end(M,ok){const P_=pt(M),s=SV();if(!P_||!s)return;const pl=plan(s);if(!ok)return;pl.runs=(pl.runs|0)+1;pl.best=Math.max(pl.best|0,stars(M));if(pl.runs===TUNE.signRuns){try{A().banner('NEIGHBORHOOD WATCH','A "WE WAVE" sign went up on your corner.',3)}catch(_){}}try{if(HT.Save.touch)HT.Save.touch('jobs')}catch(_){}},
   hud(state){state.weapon=null;state.weapons=[]},
   dev:{build,today,stars},
   test:{give(a){const pp=PP();if(pp&&pp.preload)try{pp.preload(['nb_kid','nb_teen','thug_red','thug_cap','nb_kenji'].concat(NBROLES)).catch(()=>{})}catch(_){}if(a.mode==='hub'&&window.__ht&&window.__ht.enterHub)window.__ht.enterHub()},

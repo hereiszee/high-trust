@@ -28,12 +28,12 @@ const KIND={
   can:{tool:null,time:.5,pts:3,name:'Trash can',verb:'Stand the can up',done:'Can',n:6,col:'#b9e07a'},
   cart:{tool:'truck',time:.6,pts:15,name:'Stray cart',verb:'Hitch the cart',done:'Cart',n:5,col:'#9fe58a'},
   cat:{tool:'pole',time:3.0,pts:25,name:'Cat up a tree',verb:'Rescue the cat',done:'Cat',n:1,col:'#ff9f5a'},
-  bike:{tool:null,time:2.0,pts:8,name:'Flat tyre',verb:'Pump the tyre',done:'Bike',n:2,col:'#ff7aa8'}};
+  bike:{tool:null,time:2.0,pts:8,name:'Flat tire',verb:'Pump the tire',done:'Bike',n:2,col:'#ff7aa8'}};
 const TOOLS=[{id:'hammer',key:'1',name:'Gerald',sub:'hammer'},{id:'brush',key:'2',name:'Brush',sub:'paint'},{id:'pole',key:'3',name:'Bulb pole',sub:'telescopic'},{id:'truck',key:'4',name:'Hand truck',sub:'carts'}];
 const GHOSTS=[{who:'Gary',s:47},{who:'Dave',s:52},{who:'Doug',s:212,note:'(disputed)'}];
 const LINES={
   belt:["Tools are a loan. Bring 'em back. The hammer has a name. It's Gerald.","Three minutes. Every fix counts. Cats count double. Cats count triple if they don't scratch."],
-  go:"Clock's running. Go fix my neighbourhood. Well. Their neighbourhood. You know what I mean.",
+  go:"Clock's running. Go fix my neighborhood. Well. Their neighborhood. You know what I mean.",
   combo:["COMBO!","COMBO!!","C-C-C-COMBO!","COMBO! Nobody else says it. I say it."],
   neigh:{picket:["Did he just fix my fence and leave?","My fence! It's standing up straight!","Who hammers that fast? Who IS that?"],
     tag:["Somebody painted over the tag. In MATCHING beige. Almost matching.","Hey! That wall looks like a wall again!","Is that Hank's paint? It's Hank's paint."],

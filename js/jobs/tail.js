@@ -47,7 +47,7 @@ const SIGNAL={x:383.4,z:47.4};                            /* the traffic light o
 
 /* ---------------- Doug ---------------- */
 const L_={
-  gas:[["doug","There. Grey sedan, pump four. Four-ten on the dot. Every Tuesday."],["doug","Rule one of tailing: be boring. You're a minivan. You're already halfway there."],
+  gas:[["doug","There. Gray sedan, pump four. Four-ten on the dot. Every Tuesday."],["doug","Rule one of tailing: be boring. You're a minivan. You're already halfway there."],
     ["doug","When he pulls out, count to three. Then count to three again. Then go."]],
   go:[["doug","He's moving. One... two... three. And again. Okay. Go. Gently. Like a sloth with somewhere to be."]],
   bridge:[["doug","Over the bridge. He drives like a man with a full trunk and an empty conscience."]],
@@ -55,13 +55,13 @@ const L_={
   fig8:[["doug","He's doing a figure eight. He's checking for tails. Or he's lost."],["doug","Either way: don't copy every turn. Take a parallel street. We'll pick him up on the far side."]],
   close:["Two cars back. Two. Not one. Not zero. Zero is called 'following'.","Too close. I can read his air freshener. It says 'New Car'. It's lying.","Back off. Back OFF. He can see my glasses.",
     "This is tailgating. Tailing is a whole other word. Different letters.","If you can see the dust on his bumper, he can see the panic on your face."],
-  tailgate:["He's checked his mirror three times. That's not a mirror check, that's a relationship.","We're dead centre in his mirror. Drift. Drift like you're thinking about soup."],
-  ideal:["Good. Thirty metres. Doug-approved.","Textbook. There's no textbook. If there were, this would be in it.","Maintain a three-second following interval. I didn't make that up. It's on the internet.",
+  tailgate:["He's checked his mirror three times. That's not a mirror check, that's a relationship.","We're dead center in his mirror. Drift. Drift like you're thinking about soup."],
+  ideal:["Good. Thirty meters. Doug-approved.","Textbook. There's no textbook. If there were, this would be in it.","Maintain a three-second following interval. I didn't make that up. It's on the internet.",
     "Match his speed. Matching speed is key. Unless he stops. Don't match that.","Line of sight is a two-way street. If you can see his mirror, his mirror can see you.","I've read four books on this. Three were fiction. One was about birds. Same principles."],
   cover:["Perfect. A car between us. That's our human shield. Car shield.","Somebody's {c} is between us. Bless that {c}. Stay behind it.","Two cars back. Textbook. Write that down. Somebody write that down."],
   losing:["He's getting away. Gently. Gently close it up.","Losing him. I have partial visual. I have... a feeling.","He's pulling ahead. Not too fast. Pretend you just remembered the speed limit exists."],
   hidden:["He's round the corner. Don't panic. Panic quietly.","No visual. He's on the next block. Trust the route. Trust Doug."],
-  reacq:["Reacquired! I love that word. Reacquired.","There he is. Grey sedan, twelve o'clock. I've always wanted to say twelve o'clock.","Got him. He never left. He was just... around a corner."],
+  reacq:["Reacquired! I love that word. Reacquired.","There he is. Gray sedan, twelve o'clock. I've always wanted to say twelve o'clock.","Got him. He never left. He was just... around a corner."],
   streak:["That's three turns in a row we copied. Take the next one wide. Or don't take it at all. Live a little.","We're taking every turn he takes. That's not a tail, that's a dance."],
   ahead:["You're in FRONT of him. That's not tailing, that's leading.","He's behind us now. Pull over. Pretend to look at a house. Point at it. Nod."],
   fam3:["He's looked at the van twice. Minivans are invisible until they're not."],
@@ -75,7 +75,7 @@ const L_={
   lightBad:["We're right behind him at a red light. This is the worst place on earth.","He's looking in his mirror. Smile. No! Don't smile. Neutral. Neutral face."],
   lightGood:["Hanging back at a light. Beautiful. That's the stuff they don't teach. Because nobody teaches this."],
   arrive:[["doug","He's turning into the old Dock Street lot. The Duke's place. Don't follow him in. Never follow him in."],
-    ["doug","Park somewhere boring with a view of the back of that truck. Thirty, sixty metres. The plate's on the back. Plates live on the back."]],
+    ["doug","Park somewhere boring with a view of the back of that truck. Thirty, sixty meters. The plate's on the back. Plates live on the back."]],
   bino:[["doug","Binoculars. Right-click. I keep a pair in every car. Including yours, now. Surprise."]],
   plate:[["doug","Box truck. Get the plate. Steady. Steadier. Breathe like a sniper. A sniper who coaches T-ball."]],
   photo:[["doug","Got it. That's going on the corkboard. With red string."],["doug","Same truck, same lot, every week, I'd bet my glasses. Earl knows every timetable in this town. I'll ask Earl."]],
@@ -223,18 +223,18 @@ function speedAt(M){return s=>s<(M.bridgeS||0)+30?K.r9Max:K.townMax}
 
 /* ---------------- the job ---------------- */
 J.register('tail',{
-  def:{giver:'doug',hood:'maple',title:'Following Distance',role:'Doug · Neighbourhood Watch (Self-Appointed)',place:'Fill-Er-Up to Dock St',
-    lines:["Same grey sedan. Fill-Er-Up, every Tuesday, four-ten. Fills the tank, drives off with the trunk riding low. Every Tuesday.",
+  def:{giver:'doug',hood:'maple',title:'Following Distance',role:'Doug · Neighborhood Watch (Self-Appointed)',place:'Fill-Er-Up to Dock St',
+    lines:["Same gray sedan. Fill-Er-Up, every Tuesday, four-ten. Fills the tank, drives off with the trunk riding low. Every Tuesday.",
       "I want to know where it goes. And no, we can't just ask. You don't just ASK. That's not how surveillance works. Or manners.",
-      "We tail him. You drive, I commentate. Hang back, keep a car between us, and if he starts recognising the minivan, we swap cars. I've thought about this a lot. Too much, my wife says."],
-    obj:"Tail the grey sedan from Fill-Er-Up to wherever it's going without being made, then photograph whoever it meets.",
+      "We tail him. You drive, I commentate. Hang back, keep a car between us, and if he starts recognizing the minivan, we swap cars. I've thought about this a lot. Too much, my wife says."],
+    obj:"Tail the gray sedan from Fill-Er-Up to wherever it's going without being made, then photograph whoever it meets.",
     crew:['doug'],weapons:['pistol'],from:{place:'g_doug'},start:{x:START.x,z:START.z},site:null,
     unlock:{done:['rick']},pay:K.pay,par:K.par,winTrust:10,roam:true,stay:true,order:20,
     noGuns:"Doug: We are OBSERVERS. Observers don't shoot. Observers take notes.",
     stages:['gas','tail','swap','drop','home'],stageLabels:{gas:'Fill-Er-Up',tail:'Tail start',swap:'After the swap',drop:'The handoff',home:'The borrowed car'},failPolicy:'soft',
     medals:['Finished','One car swap, suspicion never above 70%','Suspicion never above 40%, done in under 4:00'],
     radio:[['doug',"Park where he can't see us. North corner. Behind the air pump. Nobody looks at the air pump."]],
-    endLine:"Doug: A grey sedan, a box truck, and my pressure washer. That's not a coincidence. That's a corkboard."},
+    endLine:"Doug: A gray sedan, a box truck, and my pressure washer. That's not a coincidence. That's a corkboard."},
 
   start(M,o){const a=A(),Tl=TL();freeAll();M.ph='gas';M.t=0;M.said={};M.cool={};M.q=[];M.qT=0;M.swaps=0;M.borrowed=[];M.items={};M.photo=null;M.vid=0;
     M.covers=[];M.oncoming=[];M.coverT=4;M.oncT=3;M.pullT=20;M.lightSt='g';M.rams=0;M.maxSus=0;M.everMade=false;M.tl=[];M.lastLos=true;M.seenT=0;M.dropSus=0;M.returned=false;
@@ -338,7 +338,7 @@ function setT(M,t,fn){M.tl.push({at:M.t+t,fn})}
 function tlTick(M){for(let i=0;i<M.tl.length;i++){const q=M.tl[i];if(q.at<=M.t){M.tl.splice(i--,1);try{q.fn()}catch(e){console.warn('[tail]',e)}}}}
 
 /* ---------------- 1. the pumps ---------------- */
-function gasTick(M,dt,F){const a=A(),d=M.driver;F.objs.push(['Wait. Look casual. Doug is watching pump four.',false]);F.target={x:PUMP.x,z:PUMP.z,label:'Grey sedan'};
+function gasTick(M,dt,F){const a=A(),d=M.driver;F.objs.push(['Wait. Look casual. Doug is watching pump four.',false]);F.target={x:PUMP.x,z:PUMP.z,label:'Gray sedan'};
   F.widgets.push({id:'pump',kind:'timer',label:'He leaves in',v:Math.max(0,K.gasT-M.t),hot:false});
   const door={x:PUMP.x+.4,z:PUMP.z-1.7};
   if(M.t<K.gasT-4){if(d){faceTo(d,PUMP.x-4,PUMP.z+1.6,dt);pose(d,dt)}}
@@ -371,15 +371,15 @@ function tailTick(M,dt,F){const a=A(),Tl=TL(),tg=M.tg,r=tg.rail,p=playerCar();
   if(R.sus>Tl.K.fastAt)chat(M,'fast',30,L_.fast);
   if(R.made){M.everMade=true;if(M.T.S.madeNow){M.T.S.madeNow=null;say(M,pick(L_.made),{front:true})}}
   if(R.spooked){M.ph='spook';M.endT=3.2;M.failWhy='spooked';say(M,"He's made us. He's gone. Well. At least we know he's guilty of something. Speeding.",{front:true});const Au=window.HT&&HT.Audio;try{Au&&Au.ready&&Au.music('combat')}catch(_){}return}
-  if(R.lost){M.ph='lost';M.endT=2.4;M.failWhy='lost';say(M,"We lost him. Somewhere out there, a grey sedan is very pleased with itself.",{front:true});return}
+  if(R.lost){M.ph='lost';M.endT=2.4;M.failWhy='lost';say(M,"We lost him. Somewhere out there, a gray sedan is very pleased with itself.",{front:true});return}
   commentary(M,R,t,p);
   /* the swap window (and any time you like, beside any neighbour's parked car) */
   if(r.holding&&r.holding.kind==='pull'&&M.swaps===0&&M.swapCar)F.target={x:M.swapCar.pos.x,z:M.swapCar.pos.z,label:M.swapCar.name+"'s "+(CAR_NAME[M.swapCar.type]||'car')};
-  else if(R.seenT<1.2||R.d<60){M.lk={x:t.x,z:t.z};F.target={x:t.x,z:t.z,label:'Grey sedan'}}
+  else if(R.seenT<1.2||R.d<60){M.lk={x:t.x,z:t.z};F.target={x:t.x,z:t.z,label:'Gray sedan'}}
   else if(M.lk)F.target={x:M.lk.x,z:M.lk.z,label:'Last seen'};
   /* objectives and meters */
-  F.objs.push(['Tail the grey sedan · don\'t get made',false]);
-  if(R.made)F.objs.push(['He knows this car: swap into a neighbour\'s parked car when he stops',false,'warn']);
+  F.objs.push(['Tail the gray sedan · don\'t get made',false]);
+  if(R.made)F.objs.push(['He knows this car: swap into a neighbor\'s parked car when he stops',false,'warn']);
   else if(r.holding&&r.holding.kind==='pull'&&M.swaps===0)F.objs.push(['He\'s stopped. Swap cars now: pull up beside '+(M.swapCar?M.swapCar.name+'\'s '+(CAR_NAME[M.swapCar.type]||'car'):'a parked car')+', hold E',false,'warn']);
   if(M.lightHold)F.objs.push(['Red light: don\'t pull up right behind him',false,'warn']);
   const zones=[[0,15,'bad','Too close'],[15,60,'good','Ideal'],[60,110,'warn','Losing'],[110,160,'bad','Lost']];
@@ -393,7 +393,7 @@ function tailTick(M,dt,F){const a=A(),Tl=TL(),tg=M.tg,r=tg.rail,p=playerCar();
 function loseWhy(M,why){const S=M.T&&M.T.S,r=M.tg&&M.tg.rail,p=playerCar();M.loseWhy={why,t:Math.round(M.t),stage:M.stage,s:r?Math.round(r.s):0,d:r?Math.round(Math.hypot(r.x-p.x,r.z-p.z)):0,
   sus:S?Math.round(S.sus):0,lose:S?+S.lose.toFixed(1):0,fam:S?+(S.fam[S.carId]||0).toFixed(2):0,made:S?!!S.made[S.carId]:false,cause:S?S.why||null:null,car:p.id,swaps:M.swaps,sight:!!M.sight}}
 function failNow(M){const a=A();loseWhy(M,M.failWhy);if(M.failWhy==='spooked')a.endMission(false,"He spotted the tail and floored it. Doug says it was the minivan. It was the minivan.","Made");
-  else a.endMission(false,"You lost the grey sedan. Doug is drawing the route from memory on a napkin.","Lost him")}
+  else a.endMission(false,"You lost the gray sedan. Doug is drawing the route from memory on a napkin.","Lost him")}
 function rammed(M){const a=A();loseWhy(M,'rammed');M.rammed=true;M.rams++;say(M,"You RAMMED him. That's not tailing. That's the opposite of tailing.",{front:true});
   a.endMission(false,"You rammed the man you were tailing. He's fine. He's furious. Doug sighs a sigh you will remember.","Rammed him")}
 /* chatter: band, cover, the light, familiarity, being ahead */
@@ -609,7 +609,7 @@ function plateWorld(){const f=fwd(TRUCK.yaw),bk=3.955;return{x:TRUCK.x-f[0]*bk,y
 function grade(M){const c=M.camInfo;if(!c)return{ok:false,inFrame:false,why:'no view',stars:0};const a=A(),pl=plateWorld(),dx=pl.x-c.x,dy=pl.y-c.y,dz=pl.z-c.z,d=Math.hypot(dx,dy,dz);
   const off=Math.acos(Math.max(-1,Math.min(1,(dx*c.f[0]+dy*c.f[1]+dz*c.f[2])/d)))/D,face=Math.acos(Math.max(-1,Math.min(1,-(dx*pl.nx+dz*pl.nz)/Math.hypot(dx,dz))))/D;
   const inFrame=off<5.2,clear=TL().los(c.x,c.z,pl.x,pl.z,{grid:{map:a.WORLD.map,block:a.WORLD.losblock||'#htVcTfrxA',tile:2}});
-  let why=null;if(!inFrame)why='off frame';else if(face>68)why='wrong side';else if(d>78)why='too far';else if(!clear)why='blocked';else if(off>3.6)why='centre it';
+  let why=null;if(!inFrame)why='off frame';else if(face>68)why='wrong side';else if(d>78)why='too far';else if(!clear)why='blocked';else if(off>3.6)why='center it';
   const stars=why?0:(face<35&&off<2&&d<58?3:face<52&&d<70?2:1);return{ok:!why,inFrame,why,stars,d,face,off}}
 function snap(M){const a=A();if(!M.vfOn||M.photo||M.state!=='go')return;if(M.bino)M.bino.flash=1;try{const Au=window.HT&&HT.Audio;if(Au&&Au.ready){Au.ui('click');Au.ui('hover')}else a.snd('reload',.3)}catch(_){}
   if(M.handoff!=='done'){chat(M,'early',6,["Not yet. Let them finish. Rule two: never interrupt a crime mid-crime."]);return}
@@ -628,9 +628,9 @@ function touchButtons(M,on){const a=A();const touch=typeof window!=='undefined'&
 function wrapTick(M,dt,F){const a=A();M.wrapT+=dt;F.objs.push(['Plate on file. Doug is already thinking about red string.',true]);
   if(M.tg)M.tg.rail.step(dt,{});
   for(const L of M.loaders)if(L.d.root.visible){walkTo(L.d,{x:TRUCK.x-1.8,z:TRUCK.z-1.8+(M.loaders.indexOf(L)-1)*.8},1.3,dt)}
-  if(M.wrapT>7.5&&!M.wrapDone){M.wrapDone=true;if(M.swaps&&M.borrowed.length&&a.CV===M.borrowed[0])homeStart(M,false);else{say(M,"Let's go home. I have a corkboard to update and a neighbour to apologise to. Sorry, Ken.",{front:true});setT(M,3,()=>A().endMission(true))}}}
+  if(M.wrapT>7.5&&!M.wrapDone){M.wrapDone=true;if(M.swaps&&M.borrowed.length&&a.CV===M.borrowed[0])homeStart(M,false);else{say(M,"Let's go home. I have a corkboard to update and a neighbor to apologize to. Sorry, Ken.",{front:true});setT(M,3,()=>A().endMission(true))}}}
 function homeStart(M,quiet){const a=A(),b=M.borrowed[0];M.ph='home';vfOff(M);if(!b){a.endMission(true);return}M.retName=b.name+"'s "+(CAR_NAME[b.type]||'car');
-  if(!quiet){a.CP.mark('home');say(M,"Now we put "+b.name+"'s car back. Exactly where it was. Tyres pointing the same way. "+b.name+" will know.",{front:true})}}
+  if(!quiet){a.CP.mark('home');say(M,"Now we put "+b.name+"'s car back. Exactly where it was. Tires pointing the same way. "+b.name+" will know.",{front:true})}}
 function homeTick(M,dt,F){const a=A(),b=M.borrowed[0];if(!b){a.endMission(true);return}const V=a.VAN,home=b.home,dh=Math.hypot(b.pos.x-home.x,b.pos.z-home.z);
   F.objs.push(['Put '+b.name+"'s "+(CAR_NAME[b.type]||'car')+' back where you found it',dh<10&&a.CV!==b]);F.objs.push(['Get back in the minivan',a.CV===V]);
   if(a.CV===b)F.target={x:home.x,z:home.z,label:b.name+"'s spot"};else if(a.CV!==V)F.target={x:V.pos.x,z:V.pos.z,label:'Minivan'};

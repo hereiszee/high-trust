@@ -132,7 +132,7 @@ const SETTINGS=[
 const KEY_GROUPS=[
   ['On foot',[['Move','W A S D'],['Look','Mouse'],['Jog (hold)','Shift'],['Jump · vault','Space'],['Crouch (toggle)','C · Ctrl'],['Talk · use · get in a car','E'],['Zip-tie someone with hands up','E (hold)'],['Camera: first / third person','V'],['Map','M'],['Flashlight · night vision','F · N'],['Pause','Esc · P']]],
   ['Guns',[['Fire','Mouse 1'],['Aim (click to raise, click again to lower) · scope · binoculars','Mouse 2'],['Reload','R'],['Switch gun','1 2 3 · Q · Wheel'],['Draw in Riverside · holster','1 2 3 · H']]],
-  ['Cars and the minivan',[['Accelerate · brake / reverse','W · S'],['Steer','A D'],['Boost · handbrake','Shift · Space'],['Horn','H'],['Get out (slow down first)','E'],['Glovebox (parked, a neighbour\'s car)','G']]],
+  ['Cars and the minivan',[['Accelerate · brake / reverse','W · S'],['Steer','A D'],['Boost · handbrake','Shift · Space'],['Horn','H'],['Get out (slow down first)','E'],['Glovebox (parked, a neighbor\'s car)','G']]],
   ['Tank',[['Drive · turn on the spot','W S · A D'],['Turret','Mouse'],['Fire the main gun','Mouse 1'],["Gunner's sight (toggle)",'V'],['Get out','E']]],
   ['Jet',[['Throttle up · down','W · S'],['Pitch and roll','Mouse · Arrow keys'],['Roll (steer on the ground)','A D'],['Rudder','Z · X'],['Afterburner (toggle, at full throttle)','Shift'],['Landing gear','G'],['Cockpit view · look back (toggle)','V · C'],['Eject (in the air)','E twice']]],
   ['Jobs and home',[['Scope zoom (Higher Ground)','Z'],['Hold breath (scoped; tap, tap again to breathe)','Shift'],['Camera: raise (toggle) · shoot · lower','Mouse 2 · Space · Q'],['Decorate (at home)','B'],['Menus: browse · choose · back','Arrows · Enter · Esc']]]];
@@ -729,7 +729,7 @@ const TIPS=['Hurt enemies sometimes give up. Zip-ties earn more trust than the a
 function screenTitle(d){
   const e=el('div','ht-scr ht-title');
   e.innerHTML=`<div class="scrim"></div><div class="col"><div class="ht-logo"><span class="roof">${UI_ICON.roof}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>${d.premise?`<p class="premise">${esc(d.premise)}</p>`:''}
-  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Restore previous save','restore','ghost','<span class="sub rl"></span>')}${btn('Settings','settings','ghost')}${btn('Credits &amp; licences','credits','ghost')}${window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div>
+  <div class="ht-btns btns">${btn(UI_ICON.play+'<span>Continue</span>','continue','pri','<span class="sub cl"></span>')}${btn('New game','newgame')}${btn('Restore previous save','restore','ghost','<span class="sub rl"></span>')}${btn('Settings','settings','ghost')}${btn('Credits &amp; licenses','credits','ghost')}${window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div>
   <div class="ht-load"><div class="row"><span class="tip"><b>Tip</b><span class="tt"></span></span><span class="st ht-num">Loading</span></div><div class="bar"><i></i></div></div><div class="ht-ver">Build ${esc(d.version||'')}</div>`;
   e.querySelector('.tt').textContent=d.tip||TIPS[Math.floor(Math.random()*TIPS.length)];
   return e}
@@ -767,7 +767,7 @@ function screenPause(d){const e=el('div','ht-scr ht-pause');const tab=d.tab||'co
   e.innerHTML=`<div class="scrim"></div><div class="wrap"><div class="nav"><div class="kick">${esc(d.kicker||'Paused')}</div><h2>${esc(d.title||'Take a breath.')}</h2>
   <div class="ht-btns">${btn(d.back?'Back':'Resume','resume','pri','<span class="ht-kc dim">Esc</span>')}<div class="sep"></div>
   ${[['controls','Controls'],['display','Display'],['audio','Audio'],['keys','Controls &amp; keys'],['data','Save data']].concat(d.found?[['found','Things your dad found']]:[]).map(([k,l])=>`<button class="ht-btn tab" data-tab="${k}" aria-selected="${k===tab}">${l}</button>`).join('')}
-  <div class="sep"></div>${btn('Credits &amp; licences','credits','ghost')}${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}${d.canQuit!==false&&window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
+  <div class="sep"></div>${btn('Credits &amp; licenses','credits','ghost')}${d.canAbandon?btn(d.abandonLabel||'Abandon job','abandon','dng'):''}${d.canQuit!==false?btn('Quit to title','quit','ghost'):''}${d.canQuit!==false&&window.HTDesktop?btn('Quit to desktop','quitDesktop','ghost'):''}</div></div><div class="ht-pane"></div></div>`;
   e.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{e.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));SCR.data.pause.tab=b.dataset.tab;renderPane(e,SCR.data.pause)});
   renderPane(e,d);return e}
 function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'controls',S=d.settings||(d.settings=H.settings);let h='';

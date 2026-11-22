@@ -104,7 +104,7 @@ const L_={
   calm:["Eyes on the sign. Look at the sign.","Hey. Look at me. We're just walking. That's all we're doing.","Sign's up. You're behind the sign. Nobody's behind the sign but us."],
   gather:["Come on, buddy. Back in line.","Ducklings! Line up!","There you are. In you get."],
   whistle:["Ducklings! Line up!","Everybody to me!","Headcount! Let's go!"],
-  wait:["Everybody freeze like statues!","Wait right here. Hold hands with your neighbour."],
+  wait:["Everybody freeze like statues!","Wait right here. Hold hands with your neighbor."],
   go:["Okay, statues. Unfreeze.","And... we're walking."],
   kerbWait:["Waiting at the line!","We're at the line!","Line! We stopped!"],
   wave:["Go, go, go. Walk, don't run.","Across you go. Hold hands.","Nice and easy. Eyes on me."],
@@ -424,7 +424,7 @@ function arrived(M,k,h){const C=M.cg,a=A();if(M.cs.home.includes(k.id))return;M.
   /* the block feels it: re-dress Riverside at the new trust (lamps, stoops, planters follow their block) and read this block's trust back */
   try{const H=G();if(ow&&ow.dress&&H.prog)ow.dress(H.prog.trustR||0);bt=ow&&ow.blockTrust?Math.round(ow.blockTrust(h.x,h.z)):null}catch(_){}chime();const n=M.cs.home.length,tot=KIDS.length;
   a.feed(k.name+' is home','trust','+1 Riverside trust'+(bt!=null?' · this block '+bt+'%':'')+' · '+n+'/'+tot);
-  const lines=HOME_LINES[k.id];if(lines)for(const[w,t]of lines)say(M,w==='kid'?k.name:w==='grown'?(h.who||'Neighbour'):w,t,w==='kid'?{voice:'kid'}:{});
+  const lines=HOME_LINES[k.id];if(lines)for(const[w,t]of lines)say(M,w==='kid'?k.name:w==='grown'?(h.who||'Neighbor'):w,t,w==='kid'?{voice:'kid'}:{});
   if(k.def.trait==='sign')benjiSign(M,k);
   M.score=n;if(n>=tot)C.allHome=true}
 const HOME_LINES={
@@ -725,7 +725,7 @@ function objectives(M,F){const C=M.cg,a=A(),P=a.P;
   if(C.stage==='gear'){F.objs.push(['Get the vest and the stop sign from Pastor Dee',false]);F.target={x:CHURCH.dee.x,z:CHURCH.dee.z+.8,label:'Pastor Dee'};return}
   const left=C.kids.filter(k=>k.def.home&&k.state!=='home'&&k.state!=='homeward');F.objs.push([left.length?'Walk the kids home · '+left.length+' to go':'Everybody is home',!left.length]);
   if(C.stageN<=1&&!M.cs.signUps)F.objs.push([(touch()?'AIM':'Right-click')+': stop sign up/down · it stays up while you walk',false]);
-  if(C.atKerb){const k=C.atKerb[0],cc=carsComing(M,k.x,k.z);F.objs.push([C.sign.up?(cc?'Car coming · keep the sign up and wait':'Press '+(touch()?'USE':'E')+' to wave them across'):'At the kerb · step into the road, '+(touch()?'AIM':'right-click')+': stop sign up',false,cc&&!C.sign.up?'warn':undefined])}
+  if(C.atKerb){const k=C.atKerb[0],cc=carsComing(M,k.x,k.z);F.objs.push([C.sign.up?(cc?'Car coming · keep the sign up and wait':'Press '+(touch()?'USE':'E')+' to wave them across'):'At the curb · step into the road, '+(touch()?'AIM':'right-click')+': stop sign up',false,cc&&!C.sign.up?'warn':undefined])}
   if(C.flareNear&&!M.cs.talked.A&&!M.cs.talked.B&&C.stageN>=3&&!M.cs.rick)F.objs.push(['2nd St: talk them down ('+(touch()?'USE':'E')+'), wait for a quiet moment, or go round by 3rd'+(M.cs.rick?'':' · '+(touch()?'Rick chip':'X')+': call Rick'),false]);
   /* next stop on the marker: the nearest home of a kid who's with you */
   let best=null,bd=1e9;for(const k of C.kids){if(k.state!=='line'&&k.state!=='hand'||!k.home)continue;if(k.def.trait==='quiet'&&left.length>1)continue;const d=hyp(k.home.x-P.pos.x,k.home.z-P.pos.z)+KIDS.indexOf(k.def)*1.5;if(d<bd){bd=d;best=k}}

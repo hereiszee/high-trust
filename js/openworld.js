@@ -1262,9 +1262,9 @@ OW.trafficTune=TR;
 const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
 const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
   "Buddy. Pal. Champ.","My lasagna is on a timer, friend.","We've all got places to be. Mine is Costco.","Any day now, chief.","I'm not mad. I'm just honking.",
-  "Did you get your licence out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
+  "Did you get your license out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
 const TR_HIT=["My BUMPER. I just paid that off.","Oh, come ON. That was a lease!","Hey! I've got pies in the back!","Are you KIDDING me? Brenda's going to kill me.",
-  "That's going in the neighbourhood group chat.","I signalled! I SIGNALLED!"];
+  "That's going in the neighborhood group chat.","I signalled! I SIGNALLED!"];
 const TR_WRECK=["Yeah, hi, roadside assistance? You won't believe this.","Honey, I'm going to be late. No, I'm fine. The car isn't.","No, I'm FINE. The car's having a moment.",
   "Hi, it's me. Can you pick up the kids? Long story."];
 const trFwd=y=>[-Math.sin(y),-Math.cos(y)];
@@ -1569,7 +1569,7 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
   /* build missing models as their files arrive; animate */
   const cam=o.camera?o.camera.position:p;
   for(const n of N.list){if(!n.d){const kid=n.kind==='bike'||n.kind==='chalk';const v=kid?'nb_kid':null;if(kid&&!PP.has('nb_kid'))continue;
-      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){console.warn('neighbour: make failed',e);d=null}/* nobody twice on the same street (one kid is enough): redraw from the bag a few times */
+      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){console.warn('neighbor: make failed',e);d=null}/* nobody twice on the same street (one kid is enough): redraw from the bag a few times */
       for(let tries=0;d&&!kid&&tries<4&&N.list.some(q=>q.d&&q.d.rb.key===d.rb.key);tries++){const li=PP.live.indexOf(d);if(li>=0)PP.live.splice(li,1);try{d=PP.make('neighbour')}catch(e){d=null}}if(!d)continue;
       if(!kid&&d.rb.key==='nb_kid'&&n.kind==='sit')n.kind='stand';
       d.root.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});n.d=d;const y=HW()?HW().groundY(ws.lvl,n.x,n.z):0;d.root.position.set(n.x,y,n.z);d.root.rotation.y=n.ry;N.g.add(d.root);

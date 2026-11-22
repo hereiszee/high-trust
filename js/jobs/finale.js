@@ -226,7 +226,7 @@ function role(M,rid){const P_=PL(),st=M.fn.plan||{assign:{}};const cid=st.assign
 FN.role=role;
 const FC={swap:["{n} in the shuttle: you swap, he forgets you. Mostly.","{n} in the shuttle: a swap helps. A bit.","{n} parks the shuttle with the hazards on. He'll sort of help."],
   spotter:["{n} reads a crowd like a box score: tells in under a second.","{n} spots the tells. Give it a beat.","{n} on the roof: you'll be doing most of the reading."],
-  walker:["{n} can walk a man out of a crowd with one hand on his shoulder and a compliment.","{n} gets them out. Not fast, not slow.","{n} walks them out. Slowly. With a lot of apologising."],
+  walker:["{n} can walk a man out of a crowd with one hand on his shoulder and a compliment.","{n} gets them out. Not fast, not slow.","{n} walks them out. Slowly. With a lot of apologizing."],
   supply:["{n} brings every cone in the store and 80 seconds of head start.","{n} brings a good load. 70 seconds.","{n} brings what fits in the car. 60 seconds."],
   stage:["{n} has that stage up before the sound check.","{n} gets the stage up. You'll carry some crates.","{n} on the stage: bring crates. Lots of crates."],
   porch:["{n} on the stoops: nobody panics, nobody even spills.","{n} keeps the families calm.","{n} on the porches: people will get nervous fast."],
@@ -282,7 +282,7 @@ J.register(ID,{
   save(M){const f=M.fn;return{stage:f.stage,plan:f.plan?{assign:Object.assign({},f.plan.assign)}:null,st:f.st,seen:f.seen,x:f.carry||null}},
   load(M,s){if(!s||!M.fn)return;const f=M.fn;f.stage=s.stage||'plan';f.built=null;if(s.plan)f.plan={assign:Object.assign({},s.plan.assign),entry:null};f.st=Object.assign(ST0(),s.st||{});f.seen=Object.assign(f.seen||{},s.seen||{});f.carry=s.x||null},
   payout(M,ok){if(!ok)return[];const s=M.fn.st,out=[];const home=!s.smokes&&!s.downs&&!s.civHit;if(home)out.push(['Everyone home',500]);out.push(['Hands up · The Wholesaler zip-tied',1000]);
-    if(s.cuffs)out.push(['Second chances at the festival ×'+s.cuffs,0]);if(s.wrong)out.push(['Wrong calls ×'+s.wrong+' (Dee apologised for you)',0]);return out},
+    if(s.cuffs)out.push(['Second chances at the festival ×'+s.cuffs,0]);if(s.wrong)out.push(['Wrong calls ×'+s.wrong+' (Dee apologized for you)',0]);return out},
   medal(M){const s=M.fn.st;M.score=Math.max(0,100-s.wrong*5-s.smokes*15-s.civHit*20);return s.tied?(M.kills||s.lethal?2:3):1},
   end(M,ok){if(!ok)return;try{FN.storyEnd&&FN.storyEnd(M)}catch(e){console.error(e)}},
   camera(dt){const M=A().M;if(!M||!M.fn||M.state!=='go')return undefined;const S=FN.stages[M.fn.stage];if(S&&S.camera){const r=S.camera(dt,M);return r?true:undefined}return undefined},
@@ -363,7 +363,7 @@ FN.stages.tail={
     S.driver=person(sw.id||'earl',W.shuttle.x-1.9,W.shuttle.z-1.2);if(S.driver)S.driver.face={x:W.shuttle.x+4,z:W.shuttle.z};
     S.truck=car('workvan','#d8d2c4',W.truck.x,W.truck.z,-Math.PI/2);const ts=sign(['STAGE & SOUND · RIVERSIDE FESTIVAL'],{bg:'#f2efe6',fg:'#2b5d8a',w:2.6,ph:80});ts.position.set(0,1.75,1.03);S.truck.obj.add(ts);
     const Tl=TL();S.T=Tl?Tl.create({bands:{close:14,ideal:[14,60],losing:105,lost:TK.lostD},lostT:12}):null;S.watch=0;S.losT=0;S.t=0;
-    if(once(M,'tail0'))say('doug',"Reminder: ideal band is 14 to 60 metres. Inside 14 he sees your face. Past 105 you're just a guy driving.")},
+    if(once(M,'tail0'))say('doug',"Reminder: ideal band is 14 to 60 meters. Inside 14 he sees your face. Past 105 you're just a guy driving.")},
   upd(dt,M,F){const a=A(),S=M.fn.sub,r=S.rail,p=playerCar();S.t+=dt;
     /* the sedan waits for its driver, then drives */
     if(S.t>TK.wait&&!r.done)r.step(dt,{});const t={x:r.x,z:r.z,yaw:r.yaw,spd:r.v,stopped:r.v<.5};placeCar(S.sed,r.x,r.z,r.yaw,dt);
