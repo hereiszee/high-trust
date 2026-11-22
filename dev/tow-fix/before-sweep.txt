@@ -1,0 +1,10 @@
+start {"t":1083,"mode":"mission","ph":"tow","cv":true,"state":"go"}
+FAIL {"car":"kim","exit":"east","off":"-0.6m/-8deg","reached":true,"secs":8.6,"maxHitchDeg":65,"overlaps":["towed pen@309.6,133.0"],"first":"towed pen@309.6,133.0 at 312.1,135.6"}
+FAIL {"car":"kim","exit":"east","off":"-0.6m/8deg","reached":true,"secs":8.8,"maxHitchDeg":72,"overlaps":["towed pen@309.6,133.0"],"first":"towed pen@309.6,133.0 at 312.3,135.6"}
+FAIL {"car":"hollis","exit":"north","off":"0.6m/8deg","reached":true,"secs":9,"maxHitchDeg":8,"overlaps":["towed lamp@319.0,137.0","truck pen@319.1,133.0"],"first":"towed lamp@319.0,137.0 at 318.1,138.8"}
+FAIL {"car":"hollis","exit":"north","off":"0.6m/-8deg","reached":true,"secs":9,"maxHitchDeg":11,"overlaps":["truck pen@319.1,133.0","towed pen@319.1,133.0"],"first":"truck pen@319.1,133.0 at 317.8,132.9"}
+FAIL {"car":"hollis","exit":"east","off":"0.6m/8deg","reached":true,"secs":7.7,"maxHitchDeg":71,"overlaps":["towed lamp@319.0,137.0","truck pen@319.1,133.0"],"first":"towed lamp@319.0,137.0 at 318.1,138.8"}
+FAIL {"car":"hollis","exit":"east","off":"0.6m/-8deg","reached":true,"secs":7.5,"maxHitchDeg":64,"overlaps":["truck pen@319.1,133.0"],"first":"truck pen@319.1,133.0 at 317.7,132.9"}
+FAIL {"car":"benny","exit":"north","off":"0.6m/-8deg","reached":true,"secs":10.7,"maxHitchDeg":9,"overlaps":["truck lamp@319.0,137.0"],"first":"truck lamp@319.0,137.0 at 317.8,139.6"}
+FAIL {"car":"benny","exit":"east","off":"0.6m/-8deg","reached":true,"secs":9.5,"maxHitchDeg":72,"overlaps":["truck lamp@319.0,137.0"],"first":"truck lamp@319.0,137.0 at 317.8,139.6"}
+8 FAILED
