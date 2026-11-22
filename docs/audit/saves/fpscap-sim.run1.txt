@@ -1,0 +1,8 @@
+gate in index.html: found (as simulated)
+ 60 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 60 fps | cap 144 -> 60 fps
+ 75 Hz display: cap 30 -> 25 fps | cap 60 -> 37 fps | cap 120 -> 75 fps | cap 144 -> 75 fps
+ 90 Hz display: cap 30 -> 30 fps | cap 60 -> 45 fps | cap 120 -> 90 fps | cap 144 -> 90 fps
+120 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 120 fps
+144 Hz display: cap 30 -> 29 fps | cap 60 -> 48 fps | cap 120 -> 144 fps | cap 144 -> 144 fps
+165 Hz display: cap 30 -> 28 fps | cap 60 -> 55 fps | cap 120 -> 83 fps | cap 144 -> 165 fps
+240 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 120 fps

@@ -1,0 +1,6 @@
+info at base: region base, vehicles: ["13:tank","14:jet"]
+info tank: entered {"okIn":true,"cv":"tank"}; in memory tank.borrows=1 jet.flights=0; on disk tank.borrows=0 jet.flights=0
+info jet: entered {"okIn":true,"cv":"jet"}; in memory tank.borrows=1 jet.flights=1; on disk tank.borrows=0 jet.flights=0
+FAIL tank borrow survives Quit to desktop (on disk 0)
+FAIL jet flight survives Quit to desktop (on disk 0)
+2 FAILED

@@ -1,0 +1,10 @@
+ok   save.json truncated, good .bak -> {"from":"backup","status":"ok","why":null,"cash":4800,"cont":true,"dlg":null,"feed":[],"told":false,"ms":24106,"files":["save.json:287","save.json.bak:287","save.json.corrupt:143"]}
+ok   save.json 0 bytes, good .bak -> {"from":"backup","status":"ok","why":null,"cash":4800,"cont":true,"dlg":null,"feed":[],"told":false,"ms":23552,"files":["save.json:287","save.json.bak:287","save.json.corrupt:0"]}
+ok   save.json missing, good .bak -> {"from":"backup","status":"ok","why":null,"cash":4800,"cont":true,"dlg":null,"feed":[],"told":false,"ms":23877,"files":["save.json:287","save.json.bak:287"]}
+FAIL save.json truncated, no .bak -> {"from":"reset","status":"fresh","why":null,"cash":0,"cont":false,"dlg":null,"feed":[],"told":false,"ms":26044,"files":["save.json:143","save.json.corrupt:143"]}
+FAIL both truncated -> {"from":"reset","status":"fresh","why":null,"cash":0,"cont":false,"dlg":null,"feed":[],"told":false,"ms":24620,"files":["save.json:100","save.json.bak:150","save.json.corrupt:100"]}
+ok   inner ht-save corrupt, inner ht-save-bak good -> {"from":"file","status":"recovered","why":"not JSON","cash":4900,"cont":true,"dlg":null,"feed":[],"told":false,"ms":24694,"files":["save.json:3379","save.json.bak:364"]}
+FAIL inner ht-save from a newer version (v4) -> {"from":"file","status":"reset","why":"newer version","cash":0,"cont":false,"dlg":null,"feed":[],"told":false,"ms":24386,"files":["save.json:2939","save.json.bak:137"]}
+FAIL plain JSON (not the wrapper), e.g. a hand-copied web save -> {"from":"reset","status":"fresh","why":null,"cash":0,"cont":false,"dlg":null,"feed":[],"told":false,"ms":24014,"files":["save.json:187","save.json.corrupt:187"]}
+ok   huge save: 20 MB inside -> {"from":"file","status":"ok","why":null,"cash":5000,"cont":true,"dlg":null,"feed":[],"told":false,"ms":23917,"files":["save.json:19201849"]}
+4 FAILED
