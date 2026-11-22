@@ -34,7 +34,7 @@ const OWNERS=[
     bad:[['Mrs. Kim',"Why does it make that noise now. It didn't make a noise before."],['you',"It's... settling in."]],
     wreck:[['Mrs. Kim',"Is it... supposed to be smoking?"],['you',"Tell Sal I sent you. He fixes anything."]]},
   {id:'hollis',name:'Mr. Hollis',who:'neighbour',v:3,type:'hatch',color:'#c79a2b',street:'4th St',at:[409.5,62],
-    hi:"Is that a tow boom on a minivan? I love this neighbourhood.",good:[['Mr. Hollis',"Not a mark on her. Well. The marks she came with."]],
+    hi:"Is that a tow boom on a minivan? I love this neighborhood.",good:[['Mr. Hollis',"Not a mark on her. Well. The marks she came with."]],
     ok:[['Mr. Hollis',"It's got a new dent."],['you',"It's got a new... character."]],
     bad:[['Mr. Hollis',"The mirror's pointing at the sky. Why is the mirror pointing at the sky."]],
     wreck:[['Mr. Hollis',"That's not my car. That's a modern art piece about my car."]]},
@@ -56,7 +56,7 @@ const OWNERS=[
 const GARY_COUNT=["That's one. Four hundred dollars nobody had to pay.","Two. Eight hundred. I'm keeping a running total.","Three. Twelve hundred. That's a lot of bus fare.","Four. Sixteen hundred. One more and I get to say my line."];
 const TALK=[
   {speaker:'Manager',prompt:"This is a legal impound. Four hundred, cash, and you can have your car back.",tell:"[He taps a laminated sign that says LEGAL IMPOUND in three different fonts.]",
-    options:[{text:"Where's your licence?",reg:'real',reply:[['Manager',"...In the other truck."],['Vest Guy',"We have a lot of trucks."]]},
+    options:[{text:"Where's your license?",reg:'real',reply:[['Manager',"...In the other truck."],['Vest Guy',"We have a lot of trucks."]]},
       {text:"Do you take coupons?",reg:'joke',reply:[['Manager',"...What kind of coupons."],['Vest Guy',"Don't. He's doing a bit."]]},
       {text:"How about I impound YOU.",reg:'Bad cop',bad:true,reply:[['Manager',"Did he just threaten us? Kyle. He threatened us."]]}]},
   {speaker:'Manager',prompt:"We got a permit. Kyle, show him the permit.",tell:"[Kyle holds up a laminated sheet. It has pictures of food on it.]",
@@ -161,7 +161,7 @@ function peaceTick(M,dt){const a=A(),P=a.P;for(const e of M.att){if(!e.peace)con
 
 J.register('tow',{
   def:{giver:'sal',hood:'river',title:'Hitch Happens',role:"Sal · Dad's Auto, Since 1987",place:'Dock St, Riverside',
-    lines:["Some outfit calling itself Quik-Hook has been 'impounding' cars in Riverside on street-sweeping day. No licence. No paperwork. Four hundred bucks cash to get your own car back.",
+    lines:["Some outfit calling itself Quik-Hook has been 'impounding' cars in Riverside on street-sweeping day. No license. No paperwork. Four hundred bucks cash to get your own car back.",
       "Five cars are sitting in a pen at the river end of Dock Street. Five families taking the bus this week. I'll bolt my loaner hitch on your ride.",
       "Back up to the front bumper, hook it, tow it home. One at a time. Back up slow. Slower. You're not parallel parking at a funeral."],
     obj:"Get past the \"impound\" crew, then hitch each of the five cars and tow it to its owner's curb before street sweeping ends.",
@@ -192,7 +192,7 @@ J.register('tow',{
     const e=a.CV,c=e&&(e.car||e);
     /* your ride: broken down = Sal's flatbed, job over */
     if(M.car&&hpOf(M.car)<=0&&!M.downT){M.downT=1;M.towed=true;return a.endMission(false,"Your ride's done. Sal's flatbed is on the way, and the impound crew is laughing at you from a lawn chair.","Broken down")}
-    if(M.wrecked>=K.wreckFail)return a.endMission(false,"Three of the neighbours' cars came home in pieces. Nobody is calling that a rescue.","Too many wrecks");
+    if(M.wrecked>=K.wreckFail)return a.endMission(false,"Three of the neighbors' cars came home in pieces. Nobody is calling that a rescue.","Too many wrecks");
     speedHist(M,dt);
     if(M.ph==='fit')fitTick(M,dt,F);
     else if(M.ph==='drive')driveTick(M,dt,F);

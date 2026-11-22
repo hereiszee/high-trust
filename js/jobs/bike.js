@@ -60,10 +60,10 @@ function places(){const a=A(),W=a&&a.WORLD;if(!W)return null;if(PL&&PL.W===W)ret
 const CLUES={
   lock:{t:'Cut cable lock',d:'Cut clean through. Eight-year-olds don\'t carry bolt cutters.',to:'An adult with bolt cutters'},
   wrapper:{t:'Choco-Lumps wrapper',d:'Ramos Corner Mart price sticker. Nobody on Oak St shops there.',to:'Ramos Corner Mart, Riverside'},
-  tracks:{t:'Fat double tyre tracks',d:'A cargo bike, loaded heavy, rolled off the pad.',to:'Ask the neighbours (the glowing doors)'},
+  tracks:{t:'Fat double tire tracks',d:'A cargo bike, loaded heavy, rolled off the pad.',to:'Ask the neighbors (the glowing doors)'},
   linda:{t:'Linda saw a cargo bike',d:'Blue tarp over a pile of bikes. The red one had a dinosaur sticker.',dLite:'Blue tarp over a pile of bikes. "Suspicious tarp."',to:'Tyler\'s bike: dinosaur sticker'},
   phil:{t:'Phil\'s doorbell camera',d:'Tue 3:12 pm. Tyler\'s bike on the cargo bike: streamers, a dent in the front fender. The cargo bike says bikez4cheap.',dLite:'Tue 3:12 pm. Tyler\'s bike on the cargo bike: streamers, a dent in the front fender.',to:'Tyler\'s bike: the dented fender'},
-  walt:{t:'Walt\'s tip',d:'Everybody\'s selling bikes on Neighbourly Resale this week.',to:'The laptop: Tyler has it on our porch'},
+  walt:{t:'Walt\'s tip',d:'Everybody\'s selling bikes on Neighborly Resale this week.',to:'The laptop: Tyler has it on our porch'},
   listing:{t:'The listing',d:'"RED BIKE. FAST. CARD IN SPOKES NOT INCLUDED." Seller: bikez4cheap.',to:'The meet: Ramos Corner Mart'},
   dez:{t:'Dez (14)',d:'Sells them for a guy who pays ten bucks a bike. "I\'m saving for a car."',to:'The lock-up garage on 5th St'},
   owners:{t:'Earl\'s missing-bike list',d:'Folks have been calling the library all week.',to:'Tag each bike in the garage'}};
@@ -155,11 +155,11 @@ const LOOT=[/* the garage: who each bike belongs to. tag = where it was taken (V
   {id:'green',owner:'earl',name:'A bike library loaner',tag:'Dock St · outside the Spoke Shop',look2:'A green bike with a BIKE LIBRARY sticker',look:{size:'adult',color:'#3d8a4a',sticker:'lib',fenders:true}},
   {id:'yellow',owner:'marcy',name:'Marcy\'s youngest\'s bike',tag:'Maple Heights Elementary · rack 5',look2:'A yellow kid\'s bike with pink and yellow streamers',look:{size:'kid',color:'#f0c419',fenders:true,streamers:['#ff7ab6','#ffd23f']}},
   {id:'orange',owner:'dave',name:'Big Dave\'s beach cruiser',tag:'Linden Park · by the grills',look2:'An orange beach cruiser with a cupholder. It smells like brisket',look:{size:'adult',color:'#e8772e',fenders:true,whitewall:true,saddle:'#3b2a1f'}},
-  {id:'black',owner:'gary',name:'Gary\'s commuter bike',tag:'Elm St · bike rack outside an accounting office',look2:'A black commuter bike. The reflectors are arranged by colour',look:{size:'adult',color:'#24272c',accent:'#9fe58a',reflector:true}}];
+  {id:'black',owner:'gary',name:'Gary\'s commuter bike',tag:'Elm St · bike rack outside an accounting office',look2:'A black commuter bike. The reflectors are arranged by color',look:{size:'adult',color:'#24272c',accent:'#9fe58a',reflector:true}}];
 const OWNERS={dee:'Pastor Dee\'s youth group',lindqvist:'Mrs. Lindqvist',earl:'Earl\'s bike library',marcy:'Marcy',dave:'Big Dave',gary:'Gary',linda:'Linda\'s grandkid',walt:'Walt'};
 const REPORTS={dee:'The youth group BMX. Blue, pegs. Gone from the laundromat Tuesday.',lindqvist:'My purple cruiser, off my porch on Ash St. Pepper the goat naps in the basket.',
   earl:'One of my loaners. Green. Has our sticker on it.',marcy:'My youngest\'s bike, from the school rack. Yellow. Streamers, pink and yellow.',
-  dave:'My beach cruiser. Orange. Has a cupholder. Bring it home, it\'s family.',gary:'My commuter bike. Black. Reflectors arranged by colour. Obviously.',
+  dave:'My beach cruiser. Orange. Has a cupholder. Bring it home, it\'s family.',gary:'My commuter bike. Black. Reflectors arranged by color. Obviously.',
   linda:'My grandkid\'s pink scooter. (A scooter. Not a bike. She is very sure.)',walt:'My 1971 three-speed, maroon. Might have sold it in 1983.'};
 function staticBike(look){const R=RN();const b=R.bike(Object.assign({static:true},look));return b}
 function rackProps(M){const a=A(),Pl=places(),R=RN();const out=[];if(!R)return out;const slots=Pl.rack.slots;
@@ -393,7 +393,7 @@ function stRack(dt,M,F){const a=A(),P=a.P,Pl=places();const left=['lock','wrappe
   if(near)F.target={x:M.cluePts[near].x,z:M.cluePts[near].z,label:'Clue'};
   for(const id of left){const p=M.cluePts[id];F.taps.push({x:p.x,z:p.z,r:TUNE.clueR,txt:{lock:'Look at the cut lock',wrapper:'Look at the wrapper',tracks:'Look at the tracks'}[id],fn:()=>{
     clueAdd(M,id);lookAt(M,M.cluePts[id],3.2,{back:.7,side:.3,h:.95});cardShow(M,id,null,{t:5});sparkOff(M,id);
-    const lines={lock:[['you',"Cut clean through. Eight-year-olds don't carry bolt cutters. A grown-up did this."]],wrapper:[['you',"Choco-Lumps. Ramos Corner Mart price sticker. That's over the bridge."]],tracks:[['you',"Two fat tyres side by side. A cargo bike. A heavy one. Somebody hauled a load off this pad."]]}[id];sayAll(lines,true)}})}
+    const lines={lock:[['you',"Cut clean through. Eight-year-olds don't carry bolt cutters. A grown-up did this."]],wrapper:[['you',"Choco-Lumps. Ramos Corner Mart price sticker. That's over the bridge."]],tracks:[['you',"Two fat tires side by side. A cargo bike. A heavy one. Somebody hauled a load off this pad."]]}[id];sayAll(lines,true)}})}
   if(!left.length){a.CP.mark('leads');music('hub');sayAll([['tyler',"(on the phone) Did you find it? Is it there?"],['you',"Not yet, buddy. But somebody saw something. I'm going to knock on some doors."],
     ['tyler',"Mrs. Linda sees EVERYTHING. And I've got the laptop on the porch. People sell stuff on Resale. Mom says I'm not allowed to buy anything."]]);M.boardT=12}}
 function sparkOff(M,id){const k=Object.keys(M.cluePts).indexOf(id);if(M.spark&&M.spark.list[k])M.spark.list[k].visible=false}
@@ -412,14 +412,14 @@ const NB={
       {reg:'real',text:"Phil, I just need to know if your camera saw a bike thief.",reply:[['phil',"(stiffly) It sees everything. That's the point of a camera."],['phil',"(eventually) Tuesday. 3:12 pm. There."]]}]},
   walt:{key:'nb_sweater',mood:'scared',tell:'[Walt keeps the screen door between you. A little nervous.]',
     intro:[['walt',"A kid on a little red bike? Went that way. Toward the bridge. Past where the video store was. Then left at the water tower they tore down."],['walt',"Then you'll see a gas station that's a bank now. Can't miss it."]],
-    options:[{reg:'real',text:"Walt, it's my son's bike. He's eight. Anything helps.",good:true,reply:[['walt',"(opens the screen door) Oh. Well. My grandson sells his old things on that Neighbourly Resale. Everybody's selling bikes on there this week."],['walt',"Check it, Dad. Before somebody buys it."]]},
-      {reg:'joke',text:"The water tower? I loved that water tower.",reply:[['walt',"It was a good tower. They don't make towers like that."],['walt',"(eventually) My grandson says folks are selling bikes on Neighbourly Resale this week. Check that."]]},
-      {reg:'comp',text:"Those are very detailed directions. You should give tours.",reply:[['walt',"(pleased) I DO give tours. Thursdays. Nobody comes."],['walt',"Oh, the bike. Neighbourly Resale. Everybody's selling bikes on it this week."]]}]}};
+    options:[{reg:'real',text:"Walt, it's my son's bike. He's eight. Anything helps.",good:true,reply:[['walt',"(opens the screen door) Oh. Well. My grandson sells his old things on that Neighborly Resale. Everybody's selling bikes on there this week."],['walt',"Check it, Dad. Before somebody buys it."]]},
+      {reg:'joke',text:"The water tower? I loved that water tower.",reply:[['walt',"It was a good tower. They don't make towers like that."],['walt',"(eventually) My grandson says folks are selling bikes on Neighborly Resale this week. Check that."]]},
+      {reg:'comp',text:"Those are very detailed directions. You should give tours.",reply:[['walt',"(pleased) I DO give tours. Thursdays. Nobody comes."],['walt',"Oh, the bike. Neighborly Resale. Everybody's selling bikes on it this week."]]}]}};
 function stLeads(dt,M,F){const a=A(),P=a.P,Pl=places();const ids=['linda','phil','walt'];
   if(M.meetSet){clueAdd(M,'listing');a.CP.mark('meet');music('tension',.3);sayAll([['you',"Ramos Corner Mart. Forty bucks. Okay, bikez4cheap. Let's meet."],['tyler',"(on the phone) Is that my bike? Dad. Is that my bike?"],['you',"That's your bike, buddy. Stay on the porch."],
       ['earl',"(on the phone) Heard you're coming over the bridge. I left a loaner bike by the mart, in case. Bell works. Basket's got a granola bar in it."]],true);return}
-  const nd=M.nbDone();F.objs.push(['Ask the neighbours: knock on the glowing doors (E) · '+nd+'/3',nd>=3]);
-  F.objs.push(['Check Neighbourly Resale on the laptop: Tyler has it on our porch',!!M.laptopUsed&&M.meetSet]);
+  const nd=M.nbDone();F.objs.push(['Ask the neighbors: knock on the glowing doors (E) · '+nd+'/3',nd>=3]);
+  F.objs.push(['Check Neighborly Resale on the laptop: Tyler has it on our porch',!!M.laptopUsed&&M.meetSet]);
   if(M.wrongNote){F.objs.push(['Wrong listing: +'+TUNE.wrongBike+' s. Match the photo to the clues.',false,'warn'])}
   /* the marker: the nearest unknocked door; then the porch */
   let best=null,bd=1e9;for(const p of Pl.nb){if(M.nb[p.id])continue;const d=Math.hypot(p.talk.x-P.pos.x,p.talk.z-P.pos.z);if(d<bd){bd=d;best=p}}
@@ -431,7 +431,7 @@ function stLeads(dt,M,F){const a=A(),P=a.P,Pl=places();const ids=['linda','phil'
     if(!M.nb[p.id]&&d<TUNE.appear&&!(M.nbD&&M.nbD[p.id])){const dd=person(NB[p.id].key);if(dd){(M.nbD||(M.nbD={}))[p.id]=dd;dd.root.position.set(p.x,0,p.z);dd.root.rotation.y=p.face>0?0:Math.PI}}
     const dd=M.nbD&&M.nbD[p.id];if(dd)a.pose(dd,dt,{moving:false,aim:false});
     if(!M.nb[p.id]&&!M.talk&&dd)F.taps.push({x:p.talk.x,z:p.talk.z,r:TUNE.doorR,txt:'Knock: talk to '+CAST[p.id].name,fn:()=>knock(M,p)})});
-  if(!M.talk&&!M.laptopOpen)F.taps.push({x:Pl.laptop.x,z:Pl.laptop.z,r:2.4,txt:'Look at the laptop with Tyler (Resale tab)',fn:()=>{sayAll([['tyler',M.found.length>4?"Mom says I can't touch the Resale tab. So you do it. Look at the photos, Dad. Use what the neighbours said.":"It's red and it's got streamers. But LOTS of bikes are red. Maybe ask the neighbours what they saw first?"]],true);openLaptop(M)}})}
+  if(!M.talk&&!M.laptopOpen)F.taps.push({x:Pl.laptop.x,z:Pl.laptop.z,r:2.4,txt:'Look at the laptop with Tyler (Resale tab)',fn:()=>{sayAll([['tyler',M.found.length>4?"Mom says I can't touch the Resale tab. So you do it. Look at the photos, Dad. Use what the neighbors said.":"It's red and it's got streamers. But LOTS of bikes are red. Maybe ask the neighbors what they saw first?"]],true);openLaptop(M)}})}
 function knock(M,p){const a=A(),n=NB[p.id];const Au=AU();if(Au)try{Au.tone({f:180,type:'triangle',d:.08,gain:.25});Au.tone({f:170,type:'triangle',d:.08,gain:.25,at:.16})}catch(e){}
   const T=talk(M,{who:p.id,stepUp:true,face:{x:p.x,z:p.z,y:1.45},npc:M.nbD&&M.nbD[p.id],lines:n.intro,rounds:[{who:p.id,tell:n.tell,options:n.options.map(op=>Object.assign({},op,{then:()=>{M.nb[p.id]=op.good?2:1;
       if(!op.good){M.elapsed+=TUNE.slowTalk;a.feed('That took a while','info','+'+TUNE.slowTalk+' s')}

@@ -289,7 +289,7 @@ function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:
     const w=h.x1-h.x0,d=h.z1-h.z0;let grp=null;
     try{if(BUm)grp=h.store?BUm.shop({kind:'hardware',w,d,seed:h.seed,facing:h.facing}):BUm.house({w,d,seed:h.seed,style:['ranch','colonial','craftsman','cape'][h.seed%4],facing:h.facing,home:!!h.home})}catch(e){console.warn('house failed',e);grp=null}
     if(!grp)grp=W_.fallbackHouse(B,{w,d,seed:h.seed,facing:h.facing,cx,cz});
-    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
+    if(grp){grp.position.set(cx,0,cz);if(grp.userData.camOcc)for(const o of grp.userData.camOcc)(ws.camOcc||(ws.camOcc=[])).push({x0:o.x0+cx,x1:o.x1+cx,z0:o.z0+cz,z1:o.z1+cz,y0:o.y0,y1:o.y1});/* the home's flag: camera-only occluder (index.html camClear) */if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
     if(grp)grp.userData._owCol=h.src.col;try{W_.yard(B,h)}catch(e){}yield}
   for(const s of ws.fenceSegs||[]){const mx=(s[0]+s[2])/2,mz=(s[1]+s[3])/2;if(mx>=box.x0&&mx<box.x1&&mz>=box.z0&&mz<box.z1)W_.fence(B,s[0],s[1],s[2],s[3])}
   /* rowhouses, warehouses, commercial buildings */
@@ -679,7 +679,19 @@ OW.groundMap=()=>{const ws=WS;if(!ws)return null;if(ws.gmap)return ws.gmap;const
   for(const t of def.trees){const g=x.createRadialGradient(t.x/2*PX,t.z/2*PX,0,t.x/2*PX,t.z/2*PX,PX*1.5);g.addColorStop(0,'#3f6d2c');g.addColorStop(1,'rgba(40,80,30,0)');x.fillStyle=g;x.beginPath();x.arc(t.x/2*PX,t.z/2*PX,PX*1.5,0,6.283);x.fill()}
   for(const c of def.parked||[]){x.save();x.translate(c.x/2*PX,c.z/2*PX);x.rotate(-(c.yaw||0));x.fillStyle=c.col||'#888';x.fillRect(-PX*1.1,-PX*.45,PX*2.2,PX*.9);x.restore()}
   const tx=ctex(cv);tx.anisotropy=4;ws.gmap=tx;return tx};
-OW.buildAhead=r=>{if(WS)WS.buildR=+r||0};/* build (not draw) every unit within r m: the jet calls it on boarding so the town streams in while you taxi */
+OW.buildAhead=r=>{if(WS)WS.buildR=+r||0};
+/* arrivals (fast travel, a ride back, a job's start or end, Continue, back from the house): build every unit within r m of (x,z) now,
+   up to budget ms, instead of in 6 ms slices over the next frames (the player would fade in on a void). Returns how many are still
+   unbuilt there. Keeps the streaming invariant: at most one half-built unit, and it is ws.active. */
+function buildNear(x,z,r,budget){const ws=WS;if(!ws)return 0;const t0=performance.now(),left=()=>Math.max(1,budget-(performance.now()-t0));
+  if(ws.active){if(!stepUnit(ws.active,left()))return pendingNear(x,z,r);ws.active=null}
+  const want=ws.units.filter(u=>!u.ready&&dist2(u.box,x,z)<r).sort((a,b)=>dist2(a.box,x,z)-dist2(b.box,x,z));
+  for(const u of want){if(performance.now()-t0>=budget)break;startUnit(u);if(!stepUnit(u,left())){ws.active=u;break}}
+  return pendingNear(x,z,r)}
+function pendingNear(x,z,r){const ws=WS;if(!ws)return 0;let n=0;for(const u of ws.units)if(!u.ready&&dist2(u.box,x,z)<r)n++;return n}
+const ARRIVE_R=120;OW.ARRIVE_R=ARRIVE_R;
+OW.buildNear=(x,z,r,budget)=>buildNear(x,z,r||ARRIVE_R,budget==null?1e9:budget);
+OW.pendingNear=(x,z,r)=>pendingNear(x,z,r||ARRIVE_R);/* build (not draw) every unit within r m: the jet calls it on boarding so the town streams in while you taxi */
 OW.flight=o=>{const ws=WS;if(!ws)return;ws.fly=o||null;for(const u of ws.units){u.near=null;u.mnear=null;u.far=null}};
 const s3Vc=()=>stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1});
 const S3C={white:[.82,.81,.77],galv:[.5,.53,.55],dark:[.1,.11,.12],conc:[.5,.49,.46],glass:[.03,.05,.08],wood:[.33,.22,.13],red:[.62,.06,.05],yellow:[.85,.62,.06],paint:[.86,.85,.8],brass:[.6,.45,.15]};
@@ -1168,9 +1180,12 @@ OW.sourcesChanged=()=>{if(WS){WS.tsrc=null;const t=WS.trust;WS.trust=null;OW.dre
 
 /* ================= per frame ================= */
 const _v=new THREE.Vector3(),_b=new THREE.Box3();
-OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
+OW.update=(camera,dt)=>{const ws=WS;if(ws&&!ws.lvl.group.parent)ws.camAt=null;/* the world was away (a job's level, the house): coming back is an arrival */if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
   const fogFar=C.fogFar?C.fogFar():200;const R=ws.fly?Math.max(ws.fly.R||0,Math.min(ws.R||(ws.R=200),fogFar+8)):Math.min(ws.R||(ws.R=200),fogFar+8);   /* ws.fly: OW.flight (the jet) */ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
+  /* a jump (teleport of any kind: the camera moved 40 m+ since the last update, or the world was away): build what is around the
+     arrival before this frame draws, 400 ms at most (the rest streams as usual). Callers that hold a fade use OW.buildNear/pendingNear. */
+  if(!ws.fly&&(!ws.camAt||Math.hypot(cx-ws.camAt.x,cz-ws.camAt.z)>40)){ws.jumpN=(ws.jumpN|0)+1;buildNear(cx,cz,ARRIVE_R,400)}ws.camAt={x:cx,z:cz};
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
   const BR=Math.max(R,ws.buildR||0)+40;   /* ws.buildR (OW.buildAhead) builds past the draw radius without drawing it */
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
@@ -1201,7 +1216,7 @@ OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const 
 OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;const gone=[];
   for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch')){lvl.group.remove(o);gone.push(o)}   /* index.html's static batcher merges parked cars once per level: keep its meshes */
   disposeDropped(gone,lvl.group);
-  if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
+  if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;ws.camAt=null;/* the next update is an arrival */
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
   if(ws.traffic){for(const t of ws.traffic.cars)ws.traffic.g.remove(t.v);ws.traffic.cars.length=0}
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};
@@ -1222,8 +1237,9 @@ OW.roads=()=>{const ws=WS;if(!ws)return null;if(!ws.roads&&HT.Roads)try{ws.roads
 OW.gps=(from,to)=>{const ws=WS;if(!ws||!HT.Roads||!HT.Roads.gps)return null;try{return HT.Roads.gps(ws.def,from,to)}catch(e){console.warn('gps failed',e);return null}};
 OW.regionAt=(x,z)=>{const G=HT.WorldGen;return G&&G.regionAt?G.regionAt(x,z):'maple'};
 OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:ws.built,visible:ws.units.filter(u=>u.visible).length,chunks:ws.chunks.map(u=>({cx:u.ch.cx,cz:u.ch.cz,visible:u.visible,built:u.built,ms:u.ms&&Math.round(u.ms)})),
-  buildMs:Math.round(ws.tBuild||0),maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
+  buildMs:Math.round(ws.tBuild||0),jumps:ws.jumpN|0,maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
 OW.units=()=>WS?WS.units:[];
+OW.camOccluders=()=>WS&&WS.camOcc||[];/* boxes the camera can't see through but nobody collides with (the home's wall flag) */
 OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY.x0+PARTY.x1)/2,(PARTY.z0+PARTY.z1)/2);return{truck:T&&T.visible?{x:T.position.x,z:T.position.z,yaw:T.rotation.y}:null,party:ws.blockT&&ws.blockT[pb]>=90?{x:(PARTY.x0+PARTY.x1)/2,z:(PARTY.z0+PARTY.z1)/2}:null}};
 /* ================= ambient traffic (HT.Roads graph + HT.CarAI wander, HT.Vehicles LOD1) ================= */
 /* a handful of cars near the player, spawned and removed out of view. Every car looks ahead along its own lane (trSweep) for the player's
@@ -1241,14 +1257,15 @@ OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY
 const TRAFFIC_TYPES=['sedan','hatch','suv','pickup','workvan','sedan'],TRAFFIC_COLS=['#b9c0c7','#8a2f2a','#2e4a6b','#d8d4c8','#3d4a3a','#6d7378','#7a5a3a','#c9b48a'];
 /* tuning (metres, seconds, m/s, m/s^2) */
 const TR={look:30,plan:4.5,sg0:2.6,sg1:4,sgK:.14,margin:.3,honk1:2,honkGap:[4,6],honkLong:9,bark1:3,barkGap:12,barkCd:7,haz:10,round:6,roundSpd:4.5,roundOff:3.1,roundClear:45,
-  rev:25,gone:40,box:6.5,stopLine:9.5,yieldR:18};
+  rev:25,gone:40,box:6.5,stopLine:9.5,yieldR:18,
+  ped:.45,kid:.95,pedBody:.3,pedCell:16};/* people on the road (o.people): ped/kid = the radius traffic keeps clear (a child gets the wider berth), pedBody = the body itself */
 OW.trafficTune=TR;
 const TR_WHO={sedan:'Guy in a sedan',hatch:'Lady in a hatchback',suv:'SUV dad',pickup:'Pickup guy',workvan:'Van driver'};
 const TR_BARKS=["Sir. SIR.","Some of us have a casserole in the oven.","Is this a parking spot now? Is that what we're doing?","I can wait. I'm a dad. Waiting is my whole thing.",
   "Buddy. Pal. Champ.","My lasagna is on a timer, friend.","We've all got places to be. Mine is Costco.","Any day now, chief.","I'm not mad. I'm just honking.",
-  "Did you get your licence out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
+  "Did you get your license out of a cereal box?","I have a soccer pickup in eleven minutes!","Wave me through or move, I'm begging you."];
 const TR_HIT=["My BUMPER. I just paid that off.","Oh, come ON. That was a lease!","Hey! I've got pies in the back!","Are you KIDDING me? Brenda's going to kill me.",
-  "That's going in the neighbourhood group chat.","I signalled! I SIGNALLED!"];
+  "That's going in the neighborhood group chat.","I signalled! I SIGNALLED!"];
 const TR_WRECK=["Yeah, hi, roadside assistance? You won't believe this.","Honey, I'm going to be late. No, I'm fine. The car isn't.","No, I'm FINE. The car's having a moment.",
   "Hi, it's me. Can you pick up the kids? Long story."];
 const trFwd=y=>[-Math.sin(y),-Math.cos(y)];
@@ -1316,6 +1333,15 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     obs.push({x:e.pos.x,z:e.pos.z,fx:f[0],fz:f[1],hl:S.l/2,hw:S.w/2,vx:0,vz:0,k:'parked',src:e})}
   for(const S of TR_PROPS)for(const q of S.list||[]){if(q.state!=='placed'||Math.abs(q.x-p.x)>160||Math.abs(q.z-p.z)>160)continue;const K=HT.Props.KINDS&&HT.Props.KINDS[q.kind]||{w:.5,d:.5},f=trFwd(q.yaw||0);
     obs.push({x:q.x,z:q.z,fx:f[0],fz:f[1],hl:K.d/2,hw:K.w/2,vx:0,vz:0,k:'prop',src:q})}
+  /* people (o.people: everyone standing or walking in the world but the dad: neighbours, kids, family, crew, job casts, the festival crowd)
+     go in a 16 m bucket grid; each car only looks at the cells round its own look-ahead (trPeopleNear), so 40 people cost 24 cars little */
+  const pg=T.pg||(T.pg=new Map());for(const a of pg.values())a.length=0;let npl=0;
+  for(const q of o.people||[]){if(Math.abs(q.x-p.x)>170||Math.abs(q.z-p.z)>170)continue;const r=q.kid?TR.kid:TR.ped,key=Math.floor(q.x/TR.pedCell)*4096+Math.floor(q.z/TR.pedCell);
+    /* someone walking is a box stretched over where they will be in the next second (oriented along their way): a child stepping
+       off the kerb is seen a second early, one walking along the sidewalk is not made any wider */
+    const vx=q.vx||0,vz=q.vz||0,v=Math.hypot(vx,vz),mv=v>.3;
+    let a=pg.get(key);if(!a)pg.set(key,a=[]);a.push({x:q.x+(mv?vx*.5:0),z:q.z+(mv?vz*.5:0),fx:mv?vx/v:0,fz:mv?vz/v:-1,hl:r+(mv?v*.5:0),hw:r,vx,vz,k:q.kid?'kid':'ped',body:TR.pedBody,bx:q.x,bz:q.z,src:q.ref||q});npl++}
+  T.npl=npl;
   T.obs=obs.filter(q=>q.k!=='player'&&q.k!=='foot');
   const tro=[];for(const t of T.cars){const b=trBox(t),f=[b.fx,b.fz];const ob=Object.assign(b,{vx:f[0]*t.c.spd+(t.push?t.push.vx:0),vz:f[1]*t.c.spd+(t.push?t.push.vz:0),k:t.wreck?'wreck':'traffic',ref:t,src:t});t.ob=ob;tro.push(ob);obs.push(ob)}
   /* spawn */
@@ -1336,9 +1362,12 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
   /* junction reservations: drop holders that are gone */
   for(const[n,h]of T.res)if(!T.cars.includes(h))T.res.delete(n);
   const pvMover=pv&&{x:pv.x,z:pv.z,vx:obs[0].vx,vz:obs[0].vz,spd:Math.abs(pv.spd)};
+  const obsAll=obs;
   for(let i=T.cars.length-1;i>=0;i--){const t=T.cars[i],c=t.c,ai=c.ai,S=c.stats;const f=trFwd(c.yaw),hl=S.len/2;
+    const near=npl?trPeopleNear(T,c.x,c.z,TR.look+hl+8):null,obs=near&&near.length?obsAll.concat(near):obsAll;t.peds=near&&near.length?near:null;
     /* shoved (index.html trafficContact): slide, the driver stands on the brake */
-    if(t.push){c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-(4+.5*sp)*dt)/(sp||1);/* the driver is on the brake, but a minivan can still shove it */t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
+    if(t.push){const x0=c.x,z0=c.z;c.x+=t.push.vx*dt;c.z+=t.push.vz*dt;statics(c,S.wid/2);if(t.peds&&trPedCloser(t,t.peds,x0,z0)){c.x=x0;c.z=z0;t.push=null;log(t,'pushStop',{})}/* a shoved car stops dead before anyone, like at a wall */}
+    if(t.push){const sp=Math.hypot(t.push.vx,t.push.vz),k=Math.max(0,sp-(4+.5*sp)*dt)/(sp||1);/* the driver is on the brake, but a minivan can still shove it */t.push.vx*=k;t.push.vz*=k;if(sp<.05)t.push=null}
     if(t.shoveT>0)t.shoveT-=dt;if(t.hazT>0)t.hazT-=dt;
     let cap=Infinity,blk=null;
     /* 0. plan the turn after the next node early (CarAI picks it only 5 m out) so the look-ahead can follow the lane round the corner
@@ -1386,20 +1415,20 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
     const stopped=Math.abs(c.spd)<.5&&cap<.8&&t.mode!=='rev';
     const qHead=blk&&!(blk.k==='traffic'&&blk.ref&&(blk.ref.wait>.5||blk.ref.cap<.8))&&blk.k!=='junction';
     if(stopped&&blk){if(!t.wait)log(t,'stop',{by:blk.k,gap:hit?+hit.gap.toFixed(2):null});t.wait+=dt;t.free=0}else if(Math.abs(c.spd)>2||!blk){t.free+=dt;if(t.free>1.2&&t.wait){t.wait=0;t.honkN=0;t.nextHonk=TR.honk1;t.barkAt=TR.bark1;if(!t.wreck)t.hazOn=false}}
-    const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'),stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
+    const atPlayer=blk&&(blk.k==='player'||blk.k==='foot'||blk.k==='other'||blk.k==='ped'),/* a child in the road: no horn, no bark, it just waits */stillB=blk&&Math.hypot(blk.vx||0,blk.vz||0)<.3;
     if(t.wait>0&&!t.wreck){
       if(qHead&&atPlayer&&t.wait>=t.nextHonk&&T.honkT<=0&&T.clock-(t.lastHonk||-9)>=4){t.lastHonk=T.clock;const n=t.honkN++,long=n===2||n>=4&&n%2===0;
-        trHorn(t,long?.85:.22,cam,long?null:n===1?[[0,.12],[.2,.14]]:null);T.honkT=.5;log(t,'honk',{long,at:+t.wait.toFixed(2)});t.nextHonk=t.wait+(t.wait>14?6+Math.random()*3:TR.honkGap[0]+Math.random()*(TR.honkGap[1]-TR.honkGap[0]))}
+        trHorn(t,long?.85:.22,cam,long?null:n===1?[[0,.12],[.2,.14]]:null);T.honkT=.5;log(t,'honk',{long,at:+t.wait.toFixed(2),by:blk.k});t.nextHonk=t.wait+(t.wait>14?6+Math.random()*3:TR.honkGap[0]+Math.random()*(TR.honkGap[1]-TR.honkGap[0]))}
       if(blk&&!qHead&&t.wait>12&&!t.qHonk){t.qHonk=true;if(Math.random()<.3&&T.honkT<=0&&T.clock-(t.lastHonk||-9)>=4){t.lastHonk=T.clock;trHorn(t,.18,cam);T.honkT=.5;log(t,'honk',{queue:true,at:+t.wait.toFixed(2)})}}
       if(qHead&&atPlayer&&t.wait>=t.barkAt){t.barkAt=t.wait+TR.barkGap+Math.random()*6;const near=Math.hypot(c.x-p.x,c.z-p.z)<32;
-        if(near&&T.barkT<=0&&o.say&&(!t.barkN||Math.random()<.35)){/* the first one always: dads always say something */T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line})}}
+        if(near&&T.barkT<=0&&o.say&&(!t.barkN||Math.random()<.35)){/* the first one always: dads always say something */T.barkT=TR.barkCd;const line=TR_BARKS[(t.id*7+(t.barkN=(t.barkN|0)+1)*5)%TR_BARKS.length];try{o.say(TR_WHO[t.ty]||'Driver',line)}catch(_){}log(t,'bark',{line,by:blk.k})}}
       if(t.wait>=TR.haz&&!t.hazOn&&qHead){t.hazOn=true;log(t,'haz',{at:+t.wait.toFixed(2)})}
       /* go round: the blocker has stopped, the oncoming lane is clear for TR.roundClear m */
-      if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
+      if(qHead&&!t.mode&&t.wait>=TR.round&&stillB&&blk.k!=='junction'&&blk.k!=='kid'&&/* never round a child: wait */(t.roundTry=(t.roundTry||0)-dt)<=0){t.roundTry=.5;
         const clear=!trSweep(t,obs,TR.roundClear,TR.roundOff,TR.roundOff,blk);
         if(clear&&hit){t.mode='round';t.offT=TR.roundOff;t.odo=0;t.modeT=0;t.roundLen=hit.gap+2*(blk.hl+blk.hw)+2*hl+3;
           if(hit.gap<7&&!trBehind(t,obs,4)){c.revT=.7;c.revDir=-1;t.roundLen+=3}/* too close to swing out: back up a car's length first */
-          log(t,'round',{at:+t.wait.toFixed(2),len:+t.roundLen.toFixed(1),backUp:c.revT>0})}}
+          log(t,'round',{by:blk.k,at:+t.wait.toFixed(2),len:+t.roundLen.toFixed(1),backUp:c.revT>0})}}
       if(t.wait>=TR.rev&&!t.mode&&t.reroutes<2){t.mode='rev';t.modeT=0;log(t,'rev',{at:+t.wait.toFixed(2),by:blk&&blk.k,head:!!qHead,chain:(()=>{const out=[];let q=t;for(let k=0;k<5&&q;k++){const nn2=q.c.ai&&G.nodes[q.c.ai.next];out.push([q.id,q.blk,q.mode,+q.wait.toFixed(1),q.cap===Infinity?99:+q.cap.toFixed(1),nn2?+Math.hypot(nn2.x-q.c.x,nn2.z-q.c.z).toFixed(1):-1,nn2?nn2.e.length:0,q.res,q.c.ai&&q.c.ai.next]);q=q.blkRef}return out})()});
         if(!trBehind(t,obs,4))c.revT=.9;c.revDir=1;
         /* U-turn: head back to the node we came from, on the opposite lane */
@@ -1428,9 +1457,16 @@ OW.traffic=(dt,o)=>{const ws=WS,CA=HT.CarAI;if(!ws||!CA||!CA.wander||!C.makeVehi
         const ca=T.cars[a].c,cb=T.cars[b].c,k=h.d/2;ca.x+=h.nx*k;ca.z+=h.nz*k;cb.x-=h.nx*k;cb.z-=h.nz*k;B[a].x=ca.x;B[a].z=ca.z;B[b].x=cb.x;B[b].z=cb.z}
       for(const q of fixed){if(Math.abs(q.x-B[a].x)>9||Math.abs(q.z-B[a].z)>9)continue;const h=obbSat(B[a],q);if(!h||h.d<.001)continue;any=true;const ca=T.cars[a].c;ca.x+=h.nx*h.d;ca.z+=h.nz*h.d;B[a].x=ca.x;B[a].z=ca.z}}
     if(!any)break;for(const t of T.cars)trSync(t,lvl,t.cap<.8,0)}};
-/* push this traffic car (only it) out of anything it overlaps */
+/* people in the cells round (x,z) within r (T.pg, filled once a frame in OW.traffic) */
+function trPeopleNear(T,x,z,r){const out=[],C=TR.pedCell,i0=Math.floor((x-r)/C),i1=Math.floor((x+r)/C),j0=Math.floor((z-r)/C),j1=Math.floor((z+r)/C);
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const a=T.pg.get(i*4096+j);if(a)for(const q of a)if(Math.abs(q.x-x)<r&&Math.abs(q.z-z)<r)out.push(q)}return out}
+/* is anyone within (their body + pad) of this traffic car's box? */
+function trPedTouch(t,peds,pad){const A=trBox(t);for(const q of peds){const r=q.body+pad;if(Math.abs(q.bx-A.x)>9||Math.abs(q.bz-A.z)>9)continue;if(obbSat(A,{x:q.bx,z:q.bz,fx:0,fz:-1,hl:r,hw:r}))return q}return null}
+/* a move from (x0,z0) that brings the car within reach of someone (or closer to someone it already touches) */
+function trPedCloser(t,peds,x0,z0){const q=trPedTouch(t,peds,.25);if(!q)return null;const c=t.c;return Math.hypot(c.x-q.bx,c.z-q.bz)<=Math.hypot(x0-q.bx,z0-q.bz)+1e-4?q:null}
+/* push this traffic car (only it) out of anything it overlaps (people by their bodies, not the berth the look-ahead keeps) */
 function trSep(t,obs){const c=t.c;for(let pass=0;pass<4;pass++){const A=trBox(t);let any=false;
-  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
+  for(const o of obs){if(o.ref===t||o.k==='prop')continue;const B=o.ref?trBox(o.ref):o.body?{x:o.bx,z:o.bz,fx:0,fz:-1,hl:o.body,hw:o.body}:o;if(Math.abs(B.x-A.x)>9||Math.abs(B.z-A.z)>9)continue;const h=obbSat(A,B);if(!h||h.d<.001)continue;
     c.x+=h.nx*h.d;c.z+=h.nz*h.d;A.x=c.x;A.z=c.z;any=true;const f=trFwd(c.yaw),toward=-(h.nx*f[0]+h.nz*f[1]);if(toward*c.spd>0)c.spd=0;t.sepN=(t.sepN|0)+1}if(!any)break}}
 /* model, lamps and collider */
 function trSync(t,lvl,braking,dt){const c=t.c,f=trFwd(c.yaw);t.v.position.set(c.x,HW()?HW().groundY(lvl,c.x,c.z):0,c.z);t.v.rotation.y=c.yaw+Math.PI/2;
@@ -1458,6 +1494,7 @@ OW.trafficBox=trBox;
 /* move a traffic car by (dx,dz) (it slides against buildings), give it a shove velocity; returns how far it actually moved */
 OW.trafficShove=(t,dx,dz,vx,vz)=>{const ws=WS;if(!ws||!ws.traffic)return{x:0,z:0};const c=t.c,x0=c.x,z0=c.z;c.x+=dx;c.z+=dz;if(ws.traffic.statics)ws.traffic.statics(c,c.stats.wid/2);
   if(ws.traffic.obs)trSep(t,ws.traffic.obs);/* it can't be shoved into a parked car or another car either: what it can't take, the pusher does */
+  if(ws.traffic.pg&&ws.traffic.npl){const near=trPeopleNear(ws.traffic,c.x,c.z,12);if(near.length&&trPedCloser(t,near,x0,z0)){c.x=x0;c.z=z0;t.push=null;trSync(t,ws.lvl,true,0);return{x:0,z:0}}}/* never shoved into a person: it stops dead, the pusher takes it all, like a wall */
   if(vx||vz){const p=t.push||(t.push={vx:0,vz:0});p.vx+=vx;p.vz+=vz;const s=Math.hypot(p.vx,p.vz);if(s>14){p.vx*=14/s;p.vz*=14/s}t.shoveT=Math.max(t.shoveT||0,1.2);c.spd=0}
   trSync(t,ws.lvl,true,0);return{x:c.x-x0,z:c.z-z0}};
 OW.trafficSync=t=>{if(WS)trSync(t,WS.lvl,true,0)};
@@ -1533,7 +1570,7 @@ OW.neighbours=(dt,o)=>{const ws=WS,G=HT.WorldGen,PP=HT.People;if(!ws||!G||!G.nei
   /* build missing models as their files arrive; animate */
   const cam=o.camera?o.camera.position:p;
   for(const n of N.list){if(!n.d){const kid=n.kind==='bike'||n.kind==='chalk';const v=kid?'nb_kid':null;if(kid&&!PP.has('nb_kid'))continue;
-      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){console.warn('neighbour: make failed',e);d=null}/* nobody twice on the same street (one kid is enough): redraw from the bag a few times */
+      let d=null;try{d=PP.make('neighbour',v?{variant:v}:{})}catch(e){console.warn('neighbor: make failed',e);d=null}/* nobody twice on the same street (one kid is enough): redraw from the bag a few times */
       for(let tries=0;d&&!kid&&tries<4&&N.list.some(q=>q.d&&q.d.rb.key===d.rb.key);tries++){const li=PP.live.indexOf(d);if(li>=0)PP.live.splice(li,1);try{d=PP.make('neighbour')}catch(e){d=null}}if(!d)continue;
       if(!kid&&d.rb.key==='nb_kid'&&n.kind==='sit')n.kind='stand';
       d.root.traverse(m=>{if(m.isMesh)m.userData.noBatch=true});n.d=d;const y=HW()?HW().groundY(ws.lvl,n.x,n.z):0;d.root.position.set(n.x,y,n.z);d.root.rotation.y=n.ry;N.g.add(d.root);

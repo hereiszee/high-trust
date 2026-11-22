@@ -827,6 +827,9 @@
       b.col = WHITE; b.poly('fixt', P, uv, null, F.U); b.poly('fixt', P, uv, null, mul(F.U, -1));
     }
     b.col = WHITE;
+    /* the cloth's box (house-local, rotated in finish into userData.camOcc) for the third-person camera (index.html camClear): it hangs
+       at head height by the front walk and has no collider */
+    (b.camOcc || (b.camOcc = [])).push({ x0: Math.min(fa[0], fb[0]) - .15, x1: Math.max(fa[0], fb[0]) + .15, z0: Math.min(fa[2], fb[2]) - .15, z1: Math.max(fa[2], fb[2]) + .15, y0: Math.min(fa[1], fb[1]) - hang, y1: Math.max(fa[1], fb[1]) + .1 });
   }
 
   /* ------------------------------------------------------------------ house */
@@ -840,6 +843,7 @@
     const ls = lights.map(l => { const p = R2(l.x, l.z); return Object.assign({}, l, { x: p[0], z: p[1] }); });
     g.userData = Object.assign({ colliders: cols, door: { x: dp[0], z: dp[1], nx: Math.round(dn[0] * 1e6) / 1e6, nz: Math.round(dn[1] * 1e6) / 1e6 }, lights: ls, tris: g.userData.tris, drawCalls: g.userData.drawCalls }, extra || {});
     if (door.step) { const s = R2(door.step[0], door.step[1]); g.userData.doorStep = { x: s[0], z: s[1] }; }
+    if (b.camOcc) g.userData.camOcc = b.camOcc.map(o => { const a = R2(o.x0, o.z0), c = R2(o.x1, o.z1); return { x0: Math.min(a[0], c[0]), z0: Math.min(a[1], c[1]), x1: Math.max(a[0], c[0]), z1: Math.max(a[1], c[1]), y0: o.y0, y1: o.y1 }; });
     if (extra && extra.driveway) { const s = R2(extra.driveway.x, extra.driveway.z); g.userData.driveway = Object.assign({}, extra.driveway, { x: s[0], z: s[1] }); }
     return g;
   }

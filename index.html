@@ -576,7 +576,7 @@ window.NIGHT=NIGHT;window.setNight=setNight;window.nightLight=nightLight;
 const POST_OK=!!(THREE.EffectComposer&&THREE.ShaderPass&&THREE.UnrealBloomPass&&THREE.CopyShader&&THREE.LuminosityHighPassShader&&THREE.FullScreenQuad);
 const GFX={
   low:{pr:1,shadow:1024,soft:false,post:false,ext:26,label:'Fastest. No post effects, smaller shadows.'},
-  med:{pr:1.25,shadow:2048,soft:true,post:true,ao:8,bloom:.5,ext:28,label:'AO, bloom, colour grade.'},
+  med:{pr:1.25,shadow:2048,soft:true,post:true,ao:8,bloom:.5,ext:28,label:'AO, bloom, color grade.'},
   high:{pr:2,shadow:4096,soft:true,post:true,ao:16,bloom:1,ext:34,label:'Everything, full resolution.'}};
 const RENDER=(()=>{
   const R={post:false,q:'med',composer:null};
@@ -1440,21 +1440,28 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
   owChevrons();
   /* ambience: a run-down Riverside block hums like the industrial edge (traffic, distant clatter); a cared-for one sounds like the suburbs (birds, kids, mowers) */
   {const amb=OWS.region==='river'&&bT<40?'industrial':'suburb';if(amb!==OWS.amb){OWS.amb=amb;const A=AU();if(A&&A.ambience)try{A.ambience(amb)}catch(e){}}}
-  owNeighbours(dt,bT);
+  owNeighbours(dt);/* Riverside porches (OW.neighbours), once a frame, before traffic so it sees them this frame */
   /* ambient traffic around the player (HT.CarAI on the road graph) */
   if(O.traffic)O.traffic(dt,{player:P.pos,car:VAN.on?((typeof CV!=='undefined'&&CV)||VAN).pos:null,camera,off:OWS.noTraffic,want:OWS.trafficWant,
     pv:CV&&!CV.fly?{x:CV.pos.x,z:CV.pos.z,yaw:CV.yaw,spd:CV.spd,hl:carSize(CV).l/2,hw:carSize(CV).w/2,type:CV.type}:null,/* [TRAFFIC] the player's vehicle, any type */
     cars:L.cars?L.cars.filter(e=>e!==CV&&e.obj):null,say:(who,txt)=>radio(who,txt),
+    people:OWS.trafficNoPeople?null:trafficPeople(dt),/* (OWS.trafficNoPeople: dev/traffic-check.js's before/after step time) *//* everyone on foot but the dad: traffic stops for them (wider for a child, and never goes round one) */
     others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||null});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
-  owNeighbours(dt);
 }
-/* neighbours on Riverside porches (SPEC2 A.7): a pool of up to 10 civilians from HT.People's 'neighbour' role, reassigned to the nearest eligible porches every second.
-   Until that role exists the porches stay empty. */
-function owNeighbours(dt,bT){const PP=HTM('People'),G=HTM('WorldGen');OWS.nbT=(OWS.nbT||0)-dt;const pool=OWS.nb||(OWS.nb=[]);
-  if(OWS.nbT<=0){OWS.nbT=1;const want=OWS.region==='river'&&G&&G.neighbourSlots?G.neighbourSlots(WORLD,bT,P.pos.x,P.pos.z,10,50):[];
-    while(pool.length<want.length&&!OWS.nbNone){let d=null;try{d=PP&&PP.ok?PP.make('neighbour',{variant:pool.length}):null}catch(e){d=null}if(!d){OWS.nbNone=true;break}pool.push({d,slot:null})}
-    pool.forEach((n,i)=>{const sl=want[i]||null;n.slot=sl;if(n.d.root.parent!==L.group)L.group.add(n.d.root);/* lives in the world group: gone with it during jobs */n.d.root.visible=!!sl&&mode==='hub';if(sl){n.d.root.position.set(sl.x,0,sl.z);n.d.root.rotation.y=sl.yaw+Math.PI}})}
-  for(const n of pool)if(n.slot&&n.d.root.visible)try{PP.pose(n.d,dt,{moving:false})}catch(e){}}
+/* the people ambient traffic must see (W-03): every HT.People character standing in the world (neighbours, kids, family, crew, givers,
+   job casts, the festival crowd, a wreck's driver) plus crew/npcs drawn as box figures; position from the last drawn frame, velocity from
+   the frame before. The dad on foot is passed separately (player). One shared array, no per-frame allocation past the first. */
+const TRP={list:[],pool:[]};
+function trafficPeople(dt){const PP=HTM('People'),out=TRP.list;out.length=0;let n=0;const slot=()=>TRP.pool[n]||(TRP.pool[n]={x:0,z:0,vx:0,vz:0,kid:false,ref:null});
+  const add=(ref,x,z,kid)=>{const q=slot();n++;const k=ref._trk;q.vx=k&&dt>0&&k.t===TRP.t?(x-k.x)/Math.max(dt,1e-3):0;q.vz=k&&dt>0&&k.t===TRP.t?(z-k.z)/Math.max(dt,1e-3):0;
+    if(Math.abs(q.vx)>12||Math.abs(q.vz)>12){q.vx=0;q.vz=0}/* a teleport, not a walk */q.x=x;q.z=z;q.kid=kid;q.ref=ref;if(k){k.x=x;k.z=z;k.t=TRP.t+1}else ref._trk={x,z,t:TRP.t+1};out.push(q)};
+  const shown=o=>{for(;o;o=o.parent){if(!(o._htPend?o._htVis:o.visible))return false;if(o===scene)return true}return false};/* a model still loading counts as there (it pops in where it stands) */
+  const one=d=>{if(!d||!d.root||d===P.dude||d.rb&&d.rb.dead||!shown(d.root))return;const r=d.root,par=r.parent,top=par===scene||L&&par===L.group;/* at the top: its own position (fresh this frame); else last frame's world matrix */
+    const e=r.matrixWorld.elements;if(d._kid==null)d._kid=!!(PP.isProtected&&PP.isProtected(d));add(d,top?r.position.x:e[12],top?r.position.z:e[14],d._kid)};
+  if(PP){if(PP.live)for(const d of PP.live)one(d);if(PP.pending)for(const d of PP.pending)one(d)}/* still loading: there all the same */
+  for(const a of allies)if(!a.ride&&a.dude&&!a.dude.rb&&a.dude.root&&shown(a.dude.root))add(a,a.pos.x,a.pos.z,false);/* box-figure crew (People still loading) */
+  for(const c of npcs)if(c.dude&&!c.dude.rb&&c.dude.root&&shown(c.dude.root))add(c,c.pos.x,c.pos.z,false);
+  TRP.t=(TRP.t|0)+1;return out}
 function owLerpMood(a,b,k){const o={};const c=new THREE.Color();for(const key in a){const va=a[key],vb=b[key];
   if(typeof va==='number')o[key]=va+(vb-va)*k;else if(typeof va==='string'&&va[0]==='#'){c.set(va).lerp(new THREE.Color(vb),k);o[key]='#'+c.getHexString()}else o[key]=va}return o}
 function owDistToRoute(x,z){const p=OWS.gps.points;let best=1e9;for(let i=0;i+1<p.length;i++){const a=p[i],b=p[i+1],dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz||1,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/l,0,1);best=Math.min(best,Math.hypot(a.x+dx*t-x,a.z+dz*t-z))}return best}
@@ -1469,15 +1476,35 @@ function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.
     while(acc<len&&n<20&&travelled+acc<80){const x=a.x+(b.x-a.x)*acc/len,z=a.z+(b.z-a.z)*acc/len;o.position.set(x,(L.world&&HTM('World')?HTM('World').groundY(L,x,z):0)+.03,z);o.rotation.set(0,yaw,0);o.updateMatrix();m.setMatrixAt(n++,o.matrix);acc+=4}
     acc-=len;travelled+=len}
   m.count=n;m.instanceMatrix.needsUpdate=true}
-/* fast travel from the map: 0.35 s fade, the van and crew at the pin, fade back (SPEC2 A.9) */
-function owFastTravel(pin){if(!L||!L.ow||mode!=='hub'||!pin||!pin.place||!pin.fast)return false;
-  if(!(VAN.on||Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30)){HUD.feed('Get back to the minivan to fast travel','info');return false}
-  let p;if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p={x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place];if(!p)return false;
-  const go=()=>{if(!VAN.on&&typeof enterVan==='function')enterVan();const e=(typeof CV!=='undefined'&&CV)||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;owStopCar(e);if(typeof syncCar==='function')syncCar(e);else syncVan();P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;
-    for(const a of allies)a.pos.set(e.pos.x,0,e.pos.z);sunFollow(e.pos.x,e.pos.z);OWS.gpsKey='';const O=OW();if(O)O.update(camera)};
-  let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}
-  f.style.opacity='1';setTimeout(()=>{go();f.style.opacity='0';HUD.feed('Saved you '+Math.max(8,Math.round(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)/14))+' seconds and one argument about directions.','info')},360);return true}
-HUD.on('fastTravel',pin=>owFastTravel(pin));
+/* fast travel from the map: 0.35 s fade, the van and crew at the pin, fade back once the destination is built (SPEC2 A.9).
+   One rule, one handler (the map's button and __ht.fastTravel): fast travel is by the family car. In it, or on foot within 30 m
+   of it (he gets in), the car, the dad and the crew go; on foot further away, or in anything else, it is refused and nothing moves. */
+function ftRefusal(){const e=CV;
+  if(!e)return Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30?null:'Fast travel is by minivan. Get back to the minivan first.';
+  if(e===VAN)return null;
+  if(e.type==='tank')return "The tank doesn't fast travel. It goes 25 mph, everywhere, on purpose. Take it back to the motor pool.";
+  if(e.type==='jet')return "You're in a fighter jet. You are the fast travel.";
+  if(e.type==='mower')return "The mower doesn't fast travel. It goes at mowing speed, like Big Dave intended.";
+  if(e.type==='bike')return 'Fast travel is by minivan. The bike goes where your legs take it.';
+  return 'Fast travel is by minivan. Take '+(e.name||'the owner')+"'s "+feel(e).label+' back first.'}
+function owFade(){let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}return f}
+/* hold a fade until the open world around (x,z) is built (OW.buildNear in 50 ms slices, so the page stays alive), 3 s at most, then done() */
+function owArrive(x,z,done){const O=OW(),t0=performance.now();
+  const tick=()=>{let left=0;try{left=O&&O.buildNear?O.buildNear(x,z,O.ARRIVE_R,50):0}catch(e){left=0}
+    if(left>0&&performance.now()-t0<3000)return void setTimeout(tick,0);
+    try{if(O)O.update(camera)}catch(e){}done()};tick()}
+function owFastTravel(pin){if(!L||mode!=='hub'||!pin||!pin.fast)return false;
+  const no=ftRefusal();if(no){HUD.feed(no,'info');return false}
+  let p;if(pin.place&&L.ow){if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p=s&&{x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place]}
+  else if(pin.x!=null)p={x:pin.x,z:pin.z};/* the small hub's pins (no world places) */
+  if(!p)return false;
+  const from=CV||VAN,dist=Math.hypot(p.x-from.pos.x,p.z-from.pos.z);/* before the move (it used to be measured after: always "8 seconds") */
+  const go=()=>{if(!CV)enterVan();const e=CV||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;owStopCar(e);if(e.car){e.car.spd=0}e.spd=0;if(!L.ow)collide(e.pos,1.1);syncCar(e);P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;P.vault=null;P.vy=0;
+    for(const a of allies)a.pos.set(e.pos.x,0,e.pos.z);sunFollow(e.pos.x,e.pos.z);OWS.gpsKey=''};
+  const f=owFade();f.style.opacity='1';
+  setTimeout(()=>{go();owArrive(p.x,p.z,()=>{f.style.opacity='0';HUD.feed('Fast travel · '+(pin.label||(WORLD&&WORLD.places[pin.place]||{}).label||'there'),'info');
+    HUD.feed('Saved you '+Math.max(8,Math.round(dist/14))+' seconds and one argument about directions.','info')})},360);return true}
+HUD.minimap.onFastTravel(pin=>owFastTravel(pin));
 /* meta hook: shop entrances at the world's own Hank's Hardware (door R) and Dad's Auto (door U, service bay ring) */
 function owShops(){const d=WORLD.doors,pl=WORLD.places;
   if(d.store){const door={x:d.store.x,z:d.store.z-.9,nx:0,nz:1};HUBX.shops.push({kind:'hardware',label:"Hank's Hardware",x:door.x,z:door.z+.9,door,bay:{x:door.x,z:door.z+4}})}
@@ -1720,7 +1747,7 @@ function carCrash(e,sp,push,front){const lost=carImpact(e,sp,push,front);if(!los
   const l=Math.hypot(push.x,push.z)||1,dx=-push.x/l,dz=-push.z/l,lx=dx*-Math.sin(e.yaw)+dz*-Math.cos(e.yaw),lz=dx*Math.cos(e.yaw)+dz*-Math.sin(e.yaw);
   if(!e.pullDir)e.pullDir=lz>0?-1:1;
   if(sp>10&&Math.abs(lx)>.35&&Math.random()<.6){const i=(lx>0?0:2)+(lz>0?1:0);if(!w.lamps[i]){w.lamps[i]=1;if(CV===e)radio(speaker()||'you',pick(["There goes a headlight.","Was that glass? That was glass.","One-eyed Willy. That's what we call her now."]))}}
-  if(sp>13&&Math.abs(lz)>.45&&!w.tyre&&Math.random()<.3){w.tyre=1;e.pullDir=lz>0?1:-1;try{if(ENG&&ENG.thump)ENG.thump(1)}catch(_){}if(CV===e)try{HUD.feed('Flat tyre','bad')}catch(_){}}
+  if(sp>13&&Math.abs(lz)>.45&&!w.tyre&&Math.random()<.3){w.tyre=1;e.pullDir=lz>0?1:-1;try{if(ENG&&ENG.thump)ENG.thump(1)}catch(_){}if(CV===e)try{HUD.feed('Flat tire','bad')}catch(_){}}
   if(carSave(e))try{SAVEM.touch('garage');metaSave()}catch(_){}
   if(ud&&ud.bodyRoot)dentCar(e,push,sp);carLook(e);/* (bodyRoot, not .mod: setUpgrades drops .mod on the van) */
   /* a parked car on the other end takes it too, and its owner notices */
@@ -1823,7 +1850,7 @@ function trafficContact(e,dt,px0,pz0){const O=OW();if(!O||!O.trafficLive||!L||!L
     if(got>2.5){trafficHero(t);const ud=t.v.userData;if(ud.bodyRoot)dentCar({obj:t.v,yaw:tc.yaw,dmg:1-tc.hp/tc.stats.hp},{x:-nx,z:-nz},spQ);if(ud.setDamage)try{ud.setDamage(1-tc.hp/tc.stats.hp)}catch(_){}O.trafficSync(t)}
     /* consequences: a little trust once per car (not during jobs), a little Riverside heat */
     if(closing>3&&!TRAFFIC_BUMP.cars.has(t)&&mode!=='mission'){TRAFFIC_BUMP.cars.add(t);const river=OW().regionAt(tc.x,tc.z)==='river';
-      if(TRAFFIC_BUMP.trust>-3){TRAFFIC_BUMP.trust--;addTrust(-1,river?'river':'maple');try{FX.trustPop(V3(tc.x,2.2,tc.z),'-1 TRUST',{sub:'You rammed a neighbour',color:'#ff6a4d'})}catch(_){}}
+      if(TRAFFIC_BUMP.trust>-3){TRAFFIC_BUMP.trust--;addTrust(-1,river?'river':'maple');try{FX.trustPop(V3(tc.x,2.2,tc.z),'-1 TRUST',{sub:'You rammed a neighbor',color:'#ff6a4d'})}catch(_){}}
       if(river&&FR&&frOn())FR.heat=Math.min(FR.cap||0,FR.heat+.25)}}}
 function updVan(dt){const e=CV;if(!e)return;const F=feel(e),c=e.car,S=e.stats,B=e.base,I=readDrive(),VM=HTM('Vehicles'),mod=e.obj.userData.mod;
   if(keys.l&&!DRV.lPrev)DRV.lights=!(DRV.lights==null?autoLights():DRV.lights);DRV.lPrev=!!keys.l;
@@ -2035,12 +2062,16 @@ function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');
 function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80);if(SAVEM&&!metaLoadNoticed){metaLoadNoticed=true;setTimeout(metaLoadNotice,700)}}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
 function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
-  HUD.dialog({kicker:'High Trust',title:'Credits & licences',wide:true,html:'<pre>'+e(C.CREDITS)+'</pre><h4>Licence notices</h4>'+C.NOTICES.map(([w,c])=>'<pre><b>'+e(w)+'</b>\nMIT License\n'+e(c)+'\n\n'+e(C.MIT_BODY)+'</pre><br>').join('')+'<h4>Fonts</h4><pre>'+e(C.FONTS)+'</pre>',
+  HUD.dialog({kicker:'High Trust',title:'Credits & licenses',wide:true,html:'<pre>'+e(C.CREDITS)+'</pre><h4>License notices</h4>'+C.NOTICES.map(([w,c])=>'<pre><b>'+e(w)+'</b>\nMIT License\n'+e(c)+'\n\n'+e(C.MIT_BODY)+'</pre><br>').join('')+'<h4>Fonts</h4><pre>'+e(C.FONTS)+'</pre>',
     buttons:[{label:'Close',act:'close',cls:'pri'}],focus:'close',cancel:'close'})}
 function titleFocus(){if(HUD.screen!=='title'||HUD.dialogOpen)return;const c=document.querySelector('.ht-title [data-act=continue]');const b=(c&&!c.hidden&&!c.disabled)?c:document.querySelector('.ht-title [data-act=newgame]');if(b&&!b.disabled)b.focus({preventScroll:true})}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
+/* quit to title runs the same cleanup as abandoning a job (C-4): the job is marked abandoned and rolled back, every job's own safety net
+   (their pose/hud hooks, which free whatever is no longer running) runs now instead of on the title's next frame, and the night a job
+   set (JRS.night, or a job's own setNight) is lifted: the title is always daytime Maple */
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';metaJobRollback();engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
+  try{JH.pose(0)}catch(e){console.warn('quit: job cleanup',e)}JRS.night=false;try{setNight(0,true);nightTick(0)}catch(e){}
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',(a,arg)=>{
   if(a==='continue'){start()}
@@ -2060,11 +2091,7 @@ HUD.on('action',(a,arg)=>{
   else if(a==='resetSave'){Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});metaResetSave()}});
 /* full map (M): the world waits while it is open, and the cursor is free */
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
-/* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
-HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
-  if(VAN.on){const e=CV;e.pos.set(pin.x,0,pin.z);e.spd=0;if(e.car)e.car.spd=0;collide(e.pos,1.1);syncCar(e);P.pos.set(e.pos.x,0,e.pos.z);P.vault=null;P.vy=0}
-  else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);resetMove();for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
-  HUD.feed('Fast travel · '+pin.label,'info')});
+/* fast travel from the map: owFastTravel (OPEN WORLD block) is the only handler */
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(metaKey(e,k))return;
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
@@ -2630,6 +2657,17 @@ function updPlayer(dt){
   d.root.visible=!P.fp;vm.visible=P.fp&&armedNow();
 }
 let camDist=2.7;
+/* can the camera at c see the dad (head at t, chest .55 m lower)? Uses the static collider grid (lamps, trees, poles, walls: L.cnear) and
+   the buildings' camera-only occluders (the home's flag); no scene raycasts. Hidden = both head and chest behind something tall enough */
+const CAMOCC={on:true,k:1,want:1};/* __ht.camOcc: dev A/B switch (dev/audit/world/cam-occlusion.e2e.js) */
+function camSeg(cx,cz,tx,tz,b){let t0=0,t1=1;const dx=tx-cx,dz=tz-cz;
+  for(const[p,d,lo,hi]of[[cx,dx,b.x0,b.x1],[cz,dz,b.z0,b.z1]]){if(Math.abs(d)<1e-9){if(p<lo||p>hi)return null;continue}let a=(lo-p)/d,c=(hi-p)/d;if(a>c){const q=a;a=c;c=q}if(a>t0)t0=a;if(c<t1)t1=c;if(t0>t1)return null}return[t0,t1]}
+function camClear(cx,cy,cz,tx,ty,tz){const l=Math.hypot(tx-cx,tz-cz);if(l<.5)return true;const k=(l-.35)/l,ex=cx+(tx-cx)*k,ez=cz+(tz-cz)*k;/* stop short of the dad: what he stands against doesn't count */
+  const hid=y=>{const yA=cy,yB=y;
+    for(const c of L.cnear((cx+ex)/2,(cz+ez)/2,l/2+1)){if(c.off||c.veh)continue;const top=c.h||c.ph||0;if(top<.9)continue;const s=camSeg(cx,cz,ex,ez,c);if(s&&yA+(yB-yA)*s[0]<top)return true}
+    const OWm=OW(),O=OWm&&OWm.camOccluders?OWm.camOccluders():null;if(O)for(const o of O){if(Math.abs(o.x0-tx)>8||Math.abs(o.z0-tz)>8)continue;const s=camSeg(cx,cz,ex,ez,o);if(!s)continue;const ya=yA+(yB-yA)*s[0],yb=yA+(yB-yA)*s[1];if(Math.max(ya,yb)>o.y0&&Math.min(ya,yb)<o.y1)return true}
+    return false};
+  return!(hid(ty)&&hid(ty-.55))}
 function updCamera(dt){
   if(JH.camera(dt))return;/* JOBS: viewfinders, planning cameras, the roof */
   if(VAN.on&&mode!=='home'){if(mode==='mission'&&M&&M.world&&wmCamera(dt))return;updDriveCam(dt);return}
@@ -2638,15 +2676,25 @@ function updCamera(dt){
   const gw=WEAPONS[P.cur],base=CFG.fov*(armedNow()&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vmPose(dt)}
-  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
+  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const sk=P.aim||home?1:CAMOCC.k,sg=sk<0?-1:1,right=V3(Math.cos(P.yaw)*sg,0,-Math.sin(P.yaw)*sg),sideK=side*Math.max(.05,Math.abs(sk));/* sk: -1 = over the left shoulder (W-08), eased through the middle */
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
-    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
-    const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
+    ray.set(eye,right);ray.near=0;ray.far=sideK+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
+    const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,Math.min(sideK,hs.distance-.25)):sideK);
     const fwdH=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
     const want=pivot.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));want.y=Math.max(.45,want.y);
     const dir=want.clone().sub(pivot),len=dir.length();dir.normalize();ray.set(pivot,dir);ray.near=0;ray.far=len;
-    const h=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;const dist=h?Math.max(.15,h.distance-.25):len;
-    camDist=dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*8);
+    const h=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;let dist=h?Math.max(.15,h.distance-.25):len,occ=false;
+    /* occluders between the camera and the dad (a lamp post, a tree trunk, the flag by the front walk): the boom comes in to the first
+       spot he can be seen from (W-08). Not while aiming (the aim view stays put) and not in the house */
+    if(!P.aim&&!home&&L&&L.cnear&&CAMOCC.on){const at=d=>camClear(pivot.x+dir.x*d,pivot.y+dir.y*d,pivot.z+dir.z*d,P.pos.x,eye.y,P.pos.z);let d=Math.min(dist,len),sw=CAMOCC.want;
+      if(!at(d)){d-=.25;while(d>.7&&!at(d))d-=.25;if(d>.7){dist=d;occ=true}
+        else{/* nowhere on this boom sees him (he's under the flag by his own front door): look from over the other shoulder */
+          const mp=eye.clone().addScaledVector(right,-side),mw=mp.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0)),md=mw.clone().sub(mp),ml=md.length();md.normalize();
+          if(camClear(mp.x+md.x*ml,mp.y+md.y*ml,mp.z+md.z*ml,P.pos.x,eye.y,P.pos.z)||camClear(mp.x+md.x*ml*.6,mp.y+md.y*ml*.6,mp.z+md.z*ml*.6,P.pos.x,eye.y,P.pos.z))sw=-CAMOCC.want}}
+      else if(CAMOCC.want<0&&Math.abs(CAMOCC.k+1)<.05){/* back to the right shoulder once it sees him again */const rp=eye.clone().addScaledVector(right,side*-1),rw=rp.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));if(camClear(rw.x,rw.y,rw.z,P.pos.x,eye.y,P.pos.z))sw=1}
+      CAMOCC.want=sw}else CAMOCC.want=1;
+    CAMOCC.k+=(CAMOCC.want-CAMOCC.k)*Math.min(1,dt*5);
+    camDist=occ?camDist+(dist-camDist)*Math.min(1,dt*14):dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*8);
     camera.position.copy(pivot).addScaledVector(dir,Math.min(camDist,len));camera.position.y=Math.max(.3,camera.position.y);
     const cd=camera.position.distanceTo(eye);if(P.dude)P.dude.root.visible=cd>.9;
     for(const a of allies){a.dude.root.visible=Math.hypot(a.pos.x-camera.position.x,a.pos.z-camera.position.z)>1}
@@ -2817,7 +2865,7 @@ function hud(dt){
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
     enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):frBlips(),
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tire':''):'',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,gadgets:nightGadgets(),routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
   JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
@@ -3050,11 +3098,23 @@ function metaOpenPorch(){const s=SV();if(!s||!ECON)return[];const n=porchCount()
   HUD.banner({kind:'done',kicker:'Delivered',title:names.length>1?names.length+' packages':names[0]||'Package',sub:names.slice(0,3).join(' · ')+(names.length>3?' +'+(names.length-3)+' more':''),dur:2.8});
   for(const e of got)HUD.feed('Delivered: '+((e.kind==='furn'?C.furniture[e.id]:e.kind==='gun'?C.guns[e.id]:C.attachments[e.id])||{name:e.id}).name,'info',e.kind==='furn'?'set up inside':e.kind==='gun'?'in the gun rack':'on the workbench');
   radio('you',pick(["Free shipping. Love free shipping.","Somebody's been shopping. It was me.","Biscuit, no. Biscuit, that's cardboard."]));aud(A=>A.ui('pickup'));return got}
+/* Dad's Auto takes the family car and neighbours' cars; anything else gets a line instead of the shop */
+function autoRefusal(e){if(!e||e===VAN)return null;
+  if(e.type==='tank')return "Sal took one look at the tank: \"That's a government problem.\" Back to the motor pool with it.";
+  if(e.type==='jet')return "Sal doesn't have a lift for a fighter jet. Nobody in town does.";
+  if(e.type==='mower')return "Sal doesn't do mowers. Big Dave has a guy for that.";
+  if(e.type==='bike'||e.owner!=='neighbour')return "Sal only works on cars. Bring it back to whoever lent it.";
+  return null}
 function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprites)s.s.position.y=s.y+Math.sin(t*2.2)*.08;
   let best=null,bd=1e9;const cand=[];const pn=porchCount();if(HUBX.home&&pn&&HUBX.porch)cand.push({id:'porch',x:HUBX.home.x+HUBX.home.nx*.2,z:HUBX.home.z+HUBX.home.nz*.2,r:2.4,label:'Open the Dadazon boxes ('+pn+')',pri:1});
   if(HUBX.home)cand.push({id:'home',x:HUBX.home.x,z:HUBX.home.z,r:2.1,label:homeReady?'Go inside':'Go inside (unlocking…)'});
   for(const s of HUBX.shops){cand.push({id:s.kind,x:s.x,z:s.z,r:2.3,label:s.label});if(s.kind==='auto')cand.push({id:'autobay',x:s.bay.x,z:s.bay.z,r:7,label:'Pull into '+s.label,van:1})}
-  for(const c of cand){if(!!c.van!==(CV===VAN))continue;if(CV&&CV!==VAN)continue;const p=CV?CV.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&(d-(c.pri?1.5:0))<bd){bd=d-(c.pri?1.5:0);best=c}}
+  /* behind the wheel only the bay counts: your own car or a borrowed neighbour's (openShop repairs whichever you pulled in with);
+     the tank, the jet, the mower and the bike get a no from Sal instead of a shop */
+  const bayNo=CV?autoRefusal(CV):null;
+  for(const c of cand){if(!!c.van!==!!CV)continue;const p=CV?CV.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&(d-(c.pri?1.5:0))<bd){bd=d-(c.pri?1.5:0);best=c}}
+  if(best&&best.id==='autobay'&&bayNo){if(HUBX.bayNo!==CV){HUBX.bayNo=CV;HUD.feed(bayNo,'info')}return null}/* said once as you roll in; E still gets you out */
+  if(!best||best.id!=='autobay')HUBX.bayNo=null;
   if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
   if(CV&&Math.abs(CV.spd)>3)return null;
   if(useTap){useTap=false;if(best.id==='porch'){metaOpenPorch();return null}if(best.id==='home'){if(homeReady)enterHome();else{homeInit();homeWant=true;HUD.feed('Unlocking the front door…','info')}}
@@ -3596,7 +3656,7 @@ function frDropBox(){const c=WORLD&&WORLD.places&&WORLD.places.center;if(!c)retu
     let x=c.x,z=c.z+1.6;for(const[dx,dz]of[[0,1.6],[1.6,1.6],[-1.6,1.6],[0,2.6]]){if(walkable(tx(c.x+dx),tx(c.z+dz))&&!solidAt(c.x+dx,c.z+dz,.4,0)){x=c.x+dx;z=c.z+dz;break}}
     g.position.set(x,groundAt(x,z),z);L.group.add(g);FR.box={g,x,z}}else if(!FR.box.g.parent)L.group.add(FR.box.g);return FR.box}
 function frDeliver(where){const n=FR.goods.length;if(!n)return;let cash=0;for(const gd of FR.goods)cash+=gd.val;FR.goods=[];const S=HTM('Save');try{if(S&&S.addCash)S.addCash(cash,'goods')}catch(e){}
-  frTrust(.5*n,'Returned stolen goods');HUD.feed(where,'cash','+$'+cash);radio(where==='Lost & found drop box'?'Mrs. Ramos':'Neighbour',pick(FR_LINES.goods));sfx('pick');FR.stats.delivered=(FR.stats.delivered||0)+n}
+  frTrust(.5*n,'Returned stolen goods');HUD.feed(where,'cash','+$'+cash);radio(where==='Lost & found drop box'?'Mrs. Ramos':'Neighbor',pick(FR_LINES.goods));sfx('pick');FR.stats.delivered=(FR.stats.delivered||0)+n}
 
 /* ---------- neighbours: out on porches as trust rises, inside the moment there is heat. Never targetable (not in rayTargets) ---------- */
 function frCivTick(dt){const tier=frTier(),inR=frInRiver(),pp=people();if(!pp||!pp.has)return;
@@ -3700,7 +3760,7 @@ function frUpdate(dt){if(!L||!L.ow||!WORLD)return null;frInit();const t0=perform
   if(!VAN.on){let near=null,nd=2.4;for(const e of FR.members)if(e.state==='surrender'){const dd=e.pos.distanceTo(P.pos);if(dd<nd){nd=dd;near=e}}
     if(near){prompt=KE+' · Zip-tie';if(useTap){useTap=false;frCuff(near)}}
     if(!prompt&&FR.goods.length){const b=frDropBox();if(b&&Math.hypot(b.x-P.pos.x,b.z-P.pos.z)<2.6){prompt=KE+' · Drop off the stolen goods';if(useTap){useTap=false;frDeliver('Lost & found drop box')}}
-      else for(const c of FR.civ)if(!c.inside&&c.pos.distanceTo(P.pos)<2.4){prompt=KE+' · Hand over the stolen goods';if(useTap){useTap=false;frDeliver('Returned to a neighbour')}break}
+      else for(const c of FR.civ)if(!c.inside&&c.pos.distanceTo(P.pos)<2.4){prompt=KE+' · Hand over the stolen goods';if(useTap){useTap=false;frDeliver('Returned to a neighbor')}break}
       if(!prompt&&FR.lastPorch&&Math.hypot(FR.lastPorch.x-P.pos.x,FR.lastPorch.z-P.pos.z)<2.4){prompt=KE+' · Leave the package on the porch';if(useTap){useTap=false;FR.lastPorch=null;frDeliver('Package back on the porch')}}}
     const I=FR.inc;if(!prompt&&I&&I.kind==='scuffle'&&!I.spotted&&!FR.drawn&&Math.hypot(I.x-P.pos.x,I.z-P.pos.z)<6.5){prompt=KE+' · Break it up';if(useTap){useTap=false;I.spotted=true;
         for(const e of I.members)if(e.state==='idle'){e.frScript=null;e.leave=true;e.leaveAt=simT}radio(I.crew.short,pick(FR_LINES.breakup),true);frTrust(1,'Broke up a scuffle');FR.inc=null}}
@@ -4014,7 +4074,7 @@ function chaseUpdate(dt){const ch=M.chase;if(!ch||ch.state==='done')return;const
           if(e.car.hp<=0)wmVanDown()}}}
     /* the crew in the van shoot the tyres; the passenger shoots the van */
     if(CV){const n=allies.filter(a=>a.ride&&!a.down).length;if(n){let d=0;if(c.hp>0&&Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z)<30&&losClear(CV.pos.x,CV.pos.z,c.x,c.z)){d=Math.min(3,n)*3*dt;c.hp=Math.max(0,c.hp-d)}/* SPEC2 B.7 crew fire, 3 hp/s per dad (up to 3), out to 30 m */
-        if(d>0){if(!ch.said.tyres){ch.said.tyres=1;radio('gary','Aim for the tyres!',true);radio('dave','Which ones?');radio('gary','The round ones!')}
+        if(d>0){if(!ch.said.tyres){ch.said.tyres=1;radio('gary','Aim for the tires!',true);radio('dave','Which ones?');radio('gary','The round ones!')}
           if(Math.random()<dt*5){const f=V3(CV.pos.x,1.6,CV.pos.z),t=V3(c.x+rand(-1,1),.6,c.z+rand(-1,1));try{FX.tracer(f,t,{ally:true});FX.muzzleFlash(f,t.clone().sub(f).normalize(),{type:'pistol'})}catch(_){}gunSnd('pistol',.35,{dist:6,pos:f,noMech:true})}}}}
     if(ch.passenger&&CV&&c.hp>0){ch.fireT-=dt;const d=Math.hypot(CV.pos.x-c.x,CV.pos.z-c.z);if(ch.fireT<=0&&d<25){ch.fireT=1.2;const f=V3(c.x,1.5,c.z),t=V3(CV.pos.x+rand(-1,1),1,CV.pos.z+rand(-1,1));
         try{FX.tracer(f,t,{enemy:true});FX.muzzleFlash(f,t.clone().sub(f).normalize(),{type:'enemy'})}catch(_){}gunSnd(ch.passenger,.6,{dist:d,pos:f,noMech:true});if(Math.random()<.55)wmVanHit(3,"They shot the van to pieces. Sal's sending the tow truck.")}}
@@ -4638,7 +4698,7 @@ ASSETS.onAsset(s=>{const k=/people\/rocketbox\/(\w+)\.glb$/.exec(s);const pm=HTM
   const upd=()=>{t=0;const n=ASSETS.stream.pending(),f=ASSETS.stream.failing();const txt=!ASSETS.done||mode==='title'||!n?'':(f&&f===n?'Waiting for the network…':'Streaming details · '+n);
     if(txt!==shown){shown=txt;el.textContent=txt;el.hidden=!txt}};
   ASSETS.stream.onChange(()=>{if(!t)t=setTimeout(upd,250)})}
-window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){updCamera(1/30);nightTick(0);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
+window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,get camOcc(){return CAMOCC.on},set camOcc(v){CAMOCC.on=!!v},camTick:dt=>{if(L)updCamera(dt)},draw(){if(L){updCamera(1/30);nightTick(0);hud(0)}groundPass(1);RENDER.draw();groundPass(-1)},get M(){return M},get L(){return L},AI,get aiWorld(){return aiWorld},aiStats,get rayTargets(){return rayTargets},get enemies(){return enemies},get allies(){return allies},prog,startMission,enterHub,keys,VAN,registerCar,get CV(){return CV},get vehicles(){return L&&L.cars||[]},enterVehicle(i){const e=typeof i==='number'?(L&&L.cars||[])[i]:i;if(CV)exitCar();enterCar(e);return CV===e},exitVehicle(){exitCar()},BORROW,CAR_FEEL,settleBorrow,nearCar,carHp,carHpMax,carBand,carFrac,carWear,carDamage,carRepair,onBreakdown,CAR_HOOKS,towCar,CAR_BAND,repairCar:(e,a)=>carRepair(e||CV||VAN,a),
   crash(e,speed,o){e=e||CV||VAN;o=o||{};const a=o.angle||0,f=o.rear?-1:1,push={x:Math.sin(e.yaw+a)*f,z:Math.cos(e.yaw+a)*f};return carCrash(e,speed,push,!o.rear)},setJob(i){JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i)},get JOB(){return JOB},
   /* deterministic headless stepping without rendering */
   step(n,dt=1/30){for(let i=0;i<n&&running&&L;i++){simT+=dt;scene.updateMatrixWorld();(VAN.on?updVan:updPlayer)(dt);carTick(dt);aiTick(dt);for(const e of enemies)updEnemy(e,dt);aiAfter();for(const a of allies)updAlly(a,dt);if(mode==='mission')updMission(dt);else if(mode==='hub')updHub(dt);else if(mode==='home')updHome(dt);useTap=false;updCamera(dt);nightTick(dt);FX.update(dt);const pp=HTM('People');if(pp&&pp.ok)pp.update(dt,camera);JH.pose(dt);subTick(dt)}},

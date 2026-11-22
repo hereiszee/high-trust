@@ -165,7 +165,7 @@ const L={
   distract:{gary:[['gary',"(on the intercom) Hi, yes, quick question about your pricing tiers. Ten-by-ten versus ten-by-fifteen. Per square foot. Take your time."],['Dwayne',"(on the intercom) ...It's one in the morning, man."]],
     rick:[['rick',"(on the intercom) Dwayne! Big fan of the work you do. Let me tell you about a kid I coached in '09."],['Dwayne',"(on the intercom) Who IS this?"]],
     dave:[['dave',"(on the intercom) I locked myself out of my car and I've got sixty burgers in there. Do you want a burger?"],['Dwayne',"(on the intercom) ...What kind of burgers?"]],
-    doug:[['doug',"(on the intercom) This is a wellness check from the Ridgeview Neighbourhood Watch. How are you sleeping, Dwayne?"],['Dwayne',"(on the intercom) Terribly. Since you ask."]]},
+    doug:[['doug',"(on the intercom) This is a wellness check from the Ridgeview Neighborhood Watch. How are you sleeping, Dwayne?"],['Dwayne',"(on the intercom) Terribly. Since you ask."]]},
   distractEnd:{gary:"That's all my questions. I'll email the rest.",rick:"...and that's how we won State. Okay, gotta go!",dave:"I'll leave you a burger at the gate. Bye, Dwayne.",doug:"Wellness check complete. Hawk out."},
   monitors:['gary',"Dwayne's back on the monitors. Mind the cameras."],
   loopTip:'you',
@@ -834,7 +834,7 @@ function fresh(M){M.vis={own:[]};M.q=[];M.said={};M.t=0;M.tags={};M.weird=0;M.we
 J.register('heist',{
   def:{giver:'gary',hood:'maple',title:'Good Fences',role:'Gary · The Accountant',place:'Discount Storage Unlimited, Industrial Way',
     lines:["I made a spreadsheet. Then I made a pivot table. Then I cried a little. Then I found the warehouse. Tre was right: unit forty-seven.",
-      "Eleven hundred and forty stolen things from three neighbourhoods, and the trail ends at one storage unit. It's guarded, it has cameras, and it's full of other people's lawnmowers.",
+      "Eleven hundred and forty stolen things from three neighborhoods, and the trail ends at one storage unit. It's guarded, it has cameras, and it's full of other people's lawnmowers.",
       "So we plan it. We scope it, we gear up, we pick roles, and then we steal everybody's stuff back. Politely."],
     obj:"Scope the storage lot, gather gear around Maple, plan the crew's roles and approach, then load the twelve stolen things into Ron's truck and drive them home.",
     crew:[],weapons:['pistol'],from:{place:'g_gary'},start:{x:S_.ring.x,z:S_.ring.z},site:'storage',
@@ -844,7 +844,7 @@ J.register('heist',{
     stageLabels:{scope:'Scope the place',gear:'Gear up',plan:'The plan',job:'The job',getaway:'Get it home'},failPolicy:'escalate',
     medals:['Finished','All twelve things home','All twelve, and nobody ever raised the alarm'],
     radio:[['gary',"Pull up on Industrial, by the gate. Look like a man who needs storage."]],
-    endLine:"Sunday morning, Gary's driveway: a folding table, a hand-lettered LOST & FOUND sign, and a line of neighbours down the block. Some of them came from Riverside. A couple of them stayed for coffee."},
+    endLine:"Sunday morning, Gary's driveway: a folding table, a hand-lettered LOST & FOUND sign, and a line of neighbors down the block. Some of them came from Riverside. A couple of them stayed for coffee."},
   start(M,o){fresh(M);
     if(!castReady()){M.waitCast=true;preloadCast().then(()=>{M.waitCast=false})}
     try{A().setNight(0,true)}catch(_){}},

@@ -45,7 +45,7 @@ MUSIC
 Horn tunes after public-domain compositions by Beethoven, Rossini,
   Joplin, and von Tilzer & Norworth
 
-Full licence texts: THIRD-PARTY-NOTICES.txt beside the game (macOS: inside the app, in Contents).
+Full license texts: THIRD-PARTY-NOTICES.txt beside the game (macOS: inside the app, in Contents).
 Thank you to everyone who gives their work away.`;
 /* END generated */
 /* MIT notices that must ship with the game: one permission text, three copyright lines */
@@ -71,8 +71,8 @@ const NOTICES=[
   ['three.js','Copyright © 2010-2021 three.js authors'],
   ['meshoptimizer','Copyright (c) Arseny Kapoulkine']];
 const FONTS=`Barlow, Barlow Condensed and Bowlby One are licensed under the SIL Open Font License 1.1.
-The full font licences ship with the game in assets/fonts (OFL-*.txt).`;
+The full font licenses ship with the game in assets/fonts (OFL-*.txt).`;
 HT.Credits={STUDIO,CREDITS,NOTICES,MIT_BODY,FONTS,
   /* everything as one plain text */
-  text(){return CREDITS+'\n\n\nLICENCE NOTICES\n\n'+NOTICES.map(([w,c])=>w+'\nMIT License\n'+c+'\n\n'+MIT_BODY).join('\n\n\n')+'\n\n\n'+FONTS}};
+  text(){return CREDITS+'\n\n\nLICENSE NOTICES\n\n'+NOTICES.map(([w,c])=>w+'\nMIT License\n'+c+'\n\n'+MIT_BODY).join('\n\n\n')+'\n\n\n'+FONTS}};
 })();

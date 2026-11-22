@@ -62,7 +62,7 @@ const SAY={
     lap2:"Lap two! And... oh no. Marcus is slowing down. That's not a strategy, folks. That's smoke.",
     last:["Final lap! Ring the bell, Gary!","Last lap! Nobody wave at your wife! Okay, one wave."],
     pass:["A pass! On a riding mower! My heart!","He's through! Clean as a fresh-cut lawn!","Position change! Somebody write that down! Gary, write that down!"],
-    passed:["Oh, and he's been passed! On a mower! In front of his neighbours!","Swapped places! The crowd is going mild!"],
+    passed:["Oh, and he's been passed! On a mower! In front of his neighbors!","Swapped places! The crowd is going mild!"],
     yellow:"Yellow flag! Yellow flag! There's a dad on the course! Everybody slow down and look disappointed!",
     green:"Green flag! Back to racing! Mow, mow, mow!",
     photo:"It's close! It's VERY close! Somebody get Gary's camera!"},
@@ -70,7 +70,7 @@ const SAY={
   marshalSoft:["Gary: That's a racing incident. I'm allowing it. I'm watching you, though."],
   trash:{
     dave:{pass:["Coming through! Brisket waits for no man!","Sorry, buddy! Not sorry! Love you!"],passed:["Hey! I fed you last Fourth of July!","That's fine. That's FINE. I'm pacing myself."]},
-    phil:{pass:["Inside line, neighbour. It's in my spreadsheet.","Optimal apex. You're welcome to watch."],passed:["That's not in the spreadsheet.","I'm recalculating. I'm RECALCULATING."]},
+    phil:{pass:["Inside line, neighbor. It's in my spreadsheet.","Optimal apex. You're welcome to watch."],passed:["That's not in the spreadsheet.","I'm recalculating. I'm RECALCULATING."]},
     marcus:{pass:["Excuse me! Sorry! Riverside coming through!","On your left! Cape coming through!"],passed:["Nice line! Respect!","Okay, okay, I see you! Maple's got jets!"]},
     gil:{pass:["Oh! I passed somebody! Is that allowed?"],passed:["Go ahead! Please! Give me room! Lots of room!","Not like last time. Not like last time."]},
     walt:{pass:["Still got it. Never had it, but still got it."],passed:["Go on, sonny. I've got a thermos and all afternoon.","In my day we'd have stopped to chat."]}},
@@ -522,11 +522,11 @@ function myTick(M,dt){const a=A(),e=M.ride;if(!e)return;const me=meRacer(M);
     stripeAndClip(e.mw,c,dt)}
   else sndSet({riding:false,pack:0})}
 /* ---------------------------------------------------------------- registration */
-const DEF={giver:'dave',hood:'maple',title:'The Grass Is Greener',role:'Big Dave · Grand Prix organiser',place:'Linden Park',
+const DEF={giver:'dave',hood:'maple',title:'The Grass Is Greener',role:'Big Dave · Grand Prix organizer',place:'Linden Park',
   lines:["The Maple Heights Ride-On Mower Grand Prix is back. Six years. It's for charity, and the bake sale is matching every dollar.",
     "Riverside entered a team for the first time. Marcus. Tasha's dad. Somebody's been texting him to throw the race. Weird, right?",
     "Pick a mower, qualify, race five of us for three laps of Linden Park. Bumping's allowed. Gary's marshalling. Gary has a clipboard."],
-  obj:'Pick a mower, set a qualifying lap, then race five neighbours over 3 laps of Linden Park. Race fair: Gary is counting bumps.',
+  obj:'Pick a mower, set a qualifying lap, then race five neighbors over 3 laps of Linden Park. Race fair: Gary is counting bumps.',
   crew:[],weapons:['pistol'],from:{place:'g_dave'},start:{x:92,z:98},site:null,unlock:{done:['rick']},pay:500,par:0,winTrust:0,roam:true,order:30,
   stages:['pick','quali','race'],stageLabels:{pick:'Pick a mower',quali:'Qualifying',race:'The race'},failPolicy:'soft',
   medals:['Finished the race','On the podium','Won it after stopping for Marcus'],noGuns:"No guns at the Grand Prix. Barb would never let me hear the end of it.",

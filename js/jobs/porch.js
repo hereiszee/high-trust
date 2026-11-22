@@ -213,7 +213,7 @@ function parcels(M,F){const a=A(),P=a.P;
   for(const t of M.porches){if(t.state==='dropped'&&!a.P.carry)F.holds.push({x:t.dx,z:t.dz,r:1.7,o:t,txt:'Pick up the parcel',time:.7,fn:()=>{t.state='carry';a.wmCarry('box',t.mesh,t)}});
     if(t.state==='dropped'&&!F.target)F.target={x:t.dx,z:t.dz,label:'Parcel'}}
   const c=a.P.carry;if(c&&c.kind==='box'){const t=c.it;F.target={x:t.x,z:t.z,label:'Porch'};F.objs.push(['Carry the parcel back to its porch',false]);
-    F.taps.push({x:t.x,z:t.z,r:2.2,txt:'Put the parcel back',fn:()=>{const mesh=c.mesh;a.wmDrop();a.wmAdd(mesh);mesh.position.set(t.x,0,t.z);t.state='porch';a.radio('you',pick(LINES.ret).replace('{c}',t.what),true);a.radio('Neighbour',pick(LINES.thanks));a.feed('Parcel returned','trust','+0.5 trust')}})}}
+    F.taps.push({x:t.x,z:t.z,r:2.2,txt:'Put the parcel back',fn:()=>{const mesh=c.mesh;a.wmDrop();a.wmAdd(mesh);mesh.position.set(t.x,0,t.z);t.state='porch';a.radio('you',pick(LINES.ret).replace('{c}',t.what),true);a.radio('Neighbor',pick(LINES.thanks));a.feed('Parcel returned','trust','+0.5 trust')}})}}
 /* ---------- the result card: a porch's numbers ---------- */
 J.on('hud',()=>{const a=A(),M=a&&a.M;if(!M||!M.def||M.def.id!==ID||!M.pc||M.state==='go'||M.resDone||typeof document==='undefined')return;const r=document.querySelector('.ht-result .col');if(!r)return;M.resDone=true;
   const n=M.porches.length,safe=M.porches.filter(p=>p.state==='porch').length;const h=r.querySelector('h2');
