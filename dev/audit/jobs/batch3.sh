@@ -8,3 +8,5 @@ timeout 1200 node repro-roundup-convoy.js > $O/r.convoy.log 2>&1; echo "convoy $
 timeout 900 node repro-roundup-lot.js > $O/r.lot2.log 2>&1; echo "lot2 $?"
 timeout 600 node repro-talk-retry.js > $O/r.talk2.log 2>&1; echo "talk2 $?"
 timeout 900 node repro-moving-fresh.js > $O/moving.fresh.log 2>&1; echo "moving fresh $?"
+timeout 600 node repro-builtin-leftover.js rick > $O/r.rick.leftover.log 2>&1; echo "rick leftover $?"
+timeout 600 node repro-builtin-leftover.js dave > $O/r.dave.leftover.log 2>&1; echo "dave leftover $?"

@@ -1,0 +1,6 @@
+advanced {"t":168,"state":"go","stage":"garden","el":6}
+mid-job: night {"target":0,"k":0} overlays ["overwatch"] fov 74
+Abandon clicked true
+hub after leaving vs hub before the job: {"loadout":["{\"side\":\"pistol\",\"p1\":null,\"p2\":null}","{\"side\":null,\"p1\":\"rifle\",\"p2\":null,\"undefined\":\"pistol\"}"],"widgets":[0,2]}
+page extras {"bodyClasses":"","fixedEls":["c"]}
+page errors []

@@ -1,0 +1,8 @@
+1 start {"state":"go","stage":"arrive","ph":"walk","seated":false,"pos":[52,70.5],"el":0.1,"snaps":["arrive"]}
+1 control: seated by the bot {"state":"go","stage":"talk","ph":"talk","seated":true,"pos":[56.4,67.1],"el":1.5,"snaps":["arrive","talk"]}
+2 restarted {"state":"go","stage":"arrive","ph":"walk","seated":false,"pos":[52,70.5],"el":0.1,"snaps":["arrive"]}
+2 fail card ["Head home","Retry from The walk up","Restart job"]
+2 one frame after "Retry from The walk up" {"state":"go","stage":"arrive","ph":"talk","seated":true,"pos":[55.5,66],"el":0,"snaps":["arrive"]}
+2 one second later {"state":"go","stage":"arrive","ph":"talk","seated":true,"pos":[55.5,66],"el":1,"snaps":["arrive"]}
+3 fail card in the conversation offers ["Head home","Retry from The walk up","Restart job"]
+page errors []

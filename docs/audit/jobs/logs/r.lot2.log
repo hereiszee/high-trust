@@ -1,0 +1,5 @@
+first time in the lot {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":true,"overlay":true,"guards":4}
+fail card ["Head home","Retry from The lot","Restart job"]
+2 s after "Retry from The lot" {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":false,"overlay":false,"guards":3}
+20 s later {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":false,"overlay":false,"guards":3}
+page errors []

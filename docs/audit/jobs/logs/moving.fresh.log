@@ -1,0 +1,7 @@
+{"t":1000,"state":"go","stage":"unload","el":33}
+{"t":1000,"state":"go","stage":"unload","el":67}
+{"t":1000,"state":"go","stage":"couch","el":100}
+{"t":1000,"state":"go","stage":"piano","el":133}
+{"t":1000,"state":"go","stage":"piano","el":167}
+{"t":571,"state":"won","stage":"piano","el":186}
+page errors []

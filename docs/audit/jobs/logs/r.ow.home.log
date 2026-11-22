@@ -1,0 +1,7 @@
+advanced {"t":168,"state":"go","stage":"garden","el":6}
+mid-job: night {"target":0,"k":0} overlays ["overwatch"] fov 74
+card [{"act":"result:go","label":"Head home"},{"act":"result:retry","label":"Retry from The garden gate"},{"act":"result:restart","label":"Restart job"}]
+Head home clicked true
+hub after leaving vs hub before the job: {"widgets":[0,2]}
+page extras {"bodyClasses":"","fixedEls":["c"]}
+page errors []

@@ -1,0 +1,12 @@
+control: convoy checkpoint {"state":"go","stage":"convoy","ph":"convoy","el":38,"noGuns":true,"holster":false,"gunInHand":true,"vans":["hen:convoy/park","ngu:convoy/park","pat:convoy/park","kow:convoy/park","gar:convoy/park"],"car":"minivan","pos":[257,64]}
+control: after the convoy {"state":"go","stage":"home","ph":"home","el":116,"noGuns":true,"holster":false,"gunInHand":false,"vans":["hen:convoy/line","ngu:convoy/head","pat:convoy/line","kow:convoy/line","gar:convoy/line"],"car":"minivan","pos":[108,58]} convoy took 78 s
+run 2: convoy checkpoint {"state":"go","stage":"convoy","ph":"convoy","el":36,"noGuns":true,"holster":false,"gunInHand":true,"vans":["hen:convoy/park","ngu:convoy/park","pat:convoy/park","kow:convoy/park","gar:convoy/park"],"car":"minivan","pos":[257,64]}
+fail card ["Head home","Retry from Convoy out","Restart job"]
+after retry {"state":"go","stage":"convoy","ph":"convoy","el":36,"noGuns":true,"holster":false,"gunInHand":false,"vans":["hen:convoy/park","ngu:convoy/park","pat:convoy/park","kow:convoy/park","gar:convoy/park"],"car":"minivan","pos":[256,64]}
+page.evaluate: Target crashed 
+    at ev (/home/user/high-trust/dev/audit/jobs/repro-roundup-convoy.js:6:60)
+    at S (/home/user/high-trust/dev/audit/jobs/repro-roundup-convoy.js:8:15)
+    at /home/user/high-trust/dev/audit/jobs/repro-roundup-convoy.js:17:87 {
+  log: [],
+  name: 'Error'
+}
