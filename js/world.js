@@ -902,6 +902,7 @@ function backdrop(B){const r=rngOf(hashStr(B.id)+99);const Wm=B.W*TILE,Hm=B.H*TI
   const ind=B.id==='gary';const sid=B.gbOf(ind?'whsWall':'siding'),roof=B.gbOf(ind?'whsRoof':'roof'),fnd=B.gbOf('found');
   const ring=[];const per=2*(Wm+Hm);for(let s=0;s<per;s+=ind?26:17){let x,z,nx,nz;if(s<Wm){x=s;z=-1;nx=0;nz=-1}else if(s<Wm+Hm){x=Wm+1;z=s-Wm;nx=1;nz=0}else if(s<2*Wm+Hm){x=Wm-(s-Wm-Hm);z=Hm+1;nx=0;nz=1}else{x=-1;z=Hm-(s-2*Wm-Hm);nx=-1;nz=0}
     const d=16+r()*14;if(B.roadD(x+nx*d,z+nz*d)<14||B.skipRing&&B.skipRing(x+nx*d,z+nz*d))continue;ring.push([x+nx*d,z+nz*d,nx,nz])}
+  if(B.noFarHouses)ring.length=0;/* audit W-06: the open world's edge is 20-40 m from where you stand, and these read as boxes from there; the wooded hills carry on instead */
   for(const[x,z,nx,nz]of ring){const w=ind?16+r()*10:9+r()*3,dd=ind?12+r()*8:7+r()*2,h=ind?6+r()*3:2.8+(r()<.3?2.7:0);const y0=hgt(x,z)-.2;
     const ax=Math.abs(nz)>0,hw=(ax?w:dd)/2,hd=(ax?dd:w)/2;const tint=ind?[1,1,1]:[[1,1,1],[.75,.85,.95],[.95,.88,.7],[.85,.8,.75]][Math.floor(r()*4)];
     sid.box(x-hw,y0,z-hd,x+hw,y0+h,z+hd,ind?2:1.4,tint,{});fnd.box(x-hw-.05,y0-.3,z-hd-.05,x+hw+.05,y0+.35,z+hd+.05,2,null,{top:true});
