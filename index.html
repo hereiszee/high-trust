@@ -2498,7 +2498,7 @@ function updEnemy(e,dt){
     else if(dist<want[0]){moving=moveToward(e,e.pos.x-(t.pos.x-e.pos.x)*.3,e.pos.z-(t.pos.z-e.pos.z)*.3,sp*.7,dt)}
     else{const px=Math.cos(e.yaw)*e.strafe,pz=-Math.sin(e.yaw)*e.strafe;const nx=e.pos.x+px*.8,nz=e.pos.z+pz*.8;if(walkable(tx(nx),tx(nz))){e.pos.x+=px*sp*.55*dt;e.pos.z+=pz*sp*.55*dt;collide(e.pos,.35);moving=true}else e.strafe*=-1}
     e.fireT-=dt;
-    if(e.fireT<=0){const G=npcGun(e.gun,dist);
+    if(e.fireT<=0&&e.gun){/* J-01: a disarmed job enemy (gun=null) never fires; npcGun(null) would hand him a pistol */const G=npcGun(e.gun,dist);
       let acc=G[0]*clamp(1.15-dist/32,.12,1)*(t===P&&P.moving?(keys.shift?.85:.7):1)*(t===P&&P.crouch?.75:1);if(e.boss)acc*=1.2;
       shootAt(e,t,acc,G[1]*(e.boss?1.4:1)*(M&&M.i===0?.8:1),true);e.burst++;if(e.burst>=G[2]){e.burst=0;e.fireT=G[3]*rand(.8,1.4)}else e.fireT=.12}
   }else if(e.alert&&e.last&&e.hearT>0){e.hearT-=dt;faceTo(e,e.last.x,e.last.z,dt,3)}
