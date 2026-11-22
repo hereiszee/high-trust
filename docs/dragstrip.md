@@ -85,9 +85,12 @@ handling or damage, for any car you own and use. Two findings:
 * **Sport Mode does nothing in town**: `HT.CarAI.drive` supports it (`inp.sport`) but no key or pad button sends it and `carStats` sets
   `sport:false`. Not fixed in town (it needs a new binding, not a small change); it applies on the strip.
 
-Typical clean passes (the bot, dev/test-dragsim.js): sedan ~9.4 s @ 77 mph; SUV ~9.7 @ 72 (AWD, forgiving); pickup ~9.8 @ 78
-(the most torque, the lightest rear: spins if floored, ~11.2 s); minivan ~10.6 @ 71; hatchback ~10.7 @ 67; work van ~11.0 @ 63;
-the mower ~22.5 s @ 21 mph. A minivan with every engine and tyre upgrade runs about a second quicker.
+Typical clean passes (the bot, dev/test-dragsim.js): sedan ~9.2 s @ 77 mph; pickup ~9.7 @ 78 (the most torque, the lightest rear:
+floored it spins, ~11.3 s); SUV ~9.7 @ 72 (AWD: a floored launch costs it nothing); minivan ~10.0 @ 71; hatchback ~10.3 @ 68; work van
+~11.0 @ 63; the mower ~22.5 s @ 22 mph. A minivan with every engine and tyre upgrade runs ~9.0 s. In the play-through (real keys) the
+same owned minivan ran 9.956 s @ 71.4 stock, 9.583 @ 76.6 with the V6 Swap, and a 2.212 s 60 ft (from 2.369) on Performance Rubber.
+Engine upgrades add pull from second gear up and top-end power (first gear barely changes: stock tyres couldn't use it), so the V6 on
+stock tyres is quicker but the tyres are what fix the launch.
 
 **Simplest version, said plainly:** the car is held in its lane during a pass (no steering on the strip; a wiggle when it spins); the
 gearbox is an automatic for everyone; no clutch; weight transfer is a fixed lean per drivetrain.
