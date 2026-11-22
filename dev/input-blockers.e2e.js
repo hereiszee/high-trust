@@ -68,11 +68,11 @@ async function crossing(r){return r.ev(async()=>{const H=window.__ht;await H.job
     ok('at home',home.mode==='home',home);
     await r.pad();await ev(()=>{__T.set({axes:[0,0,.3,0]});__T.set({axes:[0,0,0,0]});window.__ht.step(3)});
     const deco=()=>ev(()=>document.body.classList.contains('decoOn'));
-    const objLeaks=await ev(LEAK_SRC);ok('IN-04 the home objective names no keyboard key on the pad',!objLeaks.length,objLeaks);
+    const objLeaks=await ev(LEAK_SRC,{pad:true});ok('IN-04 the home objective names no keyboard key on the pad',!objLeaks.length,objLeaks);
     await ev(()=>{__T.tap(1);window.__ht.step(3)});const d1=await deco();ok('IN-04 pad B opens Decorate',d1);
     await ev(()=>{__T.tick(2);window.__ht.step(3)});await r.wait(120);
     const panel=await ev(()=>({caps:[...document.querySelectorAll('#deco .ht-kc')].map(e=>e.textContent),plain:[...document.querySelectorAll('#deco .ht-kc:not(.pad-g)')].map(e=>e.textContent)}));
-    const leaks=await ev(LEAK_SRC);
+    const leaks=await ev(LEAK_SRC,{pad:true});
     ok('IN-04 the decorate panel shows pad buttons only',panel.caps.length>=5&&!leaks.length&&panel.plain.every(t=>/^(RB|LB|LT|RT|View|Menu|L3|R3|D.)$/.test(t)),{panel,leaks});
     await r.shot('../../screenshots/input/pad-decorate-panel');
     await ev(()=>{__T.tap(1);window.__ht.step(3)});const d2=await deco();ok('IN-04 pad B closes Decorate',!d2);

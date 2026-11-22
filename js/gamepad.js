@@ -62,7 +62,7 @@ const KEYS_RX='E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT|E
 /* "press E", "hold the E key", "Tap W" */
 const TXT_KEY=new RegExp("\\b(press|hold|tap|use|with|release|or|Press|Hold|Tap|Use|With|Release|PRESS|HOLD|TAP|USE)(\\s+the)?\\s+("+KEYS_RX+")(\\s+key)?\\b(?![\\w'’])",'g');
 /* a key that leads a line or follows a separator: "E · zip-tie", "G to draw", "X: call Rick", "E/Enter takes it", "Z zooms" */
-const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?:]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
+const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?:]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|W|A|S|D|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
 /* mouse words */
 const TXT_MOUSE=/\b(right[- ]click(?:ing)?|right mouse(?: button)?|left[- ]click|left mouse(?: button)?|RMB|LMB|Mouse ?[12]|(?:Right|Left)[- ]click|(?:Right|Left) mouse(?: button)?|[Cc]lick(?=\s+(?:to|again|fires?|shoots?|or|for)\b|\s*(?:$|·|\/|\)|:)))/g;
 const TXT_EXTRA={W:'RT',S:'LT'};/* in sentences W / S are throttle / brake (driving and jet jobs) */

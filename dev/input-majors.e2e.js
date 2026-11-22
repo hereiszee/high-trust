@@ -47,13 +47,13 @@ const hudDraw=ev=>ev(async()=>{for(let i=0;i<3;i++){try{window.__ht.draw()}catch
     const took=await ev(()=>({open:HT.Range.menu().open,cur:window.__ht.P.cur}));ok('IN-06 A takes the selected gun',!took.open&&took.cur===pick.id,{pick,took});
     /* IN-08 tank */
     await ev(()=>{const H=window.__ht,e=H.vehicles.find(c=>c.type==='tank');H.P.pos.set(e.pos.x+3,0,e.pos.z);H.step(2);if(H.save&&H.save.taught)delete H.save.taught.drive;H.enterVehicle(e);H.step(10);H.P.fp=false});await hudDraw(ev);
-    const tk=await ev(()=>({feed:[...document.querySelectorAll('.ht-feed > *')].map(e=>e.textContent).join(' | '),hint:[...document.querySelectorAll('.ht-drv .hint span')].map(e=>e.textContent).join(' ')}));const tl=await ev(LEAK_SRC);
+    const tk=await ev(()=>({feed:[...document.querySelectorAll('.ht-feed > *')].map(e=>e.textContent).join(' | '),hint:[...document.querySelectorAll('.ht-drv .hint span')].map(e=>e.textContent).join(' ')}));const tl=await ev(LEAK_SRC,{pad:true});
     ok('IN-08 tank: no keyboard / mouse names on the pad (teach line, meter, hint bar "Sight")',!tl.length&&/Sight/.test(tk.hint),{tk,tl});
     await r.shot('../../screenshots/input/pad-tank');
     await ev(()=>{const H=window.__ht;H.exitVehicle();H.step(3)});
     /* IN-08 / IN-07 jet */
     await ev(()=>{const H=window.__ht,e=H.vehicles.find(c=>c.type==='jet');H.P.pos.set(e.pos.x+4,0,e.pos.z);H.step(2);if(H.save&&H.save.taught)delete H.save.taught.fly1;H.enterVehicle(e);H.step(10)});await hudDraw(ev);
-    const jl=await ev(LEAK_SRC);const jp=await ev(()=>{const pr=document.querySelector('.ht-pr:not(.off):not(.ht-tut)');return pr?[...pr.querySelectorAll('.ht-kc')].map(e=>e.textContent):[]});
+    const jl=await ev(LEAK_SRC,{pad:true});const jp=await ev(()=>{const pr=document.querySelector('.ht-pr:not(.off):not(.ht-tut)');return pr?[...pr.querySelectorAll('.ht-kc')].map(e=>e.textContent):[]});
     ok('IN-08 jet: strip, step prompt and feed name pad buttons only',!jl.length,jl);ok('IN-07 the jet prompt shows Y for get out',!jp.length||jp.includes('Y'),jp);
     await r.shot('../../screenshots/input/pad-jet');
     await ev(()=>{const H=window.__ht;H.exitVehicle();H.step(3)});
@@ -87,10 +87,10 @@ const hudDraw=ev=>ev(async()=>{for(let i=0;i<3;i++){try{window.__ht.draw()}catch
     ok('IN-12 Crouch onto X swaps the job key onto C: X crouches, C reaches jobs as x, prompts relabel',sx.some(s=>/^c\/KeyC\*/.test(s))&&sc2.some(s=>/^x\/KeyX\*/.test(s))&&rl.X==='C'&&rl.jobX==='c',{sx,sc2,rl});
     await ev(()=>HT.Keys.reset());
     /* IN-13 */
-    await ev(()=>{HT.Keys.set('fwd','4');for(const k in window.__ht.keys)window.__ht.keys[k]=false});
-    await p.keyboard.down('Digit4');const w1=await ev(()=>window.__ht.keys.w);await p.keyboard.down('Shift');await p.keyboard.up('Digit4');await p.keyboard.up('Shift');
+    await ev(()=>{HT.Keys.set('fwd',';');for(const k in window.__ht.keys)window.__ht.keys[k]=false});
+    await p.keyboard.down('Semicolon');const w1=await ev(()=>window.__ht.keys.w);await p.keyboard.down('Shift');await p.keyboard.up('Semicolon');await p.keyboard.up('Shift');
     const w2=await ev(()=>window.__ht.keys.w);const pos0=await ev(()=>{const P=window.__ht.P;return[P.pos.x,P.pos.z]});await r.step(30);const pos1=await ev(()=>{const P=window.__ht.P;return[P.pos.x,P.pos.z]});
-    const moved=Math.hypot(pos1[0]-pos0[0],pos1[1]-pos0[1]);ok('IN-13 Move forward on 4: released after Shift went down, the dad stops',w1===true&&!w2&&moved<.3,{w1,w2,moved});
+    const moved=Math.hypot(pos1[0]-pos0[0],pos1[1]-pos0[1]);ok('IN-13 Move forward on ; (4-9 are reserved now): released after Shift went down, the dad stops',w1===true&&!w2&&moved<.3,{w1,w2,moved});
     await ev(()=>{HT.Keys.reset();for(const k in window.__ht.keys)window.__ht.keys[k]=false});
     /* IN-14 AZERTY (a simulated layout map, as navigator.keyboard.getLayoutMap gives, and trusted key events with AZERTY key/code pairs) */
     await ev(()=>HT.Keys._layout({KeyQ:'a',KeyW:'z',KeyE:'e',KeyR:'r',KeyA:'q',KeyS:'s',KeyD:'d',KeyZ:'w',KeyX:'x',KeyC:'c',KeyV:'v',KeyB:'b',KeyN:'n',KeyM:',',Semicolon:'m',KeyF:'f',KeyG:'g',KeyH:'h',KeyT:'t',Digit1:'&',Digit2:'é',Digit3:'"'}));

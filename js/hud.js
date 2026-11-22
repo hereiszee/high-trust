@@ -141,7 +141,7 @@ const KEY_GROUPS=[
 const DEFAULT_KEYS=KEY_GROUPS.flatMap(g=>g[1]);
 /* controller layout (js/gamepad.js), shown under Key bindings */
 const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim · raise the phone, stop sign, binoculars (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
-  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click; stops when the stick is let go) · hold breath on a scope','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (press in; stops when the stick is let go) · hold breath on a scope','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
   ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],['Replies, the range rack, pickers','D-pad / stick · A pick · B back'],['Binoculars in a car','D-pad ↑'],['Decorate (at home)','B · then A place · X rotate · RB next · B done'],
   ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder · B look back · Y twice eject'],
   ['Map open','Stick pan · RT / LT zoom · LB / RB places · A travel · B close'],['Menus','D-pad / left stick · A select · B back · LB / RB tabs']];
