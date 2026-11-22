@@ -13,6 +13,7 @@ const J=(s,id)=>!!(s.jobs&&s.jobs[id]&&s.jobs[id].done);
 const doneCount=s=>Object.values(s.jobs||{}).filter(j=>j&&j.done).length;
 const golds=s=>Object.values(s.jobs||{}).filter(j=>j&&(j.medal|0)>=3).length;
 const eggs=s=>Object.keys(s.base&&s.base.eggs||{}).length;
+const LADDER_IDS=['dutch','marisol','walt','tomas','priya','june','rook'];/* js/dragsim.js HT.Drag.LADDER (checked by dev/test-dragsim.js) */
 const ACHIEVEMENTS=[
   {id:'ACH_FIRST_JOB',name:'Clocked In',desc:'Finish your first job.',test:s=>doneCount(s)>=1},
   {id:'ACH_RETURN_TO_SENDER',name:'Return to Sender',desc:"Get the neighborhood's packages back from the chop shop on Industrial Way.",test:s=>J(s,'gary')},
@@ -36,7 +37,10 @@ const ACHIEVEMENTS=[
   {id:'ACH_PROOF',name:'Proof',desc:'Hit the cardboard Bigfoot on the range berm.',test:s=>!!(s.base&&s.base.eggs&&s.base.eggs.bigfoot)},
   {id:'ACH_SEEN_IT_ALL',name:'Seen It All',desc:'Find all seven things around town.',test:s=>eggs(s)>=7},
   {id:'ACH_CLEARED_FOR_TAKEOFF',name:'Cleared for Takeoff',desc:'Take the jet up at Fort Sensible.',test:s=>(s.base&&s.base.jet&&s.base.jet.flights|0)>=1},
-  {id:'ACH_BORROWED',name:'Borrowed, Technically',desc:'Borrow the tank at Fort Sensible.',test:s=>(s.base&&s.base.tank&&s.base.tank.borrows|0)>=1}];
+  {id:'ACH_BORROWED',name:'Borrowed, Technically',desc:'Borrow the tank at Fort Sensible.',test:s=>(s.base&&s.base.tank&&s.base.tank.borrows|0)>=1},
+  {id:'ACH_EIGHTH_MILE',name:'Eighth-Mile Dad',desc:'Make a full pass at Sensible Dragway.',test:s=>(s.strip&&s.strip.stats&&s.strip.stats.passes|0)>=1},
+  {id:'ACH_TOP_OF_THE_LADDER',name:'Top of the Ladder',desc:'Beat every racer on the Sensible Dragway ladder.',test:s=>{const b=s.strip&&s.strip.ladder&&s.strip.ladder.beaten||{};return LADDER_IDS.every(id=>b[id])}},
+  {id:'ACH_PERFECT_LIGHT',name:'Perfect Light',desc:'Cut a reaction time between .000 and .050 at the strip.',test:s=>!!(s.strip&&s.strip.stats&&s.strip.stats.perfect)}];
 function evaluate(s){if(!s||typeof s!=='object')return[];const out=[];for(const a of ACHIEVEMENTS){try{if(a.test(s))out.push(a.id)}catch(e){}}return out}
 if(typeof module!=='undefined'&&module.exports){module.exports={ACHIEVEMENTS,evaluate};if(typeof window==='undefined')return}
 

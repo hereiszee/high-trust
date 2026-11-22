@@ -93,18 +93,20 @@ function slip(R){const S=R.split,lv=R.leave;if(lv==null)return null;const out={r
    driver: {rt mean s, rtSd, redP (chance of jumping the light), launchQ 0..1 (how close to the sweet rpm he leaves, how well he feathers
    a spin), missP (chance per shift of a missed shift)}. o.greenAt: when the light goes green (s). Returns the run (slip(run) for numbers). */
 function normal(rnd){let u=0,v=0;while(u===0)u=rnd();while(v===0)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-function sim(s,d,rnd,o){o=o||{};const R=run(s),tg=o.greenAt!=null?o.greenAt:1.5;R.green=tg;
+function ai(s,d,rnd,o){o=o||{};const R=run(s),tg=o.greenAt!=null?o.greenAt:1.5;R.green=tg;
   /* when he lets go of the brake: his reaction (a jump: before the green), less the time the car takes to roll out of the beam */
   let rt=d.rt+normal(rnd)*d.rtSd;if(rnd()<d.redP)rt=-(.01+rnd()*.1);rt=Math.max(-.2,Math.min(1.2,rt));
-  const roll=rollTime(s);const go=tg+rt-roll;
+  const go=tg+rt-rollTime(s);
   const[lo,hi]=s.band,mid=(lo+hi)/2,w=(hi-lo)/2;const want=clamp(mid+normal(rnd)*w*(1.9-1.5*d.launchQ),.15,1);
   for(let g=1;g<s.vg.length;g++)if(rnd()<d.missP){R.miss=g;break}
-  const dt=1/120,maxT=tg+60;let feather=0;
-  while(!R.done&&R.t<maxT){let thr,brake;
-    if(!R.launched){brake=R.t<go;thr=R.t<go-1.6?0:want/.88-.14/.88;thr=clamp(thr,0,1);if(!brake)thr=Math.max(thr,.9)}
+  let feather=0;
+  /* one frame of the driver: dt can be anything (the game's frame, or 1/120 in a pure sim) */
+  const tick=dt=>{if(R.done)return R;let thr,brake;
+    if(!R.launched){brake=R.t<go;thr=R.t<go-1.6?0:clamp((want-.12)/.88,0,1);if(!brake)thr=Math.max(thr,.9)}
     else{brake=false;thr=1;if(feather>0){feather-=dt;thr=.55}else if(R.spin>.3&&rnd()<d.launchQ*dt*14)feather=.12+.1*(1-d.launchQ)}
-    step(R,{thr,brake},dt)}
-  return R}
+    step(R,{thr,brake},dt);return R};
+  return{R,tick,plan:{rt,want,miss:R.miss}}}
+function sim(s,d,rnd,o){const c=ai(s,d,rnd,o),maxT=c.R.green+60;while(!c.R.done&&c.R.t<maxT)c.tick(1/120);return c.R}
 /* how long a car takes from brake-off to the stage beam (a clean launch): the AI leaves this much before it means to "react" */
 const ROLLC={};function rollTime(s){const k=s.type+'|'+s.kw.toFixed(0)+'|'+s.mu.toFixed(2);if(ROLLC[k]!=null)return ROLLC[k];const R=run(s);R.rpm=(s.band[0]+s.band[1])/2;
   let t=0;while(R.leave==null&&t<3){step(R,{thr:1,brake:false},1/240);t+=1/240}return ROLLC[k]=R.leave==null?.3:R.leave}
@@ -136,19 +138,19 @@ function rng(seed){let x=seed>>>0;return()=>{x=x+0x6D2B79F5|0;let t=Math.imul(x^
 const RACERS=[
  {id:'gus',name:'Gus Lindqvist',car:'mower',tier:0,pool:'nb_pops',cls:'mower',bio:'Retired. Races the mower. Says the blade is "for downforce."',
   d:{rt:.42,rtSd:.10,redP:.02,launchQ:.6,missP:.05},lines:{hello:"It's a lawn tractor. It's also my whole personality.",win:'Turf justice.',lose:'Good race. I need to sharpen the blade. For aerodynamics.'}},
- {id:'marisol',name:'Marisol Vega',car:'hatch',tier:2,pool:'nb_carmen',bio:'Teaches drivers ed. Uses her turn signal on the strip.',
+ {id:'marisol',name:'Marisol Vega',car:'hatch',tier:2,pool:'nb_lucia',bio:'Teaches drivers ed. Uses her turn signal on the strip.',
   d:{rt:.30,rtSd:.08,redP:.01,launchQ:.6,missP:.02},lines:{hello:'Ten and two. Mirrors. Okay. Let\'s do something irresponsible.',win:'Smooth is fast. I tell my students that. They never listen.',lose:'Fair. You were smoother.'}},
  {id:'walt',name:'Walt Okafor',car:'minivan',tier:3,pool:'nb_marcus',bio:'Four kids. The van has 230,000 miles and a name (Brenda).',
   d:{rt:.26,rtSd:.07,redP:.03,launchQ:.66,missP:.03},lines:{hello:"Brenda's never lost a school run. She's lost plenty of these.",win:'Brenda! BRENDA!',lose:"Brenda's tired. Brenda's always tired."}},
- {id:'priya',name:'Priya Raman',car:'suv',tier:5,pool:'nb_nina',bio:'HOA treasurer. Keeps a spreadsheet of every pass she has ever made.',
+ {id:'priya',name:'Priya Raman',car:'suv',tier:5,pool:'nb_mei',bio:'HOA treasurer. Keeps a spreadsheet of every pass she has ever made.',
   d:{rt:.15,rtSd:.045,redP:.03,launchQ:.85,missP:.02},lines:{hello:"I've logged forty-one passes in this thing. Variance is low. Like my expectations of you.",win:'Within budget.',lose:"I'm adding you to the spreadsheet. In red."}},
- {id:'dutch',name:'Dutch Hendricks',car:'workvan',tier:1,pool:'nb_pops',bio:'Plumber. The van is full of pipe. He refuses to unload it. "It\'s ballast."',
+ {id:'dutch',name:'Dutch Hendricks',car:'workvan',tier:1,pool:'nb_sweater',bio:'Plumber. The van is full of pipe. He refuses to unload it. "It\'s ballast."',
   d:{rt:.38,rtSd:.10,redP:.03,launchQ:.55,missP:.04},lines:{hello:"Van's loaded. Two hundred pounds of copper. It's ballast. Don't ask.",win:'Copper, baby.',lose:'Should have unloaded the pipe. Not doing that.'}},
  {id:'tomas',name:'Tomás Reyes',car:'pickup',tier:4,pool:'nb_kenji',bio:'Out of town, from two counties over. Brought his own tyre pressure gauge.',
   d:{rt:.2,rtSd:.06,redP:.04,launchQ:.8,missP:.03},lines:{hello:"Two counties I drove for this. Don't make it boring.",win:"Tell your neighbours. I'll be back next month.",lose:'Okay. Okay! The local guy can drive.'}},
- {id:'june',name:'June Abernathy',car:'sedan',tier:6,pool:'nb_carmen',bio:'Grandmother of six. Fastest reaction times at the strip. Nobody knows why.',
+ {id:'june',name:'June Abernathy',car:'sedan',tier:6,pool:'nb_gran',bio:'Grandmother of six. Fastest reaction times at the strip. Nobody knows why.',
   d:{rt:.11,rtSd:.04,redP:.035,launchQ:.86,missP:.015},lines:{hello:'Buckle up, sweetheart.',win:'I used to do this before the grandkids. And during. And now.',lose:"Well. Look at you. I'll get you next time, sweetheart."}},
- {id:'rook',name:'"Rook" Delacroix',car:'sedan',tier:7,pool:'nb_marcus',bio:'The out-of-towner everybody talks about. Wins a lot. Smiles about it.',
+ {id:'rook',name:'"Rook" Delacroix',car:'sedan',tier:7,pool:'nb_office',bio:'The out-of-towner everybody talks about. Wins a lot. Smiles about it.',
   d:{rt:.075,rtSd:.03,redP:.06,launchQ:.93,missP:.01},lines:{hello:"So you're the dad everyone's talking about. Let's see it.",win:'Nice try. Go home and practise on the school run.',lose:'...Huh. Rematch. Not tonight. Soon.'}}];
 const LADDER=RACERS.filter(r=>r.cls!=='mower').sort((a,b)=>a.tier-b.tier).map(r=>r.id);
 const racer=id=>RACERS.find(r=>r.id===id)||null;
@@ -186,7 +188,7 @@ function settle(D,stake,mult,won){const net=won?Math.round(stake*(mult-1)):-stak
 /* a purse against the daily cap: what is actually paid */
 function capPurse(D,amt){const room=Math.max(0,ECON.dayCap-(D?D.won:0)),p=Math.min(room,amt);if(D)D.won+=p;return p}
 
-const API={SPEC,CLASSES,REFUSE,RACERS,LADDER,ECON,EIGHTH,FT60,FT330,TRAP,ROLL,MPH,spec,run,step,slip,sim,race,judge,winP,payout,rng,racer,playerProfile,day,purse,maxStake,canBet,settle,capPurse,rollTime,
+const API={SPEC,CLASSES,REFUSE,RACERS,LADDER,ECON,EIGHTH,FT60,FT330,TRAP,ROLL,MPH,spec,run,step,slip,sim,ai,race,judge,winP,payout,rng,racer,playerProfile,day,purse,maxStake,canBet,settle,capPurse,rollTime,
   classOf:t=>{for(const k in CLASSES)if(CLASSES[k].types.includes(t))return k;return null},
   /* every type the strip can lend (HT.Garage's cars plus the mower): the car picker */
   types:()=>Object.keys(SPEC)};

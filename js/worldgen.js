@@ -281,8 +281,8 @@ function stripData(buildings){const T=TILE,box=a=>({x0:a[0]*T,z0:a[1]*T,x1:(a[2]
     wallN:bl.wallN,wallS:bl.wallS,track:box(STRIP_T.lanes),walk:box(STRIP_T.walk),fence:box([3,127,138,135]),retRoad:box(STRIP_T.retRoad),paddock:box(STRIP_T.paddock),
     corridor:box(STRIP_T.corridor),access:box(STRIP_T.access),tower:bl.tower,standE:bl.standE,standW:bl.standW,net:bl.net,
     tree:{x:start-5.5,z:278},burnout:{x0:262,x1:274},stage:{x:start},shut:{x:10},
-    board:{x:start-200,z:271,yaw:-Math.PI/2},paddockBoard:{x:252.5,z:289.2,yaw:Math.PI},booth:{x:239,z:287.4,yaw:Math.PI},
-    loaners:{x0:214,z:296.4,dx:5.6,yaw:0},park:{x:274,z:292,yaw:Math.PI/2},lineup:{x:272,yaw:Math.PI/2},
+    board:{x:start-200,z:266,yaw:-Math.PI/2},paddockBoard:{x:252.5,z:289.2,yaw:Math.PI},booth:{x:234.4,z:291,yaw:-Math.PI/2},
+    loaners:{x0:212,z:297.4,dx:5.4,yaw:0},park:{x:274,z:292,yaw:Math.PI/2},lineup:{x:272,yaw:Math.PI/2},
     sign:{x:208,z:166,yaw:0},place:'strip'}}
 /* ---------- the generator (SPEC2 A.2, plus the four Maple giver markers 1-4 from the old HUB) ---------- */
 function generate(maps){

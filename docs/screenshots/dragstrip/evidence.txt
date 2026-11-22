@@ -1,0 +1,20 @@
+== test & tune: three cars, three slips, the quickest car quickest
+  ok   E at the paddock board opens the car picker (7 cars)
+  ok   every car the strip lends is in the picker (HT.Garage six + the mower): Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+  ok   a sedan loaner at the line
+  ok   sedan: slip RT 0.318 60ft 2.315 330 6.254 ET 9.467 @ 76.6 mph (1/4 est 14.77)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (7 cars)
+  ok   a minivan loaner at the line
+  ok   minivan: slip RT 0.333 60ft 2.877 330 7.4 ET 10.925 @ 70.1 mph (1/4 est 17.04)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (7 cars)
+  ok   a workvan loaner at the line
+  ok   workvan: slip RT 0.354 60ft 2.479 330 7.121 ET 11.029 @ 62.7 mph (1/4 est 17.21)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   order: sedan 9.467 < minivan 10.925 < work van 11.029
+  ok   the garage book has sedan, minivan, workvan
+== done in 82 s; console errors: 0

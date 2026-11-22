@@ -212,6 +212,7 @@ const SAVE_DEFAULT=()=>({v:SAVE_V,t:0,
   crew:{rosa:false},
   events:[],
   base:{visited:false,met:false,range:{},rentals:0,eggs:{},tank:{borrows:0,shots:0,crushed:0},jet:{flights:0,boom:false,bridge:false,buzz:false,ejects:0}},   /* Fort Sensible (js/base.js, docs/base.md): range bests per gun, easter eggs found */
+  strip:{visited:false,barked:false,taught:{},book:{},hist:[],ladder:{beaten:{},wins:{}},days:{},stats:{passes:0,races:0,wins:0,reds:0,bestRt:null,perfect:false,bets:0},bracket:{lastDay:0,won:0}},   /* Sensible Dragway (js/dragstrip.js, docs/dragstrip.md): the garage book, the ladder, the daily caps */
   flags:{rangeDay:false,beanbagGift:false,zipPack:false,icePack:false,hotPursuit:false,act2Intro:false,act3Intro:false,hankDiscount:false},
   world:{bridgeOpen:false,visited:{river:false},pins:['home','hank','auto','gas'],scrubbed:[],scrubTrust:0,tier:0,lastPos:null,hotPursuitAt:0,households:[],storefronts:{}},
   garage:defGarage(),

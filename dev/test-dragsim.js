@@ -43,4 +43,8 @@ test('bets: limits, the cash floor, the daily loss and win caps; no stake you do
 test('class rules: the street class is the six garage cars; the mower has its own; tank / jet / bike are refused',()=>{
   assert.deepStrictEqual(D.CLASSES.street.types.sort(),['hatch','minivan','pickup','sedan','suv','workvan']);assert.strictEqual(D.classOf('mower'),'mower');
   for(const t of['tank','jet','bike'])assert(!D.classOf(t)&&D.REFUSE[t])});
+test('achievements (js/platform.js) read the strip from the save: first pass, the whole ladder, a perfect light',()=>{const P=require('../js/platform.js');
+  const ids=P.ACHIEVEMENTS.map(a=>a.id);for(const id of['ACH_EIGHTH_MILE','ACH_TOP_OF_THE_LADDER','ACH_PERFECT_LIGHT'])assert(ids.includes(id),id);
+  const beaten={};const s={strip:{stats:{passes:1,perfect:false},ladder:{beaten}}};assert(P.evaluate(s).includes('ACH_EIGHTH_MILE'));assert(!P.evaluate(s).includes('ACH_TOP_OF_THE_LADDER'));
+  for(const id of D.LADDER)beaten[id]=true;assert(P.evaluate(s).includes('ACH_TOP_OF_THE_LADDER'));s.strip.stats.perfect=true;assert(P.evaluate(s).includes('ACH_PERFECT_LIGHT'))});
 if(require.main===module)done();
