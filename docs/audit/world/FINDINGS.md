@@ -15,6 +15,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 | W-02 | MAJOR | Map fast travel moves the borrowed tank into Maple Heights (any borrowed vehicle goes too) | CONFIRMED |
 | W-03 | MAJOR | Traffic drives straight through people standing in the road (neighbours; crew; kids) | CONFIRMED (neighbour) |
 | W-12 | MAJOR | Arriving by fast travel (or any jump) shows the destination unbuilt: no ground, no buildings, the dad on a sky-reflecting void, for the first ~15-60 frames | CONFIRMED (headless) |
+| W-13 | MAJOR | Dad's Auto can't be used from a borrowed car: no "Pull into" prompt, E does nothing, so the advertised borrowed-car repair (and its +1 trust) is unreachable | CONFIRMED |
 | W-04 | MINOR | "Saved you 8 seconds…" after every fast travel, whatever the distance | CONFIRMED |
 | W-05 | MINOR | Hangar 2: open doors show a black void with sky visible through the inside of the roof | LIKELY |
 | W-06 | MINOR | Backdrop houses at the map edge are plain boxes with black squares for windows, 20–40 m from where you can stand | CONFIRMED |
@@ -78,7 +79,21 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
 - **Confidence:** CONFIRMED headless in two independent probes; frame counts are a simulation of real frames, so the duration on
   real hardware is an estimate. Fort Sensible, Riverside and the far job sites (the ones fast travel exists for) are affected the most.
 
-### W-04 · MINOR · "Saved you 8 seconds and one argument about directions." for every trip
+### W-13 · MAJOR · Dad's Auto can't repair a borrowed car: the service-bay prompt never shows in one
+- **Repro:** `node dev/audit/world/borrow-repair.e2e.js`: borrow a neighbour's car (Linda's sedan), dent it (73 HP), drive into the
+  Dad's Auto service-bay ring (where the minivan gets "Pull into Dad's Auto"), press E.
+- **Expected:** `openShop()` says "Dad's Auto repairs whichever car you pulled in with (a borrowed one included)"
+  (`index.html:2871`); `carRepairTarget()` (1775-1778) and the Repair tab's "Borrowed" section, the `FIXED_LINES` and the +1
+  "Fixed up · thanks" trust in `settleBorrow` all exist for it.
+- **Actual:** minivan in the same spot: prompt "Pull into Dad's Auto", E opens the shop on Repair. Borrowed sedan: no prompt
+  (`["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"]` are only the sign and the region label), E opens nothing.
+- **Cause:** `metaHubUpd` skips every candidate while driving anything but the van: `if(CV&&CV!==VAN)continue;`
+  (`index.html:3009`), and the bay candidate is only offered with `c.van` when `CV===VAN`. On foot at the shop door `openShop`
+  is called with `CV=null`, so it repairs your own van, not the neighbour's car. The borrowed-car repair path is dead code in play;
+  `dev/car-damage/flows.js` only reaches it by calling `openShop('auto')` directly.
+- **Impact:** a player who dents a neighbour's car has no way to make it right at Dad's Auto (the trust loss sticks), and the
+  shop's own copy promises otherwise.
+ · "Saved you 8 seconds and one argument about directions." for every trip
 - **Repro:** fasttravel probe part B: in the minivan at Dad's Auto, map to Home (187 m). Also part C (tank, ~250 m).
 - **Actual:** always "Saved you 8 seconds". `index.html:1470` computes the distance *after* `go()` has already moved the dad to the
   destination, so it is ~0 and `Math.max(8,…)` wins.
