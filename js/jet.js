@@ -258,11 +258,12 @@ function chuteTick(a,dt){const c=F.chute;if(!c)return;c.t+=dt;const P=a.P,k=a.ke
     /* owner's playtest ("I just float forever"): the whole ride is ~13 s from any height. Above 60 m a fast canopy descent that takes
        3 s whatever the height, below it a normal descent that slows near the ground; near the post it steers to land by his car */
     const y=c.p.y,vyT=y>60?-Math.max(12,((c.yA||y)-60)/3):-Math.max(3.4,.18*Math.max(0,y)+2.5);c.v.y+=(vyT-c.v.y)*Math.min(1,dt*3);
-    const left=chuteLeft(y,c.yA),near=hl<250||nearPost(c.p.x,c.p.z);/* anywhere over the post (or just past its fence, e.g. the runway's far end) counts as near */const drift=near&&hl>1.5?Math.min(26,hl/Math.max(1.2,left)):0;/* far out: land where you are (a ride back is offered) */
-    c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*1.5);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*1.5);c.p.addScaledVector(c.v,dt)}
+    const left=chuteLeft(y,c.yA),near=hl<250||nearPost(c.p.x,c.p.z);/* anywhere over the post (or just past its fence, e.g. the runway's far end) counts as near */const drift=near&&hl>1.5?Math.min(26,hl/Math.max(1,left*.8)):0;/* far out: land where you are (a ride back is offered) */
+    c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*3);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*3);c.p.addScaledVector(c.v,dt)}
   const gy=groundY(a,c.p.x,c.p.z);
   P.pos.set(c.p.x,0,c.p.z);c.mesh.position.set(c.p.x,c.p.y,c.p.z);c.mesh.rotation.y=c.yaw||0;
   if(P.dude){P.dude.root.position.set(c.p.x,c.p.y,c.p.z);P.dude.root.rotation.y=(c.yaw||0)+Math.PI;P.dude.root.visible=true}
+  if(c.p.y<=gy+.05&&c.t>1.5&&c.drop&&Math.hypot(c.drop.x-c.p.x,c.drop.z-c.p.z)<12){c.p.x=c.drop.x;c.p.z=c.drop.z}/* the last few metres to his car */
   if(c.p.y<=gy+.05&&c.t>1.5){F.chute=null;c.mesh.parent&&c.mesh.parent.remove(c.mesh);P.pos.set(c.p.x,0,c.p.z);try{a.collide(P.pos,.35)}catch(_){}tone(300,200,.15,.1);
     const far=d&&Math.hypot(c.p.x-d.jet.x,c.p.z-d.jet.z)>RIDE_FAR&&!nearPost(c.p.x,c.p.z);if(far){F.ride={until:a.simT+120,x:c.p.x,z:c.p.z};say(TOWER,"DAD-1, you're a long way out. Press E and we'll send a car.",true)}
     else{say(TOWER,pick(LINES.ground),true);if(c.drop){P.yaw=c.drop.yaw;vanNote(a,c.drop)}}}}
