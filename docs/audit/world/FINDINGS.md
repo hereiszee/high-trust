@@ -13,7 +13,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 |---|---|---|---|
 | W-01 | MAJOR | Map fast travel on foot both refuses ("Get back to the minivan") and teleports you, stranding the van | CONFIRMED |
 | W-02 | MAJOR | Map fast travel moves the borrowed tank into Maple Heights (any borrowed vehicle goes too) | CONFIRMED |
-| W-03 | MAJOR | Traffic drives straight through people standing in the road (neighbours; crew; kids) | CONFIRMED (neighbour) |
+| W-03 | MAJOR | Traffic drives straight through people standing in the road: neighbours 8/8, kids 8/8, crew 2/4 (at 13 m/s) over two runs | CONFIRMED |
 | W-12 | MAJOR | Arriving by fast travel (or any jump) shows the destination unbuilt: no ground, no buildings, the dad on a sky-reflecting void, for the first ~15-60 frames | CONFIRMED (headless) |
 | W-13 | MAJOR | Dad's Auto can't be used from a borrowed car: no "Pull into" prompt, E does nothing, so the advertised borrowed-car repair (and its +1 trust) is unreachable | CONFIRMED |
 | W-04 | MINOR | "Saved you 8 seconds…" after every fast travel, whatever the distance | CONFIRMED |
@@ -57,8 +57,13 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
 - **Repro:** `node dev/audit/world/traffic-peds.e2e.js`: a traffic car (OW.trafficAdd, as dev/traffic-check.js uses) approaches a
   person standing in its lane on a straight Maple road at 9 and 13 m/s; the player is on foot on the far kerb.
 - **Expected:** traffic stops short of anyone on the road, as it does for the player on foot (`k:'foot'`).
-- **Actual:** with a neighbour in the lane the car never slows and its box passes through them in 4/4 runs (`minD 0`, `through:true`).
-  Crew and kid runs: see the rerun results below.
+- **Actual (two runs, `traffic-peds.out.txt`):** the car never brakes for anyone but the player. Neighbour in the lane: driven through
+  4/4 per run. Kid (`nb_kid`, protected): driven through 4/4 per run, no hit reaction (`People.hit/die` never called). Crew member
+  (Rick): at 13 m/s driven through 2/2 per run; at 9 m/s the car ends 0.09 m from him without ever stopping (it is the crew's own
+  push-out that saves the overlap, not the car). Screenshot: `traffic-through-kid.jpg` (the SUV sits where the kid stood).
+- **Owner rule:** nothing is *hurt* (no damage or reaction path exists), so the "never hit" rule holds in code; but on screen a car
+  drives through a child at 20-30 mph. In free roam kids stand on porches and lawns, not in lanes, so the kid case needs a kid on the
+  road (e.g. a job cast, a porch kid near a pushed car); the crew case happens every time the crew follow the dad across a street.
 - **Cause:** the traffic obstacle list (`js/openworld.js` ~1310-1318) contains only the player (`player`/`foot`), other cars,
   parked cars and props. Allies, givers, neighbours and kids are not obstacles for traffic. Nothing hurts them (no hit path), so
   this is visual, but it is a car at speed driving through a person, and the crew follow the dad across roads all the time.
@@ -86,7 +91,7 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
   (`index.html:2871`); `carRepairTarget()` (1775-1778) and the Repair tab's "Borrowed" section, the `FIXED_LINES` and the +1
   "Fixed up · thanks" trust in `settleBorrow` all exist for it.
 - **Actual:** minivan in the same spot: prompt "Pull into Dad's Auto", E opens the shop on Repair. Borrowed sedan: no prompt
-  (`["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"]` are only the sign and the region label), E opens nothing.
+  (`["Dad's Auto","Fill-Er-Up · Dad's Auto · Industrial Way"]` are only the sign and the region label), E opens nothing. Same result on two runs (`borrow-repair.out.txt`).
 - **Cause:** `metaHubUpd` skips every candidate while driving anything but the van: `if(CV&&CV!==VAN)continue;`
   (`index.html:3009`), and the bay candidate is only offered with `c.van` when `CV===VAN`. On foot at the shop door `openShop`
   is called with `CV=null`, so it repairs your own van, not the neighbour's car. The borrowed-car repair path is dead code in play;

@@ -1,19 +1,19 @@
-{"who":"crew","v":9,"edge":"2>3","region":"maple","minD":0.09,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"crew","v":9,"edge":"7>6","region":"maple","minD":0.09,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"crew","v":13,"edge":"2>3","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"crew","v":13,"edge":"7>6","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"kid","v":9,"edge":"2>3","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"kid","v":9,"edge":"7>6","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"kid","v":13,"edge":"2>3","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"kid","v":13,"edge":"7>6","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"neighbour","v":9,"edge":"2>3","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"neighbour","v":9,"edge":"7>6","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"neighbour","v":13,"edge":"2>3","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-{"who":"neighbour","v":13,"edge":"7>6","region":"maple","minD":41.7,"through":false,"stopAt":null,"hits":0,"blk":null}
-ok   traffic never drives through a crew standing in the lane (0/4 drove through)
+{"blocked":null,"run":true,"who":"crew","v":9,"edge":"2>3","region":"maple","minD":0.09,"through":false,"stopAt":null,"hits":0,"blk":null}
+{"blocked":"result","run":true,"who":"crew","v":9,"edge":"7>6","region":"maple","minD":0.09,"through":false,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"crew","v":13,"edge":"2>3","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"crew","v":13,"edge":"7>6","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"kid","v":9,"edge":"2>3","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"kid","v":9,"edge":"7>6","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"kid","v":13,"edge":"2>3","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"kid","v":13,"edge":"7>6","region":"maple","minD":0,"through":true,"stopAt":29.93,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"neighbour","v":9,"edge":"2>3","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"neighbour","v":9,"edge":"7>6","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"neighbour","v":13,"edge":"2>3","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+{"blocked":null,"run":true,"who":"neighbour","v":13,"edge":"7>6","region":"maple","minD":0,"through":true,"stopAt":null,"hits":0,"blk":null}
+FAIL traffic never drives through a crew standing in the lane (2/4 drove through)
 ok   no hit reaction on the crew (0)
-ok   traffic never drives through a kid standing in the lane (0/4 drove through)
+FAIL traffic never drives through a kid standing in the lane (4/4 drove through)
 ok   no hit reaction on the kid (0)
-ok   traffic never drives through a neighbour standing in the lane (0/4 drove through)
+FAIL traffic never drives through a neighbour standing in the lane (4/4 drove through)
 ok   no hit reaction on the neighbour (0)
-shot docs/audit/world/traffic-through-kid.jpg 23.6
+shot docs/audit/world/traffic-through-kid.jpg 0
