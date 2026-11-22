@@ -1,0 +1,2 @@
+window.__hideNear=(keep)=>{const H=__ht,P=H.P;const roots=new Set();H.scene.traverse(o=>{if(o.isSkinnedMesh){let r=o;while(r.parent&&r.parent!==H.scene&&r.parent!==H.L.group)r=r.parent;roots.add(r)}});
+  for(const r of roots){if(keep.includes(r))continue;const p=new THREE.Vector3();r.getWorldPosition(p);if(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)<9){r.visible=false;r.position.y=-80;r.updateMatrixWorld(true)}}};

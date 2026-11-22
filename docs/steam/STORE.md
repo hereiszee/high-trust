@@ -154,24 +154,24 @@ If Valve shows the pre-generated text on the store page, it is the paragraph abo
 
 ## Graphical assets: exact sizes
 
-Since August 2024 Steam uses the larger capsule sizes, and the old dimensions are no longer accepted ([store/assets](https://partner.steamgames.com/doc/store/assets), [standard](https://partner.steamgames.com/doc/store/assets/standard), [library](https://partner.steamgames.com/doc/store/assets/libraryassets), [rules](https://partner.steamgames.com/doc/store/assets/rules), [events](https://partner.steamgames.com/doc/store/assets/eventassets)).
+Re-checked against the live Steamworks pages on 2026-11-22 when the art was made (see `assets/store/README.md`): sizes unchanged; the shortcut icon is 256×256 only (512×512 is not listed), the hero is a PNG, and the screenshot content rules are spelled out below. Since August 2024 Steam uses the larger capsule sizes, and the old dimensions are no longer accepted ([store/assets](https://partner.steamgames.com/doc/store/assets), [standard](https://partner.steamgames.com/doc/store/assets/standard), [library](https://partner.steamgames.com/doc/store/assets/libraryassets), [rules](https://partner.steamgames.com/doc/store/assets/rules), [events](https://partner.steamgames.com/doc/store/assets/eventassets)).
 
-**Capsule rules:** capsules may show only artwork, the game name and an official subtitle. No review quotes, awards, discount text or calls to action.
+**Capsule rules:** capsules may show only artwork, the game name and an official subtitle. No review quotes, awards, discount text or calls to action. All capsule images, store and library, must be PG-13 appropriate; the library hero carries no words at all, and the library capsule only the logo (and a subtitle if there is one) ([rules](https://partner.steamgames.com/doc/store/assets/rules)). Images in the About section must each be under 5 MB, and any text in them has to be translated when the page is localised ([description](https://partner.steamgames.com/doc/store/page/description)); the docs give no pixel size for them.
 
 | Asset | Size (px) | Our plan |
 |---|---|---|
-| Header capsule | 920×430 | Four dads shoulder to shoulder at the end of a driveway at golden hour, minivan behind, logo across the lower third |
-| Small capsule | 462×174 | Logo only (must read at tiny sizes), with a sliver of the minivan grille |
-| Main capsule | 1232×706 | Same scene as the header, wider: the Maple Heights street with porch lights, a neighbour mid-wave, the logo |
-| Vertical capsule | 748×896 | The crew stacked vertically: Big Dave at the grill, Rick with the whistle, Gary with the clipboard, Doug in shades. Logo on top |
-| Page background (optional) | 1438×810 | Soft-focus Riverside festival string lights, low contrast |
-| Screenshots | at least 1920×1080, 16:9; at least 5; gameplay only; at least 4 marked all-ages ([review_process](https://partner.steamgames.com/doc/store/review_process)) | See the shot list below |
-| Library capsule | 600×900 | The vertical capsule art, recomposed |
-| Library header | 920×430 | Same as the header capsule |
-| Library hero | 3840×1240, **no text or logo**, keep the key art inside the 860×380 central safe area | Wide Maple Heights street at dusk, no characters at the edges |
-| Library logo | transparent PNG, 1280 px wide and/or 720 px tall | The "High Trust" wordmark in Bowlby One (OFL, so OK to use in the logo) |
-| Shortcut icon | 256×256 or 512×512, ICO/PNG | A yellow zip-tie loop, or the dad cap |
-| App icon | 184×184 JPG | same |
+| Header capsule | 920×430 | **Made:** `assets/store/header_capsule_920x430.jpg`. The crew walking down Maple at golden hour, minivan behind, stacked logo on the left over the title screen's dark scrim |
+| Small capsule | 462×174 (120×45 and 184×69 are generated) | **Made:** `small_capsule_462x174.jpg`. The logo nearly fills it ("your logo should nearly fill the small capsule"), the street and crew darkened behind |
+| Main capsule | 1232×706 | **Made:** `main_capsule_1232x706.jpg`. The full key art, one-line logo across the sky |
+| Vertical capsule | 748×896 | **Made:** `vertical_capsule_748x896.jpg`. Re-framed tall render of the same scene, stacked logo on top with the dad's cap in front of it |
+| Page background (optional) | 1438×810, "ambient so as not to compete with the content". Without one, Steam generates it from the last screenshot | **Made:** `page_background_1438x810.jpg`. The street, heavily blurred and darkened to the UI ink colour |
+| Screenshots | at least 1920×1080, 16:9; at least 5; "exclusively show the gameplay", no concept art or pre-rendered cinematic stills, menus only if they are a unique part of the game, no marketing copy or awards; mark at least 4 as all-ages (no gore, violence or suggestive themes) ([standard](https://partner.steamgames.com/doc/store/assets/standard)) | **Made:** `assets/store/screenshots/` (see the README there for the all-ages marks) |
+| Library capsule | 600×900 (a 300×450 PNG is generated) | **Made:** `library_capsule_600x900.jpg`. Tall re-render, stacked logo on top |
+| Library header | 920×430 (falls back to the header capsule when not set) | **Made:** `library_header_920x430.jpg`, the header capsule art |
+| Library hero | 3840×1240 PNG (a 1920×620 PNG is generated); "cannot include any text"; critical content inside the 860×380 safe area at the centre of the template | **Made:** `library_hero_3840x1240.png`. No text or logo; the dad's face sits inside the central 860×380 at full size and the whole crew inside it at the half-size template's scale |
+| Library logo | PNG, transparent background, 1280 px wide and/or 720 px tall; the logotype (and optional logomark) only. Placed over the hero (left bottom, centred top, middle or bottom) | **Made:** `library_logo.png` (1113×720, roof mark + wordmark in Bowlby One, OFL) |
+| Shortcut icon | 256×256, .ico or .png (Steam makes the .ico from a PNG) | **Made:** `shortcut_icon_256.png` and `shortcut_icon.ico` (16–256 px): the logo's roof mark over "HT" on the ink colour |
+| App icon | 184×184 .jpg, "small game logo or representative icon" | **Made:** `app_icon_184.jpg`, same mark |
 | Event cover / header | 800×450 / 1920×622 | for launch and update announcements |
 | Trailer | up to 1920×1080, H.264 .mp4, ≥ 5,000 kbps, 30/60 fps, AAC 44.1/48 kHz, 16:9. At least 1 gameplay trailer; release is blocked while a trailer is still processing ([trailer](https://partner.steamgames.com/doc/store/trailer)) | Beat sheet below |
 
