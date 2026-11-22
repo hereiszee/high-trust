@@ -1,0 +1,44 @@
+{
+ "tut": {
+  "shown": true,
+  "keycap": "U",
+  "text": "Walk up to the minivan and press E to drive"
+ },
+ "prompt": "U",
+ "boundX_press_X_reaches_window_as": [
+  "c/KeyC*"
+ ],
+ "boundZ_press_Z_reaches_window_as": [
+  " /Space*"
+ ],
+ "relabel_X_Z": {
+  "X": null,
+  "Z": null
+ },
+ "fwdOn4_shiftRelease": {
+  "down": true,
+  "afterRelease": true,
+  "movedAfterRelease": 4.16
+ },
+ "azerty": {
+  "physW_types_z": {
+   "keys": [
+    "z"
+   ],
+   "cur": "shotgun",
+   "map": false
+  },
+  "physA_types_q": {
+   "keys": [
+    "q"
+   ],
+   "cur": "shotgun",
+   "map": false
+  },
+  "labelled_M_key_opens_map": false,
+  "comma_key_opens_map": true
+ },
+ "url_after_mouse4": "about:blank",
+ "game_still_loaded": false,
+ "errs": []
+}

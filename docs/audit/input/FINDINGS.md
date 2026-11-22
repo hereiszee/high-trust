@@ -8,7 +8,7 @@ layouts and the back/forward mouse buttons, and a scripted Gamepad that `js/game
 (unlocking a job, walking to the point where the input matters) uses each job's own `test.give` / `test.step` bot; the input
 under test is always the real event.
 
-Counts: **BLOCKER 4 · MAJOR 13 · MINOR 8**
+Counts: **BLOCKER 4 · MAJOR 13 · MINOR 9**
 
 Pre-existing suites run first and all pass: `dev/keys.e2e.js` (20/20), `dev/pad.e2e.js` (18/18), `dev/aim-toggle.e2e.js` (all passed).
 
@@ -230,6 +230,7 @@ Pre-existing suites run first and all pass: `dev/keys.e2e.js` (20/20), `dev/pad.
 - **IN-23** Health label, health value and weapon slot numbers render at 10 px at 1280×720 and 1080p (fine on Deck, which forces 11 px). CONFIRMED (layout JSON).
 - **IN-24** Crossing job leftovers after it ends: an off-screen "Are you a cop?" element (`.cgx-b` at x≈1915) and Pastor Dee's subtitles keep playing over
   later screens (range menu, credits) (`deck-range-menu.jpg`, `deck-credits.jpg`). Not input, noted for the jobs auditor. CONFIRMED (screenshots, after `jobs.finish`).
+- **IN-26** At 3840×2160 with 100 % OS scaling the HUD and menus don't scale with resolution (objective text ~half the physical size of 1080p); Interface size offers at most 125 % (`js/platform.js:69`) though the shell accepts 150 %. Most 4K Windows setups run 150 % scaling, which hides it. CONFIRMED (screenshot `4k-hud-hub.jpg`).
 - **IN-25** Pad diagram / Controls page: "Jog (click) L3" doesn't say it drops when the stick is released (which is what breaks IN-05); no row for
   choice strips (D-pad ↑↓ + A), the phone (RT), decorate (none), or the jet's B look back. "Esc" on Calendar/pause keycaps maps to Menu, but B is the back button everywhere else.
 
@@ -242,7 +243,23 @@ truncated in an `overflow:hidden` box, overlapping another text box, under 11 de
 on every size (design, not defects) — the table counts only what was confirmed by eye in the screenshot. Deck = 1280×800 at 110 % (CSS 1164×727 @1.1),
 `html.ht-deck`, pad prompts.
 
-LAYOUT_TABLE
+| Screen | Deck 1280×800 @110 % | 1280×720 | 1920×1080 | 2560×1080 | 3840×2160 |
+|---|---|---|---|---|---|
+| Title | clean | clean | clean | clean | clean (small, IN-26) |
+| HUD on foot | clean | 10 px health / slot numbers (IN-23) | same (IN-23) | clean, corners stretch fine | tiny HUD (IN-26) |
+| Pause: Controls / Display / Audio / Controls & keys / Save data | clean (keys list scrolls) | clean | clean | clean | clean |
+| Full map | clean | title overlaps region labels (IN-22) | clean | clean | clean |
+| Shops (Hank's, Dad's Auto, Dadazon) / Locker | clean (footer keys, see IN-18) | not reached by the walk* | clean; active "GUNS" tab label near-invisible in one shot (SUSPECTED, transition timing) | clean | clean |
+| Job brief / Calendar | clean | not reached* | clean | clean | clean |
+| Job HUD (Crossing) / Result card | clean | clean | clean | clean | not reached (time) |
+| Range rack menu | banner + feed show through (IN-17) | menu not opened* | menu not opened* | menu not opened* | not reached |
+| Jet | feed under teach box / HDG (IN-17); keyboard strip on pad (IN-08) | clean | clean | clean | not reached |
+| Tank | keyboard feed on pad, "R3 HOOD" (IN-08) | clean | clean | clean | not reached |
+| Credits | clean (stale subtitles over it, IN-24) | clean | clean | clean | not reached |
+
+\* The walk runs the page live; at 720p/1080p/ultrawide the pause screen sometimes stayed up or the van was still occupied, so some screens weren't opened in that run.
+Screenshots: `docs/audit/input/layout/<size>-<screen>.jpg`; raw checks: `dev/audit/input/out/layout-<size>.json`.
+
 
 ---
 
@@ -261,4 +278,4 @@ LAYOUT_TABLE
 - Jet landing, eject and the ride back on the pad: the key mapping is verified (pad.e2e), the flight itself was not flown.
 - Pointer-lock loss/regain: headless Chromium refuses pointer lock, so lock-specific behaviour (re-lock prompt after Esc) can't be exercised here.
 - Real Steam Deck hardware, Steam Input remapping, real AZERTY/Dvorak OS layouts (simulated with CDP key/code pairs), key auto-repeat timing from a real keyboard.
-- 3840×2160 at DPR 1 is very heavy for SwiftShader; see the table for what completed.
+- 3840×2160 at DPR 1 is very heavy for SwiftShader: 14 of 20 screens completed before the time limit (job HUD, result, range, jet, tank, credits not reached).

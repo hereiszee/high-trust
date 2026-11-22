@@ -1,0 +1,23 @@
+{
+ "setup": {
+  "f": 881,
+  "cv": "minivan",
+  "ok": true,
+  "link": false,
+  "state": "go"
+ },
+ "hud": "A",
+ "leaks": [],
+ "afterHoldY": {
+  "inCar": true,
+  "link": false
+ },
+ "afterHoldA": {
+  "inCar": true,
+  "link": false,
+  "e": false,
+  "space": true
+ },
+ "keys": "e ^e   ^ "
+}
+errs []
