@@ -2592,7 +2592,7 @@ function updPlayer(dt){
   else{
     const wx=l>.1?mv.x*sp/Math.max(1,l):0,wz=l>.1?mv.z*sp/Math.max(1,l):0;
     if(P.onGround){P.hv.x=wx;P.hv.z=wz}else{const k=Math.min(1,dt*MOVE.air);P.hv.x+=(wx-P.hv.x)*k;P.hv.z+=(wz-P.hv.z)*k}
-    const ox=P.pos.x,oz=P.pos.z,wasFree=!solidAt(ox,oz,.3,P.pos.y);P.pos.x+=P.hv.x*dt;P.pos.z+=P.hv.z*dt;collide(P.pos,.35,P.pos.y);
+    const ox=P.pos.x,oz=P.pos.z,wasFree=!solidAt(ox,oz,.3,P.pos.y);P.pos.x+=P.hv.x*dt;P.pos.z+=P.hv.z*dt;collide(P.pos,.35,P.pos.y);edgeClamp(P.pos);
     /* a pinch the push-out cannot solve (two boxes closer than a body): slide one axis at a time from the last free spot instead */
     if(wasFree&&solidAt(P.pos.x,P.pos.z,.3,P.pos.y)){P.pos.x=ox+P.hv.x*dt;P.pos.z=oz;if(solidAt(P.pos.x,P.pos.z,.3,P.pos.y))P.pos.x=ox;P.pos.z=oz+P.hv.z*dt;if(solidAt(P.pos.x,P.pos.z,.3,P.pos.y))P.pos.z=oz}
     if(P.jumpBuf>0&&!(P.standT>0)&&(P.onGround||P.coyoteT>0||P.vy<=1)){const ml=Math.hypot(mv.x,mv.z);
@@ -2710,7 +2710,13 @@ function updMission(dt){
 /* Riverside neighbours on the porches (more as trust rises), in free roam and during world jobs; anyone near gunfire goes indoors */
 function owNeighbours(dt){const O=OW();if(!O||!O.neighbours||!L||!L.ow)return;const sh=[];if(simT-P.lastShotT<.4)sh.push({x:P.pos.x,z:P.pos.z});for(const e of enemies)if(e.state==='idle'&&e.alert&&e.target)sh.push({x:e.pos.x,z:e.pos.z});
   O.neighbours(dt,{player:P.pos,camera,trust:prog.trustR||0,river:O.regionAt(P.pos.x,P.pos.z)==='river',shots:sh})}
+/* the open world's edge: the map rectangle ends in a tree line (tile 0 and the last tile), with the far backdrop just past it.
+   On foot and at the wheel you stop inside the trees, so the backdrop stays a backdrop (playthrough audit PT-08) */
+const EDGE_M=3.4;
+function edgeClamp(p,e){if(mode!=='hub'||!L||!L.ow)return false;const x1=L.W*TILE-EDGE_M,z1=L.H*TILE-EDGE_M,x=clamp(p.x,EDGE_M,x1),z=clamp(p.z,EDGE_M,z1);if(x===p.x&&z===p.z)return false;
+  p.x=x;p.z=z;if(e){e.spd=0;if(e.car)e.car.spd=0}return true}
 function updHub(dt){
+  if(VAN.on&&CV&&edgeClamp(CV.pos,CV))syncCar(CV);
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
   let prompt=null,target=null;const mp=metaHubUpd(dt);
