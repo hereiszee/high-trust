@@ -186,5 +186,6 @@ material), no floating or sunken characters or cars within 60 m at any stop (fee
   coverage table); not run.
 - **Real GPU**: shadow acne, light leaks and pop-in were judged from SwiftShader frames at Medium; frame times are never reported.
 - **Pointer lock / raw mouse**: headless refuses pointer lock; the view was set directly where aiming mattered.
-- **Minimap mismatches**: under stepped time the minimap and region banner don't update (harness artefact); with the page's own loop
-  running (`lib.js live()`), the minimap matched the location in the shots checked (`sneak-closed.jpg`, `homeexit-*.jpg`).
+- **Minimap mismatches**: under stepped time the minimap and region banner don't update (harness artefact), so most tour shots show a
+  stale minimap. Walking with real keys it matched (`sneak-closed.jpg`). After a jump it looked unchanged between the base and Dad's
+  Auto shots (`homeexit-base.jpg` vs `homeexit-auto.jpg`), but I could not rule out the harness, so no finding is raised (SUSPECTED at most).
