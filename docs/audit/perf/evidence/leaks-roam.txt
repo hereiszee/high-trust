@@ -1,0 +1,24 @@
+start {"geo":245,"tex":117,"progs":98,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":590,"mode":"hub","heapMB":77,"rendererMB":2393,"gpuMB":746,"jsListeners":528,"domNodesAll":928}
+roam 1 {"geo":320,"tex":130,"progs":105,"objs":2313,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3285,"mode":"hub","heapMB":83.5,"rendererMB":2265,"gpuMB":757,"jsListeners":444,"domNodesAll":893}
+roam 2 {"geo":347,"tex":130,"progs":106,"objs":2359,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4746,"mode":"hub","heapMB":87.6,"rendererMB":2300,"gpuMB":765,"jsListeners":394,"domNodesAll":896}
+roam 3 {"geo":392,"tex":133,"progs":108,"objs":2473,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":5876,"mode":"hub","heapMB":91.3,"rendererMB":2388,"gpuMB":774,"jsListeners":440,"domNodesAll":896}
+roam 4 {"geo":393,"tex":133,"progs":108,"objs":2616,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":7100,"mode":"hub","heapMB":95.3,"rendererMB":2373,"gpuMB":773,"jsListeners":464,"domNodesAll":903}
+roam 5 {"geo":700,"tex":176,"progs":119,"objs":2704,"dom":501,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":8735,"mode":"hub","heapMB":100.6,"rendererMB":2401,"gpuMB":925,"jsListeners":500,"domNodesAll":903}
+roam 6 {"geo":778,"tex":190,"progs":122,"objs":2902,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":10111,"mode":"hub","heapMB":105.5,"rendererMB":2461,"gpuMB":959,"jsListeners":376,"domNodesAll":924}
+roam 7 {"geo":969,"tex":213,"progs":123,"objs":3143,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":11758,"mode":"hub","heapMB":110.6,"rendererMB":2522,"gpuMB":1047,"jsListeners":464,"domNodesAll":944}
+roam 8 {"geo":1107,"tex":225,"progs":129,"objs":3390,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":13031,"mode":"hub","heapMB":116.8,"rendererMB":2532,"gpuMB":1067,"jsListeners":446,"domNodesAll":946}
+roam 9 {"geo":1132,"tex":226,"progs":129,"objs":3650,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":14259,"mode":"hub","heapMB":123.6,"rendererMB":2544,"gpuMB":1072,"jsListeners":443,"domNodesAll":969}
+roam 10 {"geo":1341,"tex":248,"progs":138,"objs":3791,"dom":513,"listeners":106,"intervals":3,"timeouts":1,"ac":3,"nodes":16580,"mode":"hub","heapMB":129.2,"rendererMB":2565,"gpuMB":1119,"jsListeners":400,"domNodesAll":965}
+roam 11 {"geo":1470,"tex":258,"progs":138,"objs":3986,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":17814,"mode":"hub","heapMB":132.5,"rendererMB":2524,"gpuMB":1144,"jsListeners":429,"domNodesAll":962}
+roam 12 {"geo":1474,"tex":258,"progs":138,"objs":4005,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":18805,"mode":"hub","heapMB":133.4,"rendererMB":2528,"gpuMB":1145,"jsListeners":406,"domNodesAll":958}
+roam 13 {"geo":1479,"tex":258,"progs":138,"objs":4005,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":19512,"mode":"hub","heapMB":133.1,"rendererMB":2529,"gpuMB":1145,"jsListeners":373,"domNodesAll":958}
+roam 14 {"geo":1486,"tex":258,"progs":138,"objs":4005,"dom":513,"listeners":106,"intervals":3,"timeouts":1,"ac":3,"nodes":20302,"mode":"hub","heapMB":133.2,"rendererMB":2530,"gpuMB":1145,"jsListeners":369,"domNodesAll":975}
+roam 15 {"geo":1489,"tex":258,"progs":138,"objs":4005,"dom":502,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":21527,"mode":"hub","heapMB":133.1,"rendererMB":2549,"gpuMB":1147,"jsListeners":389,"domNodesAll":958}
+SLOPE per cycle (cycles 2..N): {"rendererMB":16.589,"gpuMB":33.145,"jsListeners":-4.952,"domNodesAll":6.222,"heapMB":4,"geo":102.578,"tex":11.393,"progs":2.8,"objs":148.312,"dom":0.426,"listeners":0,"intervals":0,"timeouts":0.031,"ac":0,"nodes":1347.793}
+scene object groups changed (cycle 1 -> last): +492 /Group/Group/dressing, +403 /Group/Group/Mesh, +201 /Group/Group/Group, +72 /Group/Group/w:imp, +44 /Group/Group/m:, +26 /Group/Group/w:grass, +20 /Group/Group/w:lot, +20 /Group/Group/barricade, +16 /Group/Group/w:walk, +16 /Group/Group/w:joint, +16 /Group/Group/w:galv, +15 /Group/Group/w:curb, -13 /Group/traffic/vehicle_hatch, -13 /Group/traffic/vehicle_workvan, +13 /Group/traffic/vehicle_suv
+listener types changed (cycle 1 -> last): none
+notes: 
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []

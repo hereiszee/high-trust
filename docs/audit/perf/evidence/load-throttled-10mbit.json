@@ -1,0 +1,1707 @@
+{
+ "url": "http://127.0.0.1:8001/",
+ "throttle": true,
+ "visits": [
+  {
+   "label": "first visit",
+   "tStartMs": 7041,
+   "tFullMs": 53864,
+   "ldText": "Ready · streaming details…",
+   "atStart": {
+    "requests": 102,
+    "bytes": 7942931,
+    "localRequests": 102,
+    "localBytes": 7942931,
+    "fromSW": 0
+   },
+   "total": {
+    "requests": 210,
+    "bytes": 29419671
+   },
+   "failed": [],
+   "files": [
+    {
+     "url": "",
+     "kb": 199,
+     "t": 0,
+     "dur": 0.52,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-condensed-700.woff2",
+     "kb": 22,
+     "t": 0.05,
+     "dur": 0.15,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-condensed-800.woff2",
+     "kb": 22,
+     "t": 0.05,
+     "dur": 0.15,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-600.woff2",
+     "kb": 22,
+     "t": 0.05,
+     "dur": 0.15,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/bowlby-one-400.woff2",
+     "kb": 21,
+     "t": 0.05,
+     "dur": 0.19,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/three.min.js",
+     "kb": 147,
+     "t": 0.05,
+     "dur": 0.65,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "css/hud.css",
+     "kb": 20,
+     "t": 0.05,
+     "dur": 0.14,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "css/menus.css",
+     "kb": 10,
+     "t": 0.05,
+     "dur": 0.1,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/loaders/GLTFLoader.js",
+     "kb": 22,
+     "t": 0.06,
+     "dur": 0.25,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/loaders/RGBELoader.js",
+     "kb": 4,
+     "t": 0.06,
+     "dur": 0.21,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/libs/meshopt_decoder.js",
+     "kb": 6,
+     "t": 0.06,
+     "dur": 0.22,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/utils/SkeletonUtils.js",
+     "kb": 3,
+     "t": 0.06,
+     "dur": 0.23,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/shaders/CopyShader.js",
+     "kb": 1,
+     "t": 0.06,
+     "dur": 0.25,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/shaders/LuminosityHighPassShader.js",
+     "kb": 1,
+     "t": 0.06,
+     "dur": 0.26,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/shaders/FXAAShader.js",
+     "kb": 8,
+     "t": 0.06,
+     "dur": 0.3,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/postprocessing/EffectComposer.js",
+     "kb": 2,
+     "t": 0.06,
+     "dur": 0.3,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/postprocessing/ShaderPass.js",
+     "kb": 1,
+     "t": 0.06,
+     "dur": 0.3,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js",
+     "kb": 3,
+     "t": 0.06,
+     "dur": 0.31,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/hud.js",
+     "kb": 46,
+     "t": 0.06,
+     "dur": 0.52,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/credits.js",
+     "kb": 2,
+     "t": 0.06,
+     "dur": 0.35,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/fx.js",
+     "kb": 33,
+     "t": 0.06,
+     "dur": 0.49,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/audio.js",
+     "kb": 25,
+     "t": 0.06,
+     "dur": 0.47,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/guns.js",
+     "kb": 34,
+     "t": 0.06,
+     "dur": 0.52,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/buildings.js",
+     "kb": 31,
+     "t": 0.06,
+     "dur": 0.62,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/vehicles.js",
+     "kb": 37,
+     "t": 0.06,
+     "dur": 0.64,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/worldgen.js",
+     "kb": 18,
+     "t": 0.06,
+     "dur": 0.6,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/carai.js",
+     "kb": 12,
+     "t": 0.06,
+     "dur": 0.62,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/world.js",
+     "kb": 47,
+     "t": 0.06,
+     "dur": 0.7,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/roadgraph.js",
+     "kb": 4,
+     "t": 0.06,
+     "dur": 0.66,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/openworld.js",
+     "kb": 73,
+     "t": 0.06,
+     "dur": 0.92,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/people.js",
+     "kb": 26,
+     "t": 0.06,
+     "dur": 0.75,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/save.js",
+     "kb": 67,
+     "t": 0.06,
+     "dur": 0.94,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/home.js",
+     "kb": 60,
+     "t": 0.06,
+     "dur": 0.92,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/ai.js",
+     "kb": 28,
+     "t": 0.06,
+     "dur": 0.8,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_registry.js",
+     "kb": 4,
+     "t": 0.06,
+     "dur": 0.76,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/base.js",
+     "kb": 15,
+     "t": 0.06,
+     "dur": 0.86,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/range.js",
+     "kb": 18,
+     "t": 0.06,
+     "dur": 0.88,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/tank.js",
+     "kb": 15,
+     "t": 0.06,
+     "dur": 0.91,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/jet.js",
+     "kb": 29,
+     "t": 0.06,
+     "dur": 0.96,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/eggs.js",
+     "kb": 7,
+     "t": 0.06,
+     "dur": 0.94,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/manifest.json",
+     "kb": 9,
+     "t": 0.2,
+     "dur": 0.83,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/keys.js",
+     "kb": 5,
+     "t": 0.52,
+     "dur": 0.51,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/gamepad.js",
+     "kb": 9,
+     "t": 0.52,
+     "dur": 0.52,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/platform.js",
+     "kb": 4,
+     "t": 0.52,
+     "dur": 0.52,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-condensed-600.woff2",
+     "kb": 22,
+     "t": 1.07,
+     "dur": 0.81,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-condensed-500.woff2",
+     "kb": 21,
+     "t": 1.08,
+     "dur": 0.95,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/fonts/barlow-500.woff2",
+     "kb": 22,
+     "t": 1.09,
+     "dur": 1.09,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/Sofa_01.glb",
+     "kb": 443,
+     "t": 1.15,
+     "dur": 2.03,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/ArmChair_01.glb",
+     "kb": 239,
+     "t": 1.15,
+     "dur": 1.11,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/wooden_bookshelf_worn.glb",
+     "kb": 296,
+     "t": 1.15,
+     "dur": 1.32,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_rugRectangle.glb",
+     "kb": 1,
+     "t": 1.15,
+     "dur": 0.05,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_rugRounded.glb",
+     "kb": 3,
+     "t": 1.15,
+     "dur": 0.06,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_cabinetTelevision.glb",
+     "kb": 2,
+     "t": 1.15,
+     "dur": 0.06,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_televisionModern.glb",
+     "kb": 2,
+     "t": 1.15,
+     "dur": 0.1,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/fancy_picture_frame_01.glb",
+     "kb": 188,
+     "t": 1.15,
+     "dur": 0.99,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/hanging_picture_frame_01.glb",
+     "kb": 97,
+     "t": 1.16,
+     "dur": 0.57,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/potted_plant_04.glb",
+     "kb": 222,
+     "t": 1.16,
+     "dur": 1.15,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/pixel_combination_safe.glb",
+     "kb": 2,
+     "t": 1.16,
+     "dur": 1.04,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_bedDouble.glb",
+     "kb": 4,
+     "t": 1.16,
+     "dur": 1.08,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_kitchenFridgeLarge.glb",
+     "kb": 6,
+     "t": 1.16,
+     "dur": 1.11,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_kitchenStove.glb",
+     "kb": 11,
+     "t": 1.16,
+     "dur": 1.16,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_kitchenSink.glb",
+     "kb": 5,
+     "t": 1.16,
+     "dur": 1.17,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_kitchenCabinet.glb",
+     "kb": 2,
+     "t": 1.16,
+     "dur": 1.16,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/metal_tool_chest.glb",
+     "kb": 236,
+     "t": 1.16,
+     "dur": 2.27,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/bench_vice_01.glb",
+     "kb": 231,
+     "t": 1.16,
+     "dur": 2.27,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/round_wooden_table_02.glb",
+     "kb": 193,
+     "t": 1.16,
+     "dur": 2.12,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/painted_wooden_chair_02.glb",
+     "kb": 176,
+     "t": 1.16,
+     "dur": 2.06,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_lampRoundFloor.glb",
+     "kb": 2,
+     "t": 1.16,
+     "dur": 1.37,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/dartboard.glb",
+     "kb": 286,
+     "t": 1.16,
+     "dur": 2.69,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/modern_coffee_table_01.glb",
+     "kb": 132,
+     "t": 1.16,
+     "dur": 2.61,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/kenney_trophy.glb",
+     "kb": 13,
+     "t": 1.16,
+     "dur": 2.15,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/home/pixel_barbecue_grill.glb",
+     "kb": 10,
+     "t": 1.16,
+     "dur": 2.21,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/boot.webp.7444d6a7.bin",
+     "kb": 2514,
+     "t": 1.71,
+     "dur": 4.86,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/garagedoor_col.l.39e9bdf2.webp",
+     "kb": 4,
+     "t": 2.74,
+     "dur": 0.69,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/garagedoor_nrm.l.3fa299af.webp",
+     "kb": 4,
+     "t": 2.74,
+     "dur": 0.75,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/door6_col.l.fa99d21e.webp",
+     "kb": 2,
+     "t": 2.74,
+     "dur": 0.74,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/door6_nrm.l.9bdc9c46.webp",
+     "kb": 3,
+     "t": 2.74,
+     "dur": 0.75,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/shutter_col.l.2b783caf.webp",
+     "kb": 71,
+     "t": 2.74,
+     "dur": 1.11,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/shutter_nrm.l.51c53902.webp",
+     "kb": 58,
+     "t": 2.74,
+     "dur": 1.07,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/woodfloor_col.l.885f5e50.webp",
+     "kb": 120,
+     "t": 2.74,
+     "dur": 1.21,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/woodfloor_nrm.l.364aae93.webp",
+     "kb": 18,
+     "t": 2.74,
+     "dur": 1.14,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/interiors.l.64a0af25.webp",
+     "kb": 5,
+     "t": 3.44,
+     "dur": 0.43,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/anims.l.10415686.glb",
+     "kb": 447,
+     "t": 5.59,
+     "dur": 1.09,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_player.l.8b8ee507.glb",
+     "kb": 472,
+     "t": 5.6,
+     "dur": 1.11,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_track.l.aefb516d.glb",
+     "kb": 540,
+     "t": 6.78,
+     "dur": 2.66,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_f_hood.l.9327ac9a.glb",
+     "kb": 582,
+     "t": 6.78,
+     "dur": 2.89,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_fro.l.787c7927.glb",
+     "kb": 648,
+     "t": 6.78,
+     "dur": 3.2,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_f_leather.l.0d6de540.glb",
+     "kb": 640,
+     "t": 6.78,
+     "dur": 3.17,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_beanie.l.b13e22e9.glb",
+     "kb": 610,
+     "t": 6.78,
+     "dur": 3.02,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_brown.l.4f481031.glb",
+     "kb": 413,
+     "t": 6.78,
+     "dur": 2.08,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/lapsiding_col.l.7cdab42f.webp",
+     "kb": 17,
+     "t": 6.96,
+     "dur": 3.14,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/lapsiding_nrm.l.80b0b1ff.webp",
+     "kb": 2,
+     "t": 6.97,
+     "dur": 3.2,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/lapsiding_rgh.l.ac4e326c.webp",
+     "kb": 2,
+     "t": 6.97,
+     "dur": 3.25,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/stucco_col.l.cf26a1ec.webp",
+     "kb": 178,
+     "t": 6.97,
+     "dur": 4.16,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/stucco_nrm.l.cdc610f5.webp",
+     "kb": 82,
+     "t": 7.02,
+     "dur": 4.54,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/stucco_rgh.l.1d8174fa.webp",
+     "kb": 7,
+     "t": 7.02,
+     "dur": 4.32,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/shingle_col.l.a95d3c5a.webp",
+     "kb": 154,
+     "t": 7.02,
+     "dur": 5.04,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/guns/ph_pistol.l.d0f3b9b2.glb",
+     "kb": 578,
+     "t": 7.02,
+     "dur": 4.63,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/guns/ph_bolt_rifle.l.38da70d1.glb",
+     "kb": 1311,
+     "t": 7.02,
+     "dur": 6.34,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/guns/oga_m4a1.l.da498af2.glb",
+     "kb": 325,
+     "t": 7.02,
+     "dur": 4.24,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_player.l.8b8ee507.glb",
+     "kb": 0,
+     "t": 7.02,
+     "dur": 0.01,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/shingle_nrm.l.c546fbd7.webp",
+     "kb": 94,
+     "t": 7.02,
+     "dur": 4.99,
+     "beforeStart": true,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_stops.js",
+     "kb": 17,
+     "t": 9.38,
+     "dur": 2.39,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_pops.l.41363df5.glb",
+     "kb": 711,
+     "t": 9.41,
+     "dur": 3.32,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_marcus.l.e9cd2db1.glb",
+     "kb": 498,
+     "t": 9.41,
+     "dur": 2.77,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/crate.l.72f2cb06.glb",
+     "kb": 42,
+     "t": 12.29,
+     "dur": 0.24,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/crate_long.l.ec14d1ab.glb",
+     "kb": 35,
+     "t": 12.3,
+     "dur": 0.22,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/table_dining.l.98d80e69.glb",
+     "kb": 121,
+     "t": 12.3,
+     "dur": 0.55,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/shingle_rgh.l.60b21b0c.webp",
+     "kb": 37,
+     "t": 12.3,
+     "dur": 0.23,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/corrugated_col.l.c88c97bd.webp",
+     "kb": 124,
+     "t": 12.3,
+     "dur": 0.67,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/corrugated_nrm.l.7ed70eaa.webp",
+     "kb": 6,
+     "t": 12.3,
+     "dur": 0.3,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/corrugated_rgh.l.65aee0a4.webp",
+     "kb": 37,
+     "t": 12.3,
+     "dur": 0.45,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/brick_col.l.999f98b2.webp",
+     "kb": 99,
+     "t": 12.3,
+     "dur": 0.66,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_race.js",
+     "kb": 5,
+     "t": 12.31,
+     "dur": 0.48,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/brick_nrm.l.5ad8b9b0.webp",
+     "kb": 46,
+     "t": 18.55,
+     "dur": 0.16,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/brick_rgh.l.31a4cd0c.webp",
+     "kb": 4,
+     "t": 18.55,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/concrete_col.l.37d3079d.webp",
+     "kb": 47,
+     "t": 18.55,
+     "dur": 0.16,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/concrete_nrm.l.acab56fc.webp",
+     "kb": 49,
+     "t": 18.56,
+     "dur": 0.16,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex2/concrete_rgh.l.4c66b3c9.webp",
+     "kb": 9,
+     "t": 19.63,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_escort.js",
+     "kb": 4,
+     "t": 19.64,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/trashbag.l.cfd823fa.glb",
+     "kb": 129,
+     "t": 20.73,
+     "dur": 0.49,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/asphalt_col.l.77c929d3.jpg",
+     "kb": 383,
+     "t": 20.74,
+     "dur": 0.91,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/rustmetal_col.l.ce99dc88.webp",
+     "kb": 61,
+     "t": 20.77,
+     "dur": 0.3,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/asphalt_nrm.l.a04461ab.webp",
+     "kb": 50,
+     "t": 20.81,
+     "dur": 0.28,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/asphalt_rgh.l.74e69063.jpg",
+     "kb": 63,
+     "t": 20.81,
+     "dur": 0.34,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/sidewalk_col.l.937bc758.jpg",
+     "kb": 392,
+     "t": 20.81,
+     "dur": 0.87,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/sidewalk_nrm.l.a07de270.webp",
+     "kb": 10,
+     "t": 20.81,
+     "dur": 0.35,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/anims.l.10415686.glb",
+     "kb": 0,
+     "t": 22.06,
+     "dur": 0.01,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/sidewalk_rgh.l.7cc9aaf0.webp",
+     "kb": 17,
+     "t": 23.3,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_props.js",
+     "kb": 6,
+     "t": 23.3,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_player.l.8b8ee507.glb",
+     "kb": 0,
+     "t": 24.41,
+     "dur": 0,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/grass_col.l.c5a26422.jpg",
+     "kb": 321,
+     "t": 24.41,
+     "dur": 0.5,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/grass_nrm.l.d2e3483e.jpg",
+     "kb": 88,
+     "t": 24.41,
+     "dur": 0.29,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/grass_rgh.l.2c598faf.jpg",
+     "kb": 74,
+     "t": 24.41,
+     "dur": 0.27,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/concfloor_col.l.5132c157.webp",
+     "kb": 51,
+     "t": 24.41,
+     "dur": 0.21,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/concfloor_nrm.l.d5e235ce.webp",
+     "kb": 2,
+     "t": 24.41,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/concfloor_rgh.l.804a719d.webp",
+     "kb": 23,
+     "t": 25.5,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/_runner.js",
+     "kb": 18,
+     "t": 25.57,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/woodfloor_rgh.l.39ee9a24.webp",
+     "kb": 9,
+     "t": 26.7,
+     "dur": 0.08,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/mulch_col.l.d9e727d8.webp",
+     "kb": 348,
+     "t": 26.7,
+     "dur": 0.66,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/mulch_nrm.l.6c0bb17f.webp",
+     "kb": 110,
+     "t": 26.7,
+     "dur": 0.35,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/mulch_rgh.l.1ac0e6f3.webp",
+     "kb": 35,
+     "t": 26.7,
+     "dur": 0.16,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/pavers_col.l.f7f05b2f.webp",
+     "kb": 225,
+     "t": 26.7,
+     "dur": 0.54,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/pavers_nrm.l.6a5e74cd.webp",
+     "kb": 40,
+     "t": 27.88,
+     "dur": 0.09,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/pavers_rgh.l.26f61777.webp",
+     "kb": 3,
+     "t": 27.9,
+     "dur": 0.07,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/roof_col.l.6c56610a.webp",
+     "kb": 130,
+     "t": 28.92,
+     "dur": 0.36,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/roof_nrm.l.19e3814e.webp",
+     "kb": 49,
+     "t": 28.93,
+     "dur": 0.25,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/roof_rgh.l.871fbc41.webp",
+     "kb": 59,
+     "t": 28.93,
+     "dur": 0.27,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/siding_col.l.cf53fda0.webp",
+     "kb": 83,
+     "t": 28.93,
+     "dur": 0.32,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/siding_nrm.l.8bbda40d.webp",
+     "kb": 17,
+     "t": 28.93,
+     "dur": 0.13,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/siding_rgh.l.d2ab3fd9.webp",
+     "kb": 13,
+     "t": 28.93,
+     "dur": 0.11,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/taxi.js",
+     "kb": 26,
+     "t": 28.93,
+     "dur": 0.25,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plywood_col.l.4c2e610a.webp",
+     "kb": 249,
+     "t": 30.08,
+     "dur": 0.26,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plywood_nrm.l.1c5a72a6.webp",
+     "kb": 4,
+     "t": 30.08,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plywood_rgh.l.3a5f1a85.webp",
+     "kb": 27,
+     "t": 32.64,
+     "dur": 0.14,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/paintwall_col.l.ee1d154e.webp",
+     "kb": 132,
+     "t": 32.64,
+     "dur": 0.4,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/paintwall_nrm.l.c3a6391e.webp",
+     "kb": 10,
+     "t": 32.64,
+     "dur": 0.09,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/paintwall_rgh.l.1cb9e791.webp",
+     "kb": 1,
+     "t": 32.64,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/world/leak_a.l.b6d2c800.webp",
+     "kb": 33,
+     "t": 32.64,
+     "dur": 0.17,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/world/leak_b.l.7cc458ea.webp",
+     "kb": 9,
+     "t": 32.64,
+     "dur": 0.09,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/world/asphalt_patch.l.a8718402.webp",
+     "kb": 72,
+     "t": 32.64,
+     "dur": 0.34,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_rick.l.aaa87b63.glb",
+     "kb": 611,
+     "t": 32.64,
+     "dur": 0.81,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/blitz.js",
+     "kb": 34,
+     "t": 32.64,
+     "dur": 0.25,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_kid.l.4ef890d7.glb",
+     "kb": 361,
+     "t": 33.92,
+     "dur": 1.59,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_teen.l.5c31ca9e.glb",
+     "kb": 583,
+     "t": 33.92,
+     "dur": 2.66,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_gran.l.ec4847e4.glb",
+     "kb": 670,
+     "t": 33.92,
+     "dur": 3.07,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_sweater.l.da7fd218.glb",
+     "kb": 539,
+     "t": 33.92,
+     "dur": 2.46,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/nb_lucia.l.1ae86bcc.glb",
+     "kb": 622,
+     "t": 33.92,
+     "dur": 2.86,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/sky/sky_2k.l.ee123758.webp",
+     "kb": 51,
+     "t": 35.01,
+     "dur": 0.29,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_dave.l.06be9fb1.glb",
+     "kb": 502,
+     "t": 35.01,
+     "dur": 2.7,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/sky/sky_1k.l.a4f76af8.hdr",
+     "kb": 269,
+     "t": 35.01,
+     "dur": 1.84,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_doug.l.c0724db6.glb",
+     "kb": 458,
+     "t": 35.01,
+     "dur": 3.39,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_hoodie.l.138dc366.glb",
+     "kb": 377,
+     "t": 35.01,
+     "dur": 3.27,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_red.l.e707f792.glb",
+     "kb": 578,
+     "t": 35.01,
+     "dur": 3.86,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_cap.l.84fb97b5.glb",
+     "kb": 515,
+     "t": 35.02,
+     "dur": 3.77,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/talk.js",
+     "kb": 21,
+     "t": 35.02,
+     "dur": 2.12,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/rustmetal_nrm.l.883a0920.webp",
+     "kb": 9,
+     "t": 37.39,
+     "dur": 0.08,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/thug_jacket.l.4ef52dc7.glb",
+     "kb": 574,
+     "t": 37.39,
+     "dur": 1.61,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/social.js",
+     "kb": 15,
+     "t": 39.09,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "css/social.css",
+     "kb": 4,
+     "t": 39.09,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/rustmetal_rgh.l.650ae7d8.webp",
+     "kb": 4,
+     "t": 39.15,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/boss.l.313f0fea.glb",
+     "kb": 423,
+     "t": 40.34,
+     "dur": 0.43,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/mower.js",
+     "kb": 37,
+     "t": 40.34,
+     "dur": 0.11,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/people/rocketbox/dad_gary.l.93b105f1.glb",
+     "kb": 723,
+     "t": 41.46,
+     "dur": 0.66,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/overwatch.js",
+     "kb": 34,
+     "t": 42.68,
+     "dur": 0.07,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/fence_col.l.2f8dcbaf.webp",
+     "kb": 73,
+     "t": 43.81,
+     "dur": 0.14,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/fence_nrm.l.22e99804.webp",
+     "kb": 38,
+     "t": 43.83,
+     "dur": 0.11,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/fence_rgh.l.154b1bb2.jpg",
+     "kb": 62,
+     "t": 44.99,
+     "dur": 0.11,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/metal_col.l.dda92bd0.webp",
+     "kb": 136,
+     "t": 45.03,
+     "dur": 0.17,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/metal_nrm.l.c259bb83.webp",
+     "kb": 7,
+     "t": 46.07,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/metal_rgh.l.9bec850d.webp",
+     "kb": 11,
+     "t": 46.09,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plaster_col.l.07e0f3a7.webp",
+     "kb": 149,
+     "t": 46.09,
+     "dur": 0.21,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plaster_nrm.l.a464b5a0.webp",
+     "kb": 7,
+     "t": 46.1,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/sabotage.js",
+     "kb": 31,
+     "t": 46.1,
+     "dur": 0.1,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/plaster_rgh.l.c8665331.webp",
+     "kb": 5,
+     "t": 47.2,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/tex/fence_alpha.l.9ac85011.webp",
+     "kb": 62,
+     "t": 47.2,
+     "dur": 0.11,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/stealth.js",
+     "kb": 11,
+     "t": 47.29,
+     "dur": 0.05,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/crate_slat.l.9be3b866.glb",
+     "kb": 39,
+     "t": 48.42,
+     "dur": 0.13,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/barrel_blue.l.86643ad7.glb",
+     "kb": 99,
+     "t": 48.43,
+     "dur": 0.36,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/barrel_red.l.639387b6.glb",
+     "kb": 131,
+     "t": 48.43,
+     "dur": 0.41,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/world/hanging_industrial_lamp.l.3e74ab04.glb",
+     "kb": 203,
+     "t": 48.43,
+     "dur": 0.48,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/pallet.l.e6486075.glb",
+     "kb": 29,
+     "t": 48.43,
+     "dur": 0.18,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/hoa.js",
+     "kb": 30,
+     "t": 48.43,
+     "dur": 0.19,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/table_low.l.10218101.glb",
+     "kb": 99,
+     "t": 49.56,
+     "dur": 0.29,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/tyre.l.d1b11e76.glb",
+     "kb": 124,
+     "t": 49.56,
+     "dur": 0.31,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "assets/opt/props/couch.l.a121d756.glb",
+     "kb": 87,
+     "t": 49.56,
+     "dur": 0.27,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/photo.js",
+     "kb": 16,
+     "t": 49.59,
+     "dur": 0.1,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/tail.js",
+     "kb": 32,
+     "t": 50.69,
+     "dur": 0.07,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/tail.js",
+     "kb": 8,
+     "t": 51.76,
+     "dur": 0.06,
+     "beforeStart": false,
+     "sw": false
+    },
+    {
+     "url": "js/jobs/tow.js",
+     "kb": 24,
+     "t": 52.87,
+     "dur": 0.07,
+     "beforeStart": false,
+     "sw": false
+    }
+   ]
+  }
+ ],
+ "errors": []
+}

@@ -7,7 +7,7 @@ const N=+((process.argv.find(a=>a.startsWith('--n='))||'--n=4').split('=')[1]);
   await p.click('.ht-title [data-act=newgame]');await ev(async()=>{await window.__ht.jobs.ready;window.__ht.step(5)});
   const counts=[];const dc=async()=>{await cdp.send('HeapProfiler.collectGarbage');return (await cdp.send('Memory.getDOMCounters')).nodes};counts.push(await dc());
   for(let i=0;i<N;i++){await ev(async()=>{const H=window.__ht;H.startMissionWorld(0);for(let k=0;k<100&&H.mode!=='mission';k++)await new Promise(r=>setTimeout(r,100));H.step(30)});
-    await p.keyboard.press('Escape');await step(2);await p.click('.ht-pause [data-act=quit]');await step(2);await p.click('.ht-dlg [data-dlg=ok]');await step(5);await p.click('.ht-title [data-act=continue]');await step(8);counts.push(await dc())}
+    await p.keyboard.press('Escape');await step(2);await p.click('.ht-pause [data-act=quit]');await step(2);await p.click('.ht-dlg [data-dlg=ok]');await step(5);await ev(()=>{const c=document.querySelector('.ht-title [data-act=continue]');if(c&&!c.hidden)c.click();else document.querySelector('.ht-title [data-act=newgame]').click()});await step(3);if(await p.$('.ht-dlg [data-dlg=ok]'))await p.click('.ht-dlg [data-dlg=ok]');await step(8);counts.push(await dc())}
   console.log('Memory.getDOMCounters nodes after each cycle:',counts.join(' '));
   /* heap snapshot */
   const chunks=[];cdp.on('HeapProfiler.addHeapSnapshotChunk',e=>chunks.push(e.chunk));await cdp.send('HeapProfiler.collectGarbage');await cdp.send('HeapProfiler.takeHeapSnapshot',{reportProgress:false});
