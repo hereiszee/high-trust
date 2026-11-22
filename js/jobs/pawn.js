@@ -797,6 +797,8 @@ J.register('pawn',{
 
   upd(dt,M,F){const a=A(),P=a.P;M.frame++;
     if(!M.ready){const r=init(M,F);if(r!==true){if(r==='cast')F.objs.push(['The party is setting up... (balloons take a minute)',false]);if(M.ph!=='van')return}}
+    /* JOBS-AUDIT: a retry from 'exit' skips the office->exit transition, which is what calls the raffle (the crowd's distraction for the walk out) */
+    if(M.ready&&M.cpExit){M.cpExit=false;if(M.stage==='exit'){if(!M.raffled)startRaffle(M,false);music('tension',.45)}}
     /* a fresh start: the dad steps out beside the van (not into the middle of the party in his own face) */
     if(!M.placed){M.placed=true;const c=M.car||a.VAN;if(!a.CV&&c&&c.pos&&M.ph==='van'){const r={x:Math.cos(c.yaw),z:-Math.sin(c.yaw)};P.pos.set(c.pos.x+r.x*2.0,P.pos.y,c.pos.z+r.z*2.0);a.collide(P.pos,.35);P.yaw=Math.atan2(-(358-P.pos.x),-(40-P.pos.z));P.pitch=-.05}}
     M.t+=dt;queueTick(M,dt);
@@ -833,7 +835,7 @@ J.register('pawn',{
   load(M,s){if(!s)return;M.ph=s.ph==='van'||!s.dis?'van':'mingle';M.dsave=s.dis||null;M.talked=Object.assign({},s.talked||{});const f=s.f||{};
     M.balloonLine=!!f.bl;M.vip=!!f.vip;M.deniseOk=!!f.dn;M.ticket=!!f.tk;M.raffled=!!f.rf;M.prize=!!f.pz;M.archFixed=!!f.af;M.songs=f.sg|0;M.canapes=f.cn|0;M.pages=f.pg|0;M.book=!!f.bk;M.haveIt=!!f.got;M.fixes=f.fx|0;
     if(f.ft)M.said.firstTalk=1;M.t=s.t||0;M.queue=[];if(M.ph!=='van')M.queue.push(['dee',M.haveIt?"Okay. Deep breath. You've got it. Now walk out like you came for the hot dogs.":"Okay. Deep breath. Fix your face. Try the back office again."]);
-    if(M.D)M.D=null;M.ready=false},
+    if(M.D)M.D=null;M.ready=false;M.cpExit=true},
   payout(M,ok){if(!ok)return[];const out=[],D=M.D;
     if(D&&D.min>=K.neverMin)out.push(['Never questioned · cover never under 40%',K.pay.never]);
     if(M.book&&M.pages>=K.pages)out.push(['Ledger and pictures · the book and three pages',K.pay.both]);

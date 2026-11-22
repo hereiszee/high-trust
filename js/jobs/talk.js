@@ -263,7 +263,8 @@ J.register('talk',{
       F.objs.push([M.ph==='after'?'Keep him talking, or wrap it up':'Get Tre talking',M.cv&&M.cv.st.rapport>=T.win])}
     if(M.ph==='free'){F.objs.push(['Back to your ride',false]);F.target={x:M.car.pos.x,z:M.car.pos.z,label:'Your ride'}}},
   save(M){const cv=M.cv?M.cv.save():M.cvs||null;return{ph:M.seated||M.ph==='talk'||M.ph==='after'?'talk':M.ph,convo:cv,cook:+(M.cook||0).toFixed(3),resets:M.resets|0,grillUsed:!!M.grillUsed,burgers:M.burgers|0,beats:Object.assign({},M.beats||{})}},
-  load(M,s){M.resume=s;M.cvs=s.convo||null;M.cook=s.cook||0;M.resets=s.resets|0;M.grillUsed=!!s.grillUsed;M.burgers=s.burgers|0;M.beats=Object.assign({},s.beats||{});M.ph=s.ph==='talk'?'walk':s.ph},
+  /* JOBS-AUDIT J-05: only a 'talk' snapshot sits you straight back down; a retry from the walk up walks (and sitting down marks 'talk' again) */
+  load(M,s){M.resume=s&&s.ph==='talk'?s:null;M.cvs=s.convo||null;M.cook=s.cook||0;M.resets=s.resets|0;M.grillUsed=!!s.grillUsed;M.burgers=s.burgers|0;M.beats=Object.assign({},s.beats||{});M.ph=s.ph==='talk'?'walk':s.ph},
   payout(M,ok){if(!ok)return[];const out=[];if(!M.resets)out.push(['No awkward resets',150]);
     out.push(["Gary's notes · "+(M.notes||[]).length+' items',0]);if(M.burgers)out.push(['Burgers eaten ×'+M.burgers,0]);if(M.beats&&M.beats.job)out.push(['Tre has a Saturday job now',0]);return out},
   medal(M){return!M.resets&&M.full&&M.fullLines<=T.goldLines?3:!M.resets?2:1},

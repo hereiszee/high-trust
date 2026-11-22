@@ -900,7 +900,8 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
   for(const id in M.blk){if(M.cleared[id]){const k=M.blk[id],p=k.f.boxed.push;k.c.x=k.x0+p[0]*5.4;k.c.z=k.z0+p[1]*5.4;k.done=true;syncBlk(k)}}
   for(const id in M.vans){if(M.found[id])glow(M.vans[id],!M.started[id])}
   /* the crew who were driving get their vans back (out of the squad again) */
-  const drivers=CREW.slice();for(const f of FLEET){if(!M.started[f.id])continue;const v=M.vans[f.id];const who=drivers.shift();v.crew=who;
+  /* crew in the order the vans were started (crewAssign's order; save() keeps it), so each van gets the same driver back */
+  const drivers=CREW.slice(),byStart=Object.keys(M.started).map(id=>FLEET.find(f=>f.id===id)).filter(Boolean);for(const f of byStart){const v=M.vans[f.id];const who=drivers.shift();v.crew=who;
     if(who==='earl'){const d=person('earl',null,v.c.x,v.c.z,0);if(d)v.drv=d;else v.walk={who:'earl',d:null,from:vanDoor(v)}}
     else{const al=a.allies.find(x=>x.id===who);if(al){const i=a.allies.indexOf(al);a.allies.splice(i,1);if(al.tag){al.tag.remove();al.tag=null}al.ride=false;al.dude.root.visible=true;try{a.wmAdd(al.dude.root)}catch(_){}v.drv=al.dude}
       else{const look=a.HOMIES[who];if(look){const d=a.makeDude(look);a.wmAdd(d.root);v.drv=d}else v.drv=ghostDrv(who)}}}
@@ -909,7 +910,9 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
   if(M.ph==='convoy'||M.ph==='home'){M.noGuns=L.noGuns;if(M.S){try{M.S.release()}catch(_){}}if(M.viz){try{M.viz.dispose()}catch(_){}M.viz=null}if(M.shud){try{M.shud.dispose()}catch(_){}M.shud=null}try{a.overlay('roundup-stealth',null)}catch(_){}
     for(const g of M.guards){if(g.e.state==='idle'){vanish(g.e)}}
     const e=M.car;/* back at the gate (convoy) or wherever the line was (home) */
-    if(M.ph==='convoy'&&!s.conv||M.ph==='convoy'){for(const f of FLEET){const v=M.vans[f.id];if(M.started[f.id]&&!M.delivered[f.id]&&!M.wrecked[f.id]){v.st='convoy';v.c.x=f.bay.x;v.c.z=f.bay.z;v.c.yaw=f.bay.yaw;v.c.hp=(M.cond[f.id]!=null?M.cond[f.id]:1)*v.hpMax;v.m=M.C.add(v.c,{id:f.id,name:v.crew,join:JOIN[f.id].map(p=>({x:p[0],z:p[1]}))})}}
+    if(M.ph==='convoy'&&!s.conv||M.ph==='convoy'){/* JOBS-AUDIT: pull out of the bays in convoyBegin's order; the join rails are authored for it (in FLEET order the first van's rail runs into a parked van and the line never leaves) */
+      const order=FLEET.slice().sort((p,q)=>JOIN[p.id].length-JOIN[q.id].length||(p.bay.x-q.bay.x));
+      for(const f of order){const v=M.vans[f.id];if(M.started[f.id]&&!M.delivered[f.id]&&!M.wrecked[f.id]){v.st='convoy';v.c.x=f.bay.x;v.c.z=f.bay.z;v.c.yaw=f.bay.yaw;v.c.hp=(M.cond[f.id]!=null?M.cond[f.id]:1)*v.hpMax;v.m=M.C.add(v.c,{id:f.id,name:v.crew,join:JOIN[f.id].map(p=>({x:p[0],z:p[1]}))})}}
       M.pursuit=null;M.pursueT=0}
     else{const by={};for(const r of(s.conv&&s.conv.cars)||[])by[r.id]=r;
       for(const f of FLEET){const v=M.vans[f.id],r=by[f.id];if(!M.started[f.id]||M.delivered[f.id]||M.wrecked[f.id])continue;v.st='convoy';if(r){v.c.x=r.x;v.c.z=r.z;v.c.yaw=r.yaw;v.c.hp=r.hp}v.m=M.C.add(v.c,{id:f.id,name:v.crew});v.m.st='line'}
