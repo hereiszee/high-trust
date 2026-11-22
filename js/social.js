@@ -222,7 +222,7 @@ function view(o){o=o||{};const cast=o.cast||{};const host=o.host||document.query
   const $=s=>el.querySelector(s);const who=$('.soc-who'),txt=$('.soc-txt'),tell=$('.soc-tell'),ch=$('.soc-choices'),tm=$('.soc-timer'),tmi=$('.soc-timer i'),line=$('.soc-line'),mt=$('.soc-meters'),toast=$('.soc-toast'),notes=$('.soc-notes');
   const V={el,cast,typing:null,choice:null,sel:0,mounted:false,skipReq:false};
   V.mount=()=>{if(!V.mounted){host.appendChild(el);V.mounted=true;document.body.classList.add('soc-on');void el.offsetWidth;setTimeout(()=>el.classList.add('in'),20);keysOn()}return V};
-  V.unmount=()=>{if(V.mounted){el.remove();V.mounted=false;document.body.classList.remove('soc-on');keysOff()}};
+  V.unmount=()=>{padOff();if(V.mounted){el.remove();V.mounted=false;document.body.classList.remove('soc-on');keysOff()}};
   /* a typed line: who speaks, text; o.dur overrides the hold; returns the total time it will take */
   V.say=(id,text,op)=>{op=op||{};const c=cast[id]||{name:id};line.className='soc-line show '+(c.cls||'')+(op.cls?' '+op.cls:'');who.textContent=c.name||id;who.style.color=c.color||'';
     tell.textContent='';txt.innerHTML='';const t=String(text);V.typing={t,i:0,acc:0,cps:op.cps||52,c,hold:op.hold!=null?op.hold:Math.max(1.3,t.length*.032+.7),done:false,el:txt,blipN:0};
@@ -237,9 +237,12 @@ function view(o){o=o||{};const cast=o.cast||{};const host=o.host||document.query
     list.forEach((c,k)=>{const b=document.createElement('button');b.className='soc-ch reg-'+(c.reg||'x')+(c.cls?' '+c.cls:'');b.type='button';
       const R=REGS[c.reg]||{};b.innerHTML='<span class="k">'+(k+1)+'</span><span class="r">'+esc(c.tag||R.label||'')+'</span><span class="t">'+esc(c.text)+'</span>'+(c.hint?'<span class="h">'+esc(c.hint)+'</span>':'');
       b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();V.choose(k)});b.addEventListener('mouseenter',()=>{V.sel=k;paint()});ch.appendChild(b)});
-    el.classList.add('choosing');tm.style.visibility=V.choice.T?'visible':'hidden';paint();return V};
-  function paint(){[...ch.children].forEach((b,k)=>b.classList.toggle('sel',k===V.sel))}
-  V.choose=k=>{const c=V.choice;if(!c||k<0||k>=c.list.length)return;V.choice=null;el.classList.remove('choosing');const b=ch.children[k];if(b)b.classList.add('picked');
+    el.classList.add('choosing');tm.style.visibility=V.choice.T?'visible':'hidden';paint();padOn();return V};
+  /* on a controller the replies are picked with the D-pad / stick and A (js/gamepad.js HT.Pad.modal), so the badge shows A on the selected one */
+  function paint(){const pad=!!(window.HT&&HT.Pad&&HT.Pad.active);[...ch.children].forEach((b,k)=>{b.classList.toggle('sel',k===V.sel);const kk=b.querySelector('.k');if(kk)kk.textContent=pad?(k===V.sel?HT.Pad.btn('A'):''):String(k+1)})}
+  function padOff(){if(V.unpad){V.unpad();V.unpad=null}}
+  function padOn(){padOff();if(window.HT&&HT.Pad&&HT.Pad.modal)V.unpad=HT.Pad.modal({move:(dx,dy)=>{V.move(dy||dx);paint()},ok:()=>V.confirm()})}
+  V.choose=k=>{const c=V.choice;if(!c||k<0||k>=c.list.length)return;V.choice=null;padOff();el.classList.remove('choosing');const b=ch.children[k];if(b)b.classList.add('picked');
     const A=AU();if(A)try{A.ui('click')}catch(e){}setTimeout(()=>{if(!V.choice)ch.innerHTML=''},180);c.op.onPick&&c.op.onPick(k)};
   V.move=d=>{if(!V.choice)return;const n=V.choice.list.length;V.sel=(V.sel+d+n)%n;paint()};
   V.confirm=()=>{if(V.choice)V.choose(V.sel);else V.skip()};
@@ -257,7 +260,7 @@ function view(o){o=o||{};const cast=o.cast||{};const host=o.host||document.query
   V.update=dt=>{const T=V.typing;if(T&&!T.done){if(T.i<T.t.length){T.acc+=dt*T.cps;const n=Math.min(T.t.length,Math.floor(T.acc));
         while(T.i<n){const c=T.t[T.i++];if(/[a-z]/i.test(c)&&++T.blipN%4===1&&!/^\(|^\[/.test(T.t))blip(T.c,c.toLowerCase())}T.el.textContent=T.t.slice(0,T.i)}
       else{T.hold-=dt;if(T.hold<=0)T.done=true}}
-    const c=V.choice;if(c&&c.T){c.t-=dt;const f=Math.max(0,c.t/c.T);tmi.style.transform='scaleX('+f+')';tm.classList.toggle('low',c.t<3.5);if(c.t<=0){V.choice=null;el.classList.remove('choosing');ch.innerHTML='';c.op.onTimeout&&c.op.onTimeout()}}};
+    const c=V.choice;if(c&&c.T){c.t-=dt;const f=Math.max(0,c.t/c.T);tmi.style.transform='scaleX('+f+')';tm.classList.toggle('low',c.t<3.5);if(c.t<=0){V.choice=null;padOff();el.classList.remove('choosing');ch.innerHTML='';c.op.onTimeout&&c.op.onTimeout()}}};
   /* keys: 1-4 pick, W/S or arrows move, E/Enter/Space confirm or skip. Captured before the game's own handler (no weapon swaps). */
   const kd=e=>{if(!V.mounted||e.repeat)return;const k=e.key.toLowerCase();let used=true;
     if(/^[1-4]$/.test(k)){if(V.choice)V.choose(+k-1);else used=!!V.typing}

@@ -887,9 +887,10 @@ J.on('pose',()=>{const O=H();if(!O||O.stage!=='market'||O.saidWatch)return;if((O
 /* ---------------- input: G and right-click toggle the draw; touch: the aim button or the gadget chip ---------------- */
 if(typeof addEventListener==='function'){
   addEventListener('keydown',e=>{if(e.repeat)return;const O=H();if(!O||A().M.state!=='go')return;const k=(e.key||'').toLowerCase();if(k==='g'&&!O.chat)toggleDraw(O)});
-  addEventListener('mousedown',e=>{if(e.button!==2)return;const O=H();if(!O||A().M.state!=='go'||!(O.stage==='aside'||O.run))return;if(!document.pointerLockElement&&!(e.target&&e.target.tagName==='CANVAS'))return;toggleDraw(O)},true)}
+  (function claim(){const K=window.HT&&HT.Keys;if(!K||!K.claim){setTimeout(claim,400);return}/* Aim (Mouse 2 or its binding, the pad's LT) toggles the draw too */
+    K.claim('aim',down=>{const O=H();if(!O||A().M.state!=='go'||!(O.stage==='aside'||O.run))return false;if(down)toggleDraw(O);return true})})()}
 function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return;hookTouch.done=true;
-  a.HUD.on('gadget',id=>{const O=H();if(O&&id==='ho-draw')toggleDraw(O)});a.HUD.on('touch',(id,down)=>{const O=H();if(O&&id==='aim'&&down&&(O.stage==='aside'||O.run))toggleDraw(O)})}
+  a.HUD.on('gadget',id=>{const O=H();if(O&&id==='ho-draw')toggleDraw(O)});}
 
 /* ---------------- cleanup: free everything when the job ends, is retried or replayed ---------------- */
 const LIVE={M:null};

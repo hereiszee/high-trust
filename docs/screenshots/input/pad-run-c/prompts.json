@@ -1,0 +1,58 @@
+[
+ {
+  "tag": "title",
+  "shot": "001-title.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE",
+  "leaks": []
+ },
+ {
+  "tag": "hub",
+  "shot": "002-hub.jpg",
+  "prompt": "",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ },
+ {
+  "tag": "job fight",
+  "shot": "003-job-fight.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE RETURN TO SENDER Recover stolen packages0/4",
+  "leaks": []
+ },
+ {
+  "tag": "next to him",
+  "shot": "004-next-to-him.jpg",
+  "prompt": "A ZIP-TIE",
+  "obj": "OBJECTIVE RETURN TO SENDER Recover stolen packages0/4",
+  "leaks": []
+ },
+ {
+  "tag": "cuffed",
+  "shot": "005-cuffed.jpg",
+  "prompt": "A TAKE AMMO (+10 12 GA)",
+  "obj": "OBJECTIVE RETURN TO SENDER Recover stolen packages0/4",
+  "leaks": []
+ },
+ {
+  "tag": "blitz",
+  "shot": "006-blitz.jpg",
+  "prompt": "A GET IN THE MINIVAN",
+  "obj": "OBJECTIVE HONEY-DO BLITZ Get ready…",
+  "leaks": []
+ },
+ {
+  "tag": "blitz end",
+  "shot": "007-blitz-end.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE HONEY-DO BLITZ Hank is counting…",
+  "leaks": []
+ },
+ {
+  "tag": "Neighborhood Blitz (tools 1-4 on LB + A/B/X/Y): the job's player walks to each fix, the pad picks the tool and uses it (RT) end",
+  "shot": "008-Neighborhood-Blitz-tools-1-4-on-LB-A-B-X.jpg",
+  "prompt": "A DRIVE THE MINIVAN",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ }
+]

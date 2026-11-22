@@ -1,0 +1,6 @@
+title          text 16 off 0 clip 0 ovl 4 small 0
+page.evaluate: Target page, context or browser has been closed
+    at ev (/home/user/high-trust/dev/audit/input/lib.js:4:79)
+    at /home/user/high-trust/dev/audit/input/layout.js:33:9 {
+  log: []
+}

@@ -827,16 +827,15 @@ function whistle(M){const C=M.cg,a=A(),P=a.P;if(C.clock<(C.whistleAt||0))return;
   if(C.waitAll)toggleWait(M);M.cs.whistles=(M.cs.whistles||0)+1}
 function toggleWait(M){const C=M.cg;C.waitAll=!C.waitAll;for(const k of C.kids)k.waitS=C.waitAll?k.s:null;say(M,'you',pick(C.waitAll?L_.wait:L_.go),{now:true})}
 if(typeof addEventListener==='function'){addEventListener('keydown',e=>{if(e.repeat)return;const M=running();if(!M)return;const k=(e.key||'').toLowerCase();if(k==='g')whistle(M);else if(k==='t')toggleWait(M);else if(k==='x')callRick(M)})}
-function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return;hookTouch.done=true;a.HUD.on('touch',(k,down)=>{if(k!=='aim'||!down)return;const M=signInput();if(M)setSign(M,!M.cg.signOn)});a.HUD.on('gadget',id=>{const M=running();if(!M)return;if(id==='cg-sign'){setSign(M,!M.cg.signOn);return}if(id==='cg-whistle')whistle(M);else if(id==='cg-wait')toggleWait(M);else if(id==='cg-rick')callRick(M)})}
+function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done||!a.HUD.on)return;hookTouch.done=true;a.HUD.on('gadget',id=>{const M=running();if(!M)return;if(id==='cg-sign'){setSign(M,!M.cg.signOn);return}if(id==='cg-whistle')whistle(M);else if(id==='cg-wait')toggleWait(M);else if(id==='cg-rick')callRick(M)})}
 
-/* the stop sign is a toggle (owner rule: nothing is hold-to-use): right-click up, right-click / Q down; touch: the AIM button.
-   Our own capture listeners take the right button before the game's aim, like js/photo.js does for the phone. */
+/* the stop sign follows the Aim setting (default Toggle, owner rule): Aim up, Aim / Q down. js/keys.js offers every Aim press here first. */
 function setSign(M,on,auto){const C=M&&M.cg;if(!C||!C.gear)return;on=!!on;if(C.signOn===on)return;C.signOn=on;if(on){C.signDownAt=0;M.cs.signUps++}if(auto)say(M,'you',pick(["Sign down. Nice work, everybody.","And... sign down.","Everybody's over. Sign's down."]),{low:true})}
 function signInput(){const M=running();return M&&!M.cg.talking?M:null}
+(function claimAim(){/* the Aim action (Mouse 2 or whatever it is bound to, the pad's LT, the touch AIM button: js/keys.js) raises and lowers the sign */
+  const K=typeof window!=='undefined'&&window.HT&&window.HT.Keys;if(!K||!K.claim){if(typeof setTimeout==='function'&&typeof window!=='undefined')setTimeout(claimAim,500);return}
+  K.claim('aim',(down,o)=>{const M=signInput();if(!M)return false;if(o.mode==='hold')setSign(M,down);else if(down)setSign(M,!M.cg.signOn);return true})})();
 if(typeof addEventListener==='function'){
-  addEventListener('mousedown',e=>{if(e.button!==2)return;const M=signInput();if(!M)return;const cv=window.__ht&&window.__ht.renderer?window.__ht.renderer.domElement:null;if(cv&&e.target!==cv)return;
-    setSign(M,!M.cg.signOn);if(document.pointerLockElement){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
-  addEventListener('mouseup',e=>{if(e.button!==2)return;const M=signInput();if(M&&document.pointerLockElement){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
   addEventListener('keydown',e=>{if(e.repeat)return;const M=signInput();if(!M)return;if((e.key||'').toLowerCase()==='q'){setSign(M,false);e.stopImmediatePropagation();e.preventDefault()}},{capture:true})}
 
 /* ---------------- cleanup: whatever ends the job (win, fail, quit, retry) ---------------- */

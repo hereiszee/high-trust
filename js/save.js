@@ -1107,6 +1107,7 @@ function thumbHTML(kind,id,veh){if(kind==='resale')return`<span class="htm-ti ht
 const pad={on:false,prev:[],rep:{},raf:0,handler:null};
 function padLoop(){pad.raf=requestAnimationFrame(padLoop);const gps=navigator.getGamepads?navigator.getGamepads():[];const g=[...gps].find(x=>x&&x.connected);if(!g||!pad.handler)return;
   if(!pad.on){pad.on=true;pad.handler('padconnect')}
+  {const act=padActive();if(act!==pad.act){pad.act=act;pad.handler('padconnect')}}/* the footer keys follow the device last used */
   const b=i=>!!(g.buttons[i]&&g.buttons[i].pressed),ax=g.axes||[],now=performance.now();
   const dirs={up:b(12)||ax[1]<-.55,down:b(13)||ax[1]>.55,left:b(14)||ax[0]<-.55,right:b(15)||ax[0]>.55};
   for(const d in dirs){if(dirs[d]){const r=pad.rep[d];if(!r){pad.rep[d]=now+320;pad.handler('nav',d)}else if(now>r){pad.rep[d]=now+110;pad.handler('nav',d)}}else pad.rep[d]=0}
@@ -1155,7 +1156,10 @@ function shell(cfg){
   return{el,panel:el.querySelector('.htm-panel'),grid:el.querySelector('.htm-grid'),gridwrap:el.querySelector('.htm-gridwrap'),detail:el.querySelector('.htm-detail'),
     tabrow:el.querySelector('.htm-tabrow'),chips:el.querySelector('.htm-chips'),cash:el.querySelector('.htm-cash b'),keys:el.querySelector('.htm-keys'),toast:el.querySelector('.htm-toast')}}
 
-function keysHTML(list){const gp=pad.on;return list.map(([k,g,t])=>`<span><kbd>${gp?g:k}</kbd>${t}</span>`).join('')}
+/* keyboard or pad keys by the device last used (js/gamepad.js), in the pad's own glyphs (PlayStation shapes on a PlayStation pad) */
+function padActive(){const P=window.HT&&HT.Pad;return P&&'active' in P?P.active:pad.on}
+function padGlyphs(g){const P=window.HT&&HT.Pad;if(!P||!P.btn)return g;return String(g).replace(/Ⓐ/g,P.btn('A')).replace(/Ⓑ/g,P.btn('B')).replace(/Ⓧ/g,P.btn('X')).replace(/Ⓨ/g,P.btn('Y')).replace(/\b(LB|RB|LT|RT)\b/g,m=>P.btn(m))}
+function keysHTML(list){const gp=padActive();return list.map(([k,g,t])=>`<span><kbd>${gp?padGlyphs(g):k}</kbd>${t}</span>`).join('')}
 
 /* Controller base: wires input to the menu-specific handlers. */
 function runMenu(m){
@@ -1618,7 +1622,7 @@ const Locker={
     ui.body=ui.el.querySelector('.htm-body');
     const slots=document.createElement('div');slots.className='htm-slots';ui.gridwrap.prepend(slots);
     m.refreshKeys=()=>{ui.keys.innerHTML=keysHTML(m.tab==='attach'?[['↑↓←→','✥','Browse'],['Enter','Ⓐ','Toggle'],['Q E','LB RB','Tabs'],['Esc','Ⓑ','Done']]:
-      [['↑↓←→','✥','Browse'],['Enter','Ⓐ','Equip'],['1 2 3','','Slot'],['Q E','LB RB','Tabs'],['Esc','Ⓑ','Done']].filter(k=>k[1]!==''||!pad.on))};
+      [['↑↓←→','✥','Browse'],['Enter','Ⓐ','Equip'],['1 2 3','','Slot'],['Q E','LB RB','Tabs'],['Esc','Ⓑ','Done']].filter(k=>k[1]!==''||!padActive()))};
     const renderSlots=()=>{const L=Save.data.loadout;
       const rack=Save.data.garage.util.rack;
       slots.innerHTML=['side','p1','p2','p3'].map((k,i)=>{const id=L[k];

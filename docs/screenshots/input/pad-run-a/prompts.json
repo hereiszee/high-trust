@@ -1,0 +1,135 @@
+[
+ {
+  "tag": "title",
+  "shot": "001-title.jpg",
+  "prompt": "",
+  "obj": "OBJECTIVE",
+  "leaks": []
+ },
+ {
+  "tag": "hub",
+  "shot": "002-hub.jpg",
+  "prompt": "",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ },
+ {
+  "tag": "at the giver",
+  "shot": "003-at-the-giver.jpg",
+  "prompt": "A TALK TO GARY",
+  "obj": "SATURDAY MAPLE HEIGHTS Gary has a job for you Follow the yellow marker.",
+  "leaks": []
+ },
+ {
+  "tag": "job start",
+  "shot": "004-job-start.jpg",
+  "prompt": "A TALK TO GARY",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "shop door",
+  "shot": "005-shop-door.jpg",
+  "prompt": "A HANK'S HARDWARE",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "shop",
+  "shot": "006-shop.jpg",
+  "prompt": "",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "map: View opens it, RB picks a place, A fast-travels, the map closes end",
+  "shot": "007-map-View-opens-it-RB-picks-a-place-A-fas.jpg",
+  "prompt": "Y GET OUT",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "drive: Y gets in, RT and the stick drive, Y gets out end",
+  "shot": "008-drive-Y-gets-in-RT-and-the-stick-drive-Y.jpg",
+  "prompt": "A DRIVE THE MINIVAN",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Get in the minivan Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "rack",
+  "shot": "009-rack.jpg",
+  "prompt": "",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "rental",
+  "shot": "010-rental.jpg",
+  "prompt": "A TAKE THE TALKING-TO · LESS-LETHAL (RACK MENU)",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "shoot: RT fires the rental at the range end",
+  "shot": "011-shoot-RT-fires-the-rental-at-the-range-e.jpg",
+  "prompt": "A TAKE UNCLE RAY'S SIDE-BY-SIDE · SHOTGUN (RACK MENU)",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank",
+  "shot": "012-tank.jpg",
+  "prompt": "Y GET OUT",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Tank: RT/S · left stick ↔ on the spot · mouse turret · RT fires Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank fired",
+  "shot": "013-tank-fired.jpg",
+  "prompt": "",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Tank: RT/S · left stick ↔ on the spot · mouse turret · RT fires Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "tank: Y in, stick drives, RT fires, Y out end",
+  "shot": "014-tank-Y-in-stick-drives-RT-fires-Y-out-en.jpg",
+  "prompt": "A BORROW THE MOTOR POOL'S TANK",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "at the jet",
+  "shot": "015-at-the-jet.jpg",
+  "prompt": "A CLIMB INTO DAD-1",
+  "obj": "FORT SENSIBLE PUBLIC RANGE Talk to Sgt. Pruitt at the range Rental rack: try any gun",
+  "leaks": []
+ },
+ {
+  "tag": "jet",
+  "shot": "016-jet.jpg",
+  "prompt": "Y GET OUT",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Borrow a ride Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "airborne",
+  "shot": "017-airborne.jpg",
+  "prompt": "Y EJECT (PRESS TWICE)",
+  "obj": "NEW JOB · CHOP SHOP, INDUSTRIAL WAY RETURN TO SENDER Borrow a ride Drive the crew to Chop shop, Industrial Way",
+  "leaks": []
+ },
+ {
+  "tag": "home",
+  "shot": "018-home.jpg",
+  "prompt": "A HEAD OUTSIDE",
+  "obj": "SATURDAY HOME Gun locker in the garage · laptop on the kitchen desk B · decorate the house",
+  "leaks": []
+ },
+ {
+  "tag": "decorate",
+  "shot": "019-decorate.jpg",
+  "prompt": "",
+  "obj": "SaturdayHomeGun locker in the garage · laptop on the kitchen deskB · decorate the house",
+  "leaks": []
+ }
+]

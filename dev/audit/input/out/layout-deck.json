@@ -1,0 +1,218 @@
+{
+ "title": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".w \"High\" x .w \"Trust\"",
+   ".w \"Trust\" x .tag \"Maple Heights Neighborhood Watch\"",
+   ".w \"Trust\" x .w \"High\"",
+   ".tag \"Maple Heights Neighborhood Watch\" x .w \"Trust\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "hud-hub": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".mag \"0\" x .ht-num \"100%\"",
+   ".spd \"0\" x .unit \"MPH\""
+  ],
+  "small": [],
+  "n": 23
+ },
+ "pause-controls": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "pause-display": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 36
+ },
+ "pause-audio": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 21
+ },
+ "pause-keys": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 270
+ },
+ "pause-data": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "map": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 25
+ },
+ "shop-hardware": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".htm-who \"Maple Street · Since 1962\" x .htm-title \"Hank's Hardware\""
+  ],
+  "small": [],
+  "n": 89
+ },
+ "shop-auto": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".htm-price \"$250\" x .htm-tagline \"Sal: \"Everybody calls me Dad, including \""
+  ],
+  "small": [],
+  "n": 93
+ },
+ "shop-dadazon": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".htm-who \"Kitchen desk · Laptop\" x .htm-title \"Dadazon\""
+  ],
+  "small": [],
+  "n": 88
+ },
+ "locker": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".htm-who \"Garage · Home\" x .htm-title \"Gun Locker\"",
+   "span \"Reload\" x span \"In Primary 1\""
+  ],
+  "small": [],
+  "n": 96
+ },
+ "brief": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"New job\" x h2 \"Porch Light\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "calendar": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".yr \"Fridge calendar\" x .mo \"September\"",
+   ".kick \"Replay a job\" x h2 \"The Fridge Calendar\""
+  ],
+  "small": [],
+  "n": 53
+ },
+ "job-crossing": {
+  "offscreen": [
+   ".cgx-b \"Are you a cop?\" @1523,542,1587,556"
+  ],
+  "clipped": [],
+  "overlap": [
+   ".kick \"New job\" x .tt \"Crossing Guard\"",
+   ".tt \"Crossing Guard\" x .sb \"2nd St, Riverside\""
+  ],
+  "small": [],
+  "n": 21
+ },
+ "result": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 24
+ },
+ "range-menu": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   "span \"Fort Sensible added to the map · fast tr\" x b \"4\"",
+   "span \"Fort Sensible added to the map · fast tr\" x span \"SHOTGUN\"",
+   ".kick \"Now entering\" x .tt \"FORT SENSIBLE\"",
+   ".tt \"FORT SENSIBLE\" x .sb \"Public range open · Days ending in Y\"",
+   ".tt \"FORT SENSIBLE\" x b \"5\"",
+   ".tt \"FORT SENSIBLE\" x span \"SHOTGUN\"",
+   ".tt \"FORT SENSIBLE\" x div \"Uncle Ray's Side-by-Side\"",
+   ".tt \"FORT SENSIBLE\" x div \"12ga · 2 a mag\"",
+   ".tt \"FORT SENSIBLE\" x b \"6\"",
+   ".tt \"FORT SENSIBLE\" x span \"LESS-LETHAL\"",
+   ".tt \"FORT SENSIBLE\" x div \"The Talking-To\"",
+   ".tt \"FORT SENSIBLE\" x div \"bean · 5 a mag · less-lethal\"",
+   ".tt \"FORT SENSIBLE\" x b \"7\"",
+   ".tt \"FORT SENSIBLE\" x span \"RIFLE\"",
+   ".tt \"FORT SENSIBLE\" x div \"Rick's Carbine\"",
+   ".tt \"FORT SENSIBLE\" x div \"556 · 30 a mag · auto\"",
+   ".tt \"FORT SENSIBLE\" x b \"8\"",
+   ".tt \"FORT SENSIBLE\" x span \"SMG\"",
+   ".tt \"FORT SENSIBLE\" x div \"The Carpool\"",
+   ".tt \"FORT SENSIBLE\" x div \"9mm · 32 a mag · auto\""
+  ],
+  "small": [],
+  "n": 69
+ },
+ "jet": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".l \"Range officer\" x .tt \"FORT SENSIBLE\"",
+   ".ds \"6 m\" x .tt \"FORT SENSIBLE\"",
+   ".kick \"Now entering\" x .tt \"FORT SENSIBLE\"",
+   ".tt \"FORT SENSIBLE\" x .sb \"Public range open · Days ending in Y\""
+  ],
+  "small": [],
+  "n": 48
+ },
+ "tank": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".spd \"0\" x .unit \"MPH\""
+  ],
+  "small": [],
+  "n": 36
+ },
+ "credits": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".l \"Pastor Dee · Suds Up\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   ".ds \"197 m\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   ".x \"Tank: W/S · A/D on the spot · mouse turr\" x h3 \"Credits & licences\"",
+   ".v \"100\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   ".spd \"0\" x .unit \"MPH\"",
+   ".ht-kc \"A\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   ".tt \"Get out\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   "b \"Pastor Dee\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   "span \"Linda's making potato salad for after.\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   ".lb \"Main gun ready · left click\" x h3 \"Credits & licences\""
+  ],
+  "small": [],
+  "n": 50
+ }
+}

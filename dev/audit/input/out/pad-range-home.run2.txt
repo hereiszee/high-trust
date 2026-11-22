@@ -1,0 +1,82 @@
+{
+ "place": {
+  "x": 115.80000000000001,
+  "z": 204.2,
+  "menu": {
+   "open": false
+  },
+  "pr": null
+ },
+ "afterA": {
+  "open": false
+ },
+ "afterY": {
+  "open": true,
+  "i": 0,
+  "id": "pistol"
+ },
+ "menuLeaks": [
+  {
+   "kind": "text",
+   "text": "Free on the range. ← → or 1-9 to choose · E / Enter takes it · 0 your own guns · Esc closes"
+  }
+ ],
+ "menu_dpadRight": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":true,\"i\":0,\"id\":\"pistol\"}",
+ "menu_dpadDown": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":true,\"i\":0,\"id\":\"pistol\"}",
+ "menu_stickRight": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":true,\"i\":0,\"id\":\"pistol\"}",
+ "menu_RB": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":true,\"i\":0,\"id\":\"pistol\"}",
+ "menu_B": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":true,\"i\":0,\"id\":\"pistol\"}",
+ "focusInMenu": null,
+ "menu_MENU": "{\"open\":true,\"i\":0,\"id\":\"pistol\"} -> {\"open\":false}",
+ "pausedAfterMenu": false,
+ "home": {
+  "mode": "home",
+  "obj": "FORT SENSIBLE\nPUBLIC RANGE\nTalk to Sgt. Pruitt at the range\nRental rack: try any gun"
+ },
+ "homeLeaks": [],
+ "decoAfterAll": false,
+ "keysSent": "  e q n c Escape r g v f 1 2 3 4 t Tab z x",
+ "decoKeyboardB": true,
+ "decoPanelLeaks": [
+  {
+   "kind": "keycap",
+   "text": "Click",
+   "where": "Click/Eplace"
+  },
+  {
+   "kind": "keycap",
+   "text": "E",
+   "where": "Click/Eplace"
+  },
+  {
+   "kind": "keycap",
+   "text": "R",
+   "where": "Rrotate"
+  },
+  {
+   "kind": "keycap",
+   "text": "Tab",
+   "where": "Tab/wheelnext item"
+  },
+  {
+   "kind": "keycap",
+   "text": "wheel",
+   "where": "Tab/wheelnext item"
+  },
+  {
+   "kind": "keycap",
+   "text": "M",
+   "where": "Mmove"
+  },
+  {
+   "kind": "keycap",
+   "text": "B",
+   "where": "Bdone"
+  },
+  {
+   "kind": "text",
+   "text": "B · decorate the house"
+  }
+ ]
+}
+errs []

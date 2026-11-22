@@ -1,0 +1,32 @@
+{
+ "pausedOpen": true,
+ "pause": {
+  "w": false,
+  "moved": 0
+ },
+ "mapOpen": true,
+ "map": {
+  "w": false,
+  "moved": 0
+ },
+ "shopOpen": true,
+ "shop": {
+  "w": false,
+  "moved": 0
+ },
+ "blur": {
+  "w": false,
+  "moved": 0
+ },
+ "heldThroughShop_thenReleased": {
+  "whileHeld": {
+   "w": false,
+   "moved": 0
+  },
+  "afterRelease": {
+   "w": false,
+   "moved": 0
+  }
+ }
+}
+errs []

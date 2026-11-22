@@ -1,0 +1,181 @@
+{
+ "title": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".w \"High\" x .w \"Trust\"",
+   ".w \"Trust\" x .tag \"Maple Heights Neighborhood Watch\"",
+   ".w \"Trust\" x .w \"High\"",
+   ".tag \"Maple Heights Neighborhood Watch\" x .w \"Trust\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "hud-hub": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".k \"1\" 10.0px"
+  ],
+  "n": 24
+ },
+ "pause-controls": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "pause-display": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 36
+ },
+ "pause-audio": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 21
+ },
+ "pause-keys": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 270
+ },
+ "pause-data": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "map": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-hardware": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-auto": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-dadazon": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "locker": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "brief": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "calendar": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "job-crossing": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".k \"1\" 10.0px",
+   ".k \"2\" 10.0px",
+   ".k \"3\" 10.0px"
+  ],
+  "n": 26
+ },
+ "result": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "range-menu": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".ht-kc \"WASD\" x div \"Deer Season\"",
+   ".tt \"Walk\" x div \"Deer Season\""
+  ],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".k \"1\" 10.0px"
+  ],
+  "n": 62
+ },
+ "jet": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "tank": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "credits": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\"",
+   "h2 \"Take a breath.\" x .kick \"Paused\""
+  ],
+  "small": [],
+  "n": 52
+ }
+}

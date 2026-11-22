@@ -325,18 +325,15 @@ addEventListener('keydown',e=>{if(!R.on||e.repeat||!active())return;const k=e.ke
   else if(k==='1'||k==='2'||k==='3'){Photo.setZoom(+k-1);stop()}
   else if(k===' '||k==='enter'||k==='e'){Photo.shoot();stop()}
   else if(k==='q'){Photo.raise(false);stop()}else if(k==='escape'){Photo.raise(false)}},{capture:true});
-/* the mouse, before the game sees it (capture on window): in a no-gun job the game never calls fire(), so the phone owns its buttons.
-   Right button: a pure toggle (owner rule; Key bindings → Aim: Hold makes it press-and-hold). Left button: shutter,
-   or raise when it's down. With the pointer unlocked the game still gets the click (it asks for pointer lock first). */
-addEventListener('mousedown',e=>{if(!active())return;const a=A(),cv=window.__ht&&window.__ht.renderer?window.__ht.renderer.domElement:null;if(cv&&e.target!==cv&&!(R.ui&&R.ui.root.contains(e.target)))return;
-  const locked=!!document.pointerLockElement;let used=false;
-  if(e.button===2){if(R.want){R.want=false;R.held=false}else{R.want=true;R.held=true;R.pressT=performance.now()}used=true}
-  else if(e.button===0){if(R.on){Photo.shoot();used=true}else if(locked){R.want=true;used=true}}/* a click that only takes the pointer back never raises the phone */
-  if(used&&locked){e.stopImmediatePropagation();e.preventDefault()}},{capture:true});
-addEventListener('mouseup',e=>{if(e.button!==2||!R.held)return;R.held=false;/* a pure toggle: releasing never lowers the phone, however long the press */
-  const K=window.HT&&HT.Keys;if(K&&K.aimMode==='hold')R.want=false/* unless the player chose Aim: Hold */},{capture:true});
-/* touch: the HUD's aim button toggles the phone, the fire button is the shutter (or raises it) */
-(function hook(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(hook,500);return}a.HUD.on('touch',(k,down)=>{if(!down||!active())return;if(k==='aim')R.want=!R.want;else if(k==='fire'){if(R.on)Photo.shoot();else R.want=true}})})();
+/* the Aim and Fire actions (js/keys.js), before the game's gun aim / trigger: in a no-gun job the phone owns them, from any device.
+   A click that only takes the pointer back never reaches here (js/keys.js asks for pointer lock first). */
+(function claim(){const K=window.HT&&HT.Keys;if(!K||!K.claim){setTimeout(claim,300);return}
+  /* Aim (Mouse 2 or its binding, the pad's LT, touch AIM): raises / lowers, per the Aim setting (default Toggle) */
+  K.claim('aim',(down,o)=>{if(!active())return false;if(o.mode==='hold'){R.want=!!down;R.held=!!down}else if(down)R.want=!R.want;return true});
+  /* Fire (Mouse 1 or its binding, the pad's RT): the shutter, or raises it when it's down */
+  K.claim('fire',down=>{if(!active())return false;if(down){if(R.on)Photo.shoot();else R.want=true}return true})})();
+/* touch: the fire button is the shutter (or raises it); the aim button arrives through the claim above */
+(function hook(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(hook,500);return}a.HUD.on('touch',(k,down)=>{if(!down||!active())return;if(k==='fire'){if(R.on)Photo.shoot();else R.want=true}})})();
 
 /* ---------------- the phone item: LMB raises it, then it is the shutter ---------------- */
 J.item('phone',{name:'Phone',use(M){if(!Photo.S)return;if(!R.on){Photo.raise(true);return}Photo.shoot()}});
