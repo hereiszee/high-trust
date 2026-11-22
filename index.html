@@ -1895,7 +1895,8 @@ function enterHub(o){
   if(L.ow){wmHubEnter();if(P.carry)wmDrop();wmBino(false);L.nav=null;L.win=null}
   FX.clear();audioState('hub');setLoadout({side:'pistol',p1:prog.done[0]?'shotgun':null,p2:prog.done[1]?'rifle':null},P.cur);
   if(wmAllDone()){running=false;setObj('Maple Heights',[]);setPrompt(null);showMarker(null);vm.visible=false;finale();return}
-  wmHubGivers();/* every available giver, Maple and Riverside (WORLD MISSIONS) */
+  wmHubGivers();/* every available giver, Maple and Riverside (WORLD MISSIONS) */if(L.ow)JRS.gSig=giverSig();
+  if(JOB!==null){objKey='';hubObj()}/* a job taken at home (jrHubEnter): the panel shows that job only */
   wmHubCrew();
   rebuildTargets();
   if(prog.missionsRun===0)radio('you',"Okay. Let's see who needs help.");
@@ -1905,16 +1906,18 @@ function enterHub(o){
 function openBrief(i,bo){bo=bo||{};const m=MISSIONS[i];running=false;releaseLock();if(ASSETS.prefetch)ASSETS.prefetch('m'+i);/* the drive to the job site is the loading screen */
   const obj=m.obj||{loot:'Recover 4 piles of stolen packages, then get back to the van.',stash:'Smash 3 stash tables, then get back to the van. 2:30 on the clock.',waves:'Hold the park through 3 waves.',boss:'Find the Porch Pirate King. Give him the chance to surrender.'}[m.type];
   HUD.show('brief',{kicker:'New job',title:m.title,giver:HOMIES[m.giver].name,role:m.role,place:m.place,color:HOMIES[m.giver].shirt,lines:m.lines,
-    meta:[['Job',obj],['Crew',m.crew.length?'You, '+m.crew.map(c=>HOMIES[c].name).join(', '):'Just you'],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]]});
+    meta:[['Job',obj],['Crew',m.crew.length?'You, '+m.crew.map(c=>HOMIES[c].name).join(', '):'Just you'],['Guns',m.weapons.map(w=>WEAPONS[w].name).join(' · ')]],
+    jobs:bo.here&&bo.here.length>1?bo.here.map(k=>({title:MISSIONS[k].title+(MISSIONS[k].repeatable?' · side job':''),act:'brief:job:'+k,on:k===i})):null});
   const close=()=>{HUD.hide('brief');UI.acts={}};
+  const pickers={};if(bo.here&&bo.here.length>1)for(const k of bo.here)pickers['brief:job:'+k]=()=>{HUD.hide('brief');UI.acts={};openBrief(k,bo)};
   if(bo.home){/* a job offered from home (JOBS): go = it's on the list, head out to the van; no = not today */
     UI.acts={'brief:go':()=>{close();JRS.pending=i;running=true;last=performance.now();canvasFocus();requestLock();radio('you',pick(["Okay. Keys, wallet, phone. Van's in the driveway.","On it. Back before dinner."]))},
       'brief:skip':()=>{close();startMissionWhenReady(i);requestLock()},
-      'brief:no':()=>{close();const s=SV();JRS.declined[m.id]=s?s.day:1;running=true;last=performance.now();canvasFocus();requestLock();if(bo.home==='laptop'&&typeof openShop==='function')openShop('dadazon')}};return}
+      'brief:no':()=>{close();const s=SV();JRS.declined[m.id]=s?s.day:1;running=true;last=performance.now();canvasFocus();requestLock();if(bo.home==='laptop'&&typeof openShop==='function')openShop('dadazon')}};Object.assign(UI.acts,pickers);return}
   UI.acts={'brief:go':()=>{close();JOB=i;objKey='';destRings.forEach((r,k)=>r.visible=k===i);hubObj();running=true;last=performance.now();canvasFocus();requestLock();
     radio(m.giver,pick(["Take the minivan. I'll ride with you.","Keys are in the cupholder. Let's roll.","Minivan's on the street. Drive like your kids are in it."]))},
     'brief:skip':()=>{close();if(L&&L.ow&&L.dests[i])OWS.ret={x:L.dests[i].x,z:L.dests[i].z,yaw:-Math.PI/2};startMissionWhenReady(i);requestLock()},
-    'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}}}
+    'brief:no':()=>{close();running=true;last=performance.now();canvasFocus();requestLock()}};Object.assign(UI.acts,pickers)}
 /* UI paths start a job through here: if its crew, boss or the core enemy looks have not streamed in yet, hold for at most
    10 s on "Loading the crew…" so nobody shows up as a box stand-in (tests call startMission directly) */
 let castWait=null;
@@ -2711,11 +2714,11 @@ function updHub(dt){
   if(L.ow){owUpdate(dt);wmHubUpdate(dt)}
   const frp=L.ow?frUpdate(dt):null;
   let prompt=null,target=null;const mp=metaHubUpd(dt);
-  if(JOB===null&&HUBX.home&&!VAN.on){const fi=finaleCached();if(fi&&fi.ready)target={x:HUBX.home.x,z:HUBX.home.z,label:'Home · the family'}}finaleObjTick();
+  if(JOB===null&&HUBX.home){const fi=finaleCached();if(fi&&fi.ready)target={x:HUBX.home.x,z:HUBX.home.z,label:'Home · the family'};else if(L.ow&&HUBLEAD.kind==='home')target={x:HUBX.home.x,z:HUBX.home.z,label:HUBLEAD.label}}finaleObjTick();
   for(const n of npcs){faceTo(n,P.pos.x,P.pos.z,dt,3);n.dude.root.rotation.y=n.yaw;pose(n.dude,dt,{aim:false});n.dude.root.position.set(n.pos.x,0,n.pos.z);
     if(n.ring)n.ring.material.opacity=.2+.12*Math.sin(performance.now()/300);
-    if(JOB===null&&!target)target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
-    if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name;if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i);return}}}}
+    if(JOB===null&&!target&&!n.locked&&(!L.ow||HUBLEAD.kind))target={x:n.pos.x,z:n.pos.z,label:HOMIES[n.id].name};
+    if(!VAN.on&&n.pos.distanceTo(P.pos)<2.8){prompt=KE+' · Talk to '+HOMIES[n.id].name+(n.jobs&&n.jobs.length>1?' · '+n.jobs.length+' jobs':'');if(useTap){useTap=false;if(n.locked)radio(n.id,n.locked,true);else{setPrompt(null);openBrief(n.marker.i,{here:n.jobs});return}}}}
   for(const r of destRings)if(r&&r.visible)r.children[1].material.opacity=.1+.08*Math.sin(performance.now()/250);
   if(VAN.on){const e=CV;
     if(Math.abs(e.spd)<4&&!e.noExit){prompt=KE+' · Get out';/* e.noExit: the jet in the air (js/jet.js: E twice to eject instead) */if(useTap){useTap=false;exitCar()}}
@@ -2744,6 +2747,10 @@ function markerOf(t){if(!t)return null;
   if(hub&&JOB===null){const n=npcs.find(n=>Math.hypot(n.pos.x-t.x,n.pos.z-t.z)<.5);if(n)label=HOMIES[n.id].name+' · '+(n.lockTag||MISSIONS[n.marker.i].title)}
   const y=MK_LOW[t.label]?1.3:kind==='job'?2.75:2.4;
   return{id:'tgt',kind,label,x:t.x,z:t.z,screen:project(t.x,y,t.z),always:true,edge:true}}
+/* every open giver on the minimap and the full map: story givers with the job icon, side jobs (repeatables) with their own; the yellow world marker stays on the lead */
+function giverMarkers(mk){if(mode!=='hub'||JOB!==null||!L||!L.ow)return[];const out=[];
+  for(const n of npcs){if(n.locked||!n.marker||(mk&&Math.hypot(mk.x-n.pos.x,mk.z-n.pos.z)<.5))continue;
+    out.push({id:'giver:'+n.marker.i,kind:n.side?'side':'job',label:HOMIES[n.id].name+' · '+MISSIONS[n.marker.i].title,x:n.pos.x,z:n.pos.z,world:false,compass:false,rim:false})}return out}
 /* events the HUD shows once (feed lines, damage arcs) are found by diffing game counters, so combat code needs no HUD calls */
 function hudEvents(){
   if(mode==='mission'&&M){if(UI.M!==M){UI.M=M;UI.n={cuffs:0,kills:0,got:0,smashed:0,shot:prog.shotSurr};UI.down.clear();UI.hp=P.hp}
@@ -2775,7 +2782,7 @@ function hud(dt){
     obj={kicker:mis?'Objective':JOB!==null?'New job · '+MISSIONS[JOB].place:'Saturday',title:obj.title,
       lines:st?obj.lines.map(l=>/^\d+:\d\d until /.test(l.text)?{...l,text:'Until reinforcements'}:l):obj.lines}}
   const markers=[];const mk=markerOf(UI.marker);if(mk)markers.push(mk);
-  markers.push(...metaMarkers(),...wmMarkers(),...frMarkers());
+  markers.push(...metaMarkers(),...wmMarkers(),...frMarkers(),...giverMarkers(mk));
   if(mode==='hub'&&VAN.obj&&!VAN.on&&(!mk||mk.kind!=='van'))markers.push({id:'van',kind:'van',label:'Minivan',x:VAN.pos.x,z:VAN.pos.z,world:false});
   /* route on the minimap to the current target (recomputed by the HUD when the target moves) */
   const tg=UI.marker;if(!tg)UI.route=null;else if(!UI.route||Math.hypot(UI.route.x-tg.x,UI.route.z-tg.z)>1.5)UI.route={x:tg.x,z:tg.z};
@@ -3090,8 +3097,12 @@ function updHome(dt){const H=HOME3;if(!H)return;try{H.update(dt,P.pos)}catch(e){
   for(const it of[...H.interactables,...fam,...H.exits]){const d=Math.hypot(it.x-P.pos.x,it.z-P.pos.z);if(d<(it.r||1.2)&&d<bd){bd=d;best=it}}
   const LBL={locker:'Gun locker · loadout',workbench:'Workbench · attachments',laptop:'Laptop · shop on Dadazon',fridge:'Root beer · the fridge calendar',calendar:'Calendar · replay a job',tv:'Watch the game',bed:'Rest your eyes',grill:'Fire up the grill'};
   const fi=finaleCached(),fin=!!(fi&&fi.ready);
+  /* a story job offered from home (Jen's list on the fridge) is named on its prompt and in the panel */
+  const hs=JRS.pending==null?homeStoryJobs():[],hj={};for(const i of hs){const k=MISSIONS[i].from.home;if(hj[k]==null&&JRS.declined[MISSIONS[i].id]==null)hj[k]=i}
+  if(hj.fridge!=null){LBL.fridge=(HOMIES[MISSIONS[hj.fridge].giver]||{name:'Jen'}).name+"'s list · "+MISSIONS[hj.fridge].title;if(best&&best.id==='calendar')best={id:'fridge',x:best.x,z:best.z}}/* the list hangs by the calendar: either spot reads it */
   setPrompt(best?KE+' · '+(fin&&best.id==='family'&&!/^Pet/.test(best.label||'')?'Talk to the family · the festival':(LBL[best.id]||best.label)):null);
-  homeHint-=dt;setObj('Home',fin?['The family wants to talk: press E near Jen or the kids']:fi&&fi.act3?[fi.line]:homeHint>0?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]);
+  const hl=JRS.pending!=null?[MISSIONS[JRS.pending].title+' · head out to the minivan']:Object.keys(hj).map(k=>k==='fridge'?MISSIONS[hj[k]].title+": Jen's list is on the fridge · press "+KE+' there':MISSIONS[hj[k]].title+' · press '+KE+' at the '+k);
+  homeHint-=dt;setObj('Home',fin?['The family wants to talk: press E near Jen or the kids']:hl.concat(fi&&fi.act3?[fi.line].concat(fi.left?[fi.left]:[]):homeHint>0&&!hl.length?['Gun locker in the garage · laptop on the kitchen desk','B · decorate the house']:[]));
   if(!best||!useTap)return;useTap=false;const id=best.id;
   if(JH.home(id))return;/* JOBS: jobs offered from home, Doug's corkboard, Jen's note */
   if(id==='calendar'){openCalendar();return}
@@ -4224,40 +4235,72 @@ function wmMarkers(){const out=[];if(mode!=='mission'||!M||!M.suspects||M.phase!
 function wmMapDots(){const ch=M&&M.chase;if(!ch||ch.state==='done')return[];return[{id:'chase',x:ch.car.x,z:ch.car.z,alert:true,seen:true,dead:false}]}
 
 /* ================= HUB: givers, crew, the bridge beat, site after-dressing, region trust ================= */
-function wmHubGivers(){const out=[],lines=[];
+/* the story order (SPEC3 3.1, the campaign arc): the yellow marker and the first objective line lead to the earliest available job in it;
+   repeatables are side jobs and only get the marker when no story job is open */
+const STORY_ORDER=['gary','taxi','rick','hoa','earl','mower','dave','tail','doug','dee','crossing','tow','rosa','overwatch','pawn','moving','benny','cones','cargo','duke','talk','sabotage','brake','bike','roundup','arrest','heist','finale'];
+function storyRank(i){const m=MISSIONS[i];if(!m||m.repeatable)return 1e6;const k=STORY_ORDER.indexOf(m.id);return k>=0?k:500+(m.order||99)}
+function giverWhere(x,z){const O=OW();let r=null;try{r=O&&O.regionAt?O.regionAt(x,z):null}catch(_){}return r==='river'?' in Riverside Flats':''}
+/* story jobs offered from home (Jen's list on the fridge): available, not done; in story order */
+function homeStoryJobs(){if(!JR||!WORLD)return[];const out=[];for(const j of JR.list(j=>!j.builtin&&j.def.from&&j.def.from.home&&j.def.from.home!=='family')){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||m.repeatable||prog.done[i]||jrLock(m))continue;out.push(i)}return out.sort((a,b)=>storyRank(a)-storyRank(b))}
+const HOME_LINE={fridge:i=>(HOMIES[MISSIONS[i].giver]||{name:'Jen'}).name+' left you a list on the fridge at home · '+MISSIONS[i].title};
+function homeLine(i){const m=MISSIONS[i],f=HOME_LINE[m.from.home];return f?f(i):(HOMIES[m.giver]||{name:m.giver}).name+' has a job for you at home · '+m.title}
+const HUBLEAD={kind:null,i:null,label:''};
+function wmHubGivers(){const out=[],story=[],side=[],locked=[];
   const mi=[0,1,2,3].find(i=>!prog.done[i]);if(mi!=null){const mk=L.markers.find(k=>k.i===mi);if(mk)out.push({i:mi,x:mk.x,z:mk.z})}
   if(WORLD&&MISSIONS.length>4&&prog.done[1]){const ri=[4,5,6,7,8].find(i=>!prog.done[i]);if(ri!=null){const m=MISSIONS[ri],p=WORLD.places['g_'+m.giver],lk=jobLock(ri);if(p&&lk!=='locked'&&lk!=='bridge')out.push({i:ri,x:p.x,z:p.z,lock:lk})}}
   out.push(...jrGivers());/* JOBS: registered jobs' givers */
-  /* one character, one spot: a built-in job and a registered job with the same giver on the same spot (Dave, Doug) show once, the earlier job first */
-  for(let k=out.length-1;k>0;k--){const g=out[k],gv=MISSIONS[g.i].giver;if(out.slice(0,k).some(o=>MISSIONS[o.i].giver===gv&&Math.hypot(o.x-g.x,o.z-g.z)<4))out.splice(k,1)}
-  const pm=people();for(const g of out){const m=MISSIONS[g.i];const n=spawnNpc(m.giver,g.x,g.z,{i:g.i,x:g.x,z:g.z});
-    if(m.id==='dee'&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
+  /* one character, one spot: every job a spot has (the same giver within 4 m, or anyone within 1.5 m) goes to one giver, who offers all
+     of them that are open (a choice on the brief); a locked job never hides an open one */
+  const spots=[];for(const g of out){const gv=MISSIONS[g.i].giver;const s=spots.find(s=>Math.hypot(s.x-g.x,s.z-g.z)<1.5||(MISSIONS[s.g[0].i].giver===gv&&Math.hypot(s.x-g.x,s.z-g.z)<4));if(s)s.g.push(g);else spots.push({x:g.x,z:g.z,g:[g]})}
+  const pm=people();
+  for(const s of spots){const open=s.g.filter(g=>!g.lock).sort((a,b)=>storyRank(a.i)-storyRank(b.i)),g=open[0]||s.g[0],m=MISSIONS[g.i];
+    const n=spawnNpc(m.giver,s.x,s.z,{i:g.i,x:s.x,z:s.z});n.jobs=open.map(o=>o.i);n.rank=open.length?storyRank(open[0].i):1e7;n.side=!!open.length&&open.every(o=>MISSIONS[o.i].repeatable);
+    if(open.some(o=>MISSIONS[o.i].id==='dee')&&pm&&pm.preload&&!pm.has('son'))pm.preload(['son']).catch(()=>{});/* the stakeout's lookouts */
     const gk=giverKey(m.giver);if(gk&&pm&&pm.preload&&!pm.has(gk)&&!(n.dude.rb&&n.dude.rb.key===gk))pm.preload([gk]).then(()=>{if(!npcs.includes(n)||!pm.has(gk))return;scene.remove(n.dude.root);n.dude=giverModel(m.giver);n.dude.root.position.copy(n.pos);scene.add(n.dude.root)}).catch(()=>{});
-    const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(g.lock?'#9aa3ad':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring;
-    n.prefer=m.hood==='river'&&!prog.done[4];
-    if(g.lock==='trust'){n.locked="Folks around here don't know you well enough yet. Help out a little. Scrub a wall. Wave at people.";n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
-    else if(g.lock==='maple'){n.locked="Finish up in Maple Heights first. The Duke will keep. Men like that always keep.";n.lockTag='after Maple Heights is done'}
-    lines.push(HOMIES[m.giver].name+(n.locked?' · '+n.lockTag:' has a job for you'+(m.hood==='river'?' in Riverside Flats':'')))}
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin(!open.length?'#9aa3ad':n.side?'#8fd3ff':'#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(s.x,1.5,s.z);L.group.add(ring);n.ring=ring;
+    if(!open.length){if(g.lock==='trust'){n.locked=RIVER_LOCK_LINE;n.lockTag='needs Riverside trust '+RIVER_TRUST_GATE[m.id]+'%'}
+      else if(g.lock==='maple'){n.locked="Finish up in Maple Heights first. The Duke will keep. Men like that always keep.";n.lockTag='after Maple Heights is done'}
+      else{n.locked="Not yet. I'll call you.";n.lockTag='later'}
+      locked.push(HOMIES[m.giver].name+' · '+n.lockTag);continue}
+    const nm=HOMIES[m.giver].name,where=giverWhere(s.x,s.z);
+    if(n.side)side.push(nm);else story.push({rank:n.rank,d:Math.hypot(s.x-P.pos.x,s.z-P.pos.z),n,text:nm+' has '+(open.filter(o=>!MISSIONS[o.i].repeatable).length>1?'jobs':'a job')+' for you'+where})}
+  for(const i of homeStoryJobs())story.push({rank:storyRank(i),d:HUBX.home?Math.hypot(HUBX.home.x-P.pos.x,HUBX.home.z-P.pos.z):0,home:i,text:homeLine(i)});
+  story.sort((a,b)=>a.rank-b.rank||a.d-b.d);
+  const lines=story.map(s=>s.text).concat(locked);
   const tg=tieGoal();if(tg){lines.push(tg);const sv=SV();if(sv&&sv.flags&&!sv.flags.tieHint){sv.flags.tieHint=1;metaSave();setTimeout(()=>{if(mode==='hub')radio('gary',"Tre won't talk to a man with a gun. Bring in ten folks alive, zip-tied, not shot, and he'll know we're serious. Then we talk.",true)},2500)}}
-  const fi=finaleInfo();if(fi&&fi.act3)lines.push(fi.ready?'The festival: go home and talk to the family':fi.line);if(fi&&fi.act3&&!fi.ready&&fi.n>=fi.total)lines.push(fi.hint);
-  HUBOBJ.title=L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights';HUBOBJ.lines=lines.length?[...lines,'Follow the yellow marker.']:['Saturday. Nothing on the list. Go grill something.'];HUBOBJ.fin=fi?fi.line+fi.ready:'';
+  const fi=finaleInfo();HUBOBJ.info=fi;HUBOBJ.infoT=simT;/* the panel and its per-second refresh (finaleObjTick) start from the same numbers */if(fi&&fi.act3)lines.splice(fi.ready?0:lines.length,0,...finaleLines(fi));
+  /* the lead: the festival when it's ready, else the earliest story job (a giver, or home), else the nearest side job */
+  const st=story[0];HUBLEAD.kind=null;HUBLEAD.i=null;HUBLEAD.label='';for(const n of npcs)n.lead=false;
+  if(fi&&fi.ready){HUBLEAD.kind='home';HUBLEAD.label='Home · the family'}
+  else if(st&&st.home!=null){HUBLEAD.kind='home';HUBLEAD.i=st.home;HUBLEAD.label='Home · '+MISSIONS[st.home].title}
+  else if(st){HUBLEAD.kind='npc';st.n.lead=true}
+  else if(side.length)HUBLEAD.kind='side';
+  if(side.length)lines.push('Side jobs: '+[...new Set(side)].join(' · '));
+  HUBOBJ.title=L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights';HUBOBJ.lines=lines.length?(HUBLEAD.kind?[...lines,'Follow the yellow marker.']:lines):['Saturday. Nothing on the list. Go grill something.'];HUBOBJ.fin=fi?fi.line+fi.ready:'';
   setObj(HUBOBJ.title,HUBOBJ.lines)}
+/* a Riverside giver under his trust gate: what actually earns Riverside trust in this game */
+const RIVER_LOCK_LINE="Folks around here don't know you well enough yet. Go see Hank by the hardware store, he's got a Honey-Do list for this side of the river. And when a man puts his hands up, you zip-tie him. You don't drop him.";
+function finaleLines(fi){if(fi.ready)return['The festival: go home and talk to the family'];const out=[fi.line];if(fi.left)out.push(fi.left);if(fi.n>=fi.total)out.push(fi.hint);return out}
 /* the finale's gate, spelled out (js/jobs/finale.js unlock): shown once Act 3 starts (the Duke is done), in the hub objective, at home and on the fridge calendar */
 const HUBOBJ={title:'',lines:[],fin:'',t:0,info:null,infoT:-9};
 function finaleInfo(){const j=JR&&JR.get('finale');if(!j||j.builtin)return null;const m=j.def,i=MISSIONS.indexOf(m);if(i<0||prog.done[i]||jrDone('finale'))return null;
   const u=m.unlock||{},ids=[].concat(u.done||[]),n=ids.filter(jrDone).length,need=u.trust||80,needR=u.trustR||80,tM=Math.floor(prog.trust||0),tR=Math.floor(prog.trustR||0);
   const ready=n>=ids.length&&tM>=need&&tR>=needR;
+  const miss=ids.filter(id=>!jrDone(id)),title=id=>{const x=MISSIONS.find(q=>q.id===id);return x?x.title:id},
+    where=id=>{const x=MISSIONS.find(q=>q.id===id);if(!x)return'';const lr=x.reg&&JR.lockReason?JR.lockReason(x,{done:jrDone,trust:prog.trust,trustR:prog.trustR||0,cuffed:prog.cuffed,flags:(SV()||{}).flags||{},save:SV()}):null;
+      const who=x.from&&x.from.home?'home':(HOMIES[x.giver]||{name:x.giver}).name;return who+(lr&&lr.why==='locked'?', after '+title(lr.need):lr&&lr.why==='cuffed'?', zip-tie '+lr.need+' people alive first':'')};
   return{n,total:ids.length,tM,tR,need,needR,ready,act3:jrDone('duke'),
+    left:miss.length&&miss.length<=3?miss.length+' left: '+miss.map(id=>title(id)+' ('+where(id)+')').join(', '):'',
     line:'Finale: '+n+' of '+ids.length+' jobs · Maple trust '+Math.min(tM,need)+'/'+need+' · Riverside trust '+Math.min(tR,needR)+'/'+needR,
-    hint:tR<needR?'Raise Riverside trust: zip-ties, repeat jobs, helping out':'Raise Maple trust: zip-ties, repeat jobs, the HOA'}}
+    hint:tR<needR?"Raise Riverside trust: Hank's Honey-Do Blitz, Suds Up at Pastor Dee's, zip-ties instead of shots":"Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"}}
 /* Small Talk (js/jobs/talk.js) also needs ten people zip-tied alive: say so once it's the only thing missing */
 function tieGoal(){if(!JR)return null;const j=JR.get('talk');if(!j||j.builtin||jrDone('talk'))return null;const u=j.def.unlock||{},need=u.cuffed||0,c=prog.cuffed||0;if(!need||c>=need)return null;
   if(!(jrDone('dee')||jrDone('duke')))return null;return'Small Talk (Gary): zip-tie '+need+' people alive · '+c+'/'+need}
 function finaleCached(){if(simT-HUBOBJ.infoT>1||simT<HUBOBJ.infoT){HUBOBJ.infoT=simT;HUBOBJ.info=finaleInfo()}return HUBOBJ.info}
 /* the objective panel follows trust as it changes in free roam */
 function finaleObjTick(){if(JOB!==null||!HUBOBJ.title)return;const fi=finaleCached();if(!fi||!fi.act3)return;const k=fi.line+fi.ready;if(k===HUBOBJ.fin)return;HUBOBJ.fin=k;
-  const ls=HUBOBJ.lines.filter(l=>!/^Finale: |^The festival: |^Raise (Riverside|Maple) trust/.test(l)),at=Math.max(0,ls.length-(ls[ls.length-1]==='Follow the yellow marker.'?1:0));
-  const add=[fi.ready?'The festival: go home and talk to the family':fi.line].concat(!fi.ready&&fi.n>=fi.total?[fi.hint]:[]);ls.splice(at,0,...add);
+  const ls=HUBOBJ.lines.filter(l=>!/^Finale: |^The festival: |^Raise (Riverside|Maple) trust|^\d+ left: /.test(l));let at=ls.findIndex(l=>/^Side jobs: |^Follow the yellow marker\.$/.test(l));if(at<0)at=ls.length;
+  const add=finaleLines(fi);if(fi.ready){at=0;HUBLEAD.kind='home';HUBLEAD.i=null;HUBLEAD.label='Home · the family'}ls.splice(at,0,...add);if(fi.ready&&ls[ls.length-1]!=='Follow the yellow marker.')ls.push('Follow the yellow marker.');
   if(ls.length===add.length+1&&ls[ls.length-1]==='Saturday. Nothing on the list. Go grill something.')ls.pop();HUBOBJ.lines=ls;setObj(HUBOBJ.title,ls)}
 function wmHubCrew(){const ids=[0,1,2,3].filter(i=>prog.done[i]).map(i=>MISSIONS[i].giver);if(MISSIONS.length>6&&(prog.done[6]||(SV()&&SV().crew.rosa)))ids.push('rosa');
   ids.forEach((id,i)=>{const a=spawnAlly(id,P.pos.x+(i%2?2.4:-2.4)*(1+(i>>1)*.6),P.pos.z-rand(1.5,2.5));if(id==='rosa'&&a.tag)a.tag.textContent='Rosa · Honorary Dad'})}
@@ -4268,7 +4311,14 @@ function wmHubEnter(){if(!WORLD||!L||!L.ow)return;wmAfter();WM.tier=null;jrHubEn
       HUD.show('result',{stamp:'Act 2 · One week later',title:'The bridge is open.',goLabel:'Drive across the bridge',canRetry:false,
         text:"Earl Booker, retired, calls Gary's landline. Gary still has a landline. \"You the fellas who cleaned up Birch Street? The King's cousin set up shop across the river. Calls himself the Duke. Of catalytic converters. Bring the van.\"",
         stats:[['Riverside trust',Math.round(prog.trustR)+'%','People keep their blinds down'],['Route 9 bridge','Open','The city finally finished the inspection']]});
-      UI.acts={'result:go':()=>{HUD.hide('result');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock();radio('doug',"I've been asking the city about that bridge since 2019.",true);radio('earl',"Ash Street. The stoop with the bus-stop sign on it. You can't miss me.")}}},1400)}}
+      UI.acts={'result:go':()=>{HUD.hide('result');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock();radio('doug',"I've been asking the city about that bridge since 2019.",true);radio('earl',"Ash Street. The stoop with the bus-stop sign on it. You can't miss me.")}}},1400)}
+  /* Act 3 (SPEC3 3.1, Good People Stay): after the Duke. People coming back to Riverside and staying; the money behind both Kings */
+  else if(MISSIONS.length>8&&prog.done[8]&&!WM.beat3&&!(s&&s.flags.act3Intro)){WM.beat3=true;prog.act=3;if(s){s.flags.act3Intro=true;if(SAVEM&&SAVEM.touch)SAVEM.touch('flags')}
+    setTimeout(()=>{if(mode!=='hub'||HUD.screen==='result')return;running=false;releaseLock();const fi=finaleInfo();
+      HUD.show('result',{stamp:'Act 3 · Good People Stay',title:'People are coming home.',goLabel:'Back to work',canRetry:false,
+        text:"There's a moving truck on Ash Street. Then another one. Earl's old neighbours, Rosa's kids' friends, somebody's cousins from two towns over. Nobody's selling, and nobody's leaving. Gary has a corkboard now, with red string, and every string ends at one card: The Wholesaler. He bought what the King stole. He bought what the Duke stole. He's still buying.",
+        stats:[['Riverside trust',Math.round(prog.trustR)+'%','People wave back now'],['The festival',fi?fi.n+' of '+fi.total+' jobs':'Coming','The first Riverside street festival']]});
+      UI.acts={'result:go':()=>{HUD.hide('result');UI.acts={};running=true;last=performance.now();canvasFocus();requestLock();radio('gary',"I've matched eleven hundred stolen things to one buyer. I'd like to meet him. Politely.",true);radio('dee',"They're unpacking, gentlemen. Let's make sure they get to stay.")}}},1400)}}
 function wmSign(lines,x,z,yaw,o={}){const c=document.createElement('canvas');c.width=1024;c.height=320;const g=c.getContext('2d');g.fillStyle=o.bg||'#2f6b3f';g.fillRect(0,0,1024,320);g.strokeStyle=o.fg||'#f6f1e3';g.lineWidth=14;g.strokeRect(14,14,996,292);
   g.fillStyle=o.fg||'#f6f1e3';g.textAlign='center';g.font='900 '+(lines[0].length>22?64:84)+'px Arial';g.fillText(lines[0],512,lines[1]?140:190);if(lines[1]){g.font='700 46px Arial';g.fillText(lines[1],512,230)}
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;const grp=new THREE.Group();const w=o.w||3.4;
@@ -4287,7 +4337,7 @@ function wmAfter(){MISSIONS.forEach((m,i)=>{if(!prog.done[i])return;const s=WORL
   (WM.afterSigns||(WM.afterSigns={}))[m.id]=wmSign(WM_AFTER[m.id],q.x,q.z,yaw,m.id==='rick'?{bg:'#c8342c',w:2.4}:{});
   if(m.id==='rick')for(const s2 of[-1,1]){const pot=box(.5,.45,.5,'#b5651d',q.x+s2*1.6,.22,q.z);L.group.add(pot);const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.32,0),mat(s2>0?'#e85a8a':'#f2c230'));fl.position.set(q.x+s2*1.6,.7,q.z);L.group.add(fl)}})}
 function wmHubUpdate(dt){if(!WORLD||!L||!L.ow)return;jrGiverTick(dt);
-  if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)-(n.prefer?1e4:0);npcs.sort((a,b)=>d(a)-d(b))}
+  if(npcs.length>1){const d=n=>Math.hypot(n.pos.x-P.pos.x,n.pos.z-P.pos.z)+(n.lead?-1e5:0)+(n.locked?1e5:0)+(n.side?0:-1e4);npcs.sort((a,b)=>d(a)-d(b))}
   const G=HTM('WorldGen');if(G&&G.tierOf){const t=G.tierOf(prog.trustR);if(WM.tier!=null&&t>WM.tier){const ln=G.dressing(WORLD,prog.trustR).line;HUD.banner({kind:'alert',kicker:'Riverside trust '+Math.round(prog.trustR)+'%',title:'RIVERSIDE FLATS',sub:ln,dur:3})}WM.tier=t}
   if(!WORLD.bridgeOpen&&!WM.bridgeSaid&&Math.hypot(P.pos.x-282,P.pos.z-43)<14){WM.bridgeSaid=true;HUD.feed('The bridge is closed for inspection.','info');radio('doug',"I've been asking the city about that bridge since 2019.")}}
 function wmTrustRiver(){return mode==='mission'&&M?M.def.hood==='river':(!!L&&!!L.ow&&OWS.region==='river')}
@@ -4335,17 +4385,20 @@ function jrGiverAt(m){const f=m.from||{},P_=WORLD.places;if(f.home)return null;i
 /* hub givers for registered jobs: available, not done (or repeatable), standing in the world; at most 3, in def.order */
 function jrGivers(){if(!JR||!WORLD)return[];const out=[];
   for(const j of JR.list(j=>!j.builtin).sort((a,b)=>(a.def.order||99)-(b.def.order||99))){const m=j.def,i=MISSIONS.indexOf(m);if(i<0||jrLock(m))continue;if(!m.repeatable&&prog.done[i])continue;
-    const g=jrGiverAt(m);/* every unlocked job gets its giver; two jobs that share a giver's spot take turns (the earlier one first) */if(g&&out.length<14&&!out.some(o=>Math.hypot(o.x-g.x,o.z-g.z)<1.5))out.push({i,x:g.x,z:g.z})}return out}
+    const g=jrGiverAt(m);/* every unlocked job; jobs that share a giver's spot are offered together by one giver (wmHubGivers) */if(g&&out.length<40)out.push({i,x:g.x,z:g.z})}return out}
 function jrOnRegister(j){const m=j.def;if(!m||j.builtin)return;
   if(m.giverLook&&!HOMIES[m.giver])HOMIES[m.giver]=Object.assign({name:m.giverName||m.giver},m.giverLook);
   const i=MISSIONS.indexOf(m),s=SV();if(i>=0&&s&&s.jobs&&s.jobs[m.id]&&s.jobs[m.id].done&&!m.repeatable)prog.done[i]=true;
   /* registered while the hub is up: its destination ring and giver appear without a rebuild */
   if(mode==='hub'&&L&&L.ow&&L.dests&&WORLD){const d=jrDest(m);if(d){L.dests[i]=d;if(!destRings[i]){const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
       const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=JOB===i;L.group.add(g);destRings[i]=g}}
-    const g=jrGiverAt(m);if(g&&!jrLock(m)&&(m.repeatable||!prog.done[i])&&!npcs.some(n=>n.marker&&n.marker.i===i)&&npcs.length<24&&!npcs.some(n=>n.marker&&Math.hypot(n.marker.x-g.x,n.marker.z-g.z)<1.5)){const n=spawnNpc(m.giver,g.x,g.z,{i,x:g.x,z:g.z});
-      const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,3,20,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(g.x,1.5,g.z);L.group.add(ring);n.ring=ring}}}
+    }}
 /* a job that unlocks mid-session (trust crossed, another job done) gets its giver without a hub rebuild */
-function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j)}
+function jrGiverTick(dt){JRS.gT=(JRS.gT||0)-dt;if(JRS.gT>0||!JR||mode!=='hub')return;JRS.gT=1;for(const j of JR.list(j=>!j.builtin))jrOnRegister(j);
+  /* a job that registers late (the job files stream in after the hub) or unlocks mid-session (trust crossed): rebuild the givers, the lead and the panel */
+  if(JOB===null&&running&&L&&L.ow&&WORLD){const k=giverSig();if(JRS.gSig!=null&&k!==JRS.gSig)wmGiversRefresh();JRS.gSig=k}}
+function giverSig(){let k='';MISSIONS.forEach((m,i)=>{if((m.repeatable||!prog.done[i])&&!jobLock(i))k+=i+','});const fi=finaleInfo();return k+'|'+(fi&&fi.ready?1:0)}
+function wmGiversRefresh(){for(const n of npcs){scene.remove(n.dude.root);dudeFree(n.dude.root);if(n.tag&&n.tag.parentNode)n.tag.remove();if(n.ring)L.group.remove(n.ring)}npcs=[];wmHubGivers();JRS.gSig=giverSig()}
 /* ---- start options: replay and checkpoint ride along through startMissionWhenReady ---- */
 function jrOpts(o){o=o||{};if(JRS.next){o=Object.assign({},JRS.next,o);JRS.next=null}return o}
 function jrStarted(o){if(!M)return;const m=M.def,j=JR&&JR.get(m.id);M.replay=!!o.replay;M.retried=!!o.checkpoint;M.job=j;M.stage=null;M.clean=M.clean!==false;

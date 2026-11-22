@@ -23,7 +23,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
     await ev(()=>{if(!document.querySelector('.cine'))document.querySelectorAll('.lbx').forEach(e=>e.classList.remove('lbx'))});await ev(()=>window.__ht.draw());
     await ev(()=>window.__ht.draw());await p.screenshot({path:path.join(OUT,n+'.jpg'),type:'jpeg',quality:84});await ev(()=>{window.__ruCam=null});console.log('  shot '+n)};
   await p.click('.ht-title [data-act=newgame]').catch(()=>ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub()}));await p.waitForTimeout(300);
-  await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('roundup');const pr=j.test.give(H.jobs.api);if(pr)await Promise.race([pr,new Promise(r=>setTimeout(r,30000))]);try{const sv=H.save;if(sv&&sv.flags){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,3)}}catch(_){}H.enterHub();H.step(2)});
+  await ev(async()=>{const H=window.__ht;try{H.render.apply('high')}catch(_){}await H.jobs.ready;H.step(2);const j=H.jobs.registry.get('roundup');const pr=j.test.give(H.jobs.api);if(pr)await Promise.race([pr,new Promise(r=>setTimeout(r,30000))]);try{const sv=H.save;if(sv&&sv.flags){sv.flags.act2Intro=true;sv.flags.act3Intro=true;H.prog.act=Math.max(H.prog.act||1,3)}}catch(_){}H.enterHub();H.step(2)});
   /* ---- route check: the rails out of the bays ---- */
   const giver=await ev(()=>{const H=window.__ht,i=H.jobs.index('roundup');const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver'};H.P.pos.set(n.pos.x+1.3,0,n.pos.z+1.5);H.collide(H.P.pos,.35);
     H.P.yaw=Math.atan2(1.3,1.5);H.P.pitch=-.06;H.step(20);H.use=true;H.step(1);return{brief:!!(H.UIacts&&H.UIacts['brief:go'])}});

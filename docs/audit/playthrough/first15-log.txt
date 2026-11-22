@@ -1,0 +1,43 @@
+7s TITLE {"btns":["Continue","Clock in","Restore previous save","Settings","Credits & licences"],"focus":"Clock in","premise":"HighTrustMaple Heights Neighborhood WatchPackages are vanishing, a chop shop opened on Industrial Way, and somebody is dealing out of the duplex on Birch. You and the guys would rather be grilling. ContinueClock inRestore previous saveSettingsCredits & licences TipHurt enemies sometimes give up. Zip-ties earn more trust than the alternative.Ready · streaming details…Build "}
+shot docs/audit/playthrough/first15-01-title.jpg
+50s AFTER NEW GAME {"mode":"hub","screen":null,"running":true,"obj":"SaturdayMaple HeightsGary has a job for youFollow the yellow marker.","hint":"MouseMove the mouse to look around","prompt":null,"marker":{"label":"Gary","x":27,"z":21},"pos":{"x":31,"z":19},"yaw":-1.57,"inVan":false,"job":null,"trust":12,"trustR":5,"cash":0,"cuffed":0,"day":1,"toasts":[""],"sub":"YouOkay. Let's see who needs help."}
+shot docs/audit/playthrough/first15-02-spawn.jpg
+73s after clicking the view {"screen":null,"running":true,"hint":"MouseMove the mouse to look around"}
+look calibration: yaw per px 0.00230
+91s HINT MouseMove the mouse to look around
+91s OBJECTIVE SaturdayMaple HeightsGary has a job for youFollow the yellow marker.
+91s MARKER {"label":"Gary","x":27,"z":21}
+shot docs/audit/playthrough/first15-03-hints.jpg
+154s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":32.7,"z":20.2} dist 6
+167s HINT null
+180s HINT WASDWalk
+195s HINT null
+206s HINT ShiftHold Shift while walking to jog
+206s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+207s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+209s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+211s arrived near {"x":29,"z":21.2} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-0.jpg
+224s after E: screen brief
+225s BRIEF {"text":"New jobReturn to Sender GGary · The AccountantChop shop, Industrial Way Somebody's been running a package ring. Three hundred porches in six months.I followed the tracking numbers to a chop shop on Industrial. Our packages are in there. Mrs. Patel's insulin is in there.I brought my pistol. I've never fired it at a person. I'd like to keep it that way, but I don't think they will. JobRecover 4 piles of stolen packages, then get back to the van.CrewYou, GaryGunsGarage Pistol · Grandpa's Pump Load the vanSkip the driveNot yet","btns":["brief:go=Load the van","brief:skip=Skip the drive","brief:no=Not yet"]}
+shot docs/audit/playthrough/first15-05-brief.jpg
+238s HINT null
+238s OBJECTIVE New job · Chop shop, Industrial WayReturn to SenderGet in the minivanDrive the crew to Chop shop, Industrial Way
+238s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+238s MARKER {"label":"Minivan","x":39,"z":15}
+238s after Enter on the brief {"screen":null,"job":0,"obj":"New job · Chop shop, Industrial WayReturn to SenderGet in the minivanDrive the crew to Chop shop, Industrial Way","marker":{"label":"Minivan","x":39,"z":15}}
+shot docs/audit/playthrough/first15-06-accepted.jpg
+248s van at {"x":39,"z":15} player {"x":28.7,"z":21.1}
+253s HINT EWalk up to the minivan and press E to drive
+253s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+261s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+267s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+276s PROMPT null
+432s at van, prompt null
+436s after E at van: inVan false
+shot docs/audit/playthrough/first15-07-van.jpg
+shot docs/audit/playthrough/first15-09-job.jpg
+shot docs/audit/playthrough/first15-10-end.jpg
+452s END {"mode":"hub","screen":null,"running":true,"obj":"New job · Chop shop, Industrial WayReturn to SenderGet in the minivanDrive the crew to Chop shop, Industrial Way","hint":"EWalk up to the minivan and press E to drive","prompt":null,"marker":{"label":"Minivan","x":39,"z":15},"pos":{"x":0.3,"z":15.8},"yaw":-4.91,"inVan":false,"job":0,"trust":12,"trustR":5,"cash":0,"cuffed":0,"day":1,"toasts":[""],"sub":"GaryMinivan's on the street. Drive like your kids are in it."}
+
+console errors:
