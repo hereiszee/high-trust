@@ -11,12 +11,12 @@
   ok   took off (101 mph at x 167)
   ok   wheels-up counts the flight on disk (0 → 1) and meets ACH_CLEARED_FOR_TAKEOFF
   ok   G raises the gear
-  perf jet climbing out {"calls":51,"tris":140123,"drawMs":17.1,"stepMs":9.07}
+  perf jet climbing out {"calls":51,"tris":140131,"drawMs":24.5,"stepMs":10.64}
   shot jet-cockpit.jpg
   ok   C toggles the look back on and off (no held keys)
   ok   the throttle holds with no key down (100%)
   shot jet-inbound.jpg
-  perf jet inbound to Maple Heights {"calls":121,"tris":287675,"drawMs":8.9,"stepMs":15.12}
+  perf jet inbound to Maple Heights {"calls":121,"tris":287693,"drawMs":10.2,"stepMs":11.56}
   shot jet-family.jpg
   ok   buzzed the house: the family came out (3 waving)
   ok   sonic boom over the neighborhood
@@ -67,8 +67,8 @@
   ok   no ride-back prompt at the base afterwards (null)
   shot jet-ride-back.jpg
   ok   (set up: far out, the ride is offered: ride)
-  FAIL at the base by other means (by the range): no ride-back prompt (null)
+  ok   at the base by other means (by the range): no ride-back prompt (null)
   shot jet-no-prompt-at-base.jpg
   ok   the crew rode back too: at the apron with him (1.7 m)
 no console errors
-2 FAILED · 553 s
+1 FAILED · 618 s
