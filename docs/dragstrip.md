@@ -112,12 +112,17 @@ gearbox is an automatic for everyone; no clutch; weight transfer is a fixed lean
 
 ## Betting
 
-* **On yourself**, before a race: the tower prices you from your own last 12 passes (reaction times, red lights, launch quality; a new
-  driver is priced as a novice until three passes) against the racer, by 240 simulated races of the same model.
+* **On yourself**, before a race: the tower prices you from what you have **shown** in that car and upgrade set, never your recent
+  average: the mean of your best three clean ETs in the garage book (your lane's passes are shifted that much quicker than the model's
+  typical one) and the mean of your best three reaction times anywhere, each never worse than an average driver (no passes yet = an
+  average driver). A slow or red-lit pass can't get into a best three, so sandbagging can't lengthen your price; driving better shortens it.
 * **On other races**, at the office: two regulars within two rungs of each other. Two races in three are **spec races** (both in the
   same loaner, so the drivers decide it: odds around 25-35% / 65-75%, payouts ~1.3× / ~3×); the third is in their own cars, which is
-  often lopsided (a car gap is worth more than a driver gap) and priced that way (down to 1.05× / up to 12×). Both lanes priced by 500 simulated races; back one, pick a stake, watch it from the
+  often lopsided (a car gap is worth more than a driver gap) and priced that way (down to 1.05× / up to 12×). One fixed price per matchup per in-game day (below); back one, pick a stake, watch it from the
   tower camera (any `use`/Enter/Esc or pad A/B skips to the result, which is then simulated to the end by the same model).
+* **Prices are fixed for the day.** A matchup's p is counted once (`HT.Drag.priceP`: 1,500 passes per lane from a seed made from the
+  matchup, every pass of one lane against every pass of the other; within ~1 point of 5,000 fresh races) and kept in `SAVE.strip.odds`
+  for that in-game day. Asking again, or "Different race" and back, shows the same price.
 * Payout multiplier = (1 − 8% house edge) / p, kept to 1.05×-12×. The result is a fresh run of the model after the bet (nothing is
   rigged). dev/test-dragsim.js and dev/dragstrip-check.js run 2,000 races per matchup against the stated p (within 3.5 points).
 
@@ -138,8 +143,22 @@ Jobs pay $400-1,400 base plus bonuses. The strip is a side line that can't repla
 | Bets | $10-100 a bet; at most **+$300 won and −$200 lost per in-game day**; a bet never takes cash below **$150**; you can't stake what you don't have (no tab, no borrowing) |
 | House edge | 8% |
 
-In-game days only move when you finish story jobs, so the caps can't be farmed by waiting. Everything is settled when a race is over;
-quitting, a job start, fast travel or a reset mid-race changes no money and no ladder state.
+In-game days only move when you finish story jobs, so the caps can't be farmed by waiting.
+
+### When the money is taken
+
+* **The moment you commit.** Accepting a race takes the entry, the rental and any bet on yourself; placing a bet on two regulars takes the
+  stake. The cash check, the $150 floor and the day's caps are checked first; the money comes off and the save is written at once (the
+  urgent path), with the pending race or bet in `SAVE.strip.pending` (who, which car, the stake, the fixed price, and for a bet its seed).
+  A stake counts against the day's −$200 loss cap from that moment and comes off it only if it wins.
+* **A race that isn't run to its slip is a forfeit:** quit to title, reload or close the game, fast travel, a job, death, getting out,
+  or sitting at the line (ten seconds after your green without leaving = timed out). Entry, rental and stake stay taken, the racer is not
+  beaten, tonight's bracket is used up, and the race office says so in one line when you're back in free roam.
+* **A bet on two regulars is decided by its seed.** The tower camera shows that race (each lane on its own stream, fixed 1/120 s steps); if
+  you leave before the result (quit, reload, travel), the booth settles the same race from the saved seed the next time you're in free
+  roam: a win pays, a loss is lost, to the dollar what watching it would have done.
+* Winnings (purses, prizes, a winning bet) are paid only when the race is actually completed. Quitting can't gain anything either: a
+  forfeit pays nothing, and a bet settles the same either way.
 
 ## Fit with the game
 
@@ -150,7 +169,7 @@ quitting, a job start, fast travel or a reset mid-race changes no money and no l
   arrows/1-9/`use`/Enter/Esc, the mouse, and the pad through `HT.Pad.modal` (D-pad, A, B).
 * No gun comes out on the property (`HT.Base.line` answers like Maple's rule; a gun already drawn is holstered when you walk on).
 * Reset (`HT.Base.on('reset')`: quit to title, job start, home, the tow, death) and any teleport: the loaner, the opponent's car, the
-  HUD, the menus and a watched race go away; nothing is saved from a half-run race.
+  HUD, the menus and a watched race go away; the money already taken stays taken (see "When the money is taken").
 * Saves (`SAVE.strip`): the garage book, the last 20 passes (for the odds), the ladder (beaten, wins), the per-day tallies, stats.
 
 ## Draw calls
@@ -178,7 +197,9 @@ pieces are built within 60 m of the strip and dropped (geometry, people, collide
 
 ```
 node dev/test-dragsim.js                      # (also in dev/run-tests.js) the model, order of the cars, wheelspin, red light, bracket, odds vs 2,000 races, money, caps, classes, achievements
-node dev/dragstrip-check.js [travel,tune,red,race,bets,caps,quit,pad,perf] [--shots]
+node dev/dragstrip-check.js [travel,tune,red,race,bets,caps,quit,money,pad,perf] [--shots]   # money: reload / never-launch forfeits, an abandoned bet settles as watched, one price, caps across a reload
+node dev/audit/final-check/strip-loss-dodge.js [cd]   # DS-1 regression: quit, never launch, an abandoned bet, a bracket forfeit
+node dev/audit/final-check/strip-fairness.js          # fixed prices vs 5,000 races, red lights, upgrades, sandbagging
 ```
 
 ## Weaknesses (honest)
@@ -187,7 +208,7 @@ node dev/dragstrip-check.js [travel,tune,red,race,bets,caps,quit,pad,perf] [--sh
 * Lane-locked passes: no steering skill on the strip. The car can't hit the wall.
 * Racers appear as names, lines and their cars; they aren't standing around in person (the spectators and Dolores at the window are).
 * The spectators sit; they stand up while a race is on; no cheering animation of their own.
-* The odds for a bet on yourself come from your history; if you drive very differently from your history, the price is off (for or
-  against you).
+* A bet on yourself is priced from your best passes, so it tends to be a little short for a driver who is usually slower than their best
+  (the house's side of the error, on purpose). The 1.05× floor on a near-certain favourite is slightly above fair (bounded by the caps).
 * Keyboard throttle is on/off; feathering a spin means tapping. The pad's RT is analog.
 * The strip asphalt between the walls is the world's lot asphalt; the start area's concrete pad and rubber are drawn over it.

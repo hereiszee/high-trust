@@ -1,4 +1,4 @@
-/* Sensible Dragway play-through: node dev/dragstrip-check.js [travel,tune,red,race,bets,caps,quit,pad,perf|all] [--shots]
+/* Sensible Dragway play-through: node dev/dragstrip-check.js [travel,tune,red,race,bets,caps,quit,money,pad,perf|all] [--shots]
    Real key events (Playwright keyboard) for everything the player does: walking up, E at the paddock board and the race office, the menu keys,
    staging (hold Space + W against the brake), the launch (let go of Space on the green), feathering the throttle. The bot reads the
    tree like a driver (the bulbs' state), not the race model's internals. Also: the pure-sim odds sweep (2,000 races), the money rules
@@ -7,10 +7,13 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path'),DR=require('../js/dragsim.js');
 const OUT=path.join(__dirname,'../docs/screenshots/dragstrip');fs.mkdirSync(OUT,{recursive:true});
 const args=process.argv.slice(2),SHOTS=args.includes('--shots');let phases=(args.find(a=>!a.startsWith('--'))||'all').split(',');
-if(phases.includes('all'))phases=['travel','tune','upgrades','red','race','bets','bracket','caps','quit','pad','perf'];
+if(phases.includes('all'))phases=['travel','tune','upgrades','red','race','bets','bracket','caps','quit','money','pad','perf'];
 const log=[];const say=(...a)=>{const s=a.join(' ');console.log(s);log.push(s)};let fails=0;
 const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
+  /* the page reloaded (= the game closed and opened again): the same save, back in free roam at the strip */
+  const reload=async()=>{await release();await p.reload();await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:90000});await ev(()=>{window.__rafOn=false});
+    await p.waitForTimeout(300);await ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(3);H.P.pos.set(274,0,292);H.VAN.pos.set(276,0,292);H.VAN.yaw=Math.PI/2;H.step(3)});await settle(4)};
   const ev=(f,a)=>p.evaluate(f,a);
   const step=(n,dt)=>ev(([n,dt])=>{const H=window.__ht;H.step(n,dt||1/30);H.ow.update(H.camera)},[n,dt||1/30]);
   const shot=async(name,o)=>{if(!SHOTS)return;await ev(o=>{const H=window.__ht;if(o&&o.hideHud){for(const el of document.body.querySelectorAll('body > *'))if(el!==H.renderer.domElement&&el.style&&!el.contains(H.renderer.domElement)&&!(el.className&&/ht-dr/.test(el.className)))el.style.visibility='hidden'}H.draw();H.draw()},o||{});
@@ -166,8 +169,60 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await ev(()=>{window.__ht.HUD.emit?0:0});await ev(()=>{const H=window.__ht;H.quitToTitle?H.quitToTitle():document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))});await step(2);
     const q=await ev(()=>{const H=window.__ht;return{st:HT.Strip.state(),cars:(H.L&&H.L.cars||[]).filter(e=>e.stripLoaner).length,hud:!!document.querySelector('.ht-drhud'),menus:document.querySelectorAll('.ht-dr').length,cash:Math.round(HT.Save.data.cash),lad:JSON.stringify(HT.Save.data.strip.ladder),fly:!!(H.CV&&H.CV.fly)}});
     ok(!q.st.run&&!q.st.loaner&&!q.st.watch&&q.cars===0&&!q.hud&&!q.menus&&!q.fly,'no run, no loaner, no HUD, no menu: '+JSON.stringify({cars:q.cars,hud:q.hud,menus:q.menus}));
-    ok(q.cash===c0&&q.lad===s0,'no money moved, no ladder change (cash '+q.cash+' vs '+c0+')');
-    await ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(3);H.P.pos.set(274,0,292)});await settle(4)}
+    ok(q.cash===c0-(20+25+25)&&q.lad===s0,'quit mid-race: the entry, rental and stake were taken when the race was accepted and stay taken; no ladder change (cash '+c0+' -> '+q.cash+')');
+    const sc=await ev(()=>{try{return Math.round(JSON.parse(localStorage.getItem('ht-save')).cash)}catch(e){return -1}});ok(sc===q.cash,'and it was saved at once (the save says '+sc+')');
+    await ev(()=>{const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(3);H.P.pos.set(274,0,292)});await settle(4);
+    const back=await ev(()=>({pend:HT.Strip.state().pending.length,cash:Math.round(HT.Save.data.cash),lad:JSON.stringify(HT.Save.data.strip.ladder),feed:(document.body.innerText.match(/That's a forfeit[^\n]*/)||[''])[0]}));
+    ok(back.pend===0&&back.cash===q.cash&&back.lad===s0,'back in free roam: the race is a forfeit (nothing pending, nothing paid, Dutch not beaten): "'+back.feed+'"')}
+
+  if(phases.includes('money')){say('== the money is taken when you commit: reload and never-launch forfeit; an abandoned bet settles as watched; one price per matchup; caps across a reload');
+    const lossOf=25+20+25;
+    /* a page reload mid-race (the game closed) */
+    await ev(()=>{HT.Save.data.cash=1500;HT.Save.saveNow(true)});let c0=await cashNow();const w0=await ev(()=>JSON.stringify(HT.Save.data.strip.ladder));
+    await office();await pickItem(/^Race the ladder$/);await pickItem(/^Dutch/);await pickItem(/^Rent: Hatchback$/);await pickItem(/^Bet \$25 on yourself$/);await step(2);
+    await key(' ',true);await key('w',true);for(let i=0;i<60;i++)await step(1);let r=await S();ok(r.run&&r.run.opp==='dutch','mid-race ('+(r.run&&r.run.phase)+')');
+    await reload();let c1=await cashNow();r=await S();
+    ok(c1===c0-lossOf&&!r.run&&r.pending.length===0,'reload mid-race: a forfeit, cost '+(c0-c1)+' (entry + rental + stake = '+lossOf+')');
+    ok(await ev(()=>JSON.stringify(HT.Save.data.strip.ladder))===w0,'no ladder change');
+    /* never launch: the tree goes green, the car sits; 10 s later it is timed out as a loss */
+    c0=await cashNow();await office();await pickItem(/^Race the ladder$/);await pickItem(/^Dutch/);await pickItem(/^Rent: Hatchback$/);await pickItem(/^Bet \$25 on yourself$/);await step(2);
+    await key(' ',true);let tGreen=null,ended=null;for(let n=0;n<1400;n++){r=await S();if(!r.run){ended=n;break}if(r.run.phase==='go'&&tGreen==null)tGreen=n;await step(1)}await release();
+    c1=await cashNow();ok(c1===c0-lossOf&&ended!=null,'never released the brake: timed out '+(ended!=null&&tGreen!=null?((ended-tGreen)/30).toFixed(1)+' s after the green':'?')+', cost '+(c0-c1));
+    await settle(2);
+    /* a spectator bet: one winning seed, one losing seed. Each is watched to the end once, then placed again with the same seed and the page
+       reloaded mid-watch: the abandoned bet pays exactly what watching it paid */
+    await ev(()=>{const s=HT.Save.data,D=HT.Drag.day(s.strip,s.day||1);D.betWon=0;D.betLost=0;s.cash=1500;HT.Save.saveNow(true)});
+    ok(await office(),'office');await pickItem(/^Bet on the next race$/);const mm=await ev(()=>{const m=HT.Strip.S.nextMatch;window.__m=m;const o={ids:[m[0].id,m[1].id],cars:m.cars.slice()};
+      let win=0,lose=0;for(let s=1;s<500&&(!win||!lose);s++){const r=HT.Drag.watchRace(o,s);if(r.win===0&&!win)win=s;if(r.win===1&&!lose)lose=s}return{o,win,lose}});
+    say('  matchup '+mm.o.ids.join(' vs ')+' in '+mm.o.cars.join('/')+'; a winning seed for the right lane '+mm.win+', a losing one '+mm.lose);await press('Escape',1);await press('Escape',1);await step(2);
+    for(const[seed,label]of[[mm.win,'winning'],[mm.lose,'losing']]){const nets=[];
+      for(const how of['watch','reload']){await ev(s=>{const H=HT.Strip;H.S.nextMatch=window.__m;H.nextSeed=s},seed);ok(await office(),'office');await pickItem(/^Bet on the next race$/);
+        let m=await menu();const back=m.items[0];await press('1',1);c0=await cashNow();const price=await ev(()=>HT.Strip.S.menu.o.sub);await pickItem(/^\$25$/);await step(2);
+        let w=await ev(()=>HT.Strip.watch());ok(!!w&&(await cashNow())===c0-25,how+' ('+label+' seed): stake taken at once ('+back+', '+price.replace(/\. You have.*/,'')+')');
+        if(how==='watch'){for(let n=0;n<1500;n++){w=await ev(()=>HT.Strip.watch());if(!w)break;await step(1)}const lw=await ev(()=>HT.Strip.state().lastWatch);c1=await cashNow();nets.push(c1-c0);
+          ok(lw&&lw.seed===seed&&c1-c0===lw.net,'watched: winner lane '+(lw&&lw.win)+', net '+(c1-c0));await press('Escape',1);await step(2)}
+        else{for(let n=0;n<400;n++){w=await ev(()=>HT.Strip.watch());if(!w||w.phase==='go'&&w.t>2.5)break;await step(1)}ok(w&&w.phase==='go','mid-race at the reload ('+(w&&w.t.toFixed(1))+' s)');
+          await reload();c1=await cashNow();const lo=await ev(()=>HT.Strip.lastOrphan||null);const pend=(await S()).pending.length;nets.push(c1-c0);
+          ok(pend===0&&lo&&c1-c0===nets[0],'reloaded mid-watch: settled from the seed, net '+(c1-c0)+' = watched '+nets[0]+' (winner lane '+(lo&&lo.win)+')')}}
+      ok(label==='winning'?nets[0]>0:nets[0]===-25,label+' seed: '+(label==='winning'?'paid':'lost')+' both ways')}
+    /* one price per matchup per day: fifty asks, and back after "Different race" */
+    const pr=await ev(()=>{const m=window.__m,S=HT.Strip,o=[];for(let i=0;i<50;i++)o.push(S.boothP([m[0].id,m[1].id],m.cars));return[...new Set(o)]});ok(pr.length===1,'50 asks of the booth for '+mm.o.ids.join(' vs ')+': '+pr.length+' price ('+pr[0]+')');
+    await ev(()=>{HT.Strip.S.nextMatch=window.__m});await office();await pickItem(/^Bet on the next race$/);const r1=await ev(()=>HT.Strip.S.menu.o.items.slice(0,2).map(x=>x.right).join(' / '));
+    await pickItem(/^Different race$/);const r2=await ev(()=>HT.Strip.S.menu.o.sub.split('.')[0]);await press('Escape',1);await ev(()=>{HT.Strip.S.nextMatch=window.__m});await press('Escape',1);
+    await office();await pickItem(/^Bet on the next race$/);const r3=await ev(()=>HT.Strip.S.menu.o.items.slice(0,2).map(x=>x.right).join(' / '));
+    ok(r1===r3,'the first matchup ('+r1+'), a different race ('+r2+'), back to the first: '+r3);for(let i=0;i<3;i++)await press('Escape',1);
+    /* the self-bet price: twelve slow passes (real keys: late off the line, floored into wheelspin) don't lengthen it */
+    const sp0=await ev(()=>{const x=HT.Strip.selfPrice('hatch','marisol');return{p:x.p,key:x.key}});const NS=+(process.env.SANDBAG||12);
+    for(let i=0;i<NS;i++){const bd=def.paddockBoard;await walk(bd.x,bd.z+2.2,.8);await ev(()=>{window.__ht.P.yaw=0});await step(2);await press('e',2);await pickItem(/^Hatchback$/);await step(2);
+      await pass({late:25+i%3*15,flat:true});await pickItem(/^Done$/);await step(4)}
+    const sp1=await ev(()=>{const x=HT.Strip.selfPrice('hatch','marisol');return{p:x.p,key:x.key,n:(HT.Save.data.strip.book.hatch||{}).n}});
+    ok(sp1.p===sp0.p&&sp1.key===sp0.key,NS+' slow passes in the hatchback (book: '+sp1.n+' passes): the self-bet price vs Marisol '+sp0.p+' -> '+sp1.p);
+    /* caps and the floor across a reload: (a) $180 down today with plenty of cash; (b) nothing down, cash $20 over the floor. Saved, reloaded */
+    for(const[lost,cashV,want,what]of[[180,1500,'$10:yes,$25:no,$50:no,$100:no','$180 down today (loss cap $200)'],[0,170,'$10:yes,$25:no,$50:no,$100:no','$170 in hand (floor $150)']]){
+      await ev(([l,c])=>{const s=HT.Save.data,D=HT.Drag.day(s.strip,s.day||1);D.betLost=l;D.betWon=0;s.cash=c;HT.Save.saveNow(true)},[lost,cashV]);await reload();
+      await office();await pickItem(/^Bet on the next race$/);await press('1',1);const offs=await ev(()=>HT.Strip.S.menu.o.items.map(x=>x.label+':'+(x.off?'no':'yes')));
+      ok(offs.join(',')===want,'after a reload, '+what+': '+offs.join(' '));for(let i=0;i<3;i++)await press('Escape',1)}
+    await ev(()=>{const s=HT.Save.data,D=HT.Drag.day(s.strip,s.day||1);D.betLost=0;s.cash=1500})}
 
   if(phases.includes('pad')){say('== controller only: the picker, a pass, the slip, with a scripted pad');
     const {FAKE_PAD}=require('../desktop/test/fake-pad.js');await ev(FAKE_PAD);

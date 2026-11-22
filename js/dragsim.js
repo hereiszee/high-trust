@@ -203,7 +203,69 @@ function settle(D,stake,mult,won){const net=won?Math.round(stake*(mult-1)):-stak
 /* a purse against the daily cap: what is actually paid */
 function capPurse(D,amt){const room=Math.max(0,ECON.dayCap-(D?D.won:0)),p=Math.min(room,amt);if(D)D.won+=p;return p}
 
-const API={bookKey,upText,SPEC,CLASSES,REFUSE,RACERS,LADDER,ECON,EIGHTH,FT60,FT330,TRAP,ROLL,MPH,spec,run,step,slip,sim,ai,race,judge,winP,payout,rng,racer,playerProfile,day,purse,maxStake,canBet,settle,capPurse,rollTime,
+/* ---------- fixed prices (docs/dragstrip.md "Prices") ----------
+   A matchup's probability is counted once from a seed made from the matchup itself, with each lane simulated on its own stream and every
+   run of one lane set against every run of the other (n x n pairings from 2n passes: a steady number for the cost), and kept for the
+   in-game day in SAVE.strip.odds. Asking again, or coming back to it after "Different race", gives the same price. */
+const PRICE_N=1500;
+function hashStr(t){let h=2166136261>>>0;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return h||1}
+const laneSeed=(seed,ln)=>ln?((seed^0x9e3779b9)>>>0)||7:seed>>>0;
+function lanePasses(x,n,seed,g){const r=rng(seed),out=[];for(let i=0;i<n;i++){const R=sim(x.spec,x.driver,r,{greenAt:g});const s=slip(R);
+  out.push({red:!!(s&&s.red),rt:s&&s.rt!=null?s.rt:9,fin:s&&s.et!=null?R.split.et+(x.etAdj||0):Infinity})}return out}/* etAdj: a demonstrated-ET shift (a bet on yourself) */
+/* the same verdict as judge() (heads-up, no dial) for two finished passes: 0 = a wins */
+const verdict=(x,y)=>x.red&&y.red?(x.rt<y.rt?1:0):x.red||y.red?(x.red?1:0):x.fin<=y.fin?0:1;
+function priceP(a,b,key,n){n=n||PRICE_N;const s=hashStr(key),A=lanePasses(a,n,laneSeed(s,0),1.5),B=lanePasses(b,n,laneSeed(s,1),1.5);let w=0;
+  for(const x of A)for(const y of B)if(verdict(x,y)===0)w++;return w/(n*n)}
+/* the day's price book: SAVE.strip.odds = {day, p:{key: probability}} (yesterday's prices go when the day changes) */
+function cachedP(st,dayN,key,fn){if(!st)return fn();let O=st.odds;if(!O||O.day!==dayN||!O.p)O=st.odds={day:dayN,p:{}};
+  if(typeof O.p[key]==='number')return O.p[key];const ks=Object.keys(O.p);if(ks.length>=240)delete O.p[ks[0]];return O.p[key]=+fn().toFixed(4)}
+const matchKey=m=>'w|'+m.ids.join('>')+'|'+m.cars.join('>');
+
+/* ---------- a watched race (a bet on two regulars): decided by its seed ----------
+   Each lane runs on its own stream from the bet's seed, in fixed 1/120 s steps from the same green, so the race the tower camera shows
+   and the race the booth settles without you (you quit, reloaded, travelled away) are the same race, to the thousandth. */
+const WATCH_DT=1/120,WATCH_GREEN=1.5;
+function watchCtl(m,ln,seed){const r=racer(m.ids[ln]);return ai(spec(m.cars[ln]),r.d,rng(laneSeed(seed,ln)),{greenAt:WATCH_GREEN})}
+function watchRace(m,seed){const C=[0,1].map(ln=>watchCtl(m,ln,seed));for(const c of C){while(!c.R.done&&c.R.t<WATCH_GREEN+60)c.tick(WATCH_DT)}
+  const runs=C.map(c=>c.R);return judge(runs,runs.map(slip),null)}
+
+/* ---------- the price of a bet on yourself: what you have shown you can do in that car ----------
+   Never your recent average: the mean of your best three clean ETs in the garage book for that car and upgrade set, and the mean of your
+   best three reaction times anywhere, each never worse than an average driver's. Your lane in the pricing sims is the model's pass by
+   that driver, shifted by how much quicker your best passes are than the model's typical one (etAdj <= 0). A slow or red-lit pass can't
+   get into a best three, so it can never lengthen the price. */
+const AVG_DRIVER={rt:.28,rtSd:.08,redP:.03,launchQ:.62,missP:0};
+const ETC={};
+function modelET(sp){const k=bookKey(sp)+'|'+sp.kw.toFixed(1)+'|'+sp.mu.toFixed(3)+'|'+sp.mass+'|'+sp.cda.toFixed(2);if(ETC[k]!=null)return ETC[k];const r=rng(4243);let t=0;
+  for(let i=0;i<24;i++)t+=slip(sim(sp,{rt:.3,rtSd:0,redP:0,launchQ:AVG_DRIVER.launchQ,missP:0},r)).et;return ETC[k]=+(t/24).toFixed(3)}
+/* bookEntry: SAVE.strip.book[bookKey(sp)] ({top:[{et,rt}...], best}); bestRts: SAVE.strip.rts (best clean reaction times) */
+function selfProfile(sp,bookEntry,bestRts){const P=Object.assign({},AVG_DRIVER);P.etAdj=0;
+  const top=bookEntry&&(bookEntry.top&&bookEntry.top.length?bookEntry.top:bookEntry.best?[bookEntry.best]:[])||[];
+  const ets=top.map(x=>x&&x.et).filter(x=>x>0).sort((a,b)=>a-b).slice(0,3);
+  if(ets.length){const m=ets.reduce((a,b)=>a+b,0)/ets.length;P.etAdj=+Math.min(0,m-modelET(sp)).toFixed(3);P.shown=ets.length;P.bestET=+m.toFixed(3)}
+  const rts=(bestRts||[]).filter(x=>x!=null&&x>=0).sort((a,b)=>a-b).slice(0,3);
+  if(rts.length)P.rt=Math.min(AVG_DRIVER.rt,rts.reduce((a,b)=>a+b,0)/rts.length);
+  P.rt=Math.max(.02,+P.rt.toFixed(3));P.rtSd=+Math.min(AVG_DRIVER.rtSd,Math.max(.025,P.rt*.35)).toFixed(4);P.novice=!ets.length&&!rts.length;return P}
+/* keep the best three of a list (lower is better): a pass only ever improves it */
+function keepBest(list,x,k,by){list=(list||[]).slice();list.push(x);list.sort((a,b)=>(by?by(a)-by(b):a-b));return list.slice(0,k||3)}
+const selfKey=(sp,r,P)=>'s|'+bookKey(sp)+'|'+r.id+'|'+P.rt.toFixed(3)+'|'+P.etAdj.toFixed(3);
+
+/* ---------- money is taken when you commit (docs/dragstrip.md "When the money is taken") ----------
+   SAVE.strip.pending: [{id, kind:'race'|'bracket'|'bet', day, cost (cash already taken), stake, mult, ...}]. A race or bracket that is
+   not run to its slip is a forfeit (nothing back, the racer is not beaten); a bet on two regulars is settled from its seed. Stakes count
+   against the day's loss cap the moment they are placed, and come off it again only when they win. */
+function stakeIn(D,stake){if(D&&stake)D.betLost+=stake}
+/* a bet that won: the stake back and the winnings (what to pay); the day's tallies move from lost to won */
+function betWon(D,stake,mult){const net=Math.round(stake*(mult-1));if(D){D.betLost=Math.max(0,D.betLost-stake);D.betWon+=net}return{pay:stake+net,net}}
+function dropPending(st,id){if(st&&st.pending)st.pending=st.pending.filter(x=>x.id!==id)}
+/* a race left before its slip: the money stays taken; stats and tonight's bracket are used up */
+function forfeit(st,p){dropPending(st,p.id);if(st){if(st.stats)st.stats.races=(st.stats.races|0)+1;if(p.stake&&st.stats)st.stats.bets=(st.stats.bets|0)+1;
+  if(p.kind==='bracket'&&st.bracket)st.bracket.lastDay=p.day}return{lost:p.cost}}
+/* a bet on two regulars settled without the camera: the same race (its seed), the same money as watching it */
+function settleBet(st,p){const res=watchRace(p.m,p.seed),won=res.win===p.lane;dropPending(st,p.id);const D=st?day(st,p.day):null;if(st&&st.stats)st.stats.bets=(st.stats.bets|0)+1;
+  if(!won)return{res,won,pay:0,net:-p.stake};const w=betWon(D,p.stake,p.mult);return{res,won,pay:w.pay,net:w.net}}
+
+const API={priceP,cachedP,modelET,matchKey,hashStr,laneSeed,watchRace,watchCtl,WATCH_DT,WATCH_GREEN,AVG_DRIVER,selfProfile,selfKey,keepBest,stakeIn,betWon,dropPending,forfeit,settleBet,bookKey,upText,SPEC,CLASSES,REFUSE,RACERS,LADDER,ECON,EIGHTH,FT60,FT330,TRAP,ROLL,MPH,spec,run,step,slip,sim,ai,race,judge,winP,payout,rng,racer,playerProfile,day,purse,maxStake,canBet,settle,capPurse,rollTime,
   classOf:t=>{for(const k in CLASSES)if(CLASSES[k].types.includes(t))return k;return null},
   /* every type the strip can lend (HT.Garage's cars plus the mower): the car picker */
   types:()=>Object.keys(SPEC)};
