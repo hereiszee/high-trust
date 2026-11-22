@@ -49,9 +49,10 @@ const CARDS={
   drag:{sup:{k:'Sensible Dragway',l:'Quarter mile.<br><b>Sensible speeds.</b>'}},
   waves:{sup:{k:'The festival',l:'Everybody<br><b>waves.</b>',c:1}},
   end:{end:1},
+  title:{end:1,title:1},
 };
 function html(c){if(c.end)return`<div class="full end"><div class="logo"><span class="roof">${ROOF}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
-  <div class="cta"><div class="btn">${CFG.cta}</div>${CFG.ctaSub?`<div class="sub">${CFG.ctaSub}</div>`:''}</div></div>`;
+  ${c.title?'':`<div class="cta"><div class="btn">${CFG.cta}</div>${CFG.ctaSub?`<div class="sub">${CFG.ctaSub}</div>`:''}</div>`}</div>`;
   const s=c.sup;return`<div class="safe"><div class="sup${s.c?' c':''}"><div class="k">${s.k}</div><div class="l">${s.l}</div></div></div>`}
 async function render(names){fs.mkdirSync(OUT,{recursive:true});const b=await chromium.launch();const p=await b.newPage({viewport:{width:1920,height:1080}});
   await p.route('http://ht.local/**',r=>{const u=new URL(r.request().url());if(u.pathname==='/card.html')return r.fulfill({status:200,body:'<!doctype html><meta charset=utf-8><style>'+CSS+'</style><body></body>',headers:{'content-type':'text/html'}});
