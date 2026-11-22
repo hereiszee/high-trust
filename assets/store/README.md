@@ -134,3 +134,9 @@ Tools are in `tools/store-art/` (none of them change the game):
   to `tools/store-art/shots/`, not `docs/`. `shots-batch.sh` runs the set used for the store.
 
 Re-render the plates (about a minute each), then `python3 tools/store-art/build.py`.
+
+## Owner decisions (22 Nov 2026)
+
+- **Gun-range screenshot:** if it is used, mark it all-ages. It is not in the current set of thirteen; the file is `alternates/round1/screenshots_round1/` (range rack).
+- **Library logo position over the hero:** bottom left.
+- **Key art:** the tank-in-the-driveway version is the one in use. The other concepts stay in `alternates/` for reference only.
