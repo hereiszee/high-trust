@@ -53,7 +53,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       ok(g.used&&g.acts.includes('brief:go'),'home giver "'+from.home+'" offers the brief ('+JSON.stringify(g)+')');await shot(ID+'-brief',()=>{const H=window.__ht;if(H.mode==='home'){H.P.pos.set(1.9,0,6.3);H.P.yaw=0;H.P.pitch=-.12}});
       const go=await ev(i=>{const H=window.__ht;H.UIacts['brief:go']();H.step(2);H.exitHome('front');H.step(3);return{mode:H.mode,job:H.JOB,i}},reg.index);
       ok(go.mode==='hub'&&go.job===reg.index,'accepted at home, out the front door with the job on the list ('+JSON.stringify(go)+')')}
-    else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
+    else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&(n.marker.i===i||(n.jobs||[]).includes(i)));if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
+        /* a giver with more than one open job: pick this one on the brief */if(n.marker.i!==i&&H.UIacts&&H.UIacts['brief:job:'+i]){H.UIacts['brief:job:'+i]();H.step(1)}
         const br=!!(H.UIacts&&H.UIacts['brief:go']);if(br)H.UIacts['brief:go']();H.step(1);return{brief:br,job:H.JOB}},reg.index);ok(g.brief&&g.job===reg.index,'giver in the world offers the brief ('+JSON.stringify(g)+')')}
     let dr=await ev(i=>window.__J.toRing(i),reg.index);
     /* the start may be waiting on a model still streaming in (startMissionWhenReady's castWait): let it finish, then step */

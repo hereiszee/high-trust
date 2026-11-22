@@ -16,7 +16,7 @@ const L=[];const log=(...a)=>{const s=a.map(x=>typeof x==='string'?x:JSON.string
   await p.evaluate(async()=>{await window.__ht.jobs.ready});
   await ev(()=>{const H=window.__ht,k=H.keys,T=window.__W={};
     T.hubState=()=>{const MI=H.MISSIONS,J=H.jobs;H.step(4);try{H.draw()}catch(e){}
-      const givers=H.npcs.filter(n=>n.marker).map(n=>({id:MI[n.marker.i].id,who:n.id,x:+n.pos.x.toFixed(1),z:+n.pos.z.toFixed(1),lock:n.lockTag||null}));
+      const givers=H.npcs.filter(n=>n.marker).map(n=>({id:MI[n.marker.i].id,also:(n.jobs||[]).slice(1).map(i=>MI[i].id),who:n.id,x:+n.pos.x.toFixed(1),z:+n.pos.z.toFixed(1),lock:n.lockTag||null}));
       const avail=MI.map((m,i)=>({m,i})).filter(({m,i})=>!J.lock(m.id)&&(m.repeatable||!H.prog.done[i])).map(({m})=>m.id);
       const locked=MI.map((m,i)=>({m,i})).filter(({m,i})=>J.lock(m.id)&&!H.prog.done[i]).map(({m})=>m.id+':'+J.lock(m.id));
       const home=MI.filter((m,i)=>m.from&&m.from.home&&!J.lock(m.id)&&(m.repeatable||!H.prog.done[i])).map(m=>m.id+'@'+m.from.home);
@@ -47,18 +47,18 @@ const L=[];const log=(...a)=>{const s=a.map(x=>typeof x==='string'?x:JSON.string
     const storyLeft=(await ev(()=>window.__ht.MISSIONS.filter((m,i)=>!m.repeatable&&!window.__ht.prog.done[i]).map(m=>m.id)));
     log('\n== step '+k+'  trust '+st.trust+' / R '+st.trustR+'  cuffed '+st.cuffed+'  day '+st.day+'  cash '+st.cash+'  act '+st.act+'  bridge '+st.bridge);
     log('   OBJECTIVE: '+(st.obj||[]).join(' | '));log('   MARKER: '+JSON.stringify(st.marker));
-    log('   givers: '+st.givers.map(g=>g.who+':'+g.id+'@'+g.x+','+g.z+(g.lock?'['+g.lock+']':'')).join('  '));
+    log('   givers: '+st.givers.map(g=>g.who+':'+g.id+((g.also||[]).length?'+'+g.also.join('+'):'')+'@'+g.x+','+g.z+(g.lock?'['+g.lock+']':'')).join('  '));
     log('   available: '+st.avail.join(' ')+'   home: '+st.home.join(' '));log('   locked: '+st.locked.join(' '));
     /* checks */
     for(let a=0;a<st.givers.length;a++)for(let c=a+1;c<st.givers.length;c++){const A=st.givers[a],C=st.givers[c];if(Math.hypot(A.x-C.x,A.z-C.z)<2)prob('step '+k+': givers stacked: '+A.id+' & '+C.id+' at '+A.x+','+A.z);if(A.who===C.who)prob('step '+k+': '+A.who+' twice: '+A.id+' & '+C.id)}
     const storyAvail=st.avail.filter(id=>storyLeft.includes(id));
-    const hidden=storyAvail.filter(id=>!st.givers.some(g=>g.id===id)&&!st.home.some(h=>h.startsWith(id+'@')));if(hidden.length)log('   (available story jobs with no giver standing right now: '+hidden.join(' ')+')');
+    const hidden=storyAvail.filter(id=>!st.givers.some(g=>g.id===id||(g.also||[]).includes(id))&&!st.home.some(h=>h.startsWith(id+'@')));if(hidden.length)log('   (available story jobs with no giver standing right now: '+hidden.join(' ')+')');
     const homeStory=st.home.filter(h=>storyLeft.includes(h.split('@')[0]));
     for(const h of homeStory){const id=h.split('@')[0];const said=(st.obj||[]).some(l=>new RegExp(id==='taxi'?'Jen|fridge|list|Taxi':id==='finale'?'family|festival|home':id,'i').test(l));if(!said)log('   NOTE home story job '+h+' is available but the objective panel does not mention it')}
     if(!storyLeft.length){log('ALL STORY JOBS DONE');}
     /* choose: the marker's giver; else a home story job; else a repeatable (to show what's offered); else dead end */
     let pick=null,how=null;
-    if(st.marker){const g=st.givers.find(g=>Math.hypot(g.x-st.marker.x,g.z-st.marker.z)<1)||null;if(g&&!g.lock){pick=g.id;how='marker'}else if(g&&g.lock)log('   marker points at a LOCKED giver '+g.id+' ['+g.lock+']');else if(/Home/.test(st.marker.label||'')){const f=st.home.find(h=>h.startsWith('finale@'));if(f){pick='finale';how='marker-home'}}}
+    if(st.marker){const g=st.givers.find(g=>Math.hypot(g.x-st.marker.x,g.z-st.marker.z)<1)||null;if(g&&!g.lock){pick=g.id;how='marker'}else if(g&&g.lock)log('   marker points at a LOCKED giver '+g.id+' ['+g.lock+']');else if(/Home/.test(st.marker.label||'')){const f=st.home.find(h=>h.startsWith('finale@'))||homeStory[0];if(f){pick=f.split('@')[0];how='marker-home'}}}
     if(pick){const m=await ev(id=>{const MI=window.__ht.MISSIONS;return MI.find(x=>x.id===id)},pick);if(m.repeatable&&storyAvail.length){/* a repeatable is first in line while story jobs wait: note it, take the story job the panel lists */
         log('   marker points at a REPEATABLE ('+pick+') while story jobs are available: '+storyAvail.join(' '));const g2=st.givers.find(g=>storyAvail.includes(g.id)&&!g.lock);if(g2){pick=g2.id;how='giver-list'}else pick=null}}
     if(!pick&&homeStory.length){pick=homeStory[0].split('@')[0];how='home (not signposted by the marker)'}
