@@ -8,11 +8,8 @@
 == test & tune: three cars, three slips, the quickest car quickest
   ok   E at the paddock board opens the car picker (8 cars)
   ok   your own car first, then every car the strip lends, stock (HT.Garage six + the mower): Your Family Minivan, Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
-  shot picker.jpg
   ok   a sedan loaner at the line
-  shot tree-staged.jpg
   ok   sedan: slip RT 0.316 60ft 2.166 330 5.99 ET 9.176 @ 77.1 mph (1/4 est 14.31)
-  shot timeslip.jpg
   ok   the timeslip card is up
   ok   Done hands the loaner back
   ok   E at the paddock board opens the car picker (8 cars)
@@ -34,7 +31,6 @@
   ok   picker: Your Family Minivan
   ok   engine 2: your own car at the line
   engine 2: 60ft 2.369 ET 9.583 @ 76.6 mph · slip says: Car	Family Minivan · V6 Swap
-  shot timeslip-upgraded.jpg
   ok   picker: Your Family Minivan
   ok   tyres 2: your own car at the line
   tyres 2: 60ft 2.212 ET 9.695 @ 71.8 mph · slip says: Car	Family Minivan · Performance Rubber
@@ -43,44 +39,34 @@
   ok   tyre upgrade: quicker 60 ft (2.369 -> 2.212)
   ok   the garage book keeps a row per upgrade set: minivan@stock, minivan@e2, minivan@t2
 == red light: leaving on the last amber
-  shot tree.jpg
   ok   red light: RT -0.161
   ok   the red bulb is lit in our lane
-  shot red-light.jpg
 == money races: a win and a loss, cash to the dollar, the daily cap
   ok   E at the race office window opens it
-  shot race-office.jpg
   ok   the ladder: Dutch Hendricks, Marisol Vega, Walt Okafor, Tomás Reyes, Priya Raman, June Abernathy, "Rook" Delacroix
-  shot ladder.jpg
   ok   the self-bet offer
-  shot self-bet.jpg
   ok   racing Dutch Hendricks, lane 0
-  shot race-staged.jpg
-  ok   won: {"won":true,"how":"finish","margin":2.081,"red":[false,false]}
-  shot race-board.jpg
-  shot race-result.jpg
-  ok   cash moved by the settlement exactly: 72 = 72 [["Rental",-20],["Purse",40],["First win over Dutch Hendricks",50],["Your bet on yourself · 1.09x",2]]
+  ok   won: {"won":true,"how":"finish","margin":1.795,"red":[false,false]}
+  ok   cash moved by the settlement exactly: 71 = 71 [["Rental",-20],["Purse",40],["First win over Dutch Hendricks",50],["Your bet on yourself · 1.05x",1]]
   ok   Dutch marked beaten (first-win bonus paid once)
-  ok   lost: {"won":false,"how":"finish","margin":1.739,"red":[false,false]}
+  ok   lost: {"won":false,"how":"finish","margin":1.873,"red":[false,false]}
   ok   a loss costs the rental, the entry and the bet: -55
-  ok   repeat win capped: {"lines":[["Rental",-20],["Purse (repeat win × 2 today)",7],["Daily cap reached · $400 a day from the strip",0]],"net":-13} day {"won":400,"betWon":2,"betLost":10,"beat":{"dutch":2}}
+  ok   repeat win capped: {"lines":[["Rental",-20],["Purse (repeat win × 2 today)",7],["Daily cap reached · $400 a day from the strip",0]],"net":-13} day {"won":400,"betWon":1,"betLost":10,"beat":{"dutch":2}}
 == bets on other races: watch one to the end, skip one, settle both from the race model
   ok   office
-  ok   two racers on offer: Back June Abernathy | Back "Rook" Delacroix
-  shot betting-booth.jpg
+  ok   two racers on offer: Back Walt Okafor | Back Tomás Reyes
   ok   stake menu
-  ok   watching from the tower (june vs rook)
-  shot spectator-race.jpg
-  ok   watched: winner lane 1 by 0.067, bet -25, cash -25
-  shot spectator-result.jpg
+  ok   watching from the tower (walt vs tomas)
+  ok   watched: winner lane 1 by 0.325, bet -25, cash -25
   ok   office
-  ok   two racers on offer: Back Tomás Reyes | Back Marisol Vega
+  ok   two racers on offer: Back Marisol Vega | Back Dutch Hendricks
   ok   stake menu
-  ok   watching from the tower (tomas vs marisol)
-  ok   skipped: winner lane 0 by 0.717, bet 1, cash 1
+  ok   watching from the tower (marisol vs dutch)
+  ok   skipped: winner lane 0 by 0.686, bet 1, cash 1
 == bracket night (day 3): dial-ins, handicap starts, up to three rounds, one settlement
+  ok   entry and rental taken when the bracket is accepted ($80)
   round 1 vs dutch, handicap [1.879999999999999,0]
-  {"won":false,"how":"breakout","margin":0.231,"red":[false,false]}
+  {"won":false,"how":"breakout","margin":0.3,"red":[false,false]}
   ok   bracket settled once at the end: {"lines":[["Bracket entry",-60],["Rental",-20]],"net":-80}
   ok   cash moved by the bracket net exactly: -80
   ok   tonight's bracket is done (next one in 3 days)
@@ -92,7 +78,38 @@
 == quit to title mid-race: nothing left behind
   ok   mid-race (tree)
   ok   no run, no loaner, no HUD, no menu: {"cars":0,"hud":false,"menus":0}
-  ok   no money moved, no ladder change (cash 1500 vs 1500)
+  ok   quit mid-race: the entry, rental and stake were taken when the race was accepted and stay taken; no ladder change (cash 1500 -> 1430)
+  ok   and it was saved at once (the save says 1430)
+  ok   back in free roam: the race is a forfeit (nothing pending, nothing paid, Dutch not beaten): ""
+== the money is taken when you commit: reload and never-launch forfeit; an abandoned bet settles as watched; one price per matchup; caps across a reload
+  ok   mid-race (staged)
+  ok   reload mid-race: a forfeit, cost 70 (entry + rental + stake = 70)
+  ok   no ladder change
+  ok   never released the brake: timed out 10.0 s after the green, cost 70
+  ok   office
+  matchup rook vs priya in sedan/suv; a winning seed for the right lane 1, a losing one 27
+  ok   office
+  ok   watch (winning seed): stake taken at once (Back "Rook" Delacroix, On "Rook" Delacroix at 1.05×)
+  ok   watched: winner lane 0, net 1
+  ok   office
+  ok   reload (winning seed): stake taken at once (Back "Rook" Delacroix, On "Rook" Delacroix at 1.05×)
+  ok   mid-race at the reload (2.5 s)
+  ok   reloaded mid-watch: settled from the seed, net 1 = watched 1 (winner lane 0)
+  ok   winning seed: paid both ways
+  ok   office
+  ok   watch (losing seed): stake taken at once (Back "Rook" Delacroix, On "Rook" Delacroix at 1.05×)
+  ok   watched: winner lane 1, net -25
+  ok   office
+  ok   reload (losing seed): stake taken at once (Back "Rook" Delacroix, On "Rook" Delacroix at 1.05×)
+  ok   mid-race at the reload (2.5 s)
+  ok   reloaded mid-watch: settled from the seed, net -25 = watched -25 (winner lane 1)
+  ok   losing seed: lost both ways
+  ok   50 asks of the booth for rook vs priya: 1 price (0.9435)
+  ok   the first matchup (pays 1.05× / pays 12.00×), a different race (Marisol Vega vs Dutch Hendricks, a spec race: both in the strip's Family Minivans), back to the first: pays 1.05× / pays 12.00×
+  ok   12 of 12 slow passes run
+  ok   12 slow passes in the hatchback (book: 13 passes): the self-bet price vs Marisol 0.5872 -> 0.5872
+  ok   after a reload, $180 down today (loss cap $200): $10:yes $25:no $50:no $100:no
+  ok   after a reload, $170 in hand (floor $150): $10:yes $25:no $50:no $100:no
 == controller only: the picker, a pass, the slip, with a scripted pad
   ok   the pad is the device in use
   prompt: Test & tune any car · the paddock board
@@ -106,14 +123,12 @@ Loaners stay at the strip
   ok   D-pad to Done, A: loaner back
 == draw calls at the strip (ours vs everything), 0 away from it; day and night shots
   ok   paddock: ours 37 of 265 calls (limit 40)
-  ok   start line: ours 38 of 252 calls (limit 40)
+  ok   start line: ours 38 of 254 calls (limit 40)
   ok   stands: ours 30 of 119 calls (limit 40)
-  ok   finish: ours 27 of 241 calls (limit 40)
+  ok   finish: ours 27 of 240 calls (limit 40)
   ok   the Route 9 sign: ours 16 of 311 calls (limit 40)
-  ok   Maple Heights: ours 0 of 318 calls (limit 0)
-  ok   Riverside: ours 0 of 482 calls (limit 0)
-  ok   Fort Sensible range: ours 24 of 411 calls (limit 40)
+  ok   Maple Heights: ours 0 of 319 calls (limit 0)
+  ok   Riverside: ours 0 of 526 calls (limit 0)
+  ok   Fort Sensible range: ours 24 of 412 calls (limit 40)
   ok   Fort Sensible gate: ours 15 of 303 calls (limit 40)
-  shot strip-day.jpg
-  shot strip-night.jpg
-== done in 769 s; console errors: 0
+== done in 518 s; console errors: 0
