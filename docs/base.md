@@ -24,8 +24,12 @@ The gate has a raised barrier (it lifts when anybody comes within 24 m) and Cpl.
 the public on days ending in Y"). Inside: the parade ground with a flagpole (the plain US flag the school flies, waving), two
 barracks, a water tower ("FORT SENSIBLE · HYDRATE"), the control tower, the motor pool, Hangar 2 ("THERE IS NO HANGAR 1"), the
 apron and runway 27/09 (258 m), and regulation signs along the main road (REGULATION 4: NO RUNNING. UNLESS SOMETHING IS ON FIRE...).
-Insignia are a generic shield with a star and oak leaves. Staff come from the neighbour pool (`HT.People.make('neighbour')`), with a
-patrol cap added.
+Insignia are a generic shield with a star and oak leaves. Staff come from the neighbour pool (`HT.People.make('neighbour')`, never the crew or the family) in a generic, fictional
+utility uniform (`js/staff.js`): their own model with the shirt and trousers recoloured olive on a private copy of its texture (shading
+kept, skin left alone) and an olive patrol cap; no insignia, badges or symbols. A street neighbour on the same model keeps his own
+clothes. Staff Sgt. Ruiz (motor pool), Sgt. Pruitt and Cpl. Doyle (range), and a controller in the tower cab.
+Hangar 2 has an inside: a sealed concrete floor with safety lines and a parking T, a lit corrugated roof underside, the end walls'
+inner faces, and a workbench, tool chests, a parts shelf, drums, tyres, a tug and a rolling maintenance stand.
 
 ## The range
 
@@ -120,7 +124,7 @@ altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the call
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
   neighbours' lines.
-* **Buzzing your house**: under ~200 ft within 90 m of home: Linda and the kids come out on the lawn and wave (the family's own
+* **Buzzing your house**: under ~200 ft within 90 m of home: Jen and the kids come out on the lawn and wave (the family's own
   People models, untouched; they stream in when you climb into the jet, and if they aren't loaded yet they come out as soon as they are).
 * **Under the bridge**: the Route 9 bridge sits on the water, so nothing flies under it. North of town the river valley now has
   **the High Bridge**, an old rail viaduct 15 m up (built from the backdrop's own terrain heights). Flying under it is an achievement.
@@ -179,10 +183,21 @@ manufacturer names, designations or real unit insignia.
 | World's Okayest Dad | Walt's car | G checks the glovebox in a borrowed car |
 | Proof | a cardboard Bigfoot on the range's backstop berm | hit it |
 
+## Leaving: nothing carries over
+
+`HT.Base.reset()` (js/base.js) runs every module's 'reset' hook; index.html `clearChars()` calls it, so it runs on quit to title,
+new game, continue, a job starting, going home and the free-roam tow. The jet drops its canopy, flight draw radius, ground map,
+fog, crew hold, family, tips, HUD and markers; the tank lets you out (the game's own exit restores the camera), turns the sight off,
+clears shells and rebuilds knocked props; the range puts the rental back (your own loadout returns before anything saves), drops a
+half-run course and closes its card and rack menu. `HT.Jet.on` (in the jet or under its canopy) and `HT.Tank.on` (in the tank) are
+read-only flags for fast travel.
+
 ## Testing
 
 ```
-node dev/base-check.js [drive,range,tank,jet,eggs|all] [--shots]   # the play-through, real keys and clicks; jpgs + evidence.txt
+node dev/base-check.js [drive,range,tank,jet,pilot,eggs|all] [--shots]   # the play-through, real keys and clicks; jpgs + evidence.txt
+node dev/base-reset.js                                               # audit C-2: quit / new game / continue / job / tow leave nothing behind
+node dev/base-art-check.js                                           # audit W-05/06/07/09: staff uniform, hangar inside, berms, no edge box houses
 node dev/base-shots.js [filter]                                      # staged views of the post
 ```
 
@@ -206,6 +221,10 @@ scrapyardGate 429, midBridge 435 on Medium; budget 450).
   normal streaming keeps it far lower (45 climbing out, 100-200 over town in base-check).
 * Headless numbers are software-rendered; draw-call and triangle counts are the comparable figures, milliseconds are not.
 * The family can take a moment to come out on the very first buzz of a session if their models haven't finished streaming.
-* From the air the backdrop's ring of far houses (world.js, just past the map edge) are lone houses without streets.
+* The open world's backdrop no longer has its ring of far box houses (audit W-06): past the edge it is wooded hills. Mission
+  levels (world.js `W.finish` without `bare`) still build that ring; they were not part of the audit.
+* The staff uniform is a recolour of the neighbour models' own clothes: the cut is still a T-shirt or jacket and jeans in olive,
+  not a tailored uniform. The tower controller stands in the cab; the cab's glass is a tint, so he reads best from the deck or apron.
+* The range berms are heightfield mounds with vertex colour on the existing earth texture; there is no grass growing on them.
 * The Route 9 bridge sits on the water, so the "under the bridge" achievement is the new High Bridge north of town.
 * `jobs-check mower` and the `openworld-ingame` midBridge probe fail the same way on plain `origin/main` (not caused by the base).
