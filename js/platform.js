@@ -46,7 +46,7 @@ const Platform=HT.Platform={desktop:!!D,steam:!!ST,shell:D?D.shell:'web'};
 const sent=new Set();
 const Steam=HT.Steam={ACHIEVEMENTS,evaluate,get available(){return !!ST},
   unlock(id){if(!ST||sent.has(id))return;sent.add(id);try{ST.unlock(id).then(ok=>{if(!ok)sent.delete(id)},()=>sent.delete(id))}catch(e){sent.delete(id)}},
-  check(s){if(!ST)return[];const got=evaluate(s||(HT.Save&&HT.Save.data));for(const id of got)Steam.unlock(id);return got},
+  check(s){if(!ST)return[];const got=evaluate(s||(HT.Save&&(HT.Save.committed?HT.Save.committed():HT.Save.data)));/* an open job's gains are not achievements yet (SAV-04) */for(const id of got)Steam.unlock(id);return got},
   presence(){if(!ST)return;const g=root.__ht;if(!g)return;let txt='In the menus';
     try{const mode=g.mode,M=g.M,hood=g.region==='river'?'Riverside':'Maple Heights';
       if(mode==='mission'&&M&&M.def)txt='On a job: '+M.def.title;else if(mode==='home')txt='At home';else if(mode==='hub')txt=(g.CV?'Driving around ':'Out and about in ')+hood}catch(e){}

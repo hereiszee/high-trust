@@ -1,0 +1,7 @@
+index.html:1434 calls   owNeighbours(dt,bT)
+index.html:1440 calls   owNeighbours(dt)
+index.html:1444 declares function owNeighbours(dt,bT){const PP=HTM('People'),G=HTM('W
+index.html:2647 calls   owNeighbours(dt)
+index.html:2708 declares function owNeighbours(dt){const O=OW();if(!O||!O.neighbours|
+{"steps":10,"calls":20,"dts":[0.0333,0.0333,0.0333,0.0333,0.0333,0.0333],"OWS_nb":"never created (first owNeighbours is dead)"}
+no console errors

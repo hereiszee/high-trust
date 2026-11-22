@@ -298,7 +298,7 @@ function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:
   for(const b of ch.beds)gardenBed(B,b);
   /* trust dressing pieces live in their own meshes so they can be toggled */
   {const real=u.group;const dr=new THREE.Group();dr.name='dressing';real.add(dr);u.group=dr;try{riversideDressing(ws,u,B,ch,box)}finally{u.group=real}if(dr.children.length){u.dressRoot=dr}else real.remove(dr)}yield;
-  W_.finish(B,{bare:true,before:b=>{for(const L of[b.tuf,b.flw])if(L){const o=[];for(let i=0;i<L.length;i+=4)if(L[i]>=box.x0&&L[i]<box.x1&&L[i+1]>=box.z0&&L[i+1]<box.z1)o.push(L[i],L[i+1],L[i+2],L[i+3]);L.length=0;L.push(...o)}}});
+  W_.finish(B,{bare:true,before:b=>{for(const L of[b.tuf,b.flw])if(L){const o=[];for(let i=0;i<L.length;i+=4)if(L[i]>=box.x0&&L[i]<box.x1&&L[i+1]>=box.z0&&L[i+1]<box.z1&&!(window.HT&&HT.Base&&HT.Base.noTuft&&HT.Base.noTuft(L[i],L[i+1]))/* not on a floor (js/base.js: Hangar 2) */)o.push(L[i],L[i+1],L[i+2],L[i+3]);L.length=0;L.push(...o)}}});
   yield;
   if(blds.length){const sc=[];for(const g of blds){g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(g);sc.push({bb,kind:g.userData.style?'house':'flat',fp:g.userData.size,cx:g.position.x,cz:g.position.z,rot:g.rotation.y,col:g.userData._owCol||'#cfc6b4',roof:g.userData._owRoof})}
     const mg=new THREE.Group();u.group.add(mg);mergeGroups(blds,mg);u.mg=mg;
@@ -926,7 +926,7 @@ SETPIECES.push({id:'s3potholes',r:150,box:def=>({x0:200,z0:30,x1:440,z1:136,y1:2
 /* ---- backdrop: world.js terrain ring with far houses and trees, the river valley carved through it ---- */
 SETPIECES.push({id:'backdrop',box:def=>({x0:-400,z0:-400,x1:def.W*TILE+400,z1:def.H*TILE+400,y1:40}),always:true,build(ws,u){const W_=HW();if(!W_||!W_.backdrop)return;const def=ws.def;
   const B=W_.begin({def:{id:'world',lines:[]},g:[],W:0,H:0,group:u.group,colliders:[],solids:[]});B.W=def.W;B.H=def.H;B.hub=true;B.r=rng(99);
-  const rx=147*TILE;B.carve=(x,z)=>sstep(18,90,Math.abs(x-rx));B.carveY=(x,z)=>{const inW=z>0&&z<def.H*TILE&&x>0&&x<def.W*TILE;return inW?0:-3.2*(1-sstep(10,18,Math.abs(x-rx)))};B.skipRing=(x,z)=>Math.abs(x-rx)<26;
+  const rx=147*TILE;B.carve=(x,z)=>sstep(18,90,Math.abs(x-rx));B.carveY=(x,z)=>{const inW=z>0&&z<def.H*TILE&&x>0&&x<def.W*TILE;return inW?0:-3.2*(1-sstep(10,18,Math.abs(x-rx)))};B.skipRing=(x,z)=>Math.abs(x-rx)<26;B.noFarHouses=true;/* audit W-06 (world.js backdrop) */
   W_.backdrop(B);
   /* a Maple Heights water tower just past the north-west corner, and a power line along the south edge */
   {const tx_=46,tz_=-16,leg=B.gbOf('galv');for(let k=0;k<4;k++){const a=k*Math.PI/2+Math.PI/4,px=tx_+Math.cos(a)*3.2,pz=tz_+Math.sin(a)*3.2;leg.addGeo(cyl(.18,.14,22,8),M4((px+tx_)/2+(px-tx_)*.25,10.5,(pz+tz_)/2+(pz-tz_)*.25,0,(pz-tz_)*.03,-(px-tx_)*.03))}

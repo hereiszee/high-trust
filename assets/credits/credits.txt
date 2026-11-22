@@ -38,5 +38,5 @@ MUSIC
 Horn tunes after public-domain compositions by Beethoven, Rossini,
   Joplin, and von Tilzer & Norworth
 
-Full licence texts: see THIRD-PARTY-NOTICES.txt in the install folder.
+Full license texts: THIRD-PARTY-NOTICES.txt beside the game (macOS: inside the app, in Contents).
 Thank you to everyone who gives their work away.
