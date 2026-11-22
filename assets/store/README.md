@@ -157,4 +157,4 @@ Before/after pictures (front at eye level, three-quarter, back, the dad close up
 - `dev/smoke.js` (all ok, no console errors)
 - `node dev/jobs-check.js porch` (all ok)
 
-In the key art the dad is now larger (about two-thirds of the frame height, cropped at mid-thigh in the main and header), head level, with a soft key from front-left just above the eye line and catch-lights.
+In the key art the camera is at his eye level, with his head turned about 15° toward camera-right so the new brim projects forward and its top shows. The dad is now larger (about two-thirds of the frame height, cropped at mid-thigh in the main and header), head level, with a soft key from front-left just above the eye line and catch-lights.
