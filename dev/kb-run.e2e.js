@@ -17,13 +17,13 @@ const BIND={fwd:'KeyI',left:'KeyJ',back:'KeyK',right:'KeyL',jog:'Slash',jump:'Pe
 const NUMK={Numpad1:'1',Numpad2:'2',Numpad4:'4',Numpad5:'5',Numpad6:'6',Numpad7:'7',Numpad8:'8',Numpad9:'9'};
 const VK={Enter:13,Escape:27,Tab:9,ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRight:39,Slash:223,Period:190,Comma:188,Quote:192,Semicolon:77,BracketLeft:221,BracketRight:186,Backslash:220};
 (async()=>{const r=await boot();const {ev,p}=r;const cdp=await p.context().newCDPSession(p);
-  const keyEv=async(type,code)=>{const k=NUMK[code]||AZ[code]||code;const vk=VK[code]||(/^Key/.test(code)?code.charCodeAt(3):/^Numpad/.test(code)?96+(+code.slice(6)):/^Digit/.test(code)?48+(+code.slice(5)):0);
-    const named=['Enter','Escape','Tab','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);
-    await cdp.send('Input.dispatchKeyEvent',{type:type==='down'?(named?'rawKeyDown':'keyDown'):'keyUp',key:k,code,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk,location:/^Numpad/.test(code)?3:0,text:type==='down'&&!named?k:undefined,unmodifiedText:type==='down'&&!named?k:undefined})};
+  const keyEv=async(type,code)=>{const k=code==='Enter'?'Enter':NUMK[code]||AZ[code]||code;const vk=VK[code]||(/^Key/.test(code)?code.charCodeAt(3):/^Numpad/.test(code)?96+(+code.slice(6)):/^Digit/.test(code)?48+(+code.slice(5)):0);
+    const named=['Escape','Tab','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(code);const txt=code==='Enter'?'\r':k;
+    await cdp.send('Input.dispatchKeyEvent',{type:type==='down'?(named?'rawKeyDown':'keyDown'):'keyUp',key:k,code,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk,location:/^Numpad/.test(code)?3:0,text:type==='down'&&!named?txt:undefined,unmodifiedText:type==='down'&&!named?txt:undefined})};
   const B=id=>BIND[id];
   const press=async(code,frames=2)=>{await keyEv('down',code);await ev(n=>{for(let i=0;i<n;i++)window.__ht.step(1)},frames);await keyEv('up',code);await ev(()=>window.__ht.step(1))};
   const menuKey=async code=>{await keyEv('down',code);await keyEv('up',code);await r.wait(160)};
-  await ev(o=>{HT.Keys.reset();HT.Keys._layout(o.az);for(const id in o.bind)HT.Keys.set(id,o.bind[id])},{az:AZ,bind:BIND});
+  await ev(o=>{HT.Keys.reset();if(!o.nolay)HT.Keys._layout(o.az);for(const id in o.bind)if(!o.only||o.only.includes(id))HT.Keys.set(id,o.bind[id])},{az:AZ,bind:BIND,nolay:!!process.env.NOLAY,only:process.env.BINDONLY?process.env.BINDONLY.split(','):null});
   const chk=await ev(o=>Object.keys(o).filter(id=>HT.Keys.code(id)!==o[id]),BIND);ok('every action rebound ('+Object.keys(BIND).length+')',!chk.length,chk);
   await ev(()=>{window.__mouse=0;for(const t of['mousedown','wheel'])addEventListener(t,e=>{if(e.isTrusted)window.__mouse++},true)});
   /* what must not show: a default key name for a rebound action */
@@ -47,7 +47,8 @@ const VK={Enter:13,Escape:27,Tab:9,ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRig
     for(const k of held)await keyEv('up',k);await tick(1)};
   const toHub=()=>ev(()=>{const H=window.__ht;try{if(H.M&&H.M.state==='go')H.jobs.finish(false,'test')}catch(e){}H.step(3);try{H.HUD.hide('result')}catch(e){}if(H.mode!=='hub')H.enterHub();H.step(3)});
   const resultContinue=async()=>{for(let i=0;i<8;i++){const s=await state();if(s.screen!=='result')break;await menuKey('Enter');await r.wait(250)}};
-  const S=async(name,fn)=>{console.log('--- '+name);try{await fn()}catch(e){ok(name+' (threw)',false,String(e&&e.stack||e).slice(0,300))}await look(name+' end')};
+  const ONLY=process.env.ONLY?new RegExp(process.env.ONLY):null;
+  const S=async(name,fn)=>{if(ONLY&&!/^title/.test(name)&&!ONLY.test(name))return;console.log('--- '+name);try{await fn()}catch(e){ok(name+' (threw)',false,String(e&&e.stack||e).slice(0,300))}await look(name+' end')};
 
   await S('title → new game with Enter',async()=>{await r.wait(400);await look('title');for(let i=0;i<5;i++){const s=await state();if(s.mode==='hub'&&!s.screen)break;await menuKey('Enter');await r.wait(500)}
     await ev(async()=>{await window.__ht.jobs.ready});const s=await state();ok('new game from the title with the keyboard',s.mode==='hub',s);await tick(10);await look('hub')});
@@ -61,49 +62,50 @@ const VK={Enter:13,Escape:27,Tab:9,ArrowUp:38,ArrowDown:40,ArrowLeft:37,ArrowRig
   await S('map: [ opens it, Tab picks a place, Enter fast-travels',async()=>{await r.wait(350);await press(B('map'));await r.wait(300);ok('[ (Map) opens the map',await ev(()=>window.__ht.HUD.minimap.mapOpen));await look('map');
     const p0=await ev(()=>({x:window.__ht.P.pos.x,z:window.__ht.P.pos.z}));await menuKey('Tab');await menuKey('Tab');await menuKey('Enter');await r.wait(700);await tick(5);
     const p1=await ev(()=>({x:window.__ht.P.pos.x,z:window.__ht.P.pos.z,map:window.__ht.HUD.minimap.mapOpen}));if(p1.map){await press(B('map'));await r.wait(300)}ok('fast travel moved the dad',Math.hypot(p1.x-p0.x,p1.z-p0.z)>8,{p0,p1})});
-  await S('drive: U gets in, I drives, U gets out',async()=>{const v=await ev(()=>{const V=window.__ht.VAN;window.__ht.place(V.pos.x+2.6,V.pos.z);window.__ht.step(3);return 1});
+  await S('drive: U gets in, I drives, U gets out',async()=>{const v=await ev(()=>{const V=window.__ht.VAN;return{x:V.pos.x,z:V.pos.z}});await walkTo(v.x+2.6,v.z,1.4,4000);await look('at the van');
     await press(B('use'));await tick(10);let s=await state();ok('U gets in the minivan',!!s.cv,s);await look('driving');const v0=await ev(()=>{const e=window.__ht.CV;return{x:e.pos.x,z:e.pos.z}});
     await keyEv('down',B('fwd'));await tick(90);await keyEv('up',B('fwd'));await keyEv('down',B('back'));await tick(60);await keyEv('up',B('back'));await tick(60);
     const v1=await ev(()=>{const e=window.__ht.CV;return{x:e.pos.x,z:e.pos.z}});ok('I (Move forward) drives the van',Math.hypot(v1.x-v0.x,v1.z-v0.z)>5,{v0,v1});
     await ev(()=>{for(let i=0;i<300&&Math.abs(window.__ht.CV.spd)>.5;i++)window.__ht.step(1)});await press(B('use'));await tick(15);s=await state();ok('U gets out',!s.cv,s)});
   await S('Crossing Guard to a win: the job\'s player walks the route; the sign is on Aim (Numpad 2), waves on U',async()=>{
-    await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing');HT.Keys.aimMode='toggle';j.test.give(H.jobs.api);H.jobs.start('crossing');H.step(3)});
+    await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing');HT.Keys.aimMode='toggle';j.test.give(H.jobs.api);window.__kf=0;H.jobs.start('crossing');H.step(3)});
     let lt=0,f=0,st='go';
-    for(let chunk=0;chunk<400&&st==='go';chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing'),a=H.jobs.api;for(let i=0;i<90&&H.M&&H.M.state==='go';i++){const C=H.M.cg;const was=C&&C.signOn;j.test.step(a,window.__kf=(window.__kf||0)+1,{});
+    for(let chunk=0;chunk<1500&&st==="go";chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('crossing'),a=H.jobs.api;for(let i=0;i<90&&H.M&&H.M.state==='go';i++){const C=H.M.cg;const was=C&&C.signOn;j.test.step(a,window.__kf=(window.__kf||0)+1,{});
         if(C&&C.gear&&C.signOn!==was){C.signOn=was;return{want:true,state:'go'}}H.step(1)}return{want:false,state:H.M&&H.M.state||'none'}});st=q.state;
       if(q.want){await press(B('aim'),1);lt++;await ev(()=>window.__ht.step(1))}f++}
     await look('crossing');ok('Crossing Guard won with the sign on the rebound Aim key ('+lt+' presses)',st==='won'&&lt>0,{st,lt});await resultContinue();await toHub()});
   await S('Hitch Happens to a win: the job\'s player drives; U held hitches and drops',async()=>{
-    await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('tow'),a=H.jobs.api;for(const d of j.def.unlock.done||[]){const i=H.jobs.index(d);if(i>=0)H.prog.done[i]=true}H.prog.trustR=Math.max(H.prog.trustR||0,25);j.test.give(a);H.jobs.start('tow');H.step(3)});
-    let holds=0,st='go';for(let chunk=0;chunk<600&&st==='go';chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('tow'),a=H.jobs.api,S=HT.Tow.S;for(let i=0;i<90&&H.M&&H.M.state==='go';i++){j.test.step(a,window.__kf=(window.__kf||0)+1,{});
+    await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('tow'),a=H.jobs.api;for(const d of j.def.unlock.done||[]){const i=H.jobs.index(d);if(i>=0)H.prog.done[i]=true}H.prog.trustR=Math.max(H.prog.trustR||0,25);j.test.give(a);window.__kf=0;H.jobs.start('tow');H.step(3)});
+    let holds=0,st='go';for(let chunk=0;chunk<1500&&st==="go";chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('tow'),a=H.jobs.api,S=HT.Tow.S;for(let i=0;i<90&&H.M&&H.M.state==='go';i++){j.test.step(a,window.__kf=(window.__kf||0)+1,{});
         if(H.CV&&H.keys.e&&(S.cand&&S.cand.chk&&S.cand.chk.ok||S.link)){H.keys.e=false;return{want:true,link:!!S.link,state:'go'}}H.step(1)}return{want:false,state:H.M&&H.M.state||'none'}});st=q.state;
       if(q.want){await keyEv('down',B('use'));const l0=q.link;for(let n=0;n<10;n++){await tick(9);if(await ev(()=>!!HT.Tow.S.link)!==l0)break}await keyEv('up',B('use'));holds++;await tick(1)}}
     await look('tow');ok('Hitch Happens won with U held ('+holds+' holds)',st==='won'&&holds>0,{st,holds});await resultContinue();await toHub()});
   await S('Higher Ground to a win: scope on Aim (Numpad 2), fire on Fire (Numpad 1)',async()=>{
-    await ev(()=>{const H=window.__ht;H.openBridge&&H.openBridge();HT.Keys.aimMode='toggle';H.jobs.start('overwatch');H.step(3)});
-    let st='go',sc=0,sh=0;for(let chunk=0;chunk<800&&st==='go';chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('overwatch'),a=H.jobs.api;for(let i=0;i<60&&H.M&&H.M.state==='go';i++){const aim0=H.P.aim,md0=HT.Roam.mouseDown;j.test.step(a,window.__kf=(window.__kf||0)+1,{});
-        if(H.P.aim!==aim0){H.P.aim=aim0;return{k:'aim',state:'go'}}if(HT.Roam.mouseDown&&!md0){HT.Roam.mouseDown=false;return{k:'fire',state:'go'}}H.step(1)}return{state:H.M&&H.M.state||'none'}});st=q.state;
-      if(q.k==='aim'){await press(B('aim'),1);sc++}else if(q.k==='fire'){await press(B('fire'),2);sh++}}
+    await ev(()=>{const H=window.__ht;H.openBridge&&H.openBridge();HT.Keys.aimMode='toggle';window.__kf=0;H.jobs.start('overwatch');H.step(3)});
+    let st="go",sc=0,sh=0;for(let chunk=0;chunk<8000&&st==='go';chunk++){const q=await ev(()=>{const H=window.__ht,j=H.jobs.registry.get('overwatch'),a=H.jobs.api;for(let i=0;i<60&&H.M&&H.M.state==='go';i++){const aim0=H.P.aim,md0=HT.Roam.mouseDown;j.test.step(a,window.__kf=(window.__kf||0)+1,{});
+        const ka=H.P.aim!==aim0,kf=HT.Roam.mouseDown&&!md0;if(ka)H.P.aim=aim0;if(kf)HT.Roam.mouseDown=false;if(ka||kf)return{aim:ka,fire:kf,state:'go'};H.step(1)}return{state:H.M&&H.M.state||'none'}});st=q.state;
+      /* the keys land before the next game frame, as the bot's own calls would have */
+      if(q.aim){const b4=await ev(()=>window.__ht.P.aim);if(process.env.DIRECT){await ev(()=>{HT.Keys.aimInput(true,'kb');HT.Keys.aimInput(false,'kb')})}else{await keyEv('down',B('aim'));await keyEv('up',B('aim'))}sc++;if(process.env.DBG&&sc<6)console.log('aim',b4,'->',await ev(()=>({aim:window.__ht.P.aim,act:document.activeElement&&document.activeElement.tagName,paused:HT.Input.paused,run:HT.Input.running})))}if(q.fire){await keyEv('down',B('fire'));await ev(()=>window.__ht.step(1));await keyEv('up',B('fire'));sh++}else if(q.aim)await ev(()=>window.__ht.step(1))}
     await look('overwatch');ok('Higher Ground won on the rebound Aim / Fire keys ('+sc+' scopes, '+sh+' shots)',st==='won'&&sh>0,{st,sc,sh});await resultContinue();await toHub()});
   await S('range rack: U opens it, arrows pick, U takes; Fire shoots',async()=>{await ev(()=>{const H=window.__ht;HT.Roam.fastTravel('base');H.step(30)});await r.wait(400);
     await ev(()=>{const H=window.__ht;if(H.CV)H.exitVehicle();H.step(3);const d=HT.Base.def().range;H.place(d.rack.x-1.6,d.rack.z,-Math.PI/2,-.1);H.step(4)});
     await press(B('use'));await tick(2);const m=await ev(()=>HT.Range.menu());ok('U opens the rack',m.open,m);await look('rack');const hint=await ev(()=>{const d=[...document.querySelectorAll('div')].find(e=>/^Free on the range/.test(e.textContent||'')&&e.children.length===0);return d&&d.textContent});
     ok('the rack line names U',/\bU \/ Enter/.test(hint||''),hint);await menuKey('ArrowRight');const m2=await ev(()=>HT.Range.menu());await press(B('use'));await tick(40);
-    const cur=await ev(()=>window.__ht.P.cur);ok('arrows + U took the gun',cur===m2.id,{m2,cur});const a0=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});await press(B('fire'),20);await tick(5);const a1=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});ok('Numpad 1 (Fire) shoots',a1<a0,{a0,a1})});
+    const cur=await ev(()=>window.__ht.P.cur);ok('arrows + U took the gun',cur===m2.id,{m2,cur});await ev(()=>{const H=window.__ht,d=HT.Base.def().range.rack;H.P.yaw=Math.PI/2});/* look downrange (the mouse's job; this run sends no mouse) */await tick(30);const a0=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});await press(B('fire'),20);await tick(5);const a1=await ev(()=>{const P=window.__ht.P;return P.ammo[P.cur].mag});ok('Numpad 1 (Fire) shoots',a1<a0,{a0,a1})});
   await S('tank: U in, I drives, Numpad 1 fires, U out',async()=>{await ev(()=>{const H=window.__ht,e=H.vehicles.find(c=>c.type==='tank');H.place(e.pos.x+3.5,e.pos.z);H.step(3)});await press(B('use'));await tick(10);
     let s=await state();ok('U into the tank',s.cv==='tank',s);await look('tank');const p0=await ev(()=>{const e=window.__ht.CV;return{x:e.pos.x,z:e.pos.z}});await keyEv('down',B('fwd'));await tick(120);await keyEv('up',B('fwd'));
     const p1=await ev(()=>{const e=window.__ht.CV;return{x:e.pos.x,z:e.pos.z}});ok('I drives the tank',Math.hypot(p1.x-p0.x,p1.z-p0.z)>2,{p0,p1});await press(B('fire'),3);await tick(3);
     const rl=await ev(()=>HT.Tank&&HT.Tank.S?HT.Tank.S.reload:null);ok('Fire key fires the main gun',rl>0,rl);await look('tank fired');await ev(()=>{for(let i=0;i<300&&Math.abs(window.__ht.CV.spd||0)>.3;i++)window.__ht.step(1)});await press(B('use'));await tick(15);s=await state();ok('U out',!s.cv,s)});
   await S('jet: U in, I throttle, . nose up, U U eject, the parachute',async()=>{await ev(()=>{const H=window.__ht,e=HT.Jet.S.e;H.CV&&H.exitVehicle();H.enterVehicle(e);H.step(5)});/* boarding is the car path tested above; here the flight keys */
-    let s=await state();ok('in the jet',s.cv==='jet',s);await look('jet');await press(B('fwd'),2);await press(B('fwd'),2);await press(B('fwd'),2);await press(B('fwd'),2);await press(B('fwd'),2);
+    let s=await state();ok('in the jet',s.cv==='jet',s);await look('jet');await keyEv('down',B('fwd'));await tick(150);await keyEv('up',B('fwd'));/* held: the throttle ramps (a tap steps 10%) */
     const fl=await ev(async()=>{const H=window.__ht,F=HT.Jet.F;let i=0;for(;i<1500;i++){H.step(1);if(F.spd>45)break}return{i,spd:F.spd,thr:F.thr}});await keyEv('down',B('jump'));await tick(90);await keyEv('up',B('jump'));
     const air=await ev(()=>({air:HT.Jet.F.air,alt:Math.round(HT.Jet.F.lastAlt||0)}));ok('I throttles up, . (Jump) noses up: airborne',air.air,{fl,air});await look('airborne');
-    await tick(60);await press(B('use'));await tick(4);await press(B('use'));await tick(30);s=await state();ok('U twice ejects',!s.cv&&!!HT||false,s);await look('parachute')});
+    await tick(60);await press(B('use'));await tick(4);await press(B('use'));await tick(30);s=await state();const ch=await ev(()=>!!(HT.Jet.F.chute));ok('U twice ejects',!s.cv&&ch,{s,ch});await look('parachute')});
   await S('decorate at home: $ (Decorate) opens it, U places, $ done',async()=>{await ev(async()=>{const H=window.__ht;if(H.CV)H.exitVehicle();H.enterHome();for(let i=0;i<80&&H.mode!=='home';i++){await new Promise(r=>setTimeout(r,100));H.step(1)}H.step(5)});
     await look('home');await press(B('deco'));await tick(3);ok('Decorate key opens it',await ev(()=>document.body.classList.contains('decoOn')));await look('decorate');
     const caps=await ev(()=>[...document.querySelectorAll('#deco .ht-kc')].map(e=>e.textContent));ok('the decorate panel shows the player\'s keys',caps.includes('U')&&caps.includes('Y')&&!caps.includes('E')&&!caps.includes('R'),caps);
     await press(B('deco'));await tick(3);ok('Decorate key closes it',!(await ev(()=>document.body.classList.contains('decoOn'))))});
-  await S('quit to title: Esc, arrows, Enter',async()=>{await menuKey('Escape');await r.wait(300);for(let i=0;i<12;i++){const f=await ev(()=>{const a=document.activeElement;return a&&(a.dataset.act||a.textContent)});if(/quit/i.test(f||''))break;await menuKey('ArrowDown')}await menuKey('Enter');await r.wait(500);
+  await S('quit to title: Esc, arrows, Enter',async()=>{await menuKey('Escape');await r.wait(300);for(let i=0;i<12;i++){const f=await ev(()=>{const a=document.activeElement;return a&&(a.dataset.act||a.textContent)});if(/quit/i.test(f||''))break;await menuKey('Tab')}await menuKey('Enter');await r.wait(500);
     for(let i=0;i<3&&(await ev(()=>!!document.querySelector('.ht-dlg')));i++){await ev(()=>{const b=document.querySelector('.ht-dlg [data-act=ok]');b&&b.focus()});await menuKey('Enter');await r.wait(500)}
     const s=await state();ok('back on the title screen',s.mode==='title',s)});
   const all=[...seen.values()];fs.writeFileSync(path.join(OUT,'prompts.json'),JSON.stringify(all,null,1));
