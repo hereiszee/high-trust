@@ -31,6 +31,9 @@ The game unlocks these through one function, `HT.Steam.unlock(id)` in `js/platfo
 | `ACH_SEEN_IT_ALL` | Seen It All | Find all seven things around town. | `eggs(s)>=7` |
 | `ACH_CLEARED_FOR_TAKEOFF` | Cleared for Takeoff | Take the jet up at Fort Sensible. | `(s.base&&s.base.jet&&s.base.jet.flights\|0)>=1` |
 | `ACH_BORROWED` | Borrowed, Technically | Borrow the tank at Fort Sensible. | `(s.base&&s.base.tank&&s.base.tank.borrows\|0)>=1` |
+| `ACH_EIGHTH_MILE` | Eighth-Mile Dad | Make a full pass at Sensible Dragway. | `(s.strip&&s.strip.stats&&s.strip.stats.passes\|0)>=1` |
+| `ACH_TOP_OF_THE_LADDER` | Top of the Ladder | Beat every racer on the Sensible Dragway ladder. | every id in `LADDER_IDS` (dutch, marisol, walt, tomas, priya, june, rook) is in `s.strip.ladder.beaten` |
+| `ACH_PERFECT_LIGHT` | Perfect Light | Cut a reaction time between .000 and .050 at the strip. | `!!(s.strip&&s.strip.stats&&s.strip.stats.perfect)` |
 
 Helpers: `J(s,id)` = `s.jobs[id].done`; `doneCount` = number of jobs with `done`; `golds` = jobs with `medal>=3`; `eggs` = number of keys in `s.base.eggs`.
 

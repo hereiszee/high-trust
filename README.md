@@ -41,7 +41,7 @@ Start with `docs/steam/START-HERE.md`: a one-page, step-by-step walkthrough from
 | `docs/steam/BUILD.md` | Building the Windows, macOS and Linux packages, uploading with steamcmd, Steam Cloud, Steam Deck, Mac signing. |
 | `docs/steam/CHECKLIST.md` | Every release step in order, with what only the owner can do and the placeholders still to fill in (App ID, depot IDs). |
 | `docs/steam/STORE.md` | Store page text, tags, system requirements, required image sizes, the AI disclosure text. |
-| `docs/steam/achievements.md` | The 23 achievements to enter in Steamworks. |
+| `docs/steam/achievements.md` | The 26 achievements to enter in Steamworks. |
 | `docs/steam/PLAYTEST.md` | How to download and launch a build, and what to check on real hardware. |
 | `docs/steam/LICENCES.md` | Every third-party asset and library, with its licence. |
 | `.github/workflows/desktop-build.yml` | Builds all three packages on GitHub (Actions → Desktop build → Run workflow). |

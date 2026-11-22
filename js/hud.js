@@ -71,10 +71,11 @@ const ICON={
   mart:{shape:'c',g:'M5.5 7h2.2l1.6 7h7.4l1.6-5.4H9.1L8.8 7.6 8.5 7zM10 15.6a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6zm6 0a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'},
   star:{shape:'c',g:'M12 5.6l1.9 4 4.3.5-3.2 3 .9 4.3L12 15.3l-3.9 2.1.9-4.3-3.2-3 4.3-.5z'},
   range:{shape:'c',g:'M12 5.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zm0 2.3a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4z'},   /* Fort Sensible (js/base.js) */
+  strip:{shape:'c',g:'M7 5.5h1.5v13H7zM8.5 6h9v7h-9zM10.7 6v1.75h2.25V6zm4.5 0v1.75h2.3V6zM8.5 7.75v1.75h2.2V7.75zm4.45 0v1.75h2.25V7.75zM10.7 9.5v1.75h2.25V9.5zm4.5 0v1.75h2.3V9.5zM8.5 11.25V13h2.2v-1.75zm4.45 0V13h2.25v-1.75z'},   /* Sensible Dragway (js/dragstrip.js): a chequered flag */
   side:{shape:'c',g:'M8 7.5h8v1.8H8zM8 11.1h8v1.8H8zM8 14.7h5.5v1.8H8z'},   /* a side job (repeatable): a short list */
   site:{shape:'d',g:'M12 7.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zm0 2.2a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z'}
 };
-const KIND_COL={obj:'#ffc94a',job:'#ffc94a',side:'#8fd3ff',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a',range:'#b9d36a'};
+const KIND_COL={strip:'#ff8a3a',obj:'#ffc94a',job:'#ffc94a',side:'#8fd3ff',shop:'#9fe58a',home:'#6fb8ff',garage:'#c9b8ff',crew:'#7fdc6e',revive:'#ff5a47',van:'#ffffff',loot:'#e8c48a',enemy:'#ff5a47',travel:'#ffffff',gas:'#ff8a6b',mart:'#9fe58a',star:'#ffd86b',site:'#ffc94a',range:'#b9d36a'};
 const SHAPE_D={d:'M12 1.5l10.5 10.5L12 22.5 1.5 12z',c:'M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z',s:'M5 2h14a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z'};
 function iconSVG(kind){const ic=ICON[kind]||ICON.obj;const col='currentColor';
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SHAPE_D[ic.shape]}" fill="${col}" stroke="rgba(10,12,16,.55)" stroke-width="1.2"/>`+

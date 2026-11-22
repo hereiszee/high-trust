@@ -105,6 +105,8 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="js/hiveh.js"></script><!-- Fort Sensible: the jet and tank models (js/jet.js, js/tank.js use them) -->
 <script src="js/jet.js"></script>
 <script src="js/eggs.js"></script>
+<script src="js/dragsim.js"></script><!-- Sensible Dragway: the race model, racers, odds, money rules (docs/dragstrip.md) -->
+<script src="js/dragstrip.js"></script><!-- Sensible Dragway: the place, test & tune, races, bets -->
 <script>
 (()=>{
 'use strict';
@@ -1387,7 +1389,7 @@ const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the side
 function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
 function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
-const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop',base:'range'};/* base: Fort Sensible (js/base.js) */
+const OW_PIN_KIND={home:'home',hank:'shop',auto:'garage',gas:'gas',center:'star',mart:'mart',ortho:'shop',base:'range',strip:'strip'};/* base: Fort Sensible (js/base.js); strip: Sensible Dragway (js/dragstrip.js) */
 function owLevel(def){const O=OW();
   /* the first build can happen on the title screen before textures/models arrive: rebuild once they have */
   if(def._lvl&&!def._lvl.assetsDone&&ASSETS.done){const old=def._lvl;scene.remove(old.group);old.group.traverse(o=>{if(o.geometry)o.geometry.dispose()});def._lvl=null}
@@ -1436,7 +1438,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
     try{FX.ambient({leaves:true,pollen:reg!=='route9',density:reg==='river'?1.3:reg==='route9'?.6:1})}catch(e){}
     {const w=owW();if(reg==='river'&&!w.visited.river){w.visited.river=true;for(const id of['center','mart'])if(!w.pins.includes(id))w.pins.push(id);owPins();if(typeof metaSave==='function')metaSave()}
     w.visited[reg]=true}
-    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+owTierName(prog.trustR)+' · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":reg==='base'?'Public range open · Days ending in Y':'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
+    if(!first){const G=HTM('WorldGen');const sub=reg==='river'?'Trust '+Math.round(prog.trustR)+'% · '+owTierName(prog.trustR)+' · '+G.dressing(def,prog.trustR).line:reg==='route9'?"Fill-Er-Up · Dad's Auto · Industrial Way":reg==='base'?'Public range open · Days ending in Y':reg==='strip'?'Eighth-mile drags · test & tune free · race office in the tower':'Trust '+Math.round(prog.trust)+'% · Home, Hank\'s Hardware';
       HUD.banner({kind:'alert',kicker:'Now entering',title:def.hoods[reg].name.toUpperCase(),sub,dur:2.6})}}
   /* GPS: the accepted job's site, else the next giver */
   let tgt=null;if(JOB!==null&&L.dests[JOB])tgt=L.dests[JOB];else{const n=npcs[0];if(n)tgt={x:n.pos.x,z:n.pos.z}}
@@ -1488,6 +1490,7 @@ function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.
    of it (he gets in), the car, the dad and the crew go; on foot further away, or in anything else, it is refused and nothing moves. */
 function ftRefusal(){const e=CV;
   if(!e)return Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30?null:'Fast travel is by minivan. Get back to the minivan first.';
+  if(e.loaner)return e.loaner;/* Sensible Dragway (js/dragstrip.js): its loaners stay at the strip; your own car mid-pass waits for the pass */
   if(e===VAN)return null;
   if(e.type==='tank')return "The tank doesn't fast travel. It goes 25 mph, everywhere, on purpose. Take it back to the motor pool.";
   if(e.type==='jet')return "You're in a fighter jet. You are the fast travel.";
