@@ -1579,7 +1579,7 @@ function carStats(e){const F=feel(e),S=carSize(e);
     absGrip:false,hp:100,sport:false,sportDur:0,sportCool:0,sportAccMul:1,sportMax:F.boostMax,len:Math.max(3.6,S.l*.86),wid:Math.max(1.8,Math.min(2.15,S.w))};
   if(e===VAN&&typeof VANK!=='undefined'){const K=VANK,M=CAR_FEEL.minivan;/* Dad's Auto upgrades and bought vehicles, as multipliers on the classic van */
     Object.assign(s,{maxSpeed:M.max*K.top,boostMax:M.boostMax*K.btop,accel:M.acc*K.accel,boostAccel:M.boostAcc*K.baccel,brake:M.brake*K.brake,hbrake:M.hbrake*K.brake,turn:M.turn*K.turn,grip:M.grip*K.grip,steerResp:M.steerResp*K.steer});
-    try{const vs=vanStats();if(vs&&vs.hp)s.hp=vs.hp}catch(_){}}
+    try{const vs=vanStats();if(vs&&vs.hp)s.hp=vs.hp;if(vs)s.absGrip=!!vs.absGrip/* Big Brake Kit: the tyres keep their grip under braking (HT.Garage.apply; it was set and then dropped here) */}catch(_){}}
   s.hp=carHpMax(e);return s}
 /* arcade physics: HT.CarAI.drive when loaded (sliding grip model), else the classic van model */
 function drivePhys(c,inp,dt,col){const CA=HTM('CarAI');if(CA&&CA.drive)return CA.drive(c,inp,dt,col);

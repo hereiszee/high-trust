@@ -58,9 +58,39 @@ min(torque, power / speed) per gear; traction = grip × weight on the driven whe
 rear, AWD uses all four); asking for more than traction builds wheelspin, spinning tyres give 50-100% of their grip; automatic shifts
 with a short power cut; aero drag and rolling resistance. Upgrades on your own car (engine: power and gearing; tyres: grip) count.
 
-Typical clean passes (the bot, dev/test-dragsim.js): sedan ~9.4 s @ 77 mph; SUV ~9.7 @ 72 (AWD, forgiving); pickup ~9.8 @ 78
-(the most torque, the lightest rear: spins if floored, ~11.2 s); minivan ~10.6 @ 71; hatchback ~10.7 @ 67; work van ~11.0 @ 63;
-the mower ~22.5 s @ 21 mph. A minivan with every engine and tyre upgrade runs about a second quicker.
+### Your own car and its upgrades
+
+Loaners and rentals are **stock** (the picker and the slip say so). Your own car (the paddock picker's first row "Your …", or "Your …"
+in a money race) runs with everything Dad's Auto has put on it. Every car upgrade in the game (`HT.Garage.CATALOG`, bought per car in
+`SAVE.garage.vehicles[type]`, utility items in `SAVE.garage.util`) maps to the strip model in `HT.Drag.spec(type, vehicle, util)`:
+
+| Upgrade | On the strip |
+|---|---|
+| Engine 1-3: Tune-Up, V6 Swap, the supercharger | power ×1.18 / ×1.37 / ×1.62, more first-gear pull, gearing +6% a level (acceleration, ET, trap speed, top end) |
+| Tyres 1-2: All-Season Radials, Performance Rubber | grip ×1.12 / ×1.25 (launch traction: the 60 ft), the launch window moves up (they take more revs) |
+| Sport Mode | +15% power for 3.5 s once the tyres have hooked up (from 1.2 s after the beams) |
+| Brakes 1-2: Ceramic Pads, Big Brake Kit | nothing on the clock; a shorter, harder shutdown |
+| Reinforced Panels I-II, Bull Bar | +90 kg a level, +35 kg: slower (bolted-on weight adds no grip) |
+| Roof Cargo Box · Gun Rack | +25 kg and a little drag · +10 kg |
+
+The timeslip's "Car" row lists them. The garage book keeps one row per car **and upgrade set** ("Family Minivan · yours: V6 Swap",
+"Family Minivan · stock"…), so before and after an upgrade sit side by side. dev/dragstrip-check.js `upgrades` runs the same minivan
+stock, with the V6 Swap and with Performance Rubber, in real passes.
+
+**What upgrades do in normal driving (checked):** the car you drive in town is whichever one is active at Dad's Auto (`VAN`, built from
+`HT.Garage.apply(activeType, its upgrades)` through `VANK`), so engine, tyres, brakes, armour and the bull bar already change its
+handling or damage, for any car you own and use. Two findings:
+* **Big Brake Kit's ABS was dropped**: `HT.Garage.apply` sets `absGrip` (the tyres keep grip under braking) but `carStats` in index.html
+  hard-coded `absGrip:false`. Fixed (one line: it takes `vanStats().absGrip`); the driving jobs re-run.
+* **Sport Mode does nothing in town**: `HT.CarAI.drive` supports it (`inp.sport`) but no key or pad button sends it and `carStats` sets
+  `sport:false`. Not fixed in town (it needs a new binding, not a small change); it applies on the strip.
+
+Typical clean passes (the bot, dev/test-dragsim.js): sedan ~9.2 s @ 77 mph; pickup ~9.7 @ 78 (the most torque, the lightest rear:
+floored it spins, ~11.3 s); SUV ~9.7 @ 72 (AWD: a floored launch costs it nothing); minivan ~10.0 @ 71; hatchback ~10.3 @ 68; work van
+~11.0 @ 63; the mower ~22.5 s @ 22 mph. A minivan with every engine and tyre upgrade runs ~9.0 s. In the play-through (real keys) the
+same owned minivan ran 9.956 s @ 71.4 stock, 9.583 @ 76.6 with the V6 Swap, and a 2.212 s 60 ft (from 2.369) on Performance Rubber.
+Engine upgrades add pull from second gear up and top-end power (first gear barely changes: stock tyres couldn't use it), so the V6 on
+stock tyres is quicker but the tyres are what fix the launch.
 
 **Simplest version, said plainly:** the car is held in its lane during a pass (no steering on the strip; a wiggle when it spins); the
 gearbox is an automatic for everyone; no clutch; weight transfer is a fixed lean per drivetrain.

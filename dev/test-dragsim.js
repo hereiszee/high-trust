@@ -17,6 +17,13 @@ test('flooring it off the line costs time (wheelspin), most on the pickup; a goo
   const pk=flo('pickup').et-avgET('pickup',pro,6),sv=flo('suv').et-avgET('suv',pro,6);assert(pk>sv,'AWD SUV forgives a bad launch more than the RWD pickup')});
 test('engine upgrades make your own car quicker (garage upgrades matter)',()=>{const v={perf:{engine:3,tyres:2,brakes:0,sport:false},prot:{armor:0,bullBar:false}};
   assert(avgET('minivan',pro,6,v)<avgET('minivan',pro,6)-.6)});
+test('every Dad\'s Auto upgrade moves the strip numbers the right way, and is named (tyres: 60 ft; sport: ET; armour: slower; book rows differ)',()=>{
+  const v=(p,pr)=>({perf:Object.assign({engine:0,tyres:0,brakes:0,sport:false},p||{}),prot:Object.assign({armor:0,bullBar:false},pr||{})});
+  const one=(t,veh,util)=>{const r=D.rng(11);let a=0,b=0,c=0;for(let i=0;i<6;i++){const sl=D.slip(D.sim(D.spec(t,veh,util),pro,r));a+=sl.t60;b+=sl.et;c+=sl.mph}return{t60:a/6,et:b/6,mph:c/6}};
+  const st=one('minivan',v()),ty=one('minivan',v({tyres:2})),sp=one('minivan',v({sport:true})),ar=one('minivan',v({},{armor:2})),en=one('minivan',v({engine:2}));
+  assert(ty.t60<st.t60-.02,'tyres 60ft '+st.t60+' -> '+ty.t60);assert(sp.et<st.et-.05,'sport et');assert(ar.et>st.et+.03,'armour heavier');assert(en.et<st.et-.2&&en.mph>st.mph+2,'engine');
+  const s0=D.spec('minivan'),s1=D.spec('minivan',v({engine:2,tyres:1})),s2=D.spec('minivan',v());
+  assert.strictEqual(D.upText(s0),'stock');assert(/V6 Swap/.test(D.upText(s1))&&/All-Season/.test(D.upText(s1)));assert(D.bookKey(s0)!==D.bookKey(s1)&&D.bookKey(s1)!==D.bookKey(s2)&&D.bookKey(s0)!==D.bookKey(s2))});
 test('staged with the brake on: the car does not move, the rpm follows the throttle',()=>{const R=D.run(D.spec('sedan'));for(let i=0;i<60;i++)D.step(R,{thr:1,brake:true},1/60);
   assert.strictEqual(R.x,0);assert(R.rpm>.9);for(let i=0;i<60;i++)D.step(R,{thr:0,brake:true},1/60);assert(R.rpm<.2)});
 test('leaving before the green is a red light (negative RT) and it loses',()=>{const a={spec:D.spec('minivan'),driver:{rt:-.08,rtSd:0,redP:0,launchQ:.9,missP:0}},b={spec:D.spec('hatch'),driver:pro};

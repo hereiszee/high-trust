@@ -7,7 +7,7 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path'),DR=require('../js/dragsim.js');
 const OUT=path.join(__dirname,'../docs/screenshots/dragstrip');fs.mkdirSync(OUT,{recursive:true});
 const args=process.argv.slice(2),SHOTS=args.includes('--shots');let phases=(args.find(a=>!a.startsWith('--'))||'all').split(',');
-if(phases.includes('all'))phases=['travel','tune','red','race','bets','bracket','caps','quit','pad','perf'];
+if(phases.includes('all'))phases=['travel','tune','upgrades','red','race','bets','bracket','caps','quit','pad','perf'];
 const log=[];const say=(...a)=>{const s=a.join(' ');console.log(s);log.push(s)};let fails=0;
 const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
@@ -74,7 +74,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     for(const[i,t]of['sedan','minivan','workvan'].entries()){
       const b=def.paddockBoard;await walk(b.x,b.z+2.2,.8);await ev(()=>{window.__ht.P.yaw=0});await step(2);
       await press('e',2);let m=await menu();ok(m.open&&m.id==='picker','E at the paddock board opens the car picker ('+(m.items||[]).length+' cars)');
-      if(i===0){ok(m.items.length===7,'every car the strip lends is in the picker (HT.Garage six + the mower): '+m.items.join(', '));await shot('picker')}
+      if(i===0){ok(m.items.length===8&&/^Your /.test(m.items[0]),'your own car first, then every car the strip lends, stock (HT.Garage six + the mower): '+m.items.join(', '));await shot('picker')}
       const name=await ev(t=>HT.Drag.SPEC[t].name,t);await pickItem(new RegExp('^'+name.replace(/[()]/g,'.')+'$'));await step(2);
       let r=await S();ok(r.run&&r.loaner&&r.loaner.type===t,'a '+t+' loaner at the line');
       if(i===0&&SHOTS){for(let k=0;k<14;k++)await step(1);await shot('tree-staged')}
@@ -83,6 +83,19 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       m=await menu();ok(m.open&&m.id==='slip','the timeslip card is up');await pickItem(/^Done$/);await step(4);r=await S();ok(!r.loaner&&!r.run,'Done hands the loaner back')}
     ok(res.sedan&&res.minivan&&res.workvan&&res.sedan.et<res.minivan.et&&res.minivan.et<res.workvan.et,'order: sedan '+res.sedan.et+' < minivan '+res.minivan.et+' < work van '+res.workvan.et);
     const book=await ev(()=>Object.keys(HT.Save.data.strip.book));ok(book.length>=3,'the garage book has '+book.join(', '))}
+
+  if(phases.includes('upgrades')){say('== your own car: the same minivan stock, with an engine upgrade, with a tyre upgrade (test & tune, real passes)');
+    const runOwn=async(perf,label)=>{await ev(p=>{const g=HT.Save.data.garage,v=g.vehicles[g.active];Object.assign(v.perf,p);const H=window.__ht;if(!H.CV){H.VAN.pos.set(274,0,292);H.VAN.yaw=Math.PI/2}H.step(2)},perf);
+      if((await st()).car)await press('e',3);const b=def.paddockBoard;await walk(b.x,b.z+2.2,.8);await ev(()=>{window.__ht.P.yaw=0});await step(2);await press('e',2);const m=await menu();ok(m.open&&/^Your /.test(m.items[0]),'picker: '+m.items[0]);
+      await press('1',2);let r=await S();ok(r.run&&!r.loaner,label+': your own car at the line');r=await pass({});const sl=r.last&&r.last.slip;
+      const txt=await ev(()=>{const t=document.querySelector('.ht-dr').innerText.match(/Car\s+[^\n]*/);return t&&t[0]});say('  '+label+': 60ft '+(sl&&sl.t60)+' ET '+(sl&&sl.et)+' @ '+(sl&&sl.mph)+' mph · slip says: '+txt);
+      if(label==='engine 2')await shot('timeslip-upgraded');await pickItem(/^Done$/);await step(4);return{sl,txt}};
+    const base=await runOwn({engine:0,tyres:0,sport:false},'stock'),eng=await runOwn({engine:2,tyres:0},'engine 2'),tyr=await runOwn({engine:0,tyres:2},'tyres 2');
+    ok(/no upgrades/.test(base.txt||'')&&/V6 Swap/.test(eng.txt||'')&&/Performance Rubber/.test(tyr.txt||''),'the timeslip names the upgrades on the car');
+    ok(eng.sl.et<base.sl.et-.2&&eng.sl.mph>base.sl.mph+2,'engine upgrade: quicker ET ('+base.sl.et+' -> '+eng.sl.et+') and trap ('+base.sl.mph+' -> '+eng.sl.mph+')');
+    ok(tyr.sl.t60<base.sl.t60-.02,'tyre upgrade: quicker 60 ft ('+base.sl.t60+' -> '+tyr.sl.t60+')');
+    const keys=await ev(()=>Object.keys(HT.Save.data.strip.book).filter(k=>/^minivan@/.test(k)));ok(keys.length===3,'the garage book keeps a row per upgrade set: '+keys.join(', '));
+    await ev(()=>{const g=HT.Save.data.garage,v=g.vehicles[g.active];Object.assign(v.perf,{engine:0,tyres:0})});if((await st()).car)await press('e',3)}
 
   if(phases.includes('red')){say('== red light: leaving on the last amber');
     const b=def.paddockBoard;await walk(b.x,b.z+2.2,.8);await press('e',2);await pickItem(/^Hatchback$/);await step(2);
@@ -164,7 +177,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     const pr=await ev(()=>{window.__ht.draw();const el=document.querySelector('.ht-pr .tt, .ht-prompt');return document.body.innerText.match(/Test & tune[^\n]*/)?document.body.innerText.match(/.{0,8}Test & tune[^\n]*/)[0]:''});say('  prompt: '+pr);
     await ev(()=>{__T.tap(0,2)});await step(2);let m=await menu();ok(m.open&&m.id==='picker','A opens the picker');
     const foot=await ev(()=>document.querySelector('.ht-dr .foot').innerText);ok(!/\b(Enter|Esc|E \/|1-9)\b/.test(foot),'menu foot names pad buttons: '+foot);
-    await ev(()=>{__T.tap(13);__T.tap(13);__T.tap(12)});m=await menu();ok(m.i===1,'D-pad moves the selection (on '+m.items[m.i]+')');
+    await ev(()=>{__T.tap(13);__T.tap(13);__T.tap(13);__T.tap(12)});m=await menu();ok(m.i===2,'D-pad moves the selection (on '+m.items[m.i]+')');
     await ev(()=>{__T.tap(0)});await step(2);let r=await S();ok(r.run&&r.loaner&&r.loaner.type==='minivan','A takes the minivan loaner');
     /* the pass: hold A (brake) and RT, let go of A on the green, keep RT down */
     const band=await ev(()=>HT.Strip.S.run.spec.band);let n=0,launched=false,o_tip=0;await ev(()=>{__T.set({buttons:{0:1}})});
