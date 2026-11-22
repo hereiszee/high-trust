@@ -1,0 +1,38 @@
+== 1. stated odds vs 5,000 races
+ok   walt vs priya: stated 0.044 (x12 / x1.05), 5,000 races 0.039, |diff| 0.005 (3 SE 0.029)
+     booth price spread over 40 re-asks: p 0.026..0.064 -> best payout x12 vs fair 1/p_true x25.38 (EV of the best ask 0.473 per $1)
+ok   dutch vs marisol: stated 0.008 (x12 / x1.05), 5,000 races 0.009, |diff| 0.001 (3 SE 0.013)
+     booth price spread over 40 re-asks: p 0.000..0.016 -> best payout x12 vs fair 1/p_true x108.70 (EV of the best ask 0.110 per $1)
+ok   june vs rook: stated 0.326 (x2.82 / x1.36), 5,000 races 0.308, |diff| 0.018 (3 SE 0.066)
+     booth price spread over 40 re-asks: p 0.268..0.380 -> best payout x3.43 vs fair 1/p_true x3.24 (EV of the best ask 1.057 per $1)
+ok   tomas vs priya: stated 0.456 (x2.02 / x1.69), 5,000 races 0.441, |diff| 0.015 (3 SE 0.070)
+     booth price spread over 40 re-asks: p 0.396..0.488 -> best payout x2.32 vs fair 1/p_true x2.27 (EV of the best ask 1.024 per $1)
+ok   marisol(sedan) vs marisol(hatch): stated 0.990 (x1.05 / x12), 5,000 races 0.992, |diff| 0.002 (3 SE 0.014)
+     booth price spread over 40 re-asks: p 0.984..1.000 -> best payout x1.05 vs fair 1/p_true x1.01 (EV of the best ask 1.042 per $1)
+== 2. a red light always loses
+ok   one lane red: the red lane won 0 of 2504
+ok   both red: the first jump won 0 of 871
+== 3. upgrades and stock
+ok   own car with no upgrades = stock loaner (9.952)
+ok   minivan engine 1: 9.761 vs stock 9.952 (right direction)
+ok   minivan engine 2: 9.579 vs stock 9.952 (right direction)
+ok   minivan engine 3: 9.375 vs stock 9.952 (right direction)
+ok   minivan tyres 1: 9.737 vs stock 9.952 (right direction)
+ok   minivan tyres 2: 9.692 vs stock 9.952 (right direction)
+ok   minivan engine3+tyres2: 9.002 vs stock 9.952 (right direction)
+ok   minivan armour 2: 10.145 vs stock 9.952 (right direction)
+ok   minivan bull bar: 9.986 vs stock 9.952 (right direction)
+ok   loaner/rental hatch is stock (own false, up null)
+ok   loaner/rental minivan is stock (own false, up null)
+ok   loaner/rental sedan is stock (own false, up null)
+ok   loaner/rental suv is stock (own false, up null)
+ok   loaner/rental pickup is stock (own false, up null)
+ok   loaner/rental workvan is stock (own false, up null)
+ok   loaner/rental mower is stock (own false, up null)
+== 4. self-bet price: sandbagged history vs clean history (same real driver)
+     vs dutch: clean history p 0.975 x1.05 · sandbagged history p 0.788 x1.17 · EV per $1 when you then drive clean: 1.14
+     vs walt: clean history p 0.965 x1.05 · sandbagged history p 0.715 x1.29 · EV per $1 when you then drive clean: 1.24
+     vs priya: clean history p 0.963 x1.05 · sandbagged history p 0.230 x4 · EV per $1 when you then drive clean: 3.85
+     vs june: clean history p 0.358 x2.57 · sandbagged history p 0.082 x11.27 · EV per $1 when you then drive clean: 4.04
+     vs rook: clean history p 0.148 x6.2 · sandbagged history p 0.073 x12 · EV per $1 when you then drive clean: 1.78
+all ok
