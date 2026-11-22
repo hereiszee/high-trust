@@ -21,5 +21,5 @@ const OUT=path.join(__dirname,'shots','dragstrip');fs.mkdirSync(OUT,{recursive:t
   while(n++<900){const r=await S();if(!r.run||r.run.phase==='done')break;
     if(!launched){if(r.run.phase==='roll'){await step(1);continue}const L=(await tree())[lane]||{};await key('w',r.run.rpm<(band[0]+band[1])/2-.04);
       if(L.green){await key(' ',false);await key('w',true);launched=1}await step(1);continue}
-    launched++;await step(1);if(launched===5)await shot('launch-a');if(launched===9){await shot('launch-b');break}}
+    launched++;await step(1);if(launched===16)await shot('launch-c');if(launched===24){await shot('launch-d');break}}
   await key('w',false);await b.close();process.exit(0)})().catch(e=>{console.error(e);process.exit(1)});

@@ -23,7 +23,7 @@ def layers(name, W, H, blur=2, sky=.55, vig=.45, glow=True):
     h += ('<div style="position:absolute;inset:0;background:radial-gradient(ellipse 75%% 70%% at 45%% 55%%,rgba(0,0,0,0) 55%%,'
           'rgba(14,10,8,%.2f) 100%%)"></div>' % vig)
     eg = ('drop-shadow(0 0 %dpx rgba(255,200,130,.35)) ' % max(2, W // 900)) if glow else ''
-    h += B.img(cut, 'width:%dpx;height:%dpx;filter:%ssaturate(1.14) contrast(1.06)' % (W, H, eg))
+    h += B.img(cut, 'width:%dpx;height:%dpx;filter:%ssaturate(1.12) contrast(1.05) sepia(.14) brightness(.97)' % (W, H, eg))
     return h
 
 def spec(dest, W, H, size, html, **k):
@@ -31,7 +31,7 @@ def spec(dest, W, H, size, html, **k):
 
 def main_cap(dest):
     W, H = 3696, 2118
-    html = layers('r2-main', W, H) + B.logo_row(300, 'right:120px;top:110px')
+    html = layers('r2-main', W, H) + B.logo_row(285, 'right:110px;top:70px')
     return spec(dest, W, H, (1232, 706), html)
 
 def header(dest):
