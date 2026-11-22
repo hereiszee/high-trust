@@ -1,0 +1,16 @@
+sabotage started {"i":15,"mode":"mission","state":"go"}
+sabotage during the job {"gem":["In shadow"],"night":1,"mode":"mission"}
+sabotage on the title {"gem":[],"night":0,"mode":"title","screen":"title","M":false,"old":{"state":"abandoned","cleaned":true,"live":false}} {"clicked":true,"conf":true}
+ok   sabotage: back on the title screen {"gem":[],"night":0,"mode":"title","screen":"title","M":false,"old":{"state":"abandoned","cleaned":true,"live":false}}
+ok   sabotage: no stealth indicator left on the title ()
+ok   sabotage: daylight on the title (night 0)
+sabotage new game after {"mode":"hub","gem":[],"night":0}
+ok   sabotage: a new game after quitting is daylight with no job HUD left {"mode":"hub","gem":[],"night":0}
+tail started {"i":17,"mode":"mission","state":"go"}
+tail during the job {"gem":[],"night":0,"mode":"mission"}
+tail on the title {"gem":[],"night":0,"mode":"title","screen":"title","M":false,"old":{"state":"abandoned","cleaned":false,"live":false}} {"clicked":true,"conf":true}
+ok   tail: back on the title screen {"gem":[],"night":0,"mode":"title","screen":"title","M":false,"old":{"state":"abandoned","cleaned":false,"live":false}}
+ok   tail: no stealth indicator left on the title ()
+ok   tail: daylight on the title (night 0)
+tail new game after {"mode":"hub","gem":[],"night":0}
+ok   tail: a new game after quitting is daylight with no job HUD left {"mode":"hub","gem":[],"night":0}

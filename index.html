@@ -2052,7 +2052,11 @@ function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>Str
 function titleFocus(){if(HUD.screen!=='title'||HUD.dialogOpen)return;const c=document.querySelector('.ht-title [data-act=continue]');const b=(c&&!c.hidden&&!c.disabled)?c:document.querySelector('.ht-title [data-act=newgame]');if(b&&!b.disabled)b.focus({preventScroll:true})}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
+/* quit to title runs the same cleanup as abandoning a job (C-4): the job is marked abandoned and let go, every job's own safety net
+   (their pose/hud hooks, which free whatever is no longer running) runs now instead of on the title's next frame, and the night a job
+   set (JRS.night, or a job's own setNight) is lifted: the title is always daytime Maple */
 function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
+  try{JH.pose(0)}catch(e){console.warn('quit: job cleanup',e)}JRS.night=false;try{setNight(0,true);nightTick(0)}catch(e){}
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',(a,arg)=>{
   if(a==='continue'){start()}
