@@ -68,7 +68,7 @@ const wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return
       if(s.cand&&s.cand.ok){ok=true;break}if(al<-1.5){info='overshot';break}await input(k);await step(2);T++;tR++}
     if(!ok&&!info)info=JSON.stringify(await diag())+' cand '+JSON.stringify((await S()).cand);
     if(!ok)return{id,fail:'no line-up '+info};if(id==='kim')await shot('fix-1-lining-up');
-    const hooked=await holdUse(s=>!!s.link);if(!hooked)return{id,fail:'hold Use did not hitch'};await shot(id==='kim'?'fix-2-hitched':'x');
+    const hooked=await holdUse(s=>!!s.link);if(!hooked)return{id,fail:'hold Use did not hitch'};if(id==='kim')await shot('fix-2-hitched');
     /* pull straight out to the stub */await follow([{x:c.x,z:126}],{v:4,arrive:3,tag:'pullout'});return{id,ok:true,revS:+(tR*2/30).toFixed(1)}}
   async function deliver(id,via){const cb=await ev(id=>{const M=window.__ht.M,e=M.cars.find(x=>x.o.id===id),ow=M.owners[e.i];return ow.curb},id);let s=await S();
     let pts=[];let from={x:s.x,z:s.z};for(const v of(via||[]).concat([{x:cb.x,z:cb.z}])){pts=pts.concat(v.raw?[v]:await routeTo(from,v));from=v}
