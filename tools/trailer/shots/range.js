@@ -2,13 +2,16 @@
    Over the shoulder, HUD on (the course timer and score). Targets are aimed by the script, shots are real mouse clicks. */
 module.exports={frames:105,warm:2,
   async stage(s){const p=s.p;
-    const r=await p.evaluate(async()=>{const H=window.__ht,d=HT.Base.def(),R=d.range;H.P.pos.set(R.line?R.line.x:R.officer.x,0,R.line?R.line.z:R.officer.z);H.step(4);
-      try{H.give&&H.give('rifle');H.swap&&H.swap('rifle')}catch(e){}H.step(10);HT.Range.start();H.step(10);
-      let n=0;while(HT.Range.state().course&&HT.Range.state().course.state==='count'&&n<400){H.step(1);n++}
-      return{st:HT.Range.state(),def:Object.keys(R),line:R.line,P:[H.P.pos.x,H.P.pos.z]}});console.log('  ',JSON.stringify(r).slice(0,500))},
+    /* the way dev/base-check.js does it: stand by Sgt. Pruitt, E to talk, E again to start the timed course (real key presses) */
+    await p.evaluate(()=>{const H=window.__ht,o=HT.Base.def().range.officer;H.P.pos.set(o.x+1.6,0,o.z);H.collide(H.P.pos,.35);H.step(4)});
+    await p.keyboard.press('e');await p.evaluate(()=>window.__ht.step(3));await p.keyboard.press('e');await p.evaluate(()=>window.__ht.step(3));
+    const r=await p.evaluate(()=>{const H=window.__ht;let n=0;while(HT.Range.state().course&&HT.Range.state().course.state!=='run'&&n<600){H.step(1);n++}
+      const S=HT.Range.S,c=S.course;for(let k=0;k<200&&!(c.stage&&c.stage.pause<=0&&c.stage.need.size);k++)H.step(1);
+      return{n,st:HT.Range.state().course,P:[H.P.pos.x,H.P.pos.z],need:c.stage?c.stage.need.size:0}});console.log('  ',JSON.stringify(r))},
   /* aim at the nearest standing target, settle for 9 frames, fire */
-  frame:i=>{const H=window.__ht,P=H.P,C=HT.Range.S&&HT.Range.S.course;const st=C&&C.stage&&C.stage.need||[];window.__fire=false;
-    const t=st.find(q=>q&&q.mesh&&!q.down&&!q.hit&&q.mesh.visible!==false);if(!t)return;const v=new THREE.Vector3();t.mesh.getWorldPosition(v);const c=H.camera.position;
-    const yaw=Math.atan2(-(v.x-c.x),-(v.z-c.z)),pitch=Math.atan2(v.y+.15-c.y,Math.hypot(v.x-c.x,v.z-c.z));let dy=yaw-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
-    P.yaw+=dy*.35;P.pitch+=(pitch-P.pitch)*.35;P.aim=true;window.__aimT=Math.abs(dy)<.01?(window.__aimT||0)+1:0;if(window.__aimT>=6){window.__fire=true;window.__aimT=-6}},
+  frame:i=>{const H=window.__ht,P=H.P,C=HT.Range.S&&HT.Range.S.course;window.__fire=false;const stg=C&&C.stage;
+    if(!stg||C.state!=='run'||stg.pause>0||!stg.need.size)return;const t=[...stg.need][0];if(!t||!t.mesh)return;t.mesh.updateMatrixWorld();
+    const v=new THREE.Vector3();t.mesh.getWorldPosition(v);const c=H.camera.position;
+    const yaw=Math.atan2(-(v.x-c.x),-(v.z-c.z)),pitch=Math.atan2(v.y-c.y,Math.hypot(v.x-c.x,v.z-c.z));let dy=yaw-P.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+    P.bloom=0;P.rDebt=0;P.yaw+=dy*.4;P.pitch+=(pitch-P.pitch)*.4;window.__aimT=Math.abs(dy)<.012?(window.__aimT||0)+1:0;if(window.__aimT>=4){window.__fire=true;window.__aimT=-5}},
   frameNode:async(s,i)=>{const f=await s.p.evaluate(()=>window.__fire);if(f){await s.p.mouse.move(960,540);await s.p.mouse.down();await s.p.evaluate(()=>window.__T.ev('shot_rifle'))}else await s.p.mouse.up()}};

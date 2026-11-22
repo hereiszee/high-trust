@@ -102,7 +102,8 @@ function helpers(){const H=window.__ht,T=window.__T={};
   T.face=(x,z)=>{const P=H.P;P.yaw=Math.atan2(-(x-P.pos.x),-(z-P.pos.z))};
   T.release=()=>{for(const k of Object.keys(H.keys))H.keys[k]=false};
   T.hud=on=>{let st=document.getElementById('__trhud');if(!st){st=document.createElement('style');st.id='__trhud';document.head.appendChild(st)}
-    st.textContent=(on?'':'.ht-hud,#strm,#lock,.ht-tut{visibility:hidden!important}')+' #strm{display:none!important}'};
+    /* HUD off = everything but the canvas (the jet and the dragway add their own overlays straight to <body>) */
+    st.textContent=(on?'':'body>:not(canvas):not(:has(canvas)){visibility:hidden!important} .ht-hud,#strm,#lock,.ht-tut{visibility:hidden!important}')+' #strm{display:none!important}'};
   /* cinematic camera: window.__camFn() runs after the game has placed its camera and before the frame is drawn */
   try{HT.Jobs.on('pose',()=>{if(window.__camFn)try{window.__camFn(H.camera)}catch(e){console.warn('camFn',e)}})}catch(e){console.warn('no pose hook',e)}
   T.cam=(pos,look,fov)=>{window.__camFn=c=>{c.position.set(pos[0],pos[1],pos[2]);c.lookAt(look[0],look[1],look[2]);if(fov&&c.fov!==fov){c.fov=fov;c.updateProjectionMatrix()}}};

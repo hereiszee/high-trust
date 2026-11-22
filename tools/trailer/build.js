@@ -33,7 +33,9 @@ E.clips.forEach((c,k)=>{const seg=path.join(W,'seg'+String(k).padStart(3,'0')+'.
     if(have<c.in+len){if(!has('rough'))throw new Error(`clip ${k}: shot ${c.shot} has ${have} frames, needs ${c.in+len} (use --rough for a slate)`);
       inputs=['-f','lavfi','-t',String(dur),'-i',`color=c=0x1d232b:s=1920x1080:r=${FPS}`];vf.push(`[0]drawtext=text='${c.shot} (not captured yet)':fontcolor=white:fontsize=48:x=(w-tw)/2:y=(h-th)/2[v]`)}
     else{inputs=['-framerate',String(FPS),'-start_number',String(c.in),'-i',path.join(frameDir(c.shot),'f%05d.jpg')];
-      let v=`[0]scale=1920:1080,setsar=1,format=rgb24${c.fadeIn?`,fade=in:st=0:d=${c.fadeIn}`:''}${c.fadeOut?`,fade=out:st=${(dur-c.fadeOut).toFixed(3)}:d=${c.fadeOut}`:''}`;
+      const cr=c.crop?(c.crop.length===4?`crop=${c.crop[2]}:${c.crop[3]}:${c.crop[0]}:${c.crop[1]},`:''):'';
+      /* zoom: a slow centred push-in on crop region [x,y,w,h], by factor zoom (e.g. 1.15) over the clip */const zp=c.zoom?`scale=w='trunc(1920*(1+${c.zoom-1}*n/${len})/2)*2':h='trunc(1080*(1+${c.zoom-1}*n/${len})/2)*2':eval=frame:flags=lanczos,crop=1920:1080,`:'';
+      let v=`[0]${cr}scale=1920:1080:flags=lanczos,${zp}setsar=1,format=rgb24${c.fadeIn?`,fade=in:st=0:d=${c.fadeIn}`:''}${c.fadeOut?`,fade=out:st=${(dur-c.fadeOut).toFixed(3)}:d=${c.fadeOut}`:''}`;
       if(c.super){inputs.push('-loop','1','-framerate',String(FPS),'-t',String(dur),'-i',card(c.super.card));const a=(c.super.from||0)/FPS,b=(c.super.to!=null?c.super.to:len)/FPS;
         vf.push(v+'[b]');vf.push(`[1]format=rgba,fade=in:st=${a.toFixed(3)}:d=0.35:alpha=1,fade=out:st=${Math.max(a+.4,b-.35).toFixed(3)}:d=0.35:alpha=1[o]`);vf.push('[b][o]overlay=0:0:shortest=1[v]')}
       else vf.push(v+'[v]')}}
