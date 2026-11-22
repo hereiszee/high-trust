@@ -1264,8 +1264,14 @@ let enemies=[],allies=[],npcs=[],tracers=[],puffs=[],rayTargets=[];
 const keys={};let mouseDown=false,useTap=false;
 const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'auto'};
 const CFG_STORE=()=>window.HTDesktop?HTDesktop.storage:localStorage;/* desktop shell: settings live in the save file (desktop/save-store.js) */
+/* per-device settings (Graphics, Resolution scale, Frame rate cap) stay on this machine: in the shell a local file outside the Steam Cloud
+   folder (HTDesktop.deviceStorage), so a PC's High doesn't follow you to a Deck. Everything else rides with the save (SAV-13). */
+const CFG_DEVICE=['gfx','rscale','fpsCap'];
+const CFG_DEV_STORE=()=>window.HTDesktop&&HTDesktop.deviceStorage?HTDesktop.deviceStorage:localStorage;
 try{Object.assign(CFG,JSON.parse(CFG_STORE().getItem('ht-cfg')||'{}'))}catch(e){}
-function saveCfg(){try{CFG_STORE().setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
+try{const d=JSON.parse(CFG_DEV_STORE().getItem('ht-cfg-device')||'null');if(d&&typeof d==='object')for(const k of CFG_DEVICE)if(k in d)CFG[k]=d[k]}catch(e){}
+function saveCfg(){const sync={},dev={};for(const k in CFG)(CFG_DEVICE.includes(k)?dev:sync)[k]=CFG[k];
+  try{CFG_STORE().setItem('ht-cfg',JSON.stringify(sync))}catch(e){}try{CFG_DEV_STORE().setItem('ht-cfg-device',JSON.stringify(dev))}catch(e){}}
 
 /* ================= UI helpers ================= */
 /* js/hud.js (window.HT.HUD) draws the HUD, minimap and menus. radio/banner/setPrompt/setObj/showMarker keep their
@@ -1890,6 +1896,7 @@ function carLabel(e){return e===VAN||!e?'Family minivan':e.name+"'s "+feel(e).la
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[[VAN.on&&CV!==VAN?'Borrow a ride':'Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
 function enterHub(o){
+  if(!enterHub.ex){enterHub.ex=setTimeout(()=>{const HW=HTM('World');if(HW&&HW.needExtras)HW.needExtras()},6000)}/* PERF-05: interior furniture after the game is running, never before Start */
   if(!(M&&M.state==='won'))metaJobRollback();/* SAV-04: any way out of a job that wasn't a win drops what it earned */
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
@@ -1929,10 +1936,11 @@ function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok|
   return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_red','thug_cap','thug_jacket',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=castKeysFor(i);
-  if(!keys.length){startMission(i);return}
+  const keys=castKeysFor(i),HW=HTM('World'),ex=HW&&HW.needExtras?HW.needExtras():null;/* PERF-05: interior furniture, on demand */
+  const exReady=!ex||(HW.extrasReady&&HW.extrasReady());
+  if(!keys.length&&exReady){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
-  castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
+  castWait=Promise.race([Promise.all([keys.length&&pm?pm.preload(keys).catch(()=>{}):null,ex]),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
 function startMission(i,legacy){
   if(!legacy&&typeof missionInWorld==='function'&&missionInWorld(i))return startMissionWorld(i);/* WORLD MISSIONS: run at the real site */
   settleBorrow(true);engine(false);VAN.on=false;JOB=null;
@@ -2021,7 +2029,7 @@ function glLostDialog(){if(!GLX.lost)return;HUD.dialog({kicker:'Graphics',title:
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();GLX.lost=true;GLX.n++;if(running)openPause();mouseDown=false;glLostDialog()},false);
 cv.addEventListener('webglcontextrestored',()=>{GLX.lost=false;try{resize()}catch(_){}if(HUD.dialogOpen)HUD.closeDialog('restored');try{HUD.toast&&HUD.toast('Graphics restored')}catch(_){}},false);
 function closePause(){pauseOpen=false;if(HUD.screen==='pause')HUD.hide('pause');running=true;last=performance.now();canvasFocus();requestLock()}
-function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80)}
+function showTitle(){if(SAVEM)metaTitle(true);HUD.show('title',UI.title);setTimeout(titleFocus,80);if(SAVEM&&!metaLoadNoticed){metaLoadNoticed=true;setTimeout(metaLoadNotice,700)}}
 /* Credits & licences (title and pause): the text lives in js/credits.js; scrolls with wheel, arrows, PgUp/PgDn; Esc closes */
 function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
   HUD.dialog({kicker:'High Trust',title:'Credits & licences',wide:true,html:'<pre>'+e(C.CREDITS)+'</pre><h4>Licence notices</h4>'+C.NOTICES.map(([w,c])=>'<pre><b>'+e(w)+'</b>\nMIT License\n'+e(c)+'\n\n'+e(C.MIT_BODY)+'</pre><br>').join('')+'<h4>Fonts</h4><pre>'+e(C.FONTS)+'</pre>',
@@ -2817,7 +2825,27 @@ function metaBindProg(p){const S=HTM('Save');if(!S)return p;
 
 const SAVEM=HTM('Save'),ECON=HTM('Economy'),HOMEM=HTM('Home');
 const SV=()=>SAVEM?SAVEM.data:null;
-function metaSave(now){if(!SAVEM)return;try{now?SAVEM.saveNow():SAVEM.save()}catch(e){console.warn('save failed',e)}}
+function metaSave(now){if(!SAVEM)return;try{now?SAVEM.saveNow(true):SAVEM.save()}catch(e){console.warn('save failed',e)}}/* now: payouts, results, purchases: written to disk at once (SAV-08) */
+/* SAV-10: a failed write is not a save. A quiet warning, and a retry every 10 s until it works */
+let saveFailT=0;
+if(SAVEM&&SAVEM.on){SAVEM.on('savefail',()=>{if(!saveFailT){try{HUD.feed("Couldn't save the game · trying again",'bad')}catch(e){}}clearTimeout(saveFailT);saveFailT=setTimeout(()=>{saveFailT=0;metaSave(true)},10000)});
+  SAVEM.on('saved',()=>{if(saveFailT){clearTimeout(saveFailT);saveFailT=0;try{HUD.feed('Game saved','info')}catch(e){}}});
+  /* SAV-11: another browser tab saved newer progress: stop writing and say so */
+  SAVEM.on('conflict',()=>{if(HUD.dialogOpen&&metaConflictShown)return;metaConflictShown=true;if(running)try{openPause()}catch(e){}
+    HUD.dialog({kicker:'Save',title:'Open in another tab',text:"High Trust saved newer progress in another tab or window. This tab has stopped saving so it doesn't overwrite that.\n\nReload to carry on from the newer save.",
+      buttons:[{label:'Reload',act:'reload',cls:'pri'}],focus:'reload',cancel:'reload'}).then(()=>location.reload())})}
+let metaConflictShown=false;
+/* SAV-07: tell the player when a save couldn't be read, and where it is kept (it is never overwritten) */
+function metaLoadNotice(){if(!SAVEM)return;const L=SAVEM.lastLoad||{},D=window.HTDesktop||null,dk=D&&(D.saveFrom==='backup'||D.saveFrom==='reset');
+  if(!(L.status==='recovered'||L.status==='reset'||dk))return;
+  const when=t=>{try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}};
+  const where=[];if(L.kept&&L.kept.file)where.push(L.kept.file);if(D&&D.saveKept)where.push(D.saveKept);if(L.kept&&L.kept.key&&!where.length)where.push('browser storage, as "'+L.kept.key+'"');
+  const newer=L.future,ok=L.status==='recovered'||(dk&&D.saveFrom==='backup'&&L.status!=='reset');
+  let text=(newer?'Your save was made by a newer version of High Trust, so this version can\'t read it.':L.why==='empty save'?'Your save file was empty.':"Your save file couldn't be read (it may have been cut off by a crash or a full disk).")+'\n\n';
+  text+=ok?'The game loaded your backup'+(L.bakT?' from '+when(L.bakT):'')+' instead.':'There was no readable backup, so the game is starting fresh.';
+  if(where.length)text+='\n\nNothing was deleted. The save that couldn\'t be read is kept here:\n'+where.join('\n');
+  if(newer)text+='\n\nTo keep playing it, update the game (on Steam: switch back to the branch you played it on).';
+  HUD.dialog({kicker:'Save',title:ok?'Loaded your backup':'Save couldn\'t be read',text,buttons:[{label:'OK',act:'ok',cls:'pri'}],focus:'ok',cancel:'ok'})}
 const money=n=>'$'+Math.round(n).toLocaleString('en-US');
 function aud(f){try{const A=AU();if(A&&A.ready!==false)f(A)}catch(e){}}
 function metaCash(){const s=SV();return s?s.cash:null}
@@ -2839,13 +2867,14 @@ let HOME3=null,homeReady=false,homeLoading=null;
   const d=document.createElement('div');d.id='deco';d.hidden=true;document.body.appendChild(d)})();
 
 /* ---------- title: continue / new game (HUD buttons) ---------- */
-function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
+function hasSave(){const s=SV();return !!(s&&SAVEM.hasProgress&&SAVEM.hasProgress(s))}/* SAV-06: a save made this session counts too */
 function metaWhen(t){if(!t)return'earlier';try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}}
 function metaDay(t){try{return t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}catch(e){return''}}
 function metaTitle(dataOnly){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
   const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaDay(pv.t)+' · '+pv.jobs+' jobs':'';
   if(has){const s=SV(),done=s.prog.done.slice(0,MISSIONS.length).filter(Boolean).length;UI.title.continueLabel=done+'/'+MISSIONS.length+' jobs · '+money(s.cash)}
   if(!dataOnly&&HUD.screen==='title'){HUD.show('title',UI.title);setTimeout(titleFocus,80)}}
+var metaLoadNoticed=false;
 metaTitle();
 /* 'newgame' wipes the save first; 'continue' just starts */
 function metaTitleAction(a){if(a==='newgame'&&SAVEM&&hasSave()){if(DECO.on)decoStop(true);if(HOME3)homeTeardown();SAVEM.reset();metaFixSave(SV());metaSave(true)}}
@@ -2885,7 +2914,7 @@ function metaOnBuy(r){
   if(/^(car|gar|cos|stick)$/.test(r.kind))vanApply();
   if(r.kind==='rep'&&(!CV||CV===VAN)){VAN._mx=null;/* the save's own vehicle was repaired: fresh body, lamps, engine back on */carRepair(VAN,0,{fresh:false});if(carFrac(VAN)>=.999)carFresh(VAN);carLook(VAN);carRedent(VAN);DRV.bandQ=carBand(VAN)}
   if(r.kind==='rep'&&CV&&CV!==VAN)HUD.feed('Fixed '+CV.name+"'s "+feel(CV).label+' before '+CV.name+' notices','info');
-  metaSave()}
+  metaSave(true)}/* a purchase is written at once (SAV-08) */
 /* 3D shop thumbnails from the real models, once the gun and vehicle modules are in */
 if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){try{HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})}catch(e){console.warn('shop thumbnails unavailable',e)}}
 
@@ -4446,10 +4475,10 @@ if(JR){MISSIONS.forEach(m=>{const w=WJ[m.id];JR.wrap(m.id,m,w?{start:(M_,o)=>w.s
     HUD,overlay:(id,el)=>HUD.overlay&&HUD.overlay(id,el),get stage(){return M&&M.stage}}}
 
 /* ================= FIRST-RUN HINTS ================= */
-/* light contextual tutorial: one hint at a time in the prompt style, each shown once (per install, localStorage 'ht-tut') and dismissed
+/* light contextual tutorial: one hint at a time in the prompt style, each shown once (per save profile: 'ht-tut' via CFG_STORE, the save file in the shell) and dismissed
    by doing the thing. Pause → Controls lists every binding. */
 const TUT={done:{},cur:null,t:0,el:null,m:{look:0,walk:0,jog:0,drive:0,yaw:null,pos:null,car:null,shot:-9,cuffed:null,mapT:0},show:0};
-try{TUT.done=JSON.parse(localStorage.getItem('ht-tut')||'{}')||{}}catch(e){TUT.done={}}
+try{TUT.done=JSON.parse(CFG_STORE().getItem('ht-tut')||'{}')||{}}catch(e){TUT.done={}}/* in the shell: the save file, so Steam Cloud carries it (SAV-12) */
 const foot=()=>mode==='hub'&&!VAN.on&&!CV,gunsOn=()=>mode==='mission'&&M&&M.state==='go'&&!M.noGuns&&!M.holster&&P.weapons.length>0&&!VAN.on;
 const TUT_STEPS=[
   {id:'look',k:'Mouse',t:'Move the mouse to look around',when:foot,done:m=>m.look>1.1},
@@ -4473,7 +4502,7 @@ function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.
   if(TUT.cur&&TUT.cur.id==='map')m.mapT+=dt;
   if(TUT.cur&&TUT.cur.id==='tie'&&m.cuffed==null)m.cuffed=prog.cuffed||0;
   let cur=TUT.cur;
-  if(cur){TUT.t+=dt;let fin=false;try{fin=cur.done(m)}catch(_){}if(fin&&TUT.t>.6){TUT.done[cur.id]=1;try{localStorage.setItem('ht-tut',JSON.stringify(TUT.done))}catch(_){}cur=TUT.cur=null;TUT.gap=.5}
+  if(cur){TUT.t+=dt;let fin=false;try{fin=cur.done(m)}catch(_){}if(fin&&TUT.t>.6){TUT.done[cur.id]=1;try{CFG_STORE().setItem('ht-tut',JSON.stringify(TUT.done))}catch(_){}cur=TUT.cur=null;TUT.gap=.5}
     else{let w=false;try{w=cur.when()}catch(_){}if(!w&&cur.id!=='pause'){cur=TUT.cur=null}}}
   TUT.gap=Math.max(0,(TUT.gap||0)-dt);
   if(!cur&&TUT.gap<=0&&running){for(const st of TUT_STEPS){if(TUT.done[st.id])continue;let w=false;try{w=st.when()}catch(_){}if(w){cur=TUT.cur=st;TUT.t=0;if(st.id==='tie')m.cuffed=prog.cuffed||0;if(st.id==='aim')m.shot=0;break}}

@@ -5,16 +5,21 @@
    - no menu bar, devtools only in dev (--dev or unpackaged), background throttling off, hardware acceleration on
    - the save lives in <userData>/saves/save.json (desktop/save-store.js) for Steam Auto-Cloud
    - Steamworks (desktop/steam.js) when available, silently absent otherwise
-   Flags: --dev (devtools), --windowed, --fullscreen, --no-steam. Env: HT_USER_DATA (alternate profile folder, used by tests). */
+   Flags: --dev (devtools; unpackaged runs only), --windowed, --fullscreen, --no-steam. Env: HT_USER_DATA (alternate profile folder, used by
+   tests), HT_TEST_HOOKS=1 (tests only: lets a packaged build be driven over the remote-debugging/inspect port and opens devtools on --dev). */
 'use strict';
-const { app, BrowserWindow, protocol, ipcMain, session, Menu, shell, powerMonitor } = require('electron');
+const { app, BrowserWindow, protocol, ipcMain, session, Menu, shell, powerMonitor, screen } = require('electron');
 const path = require('path'), fs = require('fs'), { Readable } = require('stream');
 const { SaveStore } = require('./save-store.js');
 const steam = require('./steam.js');
 
 const argv = process.argv.slice(1), flag = f => argv.includes('--' + f);
-const DEV = flag('dev') || !app.isPackaged;
-const DEVTOOLS = flag('dev') || (!app.isPackaged && !flag('no-devtools'));
+/* C-5: a packaged build ignores --dev and has no devtools (a player could add --dev, or a remote-debugging switch, through Steam launch
+   options and reach the game's internals and the achievement calls). Only the test suites set HT_TEST_HOOKS=1. */
+const TEST_HOOKS = process.env.HT_TEST_HOOKS === '1';
+const DEV = !app.isPackaged || (TEST_HOOKS && flag('dev'));
+const DEVTOOLS = DEV && (flag('dev') || !flag('no-devtools'));
+if (app.isPackaged && !TEST_HOOKS && process.argv.some(a => /^--(remote-debugging-(port|pipe)|inspect(-brk)?(-port)?)(=|$)/.test(a))) { app.quit(); process.exit(0) }
 /* game files: packaged -> resources/game (electron-builder extraResources), dev -> the repo root */
 const GAME_ROOT = app.isPackaged ? path.join(process.resourcesPath, 'game') : path.resolve(__dirname, '..');
 const ORIGIN = 'app://game';
@@ -92,14 +97,34 @@ let win = null;
 const [WIN_W, WIN_H] = (/^(\d+)x(\d+)$/.exec(process.env.HT_WINDOW_SIZE || '') || [0, DECK ? 1280 : 1600, DECK ? 800 : 900]).slice(1).map(Number); /* windowed size; tests use a small one */
 const ICON = path.join(__dirname, 'build', 'icon.png');
 function setFullscreen(on) { if (!win) return; on = !!on; win.setFullScreen(on); cfg.fullscreen = on; saveCfg() }
+/* SAV-14: windowed mode reopens where it was, at its size, if that still fits on a connected display; otherwise centred, no bigger than the
+   display's work area. Tests (HT_WINDOW_SIZE) always get their fixed size. */
+function windowBounds() {
+  const fit = (b, wa) => ({ width: Math.max(960, Math.min(b.width, wa.width)), height: Math.max(540, Math.min(b.height, wa.height)) });
+  try {
+    const b = cfg.bounds;
+    if (!process.env.HT_WINDOW_SIZE && b && [b.x, b.y, b.width, b.height].every(Number.isFinite)) {
+      const wa = screen.getDisplayMatching(b).workArea, f = fit(b, wa);
+      const vis = Math.min(b.x + f.width, wa.x + wa.width) - Math.max(b.x, wa.x) >= 200 && Math.min(b.y + f.height, wa.y + wa.height) - Math.max(b.y, wa.y) >= 100;
+      if (vis) return { x: Math.round(b.x), y: Math.round(b.y), ...f, maximized: !!cfg.maximized };
+    }
+    const wa = screen.getPrimaryDisplay().workArea; return { ...fit({ width: WIN_W, height: WIN_H }, wa), maximized: !process.env.HT_WINDOW_SIZE && !!cfg.maximized };
+  } catch (e) { return { width: WIN_W, height: WIN_H } }
+}
+let boundsT = null;
+function rememberBounds() { clearTimeout(boundsT); boundsT = setTimeout(() => { if (!win || win.isDestroyed() || win.isFullScreen() || win.isMinimized()) return;
+  cfg.maximized = win.isMaximized(); if (!cfg.maximized) cfg.bounds = win.getNormalBounds(); saveCfg() }, 500) }
 function createWindow() {
+  const wb = windowBounds();
   win = new BrowserWindow({
-    width: WIN_W, height: WIN_H, minWidth: 960, minHeight: 540, show: false, fullscreen: !!cfg.fullscreen, fullscreenable: true,
+    ...(wb.x != null ? { x: wb.x, y: wb.y } : {}), width: wb.width, height: wb.height, minWidth: 960, minHeight: 540, show: false, fullscreen: !!cfg.fullscreen, fullscreenable: true,
     title: 'High Trust', backgroundColor: '#16181c', autoHideMenuBar: true, icon: fs.existsSync(ICON) ? ICON : undefined,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true,
       devTools: DEVTOOLS, backgroundThrottling: false, spellcheck: false, autoplayPolicy: 'no-user-gesture-required' }
   });
   win.setMenuBarVisibility(false);
+  if (wb.maximized && !cfg.fullscreen) win.maximize();
+  for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) win.on(ev, rememberBounds);
   win.once('ready-to-show', () => { win.show(); win.focus() });
   /* Interface size (Deck default 110%: the smallest HUD text is 10-11 px CSS at 1280x800) */
   win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(uiScale(curScale())));
@@ -120,17 +145,30 @@ function createWindow() {
     const lvl = typeof d.level === 'string' ? d.level : ['verbose', 'info', 'warning', 'error'][d.level] || d.level; if (lvl === 'error' || lvl === 'warning') log('[page ' + lvl + ']', d.message, d.sourceId ? '(' + d.sourceId + ':' + d.lineNumber + ')' : '') });
   let reloads = 0;
   wc.on('render-process-gone', (e, d) => { log('[page] renderer gone:', d.reason); store.flush(); if (d.reason !== 'clean-exit' && reloads++ < 2) wc.reload() });
-  win.on('close', () => store.flush());
+  win.on('close', () => { try { clearTimeout(boundsT); if (!win.isFullScreen() && !win.isMinimized()) { cfg.maximized = win.isMaximized(); if (!cfg.maximized) cfg.bounds = win.getNormalBounds(); saveCfg() } } catch (e) { } store.flush() });
   win.loadURL(ORIGIN + '/index.html');
 }
 
 /* ---------- IPC (the HTDesktop bridge in preload.js) ---------- */
 const fromGame = e => { try { return (e.senderFrame && e.senderFrame.url || '').startsWith(ORIGIN + '/') } catch (_) { return false } };
-ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign({}, store.data), saveFrom: store.lastLoad, desktop: { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: curScale() },
+const refreshRate = () => { try { const d = win ? screen.getDisplayMatching(win.getBounds()) : screen.getPrimaryDisplay(); return d.displayFrequency || 0 } catch (e) { return 0 } };
+ipcMain.on('ht:boot', e => { e.returnValue = fromGame(e) ? { save: Object.assign({}, store.data), saveFrom: store.lastLoad, saveKept: store.kept || null, device: Object.assign({}, cfg.device || {}),
+  desktop: { fullscreen: !!cfg.fullscreen, vsync: cfg.vsync !== false, uiScale: curScale() }, refreshRate: refreshRate(),
   steam: steam.info(), deck: DECK, version: app.getVersion(), electron: process.versions.electron, platform: process.platform, dev: DEV } : null });
+/* per-device game settings (Graphics, Resolution scale, Frame rate cap): desktop-settings.json, never in the Steam Cloud folder (SAV-13) */
+ipcMain.on('ht:device-set', (e, k, v) => { if (!fromGame(e) || typeof k !== 'string' || k.length > 64 || (v != null && (typeof v !== 'string' || v.length > 4096))) return;
+  cfg.device = Object.assign({}, cfg.device); if (v == null) delete cfg.device[k]; else cfg.device[k] = v; saveCfg() });
+/* a save the game couldn't read is copied next to the save before anything else happens to it (SAV-07); returns the file's path */
+ipcMain.on('ht:keep-file', (e, name, text) => { let out = null; /* returnValue answers the sync call the moment it is set: set it once */
+  if (fromGame(e) && typeof name === 'string' && typeof text === 'string' && text.length <= 32e6) {
+    const safe = name.replace(/[^\w.-]/g, '_').slice(0, 80);
+    if (safe && !safe.startsWith('.')) { try { const dir = path.join(USER, 'saves'); fs.mkdirSync(dir, { recursive: true }); const f = path.join(dir, safe); fs.writeFileSync(f, text); out = f } catch (err) { log('[save] keep failed', err && err.message) } }
+  }
+  e.returnValue = out });
 ipcMain.on('ht:save-set', (e, k, v) => { if (fromGame(e) && typeof k === 'string' && typeof v === 'string' && k.length < 128 && v.length < 32e6) store.set(k, v) });
 ipcMain.on('ht:save-remove', (e, k) => { if (fromGame(e) && typeof k === 'string') store.remove(k) });
 ipcMain.on('ht:save-flush', e => { e.returnValue = fromGame(e) ? store.flush() : false });
+store.onError = msg => { if (win && !win.isDestroyed()) win.webContents.send('ht:save-error', String(msg || '')) };/* a debounced write that failed (SAV-10) */
 ipcMain.on('ht:quit', e => { if (!fromGame(e)) return; store.flush(); app.quit() });
 ipcMain.handle('ht:fullscreen', (e, on) => { if (!fromGame(e)) return null; if (typeof on === 'boolean') setFullscreen(on); return win ? win.isFullScreen() : null });
 const uiScale = v => Math.min(1.5, Math.max(.8, +v || 1));

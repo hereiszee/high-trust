@@ -126,6 +126,25 @@ stand-in; `__ht.startMission` stays synchronous for tests. Static batching cover
 and swaps its level of detail, so vehicles stay individual objects. js/people.js streams its extra crew variants itself after `ready`;
 they get the optimised files through the URL modifier.
 
+**Regression and fix (PERF-05, 2026-11-22).** `12084fa` (Small Talk) made js/world.js fetch 25 interior-furniture models from their
+*source* paths (`assets/home/*.glb`) at boot, before the manifest could map them, and js/people.js started its six extra thug looks the
+moment the player model arrived, i.e. alongside the boot pack. Measured with `node tools/perf/measure.js --throttle --rafcap --nosw`
+(10 Mbit/s + 40 ms, SwiftShader, served by `tools/perf/serve.js`) on the same machine:
+
+| | main e92190c (before) | fix/saves (after) |
+|---|---|---|
+| requests before Start | 103 | 70 |
+| bytes before Start | 7.6–9.2 MB | 3.95–5.25 MB (of which 1.3–2.6 MB are Stage B files requested in the same tick Start enables) |
+| Start enabled, first visit | 7.1 / 9.3 / 10.1 s | 4.0 / 4.5 / 4.7 / 5.0 / 6.5 / 6.6 / 6.7 / 6.8 s |
+
+Now the furniture loads on demand through the manifest (optimised `assets/opt/home/*` tier): `HT.World.needExtras()` is awaited by
+`startMissionWhenReady` and is kicked 6 s after the player first enters the hub; nothing in `assets/home` is requested before Start.
+The thug looks stream 1.5 s after Stage A is done. In the slow runs the boot pack is in at about 4.3 s and Stage A finishes at about
+4.5 s, but the Start button only enables about 2 s later: that is main-thread work on the `ASSETS.ready` handlers under SwiftShader, not
+the network. The 3.8–4.2 s above is reached in the fast runs; with a real GPU the post-Stage-A work is far shorter, so re-measure on
+the three test machines (QA-GAPS item 10) before treating the slow figure as the budget. The desktop build never had the 404s: the shell
+already serves a source path's optimised file (`optFor` in desktop/main.js); a packaged session logs zero 404s.
+
 ## How loading works now
 
 **Stage A (blocks Start).** A tiny script in `<head>` starts fetching `assets/opt/manifest.json` and then one

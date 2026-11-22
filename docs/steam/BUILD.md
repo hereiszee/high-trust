@@ -19,7 +19,7 @@ when Steam is running.
 Game-side pieces (shared with the web build, all no-ops on the web unless noted):
 - `js/platform.js`: `HT.Steam` (achievements, rich presence) and the desktop-only settings (Display mode, VSync) and Quit to desktop.
 - `js/gamepad.js`: the controller layer. It also works in the web build.
-- `js/keys.js`: keyboard rebinding (Pause → Key bindings), web and desktop. Tested by `dev/keys.e2e.js`.
+- `js/keys.js`: keyboard rebinding (Pause → Controls & keys), web and desktop. Tested by `dev/keys.e2e.js`.
 - `vendor/`: Three.js r128 and its add-ons, vendored, so neither build depends on a CDN.
 - `js/save.js` and `index.html`: in the shell, both use `HTDesktop.storage` (the save file) instead of localStorage.
 
@@ -39,8 +39,10 @@ npm run dist:full      # same as dist, also ships the source assets (only needed
 xvfb-run -a node test/e2e.js --exe dist/linux-unpacked/HighTrust   # end-to-end check of a packaged build
 ```
 
-Shell flags: `--windowed`, `--fullscreen`, `--no-steam`, `--dev` (devtools in a packaged build).
-Env: `HT_USER_DATA=<dir>` (alternate profile, used by tests), `HT_STEAM_APPID=<id>`.
+Shell flags: `--windowed`, `--fullscreen`, `--no-steam`, `--dev` (devtools; ignored by a packaged build).
+Env: `HT_USER_DATA=<dir>` (alternate profile, used by tests), `HT_STEAM_APPID=<id>`, `HT_TEST_HOOKS=1` (tests only: a packaged build
+accepts `--dev` and the remote-debugging/inspect switches Playwright uses; without it a packaged build refuses them, so a player can't
+reach the game's internals or the achievement calls through Steam launch options).
 
 Before packaging, run `node dev/check-build.js` from the repo root. The package ships `assets/opt/` (the optimised variants the game
 loads), not the source assets, so `assets/opt` has to be up to date (`node tools/build-assets.js`).
@@ -137,7 +139,7 @@ Templates are in `docs/steam/vdf/` (one depot per OS). Replace `APP_ID`, `WINDOW
    - Windows: executable `HighTrust.exe`, OS Windows.
    - Linux: executable `HighTrust`, OS Linux. Arguments: none. On Steam Deck the native Linux build runs as-is. If a driver
      ever misbehaves, users can force Proton with the Windows build.
-   - macOS: executable `High Trust.app`, OS macOS.
+   - macOS: executable `HighTrust.app`, OS macOS.
    - Optional extra entry "Windowed": the same executable with `--windowed`.
 3. Get the three folders (CI artifacts, or `npm run dist` + a Mac build), then upload:
 
@@ -151,19 +153,29 @@ steamcmd +login <builder_account> +run_app_build "$(pwd)/docs/steam/vdf/app_buil
 
 ### Steam Cloud (Auto-Cloud)
 
-The save is one small file: `save.json` (+ `save.json.bak`) in the `saves` folder of the profile directory.
+The save is one small file: `save.json` (+ `save.json.bak`) in the `saves` folder of the profile directory. Add one Auto-Cloud row per
+file, with the exact file name as the pattern (no wildcard: `save.json*` would also upload `save.json.tmp` from an interrupted write
+and the `save.json.corrupt-<date>` / `unreadable-save-<date>.json` copies the game keeps when it can't read a save).
 
 *Steam Cloud → Settings*: byte quota 50 MB (the save holds up to 24 photos as JPEG data), files 10. Root paths:
 
 | OS | Root | Subdirectory | Pattern |
 |---|---|---|---|
-| Windows | `WinAppDataRoaming` | `High Trust/saves` | `save.json*` |
-| Linux / Deck | `LinuxXdgConfigHome` | `High Trust/saves` | `save.json*` |
-| macOS | `MacAppSupport` | `High Trust/saves` | `save.json*` |
+| Windows | `WinAppDataRoaming` | `High Trust/saves` | `save.json` |
+| Windows | `WinAppDataRoaming` | `High Trust/saves` | `save.json.bak` |
+| Linux / Deck | `LinuxXdgConfigHome` | `High Trust/saves` | `save.json` |
+| Linux / Deck | `LinuxXdgConfigHome` | `High Trust/saves` | `save.json.bak` |
+| macOS | `MacAppSupport` | `High Trust/saves` | `save.json` |
+| macOS | `MacAppSupport` | `High Trust/saves` | `save.json.bak` |
 
 These are `%APPDATA%\High Trust\saves`, `~/.config/High Trust/saves` and `~/Library/Application Support/High Trust/saves`.
-Settings (graphics, volume, sensitivity) are inside the same file (`ht-cfg`), so they sync too. The window mode and VSync are
-per machine (`desktop-settings.json`, not synced).
+
+What syncs and what stays on the machine:
+- **Synced (inside `save.json`):** progress, key bindings (`ht-keys`), tutorial hints already shown (`ht-tut`), and the settings that
+  belong to the player: sensitivity, FOV, invert, volumes, subtitles, minimap rotation (`ht-cfg`).
+- **Per machine, never synced (`desktop-settings.json` in the profile directory, outside `saves/`):** Graphics quality, Resolution
+  scale and Frame rate cap (`device` in that file), Display mode, VSync, Interface size, and the window's size and position.
+  So a PC set to High doesn't push High onto a Steam Deck.
 
 ### Achievements and rich presence
 
@@ -204,5 +216,5 @@ Status key: **done** = implemented and checked in a packaged build with the Deck
 - Code signing: a Windows code-signing certificate (otherwise SmartScreen warns on the zip build; Steam installs aren't affected), and an Apple
   Developer ID + notarisation for macOS (required: Gatekeeper blocks unsigned Mac builds).
 - The build account for steamcmd, and pushing builds live.
-- Set `RELEASE_APP_ID` (desktop/steam.js) and `appId`/`copyright` (desktop/electron-builder.config.js).
+- Set `RELEASE_APP_ID` (desktop/steam.js) and `appId` (desktop/electron-builder.config.js); the copyright line is already "Copyright © 2026 hereiszee". The full list of owner inputs is in CHECKLIST.md ("Owner inputs still placeholders").
 - Apple Developer Program, Developer ID certificate, app-specific password, Team ID → GitHub secrets (see the macOS section).

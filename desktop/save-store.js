@@ -3,14 +3,15 @@
    'ht-cfg'). In the browser that is localStorage; in the desktop shell it is this: one JSON object in <userData>/saves/save.json,
    so Steam Auto-Cloud can sync a single small folder.
    Writes are atomic (write save.json.tmp, fsync, rename over save.json) and the previous good file is kept as save.json.bak.
-   Loading falls back to the backup when save.json is missing or unreadable, and keeps an unreadable file as save.json.corrupt. */
+   Loading falls back to the backup when save.json is missing or unreadable, and keeps an unreadable file as save.json.corrupt-<date>
+   (the 3 newest; this.kept is its path). urgent: flush() is called by the game for payouts/results/purchases (SAV-08). */
 'use strict';
 const fs = require('fs'), path = require('path');
 
 class SaveStore {
   constructor(dir, o = {}) {
     this.dir = dir; this.file = path.join(dir, o.file || 'save.json'); this.bak = this.file + '.bak'; this.tmp = this.file + '.tmp';
-    this.debounceMs = o.debounceMs == null ? 400 : o.debounceMs; this.data = {}; this.timer = null; this.dirty = false; this.lastLoad = null;
+    this.debounceMs = o.debounceMs == null ? 400 : o.debounceMs; this.data = {}; this.timer = null; this.dirty = false; this.lastLoad = null; this.kept = null; this.onError = null;
   }
   static parse(txt) {
     try { const o = JSON.parse(txt); if (o && typeof o === 'object' && !Array.isArray(o) && o.format === 'ht-desktop-save' && o.keys && typeof o.keys === 'object') return o.keys } catch (e) { }
@@ -22,13 +23,21 @@ class SaveStore {
     try { raw = fs.readFileSync(this.file, 'utf8') } catch (e) { }
     let keys = raw != null ? SaveStore.parse(raw) : null, from = 'file';
     if (!keys) {
-      if (raw != null) { try { fs.writeFileSync(this.file + '.corrupt', raw) } catch (e) { } }
+      if (raw != null) { this.kept = this.keepAside(raw) }
       let b = null; try { b = fs.readFileSync(this.bak, 'utf8') } catch (e) { }
       keys = b != null ? SaveStore.parse(b) : null; from = keys ? 'backup' : (raw != null ? 'reset' : 'fresh');
     }
     this.data = {}; for (const k in (keys || {})) if (typeof keys[k] === 'string') this.data[k] = keys[k];
     this.lastLoad = from; if (from === 'backup') { this.dirty = true; this.flush() }
     return Object.assign({}, this.data);
+  }
+  /* never lose a file we couldn't read: save.json.corrupt-YYYY-MM-DD_HH-MM-SS, newest 3 kept */
+  keepAside(raw) {
+    const d = new Date(), z = n => String(n).padStart(2, '0'), st = `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}-${z(d.getMinutes())}-${z(d.getSeconds())}`;
+    const f = this.file + '.corrupt-' + st;
+    try { fs.mkdirSync(this.dir, { recursive: true }); fs.writeFileSync(f, raw) } catch (e) { return null }
+    try { const base = path.basename(this.file) + '.corrupt-'; const old = fs.readdirSync(this.dir).filter(n => n.startsWith(base)).sort(); while (old.length > 3) fs.unlinkSync(path.join(this.dir, old.shift())) } catch (e) { }
+    return f;
   }
   get(k) { return Object.prototype.hasOwnProperty.call(this.data, k) ? this.data[k] : null }
   set(k, v) { k = String(k); v = String(v); if (this.data[k] === v) return; this.data[k] = v; this.schedule() }
@@ -45,7 +54,7 @@ class SaveStore {
       try { const cur = fs.readFileSync(this.file, 'utf8'); if (SaveStore.parse(cur)) fs.writeFileSync(this.bak, cur) } catch (e) { }
       fs.renameSync(this.tmp, this.file);
       this.dirty = false; return true;
-    } catch (e) { console.error('[save] write failed:', e && e.message); return false }
+    } catch (e) { console.error('[save] write failed:', e && e.message); try { if (this.onError) this.onError(e && e.message) } catch (_) { } return false }
   }
 }
 module.exports = { SaveStore };

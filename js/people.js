@@ -79,7 +79,9 @@ function gltf(key){return extra[key]||(A&&A.gltf?A.gltf('rb_'+key):null)}
 function prepareAll(){if(srcClips)return true;const an=gltf('anims');if(!an||!an.animations||!an.animations.length)return false;
   const sc={};for(const c of an.animations)sc[c.name]=c;srcClips=sc;
   for(const k of GAME_KEYS)if(gltf(k))try{prep(k)}catch(e){console.warn('people: prepare failed for',k,e)}
-  P.ok=true;resolveReady(P);setTimeout(()=>P.preload(STREAM_KEYS),0);setTimeout(tick,0);return true}
+  P.ok=true;resolveReady(P);streamLater();setTimeout(tick,0);return true}
+/* the six extra thug looks stream in after the title's Start is ready, not alongside the boot pack (PERF-05 load budget) */
+function streamLater(){const A=typeof window!=='undefined'&&window.__ht&&window.__ht.assets;if(A&&!A.done){setTimeout(streamLater,400);return}setTimeout(()=>P.preload(STREAM_KEYS),A?1500:0)}
 
 /* ---------- loading that never gives up ----------
    Files in the game's manifest (GAME_KEYS, anims) come through the game's loader, which retries with backoff; if one is still missing a

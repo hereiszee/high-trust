@@ -25,7 +25,8 @@ test('a corrupt save.json falls back to the backup, keeps the broken copy, and r
   fs.writeFileSync(path.join(d, 'save.json'), '{"format":"ht-desktop-save","keys":{"ht-save":"tru');
   const s2 = new SaveStore(d); const k = s2.load();
   assert.equal(s2.lastLoad, 'backup'); assert.equal(k['ht-save'], 'good');
-  assert.ok(fs.readFileSync(path.join(d, 'save.json.corrupt'), 'utf8').includes('"tru'));
+  const kept = fs.readdirSync(d).filter(n => /^save\.json\.corrupt-\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d$/.test(n));
+  assert.equal(kept.length, 1); assert.ok(fs.readFileSync(path.join(d, kept[0]), 'utf8').includes('"tru')); assert.equal(s2.kept, path.join(d, kept[0]));
   assert.equal(SaveStore.parse(fs.readFileSync(path.join(d, 'save.json'), 'utf8'))['ht-save'], 'good');
 });
 

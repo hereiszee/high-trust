@@ -57,7 +57,7 @@ if(!D)return;
 /* ---------- desktop shell only ---------- */
 document.documentElement.classList.add('ht-desktop');if(D.deck)document.documentElement.classList.add('ht-deck');
 /* Steam Deck, first run (no saved Graphics choice): Auto starts a rung lower (Medium at 85% resolution) and climbs if frames allow */
-if(D.deck){try{const c=JSON.parse(D.storage.getItem('ht-cfg')||'{}');const R=root.__ht&&root.__ht.render;
+if(D.deck){try{const c=Object.assign(JSON.parse(D.storage.getItem('ht-cfg')||'{}'),JSON.parse((D.deviceStorage||D.storage).getItem('ht-cfg-device')||'{}'));const R=root.__ht&&root.__ht.render;
   if((!c.gfx||c.gfx==='auto')&&R&&R.auto&&R.apply){R.auto.i=Math.max(R.auto.i,2);R.apply('auto')}}catch(e){}}
 const HUD=root.__ht&&root.__ht.HUD;
 if(HUD){

@@ -60,7 +60,7 @@ Tick these on each machine you have. Write down the machine (CPU/GPU, OS, displa
 **Mouse and keyboard (3 min)**
 - [ ] Click to lock the cursor. Look speed feels right at the default, and Invert look works.
 - [ ] Esc opens pause and a second Esc resumes. Alt-tab or Cmd-Tab away pauses the game, and coming back doesn't spin the camera.
-- [ ] Settings → Key bindings: rebind Reload to T and Fire to Mouse 4 (if your mouse has it). Both work in game, and the prompts show the new keys.
+- [ ] Pause → Controls & keys: rebind Reload to T and Fire to Mouse 4 (if your mouse has it). Both work in game, and the prompts show the new keys.
   Then Reset to defaults.
 
 **Controller (5 min).** Use whatever you have: Xbox, PlayStation, the Deck itself.

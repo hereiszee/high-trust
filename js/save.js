@@ -406,13 +406,26 @@ function perk(s,id,on){s=S(s);if(on!==undefined){on=!!on;if(!!s.perks[id]!==on){
 function memStore(){const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),_m:m}}
 let store=(()=>{/* desktop shell (desktop/preload.js): a file in the user's profile folder instead of localStorage */if(root.HTDesktop&&root.HTDesktop.storage)return root.HTDesktop.storage;
   try{if(root.localStorage){const k='__ht_probe';root.localStorage.setItem(k,'1');root.localStorage.removeItem(k);return root.localStorage}}catch(e){}return memStore()})();
+try{if(store.onError)store.onError(()=>{Save.failing=true;emit('savefail',{urgent:false})})}catch(e){}/* the desktop file write failed later (SAV-10) */
 const sGet=k=>{try{return store.getItem(k)}catch(e){return null}};
 const sSet=(k,v)=>{try{store.setItem(k,v);return true}catch(e){return false}};
 const sDel=k=>{try{store.removeItem(k)}catch(e){}};
 
 const listeners={};
+/* two tabs (SAV-11): the 'storage' event fires in every OTHER tab when one writes. Note it and stop writing; the game asks the player to reload. */
+try{if(root.addEventListener&&root.localStorage)root.addEventListener('storage',e=>{try{if(e.key!==SAVE_KEY||e.newValue==null||store!==root.localStorage||!data)return;
+  const r=parseRaw(e.newValue);if(r.state!=='ok'||(r.s.t||0)<=lastWrite)return;conflict={t:r.s.t||Date.now()};emit('conflict',conflict)}catch(_){}})}catch(e){}
 function emit(key,val,old){for(const k of[key,'*'])for(const f of(listeners[k]||[]).slice()){try{f(val,old,key)}catch(e){console.error(e)}}}
-let data=null,boundProg=null,timer=null,lastLoad={status:'fresh'};
+let data=null,boundProg=null,timer=null,lastLoad={status:'fresh'},conflict=null,lastWrite=0;
+/* a save this version can't read (damaged, or written by a newer version) is never overwritten: it is kept under a dated key
+   (and, in the desktop shell, as a dated file next to the save) and lastLoad says where. The 3 newest are kept. (SAV-07) */
+const KEEP_PREFIX='ht-save-unread-';
+function stamp(t){const d=new Date(t||Date.now()),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+'-'+z(d.getMinutes())+'-'+z(d.getSeconds())}
+function keepAside(raw,why){const key=KEEP_PREFIX+stamp();sSet(key,raw);let file=null;
+  try{const D=root.HTDesktop;if(D&&D.keepFile)file=D.keepFile('unreadable-save-'+stamp()+'.json',raw)||null}catch(e){}
+  try{const ks=[];if(store.key)for(let i=0;;i++){const k=store.key(i);if(k==null)break;if(k.startsWith(KEEP_PREFIX))ks.push(k)}else if(store._m)for(const k of store._m.keys())if(k.startsWith(KEEP_PREFIX))ks.push(k);
+    ks.sort();while(ks.length>3)sDel(ks.shift())}catch(e){}
+  return{key,file,why}}
 
 function parseRaw(raw){
   if(raw==null||raw==='')return{state:'empty'};
@@ -441,32 +454,51 @@ const Save={
   memoryStorage:memStore,
   load(){
     const r=parseRaw(sGet(SAVE_KEY));let s=null;
+    conflict=null;
     if(r.state==='ok'){s=r.s;lastLoad={status:r.migrated?'migrated':'ok',from:r.s.v||0}}
-    else if(r.state==='empty'){s=null;lastLoad={status:'fresh'}}
-    else{
-      if(r.state==='bad'){sSet(BAD_KEY,sGet(SAVE_KEY)||'')}else sSet('ht-save-future',sGet(SAVE_KEY)||'');
+    else if(r.state==='empty'){/* an empty or "null" save with a good backup that has progress: use the backup (SAV-09) */
       const b=parseRaw(sGet(BAK_KEY));
-      if(b.state==='ok'){s=b.s;lastLoad={status:'recovered',why:r.state==='bad'?r.err:'newer version'}}
-      else{s=null;lastLoad={status:'reset',why:r.state==='bad'?r.err:'newer version'}}}
+      if(b.state==='ok'&&Save.hasProgress(b.s)){s=b.s;lastLoad={status:'recovered',why:'empty save',bakT:b.s.t||0}}else{s=null;lastLoad={status:'fresh'}}}
+    else{
+      const raw=sGet(SAVE_KEY)||'',why=r.state==='bad'?r.err:'newer version',kept=keepAside(raw,why);
+      sSet(r.state==='bad'?BAD_KEY:'ht-save-future',raw);
+      const b=parseRaw(sGet(BAK_KEY));
+      if(b.state==='ok'){s=b.s;lastLoad={status:'recovered',why,kept,bakT:b.s.t||0,future:r.state==='future'}}
+      else{s=null;lastLoad={status:'reset',why,kept,future:r.state==='future'}}}
     try{data=sanitize(s?migrate(s):SAVE_DEFAULT())}catch(e){data=SAVE_DEFAULT();lastLoad={status:'reset',why:String(e&&e.message||e)}}
     attachProg();
-    if(lastLoad.status!=='ok'&&lastLoad.status!=='fresh')Save.saveNow();
+    /* migrated / recovered saves are rewritten at once; a reset one is not (the unreadable save stays in place until the player saves) */
+    if(lastLoad.status==='migrated'||lastLoad.status==='recovered')Save.saveNow();
     emit('load',data);return data},
   /* debounced write; call freely after every change */
   save(){if(!data)return;clearTimeout(timer);timer=setTimeout(()=>Save.saveNow(),250)},
-  saveNow(){if(!data)return false;clearTimeout(timer);timer=null;
+  /* urgent=true (payouts, job results, purchases): also make the desktop shell write the file now instead of after its debounce (SAV-08).
+     'saved' fires only when the write worked; otherwise 'savefail' (SAV-10). While another tab has written newer progress nothing is
+     written ('conflict', SAV-11). */
+  saveNow(urgent){if(!data)return false;clearTimeout(timer);timer=null;
     if(boundProg)data.prog=boundProg;
+    if(conflict){emit('conflict',conflict);return false}
     data.t=Date.now();
     const prev=sGet(SAVE_KEY);if(prev&&parseRaw(prev).state==='ok')sSet(BAK_KEY,prev);
-    const out=committed();
-    const ok=sSet(SAVE_KEY,JSON.stringify(out));emit('saved',out);return ok},
+    const out=committed(),txt=JSON.stringify(out);
+    let ok=sSet(SAVE_KEY,txt);
+    if(ok&&urgent===true&&store.flush){try{ok=store.flush()!==false}catch(e){ok=false}}
+    if(ok){lastWrite=data.t;Save.failing=false;emit('saved',out)}else{Save.failing=true;emit('savefail',{urgent:urgent===true})}
+    return ok},
+  failing:false,
+  /* another tab wrote the save after this one loaded it: {t} or null */
+  get conflict(){return conflict},
   flush(){if(timer)Save.saveNow()},
   /* a new game: the old save moves to the 'previous' slot (Save.restorePrevious brings it back) instead of being deleted */
   reset(){clearTimeout(timer);timer=null;jobHold=null;
     if(data){if(boundProg)data.prog=boundProg;if(Save.hasProgress(data))sSet(PREV_KEY,JSON.stringify(data))}
     sDel(SAVE_KEY);sDel(BAK_KEY);data=SAVE_DEFAULT();attachProg();Save.saveNow();
     for(const k in data)emit(k,data[k]);emit('load',data);return data},
-  hasProgress(d){d=d||data;return!!(d&&d.prog&&((d.prog.missionsRun||0)>0||(d.cash||0)>0||(d.stats&&d.stats.spent||0)>0))},
+  /* anything a player would miss: runs, cash, spending, a finished job, an egg, trust off its default (SAV-06) */
+  hasProgress(d){d=d||data;if(!d||!d.prog)return false;const p=d.prog;
+    return!!((p.missionsRun||0)>0||(d.cash||0)>0||(d.stats&&d.stats.spent||0)>0||(p.cuffed||0)>0||
+      (isObj(d.jobs)&&Object.keys(d.jobs).some(k=>d.jobs[k]&&d.jobs[k].done))||(d.base&&isObj(d.base.eggs)&&Object.keys(d.base.eggs).length>0)||
+      (Array.isArray(p.done)&&p.done.some(Boolean)))},
   /* the save a New game replaced: {t,cash,jobs} or null */
   previous(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return null;const p=r.s.prog||{},j=r.s.jobs&&typeof r.s.jobs==='object'?r.s.jobs:{};
     return{t:r.s.t||0,cash:r.s.cash||0,jobs:Object.keys(j).filter(k=>j[k]&&j[k].done).length,runs:p.missionsRun||0}},
