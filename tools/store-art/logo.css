@@ -1,0 +1,18 @@
+/* High Trust logo treatment for store art: the title screen's .ht-logo (css/hud.css) — roof mark in sun yellow,
+   HIGH in white, TRUST in sun yellow, Bowlby One (SIL OFL 1.1, assets/fonts/OFL-bowlbyone.txt) — scaled up for capsules,
+   with a heavier drop shadow and an ink outline so it holds against bright key art at thumbnail size. */
+@font-face{font-family:"Bowlby One";src:url(../../assets/fonts/bowlby-one-400.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:800;src:url(../../assets/fonts/barlow-condensed-800.woff2) format("woff2")}
+:root{--ink:#16181c;--sun:#ffc94a;--paper:#f6f1e3}
+html,body{margin:0;padding:0;background:transparent}
+.logo{position:absolute;display:inline-flex;flex-direction:column;align-items:flex-start;--u:100px;filter:drop-shadow(0 calc(var(--u)*.06) 0 rgba(10,12,16,.55)) drop-shadow(0 calc(var(--u)*.1) calc(var(--u)*.22) rgba(10,12,16,.55))}
+.logo.center{align-items:center}
+.logo .roof{display:block;width:calc(var(--u)*1.62);height:calc(var(--u)*.47);margin:0 0 calc(var(--u)*.06) calc(var(--u)*.03);color:var(--sun)}
+.logo.center .roof{margin-left:0}
+.logo .roof svg{width:100%;height:100%;display:block;overflow:visible}
+.logo .w{display:block;font:400 var(--u)/.84 "Bowlby One",Impact,sans-serif;color:#fff;text-transform:uppercase;letter-spacing:-.005em;
+  text-shadow:calc(var(--u)*0.0500) calc(var(--u)*0.0000) 0 var(--ink),calc(var(--u)*0.0483) calc(var(--u)*0.0129) 0 var(--ink),calc(var(--u)*0.0433) calc(var(--u)*0.0250) 0 var(--ink),calc(var(--u)*0.0354) calc(var(--u)*0.0354) 0 var(--ink),calc(var(--u)*0.0250) calc(var(--u)*0.0433) 0 var(--ink),calc(var(--u)*0.0129) calc(var(--u)*0.0483) 0 var(--ink),calc(var(--u)*0.0000) calc(var(--u)*0.0500) 0 var(--ink),calc(var(--u)*-0.0129) calc(var(--u)*0.0483) 0 var(--ink),calc(var(--u)*-0.0250) calc(var(--u)*0.0433) 0 var(--ink),calc(var(--u)*-0.0354) calc(var(--u)*0.0354) 0 var(--ink),calc(var(--u)*-0.0433) calc(var(--u)*0.0250) 0 var(--ink),calc(var(--u)*-0.0483) calc(var(--u)*0.0129) 0 var(--ink),calc(var(--u)*-0.0500) calc(var(--u)*0.0000) 0 var(--ink),calc(var(--u)*-0.0483) calc(var(--u)*-0.0129) 0 var(--ink),calc(var(--u)*-0.0433) calc(var(--u)*-0.0250) 0 var(--ink),calc(var(--u)*-0.0354) calc(var(--u)*-0.0354) 0 var(--ink),calc(var(--u)*-0.0250) calc(var(--u)*-0.0433) 0 var(--ink),calc(var(--u)*-0.0129) calc(var(--u)*-0.0483) 0 var(--ink),calc(var(--u)*-0.0000) calc(var(--u)*-0.0500) 0 var(--ink),calc(var(--u)*0.0129) calc(var(--u)*-0.0483) 0 var(--ink),calc(var(--u)*0.0250) calc(var(--u)*-0.0433) 0 var(--ink),calc(var(--u)*0.0354) calc(var(--u)*-0.0354) 0 var(--ink),calc(var(--u)*0.0433) calc(var(--u)*-0.0250) 0 var(--ink),calc(var(--u)*0.0483) calc(var(--u)*-0.0129) 0 var(--ink)}
+.logo .w.b{color:var(--sun)}
+.logo.noline .w{text-shadow:none}
+.logo.row{flex-direction:row;align-items:flex-end;gap:calc(var(--u)*.28)}
+.logo.row .roofwrap{display:flex;flex-direction:column}

@@ -1,0 +1,149 @@
+=== dev/jobs/overwatch.js --only=03-garden-scope --quiet 18:28:34
+END won @168.8s stats {"beaned":6,"cuffed":7,"lethal":0,"spooked":0,"civ":1,"shots":13,"hits":7,"kevin":1,"flats":2}
+no console errors
+=== end 18:29:34
+=== dev/jobs/overwatch.js --only=05-court-scope --quiet --human 18:29:34
+     shot 05-court-scope
+=== end 18:30:52
+=== dev/jobs/crossing.js --only=03-main-crossing --quiet 18:30:52
+     shot 03-main-crossing {"calls":512,"kidMeshes":24,"tris":1181459,"geo":635,"tex":182,"progs":118}
+=== end 18:32:19
+=== dev/jobs/arrest.js --shots --only=08-down,09-chase,11-win 18:32:19
+04-notebook true
+  shot 08-down
+  shot 09-chase
+  shot 11-win
+@6.3   [feed] Rosa gave you a notebook · the collectors are listed on the left
+@8.8   [feed] Notebook · a clue · Honey Lady: the fifty guy wore a ball cap.
+@11.5   [feed] Notebook · a clue · Peach Lady: clipboard, never writes on it.
+@14.5   rosa: Your notebook says it's the lime vest. Watch him to be sure, or walk up and point him out.
+@21.2   [feed] Notebook · Lime vest · On his phone when the duffel guy waved
+@28.8   [feed] Notebook · Lime vest · Pocketed the bills, not the tin
+@70.9   [feed] One beanbag · one shot
+@83.6   [feed] One shot, nobody hurt · +6 Riverside trust
+{"state":"won","stage":"aside","panicPeak":0,"oneShot":true,"wrong":0,"pay":["Bake sale fund:850","Second chances ×2:120","Nobody pulled a hamstring:150","Quick work:100","One shot:300","Nobody noticed · panic 0:150","Proof, not a hunch:100","Neighbors chipped in:42"]}
+no console errors
+=== end 18:38:54
+=== dev/jobs/finale.js --from festival --shots 18:38:54
+ok   finale registered and unlocked with a clean history {"lock":null,"j":true}
+ok   cast streamed in before any scene (true)
+     shot 01-festival-wave
+     shot 17b-festival-wave-wide
+     shot 02-festival-credits
+     shot 19-result
+     shot 20-postgame
+ok   run won (won)
+ok   no console errors
+=== end 18:52:21
+=== dev/jobs/porch.js --shots --quiet 18:52:21
+  shot 00-brief
+  shot 01-start
+  shot 03-sit
+  shot 04-truck
+  shot 05-pirate
+  shot 06-word
+  shot 16-result
+no console errors
+=== end 18:55:00
+=== dev/jobs/taxi.js --shots 18:55:00
+  shot 01-start
+  shot 02-school-pickup
+  shot 03-park
+  shot 04-hank
+  shot 03b-forgot-something
+  shot 05-ortho
+  shot 06-the-call
+  shot 07-pickup-coming
+  shot 07b-blocking
+  shot 08-blocked
+  shot 09-choice
+  shot 10-back-to-school
+  shot 11-bikes-back
+  shot 12-home
+  shot 13-result
+no console errors
+=== end 18:58:57
+=== dev/base-check.js range,tank,jet --shots 18:58:57
+  FAIL with the child gone it fires again
+  shot tank-sight.jpg
+  ok   drove through the cones and hay bales (13 knocked over)
+  ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
+  shot tank-flattened.jpg
+  ok   jobs refuse the tank: "You can't bring that to the bake sale."
+  ok   E gets out
+  ok   walked to the jet on the apron
+  ok   the jet is parked by Hangar 2
+  shot jet-apron.jpg
+  ok   the jet can be boarded from any side within 3.5 m of the fuselage (nose:yes left:yes tail:yes right:yes left-front:yes)
+  shot jet-board-prompt.jpg
+  ok   E climbs into the jet
+  ok   sitting in the jet is not a flight (0)
+  ok   ten taps of W set full throttle, nothing held (100%)
+  shot jet-takeoff.jpg
+  ok   took off (101 mph at x 167)
+  ok   wheels-up counts the flight on disk (0 → 1) and meets ACH_CLEARED_FOR_TAKEOFF
+  ok   G raises the gear
+  shot jet-cockpit.jpg
+  ok   C toggles the look back on and off (no held keys)
+  ok   the throttle holds with no key down (100%)
+  shot jet-inbound.jpg
+  shot jet-family.jpg
+  ok   buzzed the house: the family came out (3 waving)
+  ok   sonic boom over the neighborhood
+  shot jet-bridge.jpg
+  ok   flew under the High Bridge (still flying)
+  ok   gear down for landing (came down by itself on the approach)
+  ok   landed on runway 27 (111,240)
+  ok   E gets out on the ground
+  ok   E twice ejects (one tap arms it): parachute at 115 m
+  shot jet-parachute.jpg
+  ok   under the canopy the screen says E cuts to the landing (chute)
+  ok   landed under the parachute at 128,190 (back on the post)
+  ok   E cut to the landing: by his van (0.0 m, facing it)
+  shot jet-chute-landing.jpg
+  ok   the jet is back on the apron (it was a rental)
+no console errors
+1 FAILED · 1442 s
+=== end 19:23:12
+=== dev/dragstrip-check.js travel,tune,race --shots 19:23:12
+  ok   the strip pin opens for fast travel after the visit
+  ok   out of the minivan in the paddock
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   your own car first, then every car the strip lends, stock (HT.Garage six + the mower): Your Family Minivan, Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+  shot picker.jpg
+  ok   a sedan loaner at the line
+  shot tree-staged.jpg
+  ok   sedan: slip RT 0.316 60ft 2.166 330 5.99 ET 9.176 @ 77.1 mph (1/4 est 14.31)
+  shot timeslip.jpg
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a minivan loaner at the line
+  ok   minivan: slip RT 0.342 60ft 2.369 330 6.516 ET 9.956 @ 71.4 mph (1/4 est 15.53)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a workvan loaner at the line
+  ok   workvan: slip RT 0.354 60ft 2.479 330 7.121 ET 11.029 @ 62.7 mph (1/4 est 17.21)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   order: sedan 9.176 < minivan 9.956 < work van 11.029
+  ok   the garage book has sedan, minivan, workvan
+  ok   E at the race office window opens it
+  shot race-office.jpg
+  ok   the ladder: Dutch Hendricks, Marisol Vega, Walt Okafor, Tomás Reyes, Priya Raman, June Abernathy, "Rook" Delacroix
+  shot ladder.jpg
+  ok   the self-bet offer
+  shot self-bet.jpg
+  ok   racing Dutch Hendricks, lane 0
+  shot race-staged.jpg
+  ok   won: {"won":true,"how":"finish","margin":2.061,"red":[false,false]}
+  shot race-board.jpg
+  shot race-result.jpg
+  ok   cash moved by the settlement exactly: 71 = 71 [["Rental",-20],["Purse",40],["First win over Dutch Hendricks",50],["Your bet on yourself · 1.05x",1]]
+  ok   Dutch marked beaten (first-win bonus paid once)
+  ok   lost: {"won":false,"how":"finish","margin":1.806,"red":[false,false]}
+  ok   a loss costs the rental, the entry and the bet: -55
+  ok   repeat win capped: {"lines":[["Rental",-20],["Purse (repeat win × 2 today)",7],["Daily cap reached · $400 a day from the strip",0]],"net":-13} day {"won":400,"betWon":1,"betLost":10,"beat":{"dutch":2}}
+== done in 467 s; console errors: 0
+=== end 19:31:17
