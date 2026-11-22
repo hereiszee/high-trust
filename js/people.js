@@ -390,6 +390,7 @@ function fill(d){const boxed=!!d.boxed,rb0=boxed?d._rb:d.rb,key=rb0.key,t=tpl[ke
 function boxIn(d){const rb=d.rb;let b=null;try{b=P.boxFallback&&P.boxFallback(rb.role,rb.opts&&rb.opts.look,rb.key)}catch(e){b=null}if(!b||!b.root)return false;
   if(!fbLogged){fbLogged=true;console.warn('people: character models still unavailable after '+P.PENDING_CEILING+' s of retries; showing stand-ins until they arrive ('+rb.key+')')}
   const root=d.root,parts=b.root.children.slice();for(const c of parts)root.add(c);d._boxParts=parts;
+  if(P.PROTECTED[rb.key]){d.protected=true;for(const c of parts)c.traverse(o=>{o.userData.protected=true})}/* protection follows the character into any stand-in */
   if(d.gunHold)for(const c of d.gunHold.children.slice())b.gunHold.add(c);
   if(d.body){for(const c of d.body.children.slice())if(c!==d.gunHold&&!(c.userData&&c.userData.pendingHit))root.add(c);root.remove(d.body)}
   carryHitData(d.meshes,b.meshes);d.meshes.length=0;d.meshes.push(...b.meshes);
@@ -403,7 +404,8 @@ function tick(){if(!pending.length)return;const t=now();
     if(srcClips&&!tpl[key]&&gltf(key))try{prep(key)}catch(e){}
     if(srcClips&&tpl[key]){try{fill(d)}catch(e){console.warn('people: swap failed for',key,e)}continue}
     if(onStage(d)){if(!srcClips)load('anims');load(key)}
-    if(!d.boxed&&d.root.parent&&t-rb.t0>P.PENDING_CEILING*1000)boxIn(d)}}
+    /* owner rule (W-14): a child or the family is never a box. Past the ceiling they stay hidden and keep retrying, however long it takes */
+    if(!d.boxed&&d.root.parent&&t-rb.t0>P.PENDING_CEILING*1000&&!P.PROTECTED[key]&&!(rb.opts&&(rb.opts.protected||rb.opts.kid)))boxIn(d)}}
 P.tick=tick;
 
 function act(rb,name,part){const c=clips(name,rb.hip);if(!c)return null;let a=rb.acts[name];if(!a){a=rb.acts[name]={lo:null,sp:null,ar:null,c}}
@@ -680,11 +682,13 @@ P.quality=q=>{qualityFn=()=>q};
 /* owner rule: children and the family can never be shot, hit or knocked about by anything. Every hit test asks this one question.
    x: a character (People/box dude), an entity with .dude, or a hitbox mesh (walks up to the character). Flags: .protected / .kid / .family */
 P.PROTECTED={nb_kid:1,nb_teen:1,son:1,daughter:1,wife:1};
-P.isProtected=function(x){for(let i=0;x&&i<12;i++){if(x.protected||x.kid||x.family)return true;if(x.rb&&P.PROTECTED[x.rb.key])return true;if(x.isObject3D&&typeof x.name==='string'&&x.name.slice(0,3)==='rb_'&&P.PROTECTED[x.name.slice(3)])return true;
+P.isProtected=function(x){for(let i=0;x&&i<12;i++){if(x.protected||x.kid||x.family)return true;if(x.rb&&P.PROTECTED[x.rb.key])return true;if(x._rb&&P.PROTECTED[x._rb.key])return true;if(x.isObject3D&&typeof x.name==='string'&&x.name.slice(0,3)==='rb_'&&P.PROTECTED[x.name.slice(3)])return true;
     if(x.dude&&x.dude!==x){x=x.dude;continue}const u=x.userData;if(u&&(u.protected||u.kid))return true;if(u&&u.ent&&u.ent!==x){x=u.ent;continue}if(u&&u.dude){x=u.dude;continue}x=x.parent||null}return false};
 /* the nearest protected character standing in the world within r m of (x,z): {d,dist} or null (the 25 m no-guns bubble) */
 let _pv=null;P.protectedNear=function(x,z,r){if(!_pv&&T&&T.Vector3)_pv=new T.Vector3();let best=null;
-  for(const d of P.live){if(!d.root.parent||!d.root.visible||d.rb.dead||!P.isProtected(d))continue;let o=d.root;for(;o.parent;o=o.parent)if(!o.visible)break;if(o.parent)continue;
+  /* live, still loading (hidden, but standing there) and stand-ins alike: protection follows the character, not its model */
+  const vis=o=>o._htPend?o._htVis:o.visible;
+  for(const d of P.live.concat(pending)){const rb=d.rb||d._rb;if(!d.root.parent||!vis(d.root)||rb&&rb.dead||!P.isProtected(d))continue;let o=d.root;for(;o.parent;o=o.parent)if(!vis(o))break;if(o.parent)continue;
     d.root.getWorldPosition(_pv);const k=Math.hypot(_pv.x-x,_pv.z-z);if(k<r&&(!best||k<best.dist))best={d,dist:k,x:_pv.x,z:_pv.z}}return best};
 HT.People=P;
 })();
