@@ -18,9 +18,10 @@ const IN=()=>HT.Input;
 const DZ=.2,LOOK=1500;/* px per second of mouse-equivalent motion at full deflection (scaled again by Look speed) */
 const B={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,VIEW:8,MENU:9,L3:10,R3:11,UP:12,DOWN:13,LEFT:14,RIGHT:15};
 const S={pad:null,kind:'xbox',prev:[],last:'kb',held:{},sprint:false,lt:false,rt:false,stickOn:false,rep:{},t:0,focus:null,scrollT:0};
-const MODALS=[];
+const MODALS=[],USE_AT=[];
 const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind},
   /* a picker that owns the pad while it is up: HT.Pad.modal({move(dx,dy), ok(), back(), x(), y()}) -> call the result to remove it */
+  useAt(f){USE_AT.push(f)},
   modal(h){MODALS.push(h);return()=>{const i=MODALS.indexOf(h);if(i>=0)MODALS.splice(i,1)}},get modalOpen(){return MODALS.length>0},
   /* the label of a pad button by name ('A', 'B', 'LT', 'D↑'...) in the pad's own glyphs */
   btn(n){const g=GL[S.kind]||GL.xbox;return String(n).split('+').map(x=>g[x]||x).join('+')}};
@@ -51,7 +52,8 @@ function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PA
   if(drv&&(k==='MOUSE 2'||k==='RMB'||k==='RIGHT CLICK'))b='D↑';/* Aim in a car: binoculars */
   if(drv&&k==='V'&&IN()&&vehicleKind(IN())==='tank')b='LT';/* the tank: LT is the gunner's sight */
   if(decoOn()){if(k==='Q')b='D←';else if(k==='TAB')b='RB'}/* decorating: RB / D-pad → next, D-pad ← previous */
-  const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
+  if(ctx&&ctx.closest&&ctx.closest('.ht-map')){const o={CLICK:'A',WHEEL:'RT/LT',TAB:'LB/RB',ENTER:'A',M:'B',DRAG:'LS'}[k];if(o)b=o}/* the full map's own pad controls */
+  const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:b.split(/([+\/ ])/).map(x=>g[x]||x).join('')}}
 let swapping=false;
 /* ---------- key names inside sentences ("hold E at the ladder", "Press G to call the box") ----------
    The one helper every prompt goes through while a pad is in use: HUD text nodes are rewritten in place (and put back for the keyboard).
@@ -148,6 +150,8 @@ function vehicleKind(I){if(!I.driving)return null;const g=window.__ht,e=g&&g.CV;
 function choiceStrip(){const c=document.querySelector('.ht-ch');return c&&!c.classList.contains('off')&&!c.hidden&&visible(c)?c:null}
 function inMenu(){const I=IN();if(!I)return true;if(!I.running||I.paused)return true;if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return true;
   return mapOpen()}
+/* modules with an E action that has no HUD prompt (the range rack) say so here, so A uses rather than jumps */
+function useHere(){for(const f of USE_AT){try{if(f())return true}catch(_){}}return false}
 function decoOn(){const g=window.__ht;return !!(g&&g.deco&&g.deco.on)}
 function promptUp(){const p=document.querySelector('.ht-pr');return !!p&&!p.classList.contains('off')}
 let lastT=performance.now(),polling=false;
@@ -156,7 +160,7 @@ function startPoll(){if(polling)return;polling=true;lastT=performance.now();requ
 function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
   const pads=navigator.getGamepads?[...navigator.getGamepads()].filter(Boolean):[];
   let g=pads.find(p=>p.mapping==='standard'&&p.connected)||pads.find(p=>p.connected);if(!g){if(S.pad!=null){S.pad=null;releaseAll();setLast('kb')}polling=false;return}
-  if(S.pad!==g.index){S.pad=g.index;S.kind=/054c|sony|dualsense|dualshock|playstation/i.test(g.id)?'ps':'xbox';S.prev=[]}
+  if(S.pad!==g.index){S.pad=g.index;S.detected=/054c|sony|dualsense|dualshock|playstation/i.test(g.id)?'ps':'xbox';S.kind=GLYPHS==='auto'?S.detected:GLYPHS;S.prev=[]}
   const btn=i=>pressed(g,i),was=i=>!!S.prev[i],down=i=>btn(i)&&!was(i),up=i=>!btn(i)&&was(i);
   const [lx,ly]=dz(g.axes[0]||0,g.axes[1]||0),[rx,ry]=dz(g.axes[2]||0,g.axes[3]||0);
   const lt=val(g,B.LT),rt=val(g,B.RT);
@@ -229,7 +233,7 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
          RB / D-pad → next item, D-pad ← previous, LB+→ puts away, View moves, B done */
       const home=I.mode==='home',deco=home&&decoOn();
       if(!ch){
-        if(dn(B.A)){S.aKey=car?' ':(deco||promptUp())?'e':' ';press(S.aKey)}
+        if(dn(B.A)){S.aKey=car?' ':(deco||promptUp()||useHere())?'e':' ';press(S.aKey)}
         if(veh==='car'){/* in a car D-pad ↑ is Aim: the binoculars (a flashlight is no use behind the wheel) */
           if(dn(B.UP)){S.carAim=true;aimIn(true)}}
         else if(dn(B.UP))tap('f');
@@ -248,6 +252,11 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
     if(down(B.MENU)){releaseAll();tap('escape')}
   }
   S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5))}
+/* Pause → Controls → Button prompts: Auto (from the pad's id) / Xbox / PlayStation (Steam Input shows every pad as Xbox) */
+let GLYPHS='auto';try{const st=window.HTDesktop?HTDesktop.storage:localStorage;const c=JSON.parse(st.getItem('ht-cfg')||'{}');if(c.padGlyphs==='xbox'||c.padGlyphs==='ps')GLYPHS=c.padGlyphs}catch(_){}
+if(GLYPHS!=='auto')S.kind=GLYPHS;
+try{const H=window.__ht&&window.__ht.HUD;if(H){H.settings={padGlyphs:GLYPHS};H.on('setting',(k,v)=>{if(k!=='padGlyphs')return;GLYPHS=v==='xbox'||v==='ps'?v:'auto';S.kind=GLYPHS==='auto'?(S.detected||'xbox'):GLYPHS;
+  document.querySelectorAll('.ht-kc.pad-g').forEach(e=>{delete e.dataset.padG});swapGlyphs()})}}catch(_){}
 try{if([...navigator.getGamepads()].some(Boolean))startPoll()}catch(_){}
 /* Steam Deck (desktop shell): controller-first from the first frame, before any input */
 if(window.HTDesktop&&HTDesktop.deck){setLast('pad');startPoll()}

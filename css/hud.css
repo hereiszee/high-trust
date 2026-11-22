@@ -35,7 +35,7 @@
   --ht-display:"Bowlby One","Arial Black",Impact,sans-serif;
   --ht-ui:"Barlow Condensed","Roboto Condensed","Arial Narrow","Liberation Sans Narrow","Nimbus Sans Narrow","Helvetica Neue",system-ui,sans-serif;
   --ht-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --t-2xs:10px;--t-xs:11px;--t-s:13px;--t-m:15px;--t-l:18px;--t-xl:24px;--t-2xl:34px;--t-3xl:48px;--t-hero:clamp(56px,10vw,120px);
+  --t-2xs:11px;--t-xs:11px;--t-s:13px;--t-m:15px;--t-l:18px;--t-xl:24px;--t-2xl:34px;--t-3xl:48px;--t-hero:clamp(56px,10vw,120px);
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
   --sa-t:env(safe-area-inset-top,0px);--sa-r:env(safe-area-inset-right,0px);--sa-b:env(safe-area-inset-bottom,0px);--sa-l:env(safe-area-inset-left,0px);
   --edge:clamp(16px,2.4vw,32px);
@@ -353,6 +353,7 @@
 .ht-map .hdr{position:absolute;left:calc(var(--edge) + var(--sa-l));top:calc(var(--edge) + var(--sa-t));}
 .ht-map .hdr .k{font:700 var(--t-xs)/1 var(--ht-ui);letter-spacing:.24em;color:var(--sun);text-transform:uppercase}
 .ht-map .hdr h2{margin:6px 0 0;font:400 var(--t-2xl)/1 var(--ht-display);text-transform:uppercase;text-shadow:var(--shadow)}
+@media (max-height:780px){.ht-map .hdr h2{font-size:var(--t-l)}}/* 720p: the title stays above the region labels (IN-22) */
 .ht-map .leg{position:absolute;right:calc(var(--edge) + var(--sa-r));top:calc(var(--edge) + var(--sa-t));display:flex;flex-direction:column;gap:7px;padding:14px 16px;border-radius:var(--r2);background:rgba(12,15,19,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .ht-map .leg div{display:flex;align-items:center;gap:9px;font:600 var(--t-s)/1 var(--ht-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
 .ht-map .leg svg{width:18px;height:18px;flex:none}
@@ -538,6 +539,11 @@
 .ht-root.compact .ht-fi{font-size:var(--t-xs);padding:4px 8px 4px 6px;gap:6px}
 .ht-root.compact .ht-fi svg{width:13px;height:13px}
 .ht-root.compact .ht-fi:nth-child(n+4){display:none}
+/* long feed lines wrap inside the column instead of running left under the centre (IN-17) */
+.ht-fi{white-space:normal;max-width:100%;text-align:right}
+.ht-root.compact .ht-feed{width:min(300px,30vw)}
+/* in the jet the centre top holds the heading and the step prompt: the feed sits bottom right, above the controls strip */
+body.ht-jet .ht-feed{top:auto;bottom:calc(var(--sa-b) + 96px)}
 .ht-root.compact .ht-crew{gap:5px}
 .ht-root.compact .ht-cc{min-width:0;gap:7px}
 .ht-root.compact .ht-cc .hb{width:64px}

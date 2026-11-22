@@ -496,7 +496,7 @@ function autoGear(a){if(!F.air)return;const man=a.simT-(F.gManT==null?-99:F.gMan
   else if(!F.gear&&r&&F.lastAlt<70&&F.spd<64&&F.vs<.5&&Math.abs(F.pos.z-r.z)<140&&F.pos.x>r.x0-1500&&F.pos.x<r.x1+1500){F.gear=1;tone(300,220,.3,.08);a.feed('Gear down (auto): line up with the runway','info')}}
 /* the strip and prompts, every frame */
 function helpTick(a,dt){const on=F.on&&a.CV&&a.CV.type==='jet';const h=(on||F.ride||HELP)?helpEl():null;if(!h)return;
-  h.strip.style.display=on?'flex':'none';
+  h.strip.style.display=on?'flex':'none';if(document.body.classList.contains('ht-jet')!==!!on)document.body.classList.toggle('ht-jet',!!on);/* css/hud.css moves the feed clear of the step prompt and heading */
   if(on){chipSet('thr','Throttle '+Math.round(F.thr*100)+'%',F.thr>.05);chipSet('gear',F.gear?'Gear down':'Gear up',!F.gear,F.air&&F.gear&&F.lastAlt>70||F.air&&!F.gear&&F.lastAlt<25&&F.vs<-1);
     chipSet('ab',F.abOn?'Burner on':'Burner (at 100%)',F.abOn);chipSet('ej',F.ejArm!=null&&a.simT-F.ejArm<3?'Again to eject':'Eject',false,F.ejArm!=null&&a.simT-F.ejArm<3);tutor(a,dt)}
   else if(F.ride&&a.simT<F.ride.until&&!a.CV)tipShow('ride');else tipShow(null);

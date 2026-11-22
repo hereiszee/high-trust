@@ -113,6 +113,8 @@ const SETTINGS=[
     {k:'ads',l:'Aim speed',sub:'Look speed while aiming down sights',min:20,max:100,step:5,fmt:v=>v+'%'},
     {k:'invert',l:'Invert look',type:'bool'},
     {k:'fp',l:'First person',sub:'Or press V any time',type:'bool'}]},
+  {tab:'controls',h:'Controller',items:[
+    {k:'padGlyphs',l:'Button prompts',type:'seg',opts:[['auto','Auto'],['xbox','Xbox'],['ps','PlayStation']],sub:'Auto reads the controller · Steam Input can present a PlayStation pad as an Xbox one'}]},
   {tab:'display',h:'Camera',items:[
     {k:'fov',l:'Field of view',min:60,max:100,step:1,fmt:v=>v+'°'}]},
   {tab:'display',h:'Graphics',items:[
@@ -138,10 +140,10 @@ const KEY_GROUPS=[
   ['Jobs and home',[['Scope zoom (Higher Ground)','Z'],['Hold breath (scoped; tap, tap again to breathe)','Shift'],['Camera: raise (toggle) · shoot · lower','Mouse 2 · Space · Q'],['Decorate (at home)','B'],['Menus: browse · choose · back','Arrows · Enter · Esc']]]];
 const DEFAULT_KEYS=KEY_GROUPS.flatMap(g=>g[1]);
 /* controller layout (js/gamepad.js), shown under Key bindings */
-const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
-  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click)','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
-  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],
-  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder'],
+const PAD_KEYS=[['Move · steer','Left stick'],['Look','Right stick'],['Fire · accelerate','RT'],['Aim · raise the phone, stop sign, binoculars (hold or toggle) · brake','LT'],['Use · talk · jump','A'],['Crouch','B'],['Reload · horn','X'],['Get in / out','Y'],
+  ['Switch gun','D-pad ← → · RB'],['Flashlight · night vision','D-pad ↑ ↓'],['Jog (click; stops when the stick is let go) · hold breath on a scope','L3'],['Camera','R3'],['Map','View'],['Pause','Menu'],
+  ['Job key G (whistle, call, gear)','LB'],['Job keys T · Tab · Z · X','LB + D-pad ↑ · ↓ · ← · →'],['Choices 1-4','LB + A · B · X · Y'],['Replies, the range rack, pickers','D-pad / stick · A pick · B back'],['Binoculars in a car','D-pad ↑'],['Decorate (at home)','B · then A place · X rotate · RB next · B done'],
+  ['Tank','Stick drives · RT fire · LT sight'],['Jet','LS pitch and roll · RT / LT throttle · RB afterburner · X gear · RS rudder · B look back · Y twice eject'],
   ['Map open','Stick pan · RT / LT zoom · LB / RB places · A travel · B close'],['Menus','D-pad / left stick · A select · B back · LB / RB tabs']];
 const TIERS=[[0,'Doors Locked'],[20,'Curtains Twitching'],[40,'Waves From Porches'],[60,'Borrowing Ladders'],[80,'Doors Unlocked']];
 const tierOf=t=>{let r=TIERS[0][1];for(const[v,n]of TIERS)if(t>=v)r=n;return r};

@@ -267,6 +267,7 @@ function menuTake(a){const M=S.menu;if(!M)return;const id=RACK_IDS[M.i];menuClos
 /* E at the rack opens the menu straight from the key (with a gun drawn the game's prompt pipeline can be busy with its own prompts) */
 document.addEventListener('keydown',e=>{if(e.repeat||S.menu||S.card)return;const k=(e.key||'').toLowerCase();if(k!=='e')return;const a=A();if(!a||a.mode!=='hub'||a.CV||!B()||!B().def()||!S.root)return;
   if(document.querySelector('.ht-pause'))return;if(!nearRack(a))return;e.stopImmediatePropagation();menuOpen(a,rackPick(a))},true);
+(function padUse(){if(!(HT.Pad&&HT.Pad.useAt)){if(typeof setTimeout==='function'&&typeof document!=='undefined')setTimeout(padUse,500);return}HT.Pad.useAt(()=>{const a=A();return !!(a&&a.mode==='hub'&&!a.CV&&!S.menu&&!S.card&&S.root&&B()&&B().def()&&nearRack(a))})})();/* pad A at the rack opens it (no HUD prompt there) */
 R.menu=()=>S.menu?{open:true,i:S.menu.i,id:RACK_IDS[S.menu.i]}:{open:false};R.rackIds=()=>RACK_IDS.slice();R.rackPick=()=>rackPick(A());
 /* ================= rentals ================= */
 function rentList(a){const all=Object.keys(a.WEAPONS);let own=[];try{own=a.SV().owned.guns||[]}catch(_){}const not=all.filter(g=>!own.includes(g));return not.length?not:all}
