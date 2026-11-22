@@ -47,12 +47,22 @@ module.exports = {
      beside the exe/.app; also copy them into resources/ (Contents/Resources on macOS) so they travel inside the app and its zip.
      THIRD-PARTY-NOTICES.txt points there; dev/check-build.js checks a built dist has them. */
   afterPack: async ctx => {
-    const fs = require('fs'), path = require('path'), out = ctx.appOutDir;
+    const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process'), out = ctx.appOutDir;
     const app = fs.readdirSync(out).find(f => f.endsWith('.app'));
     const res = app ? path.join(out, app, 'Contents', 'Resources') : path.join(out, 'resources');
+    /* macOS output has no copy of them: take them from the Electron zip electron-builder downloaded (same files on every OS build) */
+    const fromZip = f => {
+      const ver = require('./package.json').devDependencies.electron, want = new RegExp('^electron-v' + ver.replace(/\./g, '\\.') + '-' + ctx.electronPlatformName + '-.*\\.zip$');
+      const roots = [process.env.ELECTRON_CACHE, path.join(os.homedir(), 'Library', 'Caches', 'electron'), path.join(os.homedir(), '.cache', 'electron'), process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'electron', 'Cache')].filter(Boolean);
+      const walk = (d, n) => { let r = []; try { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isFile() && want.test(e.name)) r.push(p); else if (e.isDirectory() && n > 0) r = r.concat(walk(p, n - 1)) } } catch (e) { } return r };
+      for (const z of roots.flatMap(r => walk(r, 2))) { try { return execFileSync('unzip', ['-p', z, f === 'LICENSE.electron.txt' ? 'LICENSE' : f], { maxBuffer: 64 << 20 }) } catch (e) { } }
+      return null;
+    };
     for (const f of ['LICENSE.electron.txt', 'LICENSES.chromium.html']) {
-      const src = [path.join(out, f), ...(app ? [path.join(out, app, 'Contents', 'Frameworks', 'Electron Framework.framework', 'Resources', f)] : [])].find(p => fs.existsSync(p));
-      if (src) fs.copyFileSync(src, path.join(res, f)); else console.warn('  • afterPack: ' + f + ' not found in ' + out);
+      const src = path.join(out, f);
+      if (fs.existsSync(src)) { fs.copyFileSync(src, path.join(res, f)); continue }
+      const buf = fromZip(f); if (buf && buf.length) { fs.writeFileSync(path.join(res, f), buf); if (!app) fs.writeFileSync(src, buf); continue }
+      console.warn('  • afterPack: ' + f + ' not found for ' + out);
     }
   },
   /* no Developer ID: ad-hoc sign the whole bundle (arm64 code must carry at least an ad-hoc signature to run, and electron-builder 26.0

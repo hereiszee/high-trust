@@ -89,7 +89,7 @@ jobs:
         if: always() && runner.os == 'macOS'
         shell: bash
         run: |
-          APP="dist/mac-universal/High Trust.app"; [ -d "$APP" ] || APP=$(ls -d dist/mac-universal/*.app | head -1)
+          APP="dist/mac-universal/HighTrust.app"; [ -d "$APP" ] || APP=$(ls -d dist/mac-universal/*.app | head -1)
           lipo -info "$APP/Contents/MacOS/"* || true
           codesign -dv --verbose=2 "$APP" 2>&1 || echo "UNSIGNED: Gatekeeper will block this build (see BUILD.md)"
           spctl -a -vv -t exec "$APP" 2>&1 || true
