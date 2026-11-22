@@ -186,7 +186,7 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
       if(!car||veh==='tank'){
         if(rt>.5&&!S.rt){S.rt=true;I.fire(true)}else if(rt<.3&&S.rt){S.rt=false;I.fire(false)}else if(S.rt&&I.auto&&!car)I.fire(true);
         if(veh==='tank'){if(lt>.5&&!S.lt){S.lt=true;tap('v')}else if(lt<.3)S.lt=false}/* tank: LT = gunner's sight */
-        else{const tog=HT.Keys&&HT.Keys.aimMode==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
+        else{const tog=HT.Keys&&(HT.Keys.padAimMode||HT.Keys.aimMode)==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
           if(lt>.5&&!S.lt){S.lt=true;I.aim(tog?!I.aiming:true)}else if(lt<.3&&S.lt){S.lt=false;if(!tog)I.aim(false)}}
       }else{if(S.rt){S.rt=false;I.fire(false)}if(S.lt){S.lt=false;I.aim(false)}}
       if(!ch){
