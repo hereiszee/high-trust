@@ -1,0 +1,17 @@
+DEFECT empty ht-save, good backup         lastLoad=fresh cash=0 (backup had 1234) bak still=1234
+INFO     ...after two more autosaves      ht-save-bak cash=0
+DEFECT "null" ht-save, good backup        lastLoad=fresh cash=0 (backup 900)
+OK     truncated JSON                     lastLoad={"status":"recovered","why":"not JSON"} cash=700 corrupt kept=true
+OK     wrong types everywhere             lastLoad=ok cash=0 day=1 guns=pistol,shotgun
+INFO   future v4 save + v4 backup         lastLoad={"status":"reset","why":"newer version"} -> plays a fresh save; v4 kept only in ht-save-future=true; ht-save now v3. Nothing in index.html reads lastLoad except hasSave(): the player is not told.
+OK     v2 -> v3 migration                 lastLoad={"status":"migrated","from":2} done=zz_unknown,gary,rick,dave,doug,earl day=6 cal=gary,rick,dave,doug,earl
+INFO     achievements from migrated v2    ACH_FIRST_JOB,ACH_RETURN_TO_SENDER,ACH_FOURTH_QUARTER,ACH_BLOCK_PARTY,ACH_KINGPIN,ACH_BRIDGE,ACH_GOLD_STAR (ACH_GOLD_STAR from an unknown job id "zz_unknown" medal 3; ACH_FIRST_JOB counts it too)
+OK     v0 prototype save                  lastLoad={"status":"migrated","from":0} cash=250 trust=30 gary=true
+OK     new game, restore x3               new=0 r1=true:4242 r2=true:10 r3=true:4242
+OK     new game twice, then restore       restored=true cash=5555
+INFO   new, play, new, restore            cash=1 (6000 save is gone, as the dialog warns)
+INFO   reset with eggs only               previous slot=null (hasProgress counts missionsRun/cash/spent only; such a save also shows no Continue)
+DEFECT quota exceeded on write            saveNow()=false, 'saved' event fired 1x anyway, on-disk cash=null (game cash 99). No UI anywhere reads the return value.
+OK     storage throws on every call       game runs, lastLoad=fresh; progress silently not kept
+INFO   two tabs, last writer wins         cash=1100 rick done=false (tab B's job + $2000 lost; js/save.js has no 'storage' event listener)
+OK     fresh save unlocks nothing         []

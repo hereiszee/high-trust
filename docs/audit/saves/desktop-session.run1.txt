@@ -1,0 +1,26 @@
+ok   fast travel to the hardware store (Maple)
+ok   hardware store menu opened
+ok   fast travel to Riverside (community center)
+info region now river
+ok   fast travel to Fort Sensible
+info region now base
+ok   entered home (mode home)
+ok   job gary finished: on disk done=true cash=593 (3038 ms after finish)
+ok   job earl finished: on disk done=true cash=1381 (3027 ms after finish)
+ok   no 404s / blocked requests in the shell log over the session
+ok   zero remote requests
+ok   zero page errors
+info zip-tie in job: before {"t0":28,"c0":0} after {"trust":32,"cuffed":1,"state":"go"}
+info pause open: true
+info confirm dialog: RETURN TO SENDER QUIT TO TITLE? Progress in this job will be lost. Everything from finished jobs and purchases is saved. Next time, the job starts from the beginning. QUIT TO TITLE KEEP PLAYING
+info after quitting the job: {"mode":"title","cont":false,"ng":"Clock in","trust":32,"cuffed":1,"lastLoad":"fresh"}
+FAIL first session, Quit to title: Continue offered (cont=false, main button "Clock in", lastLoad=fresh)
+info pressing the main title button ("Clock in") after that: {"cash":1381,"garyDone":true} (same save, no new game)
+FAIL abandoned job leaves no trace: on disk before job trust=28 cuffed=0; after quitting it trust=32 cuffed=1
+FAIL SIGKILL 150 ms after the result card: the payout on screen ($1382 -> $1704) is on disk ($1382)
+ok   SIGTERM (OS shutdown, Steam stop) with a pending autosave: exit {"code":0,"sig":null}, on disk cash=11111
+ok   SIGTERM 50 ms after a saveNow: on disk cash=22222
+ok   window close with a pending autosave: exit {"code":0,"sig":null}, on disk cash=33333
+ok   second instance exits at once (status 0, 128 ms) and the first keeps running: true
+ok   still one window: 1
+3 FAILED
