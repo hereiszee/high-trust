@@ -81,6 +81,21 @@ console.log('\nAccuracy model');
     `10 m ${h({}).toFixed(2)}, 25 m ${h({dist:25}).toFixed(2)}, moving ${h({moving:true}).toFixed(2)}, crouched ${h({crouch:true}).toFixed(2)}, suppressed ${h({suppressed:1}).toFixed(2)}`);
   check('first shot and early shots are telegraphed (less accurate)',h({first:true})<h({aimT:g.aim})&&h({aimT:g.aim})<h({aimT:g.aim+.6}),`first ${h({first:true}).toFixed(2)}, at telegraph ${h({aimT:g.aim}).toFixed(2)}, settled ${h({aimT:g.aim+.6}).toFixed(2)}`)}
 
+console.log('\nDisarmed enemies (a job sets e.gun=null; JOBS-AUDIT J-01)');
+{const nav=navs[2];AI.seed(11);const sq=AI.squad(nav,{});const P={id:'player',x:29,z:15,isPlayer:true};
+  const bare={id:'u0',pos:{x:33,z:15},yaw:0,hp:50,maxHp:50,gun:null,state:'idle'};
+  let threw=null;try{AI.shotFired(P.x,P.z,bare.pos.x,bare.pos.z,[bare],0)}catch(x){threw=String(x&&x.message)}
+  check('a shot near a disarmed enemy with no memory yet does not throw',!threw&&bare.ai&&bare.ai.gun.unarmed===true,threw||'gun '+(bare.ai&&bare.ai.gun.unarmed?'unarmed':'armed'));
+  /* one bare from the start, one armed whose gun the job takes away mid-fight, one that gets a gun back */
+  const late={id:'u1',pos:{x:22,z:15},yaw:Math.PI/2,hp:50,maxHp:50,gun:'pistol',state:'idle'};const back={id:'u2',pos:{x:29,z:22},yaw:Math.PI,hp:50,maxHp:50,gun:null,state:'idle'};
+  const ags=[bare,late,back];for(const e of ags)sq.add(e);let bad=0,threw2=null,lateShotsAfter=0,backShots=0;const dt=1/20;let t=0;
+  try{for(let i=0;i<600;i++){t+=dt;if(i===100)late.gun=null;if(i===300)back.gun='pistol';const w={nav,t,threats:[P],agents:ags};sq.update(dt,w);
+    for(const e of ags){const I=AI.think(e,w,dt);AI.move(e,I,dt);if(I.fire){if(e===bare)bad++;if(e===late&&i>100)lateShotsAfter++;if(e===back){if(i<300)bad++;else backShots++}}}
+    if(i%20===0)AI.shotFired(P.x,P.z,bare.pos.x,bare.pos.z,ags,t)}}catch(x){threw2=String(x&&x.stack).split('\n').slice(0,2).join(' | ')}
+  check('a disarmed enemy thinks, moves and hears shots for 30 s without throwing',!threw2,threw2||'');
+  check('a disarmed enemy never fires, even when disarmed after his memory exists',bad===0&&lateShotsAfter===0,`bare/unarmed shots ${bad}, shots after the job took his gun ${lateShotsAfter}`);
+  check('an enemy handed a gun back fights again',backShots>0&&back.ai.gun===AI.GUNS.pistol,`${backShots} shots after re-arming`)}
+
 console.log('\nSquad tokens (open park, 6 alerted enemies vs a stationary dad, 20 s)');
 {const nav=navs[2];AI.seed(7);const sq=AI.squad(nav,{});const P={id:'player',x:29,z:15,isPlayer:true};const ags=[];
   for(const[x,z]of[[9,5],[51,5],[9,25],[51,25],[29,3],[17,9]]){const e={id:'e'+ags.length,pos:{x,z},yaw:Math.atan2(P.x-x,P.z-z),hp:75,maxHp:75,gun:'rifle',role:'grunt',state:'idle'};sq.add(e);ags.push(e)}
