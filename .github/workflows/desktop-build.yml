@@ -86,7 +86,7 @@ jobs:
         run: npx electron-builder -c electron-builder.config.js ${{ matrix.target }} --publish never
 
       - name: macOS signature / notarisation report
-        if: runner.os == 'macOS'
+        if: always() && runner.os == 'macOS'
         shell: bash
         run: |
           APP="dist/mac-universal/High Trust.app"; [ -d "$APP" ] || APP=$(ls -d dist/mac-universal/*.app | head -1)
@@ -108,7 +108,7 @@ jobs:
           npm i --no-save playwright@1
           APP=$(ls -d dist/mac-universal/*.app | head -1)
           BIN="$APP/Contents/MacOS/$(ls "$APP/Contents/MacOS" | head -1)"
-          node test/e2e.js --exe "$BIN" --smoke
+          HT_E2E_NATIVE_GPU=1 node test/e2e.js --exe "$BIN" --smoke
 
       - name: End-to-end check of the packaged Linux build
         if: runner.os == 'Linux'
@@ -118,17 +118,31 @@ jobs:
           npm i --no-save playwright@1
           xvfb-run -a -s "-screen 0 1600x900x24" node test/e2e.js --exe dist/linux-unpacked/HighTrust
 
+      # uploaded even when a test failed, so the build can still be tried by hand.
+      # macOS: only the zip below, since upload-artifact drops the symlinks inside the .app (it balloons and the signature breaks)
       - uses: actions/upload-artifact@v4
+        if: always() && runner.os != 'macOS'
         with:
           name: ${{ matrix.name }}
           path: desktop/dist/${{ matrix.out }}/
+          if-no-files-found: ignore
           retention-days: 14
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ${{ matrix.name }}-archive
           path: |
             desktop/dist/*.zip
             desktop/dist/*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Test evidence (screenshots, logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-test-output
+          path: desktop/test-output/
           if-no-files-found: ignore
           retention-days: 14

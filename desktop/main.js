@@ -158,6 +158,8 @@ app.whenReady().then(() => {
   });
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(['pointerLock', 'fullscreen', 'clipboard-sanitized-write'].includes(perm)));
   createWindow();
+  try { log('[gpu]', app.getGPUFeatureStatus()) } catch (e) { }
+  app.on('child-process-gone', (e, d) => log('[process] gone', d.type, d.reason, d.exitCode));
   /* sleep (Steam Deck suspend, laptop lid): write the save and pause the game before the process is frozen */
   powerMonitor.on('suspend', () => { store.flush(); if (win && !win.isDestroyed()) win.webContents.send('ht:suspend') });
   powerMonitor.on('lock-screen', () => { if (win && !win.isDestroyed()) win.webContents.send('ht:suspend') });
