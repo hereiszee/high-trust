@@ -6,50 +6,57 @@
    "pickup": {
     "id": "kim",
     "ok": true,
-    "revS": 27.4
+    "revS": 28.5
    },
    "deliver": {
     "route": "arrived",
     "dropped": true,
     "st": "done"
    },
-   "secs": 61,
-   "sweep": 89,
+   "secs": 63,
+   "sweep": 91,
    "events": [
-    "78 hitch",
-    "97 detach:drop",
-    "97 drop"
+    "80 hitch",
+    "100 detach:drop",
+    "100 drop"
    ]
   },
   {
-   "resets": [
-    {
-     "when": 172,
-     "where": [
-      316.3,
-      132.5
-     ],
-     "ok": true,
-     "diag": {
-      "x": 316.33,
-      "z": 132.5,
-      "yaw": 5.02,
-      "rel": 62,
-      "contacts": {
-       "truck": [
-        "job-fence@319.1,133"
-       ],
-       "towed": []
-      },
-      "traffic": [],
-      "spd": 0.27,
-      "keys": "wa"
-     }
-    }
-   ],
+   "resets": [],
    "car": "hollis",
    "pickup": {
     "id": "hollis",
+    "ok": true,
+    "revS": 15.6
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 96,
+   "sweep": 195,
+   "resetShownAfterS": 4.1,
+   "prompt": "Reset the rig",
+   "reset": true,
+   "sweepCost": 8.9,
+   "to": [
+    316.5,
+    124
+   ],
+   "events": [
+    "164 hitch",
+    "172 stuck",
+    "173 reset",
+    "195 detach:drop",
+    "195 drop"
+   ]
+  },
+  {
+   "resets": [],
+   "car": "rosa",
+   "pickup": {
+    "id": "rosa",
     "ok": true,
     "revS": 16.7
    },
@@ -58,55 +65,12 @@
     "dropped": true,
     "st": "done"
    },
-   "secs": 99,
-   "sweep": 203,
-   "resetShownAfterS": 4.2,
-   "prompt": "Reset the rig",
-   "reset": true,
-   "sweepCost": 8.9,
-   "to": [
-    320,
-    125.5
-   ],
+   "secs": 98,
+   "sweep": 293,
    "events": [
-    "154 hitch",
-    "162 stuck",
-    "162 reset",
-    "169 stuck",
-    "173 reset",
-    "196 detach:drop",
-    "196 drop"
-   ]
-  },
-  {
-   "resets": [
-    {
-     "when": 274,
-     "rehitch": true,
-     "ok": true
-    }
-   ],
-   "car": "rosa",
-   "pickup": {
-    "id": "rosa",
-    "ok": true,
-    "revS": 16.9
-   },
-   "deliver": {
-    "route": "arrived",
-    "dropped": true,
-    "st": "done"
-   },
-   "secs": 90,
-   "sweep": 301,
-   "events": [
-    "263 hitch",
-    "274 detach:jack",
-    "274 jackknife",
-    "275 hitch",
-    "275 reset",
-    "286 detach:drop",
-    "286 drop"
+    "271 hitch",
+    "293 detach:drop",
+    "293 drop"
    ]
   },
   {
@@ -115,42 +79,94 @@
    "pickup": {
     "id": "benny",
     "ok": true,
-    "revS": 21.3
+    "revS": 21.7
    },
    "deliver": {
     "route": "arrived",
     "dropped": true,
     "st": "done"
    },
-   "secs": 113,
-   "sweep": 414,
+   "secs": 157,
+   "sweep": 450,
    "events": [
-    "349 hitch",
-    "363 yield",
-    "364 yield",
-    "366 yield",
-    "369 yield",
-    "398 detach:drop",
-    "398 drop"
+    "388 hitch",
+    "419 yield",
+    "450 detach:drop",
+    "450 drop"
    ]
   },
   {
-   "id": "earl",
-   "fail": "no line-up {\"x\":404.19,\"z\":74.9,\"yaw\":-5.4,\"rel\":null,\"contacts\":{\"truck\":[\"fence@395,77\"]},\"traffic\":[],\"spd\":-0.35,\"keys\":\"\"} cand null"
+   "resets": [
+    {
+     "when": 591,
+     "where": [
+      446.5,
+      102.5
+     ],
+     "ok": true,
+     "diag": {
+      "x": 446.54,
+      "z": 102.5,
+      "yaw": -28.82,
+      "rel": -62,
+      "contacts": {
+       "truck": [
+        "lamp@447,105"
+       ],
+       "towed": []
+      },
+      "traffic": [],
+      "spd": 0.27,
+      "keys": "wd"
+     }
+    }
+   ],
+   "car": "earl",
+   "pickup": {
+    "id": "earl",
+    "ok": true,
+    "revS": 18.9
+   },
+   "deliver": {
+    "route": "arrived",
+    "dropped": true,
+    "st": "done"
+   },
+   "secs": 147,
+   "sweep": 605,
+   "nosedIn": true,
+   "parkedCarNowAt": {
+    "x": 367.36933364272136,
+    "z": 102.52016895185956
+   },
+   "round": "arrived",
+   "events": [
+    "532 hitch",
+    "562 yield",
+    "563 yield",
+    "569 yield",
+    "569 scrape:3.0",
+    "570 yield",
+    "572 yield",
+    "588 stuck",
+    "592 reset",
+    "597 detach:drop",
+    "597 drop"
+   ]
   }
  ],
  "res": {
-  "state": "lost",
-  "medal": 0,
-  "pay": 266,
-  "sweep": 720,
-  "elapsed": 705,
+  "state": "won",
+  "medal": 2,
+  "pay": 1783,
+  "sweep": 605,
+  "elapsed": 637,
   "drops": [
    "kim:100",
    "hollis:100",
-   "rosa:92",
-   "benny:96",
-   "earl:0"
+   "rosa:100",
+   "benny:99",
+   "earl:95"
   ]
  }
 }

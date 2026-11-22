@@ -1,0 +1,9 @@
+start {"t":1083,"mode":"mission","ph":"tow","cv":true,"state":"go"}
+{"resets":[],"car":"kim","pickup":{"id":"kim","ok":true,"revS":28.5},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":63,"sweep":91,"events":["80 hitch","100 detach:drop","100 drop"]}
+{"resets":[],"car":"hollis","pickup":{"id":"hollis","ok":true,"revS":15.6},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":96,"sweep":195,"resetShownAfterS":4.1,"prompt":"Reset the rig","reset":true,"sweepCost":8.9,"to":[316.5,124],"events":["164 hitch","172 stuck","173 reset","195 detach:drop","195 drop"]}
+{"resets":[],"car":"rosa","pickup":{"id":"rosa","ok":true,"revS":16.7},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":98,"sweep":293,"events":["271 hitch","293 detach:drop","293 drop"]}
+{"resets":[],"car":"benny","pickup":{"id":"benny","ok":true,"revS":21.7},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":157,"sweep":450,"events":["388 hitch","419 yield","450 detach:drop","450 drop"]}
+{"resets":[{"when":591,"where":[446.5,102.5],"ok":true,"diag":{"x":446.54,"z":102.5,"yaw":-28.82,"rel":-62,"contacts":{"truck":["lamp@447,105"],"towed":[]},"traffic":[],"spd":0.27,"keys":"wd"}}],"car":"earl","pickup":{"id":"earl","ok":true,"revS":18.9},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":147,"sweep":605,"nosedIn":true,"parkedCarNowAt":{"x":367.36933364272136,"z":102.52016895185956},"round":"arrived","events":["532 hitch","562 yield","563 yield","569 yield","569 scrape:3.0","570 yield","572 yield","588 stuck","592 reset","597 detach:drop","597 drop"]}
+RESULT {"state":"won","medal":2,"pay":1783,"sweep":605,"elapsed":637,"drops":["kim:100","hollis:100","rosa:100","benny:99","earl:95"]}
+no console errors
+exit 0
