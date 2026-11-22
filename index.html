@@ -2798,7 +2798,7 @@ function hud(dt){
     crew:allies.map(x=>({name:x.name,hp:x.hp/(x.maxhp||100)*100,down:x.down,reviving:x.down&&x.downT!=null?clamp(1-x.downT/9,.01,1):0,x:x.pos.x,z:x.pos.z,color:HOMIES[x.id]&&HOMIES[x.id].shirt})),
     enemies:mis?enemies.map(e=>({id:e,x:e.pos.x,z:e.pos.z,alert:e.alert&&e.state==='idle',seen:e.state==='idle'&&(e.target===P||e.alert&&e.pos.distanceTo(P.pos)<22),dead:e.state==='dead'||e.state==='cuffed'})).concat(wmMapDots()):frBlips(),
     objective:obj,timer,prompt:UI.prompt,
-    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
+    speedMph:Math.abs((CV||VAN).spd)*2.237,gear:(CV||VAN).spd<-.3?'R':'D',vehicleName:drv?carLabel(CV):null,vehicleType:drv&&CV?CV.type:null,vanHealth:drv?carFrac(CV):1,vehicleBand:drv?carBand(CV):0,vehicleWarn:drv?CAR_WARN[carBand(CV)]+(drv&&carBand(CV)===5?(CV===VAN?" · get out, call Dad's Auto":' · get out'):'')+(drv&&carBand(CV)<3&&carWear(CV).tyre?'Flat tyre':''):'',
     crosshair:{spread:sp,fov:camera.fov,noFire:nf,hidden:drv||P.scoped,ads:P.aim,adsT:P.adsT},
     markers,tags,subtitles:UI.sub,gadgets:nightGadgets(),routeTo:L&&L.ow&&mode==='hub'?undefined:UI.route,zone:mis&&M?M.def.place:mode==='home'?'Home · 1412 Maple':L&&L.ow&&OWS.region?WORLD.hoods[OWS.region].name:'Maple Heights'};
   JH.hud(hs);/* JOBS: meters, widgets, overlays */HUD.update(hs,dt);
@@ -4456,17 +4456,17 @@ const TUT={done:{},cur:null,t:0,el:null,m:{look:0,walk:0,jog:0,drive:0,yaw:null,
 try{TUT.done=JSON.parse(localStorage.getItem('ht-tut')||'{}')||{}}catch(e){TUT.done={}}
 const foot=()=>mode==='hub'&&!VAN.on&&!CV,gunsOn=()=>mode==='mission'&&M&&M.state==='go'&&!M.noGuns&&!M.holster&&P.weapons.length>0&&!VAN.on;
 const TUT_STEPS=[
-  {id:'look',k:'Mouse',t:'Move the mouse to look around',when:foot,done:m=>m.look>1.1},
-  {id:'walk',k:'WASD',t:'Walk',when:foot,done:m=>m.walk>4},
-  {id:'jog',k:'Shift',t:'Hold Shift while walking to jog',when:()=>foot()&&TUT.done.walk,done:m=>m.jog>.8},
+  {id:'look',k:'Mouse',t:'Move the mouse to look around',p:()=>'Move the right stick to look around',when:foot,done:m=>m.look>1.1},
+  {id:'walk',k:'WASD',t:'Walk',p:()=>'Left stick to walk',when:foot,done:m=>m.walk>4},
+  {id:'jog',k:'Shift',t:'Hold Shift while walking to jog',p:()=>'Click '+padB('L3')+' while walking to jog (it stays on until you stop)',when:()=>foot()&&TUT.done.walk,done:m=>m.jog>.8},/* prompt-ok: p is the pad line */
   {id:'talk',k:'E',t:'Walk up to someone with a ring and press E · follow the yellow marker',when:()=>foot()&&JOB===null&&npcs.some(n=>n.marker),done:()=>JOB!==null||HUD.screen==='brief'},
   {id:'van',k:'E',t:'Walk up to the minivan and press E to drive',when:()=>foot()&&JOB!==null,done:()=>VAN.on},
-  {id:'drive',k:'WASD',t:'W S drive · A D steer · Shift boost · Space handbrake',when:()=>mode==='hub'&&VAN.on,done:m=>m.drive>40},
+  {id:'drive',k:'WASD',t:()=>kl('fwd')+' '+kl('back')+' drive · '+kl('left')+' '+kl('right')+' steer · '+kl('jog')+' boost · '+kl('jump')+' handbrake',p:()=>padB('RT')+' gas · '+padB('LT')+' brake · left stick steers · '+padB('RB')+' boost · '+padB('A')+' handbrake',when:()=>mode==='hub'&&VAN.on,done:m=>m.drive>40},
   {id:'map',k:'M',t:'Map: the yellow line leads to the job',when:()=>mode==='hub'&&VAN.on&&JOB!==null&&TUT.done.drive,done:m=>HUD.minimap.mapOpen||m.mapT>14},
-  {id:'aim',k:'RMB',t:'Right mouse raises your aim, click again to lower · left mouse fires',when:gunsOn,done:m=>P.aim&&m.shot>0},
+  {id:'aim',k:'RMB',t:()=>kl('aim')+' raises your aim, '+kl('aim')+' again to lower · '+kl('fire')+' fires',p:()=>padB('LT')+' raises your aim'+(HT.Keys&&HT.Keys.padAimMode==='toggle'?', '+padB('LT')+' again to lower':' while held')+' · '+padB('RT')+' fires',when:gunsOn,done:m=>P.aim&&m.shot>0},
   {id:'reload',k:'R',t:'Reload',when:()=>gunsOn()&&P.ammo[P.cur]&&WEAPONS[P.cur]&&P.ammo[P.cur].mag<=WEAPONS[P.cur].mag/2,done:()=>!!P.rl},
   {id:'tie',k:'E',t:'Hands up: hold E next to him to zip-tie · zip-ties earn trust',when:()=>mode==='mission'&&enemies.some(e=>e.state==='surrender'&&e.pos.distanceTo(P.pos)<16),done:m=>m.cuffed!=null&&(prog.cuffed||0)>m.cuffed},
-  {id:'pause',k:'Esc',t:'Esc pauses · Controls lists every key',when:()=>TUT.done.aim||TUT.done.map,done:()=>pauseOpen}];
+  {id:'pause',k:'Esc',t:'Esc pauses · Controls lists every key',p:()=>padB('MENU')+' pauses · Controls & keys shows the controller',when:()=>TUT.done.aim||TUT.done.map,done:()=>pauseOpen}];/* prompt-ok: p is the pad line */
 function tutEl(){if(TUT.el&&TUT.el.isConnected)return TUT.el;const h=document.querySelector('.ht-hud');if(!h)return null;const e=document.createElement('div');e.className='ht-pr ht-tut off tx';
   e.innerHTML='<div class="gl"><b class="ht-kc"></b></div><div class="tt"></div>';h.appendChild(e);TUT.el=e;return e}
 function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.missionsRun||0)>2){TUT.all=true;return}}const m=TUT.m;
@@ -4483,7 +4483,13 @@ function tutTick(dt){if(TUT.all)return;if(TUT.first==null){TUT.first=1;if((prog.
   if(!cur&&TUT.gap<=0&&running){for(const st of TUT_STEPS){if(TUT.done[st.id])continue;let w=false;try{w=st.when()}catch(_){}if(w){cur=TUT.cur=st;TUT.t=0;if(st.id==='tie')m.cuffed=prog.cuffed||0;if(st.id==='aim')m.shot=0;break}}
     if(TUT_STEPS.every(st=>TUT.done[st.id])){TUT.all=true}}
   const e=tutEl();if(!e)return;const on=!!cur&&running&&!HUD.screen;e.classList.toggle('off',!on);
-  if(cur&&e._id!==cur.id){e._id=cur.id;e.querySelector('.ht-kc').textContent=cur.k;e.querySelector('.tt').textContent=cur.t}}
+  if(cur&&e._id!==cur.id){e._id=cur.id;e.querySelector('.ht-kc').textContent=cur.k;e.querySelector('.tt').textContent=tutText(cur)}
+  else if(cur&&e._pad!==padOn()){e._pad=padOn();e.querySelector('.tt').textContent=tutText(cur)}}
+/* the hint for the device in use: pad steps have their own words (js/gamepad.js glyphs); keyboard steps name the player's keys (js/keys.js) */
+function padOn(){return!!(window.HT&&HT.Pad&&HT.Pad.active)}
+function padB(n){return window.HT&&HT.Pad&&HT.Pad.btn?HT.Pad.btn(n):n}
+function kl(id){const K=window.HT&&HT.Keys;return K&&K.label?K.label(id):id}
+function tutText(st){const t=padOn()&&st.p?st.p:st.t;return typeof t==='function'?t():t}
 
 /* ================= LOOP ================= */
 /* hub roads sit below the curb: characters on a road tile are lowered for the draw only, game logic stays at y=0 */
@@ -4528,7 +4534,7 @@ showTitle();
 cv.style.transition='opacity .7s';cv.style.opacity='0';const showScene=()=>{cv.style.opacity='1'};setTimeout(showScene,20000);
 function ldStatus(){const off=ASSETS.offline();
   HUD.set('title',{progress:ASSETS.done?1:ASSETS.progress,ready:ASSETS.done,warn:off,
-    status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});
+    status:off?"You're offline · click here to retry":ASSETS.done?(ASSETS.stream.idle()?'Ready':'Ready · streaming details…'):'Loading the neighborhood · '+Math.round(ASSETS.progress*100)+'%'});/* prompt-ok: the web build's title status, a link */
   const ld=document.querySelector('.ht-title .ht-load');if(ld){ld.style.pointerEvents=off?'auto':'';ld.style.cursor=off?'pointer':''}}
 document.addEventListener('click',e=>{const ld=e.target.closest&&e.target.closest('.ht-title .ht-load.warn');if(ld)ASSETS.retry()});
 ASSETS.onProgress(()=>{if(!ASSETS.done)ldStatus()});

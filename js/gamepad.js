@@ -18,7 +18,12 @@ const IN=()=>HT.Input;
 const DZ=.2,LOOK=1500;/* px per second of mouse-equivalent motion at full deflection (scaled again by Look speed) */
 const B={A:0,B:1,X:2,Y:3,LB:4,RB:5,LT:6,RT:7,VIEW:8,MENU:9,L3:10,R3:11,UP:12,DOWN:13,LEFT:14,RIGHT:15};
 const S={pad:null,kind:'xbox',prev:[],last:'kb',held:{},sprint:false,lt:false,rt:false,stickOn:false,rep:{},t:0,focus:null,scrollT:0};
-const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind}};
+const MODALS=[];
+const Pad=HT.Pad={S,get active(){return S.last==='pad'},get kind(){return S.kind},
+  /* a picker that owns the pad while it is up: HT.Pad.modal({move(dx,dy), ok(), back(), x(), y()}) -> call the result to remove it */
+  modal(h){MODALS.push(h);return()=>{const i=MODALS.indexOf(h);if(i>=0)MODALS.splice(i,1)}},get modalOpen(){return MODALS.length>0},
+  /* the label of a pad button by name ('A', 'B', 'LT', 'D↑'...) in the pad's own glyphs */
+  btn(n){const g=GL[S.kind]||GL.xbox;return String(n).split('+').map(x=>g[x]||x).join('+')}};
 
 /* ---------- synthetic keys ---------- */
 const CODES={' ':'Space',escape:'Escape',shift:'ShiftLeft',enter:'Enter',tab:'Tab','+':'NumpadAdd','-':'NumpadSubtract',arrowleft:'ArrowLeft',arrowright:'ArrowRight',arrowup:'ArrowUp',arrowdown:'ArrowDown'};
@@ -36,7 +41,7 @@ function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stic
 const GL={xbox:{A:'A',B:'B',X:'X',Y:'Y',LB:'LB',RB:'RB',LT:'LT',RT:'RT',VIEW:'View',MENU:'Menu',L3:'L3',R3:'R3',LS:'L',RS:'R'},
   ps:{A:'✕',B:'○',X:'□',Y:'△',LB:'L1',RB:'R1',LT:'L2',RT:'R2',VIEW:'Create',MENU:'Options',L3:'L3',R3:'R3',LS:'L',RS:'R'}};
 /* keycap text -> pad button; driving hints read E as get out (Y) */
-const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',B:'B',RMB:'LT','RIGHT CLICK':'LT',LMB:'RT','LEFT CLICK':'RT',WASD:'LS',MOUSE:'RS',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
+const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'RT',B:'B',RMB:'LT','RIGHT CLICK':'LT',LMB:'RT','LEFT CLICK':'RT',WASD:'LS',MOUSE:'RS',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
   F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',
   /* job keys through the LB layer */G:'LB',T:'LB+↑',Z:'LB+←',X:'LB+→','1':'LB+A','2':'LB+B','3':'LB+X','4':'LB+Y'};
 const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
@@ -44,6 +49,7 @@ function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PA
   const drv=!!(IN()&&IN().driving)||!!(ctx&&ctx.closest&&ctx.closest('.ht-drv'));
   if(drv&&k==='E')b='Y';/* behind the wheel Use (get out, hold to hitch) is Y; A is the handbrake */if(drv&&k==='SPACE')b='A';
   if(drv&&(k==='MOUSE 2'||k==='RMB'||k==='RIGHT CLICK'))b='D↑';/* Aim in a car: binoculars */
+  if(drv&&k==='V'&&IN()&&vehicleKind(IN())==='tank')b='LT';/* the tank: LT is the gunner's sight */
   if(decoOn()){if(k==='Q')b='D←';else if(k==='TAB')b='RB'}/* decorating: RB / D-pad → next, D-pad ← previous */
   const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
 let swapping=false;
@@ -52,11 +58,11 @@ let swapping=false;
    Jobs can call HT.Pad.keyText(str) for text they draw themselves (canvas, alerts). */
 const KEYS_RX='E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT|Esc|ESC|Enter|ENTER';
 /* "press E", "hold the E key", "Tap W" */
-const TXT_KEY=new RegExp("\\b(press|hold|tap|use|Press|Hold|Tap|Use|PRESS|HOLD|TAP|USE)(\\s+the)?\\s+("+KEYS_RX+")(\\s+key)?\\b(?![\\w'’])",'g');
+const TXT_KEY=new RegExp("\\b(press|hold|tap|use|with|release|or|Press|Hold|Tap|Use|With|Release|PRESS|HOLD|TAP|USE)(\\s+the)?\\s+("+KEYS_RX+")(\\s+key)?\\b(?![\\w'’])",'g');
 /* a key that leads a line or follows a separator: "E · zip-tie", "G to draw", "X: call Rick", "E/Enter takes it", "Z zooms" */
-const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
+const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?:]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
 /* mouse words */
-const TXT_MOUSE=/\b(right[- ]click(?:ing)?|right mouse(?: button)?|left[- ]click|left mouse(?: button)?|RMB|LMB|Mouse ?[12]|(?:Right|Left)[- ]click|(?:Right|Left) mouse(?: button)?|click(?=\s+(?:to|again|fires?|shoots?)\b)|Click(?=\s*(?:to|:|·|\/|again)\b))/g;
+const TXT_MOUSE=/\b(right[- ]click(?:ing)?|right mouse(?: button)?|left[- ]click|left mouse(?: button)?|RMB|LMB|Mouse ?[12]|(?:Right|Left)[- ]click|(?:Right|Left) mouse(?: button)?|[Cc]lick(?=\s+(?:to|again|fires?|shoots?|or|for)\b|\s*(?:$|·|\/|\)|:)))/g;
 const TXT_EXTRA={W:'RT',S:'LT'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
 const MOUSE_CAP=m=>/right|rmb|mouse ?2/i.test(m)?'RMB':'Click';
 /* the label of a default key name for the device in use, or null to leave it */
@@ -66,11 +72,12 @@ function keyText(str){if(typeof str!=='string'||!str)return str;const pad=S.last
   let out=str.replace(TXT_KEY,(m,verb,the,k,key)=>{const l=capLabel(k.toUpperCase(),pad);return l?verb+(the||'')+' '+l:m});
   out=out.replace(TXT_LEAD,(m,pre,k)=>{const l=capLabel(k.toUpperCase(),pad);return l?pre+l:m});
   out=out.replace(TXT_MOUSE,m=>{const c=MOUSE_CAP(m),l=pad?(glyphFor(c==='RMB'?'RMB':'LMB',null)||{}).label:(HT.Keys&&HT.Keys.relabel(c));return l||m});
-  if(pad)out=out.replace(/\bW ?A ?S ?D\b/g,(GL[S.kind]||GL.xbox).LS+' stick').replace(/\b(?:the )?mouse wheel\b|\bthe wheel\b(?= to)/gi,'D-pad ← →').replace(/\bmove the mouse\b/gi,'Move the right stick').replace(/\bthe mouse\b/gi,'the right stick');
+  if(kb)out=out.replace(/\b([WASD])(\s*\/\s*|\s+)([WASD])\b/g,(m,a,sep,b)=>(HT.Keys.relabel(a)||a)+sep+(HT.Keys.relabel(b)||b));
+  if(pad)out=out.replace(/\bW ?A ?S ?D\b/g,(GL[S.kind]||GL.xbox).LS+' stick').replace(/\b(?:the )?mouse wheel\b|\b(?:the )?wheel\b(?= to\b)/gi,'D-pad ←').replace(/\bW\s*\/\s*S\b/g,'Left stick ↕').replace(/\bA\s*\/\s*D\b/g,'left stick ↔').replace(/\bmove the mouse\b/gi,'Move the right stick').replace(/\bthe mouse\b/gi,'the right stick');
   return out}
 const TXT_ORIG=new WeakMap();
 function swapText(root){if(!root)return;const on=S.last==='pad'||kbRelabel();
-  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,.ht-paddia,.ht-rb-note,script,style,textarea')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,kbd,.ht-paddia,.ht-rb-note,script,style,textarea')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
   for(let n=w.nextNode();n;n=w.nextNode()){const o=TXT_ORIG.get(n);
     if(o&&n.nodeValue!==o.out){TXT_ORIG.delete(n)}/* the HUD wrote new text */
     const base=TXT_ORIG.has(n)?TXT_ORIG.get(n).src:n.nodeValue;
@@ -81,7 +88,7 @@ const textRoots=()=>[document.body];/* every HUD, job overlay, teach box and pan
 const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
 function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabel();
   if(on||kb)MO.observe(document.documentElement,{subtree:true,childList:true,characterData:true});else MO.disconnect();
-  document.querySelectorAll('.ht-kc').forEach(e=>{if(e.closest('.ht-keys'))return;/* the controls tables stay literal */
+  document.querySelectorAll('.ht-kc,kbd').forEach(e=>{if(e.closest('.ht-keys,.ht-paddia'))return;/* the controls tables stay literal */
     const cur=e.textContent;if(e.dataset.padG!=null&&cur!==e.dataset.padG){delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}/* the HUD rewrote it */
     const base=e.dataset.padK!=null?e.dataset.padK:cur;
     if(on){const g=glyphFor(base,e);if(!g){if(e.dataset.padK!=null)restore(e);return}if(e.dataset.padG===g.label&&e.classList.contains('pad-g'))return;
@@ -158,8 +165,15 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
   if(S.last!=='pad'){S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
   /* shops and the gun locker (HT.Menus, js/save.js) run their own pad navigation: stay out of their way */
   if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen()){if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}S.prev=g.buttons.map(b=>!!b&&(b.pressed||b.value>.5));return}
-  const I=IN(),menu=inMenu(),map=mapOpen();
-  if(map){/* the full map: stick / D-pad pan, RS pans finer, RT / LT zoom, LB / RB cycle places, A fast-travels, B or View closes */
+  const I=IN(),menu=inMenu(),map=mapOpen(),md=MODALS[MODALS.length-1];
+  if(md&&!menu){/* a module's own picker over live play (the range rack, conversation replies): it gets the pad, gameplay gets nothing */
+    if(S.wasGame){releaseAll();S.wasGame=false}if(S.focus){S.focus.classList.remove('pad-focus');S.focus=null}
+    const L=btn(B.LEFT)||lx<-.5,R=btn(B.RIGHT)||lx>.5,U=btn(B.UP)||ly<-.5,Dn=btn(B.DOWN)||ly>.5,mv=(dx,dy)=>{try{md.move&&md.move(dx,dy)}catch(e){console.warn(e)}};
+    repeat('ml',L,now,()=>mv(-1,0));repeat('mr',R,now,()=>mv(1,0));repeat('mu',U,now,()=>mv(0,-1));repeat('md',Dn,now,()=>mv(0,1));
+    if(down(B.RB))mv(1,0);if(down(B.LB))mv(-1,0);
+    const call=f=>{try{f&&f()}catch(e){console.warn(e)}};
+    if(down(B.A))call(md.ok);if(down(B.B))call(md.back);if(down(B.X))call(md.x);if(down(B.Y))call(md.y);if(down(B.MENU))call(md.back||md.ok);
+  }else if(map){/* the full map: stick / D-pad pan, RS pans finer, RT / LT zoom, LB / RB cycle places, A fast-travels, B or View closes */
     if(S.wasGame){releaseAll();S.wasGame=false}
     const L=btn(B.LEFT)||lx<-.4,R=btn(B.RIGHT)||lx>.4,U=btn(B.UP)||ly<-.4,Dn=btn(B.DOWN)||ly>.4;
     repeat('ml',L,now,()=>tap('arrowleft'),90);repeat('mr',R,now,()=>tap('arrowright'),90);repeat('mu',U,now,()=>tap('arrowup'),90);repeat('md',Dn,now,()=>tap('arrowdown'),90);

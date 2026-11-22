@@ -23,7 +23,9 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await p.keyboard.down('j');const f1=await ev(()=>window.HT.Roam.mouseDown);await p.keyboard.up('j');const f2=await ev(()=>window.HT.Roam.mouseDown);
   ok(f1===true&&f2===false,'Fire on J: the trigger follows the key ('+f1+' -> '+f2+')');
   const box=await p.locator('#c').boundingBox();const cx=box.x+box.width/2,cy=box.y+box.height/2;
-  await p.mouse.move(cx,cy);await p.mouse.click(cx,cy);/* any first click on the view only asks for pointer lock (refused headless) */await p.waitForTimeout(150);await p.mouse.down({button:'middle'});const e1=await ev(()=>window.__ht.keys.e);await p.mouse.up({button:'middle'});const e2=await ev(()=>window.__ht.keys.e);
+  await p.mouse.move(cx,cy);await p.mouse.click(cx,cy);/* any first click on the view only asks for pointer lock (refused headless) */await p.waitForTimeout(150);await p.mouse.down({button:'middle'});let e1=await ev(()=>window.__ht.keys.e);await p.mouse.up({button:'middle'});
+  /* headless pointer lock is racy: a press that only asked for the lock never reaches the game, so try once more */
+  if(e1!==true){await p.waitForTimeout(300);await p.mouse.down({button:'middle'});e1=await ev(()=>window.__ht.keys.e);await p.mouse.up({button:'middle'})}const e2=await ev(()=>window.__ht.keys.e);
   ok(e1===true&&e2===false,'Use on Mouse 3: middle button holds E ('+e1+' -> '+e2+')');
   ok(await ev(()=>HT.Keys.relabel('E')==='Mouse 3'),'the E prompt reads Mouse 3');
   await ev(()=>{HT.Keys.reset();HT.Keys.aimMode='toggle'});await p.mouse.click(cx,cy);/* first click on the view asks for pointer lock (refused headless) */await ev(()=>{window.__ht.P.aim=false;window.HT.Roam.mouseDown=false});

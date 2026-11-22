@@ -126,7 +126,8 @@ function start(a,e){try{OWm().buildAhead&&OWm().buildAhead(900)}catch(_){}/* str
   F.q.setFromEuler(_e.set(0,e.yaw+Math.PI/2,0,'YZX'));e.fly=true;F.trails=[[],[]];F.said={};F.flightT=0;
   const s=sv();if(s&&s.jet)s.jet.flights=(s.jet.flights|0)+1;say(TOWER,pick(LINES.enter),true);
   try{if(HT.People&&HT.People.preload)HT.People.preload(['wife','son','daughter'])}catch(_){}/* so they can come out and wave when you buzz the house */
-  teach(a,'fly1','Jet: tap W to set the throttle (it stays) · SPACE / Q nose up / down (or mouse, ↑ ↓) · A / D steer · Shift burner at 100%');
+  teach(a,'fly1',PADON()?'Jet: tap '+PB('RT')+' / '+PB('LT')+' to set the throttle (it stays) · left stick nose up / down · right stick steers on the ground · '+PB('RB')+' burner at 100%'
+    :'Jet: tap '+KL('fwd','W')+' to set the throttle (it stays) · '+KL('jump','Space').toUpperCase()+' / '+KL('gun','Q')+' nose up / down (or mouse, ↑ ↓) · '+KL('left','A')+' / '+KL('right','D')+' steer · '+KL('jog','Shift')+' burner at 100%');
   hudShow(true)}
 function stop(a,e){try{OWm().buildAhead&&OWm().buildAhead(0)}catch(_){}F.on=false;F.air=false;if(e){e.fly=false;e.noExit=false}flight(false);hudShow(false);jetSound(0,0)}
 function vehicle(e,dt){if(!e||e.type!=='jet')return;const a=A();if(!F.on)start(a,e);const c=e.car,k=a.keys,P=a.P;
@@ -155,7 +156,8 @@ function ground(a,e,dt,pitchIn,yawIn,k){/* rolling: thrust, rolling drag, brakes
   F.q.setFromEuler(_e.set(0,yaw,pitch,'YZX'));_f.set(1,0,0).applyQuaternion(F.q);F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y=0;
   /* off the paved area at speed: bumpy, slows you down; buildings stop you (comic) */
   if(hitSolid(a,F.pos.x,F.pos.z,1.5)&&F.spd>2){crash(a,e,'ground');return}
-  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;say(TOWER,pick(LINES.takeoff));teach(a,'fly2','In the air: SPACE climbs, Q dives (or mouse up / down, ↑ ↓) · A / D bank, let go and the wings level · gear is automatic (G by hand) · V cockpit · C look back · E twice to eject')}}
+  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;say(TOWER,pick(LINES.takeoff));teach(a,'fly2',PADON()?'In the air: left stick back climbs, forward dives · ← → bank, let go and the wings level · gear is automatic ('+PB('X')+' by hand) · '+PB('R3')+' cockpit · '+PB('B')+' look back · '+PB('Y')+' twice to eject'
+    :'In the air: '+KL('jump','Space').toUpperCase()+' climbs, '+KL('gun','Q')+' dives (or mouse up / down, ↑ ↓) · '+KL('left','A')+' / '+KL('right','D')+' bank, let go and the wings level · gear is automatic ('+KL('glove','G')+' by hand) · '+KL('view','V')+' cockpit · '+KL('crouch','C')+' look back · '+KL('use','E')+' twice to eject')}}
 function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* hands off: the wings level and the nose settles toward level flight (gently: a held bank or climb is untouched) */
   {_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);_f.set(1,0,0).applyQuaternion(F.q);const bk=Math.atan2(-_r.y,_u.y),pt=Math.asin(clamp(_f.y,-1,1));
@@ -448,6 +450,20 @@ const TIPS={taxi:'Tap W to roll, A / D to steer onto the runway (just ahead of y
   gear:'Climbing: the gear comes up by itself above 150 ft (G does it by hand)',bank:'A / D to bank: the nose follows the bank. SPACE climbs, Q dives',
   land:'To land: S to throttle back, line up with the runway, ease the nose down. The gear comes down by itself',
   ride:'You landed a long way out. E: ride back to Fort Sensible (the jet is already at Hangar 2)'};
+/* the same steps for a controller (js/gamepad.js: LS pitch / roll, RS rudder, RT / LT throttle, RB burner, X gear, B look back, Y eject) and for
+   rebound or non-QWERTY keys (HT.Keys labels): what the player reads names what they press */
+const PADON=()=>!!(HT.Pad&&HT.Pad.active),PB=n=>HT.Pad&&HT.Pad.btn?HT.Pad.btn(n):n,KL=(id,d)=>{try{return HT.Keys&&HT.Keys.label?HT.Keys.label(id):d}catch(_){return d}};
+function tipsFor(){if(PADON())return{taxi:'Tap '+PB('RT')+' to roll, left stick to steer onto the runway (just ahead of you)',thr:'Tap '+PB('RT')+' to throttle up (it stays where you set it)',rotate:'Nose up to take off: pull the left stick back (like looking up)',
+    gear:'Climbing: the gear comes up by itself above 150 ft ('+PB('X')+' does it by hand)',bank:'Left stick ← → to bank: the nose follows the bank. Stick back climbs, forward dives',
+    land:'To land: '+PB('LT')+' to throttle back, line up with the runway, ease the nose down. The gear comes down by itself',ride:'You landed a long way out. '+PB('Y')+': ride back to Fort Sensible (the jet is already at Hangar 2)'};
+  const w=KL('fwd','W'),s=KL('back','S'),l=KL('left','A'),r=KL('right','D'),sp=KL('jump','Space').toUpperCase(),q=KL('gun','Q'),g=KL('glove','G'),e=KL('use','E');
+  return{taxi:'Tap '+w+' to roll, '+l+' / '+r+' to steer onto the runway (just ahead of you)',thr:'Tap '+w+' to throttle up (it stays where you set it)',rotate:'Nose up to take off: '+sp+', ↑ or mouse up (like looking up)',
+    gear:'Climbing: the gear comes up by itself above 150 ft ('+g+' does it by hand)',bank:l+' / '+r+' to bank: the nose follows the bank. '+sp+' climbs, '+q+' dives',
+    land:'To land: '+s+' to throttle back, line up with the runway, ease the nose down. The gear comes down by itself',ride:'You landed a long way out. '+e+': ride back to Fort Sensible (the jet is already at Hangar 2)'}}
+function chipKeys(){if(PADON())return{thr:PB('RT')+' / '+PB('LT'),nose:'L stick ↕',roll:'L stick ↔',gear:PB('X'),ab:PB('RB'),view:PB('R3')+' · '+PB('B'),ej:PB('Y')+' '+PB('Y')};
+  return{thr:KL('fwd','W')+' / '+KL('back','S'),nose:KL('jump','Space').toUpperCase()+' / '+KL('gun','Q'),roll:KL('left','A')+' / '+KL('right','D'),gear:KL('glove','G'),ab:KL('jog','Shift').toUpperCase(),view:KL('view','V')+' · '+KL('crouch','C'),ej:KL('use','E')+' '+KL('use','E')}}
+function chipKeysSync(){const h=HELP;if(!h)return;const ks=chipKeys(),sig=JSON.stringify(ks);if(h.keySig===sig)return;h.keySig=sig;for(const id in ks){const c=h.chips[id];if(c&&c.k)c.k.textContent=ks[id]}
+  if(h.tipId){const id=h.tipId;h.tipId=null;tipShow(id)}}
 let HELP=null;/* the prompt sits upper-middle: clear of the game's E prompts, the subtitles and the key strip */
 function helpEl(){if(HELP)return HELP;const d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:20;font-family:"Barlow","Arial Narrow",Arial,sans-serif';
   d.innerHTML='<div data-j="tip" style="position:absolute;left:50%;top:27%;transform:translateX(-50%);max-width:min(1060px,90vw);text-align:center;font-size:clamp(17px,2.3vw,26px);font-weight:700;line-height:1.25;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);background:rgba(12,16,20,.62);padding:10px 22px;border-radius:12px;border:1px solid rgba(255,255,255,.14);display:none"></div>'+
@@ -455,14 +471,14 @@ function helpEl(){if(HELP)return HELP;const d=document.createElement('div');d.st
     '<div data-j="fade" style="position:absolute;inset:0;background:#000;opacity:0;transition:opacity .45s"></div>';
   document.body.appendChild(d);HELP={root:d,tip:d.querySelector('[data-j=tip]'),strip:d.querySelector('[data-j=strip]'),fade:d.querySelector('[data-j=fade]'),chips:{},tipId:null};
   const chip=(id,k,t)=>{const c=document.createElement('div');c.style.cssText='display:flex;align-items:center;gap:6px;background:rgba(12,16,20,.66);color:#e8eef0;padding:4px 10px 4px 5px;border-radius:7px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.1);transition:background .2s,color .2s';
-    c.innerHTML='<b style="background:#e8eef0;color:#111;border-radius:4px;padding:1px 6px;font-size:12px;white-space:nowrap">'+k+'</b><span></span>';c.querySelector('span').textContent=t;HELP.strip.appendChild(c);HELP.chips[id]={c,s:c.querySelector('span'),t}};
-  chip('thr','W / S','Throttle');chip('nose','SPACE / Q','Nose up / down (or mouse, ↑ ↓)');chip('roll','A / D','Bank');chip('gear','G','Gear');chip('ab','SHIFT','Burner');chip('view','V · C','View · look back');chip('ej','E E','Eject');
-  return HELP}
+    c.innerHTML='<b style="background:#e8eef0;color:#111;border-radius:4px;padding:1px 6px;font-size:12px;white-space:nowrap">'+k+'</b><span></span>';c.querySelector('span').textContent=t;HELP.strip.appendChild(c);HELP.chips[id]={c,s:c.querySelector('span'),t,k:c.querySelector('b')}};
+  chip('thr','W / S','Throttle');chip('nose','SPACE / Q','Nose up / down (or mouse, ↑ ↓)');chip('roll','A / D','Bank');chip('gear','G','Gear');chip('ab','SHIFT','Burner');chip('view','V · C','View · look back');chip('ej','E E','Eject');/* prompt-ok: chipKeysSync() writes the real keys */
+  chipKeysSync();return HELP}
 function chipSet(id,txt,on,warn){const h=HELP;if(!h)return;const c=h.chips[id];if(!c)return;if(c.s.textContent!==txt)c.s.textContent=txt;const bg=warn?'rgba(196,80,40,.85)':on?'rgba(46,120,70,.85)':'rgba(12,16,20,.66)';if(c.c.style.background!==bg)c.c.style.background=bg}
-function tipShow(id){const h=helpEl();if(h.tipId===id)return;h.tipId=id;if(!id){h.tip.style.display='none';return}h.tip.textContent=TIPS[id]||id;h.tip.style.display='block';h.tipAt=performance.now()}
+function tipShow(id){const h=helpEl();if(h.tipId===id)return;h.tipId=id;if(!id){h.tip.style.display='none';return}h.tip.textContent=tipsFor()[id]||TIPS[id]||id;h.tip.style.display='block';h.tipAt=performance.now()}
 Jet.tip=()=>HELP&&HELP.tipId||null;/* test hook: the prompt on screen (dev/base-check.js follows it) */
 /* which step: first flights walk through them once (SAVE.base.jet.tut); any step comes back if you sit in it for 6 s without doing it */
-function tutor(a,dt){const s=sv(),tut=s&&s.jet?(s.jet.tut||(s.jet.tut={})):(S.tut||(S.tut={}));const done=id=>{if(!tut[id]){tut[id]=1;try{A().save()}catch(_){}}};
+function tutor(a,dt){chipKeysSync();const s=sv(),tut=s&&s.jet?(s.jet.tut||(s.jet.tut={})):(S.tut||(S.tut={}));const done=id=>{if(!tut[id]){tut[id]=1;try{A().save()}catch(_){}}};
   const d=B().def(),r=d&&d.runway;let want=null,stuck=null;
   if(!F.air){const offRw=r&&Math.abs(F.pos.z-r.z)>7;if(!offRw)done('taxi');if(offRw&&!tut.taxi){want='taxi';stuck=null}else if(F.thr<.7){want='thr';stuck=F.spd<2&&F.thr<.05?'thr':null}else{done('thr');if(F.spd>K.ROT-6){want='rotate';stuck=F.spd>K.ROT+8?'rotate':null}}}
   else{done('thr');done('rotate');
@@ -542,7 +558,7 @@ addEventListener('keydown',ev=>{const a=A();if(!a||!F.on||!a.CV||a.CV.type!=='je
   if(k==='g'&&F.air&&!ev.repeat){F.gManT=a.simT;F.gear=F.gear?0:1;tone(F.gear?300:420,F.gear?220:520,.3,.08);a.feed(F.gear?'Gear down':'Gear up','info')}
   if(ev.repeat)return;
   if(k==='c'){F.look=!F.look}
-  if(k==='shift'){F.abOn=!F.abOn&&F.thr>.9;if(!F.abOn&&F.thr<=.9&&!F.said.ab){F.said.ab=1;a.feed('Afterburner: throttle to 100% first (W), then Shift','info')}}
+  if(k==='shift'){F.abOn=!F.abOn&&F.thr>.9;if(!F.abOn&&F.thr<=.9&&!F.said.ab){F.said.ab=1;a.feed(PADON()?'Afterburner: throttle to 100% first ('+PB('RT')+'), then '+PB('RB'):'Afterburner: throttle to 100% first ('+KL('fwd','W')+'), then '+KL('jog','Shift'),'info')}}
   if(k==='w')F.thr=Math.min(1,Math.round(F.thr*10+1)/10);if(k==='s')F.thr=Math.max(0,Math.round(F.thr*10-1)/10)});
 /* how far the dad is from the jet's fuselage (any side; 0 = touching) */
 function jetNear(a){const e=S.e;if(!e)return 1e9;const P=a.P,dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,fx=-Math.sin(e.yaw),fz=-Math.cos(e.yaw);const al=dx*fx+dz*fz,sd=dx*fz-dz*fx;

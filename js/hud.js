@@ -373,6 +373,7 @@ function updDrive(st){
   const f=clamp(mph/80,0,1);const len=+R.drvVal.dataset.len;attr(R.drvVal,'stroke-dashoffset',(len*(1-f)).toFixed(1));
   attr(R.drvNdl,'transform',`rotate(${(-225+270*f).toFixed(1)} 110 96)`);
   const g=st.gear!=null?String(st.gear):(st.speedMph<-0.5?'R':'D');txt(R.drvGear,g);cls(R.drvGear,'r',g==='R');
+  {const tk=st.vehicleType==='tank';cls(R.drv,'tank',tk);const hs=R.drv.querySelectorAll('.hint span');const last=hs[hs.length-1];if(last&&last.lastChild&&last.lastChild.nodeType===3){const w=tk?'Sight':'Hood';if(last.lastChild.nodeValue!==w)last.lastChild.nodeValue=w}}/* the tank's V is the gunner's sight */
   let vh=st.vanHealth??1;if(vh>1)vh/=100;vh=clamp(vh,0,1);txt(R.drvVh,Math.round(vh*100)+'%');sty(R.drvVbI,'transform',`scaleX(${vh})`);cls(R.drvVb,'low',vh<.3);/* car health bands (index.html CAR_BAND): 0 fine · 1 dented · 2 pulling · 3 smoking · 4 limp · 5 broken down */
   const band=clamp(st.vehicleBand|0,0,5);if(R.drvVh0&&R.drvVh0.dataset.band!==String(band))R.drvVh0.dataset.band=band;const vw=st.vehicleWarn||'';txt(R.drvWarn,vw);show(R.drvWarn,!!vw);
   txt(R.drvName,st.vehicleName||'Minivan');
