@@ -12,8 +12,8 @@ const NET=process.argv.includes('--net');const MODEL=/\/assets\/(opt\/)?people\/
   log('start',await world());
   /* the front door: the home pin, then E */
   await ev(()=>{const H=window.__ht;H.homeInit()});for(let i=0;i<40;i++){await p.waitForTimeout(250);if(await ev(()=>!!(HT.Home&&HT.Home.ready||window.__ht.homeReady)))break}
-  await ev(()=>{const H=window.__ht,h=H.WORLD.places.home;H.P.pos.set(h.x,0,h.z+1.5);H.collide(H.P.pos,.35);H.P.yaw=0;H.step(3)});
-  let pr=await ev(()=>{const H=window.__ht;H.draw();return [...document.querySelectorAll('*')].filter(e=>e.children.length===0&&e.offsetParent&&/home|door|inside/i.test(e.textContent)).map(e=>e.textContent).slice(0,3)});log('at door prompt',pr);
+  log('door',await ev(()=>{const H=window.__ht;const h=(H.L.houses||[]).find(h=>h.home&&h.door);if(!h)return null;const d=h.door;H.P.pos.set(d.x+d.nx*1.2,0,d.z+d.nz*1.2);H.collide(H.P.pos,.35);H.P.yaw=Math.atan2(d.nx,d.nz);H.step(3);return{x:d.x,z:d.z,nx:d.nx,nz:d.nz,p:[H.P.pos.x,H.P.pos.z]}}));
+  let pr=await ev(()=>{const H=window.__ht;H.draw();return [...document.querySelectorAll('*')].filter(e=>e.children.length===0&&e.offsetParent&&/Go inside|unlocking/i.test(e.textContent)).map(e=>e.textContent).slice(0,3)});log('at door prompt',pr);
   for(let i=0;i<20;i++){await p.keyboard.press('e');await step(4);await p.waitForTimeout(300);if((await ev(()=>window.__ht.mode))==='home')break}
   log('inside',await world());await W.shot('homeexit-inside');
   /* E at "Head outside" */

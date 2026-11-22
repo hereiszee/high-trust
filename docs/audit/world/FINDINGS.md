@@ -105,3 +105,20 @@ _Details, coverage and gaps below. (Draft: sections still being filled in as pro
   house captions the wife's "Is that your father? Wave, kids!" as **Linda**, and tower lines say "Linda says call when you land",
   "I'll tell Linda", "Linda checked" (`js/jet.js:23,26,35`). Linda is also a neighbour name (`index.html:1497`, car owners, tank/jet
   street lines), so a player sees "Linda" both as a stranger whose car they borrow and as their wife.
+
+## Covered and found clean
+
+| Area | How | Result |
+|---|---|---|
+| Route 9 bridge before it opens | `traverse.e2e.js bridge`, `sneak.e2e.js` (real W, view turned per waypoint) | Walking into the sawhorses stops at them; the minivan is stopped at x≈280 on every lane and along both parapets. **The sneak still works on foot**: round the north or south end tree (x 281) and between the parapet rail and the sawhorses (3 of 8 lines reach x 296). The straight lines along each parapet are blocked by those trees, so the sneak needs a small dog-leg. |
+| Bridge after it opens (Rick's job done, enter the hub) | `traverse.e2e.js bridge` | Barricade group hidden, 0 live barricade colliders, 0 raycast proxies, the van drives across to Riverside (x 358), a ray along the deck is not stopped at the old line. `tour-bridge-open.jpg`. |
+| Map edges | `traverse.e2e.js edges`: 24 points round the world, on foot and in the van, W held 5 s straight out | 48/48 stayed inside the map, upright, on the ground. |
+| River | `traverse.e2e.js water`: 6 bank points, both banks, on foot and in the van | Nobody gets into the water (bank collider at x 284 / 304). |
+| Getting out next to a wall | `traverse.e2e.js exit`: van parallel to a house wall 0.25 m off, wall on the driver's side and on the passenger's side, 3 walls | Always out on the free side (or behind), never inside a collider, walks away 2.9 m. |
+| Easter eggs | `eggs.e2e.js` (E, H×5, G) + `dev/base-check.js eggs` (mug, Bigfoot) | Gnome, Still Up, Wrong Number, 225, Two Bits each announce exactly once however often used (5×1 banners), all saved to `ht-save` immediately; mug and Bigfoot found by base-check. base-check's own honk step failed once (its E did not put the dad in the van); the honk itself works with real H taps (`eggs.out.txt`). |
+| Characters under a bad network | `people-wide.e2e.js` (first 6 people-model requests aborted, then 40% random failures, 2 s latency) | No box figure at any sample, every character real within 30 s: home (family), Fort Sensible (Doyle, Pruitt, Ruiz), Maple givers with all jobs unlocked (Dad's Auto/Sal), a traffic wreck. Plus `dev/people-load.e2e.js` (hub crew, Riverside, roundup, hub after job): pass. |
+| Kids and family | `dev/kids-safe.e2e.js` (baseline): pass. Tank main gun: refuses with any person (including `People.live` kids/family) near the line of fire (`js/tank.js:150-153`); tank shells, crushes and props have no damage path to people; the jet belly-lands instead of a fireball within 25 m of a protected character (`js/jet.js:201`). | No hit/die reaction on any protected character found. See W-03 for the visual side (vehicles pass through people). |
+| Traffic vs the player's car | `dev/traffic-check.js --quick` (baseline) | Pass: stops short, horn ladder, push, queue, junctions, tank never pushed. |
+| Night | `tour-night-street.jpg` | Lamps, windows, moon; no light leaks seen on the home street. |
+| Placeholder/dev strings | static scan of every string literal in index.html, js/, js/jobs/ for TODO/FIXME/lorem/placeholder/debug/TBD | Only the intentional fridge note "TODO: GUTTERS!!" (`js/home.js:563`). |
+| Place and character names | static scan | "Fill-Er-Up", "Dad's Auto", "Maple Heights", "Linden Park", "Fort Sensible", "LAWN ORDER", "DAD-1", "Sgt. Pruitt", "Cpl. Doyle", "Staff Sgt. Ruiz" are spelled one way everywhere ("Route9" only in a function name). See W-11 for the wife. |
