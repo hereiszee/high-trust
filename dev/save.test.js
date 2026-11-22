@@ -43,6 +43,28 @@ test('corrupt JSON with no backup resets to defaults',()=>{
 test('a save from a newer version is set aside, not overwritten blindly',()=>{
   const st=fresh({v:99,cash:5000});assert.equal(Save.lastLoad.status,'reset');assert.equal(Save.data.cash,0);
   assert.equal(JSON.parse(st.getItem('ht-save-future')).cash,5000);
+  /* SAV-07: not overwritten at launch, kept aside under a dated key, and lastLoad says where */
+  assert.equal(JSON.parse(st.getItem('ht-save')).v,99,'the newer save is still in place after loading');
+  const k=Save.lastLoad.kept.key;assert.match(k,/^ht-save-unread-\d{4}-\d\d-\d\d_/);assert.equal(JSON.parse(st.getItem(k)).cash,5000);assert.equal(Save.lastLoad.future,true);
+});
+
+test('SAV-09: an empty or "null" save falls back to a good backup',()=>{
+  for(const v of['','null']){const st=Save.useStorage(Save.memoryStorage());Save.load();Save.data.cash=900;Save.saveNow();Save.data.cash=950;Save.saveNow();
+    st.setItem('ht-save',v);Save.load();assert.equal(Save.lastLoad.status,'recovered');assert.equal(Save.data.cash,900)}
+});
+
+test('SAV-10: a failed write fires savefail, not saved; urgent saves flush the store',()=>{
+  const st=Save.memoryStorage();let flushed=0;const real=st.setItem;let full=false;st.setItem=(k,v)=>{if(full)throw new Error('QuotaExceededError');return real(k,v)};st.flush=()=>{flushed++;return true};
+  Save.useStorage(st);Save.load();const ev=[];const a=Save.on('saved',()=>ev.push('saved')),b=Save.on('savefail',()=>ev.push('fail'));
+  assert.equal(Save.saveNow(true),true);assert.equal(flushed,1);Save.saveNow();assert.equal(flushed,1,'a plain save does not flush');
+  full=true;assert.equal(Save.saveNow(true),false);assert.equal(Save.failing,true);full=false;Save.saveNow();assert.equal(Save.failing,false);
+  st.flush=()=>false;assert.equal(Save.saveNow(true),false,'a failed file write is a failed save');
+  a();b();assert.deepEqual(ev,['saved','saved','fail','saved','fail']);
+});
+
+test('SAV-06: hasProgress counts finished jobs, eggs and zip-ties, not just runs and cash',()=>{
+  fresh();assert.equal(Save.hasProgress(),false);Save.data.base.eggs={bigfoot:1};assert.equal(Save.hasProgress(),true);
+  fresh();Save.recordRun(null,'gary',{ok:true,medal:1});assert.equal(Save.hasProgress(),true);
 });
 
 test('v0 prototype save migrates through v2 to v3',()=>{

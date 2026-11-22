@@ -23,7 +23,7 @@ function played(cash) { const st = Save.useStorage(Save.memoryStorage()); Save.l
   Save.saveNow(); Save.saveNow();
   out('INFO', '  ...after two more autosaves', `ht-save-bak cash=${JSON.parse(st.getItem('ht-save-bak')).cash}`); }
 /* 1b. the literal string "null" */
-{ const st = played(900); st.setItem('ht-save', 'null'); boot(st);
+{ const st = played(900); Save.data.cash = 950; Save.saveNow(); /* a second write so a backup (900) exists, as in a real session */ st.setItem('ht-save', 'null'); boot(st);
   out(Save.data.cash === 900 ? 'OK' : 'DEFECT', '"null" ht-save, good backup', `lastLoad=${Save.lastLoad.status} cash=${Save.data.cash} (backup 900)`); }
 /* 2. truncated JSON */
 { const st = played(700); Save.data.cash = 750; Save.saveNow(); const raw = st.getItem('ht-save'); st.setItem('ht-save', raw.slice(0, raw.length >> 1)); boot(st);

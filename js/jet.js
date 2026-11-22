@@ -207,11 +207,11 @@ function events(a,e,dt){if(!F.air)return;F.flightT+=dt;const reg=HT.WorldGen.reg
   if(F.spd>K.BOOM&&F.lastAlt<K.BOOM_ALT&&overTown&&a.simT-F.boomT>25){F.boomT=a.simT;sonicBoom(a)}
   /* the house: within 80 m, under 50 m: the family comes out and waves */
   const h=a.L.start;if(h&&Math.hypot(F.pos.x-h.x,F.pos.z-h.z)<90&&F.lastAlt<60&&a.simT-F.buzzT>60){F.buzzT=a.simT;buzz(a)}}
-function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;persist();a.feed('Achievement · Sonic boom over the neighborhood','trust')}
+function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;persist();a.feed('Flight log · Sonic boom over the neighborhood','trust')}
   boom();try{HT.FX&&HT.FX.shake(.5)}catch(_){}a.feed(pick(LINES.boom),'info');setTimeout(()=>say(pick(['Barb','Linda','Phil','Marcy','Ted','Gil','Bev']),pick(LINES.boomN)),900);
   /* car alarms within 120 m of the pass */
   let n=0;for(const c of a.L.cars||[]){if(!c.obj||c===S.e)continue;if(Math.hypot(c.pos.x-F.pos.x,c.pos.z-F.pos.z)<120&&n<6){n++;alarm(n*.13)}}}
-function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Achievement · Buzzed your own house','trust')}
+function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Flight log · Buzzed your own house','trust')}
   say(pick(['Linda']),pick(LINES.buzz),true);family(a)}
 /* the family on the front lawn, waving, for half a minute (HT.People's family models; never restyled) */
 function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const st=a.L.start;if(!PP||!PP.ok||!st)return;
@@ -229,7 +229,7 @@ const HB={z:-64,x0:206,x1:384,deck:15,river:[282,306]};
 function bridgeHit(p){if(Math.abs(p.z-HB.z)>3.2||p.x<HB.x0||p.x>HB.x1)return false;if(p.y>HB.deck-1.3&&p.y<HB.deck+1.6)return true;
   /* piers */for(let x=HB.x0+12;x<HB.x1;x+=22)if(Math.abs(p.x-x)<1.8&&(x<HB.river[0]-2||x>HB.river[1]+2)&&p.y<HB.deck)return true;return false}
 function bridgeCheck(a,prev){const p=F.pos;if(!F.air)return;if((prev.z-HB.z)*(p.z-HB.z)<=0&&p.x>HB.x0&&p.x<HB.x1&&p.y<HB.deck-1.3&&p.y>0&&a.simT-F.bridgeT>10){F.bridgeT=a.simT;const s=sv();
-    if(s&&s.jet&&!s.jet.bridge){s.jet.bridge=true;persist();a.feed('Achievement · Flew under the High Bridge','trust')}say(TOWER,pick(LINES.bridge),true);tone(660,990,.3,.1)}}
+    if(s&&s.jet&&!s.jet.bridge){s.jet.bridge=true;persist();a.feed('Flight log · Flew under the High Bridge','trust')}say(TOWER,pick(LINES.bridge),true);tone(660,990,.3,.1)}}
 
 /* ================= eject and the parachute ================= */
 function eject(a,e,crashed){const s=sv();if(s&&s.jet&&!crashed)s.jet.ejects=(s.jet.ejects|0)+1;const from=F.pos.clone(),vel=V(0,crashed?14:22,0);_f.set(1,0,0).applyQuaternion(F.q);vel.addScaledVector(_f,Math.min(F.spd,40)*.5);
