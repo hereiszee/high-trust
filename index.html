@@ -1293,7 +1293,7 @@ let spawnedEnemies=[];
 /* a skinned character's bone texture (one GPU texture per skeleton, made on its first render) is only freed by hand: release it when the character leaves
    the scene for good (three.js rebuilds it if the same character is ever drawn again) */
 function dudeFree(root){if(root)root.traverse(o=>{const k=o.isSkinnedMesh&&o.skeleton;if(k&&k.boneTexture){k.boneTexture.dispose();k.boneTexture=null}})}
-function clearChars(){if(FR)frReset();for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
+function clearChars(){if(FR)frReset();try{if(window.HT&&HT.Base&&HT.Base.reset)HT.Base.reset()}catch(e){}/* audit C-2: jet / tank / range state (js/base.js) */for(const e of [...enemies,...allies,...npcs,...spawnedEnemies]){scene.remove(e.dude.root);dudeFree(e.dude.root);if(e.tag&&e.tag.parentNode)e.tag.remove()}dudeSweep();enemies=[];allies=[];npcs=[];spawnedEnemies=[];$('tags').innerHTML='';subQ.length=0;subT=0;$('sub').innerHTML=''}
 function spawnEnemy(x,z,boss,sq){
   const gun=enemyGun(x,z,boss),shotgunner=!boss&&(gun==='shotgun'||gun==='double');
   const look=boss?{shirt:'#6b2d5c',pants:'#1d1f24',crown:1,hair:'#222',scale:1.2,shoes:'#d4af37'}:{shirt:pick(['#3b3b45','#4a3f5a','#52524f','#2f4858','#5a3a3a']),pants:pick(['#2a2a2a','#3a4150','#4b4b4b']),hood:1,shoes:pick(['#f2f2f2','#c0392b','#111'])};

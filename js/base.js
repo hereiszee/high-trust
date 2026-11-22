@@ -327,6 +327,9 @@ addPieces();
 const HOOKS={interact:[]};
 /* Base.on('interact', fn(prompt,dt)) -> null | 'text' | {txt,fn,key?} | {txt,hold,fn}: the first answer wins (index.html updHub, roamPrompt) */
 Base.on=(h,fn)=>{(HOOKS[h]||(HOOKS[h]=[])).push(fn);return()=>{const a=HOOKS[h],k=a.indexOf(fn);if(k>=0)a.splice(k,1)}};
+/* audit C-2: Base.reset() runs every 'reset' hook (jet, tank, range): index.html clearChars calls it on quit to title, new game / continue,
+   job start, going home and the free-roam tow, so no vehicle or range state outlives the session it belongs to */
+Base.reset=()=>{for(const fn of (HOOKS.reset||[]))try{fn()}catch(e){console.warn('[base] reset',e)}};
 Base.interact=(prompt,dt)=>{for(const fn of HOOKS.interact){let r=null;try{r=fn(prompt,dt)}catch(e){console.warn('[base] interact',e)}if(r)return r}return null};
 /* the training areas: the range compound (firing line, lanes, range control). The rest of the post is a gun-free zone like Maple */
 Base.rangeBox=()=>{const d=Base.def();if(!d)return null;const R=d.range;return{x0:R.box.x0+2,z0:R.box.z0-2,x1:d.bld.range.x1+3,z1:R.box.z1+2}};

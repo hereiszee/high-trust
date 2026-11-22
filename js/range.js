@@ -372,8 +372,13 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
   Jb.on('pose',()=>{try{tick()}catch(e){if(!S.err){S.err=1;console.warn('[range]',e)}}});/* 'pose' runs every frame and in __ht.step */
   Jb.on('hud',st=>{try{hudPart(st)}catch(e){if(!S.err2){S.err2=1;console.warn('[range] hud',e)}}});
   Jb.on('fire',()=>{try{return onFire()}catch(e){}});
-  Bs.on('interact',p=>interact(p))}
+  Bs.on('interact',p=>interact(p));Bs.on('reset',()=>reset())}
 hook();
+/* audit C-2: one clean slate (HT.Base.reset from index.html clearChars: quit to title, new game / continue, job start, home, the tow):
+   the rental goes back on the rack (his own loadout comes back before anything saves), no course half-run, no card or rack menu open */
+function reset(){const a=A();try{if(S.rent&&a)rentReturn(a,true)}catch(_){}S.rent=null;S.rentIdx=-1;S.course=null;S.lastHit=null;
+  try{menuClose()}catch(_){}try{closeCard()}catch(_){}}
+R.reset=reset;
 /* test hooks (dev/base-check.js) */
 R.start=()=>courseStart(A());R.showLast=()=>{if(S.course&&S.course.state==='done')showCard(A(),S.course)};R.state=()=>({course:S.course&&{state:S.course.state,stage:S.course.stageI,score:S.course.score,shots:S.course.shots,hitShots:S.course.hitShots,time:S.course.time,total:S.course.total,medal:S.course.medal},
   rent:S.rent&&{cur:A().P.cur},card:!!S.card,targets:S.targets.length,met:!!(sv()||{}).met});

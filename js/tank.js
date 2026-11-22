@@ -295,6 +295,16 @@ function hook(){const Jb=J(),Bs=B();if(!Jb||!Jb.on||!Bs||!Bs.on){setTimeout(hook
   Jb.on('pose',()=>{try{tick()}catch(err){if(!S.err2){S.err2=1;console.warn('[tank] tick',err)}}});
   Jb.on('hud',st=>{try{hud(st)}catch(_){}});Bs.on('interact',p=>interact(p));
   (function touch(){const a=A();if(!a||!a.HUD||!a.HUD.on){setTimeout(touch,500);return}a.HUD.on('touch',(k,down)=>{const c=A().CV;if(down&&k==='fire'&&c&&c.type==='tank')S.touchFire=true})})()}
+/* audit C-2: one clean slate (HT.Base.reset from index.html clearChars: quit to title, new game / continue, job start, home, the tow).
+   Out of the hull (so the game's own exit restores the camera), gunner sight off, shells in flight gone, knocked lane props rebuilt */
+function reset(){const a=A();try{if(a&&a.CV&&a.CV.type==='tank'&&a.exitCar)a.exitCar()}catch(_){}
+  reticle(false);S.inside=false;S.drive=false;S.yawRate=0;S.reload=0;S.parkT=0;
+  for(const sh of S.shells){try{sh.mesh&&sh.mesh.parent&&sh.mesh.parent.remove(sh.mesh)}catch(_){}}S.shells=[];
+  if(S.propRoot){S.propRoot.parent&&S.propRoot.parent.remove(S.propRoot);S.propRoot=null}S.props=[];S.flat.clear();S.cars.clear()}
+Tank.reset=reset;
+/* fast travel (index.html, fix/world) asks this: true while the dad is in the tank */
+Object.defineProperty(Tank,'on',{get:()=>{const a=A();return !!(a&&a.CV&&a.CV.type==='tank')}});
+(function hookReset(){const Bs=B();if(!Bs||!Bs.on){setTimeout(hookReset,50);return}Bs.on('reset',reset)})();
 hook();
 /* test hooks */
 Tank.fire=()=>{const a=A();if(a.CV&&a.CV.type==='tank')fire(a,a.CV)};Tank.state=()=>({e:!!S.e,inside:!!(A().CV&&A().CV.type==='tank'),reload:S.reload,shells:S.shells.length,flat:S.flat.size,turret:S.turretYaw,props:S.props.filter(p=>p.down).length,pos:S.e?{x:S.e.pos.x,z:S.e.pos.z}:null});

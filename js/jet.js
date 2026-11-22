@@ -19,11 +19,11 @@ const CALL='DAD-1',TOWER='Tower';
 const K={TH:13.5,AB:10,CD:.00185,STALL:33,ROT:38,LIFTOFF:42,GROUND_DRAG:.012,BRAKE:12,PITCH:1.25,ROLL:2.6,YAW:.45,GEARH:0,TURN:2.6,MAXR:2200,WARNR:1500,BOOM:100,BOOM_ALT:80};
 const FEEL={label:'jet',seats:1,bed:0,max:6,boostMax:8,acc:2,boostAcc:3,brake:8,hbrake:8,turn:1,steerResp:5,grip:20,roll:0,cam:[16,4],eng:2,gears:1,horn:'short',door:'close',rear:1,torque:0};
 const LINES={
-  enter:["DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm.","DAD-1, Tower. Throttle up with W. Pull back at a hundred and forty. Linda says wear a jacket.","Tower to DAD-1. The jet is fueled, the coffee is not. Have a nice flight."],
-  takeoff:["DAD-1, wheels up. Gear is G. Linda says call when you land.","DAD-1 is airborne. Somebody tell the HOA.","Nice rotation, DAD-1. Climb and enjoy. Stay off the neighbor's satellite dish."],
+  enter:["DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm.","DAD-1, Tower. Throttle up with W. Pull back at a hundred and forty. Jen says wear a jacket.","Tower to DAD-1. The jet is fueled, the coffee is not. Have a nice flight."],
+  takeoff:["DAD-1, wheels up. Gear is G. Jen says call when you land.","DAD-1 is airborne. Somebody tell the HOA.","Nice rotation, DAD-1. Climb and enjoy. Stay off the neighbor's satellite dish."],
   stall:["DAD-1, you're stalling. Nose down. Like when you nap in the recliner.","Airspeed, DAD-1. Airspeed! Lower the nose, add throttle."],
   gear:["DAD-1, check your gear. G. The landing kind.","Gear, DAD-1. Planes like wheels when they land."],
-  land:["Nice landing, DAD-1. Tower out.","Wheels down, all in one piece. I'll tell Linda.","Smooth. Smooth like a crockpot. Tower out."],
+  land:["Nice landing, DAD-1. Tower out.","Wheels down, all in one piece. I'll tell Jen.","Smooth. Smooth like a crockpot. Tower out."],
   far:["DAD-1, you're leaving the neighborhood. Come back, your lasagna is getting cold.","DAD-1, that's the county line. Turn around. That's an order. That's a suggestion. Turn around."],
   boom:["SONIC BOOM. Every window on the block just rattled.","Was that a sonic boom? Over the CUL-DE-SAC?"],
   boomN:["My windows! My good windows!","That rattled my whole china cabinet!","Somebody's showing off.","Was that thunder? The sky is blue. That wasn't thunder."],
@@ -32,7 +32,7 @@ const LINES={
   eject:["DAD-1 has ejected. Repeat: DAD-1 is enjoying the parachute.","Ejection! DAD-1, sit back, the chute knows the way home. The jet is fine. It's a rental."],
   crash:["DAD-1... that was not a landing. That was a strongly worded suggestion to the ground.","The jet's fine. It's a rental. The ground is having a worse day."],
   ground:["DAD-1 is down safe. Somebody get him a juice box.","DAD-1 on the ground. The jet's already back in the hangar. Don't ask how."],
-  refuse:"You can't take a jet to a job. Linda checked."};
+  refuse:"You can't take a jet to a job. Jen checked."};
 const say=(who,t,front)=>{try{A().radio(who,t,front)}catch(_){}};
 
 /* ================= the model ================= */
@@ -213,7 +213,7 @@ function sonicBoom(a){const s=sv();if(s&&s.jet&&!s.jet.boom){s.jet.boom=true;per
   /* car alarms within 120 m of the pass */
   let n=0;for(const c of a.L.cars||[]){if(!c.obj||c===S.e)continue;if(Math.hypot(c.pos.x-F.pos.x,c.pos.z-F.pos.z)<120&&n<6){n++;alarm(n*.13)}}}
 function buzz(a){const s=sv();if(s&&s.jet&&!s.jet.buzz){s.jet.buzz=true;persist();a.feed('Achievement · Buzzed your own house','trust')}
-  say(pick(['Linda']),pick(LINES.buzz),true);family(a)}
+  say('Jen',pick(LINES.buzz),true);family(a)}
 /* the family on the front lawn, waving, for half a minute (HT.People's family models; never restyled) */
 function family(a){if(S.fam.length){S.famT=30;return}const PP=HT.People;const st=a.L.start;if(!PP||!PP.ok||!st)return;
   /* on the front lawn, beside the driveway, in front of the door (falls back to the dad's start) */
@@ -571,5 +571,19 @@ function home(a,e){const d=B().def();e.pos.set(d.jet.x,0,d.jet.z);e.yaw=d.jet.ya
 Jet.home=()=>{const a=A();if(S.e&&a.CV!==S.e)home(a,S.e)};
 Jet.HB=HB;Jet.camera=dt=>camera(dt);Jet.family=()=>family(A());/* test hook: the family comes out as if you buzzed the house */
 /* dev/base-air.js: the flying view (far fog, far terrain, lids) without flying; keep=true just re-applies it */
+/* audit C-2: one clean slate (HT.Base.reset, called from index.html clearChars: quit to title, new game / continue, job start, home,
+   the free-roam tow). Nothing of a flight survives it: canopy, flight draw radius, ground map, far houses, fog, crew hold, family, tips, markers */
+function reset(){const a=A();try{if(F.on)stop(a,S.e)}catch(_){}
+  if(F.chute){const m=F.chute.mesh;if(m&&m.parent)m.parent.remove(m);F.chute=null}
+  try{flight(false)}catch(_){}if(F.gm){F.gm.parent&&F.gm.parent.remove(F.gm);F.gm.visible=false}
+  if(F.fh)for(const m of F.fh)m.visible=true;F.fh=null;/* rebuilt from the new level's backdrop next time */
+  try{if(a)farFog(a,false)}catch(_){}try{if(a)lids(a,false)}catch(_){}
+  Object.assign(F,{on:false,air:false,ride:null,markT:0,ejArm:null,pose:null,landT:0,look:false,abOn:false,prev:null,spd:0,thr:0,ab:0,stall:false});
+  CR.phase=null;CR.list=null;for(const f of S.fam){try{f.d.root.parent&&f.d.root.parent.remove(f.d.root)}catch(_){}}S.fam=[];S.famT=0;S.parkT=0;
+  try{if(a&&a.P&&a.P.dude)a.P.dude.root.rotation.z=0}catch(_){}try{tipShow(null)}catch(_){}try{hudShow(false)}catch(_){}try{jetSound(0,0)}catch(_){}}
+Jet.reset=reset;
+/* fast travel (index.html, fix/world) asks this: true while the dad is in the jet or still under its canopy */
+Object.defineProperty(Jet,'on',{get:()=>{const a=A();return !!(F.on||F.chute||(a&&a.CV&&a.CV.type==='jet'))}});
+(function hookReset(){const Bs=B();if(!Bs||!Bs.on){setTimeout(hookReset,50);return}Bs.on('reset',reset)})();
 Jet.air=(a,on,keep)=>{if(!keep){F.chute=null}const was=F.on;farHouses(!!on);if(on){farFog(a,true)}else{farFog(a,true);lids(a,false)}};
 })();
