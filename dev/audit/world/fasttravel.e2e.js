@@ -25,7 +25,7 @@ const {open,log,ok,out}=require('./lib.js');
   ok(!(moved>20&&f1.some(t=>/Get back to the minivan/i.test(t))),'A: fast travel on foot either refuses (needs the minivan) or goes, never both (moved '+moved.toFixed(0)+' m)',f1);
   ok(!(moved>20&&Math.hypot(a1.p.x-a1.van.x,a1.p.z-a1.van.z)>100),'A: after fast travel the minivan is not left far behind',{dad:a1.p,van:a1.van});
   /* B: in the minivan */
-  await ev(()=>{const H=window.__ht;H.P.pos.set(H.VAN.pos.x+3,0,H.VAN.pos.z);H.enterVan();H.step(2)});await step(4);
+  await ev(()=>{const H=window.__ht;const a=H.WORLD.places.auto;H.VAN.pos.set(a.x,0,a.z+10);H.syncVan&&H.syncVan();H.P.pos.set(a.x+3,0,a.z+10);H.enterVan();const e=H.CV;e.pos.set(a.x,0,a.z+10);if(e.car){e.car.x=a.x;e.car.z=a.z+10;e.car.spd=0}H.step(2)});await step(4);
   const b0=await st();const r2=await mapTravel('Home');await p.waitForTimeout(500);await step(6);const b1=await st();const f2=await feedTxt();
   log('B in van ->',r2,b0,b1,f2);
   const sv=f2.map(t=>(t.match(/Saved you (\d+) seconds/)||[])[1]).filter(Boolean);

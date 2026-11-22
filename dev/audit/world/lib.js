@@ -18,6 +18,8 @@ async function open(o={}){const r=await open0(o);const {p}=r;
   r.tap=async(k)=>{await p.keyboard.press(k)};
   r.shot=async(name,o={})=>{fs.mkdirSync(SHOTDIR,{recursive:true});await ev(o=>{const H=window.__ht;if(o.hideHud)for(const el of document.body.querySelectorAll('body > *'))if(el!==H.renderer.domElement&&el.style&&!el.contains(H.renderer.domElement))el.style.visibility='hidden';H.draw();H.draw()},o);
     const f=path.join(SHOTDIR,name+'.jpg');await p.screenshot({path:f,type:'jpeg',quality:80});await ev(()=>{for(const el of document.body.querySelectorAll('body > *'))if(el.style)el.style.visibility=''});return 'docs/audit/world/'+name+'.jpg'};
+  /* let the page's own loop run for ms (real frames: HUD, minimap, region banner), then pause it again */
+  r.live=async(ms=1500)=>{await ev(()=>{window.__rafOn=true;const cb=window.__rafPending;window.__rafPending=null;if(cb)requestAnimationFrame(cb)});await p.waitForTimeout(ms);await ev(()=>{window.__rafOn=false});await p.waitForTimeout(100)};
   r.feed=()=>ev(()=>[...document.querySelectorAll('.ht-feed *, #feed *, .feed *')].map(e=>e.textContent).filter(Boolean).slice(-12));
   return r}
 let fails=0;const out=[];

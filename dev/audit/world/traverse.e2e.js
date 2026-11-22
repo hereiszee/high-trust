@@ -8,19 +8,24 @@ const {open,log,ok,out}=require('./lib.js');
 const ONLY=(process.argv[2]||'bridge,edges,water,exit').split(',');
 (async()=>{const W=await open();const {p,ev,step,key,tap}=W;
   await ev(()=>{const H=window.__ht;H.step(3)});await step(10);
+  /* anything modal (an intro card, a banner with buttons) stops input: log it and clear it */
+  const unblock=async(where)=>{for(let i=0;i<4;i++){const s=await ev(()=>({running:window.__ht.running,screen:window.__ht.HUD.screen,mode:window.__ht.mode}));if(s.running)return;log('blocked at '+where,s);await p.keyboard.press('Enter');await p.waitForTimeout(300);await step(2)}};
+  W.unblock=unblock;
   const st=()=>ev(()=>{const H=window.__ht,CV=H.CV,P=H.P;const o=CV||null;return{x:+P.pos.x.toFixed(2),y:+P.pos.y.toFixed(2),z:+P.pos.z.toFixed(2),
     car:o?{x:+o.pos.x.toFixed(2),z:+o.pos.z.toFixed(2),y:+o.obj.position.y.toFixed(2),rx:+o.obj.rotation.x.toFixed(2),rz:+o.obj.rotation.z.toFixed(2),spd:+(o.spd||0).toFixed(2)}:null,W:H.L.W*2,H:H.L.H*2}});
   const place=(x,z,yaw,car)=>ev(([x,z,yaw,car])=>{const H=window.__ht;if(!car&&H.CV)H.exitVehicle();if(car){if(!H.CV){H.P.pos.set(H.VAN.pos.x+2,0,H.VAN.pos.z);H.enterVan()}const e=H.CV;e.pos.set(x,0,z);e.yaw=yaw;e.spd=0;if(e.car){e.car.x=x;e.car.z=z;e.car.yaw=yaw;e.car.spd=0;e.car.vdx=-Math.sin(yaw);e.car.vdz=-Math.cos(yaw)}H.syncVan&&H.syncVan()}
     else{H.P.pos.set(x,0,z);H.P.vy=0;H.P.yaw=yaw}H.P.yaw=yaw;H.step(2)},[x,z,yaw,car]);
-  const hold=async(k,frames)=>{await key(k,true);await step(frames);await key(k,false)};
+  const hold=async(k,frames)=>{await unblock(k);await key(k,true);await step(frames);await key(k,false)};
   /* yaw for a heading: forward is (-sin yaw, -cos yaw) */
   const YAW={e:-Math.PI/2,w:Math.PI/2,n:0,s:Math.PI};
   if(ONLY.includes('bridge')){
     /* closed */
     await place(274,43,YAW.e,false);await hold('w',60);let s=await st();log('bridge closed, walked at barricade',s);
     ok(s.x<283.5,'closed: walking into the barricade stops at it',s);
-    let crossed=false;for(const z of[41,43,45]){await place(279,z,YAW.e,false);await key('w',true);for(let i=0;i<40;i++){await step(2);if(i===4)await tap(' ')}await key('w',false);s=await st();log('vault attempt z='+z,s);if(s.x>285)crossed=true}
-    ok(crossed,'closed: the sneak works (jump/vault over the sawhorses on foot)');
+    let crossed=false;for(const z of[41,43,45]){await place(279,z,YAW.e,false);await key('w',true);let jumped=0;for(let i=0;i<60;i++){await step(2);const q=await st();if(!jumped&&q.x>281.3){jumped=1;await tap(' ')}else if(jumped&&jumped<4&&q.x<283){jumped++;if(jumped===3)await tap(' ')}}await key('w',false);s=await st();log('vault attempt z='+z,s);if(s.x>285)crossed=true}
+    let squeezed=[];for(const z of[38.9,39.2,46.8,47.1]){await place(279,z,YAW.e,false);await hold('w',90);s=await st();log('walk past the end of the sawhorses z='+z,s);if(s.x>285)squeezed.push(z)}
+    ok(crossed||squeezed.length,'closed: the sneak works on foot (vault, or round the end of the sawhorses: '+JSON.stringify(squeezed)+')');
+    for(const z of[39.0,47.0]){await place(268,z,YAW.e,true);await hold('w',150);s=await st();log('drove the parapet gap z='+z,s.car);ok(s.car&&s.car.x<283,'closed: no car squeezes past the barricade along the parapet (z='+z+')',s.car)}
     await place(268,43,YAW.e,true);await hold('w',150);s=await st();log('bridge closed, drove at barricade',s);ok(s.car&&s.car.x<283,'closed: the minivan does not get through the barricade',s.car);
     /* open it the game's own way: Rick's job done, back into the hub */
     const o=await ev(()=>{const H=window.__ht;if(H.CV)H.exitVehicle();H.prog.done[1]=true;H.enterHub();H.step(4);const g=H.scene.getObjectByName('barricade');
@@ -50,7 +55,7 @@ const ONLY=(process.argv[2]||'bridge,edges,water,exit').split(',');
     log('wall spots',spots.length);const res=[];
     for(const s of spots.slice(0,5)){for(const side of['left','right']){/* van runs along x; left side (driver) faces the wall when heading west */
         const yaw=side==='left'?YAW.e:YAW.w;/* heading east, the right of the van is +z?  r=(cos yaw,0,-sin yaw): east yaw=-pi/2 -> r=(0,0,1) => right side is south, left (driver) side is north = the wall */
-        await place(s.x,s.z,yaw,true);await step(2);await tap('e');await step(4);const a=await st();
+        await place(s.x,s.z,yaw,true);await step(2);await unblock('exit');await tap('e');await step(4);const a=await st();
         const sol=await ev(([x,z])=>{const H=window.__ht;const c=H.solidAt(x,z,.3,0);return c?[c.x0,c.z0,c.x1,c.z1].map(v=>+v.toFixed(1)):null},[a.x,a.z]);
         /* can he walk away? hold S (back off), then A and D */
         let moved=0;for(const k of['s','a','d','w']){const b0=await st();await hold(k,20);const b1=await st();moved=Math.max(moved,Math.hypot(b1.x-b0.x,b1.z-b0.z))}
