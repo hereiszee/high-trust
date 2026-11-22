@@ -142,8 +142,8 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
       if(!skip)await shot('spectator-result');await press('Escape',1);await step(2)}}
 
   if(phases.includes('bracket')){say('== bracket night (day 3): dial-ins, handicap starts, up to three rounds, one settlement');
-    await ev(()=>{const s=HT.Save.data;s.day=3;s.cash=1500;s.strip.bracket.lastDay=0});await office();await pickItem(/^Bracket night$/);await pickItem(/^Rent: Sedan$/);await step(2);
-    const c0=await cashNow();let rounds=0,L=null;
+    await ev(()=>{const s=HT.Save.data;s.day=3;s.cash=1500;s.strip.bracket.lastDay=0});await office();await pickItem(/^Bracket night$/);const c0=await cashNow();await pickItem(/^Rent: Sedan$/);await step(2);
+    ok(c0-(await cashNow())===60+20,'entry and rental taken when the bracket is accepted ($'+(c0-(await cashNow()))+')');let rounds=0,L=null;
     for(let k=0;k<3;k++){let r=await S();if(!r.run)break;rounds++;const offs=await ev(()=>HT.Strip.S.run.offs.slice());say('  round '+rounds+' vs '+r.run.opp+', handicap '+JSON.stringify(offs));
       r=await pass({});L=r.last;say('  '+JSON.stringify(L&&L.res));const m=await menu();if(m.items[0]==='Next round'){await pickItem(/^Next round$/);await step(2)}else break}
     const c1=await cashNow();ok(L&&L.money&&L.money.lines.some(x=>x[0]==='Bracket entry'&&x[1]===-60),'bracket settled once at the end: '+JSON.stringify(L&&L.money));
