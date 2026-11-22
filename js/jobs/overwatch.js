@@ -39,7 +39,7 @@ const ROUTE=[{x:411,z:85},{x:410.6,z:77},{x:407.2,z:75.6},{x:407.2,z:67.2},{x:40
   {x:384.6,z:39.2,stop:'the end of the court'},{x:375.2,z:39.2},{x:351,z:39.2},{x:343.2,z:39.2},{x:333.6,z:38.6},{x:331.4,z:35.4}];
 const STAGES=['ladder','garden','court','church','car'];
 const LABELS={ladder:'Up the ladder',garden:'The garden gate',court:'Past the court',church:'To the church',car:'The car'};
-const DESC={thug_hoodie:'grey zip-up',thug_track:'track jacket',thug_beanie:'beanie',thug_red:'red track top',thug_fro:'black jacket',thug_jacket:'brown jacket',thug_brown:'brown zip-up',
+const DESC={thug_hoodie:'gray zip-up',thug_track:'track jacket',thug_beanie:'beanie',thug_red:'red track top',thug_fro:'black jacket',thug_jacket:'brown jacket',thug_brown:'brown zip-up',
   thug_cap:'work shirt and cap',thug_f_hood:'black zip-up',thug_f_leather:'leather jacket',boss:'suit'};
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -47,10 +47,10 @@ const LINES={
   beanHit:["OW. Okay. Okay! I'm out. I'm SO out.","AAH. Who throws a beanbag?! From WHERE?","That's... a bean? I'm done. I'm done.","Ow, my everything. Fine. FINE."],
   gary:["Hi. I'll be your zip-tie technician today.","Zip-tie technician, coming through.","Please keep your hands where I can see them and your feet where they are.","Gary, Riverside Zip-Tie Services. How did we do today?"],
   mark:["Mark.","Marked.","Got him. Mark.","Mark. He's watching our guy, not the street."],
-  civ:{gran:"Negative. That's Mrs. Alvarez. Those are groceries. Don't you dare.",marcus:"Umbrella. Not a rifle. It's not even raining, Marcus.",kenji:"Jogger. Friendly. Good form, actually.",phone:"Grey zip-up, phone... he's texting his mom. Friendly.",mei:"Bus stop. She's reading. Friendly.",lucia:"Friendly. That's Lucia from the laundromat."},
+  civ:{gran:"Negative. That's Mrs. Alvarez. Those are groceries. Don't you dare.",marcus:"Umbrella. Not a rifle. It's not even raining, Marcus.",kenji:"Jogger. Friendly. Good form, actually.",phone:"Gray zip-up, phone... he's texting his mom. Friendly.",mei:"Bus stop. She's reading. Friendly.",lucia:"Friendly. That's Lucia from the laundromat."},
   spook:["Nope. Nope nope nope.","Somebody's shooting at me from GOD!","I'm going home. I live here. I'm going home."],
   lethal:["Rule one, Hawk.","Rule one. Hawk. RULE ONE.","...That's not what the beans are for. That's what the beans are INSTEAD of."],
-  civScare:["Hawk! That's a civilian. Eyes, then trigger.","You just scared a neighbour half to death. Eyes first.","That was somebody's grandma. Eyes. Then trigger."],
+  civScare:["Hawk! That's a civilian. Eyes, then trigger.","You just scared a neighbor half to death. Eyes first.","That was somebody's grandma. Eyes. Then trigger."],
   civYelp:["AY! Who's shooting?!","My groceries!","I'm calling the Gazette!","Not today! Not on my street!"],
   pin:["We're pinned! Hawk, do something!","Still pinned! He's got eyes on us!","Hawk, I'm not standing here all day!"],
   wit:["Is it bad that I'm enjoying this?","I'm eighty-one. My heart is doing a drum solo.","Forty years on this street. Never been this exciting."]};
@@ -170,7 +170,7 @@ J.register('overwatch',{
   def:{giver:'doug',hood:'river',title:'Higher Ground',role:'Doug · Strand 2/2 · Overwatch',place:'Community Center roof, Riverside',
     lines:["Mr. Ferreira saw the Duke's crew stash the converters. He'll say it on the record, at the church, today. Rosa and Gary are walking him there.",
       "You'll be on the Community Center roof with my father's rifle. Never fired it at a person. Today's not the day either. Beanbags are in the green box.",
-      "Spot them first. Hold the scope on somebody and I'll tell you who they are. Then a bean, centre mass. Breathe in, breathe out, squeeze at the bottom."],
+      "Spot them first. Hold the scope on somebody and I'll tell you who they are. Then a bean, center mass. Breathe in, breathe out, squeeze at the bottom."],
     obj:'From the roof, cover Rosa, Gary and the witness on their walk to the church. Spot threats, beanbag them, hold fire on anyone who isn\'t one.',
     crew:['doug','gary'],/* Rosa walks with the witness; she is built by this job (listing her here makes the start wait on her model) */weapons:['hunter','beanbag'],
     from:{place:'g_doug'},start:{place:'roof'},site:'roof',
@@ -216,7 +216,7 @@ J.register('overwatch',{
 
   payout(M,ok){if(!ok||!M.ow)return[];const S=M.ow.stats,out=[];
     if(!S.lethal)out.push(['Bean counter · all non-lethal',300]);if(M.ow.witHp>=100)out.push(['Witness unscathed',150]);
-    if(S.cuffed)out.push(['Zip-tied ×'+S.cuffed,0]);if(S.flats)out.push(['Tyres ×'+S.flats+' (Doug is paying for them)',0]);if(S.civ)out.push(['Spooked the neighbours ×'+S.civ,-25*S.civ]);return out},
+    if(S.cuffed)out.push(['Zip-tied ×'+S.cuffed,0]);if(S.flats)out.push(['Tires ×'+S.flats+' (Doug is paying for them)',0]);if(S.civ)out.push(['Spooked the neighbors ×'+S.civ,-25*S.civ]);return out},
   medal(M){const O=M.ow;if(!O)return 1;return O.stats.lethal?1:O.witHp>90?3:2},
   end(M,ok){returnRifle(M);if(!ok)return;const s=A().SV(),SV=window.HT&&HT.Save;
     if(SV&&s){try{SV.household(s,'ferreira')}catch(_){}try{SV.perk(s,'doug',true)}catch(_){}s.flags=s.flags||{};s.flags.ferreira=true}},
@@ -414,9 +414,9 @@ function impact(M,p,h){const a=A(),O=M.ow,F_=FX(),pt=h.point,who=h.who,dir=p.vel
   const Au=AUD();
   if(who&&who.kind==='threat'){hitThreat(M,who.t,p,h);try{F_&&F_.impact(pt,dir.clone().negate(),'cloth',{big:p.type==='live',color:p.type==='bean'?[1,.55,.15]:[.35,.45,.6]})}catch(_){}try{Au&&Au.impact(p.type==='bean'?'beanbag':'cloth',pt)}catch(_){}}
   else if(who&&who.kind==='scare'){O.scare.wob=1.2;O.sight.done=true;O.stats.hits++;try{F_&&F_.impact(pt,dir.clone().negate(),'wood',{color:[.9,.8,.4]})}catch(_){}
-    const d=Math.round(Math.hypot(pt.x-a.P.pos.x,pt.z-a.P.pos.z));say('doug',p.type==='bean'?pick(["Sweet corn. You're zeroed.","Right in the flannel. "+ESw(d)+" metres, and you held over like you meant it.","Scarecrow's had a day. You're zeroed."]):"That was a live round into Rosa's scarecrow. She's going to want a word. You're zeroed, though.",true)}
+    const d=Math.round(Math.hypot(pt.x-a.P.pos.x,pt.z-a.P.pos.z));say('doug',p.type==='bean'?pick(["Sweet corn. You're zeroed.","Right in the flannel. "+ESw(d)+" meters, and you held over like you meant it.","Scarecrow's had a day. You're zeroed."]):"That was a live round into Rosa's scarecrow. She's going to want a word. You're zeroed, though.",true)}
   else if(who&&who.kind==='tyre'){tyre(M,who,p)}
-  else if(who&&who.kind==='car'){try{F_&&F_.impact(pt,dir.clone().negate(),'metal',{})}catch(_){}try{Au&&Au.impact('metal',pt)}catch(_){}if(p.type==='bean'&&!O.say.beanCar){O.say.beanCar=1;say('doug',"Beans bounce off cars, Hawk. Red box. Tyres.",true)}}
+  else if(who&&who.kind==='car'){try{F_&&F_.impact(pt,dir.clone().negate(),'metal',{})}catch(_){}try{Au&&Au.impact('metal',pt)}catch(_){}if(p.type==='bean'&&!O.say.beanCar){O.say.beanCar=1;say('doug',"Beans bounce off cars, Hawk. Red box. Tires.",true)}}
   else{try{if(F_){if(h.object&&h.face)F_.hit(h,{big:p.type==='live'});else F_.impact(pt,new (a.THREE.Vector3)(0,1,0),h.ground?'dirt':'concrete',{big:p.type==='live'})}}catch(_){}try{Au&&Au.impact(h.ground?'dirt':'concrete',pt)}catch(_){}}
   /* a miss counts as a spook: anyone within 2 m of where it landed, or who heard it go past, might bolt */
   if(!(who&&who.kind==='threat')){for(const t of O.threats){if(!t.e||t.e.state!=='idle'||t.st==='gone'||t.st==='run'&&t.fled)continue;
@@ -456,7 +456,7 @@ function wave(M,id){const a=A(),O=M.ow;if(O.waves[id])return;O.waves[id]=true;
     threat(M,{id:'bus',x:322.2,z:39.4,yaw:-Math.PI/2,spot:'at the bus stop past the church',reveal:TUNE.reveal.bus,fuse:TUNE.fuse[2],sit:true});
     civ(M,{id:'phone',name:'Guy on the phone',yelp:"MOM. MOM, I'll call you back.",key:'thug_hoodie',role:'thug',line:'phone',path:[{x:368.5,z:38.4}],yaw:Math.PI*.9,prop:'phone'})}
   else if(id==='car'){O.carT=0;say('ferreira',"Steps. I made it to the steps. Somebody tell my wife.",true);
-    later(M,2.6,()=>{say('doug',"Car! Grey sedan, coming up the east side. It's going to turn onto Main right under us. Fast.",true);say('doug',"Beans won't stop a car. Red box, Hawk. Tyres.",false);spawnCar(M)})}}
+    later(M,2.6,()=>{say('doug',"Car! Gray sedan, coming up the east side. It's going to turn onto Main right under us. Fast.",true);say('doug',"Beans won't stop a car. Red box, Hawk. Tires.",false);spawnCar(M)})}}
 function threat(M,o){const a=A(),O=M.ow;const t=Object.assign({st:'pending',marked:false,y:o.y||0,t:0,fireT:0,seen:0},o);O.threats.push(t);if(!o.delay)spawnThreat(M,t);return t}
 function spawnThreat(M,t){const a=A(),O=M.ow;if(t.e)return;if(t.y>1)t.y=surfaceY(t.x,t.z,t.y+6,t.y);const e=a.spawnEnemy(t.x,t.z,false);e.script={kind:'overwatch'};e.noLeash=true;e.hp=e.maxhp=75;e.yaw=t.yaw||0;a.equip(e.dude,null);e.gun=null;e.alert=false;
   e.pos.set(t.x,0,t.z);t.e=e;t.st='lurk';t.key=e.dude.rb&&e.dude.rb.key||'thug_hoodie';t.desc=DESC[t.key]||'hoodie';
@@ -509,7 +509,7 @@ function fleeTo(t){const e=t.e;const opts=[{x:e.pos.x+30,z:e.pos.z},{x:e.pos.x-3
 function vanish(e){const a=A();e.script={kind:'incar'};e.state='dead';e.hp=0;if(e.dude.root.parent)e.dude.root.parent.remove(e.dude.root);const k=a.enemies.indexOf(e);if(k>=0)a.enemies.splice(k,1);a.rebuildTargets()}
 function hitThreat(M,t,p,h){const a=A(),O=M.ow,e=t.e,head=!!(h.object&&h.object.userData&&h.object.userData.head),H=G();O.stats.hits++;
   if(p.type==='bean'){t.bean=true;if(e.state==='idle'){a.equip(e.dude,null);if(H.hurtEnemy)H.hurtEnemy(e,999,'player',{nonlethal:true,head,gun:'beanbag'});if(e.state==='idle')a.surrender(e);
-      later(M,0.35,()=>{say(cap(t.desc||'Crew'),pick(LINES.beanHit),true)});if(head&&!O.say.face){O.say.face=1;later(M,1.5,()=>{say('doug',"Centre mass with the beans, Hawk. Not the face. He's got a face.",true)})}}}
+      later(M,0.35,()=>{say(cap(t.desc||'Crew'),pick(LINES.beanHit),true)});if(head&&!O.say.face){O.say.face=1;later(M,1.5,()=>{say('doug',"Center mass with the beans, Hawk. Not the face. He's got a face.",true)})}}}
   else{if(H.hurtEnemy)H.hurtEnemy(e,999,'player',{gun:'hunter',head});else{e.state='dead'}}}
 /* Gary jogs over and zip-ties anyone who gave up on the street (the chain waits a beat while he's gone) */
 function gary(M,t){const a=A(),O=M.ow,E=O.esc;if(!E||!t)return;const g=E.member('gary');O.cuffQ=O.cuffQ||[];if(!O.cuffQ.includes(t))O.cuffQ.push(t);if(O.garyBusy)return;garyNext(M)}
@@ -549,7 +549,7 @@ function civStep(dt,M){const a=A(),O=M.ow;for(const c of O.civs){if(c.gone)conti
     else if(c.path.length>1&&c.k<c.path.length-1){const p=c.path[c.k+1],dx=p.x-c.x,dz=p.z-c.z,d=Math.hypot(dx,dz);if(d<.3)c.k++;else{const s=Math.min(d,speed*dt);c.x+=dx/d*s;c.z+=dz/d*s;c.yaw=Math.atan2(-dx,-dz);moving=true}}
     else if(c.yaw==null)c.yaw=0;
     c.d.root.position.set(c.x,a.groundAt(c.x,c.z),c.z);c.d.root.rotation.y=(c.yaw||0)+Math.PI;pose(c.d,dt,{moving,speed:Math.max(.7,speed/1.2),aim:false,mode:c.sit&&!moving?'sit':'stand'})}}
-function civScare(M,c){const a=A(),O=M.ow;if(!c||c.scared)return;c.scared=true;O.stats.civ++;a.addTrust(-2,'river');say(c.name||'Neighbour',c.yelp||pick(LINES.civYelp),true);later(M,0.9,()=>{say('doug',pick(LINES.civScare),true)});
+function civScare(M,c){const a=A(),O=M.ow;if(!c||c.scared)return;c.scared=true;O.stats.civ++;a.addTrust(-2,'river');say(c.name||'Neighbor',c.yelp||pick(LINES.civYelp),true);later(M,0.9,()=>{say('doug',pick(LINES.civScare),true)});
   c.st='flee';c.t=0;c.fx=c.x+(Math.random()<.5?-1:1)*18;c.fz=c.z+(Math.random()<.5?-1:1)*6;if(!a.walkable(a.tx(c.fx),a.tx(c.fz))){c.fx=c.x;c.fz=c.z+(c.z<45?-14:14)}}
 
 /* ---------------- the car: a grey sedan down Main St, tyres are the hit zones (computed from the car pose here) ---------------- */
@@ -567,9 +567,9 @@ function carHit(M,from,dir,L){const O=M.ow,C=O.car;let best=null;
   let t0=0,t1=L;for(const[ax,lo,hi]of[['f',-C.len/2,C.len/2],['s',-C.wid/2,C.wid/2],['y',.25,1.45]]){if(Math.abs(d[ax])<1e-6){if(o[ax]<lo||o[ax]>hi)return best;continue}let a_=(lo-o[ax])/d[ax],b_=(hi-o[ax])/d[ax];if(a_>b_){const q=a_;a_=b_;b_=q}t0=Math.max(t0,a_);t1=Math.min(t1,b_);if(t0>t1)return best}
   if(!best||t0<best.distance-.05)best={distance:t0,point:from.clone().addScaledVector(dir,t0),who:{kind:'car'}};return best}
 function tyre(M,w,p){const a=A(),O=M.ow,C=O.car,F_=FX(),Au=AUD();const pt=p.pos;
-  if(p.type==='bean'){try{Au&&Au.impact('rubber',pt)}catch(_){}if(!O.say.beanTyre){O.say.beanTyre=1;say('doug',"Beans bounce off tyres. That's what tyres are for. Red box!",true)}return}
+  if(p.type==='bean'){try{Au&&Au.impact('rubber',pt)}catch(_){}if(!O.say.beanTyre){O.say.beanTyre=1;say('doug',"Beans bounce off tires. That's what tires are for. Red box!",true)}return}
   if(C.flats[w.i])return;C.flats[w.i]=1;O.stats.flats++;try{F_&&F_.impact(pt,new (a.THREE.Vector3)(0,1,0),'dirt',{big:true,color:[.2,.2,.2]})}catch(_){}try{Au&&Au.impact('metal',pt)}catch(_){}
-  a.feed('Tyre','info',C.flats.reduce((s,f)=>s+f,0)+' flat');const ud=C.v.userData||{};if(ud.wheels&&ud.wheels[w.i])ud.wheels[w.i].scale.y=.82;
+  a.feed('Tire','info',C.flats.reduce((s,f)=>s+f,0)+' flat');const ud=C.v.userData||{};if(ud.wheels&&ud.wheels[w.i])ud.wheels[w.i].scale.y=.82;
   const n=C.flats.reduce((s,f)=>s+f,0);say('doug',n>=TUNE.car.stallFlats?"That's two. He's riding on rims. He's done.":"One. Again.",true)}
 function carStep(dt,M){const a=A(),O=M.ow,C=O.car;if(!C||C.gone)return;C.t+=dt;const CA=a.CarAI(),c=C.c,n=C.flats.reduce((s,f)=>s+f,0),E=O.esc;
   if(!C.done){const ai=c.ai;if(ai){ai.speed=TUNE.car.speed*Math.pow(TUNE.car.flatSlow,n)*(c.x<360?.75:1)}

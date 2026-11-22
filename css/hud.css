@@ -420,6 +420,9 @@
 .ht-ver{position:absolute;right:calc(var(--sa-r) + 24px);top:calc(var(--sa-t) + 20px);font:600 var(--t-2xs)/1 var(--ht-ui);letter-spacing:.2em;color:var(--fg3);text-transform:uppercase}
 
 /* brief */
+.ht-brief .ht-jobs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.ht-brief .ht-jobs .ht-btn{min-height:0;padding:6px 12px;font-size:var(--t-s)}
+.ht-brief .ht-jobs .ht-btn[aria-pressed=true]{border-color:var(--sun);color:var(--sun)}
 .ht-brief .who{display:flex;align-items:center;gap:14px;margin-bottom:6px}
 .ht-brief .pt{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font:800 20px/1 var(--ht-ui);background:var(--c,#3b6ea8);box-shadow:0 0 0 2px #fff}
 .ht-brief .who .r{font:700 var(--t-s)/1.2 var(--ht-ui);letter-spacing:.2em;text-transform:uppercase;color:var(--sun)}

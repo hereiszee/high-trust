@@ -120,13 +120,13 @@ function shoot(M){const a=A(),S=M.fn.sub;if(S.bolt>0)return;if(S.beans<=0){say('
   S.bolt=RK.bolt;S.beans--;M.fn.st.beans++;try{HT.Audio&&HT.Audio.gun&&HT.Audio.gun('beanbag')}catch(_){}try{a.snd&&a.snd('shot',.4)}catch(_){}
   if(!p)return;if(p.plant&&!p.down&&p.st!=='gone'){p.down=true;p.st='down';p.tx=null;p.mode='hands';S.handled++;a.feed('Beanbag · he dropped the backpack','trust');try{HT.People.hit(p.d,false)}catch(_){}
     setT(M,1.2,()=>{p.mode='kneel'});say('rosa',pick(["Got him. He's fine. He's furious, but he's fine.","Down and done. Hank, zip-tie, please. The festival-blue one."]),true)}
-  else if(!p.plant){M.fn.st.civHit++;p.mode='hands';setT(M,2,()=>{p.mode='stand'});a.feed('Wrong person','bad','that was a neighbour');say('rosa',"That was a GRANDPA. He's fine. He's filing a complaint with me personally.",true)}}
+  else if(!p.plant){M.fn.st.civHit++;p.mode='hands';setT(M,2,()=>{p.mode='stand'});a.feed('Wrong person','bad','that was a neighbor');say('rosa',"That was a GRANDPA. He's fine. He's filing a complaint with me personally.",true)}}
 function setT(M,t,fn){(M.fn.timers||(M.fn.timers=[])).push({t,fn})}
 FN.setT=setT;FN.timerTick=(dt,M)=>{const L=M.fn.timers;if(!L)return;for(let i=L.length-1;i>=0;i--){L[i].t-=dt;if(L[i].t<=0){const f=L[i].fn;L.splice(i,1);try{f()}catch(e){console.error(e)}}}};
 /* labels over the faces you've read (screen space; pooled spans) */
 function labels(M){const a=A(),S=M.fn.sub;if(!S.lab)return;const list=S.scope?S.crowd.filter(p=>p.revealed&&!p.hidden&&p.st!=='gone'):[];let html='';
   for(const p of list){const q=a.project(p.x,p.y!=null?2.1:2.1,p.z);if(q.behind)continue;const kid=nearKid(M,p.x,p.z),col=p.down?'#9fe58a':p.marked?'#8ac6ff':p.plant?'#ffb347':'#c9ced6';
-    html+=`<div style="position:absolute;left:${q.x}px;top:${q.y}px;transform:translate(-50%,-100%);background:rgba(10,12,16,.72);color:${col};padding:3px 7px;border-radius:6px;border:1px solid ${col};white-space:nowrap">${p.down?'Down':p.marked?'Marked':p.plant?'PLANT':'Neighbour'}${p.plant&&!p.down&&!p.marked?(kid<RK.kidR?' · kids '+Math.round(kid)+' m · mark':' · clear'):''}</div>`}
+    html+=`<div style="position:absolute;left:${q.x}px;top:${q.y}px;transform:translate(-50%,-100%);background:rgba(10,12,16,.72);color:${col};padding:3px 7px;border-radius:6px;border:1px solid ${col};white-space:nowrap">${p.down?'Down':p.marked?'Marked':p.plant?'PLANT':'Neighbor'}${p.plant&&!p.down&&!p.marked?(kid<RK.kidR?' · kids '+Math.round(kid)+' m · mark':' · clear'):''}</div>`}
   if(S.scope){const f=S.focus;const k=f?Math.min(1,S.focusT/S.tellT):0;html+=`<div style="position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid rgba(255,255,255,.75);border-radius:50%"></div><div style="position:absolute;left:50%;top:50%;width:2px;height:2px;margin:-1px;background:#fff"></div>`+
     (f&&!f.revealed?`<div style="position:absolute;left:50%;top:calc(50% + 34px);transform:translateX(-50%);width:80px;height:5px;background:rgba(0,0,0,.5);border-radius:3px"><div style="width:${(k*100)|0}%;height:100%;background:#ffd23f;border-radius:3px"></div></div>`:'')+
     `<div style="position:absolute;inset:0;box-shadow:inset 0 0 0 9999px rgba(0,0,0,0);background:radial-gradient(circle at 50% 50%,transparent 38%,rgba(0,0,0,.88) 39%)"></div>`}
@@ -142,7 +142,7 @@ FN.stages.roadblock={
     /* what's on the tailgate (visual): a stack that shrinks as you take things */
     S.hank=person(su.id||'hank',W.hank.x-1.4,W.hank.z+3.2);if(S.hank){S.hank.face={x:380,z:90}}
     if(once(M,'rb0'))sayAll([[su.id||'hank',"Every cone in the store. Every sawhorse. Two hundred zip-ties. On the house. Just this once. Don't tell my wife."],
-      ['you',"Sawhorses across the lane, the sign a few metres before them, a lit flare at the wall. Then it looks official."]]);
+      ['you',"Sawhorses across the lane, the sign a few meters before them, a lit flare at the wall. Then it looks official."]]);
   },
   upd(dt,M,F){const a=A(),S=M.fn.sub,P=a.P;S.t+=dt;if(S.props)S.props.step(dt);
     const plan=S.props?readNow(M):null;S.plan=plan;
@@ -189,7 +189,7 @@ function readNow(M){const a=A(),S=M.fn.sub,rb=HT.Jobs.get('cones')&&HT.Jobs.get(
   if(rb){const r=rb(items,{zone:BLOCK_ZONE,need:BK.need,lane:380.5});r.text=wording(r);return r}
   return{first:null,verdict:'clear',rank:0,text:'(the roadblock reader is loading)'}}
 function wording(r){const g=r.top;if(!g)return"Nothing in the road yet. He won't even slow down.";const v=g.verdict;
-  return v==='airtight'?'Airtight: two cars and a lit flare. He stops. He might even apologise.':v==='stop'?'He stops: '+g.why+'.':v==='gap'?'He drives through the gap ('+(g.pass?g.pass.w.toFixed(1):'?')+' m). Close it.':
+  return v==='airtight'?'Airtight: two cars and a lit flare. He stops. He might even apologize.':v==='stop'?'He stops: '+g.why+'.':v==='gap'?'He drives through the gap ('+(g.pass?g.pass.w.toFixed(1):'?')+' m). Close it.':
     v==='cones'?'Only cones: he drives right over them. Sawhorses or a car.':v==='bully'?"Sawhorses he'd push through: add the sign before it, the flagger or a lit flare.":v==='shove'?"One car he can shove: make it official (sign, flare) or add another car.":g.why}
 function startTruck(M){const a=A(),S=M.fn.sub;const path=FN.avoidCars(FN.route([{x:W.truck.x+10,z:W.truck.z},{x:380.5,z:112},{x:380.5,z:BK.arriveZ-6}]),{skip:e=>Math.abs(e.pos.x-380)<6&&e.pos.z>80&&e.pos.z<97});S.tP=FN.polyOf(path);S.tr=FN.car('workvan','#d8d2c4',path[0].x,path[0].z,FN.yawTo(path[1].x-path[0].x,path[1].z-path[0].z));
   const ts=sign(['STAGE & SOUND · RIVERSIDE FESTIVAL'],{bg:'#f2efe6',fg:'#2b5d8a',w:2.6,ph:80});ts.position.set(0,1.75,1.03);S.tr.obj.add(ts);S.ts=0;S.tv=BK.truckV;S.frozen=null}

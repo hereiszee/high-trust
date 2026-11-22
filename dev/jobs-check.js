@@ -24,7 +24,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await ev(()=>{const H=window.__ht,T=window.__J={};const k=H.keys;
     T.api=()=>H.jobs.api;T.SV=()=>H.jobs.api.SV();
     T.unlock=id=>{const j=H.jobs.registry.get(id),u=j.def.unlock||{},s=T.SV();for(const d of[].concat(u.done||[])){const i=H.jobs.index(d);if(i>=0)H.prog.done[i]=true;if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,d).done=true}
-      if(u.trust)H.prog.trust=Math.max(H.prog.trust,u.trust);if(u.trustR)H.prog.trustR=Math.max(H.prog.trustR||0,u.trustR);if(j.test&&j.test.give)j.test.give(T.api());/* the Act 2 'bridge is open' card would pop over the test and pause the game */try{const sv=H.save;if(sv&&sv.flags&&H.prog.done[1]){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,2)}}catch(e){}return H.jobs.lock(id)};
+      if(u.trust)H.prog.trust=Math.max(H.prog.trust,u.trust);if(u.trustR)H.prog.trustR=Math.max(H.prog.trustR||0,u.trustR);if(j.test&&j.test.give)j.test.give(T.api());/* the Act 2 'bridge is open' and Act 3 'people are coming home' cards would pop over the test and pause the game */try{const sv=H.save;if(sv&&sv.flags&&H.prog.done[1]){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,2)}if(sv&&sv.flags&&H.prog.done[8]){sv.flags.act3Intro=true;H.prog.act=3}}catch(e){}return H.jobs.lock(id)};
     T.drive=(tgt,steps)=>{const G=H.ow.roads(),e=H.CV;if(!e)return{err:'not driving'};let route=G.route({x:e.pos.x,z:e.pos.z},tgt),pts=route?route.points:[tgt],wi=1,s=0,stuck=0;
       for(;s<steps;s++){const d0=Math.hypot(tgt.x-e.pos.x,tgt.z-e.pos.z);if(H.mode!=='hub')break;
         while(wi<pts.length-1&&Math.hypot(pts[wi].x-e.pos.x,pts[wi].z-e.pos.z)<6)wi++;const w=d0<12?tgt:pts[Math.min(wi,pts.length-1)];
@@ -53,7 +53,8 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
       ok(g.used&&g.acts.includes('brief:go'),'home giver "'+from.home+'" offers the brief ('+JSON.stringify(g)+')');await shot(ID+'-brief',()=>{const H=window.__ht;if(H.mode==='home'){H.P.pos.set(1.9,0,6.3);H.P.yaw=0;H.P.pitch=-.12}});
       const go=await ev(i=>{const H=window.__ht;H.UIacts['brief:go']();H.step(2);H.exitHome('front');H.step(3);return{mode:H.mode,job:H.JOB,i}},reg.index);
       ok(go.mode==='hub'&&go.job===reg.index,'accepted at home, out the front door with the job on the list ('+JSON.stringify(go)+')')}
-    else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&n.marker.i===i);if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
+    else{const g=await ev(i=>{const H=window.__ht;const n=H.npcs.find(n=>n.marker&&(n.marker.i===i||(n.jobs||[]).includes(i)));if(!n)return{err:'no giver',givers:H.npcs.map(n=>n.marker&&n.marker.i)};H.P.pos.set(n.pos.x+1.6,0,n.pos.z);H.collide(H.P.pos,.35);H.step(1);H.use=true;H.step(1);
+        /* a giver with more than one open job: pick this one on the brief */if(n.marker.i!==i&&H.UIacts&&H.UIacts['brief:job:'+i]){H.UIacts['brief:job:'+i]();H.step(1)}
         const br=!!(H.UIacts&&H.UIacts['brief:go']);if(br)H.UIacts['brief:go']();H.step(1);return{brief:br,job:H.JOB}},reg.index);ok(g.brief&&g.job===reg.index,'giver in the world offers the brief ('+JSON.stringify(g)+')')}
     let dr=await ev(i=>window.__J.toRing(i),reg.index);
     /* the start may be waiting on a model still streaming in (startMissionWhenReady's castWait): let it finish, then step */

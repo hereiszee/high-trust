@@ -1,0 +1,13 @@
+spots {"gnome":{"x":89.2,"z":18.6,"yaw":3.141592653589793,"day":1},"lights":{"x":121,"z":66.95},"phone":{"x":244.6,"z":35.2,"yaw":0},"smoker":{"x":194.5,"z":177.4},"bigfoot":{"x":9.2,"y":5.15,"z":202.20000000000002}}
+gnome prompt ["Look at the gnome"] banners so far ["THE GNOME"]
+lights prompt ["Admire the Christmas lights","THE GNOME"] banners so far ["THE GNOME","STILL UP"]
+phone prompt ["Answer the pay phone"] banners so far ["THE GNOME","STILL UP","WRONG NUMBER"]
+smoker prompt ["Check the smoker"] banners so far ["THE GNOME","STILL UP","WRONG NUMBER","225"]
+in car for honk: minivan hub
+5 taps took 1553 ms
+ok   honk egg: five H taps in the minivan, then wait ["gnome","lights","phone","smoker","honk"]
+banner counts {"225":1,"THE GNOME":1,"STILL UP":1,"WRONG NUMBER":1,"TWO BITS":1}
+ok   each egg announces once, however often it is used {"225":1,"THE GNOME":1,"STILL UP":1,"WRONG NUMBER":1,"TWO BITS":1}
+found before reload ["gnome","lights","phone","smoker","honk"]
+in localStorage ["gnome","lights","phone","smoker","honk"]
+ok   every found egg is in the saved game {"before":["gnome","lights","phone","smoker","honk"],"raw":["gnome","lights","phone","smoker","honk"]}

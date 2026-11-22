@@ -1,0 +1,11 @@
+start {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":6,"built":7,"meshes":823,"p":[31,19]}
+door {"x":37.836,"z":22,"nx":0,"nz":-1,"p":[37.836,20.8]}
+at door prompt ["Go inside (unlocking…)"]
+inside {"mode":"home","lid":"home","world":false,"groupInScene":true,"visChunks":4,"built":7,"meshes":636,"p":[1.5,1.3]}
+inside prompt []
+outside {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":2,"built":8,"meshes":919,"p":[37.8,20.3]}
+ok   after Head outside: the open world is there {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":2,"built":8,"meshes":919,"p":[37.8,20.3]}
+base {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":9,"built":13,"meshes":1130,"p":[224,207]}
+ok   after Head outside, at Fort Sensible: the open world is there {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":9,"built":13,"meshes":1130,"p":[224,207]}
+auto {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":8,"built":17,"meshes":1412,"p":[221,55]}
+ok   after Head outside, map to Dad's Auto: the open world is there {"mode":"hub","lid":"world","world":true,"groupInScene":true,"visChunks":8,"built":17,"meshes":1412,"p":[221,55]}

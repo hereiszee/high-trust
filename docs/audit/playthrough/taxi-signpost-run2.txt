@@ -1,0 +1,6 @@
+hub after job 1              {"obj":["Maple Heights","Coach Rick has a job for you","Barb has a job for you","Follow the yellow marker."],"marker":"Coach Rick","givers":["rick:rick","barb:hoa"],"taxiLock":null}
+objective mentions taxi?     false
+home objective + fridge prompt {"obj":["Home","Gun locker in the garage · laptop on the kitchen desk","B · decorate the house"],"prompt":{"key":"E","text":"Root beer · the fridge calendar","hold":false,"progress":0},"otherPromptsNearFridge":["Calendar · replay a job","Root beer · the fridge calendar"]}
+E at the fridge              {"screen":"brief","title":"Dad Taxi","acts":["brief:go","brief:skip","brief:no"]}
+3 s after accepting          {"job":9,"obj":["Maple Heights","Coach Rick has a job for you","Barb has a job for you","Follow the yellow marker."],"marker":"Minivan","objDom":"New job · Maple Heights, all of itMaple HeightsCoach Rick has a job for youBarb has a job for youFollow the yellow marker."}
+console errors 0

@@ -96,7 +96,7 @@ const LINES={
   rosaQuiet:"Nobody near him. Strollers are way behind you. Draw. G. Wait for green.",
   rosaGreen:["Green reticle. Nobody behind him. Now. Not 'in a second'. Now.","Green. Now.","That's clear. Take it."],
   rosaRed:["Red. There's somebody behind him. Move.","Not with her behind him. Step left.","Crowd behind him. Find an angle."],
-  rosaKids:["Stroller. Twenty metres. Not a chance.","There are kids right there. Put that away.","No. Kids. Further east."],
+  rosaKids:["Stroller. Twenty meters. Not a chance.","There are kids right there. Put that away.","No. Kids. Further east."],
   rosaPanic:["People are looking. Holster it.","They've seen it. Put it away before somebody screams.","Too many eyes. Away. Now."],
   wrong:[["you","Excuse me, sir—"],["you","...Great work. Love the spatula."]],
   hit:["OOF. Okay, wow, okay.","OW. That's a— that's a beanbag. Okay. I'm sitting down.","Hhhk. Fine. FINE. I'm down."],
@@ -113,7 +113,7 @@ const LINES={
   win:[["rosa","Every dollar. Back to the actual garden. Mateo is buying a second pumpkin."],["Market lady","That was the most exciting thing that's ever happened at this market. Including the goat."],
     ["gary","I got my zip-ties back. They smell like kettle corn now. That's fine."]],
   garyIdle:["This kettle corn is, and I mean this, life-changing.","Do you think they'd give me the recipe? I'd sign something.","I'm on lookout. Lookout with corn."],
-  garyDecoy:[["gary","Excuse me! Is this for the garden? I'd like to donate. A lot. It's a cheque. It's a big cheque."],["gary","It's in my car. Round the corner. Walk with me. I'll tell you about my car."]],
+  garyDecoy:[["gary","Excuse me! Is this for the garden? I'd like to donate. A lot. It's a check. It's a big check."],["gary","It's in my car. Round the corner. Walk with me. I'll tell you about my car."]],
   garyMove:"Oh! Right. Me. I'm in the way. Moving!",
   donate:[["you","I'd like to make a donation. A big one. Not in front of everybody, though."],["Skimmer","...Say no more. Lead the way, friend."]],
   tow:[["you","Hey, is that your hatchback on 4th? They're towing it."],["Skimmer","They're WHAT?"]],
@@ -562,7 +562,7 @@ function vendorChat(O,v){const s=v.stall,sk=O.cols[O.skim].col,P=A().P;
   const opts=[{text:"Seen anything funny with the charity folks?",fn:()=>vendorClue(O,v)},
     {text:pick(["I'll take one. Keep the change.","What's good today?","Smells amazing over here."]),reg:'comp',fn:()=>{say('you',"What's good today?",true);say(v.name,pick(["All of it. I grew it. I'm biased.","Take a sample. Take two. Don't tell the honey lady.","You look like a man who needs a tomato."]));tone({f:880,type:'sine',d:.08,gain:.04,bus:'ui'})}},
     {text:"Never mind. Lovely stall.",reg:'over',fn:()=>{}}];
-  openChat(O,{speaker:v.name,prompt:pick(["Morning! What can I get you?","Hi there! Free samples on the left.","Hey, neighbour."]),tell:'['+v.name+' leans on the counter.]',options:opts,x:v.x,z:v.z})}
+  openChat(O,{speaker:v.name,prompt:pick(["Morning! What can I get you?","Hi there! Free samples on the left.","Hey, neighbor."]),tell:'['+v.name+' leans on the counter.]',options:opts,x:v.x,z:v.z})}
 function vendorClue(O,v){const s=v.stall,sk=O.cols[O.skim].col;v.asked=true;
   if(s.clue==='hat'){const cap=sk.hat==='cap';say('you',"Seen anything funny with the charity folks?",true);
     say(v.name,cap?"One of them paid me for honey with a fifty. A fifty! Charity people don't carry fifties. Ball cap, pulled down low.":"One of them bought honey with a fifty. Charity people don't carry fifties. No ball cap on him, I'd have noticed. I notice hats.");
@@ -622,7 +622,7 @@ function ruseStep(O,dt){const a=A(),P=a.P,sk=O.cols[O.skim],R=sk.ruse;if(!R||O.d
     if(g.st==='toSkim'){if(stepTo(O,g,sk.x+.9,sk.z+.6,2.6,dt,.5)&&R.t>2){g.st='pitch';g.t=0;seq(LINES.garyDecoy,2.8,0,'ruse');R.st='talk';R.t=0}}
     else if(g.st==='pitch'){face(g,sk.x,sk.z,dt);face(sk,g.x,g.z,dt);if(R.t>5.6){g.st='lead';R.st='go';R.path=[{x:clamp(sk.x,AISLE.x0,AISLE.x1),z:43}].concat(ROUTE_S);R.k=0}}
     else if(g.st==='lead'){const t=R.path[R.k];const gt={x:t.x+.8,z:t.z+.2};stepTo(O,g,gt.x,gt.z,2,dt,.4);if(stepTo(O,sk,t.x,t.z,2,dt,.5)){R.k++;if(R.k>=R.path.length){g.st='chat';R.st='wait';R.t=0;later(1,()=>{if(sk.ruse===R)say('gary',"So this is my car. It's a minivan. Let me tell you about the cupholders.",true)},'ruse')}}}
-    else if(g.st==='chat'){if(!O.drawn&&!g.moved){face(g,sk.x,sk.z,dt);face(sk,g.x,g.z,dt)}if(R.t>K.garyWait){bubble(O,sk,"You know what, I'll come back for the cheque.",2.4);say('gary',"He's walking. Sorry. I may have spent too long on the cupholders.",true);endRuse(O);g.st='home';g.busy=false}}
+    else if(g.st==='chat'){if(!O.drawn&&!g.moved){face(g,sk.x,sk.z,dt);face(sk,g.x,g.z,dt)}if(R.t>K.garyWait){bubble(O,sk,"You know what, I'll come back for the check.",2.4);say('gary',"He's walking. Sorry. I may have spent too long on the cupholders.",true);endRuse(O);g.st='home';g.busy=false}}
     else if(g.st==='aside'){stepTo(O,g,g.tx,g.tz,2.6,dt,.3)}}}
 function endRuse(O){const sk=O.cols[O.skim];cancel(O,'ruse');sk.ruse=null;sk.st='idle';sk.next=2;if(O.stage==='aside'&&!O.down)later(1.5,()=>say('rosa',pick(["He's back in the crowd. Try again.","Back to square one. He's working the stalls again.","Lost him to the market. Go again."]),true))}
 function garyStep(O,dt){const g=O.gary,r=O.rosa;if(r&&r.st==='watch'&&!O.down){if(hyp(r.tx-r.x,r.tz-r.z)>.4)stepTo(O,r,r.tx,r.tz,1.3,dt,.3);else{const sk=O.cols[O.skim];face(r,sk.x,sk.z,dt)}}if(!g)return;

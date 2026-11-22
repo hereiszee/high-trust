@@ -1,7 +1,7 @@
 /* Ambient traffic against the player's car, in the real game (headless Chromium + SwiftShader, driven through window.__ht.step()).
    node dev/traffic-check.js [--write] [--shots] [--quick]
      --write  saves docs/screenshots/traffic/evidence.txt     --shots  streamed-world jpgs into docs/screenshots/traffic/
-     --quick  5 trials per approach and a 1-minute soak instead of 20 and 5 minutes
+     --quick  5 trials per approach and a 1-minute soak instead of 20 and 5 minutes     --people  only the people-in-the-lane trials (8) and their step time
    Code under test: js/openworld.js OW.traffic (look-ahead stop, junction reservations, horn/go-round/re-route ladder, trSep guard),
    index.html trafficContact (mass-based contact), js/carai.js ctx.offset. Checks:
      1. stop short: a car approaching the stopped player from behind, head-on in his lane, and turning in from a side street stops
@@ -16,7 +16,7 @@
      6. stand-in mission cars (OWS.trafficOthers, the same path as o.others) are stopped for like the player
      7. free-roam soak with 20+ cars and the van on an autopilot loop: overlap after resolution, frame time with traffic off / on */
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
-const ARG=process.argv.slice(2),WRITE=ARG.includes('--write'),SHOTS=ARG.includes('--shots'),QUICK=ARG.includes('--quick');
+const ARG=process.argv.slice(2),WRITE=ARG.includes('--write'),SHOTS=ARG.includes('--shots'),QUICK=ARG.includes('--quick'),PEOPLE=ARG.includes('--people');/* --people: only 8 (people in the lane) and its step-time numbers */
 const DIR=path.join(__dirname,'..','docs','screenshots','traffic');
 const out=[],log=(...a)=>{const s=a.join(' ');out.push(s);console.log(s)};let fails=0;const ok=(c,msg)=>{if(!c)fails++;log((c?'ok   ':'FAIL ')+msg)};
 const NT=QUICK?5:20;
@@ -52,7 +52,7 @@ await p.evaluate(()=>{const H=window.__ht;H.enterHub();H.HUD.hide('title');H.ste
 const E=await p.evaluate(()=>{const T=__TC;return{long:T.edges.filter(e=>e.l>=55).length,total:T.edges.length,regions:[...new Set(T.edges.map(e=>e.region))]}});
 log('road graph: '+E.total+' directed edges, '+E.long+' at least 55 m long; regions '+E.regions.join(', '));
 
-/* ---------------- 1. stop short ---------------- */
+if(!PEOPLE){/* ---------------- 1. stop short ---------------- */
 for(const kind of['behind','ahead','side']){
   const r=await p.evaluate(([kind,NT])=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();const res=[];const speeds=[7,9,11,13];
     let pool;if(kind==='side'){pool=[];for(const [j,n] of G.nodes.entries()){if(n.e.length<3)continue;for(const em of n.e){const M=G.nodes[em.to],lm=Math.hypot(M.x-n.x,M.z-n.z);if(lm<24)continue;
@@ -200,7 +200,54 @@ const MS=await p.evaluate(async()=>{const H=window.__ht,T=__TC,O=H.ow;T.clear();
   const moved=O.trafficLive().reduce((m,t,i)=>Math.max(m,pos[i]?Math.hypot(t.c.x-pos[i][0],t.c.z-pos[i][1]):0),0);const mode=H.mode;H.enterHub();H.step(2);H.OWS.trafficWant=0;T.clear();return{n0,mode,n:pos.length,moved}});
 ok(MS.mode==='mission'&&MS.moved<1e-6,'during a job ambient traffic stands still, as before ('+MS.n+' cars from free roam, moved '+MS.moved+' m; jobs run their own cars)');
 
-/* ---------------- 7. soak ---------------- */
+}
+/* ---------------- 8. people in the lane (W-03) ----------------
+   A kid (nb_kid, protected), an adult neighbour and a crew member, standing in the lane, crossing it in front of the car, or walking
+   along it ahead of the car; at 9 and 13 m/s; in Maple and Riverside. Zero overlaps with the body (0.3 m), a child is never gone
+   round and never honked at, no hit/die call on anyone. Then a traffic car the player shoves toward a kid: it stops dead short of her. */
+const PL=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow,PP=HT.People,G=O.roads();const res=[];let hits=0;
+  H.prog.done[0]=true;H.enterHub();H.step(3);H.openBridge&&H.openBridge();H.step(2);H.OWS.trafficWant=0;T.clear();/* Gary's job done: he is out as crew (not job 1: its Act 2 card would pause the game) */const hit0=PP.hit,die0=PP.die;
+  
+  const boxD=(t,x,z)=>{const b=O.trafficBox(t);const dx=x-b.x,dz=z-b.z,a=dx*b.fx+dz*b.fz,c=dx*-b.fz+dz*b.fx;return Math.hypot(Math.max(0,Math.abs(a)-b.hl),Math.max(0,Math.abs(c)-b.hw))};
+  const kid=PP.make('neighbour',{variant:'nb_kid'}),adult=PP.make('neighbour',{variant:'nb_pops'});
+  const who=[],made=[];const mine=d=>d===kid||made.includes(d)||H.allies.some(a=>a.dude===d);PP.hit=function(d){if(mine(d)){hits++;if(who.length<6)who.push('hit:'+(d.rb&&d.rb.key)+':'+(new Error().stack.split('\n')[2]||'').trim().slice(0,90))}return hit0.apply(this,arguments)};PP.die=function(d){if(mine(d)){hits++;if(who.length<6)who.push('die:'+(d.rb&&d.rb.key))}return die0.apply(this,arguments)};/* only the people under test (Riverside free roam has its own scuffles) */
+  const person=who=>{if(who==='crew'){const a=H.allies[0];if(!a)return null;return{set:(x,z)=>{a.pos.set(x,0,z);a.target=null;if(a.dude)a.dude.root.position.set(x,0,z)},at:()=>a.pos,drop:()=>{}}}
+    const d=PP.make('neighbour',{variant:who==='kid'?'nb_kid':'nb_pops'});if(!d)return null;made.push(d);H.L.group.add(d.root);/* a fresh one each trial (People drops a model orphaned for 90 frames from its live list) */return{set:(x,z)=>d.root.position.set(x,0,z),at:()=>d.root.position,drop:()=>{d.root.parent&&d.root.parent.remove(d.root)}}};/* at(): where they really are after the step (the crew's own AI moves them too) */
+  const farNode=E=>{const A=G.nodes[E.a],B=G.nodes[E.b];let best=null,bd=1e9;for(const n of G.nodes){const d=Math.min(Math.hypot(n.x-A.x,n.z-A.z),Math.hypot(n.x-B.x,n.z-B.z));if(d>=45&&d<bd){bd=d;best=n}}return best};/* the player's car out of the way but near (traffic over 170 m from the player is dropped) */
+  for(const region of['maple','river']){const Es=T.edges.filter(e=>e.l>=(region==='river'?30:44)&&e.region===region).sort((a,b)=>b.l-a.l);if(!Es.length){res.push({region,none:true});continue}let k=0;
+    for(const who of['kid','adult','crew'])for(const motion of['still','cross','along'])for(const v of[9,13]){const E=Es[(k++)%Es.length];T.clear();T.inVan();
+      const fn=farNode(E);T.place(fn.x+3,fn.z+3,0);H.exitVehicle&&H.exitVehicle();/* the player's car out of the way; he stands on the far kerb (as he would, with his crew nearby) */
+      const at=Math.min(40,E.l-4),q=T.lanePt(E.a,E.b,at),nx=-q.uz,nz=q.ux;/* n: across the road */const m=person(who);if(!m){res.push({region,who,none:true});continue}
+      let px=q.x,pz=q.z,vx=0,vz=0;if(motion==='cross'){px=q.x-nx*5;pz=q.z-nz*5}
+      H.P.pos.set(q.x-nx*7,0,q.z-nz*7);if(H.collide)H.collide(H.P.pos,.35);m.set(px,pz);H.step(1);const lg0=O.trafficLog().length;const t=O.trafficAdd({a:E.a,b:E.b,at:1,spd:v,max:v,type:'sedan'});if(!t){res.push({region,who,motion,v,err:'no car'});m.drop();continue}
+      let minD=1e9,stopped=false,go=false,passed=false,odo=0,lx=t.c.x,lz=t.c.z;
+      for(let i=0;i<30*14;i++){const dd=boxD(t,px,pz);
+        if(motion==='cross'&&!go&&dd<30)go=true;/* steps off the kerb when the car is 30 m away, 1.4 m/s, all the way over */
+        if(motion==='cross'&&go&&((px-q.x)*nx+(pz-q.z)*nz)<5){vx=nx*1.4;vz=nz*1.4}else if(motion==='along'){vx=q.ux*1.2;vz=q.uz*1.2}else{vx=0;vz=0}
+        px+=vx/30;pz+=vz/30;m.set(px,pz);H.step(1);const w=m.at(),d2=boxD(t,w.x,w.z);minD=Math.min(minD,d2);if(Math.abs(t.c.spd)<.2&&i>15)stopped=true;
+        odo+=Math.hypot(t.c.x-lx,t.c.z-lz);lx=t.c.x;lz=t.c.z;if(odo>at+8)passed=true}/* drove on past where they were (along the road, turns included) */
+      const evs=O.trafficLog().slice(lg0).filter(x=>x.id===t.id),ev=evs.map(x=>x.ev),atKid=evs.filter(x=>(x.ev==='honk'||x.ev==='round'||x.ev==='bark')&&x.by==='kid').map(x=>x.ev);m.drop();
+      res.push({region,who,motion,v,edge:E.a+'>'+E.b,l:Math.round(E.l),minD:+minD.toFixed(2),stopped,passed,ev:[...new Set(ev)],atKid,end:[+t.c.x.toFixed(1),+t.c.z.toFixed(1),+t.c.spd.toFixed(1),t.blk,t.mode]})}}
+  /* pushed toward a kid: a stopped traffic car, the kid 3 m in front of it, the player drives into it from behind */
+  let push=null;{const E=T.edges.filter(e=>e.l>=70&&e.region==='maple')[1];T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');const q=T.lanePt(E.a,E.b,12);T.place(q.x,q.z,q.yaw);
+    const t=O.trafficAdd({a:E.a,b:E.b,at:30,spd:0,max:.01,type:'sedan'});H.step(5);const f=[-Math.sin(t.c.yaw),-Math.cos(t.c.yaw)],hl=t.c.stats.len/2;
+    const kx=t.c.x+f[0]*(hl+1.3),kz=t.c.z+f[1]*(hl+1.3);const k2=PP.make('neighbour',{variant:'nb_kid'});made.push(k2);k2.root.position.set(kx,0,kz);H.L.group.add(k2.root);H.step(2);const x0=t.c.x,z0=t.c.z;
+    T.keysOff();H.keys.w=true;let minD=1e9,maxV=0;for(let i=0;i<150;i++){H.step(1);maxV=Math.max(maxV,e.spd);minD=Math.min(minD,boxD(t,kx,kz))}T.keysOff();H.keys[' ']=true;H.step(30);H.keys[' ']=false;
+    push={minD:+minD.toFixed(2),moved:+Math.hypot(t.c.x-x0,t.c.z-z0).toFixed(2),maxV:+maxV.toFixed(1),ev:[...new Set(T.ev(t.id).map(x=>x.ev))]};k2.root.parent&&k2.root.parent.remove(k2.root)}
+  PP.hit=hit0;PP.die=die0;T.clear();return{res,hits,who,push}});
+for(const r of PL.res)log('     people: '+JSON.stringify(r));
+{const rs=PL.res.filter(r=>!r.none),ov=rs.filter(r=>r.minD<.3);
+  ok(rs.length>=30&&!ov.length,'people in the lane: '+rs.length+' trials (kid/adult/crew x still/crossing/walking along x 9/13 m/s x Maple/Riverside): '+ov.length+' overlaps with a body (closest '+Math.min(...rs.map(r=>r.minD)).toFixed(2)+' m)'+(ov.length?' '+JSON.stringify(ov):''));
+  ok(new Set(rs.map(r=>r.region)).size===2,'both regions covered ('+[...new Set(rs.map(r=>r.region))].join(', ')+')');
+  const kr=rs.filter(r=>r.who==='kid');ok(kr.every(r=>!r.atKid.length),'a child in the road is waited for: never gone round, never honked at ('+kr.length+' trials; horns at the crew following the dad onto the road are allowed)');
+  const kids=rs.filter(r=>r.who==='kid'),adl=rs.filter(r=>r.who!=='kid');
+  ok(Math.min(...kids.filter(r=>r.motion==='still').map(r=>r.minD))>Math.min(...adl.filter(r=>r.motion==='still').map(r=>r.minD)),'a wider berth for a child (closest still kid '+Math.min(...kids.filter(r=>r.motion==='still').map(r=>r.minD))+' m, adult/crew '+Math.min(...adl.filter(r=>r.motion==='still').map(r=>r.minD))+' m)');
+  ok(rs.filter(r=>r.motion==='cross').every(r=>r.passed),'once a crossing person is over, the car drives on ('+rs.filter(r=>r.motion==='cross'&&r.passed).length+'/'+rs.filter(r=>r.motion==='cross').length+')');
+  ok(PL.hits===0,'no hit or die call on anyone in the trials ('+PL.hits+')'+(PL.hits?' '+JSON.stringify(PL.who):''));
+  log('     pushed toward a kid: '+JSON.stringify(PL.push));
+  ok(PL.push&&PL.push.minD>=.3&&PL.push.maxV>1,'a traffic car the player shoves toward a kid 1.3 m in front of it stops dead short of her (closest '+(PL.push&&PL.push.minD)+' m, moved '+(PL.push&&PL.push.moved)+' m)')}
+
+if(!PEOPLE){/* ---------------- 7. soak ---------------- */
 const SOAK=QUICK?30*60:30*300;
 const SK=await p.evaluate(([N])=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();T.clear();T.inVan();const e=T.cv();H.repairCar(e,'full');
   /* the van laps a block on a waypoint autopilot that ignores traffic (worst case for contact) */
@@ -216,7 +263,22 @@ const SK=await p.evaluate(([N])=>{const H=window.__ht,T=__TC,O=H.ow,G=O.roads();
   const hp=H.carHp(e);H.OWS.trafficWant=0;H.keys.w=H.keys.a=H.keys.d=false;H.keys.s=true;H.step(30);H.keys.s=false;T.clear();return{off,on,ev,hp,laps:+(wi/loop.length).toFixed(2)}},[SOAK]);
 log('     soak events: '+JSON.stringify(SK.ev)+'; van autopilot '+SK.laps+' laps, van hp '+SK.hp.toFixed(0));
 ok(SK.on.maxCars>=20&&SK.on.ovN===0,(SOAK/30/60)+'-minute free roam with up to '+SK.on.maxCars+' cars and the van ramming its way round a loop: '+SK.on.ovN+' overlaps > 5 cm after resolution in '+SK.on.samp+' samples (max '+SK.on.ov+' m)'+(SK.on.ovN?' '+JSON.stringify(SK.on.ovs):''));
-log('     step time (game logic, no render): traffic off '+SK.off.ms+' ms, 24 cars '+SK.on.ms+' ms');
+log('     step time (game logic, no render): traffic off '+SK.off.ms+' ms, 24 cars '+SK.on.ms+' ms');}
+/* people cost: 24 cars and 40 people standing and walking on the roads round the player, step time with traffic blind to them (as before
+   W-03) and seeing them, alternated twice */
+const PC=await p.evaluate(()=>{const H=window.__ht,T=__TC,O=H.ow,PP=HT.People,G=O.roads();T.clear();T.inVan();const e=T.cv();
+  let c0=null;for(const n of G.nodes)if(n.e.length>=3&&(!c0||Math.hypot(n.x-120,n.z-40)<Math.hypot(c0.x-120,c0.z-40)))c0=n;T.place(c0.x+4,c0.z+4,0);
+  const near=T.edges.filter(E=>{const A=G.nodes[E.a];return Math.hypot(A.x-c0.x,A.z-c0.z)<110&&E.l>=30});const ppl=[];
+  for(let i=0;i<40;i++){const E=near[(i*7)%near.length],q=T.lanePt(E.a,E.b,6+(i*13)%Math.max(8,E.l-12),i%3?3.6:1.5);const d=PP.make('neighbour',{variant:i%5===0?'nb_kid':undefined});if(!d)continue;
+    H.L.group.add(d.root);d.root.position.set(q.x,0,q.z);ppl.push({d,q,w:i%2?1.2:0,ph:i})}
+  const run=(n,off)=>{H.OWS.trafficNoPeople=off;let tr=0;const t0=performance.now();for(let s=0;s<n;s++){for(const m of ppl)if(m.w){const k=Math.sin((s+m.ph*17)/60)*m.w/30;m.d.root.position.x+=m.q.ux*k;m.d.root.position.z+=m.q.uz*k}
+      const a=performance.now();H.step(1);tr+=performance.now()-a}return{ms:+((performance.now()-t0)/n).toFixed(3),cars:O.trafficLive().length}};
+  H.OWS.noTraffic=false;H.OWS.trafficWant=24;run(30*20,false);
+  const r={off:[],on:[]};for(let k=0;k<2;k++){r.off.push(run(30*15,true));r.on.push(run(30*15,false))}
+  for(const m of ppl)m.d.root.parent&&m.d.root.parent.remove(m.d.root);H.OWS.trafficNoPeople=false;H.OWS.trafficWant=0;T.clear();
+  return{n:ppl.length,off:r.off.map(x=>x.ms),on:r.on.map(x=>x.ms),cars:r.on.map(x=>x.cars)}});
+log('     step time with '+PC.n+' people and '+PC.cars.join('/')+' cars (game logic, no render): traffic blind to people '+PC.off.join(' / ')+' ms, seeing them '+PC.on.join(' / ')+' ms');
+ok(PC.n>=40&&Math.min(...PC.on)-Math.min(...PC.off)<1.5,'seeing 40 people costs traffic little: +'+(Math.min(...PC.on)-Math.min(...PC.off)).toFixed(3)+' ms a step (best of two)');
 
 /* ---------------- screenshots ---------------- */
 if(SHOTS){fs.mkdirSync(DIR,{recursive:true});

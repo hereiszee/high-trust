@@ -591,7 +591,7 @@ function chaseTick(M,dt,F){const a=A(),t=M.truck,c=t.c;M.chaseT+=dt;
   F.meters.push({id:'cz-truck',label:'Truck',style:'bar',v:Math.max(0,c.hp),max:K.truckHp,warn:K.truckHp*.3,warnBelow:true,sub:'ram it, box it, block it'});
   F.meters.push({id:'cz-hwy',label:'Highway',style:'bar',v:Math.max(0,200-Math.min(200,toGo)),max:200,warn:150,sub:Math.round(toGo)+' m to go'});
   /* the crew shoot the tyres from whatever you're driving */
-  const e=a.CV;if(e&&e.car){const n=a.allies.filter(q=>q.ride&&!q.down).length;const d=Math.hypot(e.pos.x-c.x,e.pos.z-c.z);if(n&&d<30&&c.hp>0){c.hp=Math.max(0,c.hp-Math.min(3,n)*3*dt);if(once(M,'tyres'))say(M,[['gary','Aim for the tyres!'],['dave','Which ones?'],['gary','The round ones!']])}}
+  const e=a.CV;if(e&&e.car){const n=a.allies.filter(q=>q.ride&&!q.down).length;const d=Math.hypot(e.pos.x-c.x,e.pos.z-c.z);if(n&&d<30&&c.hp>0){c.hp=Math.max(0,c.hp-Math.min(3,n)*3*dt);if(once(M,'tyres'))say(M,[['gary','Aim for the tires!'],['dave','Which ones?'],['gary','The round ones!']])}}
   if(c.hp<=0){t.st='parked';c.spd=Math.max(0,c.spd-8*dt)}
   /* boxed or blocked */
   const vd=e?Math.hypot(e.pos.x-c.x,e.pos.z-c.z):1e9;if(Math.abs(c.spd)<1&&vd<8)M.boxT+=dt;else M.boxT=Math.max(0,M.boxT-dt);

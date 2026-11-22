@@ -56,7 +56,7 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   /* 5. finale guidance, decline, zip-tie gate, dedupe */
   await ev(()=>{window.__rafOn=false});
   await p.evaluate(async()=>{await window.__ht.jobs.ready});
-  const fin=await ev(()=>{const H=window.__ht,S=HT.Save,s=S.data;s.flags.act2Intro=true;H.prog.act=2;const ids=H.jobs.registry.get('finale').def.unlock.done;
+  const fin=await ev(()=>{const H=window.__ht,S=HT.Save,s=S.data;s.flags.act2Intro=true;s.flags.act3Intro=true;H.prog.act=2;const ids=H.jobs.registry.get('finale').def.unlock.done;
     for(const id of ids.slice(0,20)){S.jobRec(s,id).done=true;const i=H.jobs.index(id);if(i>=0)H.prog.done[i]=true}H.prog.trust=61;H.prog.trustR=44;H.enterHub();H.step(3);
     const o1=JSON.stringify(H.UIobj);for(const id of ids){S.jobRec(s,id).done=true;const i=H.jobs.index(id);if(i>=0)H.prog.done[i]=true}H.prog.trust=85;H.prog.trustR=82;H.enterHub();H.step(40);
     return{o1,o2:JSON.stringify(H.UIobj),marker:H.marker,info:H.finaleInfo()}});

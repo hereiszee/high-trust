@@ -29,7 +29,7 @@ function words(n){n=Math.round(n);if(n<20)return ONES[Math.max(0,n)];if(n<100){c
 function clock(fx,fz,yaw,x,z){const b=Math.atan2(-(x-fx),-(z-fz));let d=yaw-b;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
   let h=Math.round(d/(Math.PI/6));h=((h%12)+12)%12;return CLOCK[h]+" o'clock"}
 /* rounded the way a spotter says it: "about sixty metres" */
-function range(d){const r=d<30?Math.round(d/5)*5:Math.round(d/10)*10;return words(r)+' metres'}
+function range(d){const r=d<30?Math.round(d/5)*5:Math.round(d/10)*10;return words(r)+' meters'}
 function callout(o){const parts=[];if(o.clock)parts.push(o.clock.replace(/^\w/,c=>c.toUpperCase()));if(o.desc)parts.push(o.desc);if(o.spot)parts.push(o.spot);let s=parts.join(', ');
   if(o.dist!=null)s+=(s?', ':'')+range(o.dist);return s+'.'}
 

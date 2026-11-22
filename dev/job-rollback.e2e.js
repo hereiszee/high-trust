@@ -19,7 +19,7 @@ const info=m=>console.log('info '+m);let fails=0;const ok=(c,m)=>{if(!c)fails++;
       e.state='surrender';e.surrT=0;H.P.pos.set(e.pos.x+1,0,e.pos.z);H.P.yaw=Math.atan2(-(e.pos.x-H.P.pos.x),-(e.pos.z-H.P.pos.z));return true});
     if(!r)return false;for(let i=0;i<6;i++){await p.keyboard.down('e');await step(3);await wait(60);await p.keyboard.up('e');await step(3)}return true};
   await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});
-  await wait(1200);await p.click('.ht-title [data-act=continue]');await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});
+  await wait(1200);await p.click('.ht-title [data-act=continue]',{timeout:90000});/* at a few fps headless the click's actionability checks take ~29 s */await p.waitForFunction(()=>window.__ht.mode==='hub',null,{timeout:60000});
   await ev(()=>{window.__rafOn=false});await wait(300);await step(30);
   const d0=await disk();ok(d0&&d0.cuffed===4&&d0.trust===30,'seeded save on disk: '+JSON.stringify(d0));
 
