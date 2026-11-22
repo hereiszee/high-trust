@@ -53,9 +53,15 @@ Pre-existing suites run first and all pass: `dev/keys.e2e.js` (20/20), `dev/pad.
 - **Evidence** `docs/audit/input/pad-tow-lineup.png` (shows all three contradictory instructions at once).
 
 ### IN-03 · Keyboard: rebinding Aim off Mouse 2 makes the Crossing Guard stop sign impossible (and the phone / binoculars can't be raised with Aim)
-- **Severity** BLOCKER (a keyboard player who moves Aim cannot finish *Crossing Guard*). **Confidence** see run below.
+- **Severity** BLOCKER (a keyboard player who moves Aim cannot finish *Crossing Guard*). **Confidence** CONFIRMED (run twice).
 - **Repro** `node dev/audit/input/rebind-aim-mouse2.js` — crossing set up as IN-01, then real right clicks / key presses.
-- **Output** RESULT_AIM
+- **Output**
+  ```
+  "default_rightClick": true,          <- control: default bindings, a real right click raises the sign
+  "aimOnK_pressK": false,              <- Aim on K: K does nothing to the sign
+  "aimOnK_rightClick": false,          <- and the right click no longer works either
+  "aimOnMouse5_pressMouse5": false     <- Aim on Mouse 5: same
+  ```
 - **Expected** Aim's new input toggles the sign (and the phone in HOA/Grand Opening, binoculars in the tail job), since Key
   bindings says "Aim, scope, binoculars". **Happened** with Aim on K or Mouse 5, the new input only calls `HT.Input.aim()`,
   which those tools never read; the old right click is swallowed by `js/keys.js` (capture listener + `stopImmediatePropagation`, `js/keys.js:68-76`)
@@ -124,8 +130,12 @@ Pre-existing suites run first and all pass: `dev/keys.e2e.js` (20/20), `dev/pad.
 - **Evidence** `docs/audit/input/layout/deck-jet.jpg`, `deck-tank.jpg`. The tank hint bar also offers "R3 HOOD" (R3 is the gunner's sight there).
 
 ### IN-09 · Controller: conversation choices — D-pad toggles the flashlight / night vision instead of moving the choice
-- **Confidence** RESULT_TALK_CONF. **Repro** `node dev/audit/input/pad-talk.js`.
-- **Output** RESULT_TALK
+- **Confidence** CONFIRMED (run twice). **Repro** `node dev/audit/input/pad-talk.js`.
+- **Output** (Small Talk, at the first 4-way choice)
+  ```
+  "start": {"sel":0}, "dpadDown": {"sel":0}, "dpadDownKeys": "n", "stickDown": {"sel":0}, "dpadRight": {"sel":0},
+  "choiceLabels": "1,2,3,4"
+  ```
 - **Expected** D-pad / stick move between the numbered replies, A picks. **Happened** HT.Social choices aren't `.ht-ch`, so
   `js/gamepad.js:188` doesn't treat them as a choice strip; the D-pad sends `f`/`n` (`:194`), which the conversation lets through
   (`js/social.js:262-266`). Only LB + A/B/X/Y (= 1–4) can pick another reply, and the replies are labelled "1 2 3 4", not with the pad combo.

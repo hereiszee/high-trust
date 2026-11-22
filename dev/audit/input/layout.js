@@ -21,7 +21,7 @@ const CHECK=(sel)=>{const Z=window.__zoom||1;const vis=e=>{for(let x=e;x&&x!==do
     const ix=Math.min(A.r.r,B.r.r)-Math.max(A.r.l,B.r.l),iy=Math.min(A.r.b,B.r.b)-Math.max(A.r.t,B.r.t);if(ix<=2||iy<=2)continue;const s=Math.min((A.r.r-A.r.l)*(A.r.b-A.r.t),(B.r.r-B.r.l)*(B.r.b-B.r.t));if(ix*iy>.25*s)out.overlap.push(name(A)+' x '+name(B))}
   for(const k of['offscreen','clipped','overlap','small'])out[k]=[...new Set(out[k])];return out};
 (async()=>{const r=await boot({viewport:{width:C.w,height:C.h},dpr:C.dpr});const {ev,p}=r;const res={};const SD=path.join(__dirname,'../../../docs/audit/input/layout');fs.mkdirSync(SD,{recursive:true});
-  await ev((o)=>{window.__zoom=o.dpr;if(o.deck){document.documentElement.classList.add('ht-desktop','ht-deck')}},C);
+  await ev((o)=>{try{const R=window.__ht.render;R.rscale=.5;R.apply('low')}catch(e){}/* SwiftShader: keep the live page responsive at big sizes; layout is DOM only */window.__zoom=o.dpr;if(o.deck){document.documentElement.classList.add('ht-desktop','ht-deck')}},C);
   if(C.deck)await ev(()=>HT.Pad.setLast('pad'));
   await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});/* the page runs live: the HUD's own animation frames must not be dropped */
   const live=async ms=>{await r.wait(ms||700)};
@@ -29,7 +29,7 @@ const CHECK=(sel)=>{const Z=window.__zoom||1;const vis=e=>{for(let x=e;x&&x!==do
       console.log(name.padEnd(14),'text',c.n,'off',c.offscreen.length,'clip',c.clipped.length,'ovl',c.overlap.length,'small',c.small.length)}catch(e){res[name]={err:e.message.slice(0,200)};console.log(name,'ERR',e.message.slice(0,200))}};
   const esc=()=>p.keyboard.press('Escape');
   await live(900);await snap('title','.ht-scr,.ht-title,body > .ht-root');
-  await p.click('.ht-title [data-act=newgame]');await r.wait(300);
+  await ev(()=>document.querySelector('.ht-title [data-act=newgame]').click());await r.wait(600);
   await ev(async()=>{const H=window.__ht;await H.jobs.ready;H.WM.beat=true;H.step(5)});if(C.deck)await ev(()=>HT.Pad.setLast('pad'));
   await live(500);await snap('hud-hub','.ht-root');
   /* pause tabs */
