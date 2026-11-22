@@ -42,15 +42,15 @@ const ENGINE_MUL=[1,1.18,1.37,1.62],TYRE_MU=[1,1.12,1.25];
 /* the car's numbers, with Dad's Auto upgrades when it's yours (engine: power; tyres: grip; armour: weight) */
 /* the car's numbers, with Dad's Auto upgrades when it's yours (js/carai.js HT.Garage.CATALOG; js/save.js garage): every upgrade that exists
    is mapped here, and each one is named on the timeslip:
-     engine 1-3 (Tune-Up, V6 Swap, supercharger): power x1.18/1.37/1.62, more first-gear pull, taller gearing (+6% top speed a level)
+     engine 1-3 (Tune-Up, V6 Swap, supercharger): power x1.18/1.37/1.62, more pull from second gear up (first gear barely changes: the stock tyres couldn't take it), +6% top speed a level
      tyres 1-2 (All-Season, Performance Rubber): grip x1.12/1.25 (launch traction, the 60 ft), the launch window moves up (they take more revs)
      sport mode: +15% power for 3.5 s from 1.2 s after the beams (once the tyres have hooked up; in town the button has no key: docs/dragstrip.md)
      brakes 1-2: no effect on the clock; a shorter, harder shutdown after the stripe
      armour 1-2: +90 kg a level · bull bar +35 kg · roof cargo box +25 kg and a little drag · gun rack +10 kg (bolted-on weight adds no grip)
    veh = SAVE.garage.vehicles[type], util = SAVE.garage.util. Without veh the car is stock (every loaner and rental). */
 function spec(type,veh,util){const b=SPEC[type];if(!b)return null;const s=Object.assign({type},b,{vg:b.vg.slice(),band:b.band.slice(),tracMass:b.mass});const up=[];
-  if(veh&&veh.perf){const e=clamp(veh.perf.engine|0,0,3),t=clamp(veh.perf.tyres|0,0,2),br=clamp(veh.perf.brakes|0,0,2);s.kw*=ENGINE_MUL[e];s.f1*=1+(ENGINE_MUL[e]-1)*.6;s.mu*=TYRE_MU[t];if(e){const k=1+.06*e;s.vg=s.vg.map(v=>v*k)}
-    s.band=[b.band[0]+.04*t,Math.min(.92,b.band[1]+.06*t)];/* stickier tyres take more launch rpm */
+  if(veh&&veh.perf){const e=clamp(veh.perf.engine|0,0,3),t=clamp(veh.perf.tyres|0,0,2),br=clamp(veh.perf.brakes|0,0,2);s.kw*=ENGINE_MUL[e];s.f1up=s.f1*(1+(ENGINE_MUL[e]-1)*.6);s.f1*=1+(ENGINE_MUL[e]-1)*.1;/* most of an engine upgrade is top-end power: low-down pull grows a little, so it pulls harder without turning every launch into smoke */s.mu*=TYRE_MU[t];if(e){const n=s.vg.length;s.vg[n-1]*=1+.06*e}/* a higher top end (the last gear); the lower gears keep their pull */
+    s.band=[b.band[0]+.04*t,Math.min(.92,b.band[1]+.06*t)];/* stickier tyres take more launch rpm *//* stickier tyres take more launch rpm */
     if(e)up.push(['engine',e,['','Tune-Up','V6 Swap','Supercharger'][e]]);if(t)up.push(['tyres',t,['','All-Season Radials','Performance Rubber'][t]]);
     if(veh.perf.sport){s.sportBoost=1.15;up.push(['sport',1,'Sport Mode'])}if(br){s.shutK=1+.25*br;up.push(['brakes',br,['','Ceramic Pads','Big Brake Kit'][br]])}}
   if(veh&&veh.prot){const ar=veh.prot.armor|0;s.mass+=ar*90+(veh.prot.bullBar?35:0);if(ar)up.push(['armor',ar,'Panels '+(ar>1?'II':'I')+' (+'+ar*90+' kg)']);if(veh.prot.bullBar)up.push(['bullBar',1,'Bull Bar (+35 kg)'])}
@@ -65,7 +65,7 @@ function run(s){return{s,x:0,v:0,t:0,gear:0,rpm:.12,spin:0,cut:0,launched:false,
   bog:0,miss:0,shifts:0,thr:0,peakSpin:0,launchRpm:null,launchQ:null}}
 /* the power curve: a little torquey at the bottom, peak power at 85% of redline */
 const pf=r=>clamp(1-1.6*(r-.85)*(r-.85),.3,1);
-function wdrive(s,a){const k=clamp(a/5,0,1);return s.drive==='AWD'?.96:s.drive==='FWD'?.6-.1*k:.5+.13*k}
+function wdrive(s,a){const k=clamp(a/5,0,1);return s.drive==='AWD'?.96:s.drive==='FWD'?.6-.05*k:.5+.13*k}
 /* {thr 0..1, brake bool}. Before the launch: brake on = stay put, the throttle revs against it (rpm rises with throttle, falls without). */
 function step(R,inp,dt){let n=Math.max(1,Math.round(dt/SUB));const h=dt/n;for(let i=0;i<n;i++)sub(R,inp,h);return R}
 function sub(R,inp,h){const s=R.s,thr=clamp(inp.thr||0,0,1);R.t+=h;R.thr=thr;
@@ -79,14 +79,14 @@ function sub(R,inp,h){const s=R.s,thr=clamp(inp.thr||0,0,1);R.t+=h;R.thr=thr;
   /* rpm: the converter lets it slip up to the launch rpm until the car catches up */
   const wheelR=R.v/V;const conv=R.bog>0?Math.max(wheelR,R.rpm*.7):Math.max(wheelR,Math.min(R.launchRpm||.3,R.rpm));
   R.rpm=clamp(R.spin>.05?Math.max(wheelR,R.rpm+(1-R.rpm)*h*3*R.spin):conv+(wheelR-conv)*Math.min(1,h*4),0,1.02);
-  const r=Math.max(R.rpm,.2);let F=thr*Math.min(Pw*pf(r)/(r*V),s.f1*s.mass*G*s.vg[0]/V*(R.spin>0||R.v<2?1:1));/* torque (first-gear pull f1 x weight, less per gear) or power, whichever is less */
+  const r=Math.max(R.rpm,.2);let F=thr*Math.min(Pw*pf(r)/(r*V),(R.gear&&s.f1up||s.f1)*s.mass*G*s.vg[0]/V*(R.spin>0||R.v<2?1:1));/* torque (first-gear pull f1 x weight, less per gear) or power, whichever is less */
   if(R.rpm>=1&&R.gear===s.vg.length-1)F=0;/* the limiter in top gear */
   if(R.bog>0){F*=.45;R.bog=Math.max(0,R.bog-h)}
   if(s.sportBoost&&R.leave!=null&&R.t-R.leave>1.2&&R.t-R.leave<4.7)F*=s.sportBoost;/* Sport Mode: 3.5 s of overboost once the tyres have hooked up */
   if(R.cut>0){F*=.2;R.cut-=h}
-  const a0=Math.max(0,(F/s.mass)),Fmax=s.mu*(s.tracMass||s.mass)*G*wdrive(s,a0);/* bolted-on weight (armour, a bull bar) is all burden, no extra grip */
+  const a0=Math.max(0,Math.min(F,s.mu*(s.tracMass||s.mass)*G*wdrive(s,0))/s.mass)/* weight transfer from the acceleration the tyres can actually give */,Fmax=s.mu*(s.tracMass||s.mass)*G*wdrive(s,a0);/* bolted-on weight (armour, a bull bar) is all burden, no extra grip */
   /* wheelspin: asking for more than the tyres have builds spin; spinning tyres give 60-100% of their grip; lifting lets them hook */
-  if(F>Fmax*1.02)R.spin=Math.min(1,R.spin+(F/Fmax-1)*h*3.2);else R.spin=Math.max(0,R.spin-h*(1.1+2.4*(1-thr)+(F<Fmax*.8?1.2:0)));
+  if(F>Fmax*1.25)R.spin=Math.min(1,R.spin+(F/Fmax-1.25)*h*3.2);/* a lot more than the tyres can take lights them up */else if(F>Fmax)R.spin=Math.max(0,R.spin-h*.35);/* at the limit: spinning tyres slowly hook up */else R.spin=Math.max(0,R.spin-h*(1.1+2.4*(1-thr)+(F<Fmax*.8?1.2:0)));
   R.peakSpin=Math.max(R.peakSpin,R.spin);
   const Fa=Math.min(F,Fmax)*(1-.5*R.spin),Fd=.6*s.cda*R.v*R.v+.012*s.mass*G;
   R.v=Math.max(0,R.v+(Fa-Fd)/s.mass*h);const x0=R.x;R.x+=R.v*h;

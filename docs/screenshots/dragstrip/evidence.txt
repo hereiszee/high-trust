@@ -1,3 +1,69 @@
+== travel: the minivan from home to the strip (Industrial Way, the tree line, the corridor)
+  ok   E gets in the minivan
+  ok   drove to the paddock (278,290)
+  ok   region is the strip
+  ok   the strip pin opens for fast travel after the visit
+  ok   out of the minivan in the paddock
+  (crew bark given: true)
+== test & tune: three cars, three slips, the quickest car quickest
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   your own car first, then every car the strip lends, stock (HT.Garage six + the mower): Your Family Minivan, Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+  shot picker.jpg
+  ok   a sedan loaner at the line
+  shot tree-staged.jpg
+  ok   sedan: slip RT 0.318 60ft 2.315 330 6.254 ET 9.467 @ 76.6 mph (1/4 est 14.77)
+  shot timeslip.jpg
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a minivan loaner at the line
+  ok   minivan: slip RT 0.366 60ft 2.877 330 7.402 ET 10.927 @ 70.1 mph (1/4 est 17.05)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a workvan loaner at the line
+  ok   workvan: slip RT 0.354 60ft 2.479 330 7.121 ET 11.029 @ 62.7 mph (1/4 est 17.21)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   order: sedan 9.467 < minivan 10.927 < work van 11.029
+  ok   the garage book has sedan, minivan, workvan
+== your own car: the same minivan stock, with an engine upgrade, with a tyre upgrade (test & tune, real passes)
+  ok   picker: Your Family Minivan
+  ok   stock: your own car at the line
+  stock: 60ft 2.877 ET 10.927 @ 70.1 mph · slip says: Car	Family Minivan · yours, no upgrades
+  ok   picker: Your Family Minivan
+  ok   engine 2: your own car at the line
+  engine 2: 60ft 3.146 ET 11.114 @ 75.6 mph · slip says: Car	Family Minivan · V6 Swap
+  shot timeslip-upgraded.jpg
+  ok   picker: Your Family Minivan
+  ok   tyres 2: your own car at the line
+  tyres 2: 60ft 2.224 ET 9.716 @ 71.7 mph · slip says: Car	Family Minivan · Performance Rubber
+  ok   the timeslip names the upgrades on the car
+  FAIL engine upgrade: quicker ET (10.927 -> 11.114) and trap (70.1 -> 75.6)
+  ok   tyre upgrade: quicker 60 ft (2.877 -> 2.224)
+  ok   the garage book keeps a row per upgrade set: minivan@stock, minivan@e2, minivan@t2
+== red light: leaving on the last amber
+  shot tree.jpg
+  ok   red light: RT -0.142
+  ok   the red bulb is lit in our lane
+  shot red-light.jpg
+== money races: a win and a loss, cash to the dollar, the daily cap
+  ok   E at the race office window opens it
+  shot race-office.jpg
+  ok   the ladder: Dutch Hendricks, Marisol Vega, Walt Okafor, Tomás Reyes, Priya Raman, June Abernathy, "Rook" Delacroix
+  shot ladder.jpg
+  ok   the self-bet offer
+  shot self-bet.jpg
+  ok   racing Dutch Hendricks, lane 0
+  shot race-staged.jpg
+  ok   won: {"won":true,"how":"finish","margin":1.701,"red":[false,false]}
+  shot race-board.jpg
+  shot race-result.jpg
+  ok   cash moved by the settlement exactly: 73 = 73 [["Rental",-20],["Purse",40],["First win over Dutch Hendricks",50],["Your bet on yourself · 1.13x",3]]
+  ok   Dutch marked beaten (first-win bonus paid once)
+  ok   lost: {"won":false,"how":"finish","margin":1.122,"red":[false,false]}
+  ok   a loss costs the rental, the entry and the bet: -55
+  ok   repeat win capped: {"lines":[["Rental",-20],["Purse (repeat win × 2 today)",7],["Daily cap reached · $400 a day from the strip",0]],"net":-13} day {"won":400,"betWon":3,"betLost":10,"beat":{"dutch":2}}
 == bets on other races: watch one to the end, skip one, settle both from the race model
   ok   office
   ok   two racers on offer: Back June Abernathy | Back Tomás Reyes
@@ -5,11 +71,49 @@
   ok   stake menu
   ok   watching from the tower (june vs tomas)
   shot spectator-race.jpg
-  ok   watched: winner lane 0 by 0.606, bet 1, cash 1
+  ok   watched: winner lane 0 by 0.133, bet 3, cash 3
   shot spectator-result.jpg
   ok   office
-  ok   two racers on offer: Back Priya Raman | Back Tomás Reyes
+  ok   two racers on offer: Back Priya Raman | Back Walt Okafor
   ok   stake menu
-  ok   watching from the tower (priya vs tomas)
-  ok   skipped: winner lane 1 by 0.017, bet -25, cash -25
-== done in 111 s; console errors: 0
+  ok   watching from the tower (priya vs walt)
+  ok   skipped: winner lane 0 by 0.192, bet 2, cash 2
+== bracket night (day 3): dial-ins, handicap starts, up to three rounds, one settlement
+  round 1 vs walt, handicap [1.1600000000000001,0]
+  {"won":false,"how":"breakout","margin":0.052,"red":[false,false]}
+  ok   bracket settled once at the end: {"lines":[["Bracket entry",-60],["Rental",-20]],"net":-80}
+  ok   cash moved by the bracket net exactly: -80
+  ok   tonight's bracket is done (next one in 3 days)
+== caps and the floor (in the page) and the odds sweep (pure sim, 2,000 races)
+  ok   a bet never takes cash under the floor, no stake without the cash, the per-bet max (Not with the mortgage money. The booth keeps you above $150.)
+  ok   daily caps: lost 200 (cap 200), won 300 (cap 300)
+  ok   odds: Walt vs Priya stated 0.027, 2,000 races 0.025
+  ok   at $155 every stake is refused (floor $150)
+== quit to title mid-race: nothing left behind
+  ok   mid-race (tree)
+  ok   no run, no loaner, no HUD, no menu: {"cars":0,"hud":false,"menus":0}
+  ok   no money moved, no ladder change (cash 1500 vs 1500)
+== controller only: the picker, a pass, the slip, with a scripted pad
+  ok   the pad is the device in use
+  prompt: Test & tune any car · the paddock board
+  ok   A opens the picker
+  ok   menu foot names pad buttons: D-pad to choose · A picks · B back
+Loaners stay at the strip
+  ok   D-pad moves the selection (on Family Minivan)
+  ok   A takes the minivan loaner
+  ok   the teach line names A and RT: Hold A + RT to rev · keep the needle in the green band · let go of A on the green
+  ok   slip after a controller pass: ET 12.024
+  ok   D-pad to Done, A: loaner back
+== draw calls at the strip (ours vs everything), 0 away from it; day and night shots
+  ok   paddock: ours 37 of 266 calls (limit 40)
+  ok   start line: ours 38 of 253 calls (limit 40)
+  ok   stands: ours 30 of 120 calls (limit 40)
+  ok   finish: ours 27 of 242 calls (limit 40)
+  ok   the Route 9 sign: ours 16 of 312 calls (limit 40)
+  ok   Maple Heights: ours 0 of 322 calls (limit 0)
+  ok   Riverside: ours 0 of 483 calls (limit 0)
+  ok   Fort Sensible range: ours 24 of 412 calls (limit 40)
+  ok   Fort Sensible gate: ours 15 of 304 calls (limit 40)
+  shot strip-day.jpg
+  shot strip-night.jpg
+== done in 712 s; console errors: 0
