@@ -755,7 +755,9 @@ function showTally(M){if(!HUDL)return;const C=cw(M);const pl=plan(),g=goalOf(pl.
 const INPUT={lmb:false,r:false,touch:false,ping:-1,bound:false};
 function live(){const a=A();return a&&a.mode==='mission'&&a.M&&a.M.def&&a.M.def.id===ID&&a.M.state==='go'&&a.M.cw}
 function bindInput(){if(INPUT.bound)return;INPUT.bound=true;
-  document.addEventListener('mousedown',e=>{if(e.button===0&&live())INPUT.lmb=true},true);addEventListener('mouseup',e=>{if(e.button===0)INPUT.lmb=false},true);addEventListener('blur',()=>{INPUT.lmb=INPUT.r=false});
+  document.addEventListener('mousedown',e=>{if(e.button===0&&live())INPUT.lmb=true},true);
+  /* Fire on another input (a key, the pad's RT: js/keys.js) works the hose too; not claimed, so the game's trigger still sees it */
+  (function claim(){const K=window.HT&&HT.Keys;if(!K||!K.claim){setTimeout(claim,400);return}K.claim('fire',down=>{if(live()||!down)INPUT.lmb=!!down;return false})})();addEventListener('mouseup',e=>{if(e.button===0)INPUT.lmb=false},true);addEventListener('blur',()=>{INPUT.lmb=INPUT.r=false});
   document.addEventListener('keydown',e=>{if(!live())return;const k=(e.key||'').toLowerCase();if(k==='r'){INPUT.r=true;e.stopPropagation()}else if(k==='g'&&!e.repeat){callGary(A().M);e.stopPropagation()}},true);
   document.addEventListener('keyup',e=>{const k=(e.key||'').toLowerCase();if(k==='r')INPUT.r=false},true)}
 /* the hose as the job's held item: a click (or a touch-fire held) reaches use() through the game's fire path */

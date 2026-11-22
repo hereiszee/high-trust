@@ -28,39 +28,55 @@ function keyEv(type,k,extra){const key=k===' '?' ':k.length===1?k:k.startsWith('
 function press(k){if(S.held[k])return;S.held[k]=true;keyEv('keydown',k)}
 function release(k){if(!S.held[k])return;S.held[k]=false;keyEv('keyup',k)}
 function tap(k){keyEv('keydown',k);setTimeout(()=>keyEv('keyup',k),50)}
-function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stick.id==='pad'&&(I.stick.id=null,I.stick.x=I.stick.y=0);if(S.rt)I.fire(false);if(S.lt)I.aim(false)}S.rt=S.lt=false;S.sprint=false;S.stickOn=false}
+const aimIn=d=>{const K=HT.Keys;if(K&&K.aimInput)return K.aimInput(d,'pad');const I=IN();if(I)I.aim(d)};
+const fireIn=d=>{const K=HT.Keys;if(K&&K.fireInput)return K.fireInput(d,'pad');const I=IN();if(I)I.fire(d);return'game'};
+function releaseAll(){for(const k in S.held)release(k);const I=IN();if(I){I.stick.id==='pad'&&(I.stick.id=null,I.stick.x=I.stick.y=0);if(S.rt)fireIn(false);if(S.lt)aimIn(false);if(S.carAim)aimIn(false)}S.rt=S.lt=S.carAim=false;S.sprint=false;S.stickOn=false;S.yHeld=false}
 
 /* ---------- glyphs ---------- */
 const GL={xbox:{A:'A',B:'B',X:'X',Y:'Y',LB:'LB',RB:'RB',LT:'LT',RT:'RT',VIEW:'View',MENU:'Menu',L3:'L3',R3:'R3',LS:'L',RS:'R'},
   ps:{A:'✕',B:'○',X:'□',Y:'△',LB:'L1',RB:'R1',LT:'L2',RT:'R2',VIEW:'Create',MENU:'Options',L3:'L3',R3:'R3',LS:'L',RS:'R'}};
 /* keycap text -> pad button; driving hints read E as get out (Y) */
-const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
+const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'A',B:'B',RMB:'LT','RIGHT CLICK':'LT',LMB:'RT','LEFT CLICK':'RT',WASD:'LS',MOUSE:'RS',R:'X',H:'X',C:'B',ESC:'MENU',P:'MENU',M:'VIEW',V:'R3',Q:'RB',TAB:'LB+↓',SHIFT:'L3',
   F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',
   /* job keys through the LB layer */G:'LB',T:'LB+↑',Z:'LB+←',X:'LB+→','1':'LB+A','2':'LB+B','3':'LB+X','4':'LB+Y'};
 const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
-function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;if(ctx&&ctx.closest('.ht-drv')&&k==='E')b='Y';if(ctx&&ctx.closest('.ht-drv')&&k==='SPACE')b='A';
+function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;
+  const drv=!!(IN()&&IN().driving)||!!(ctx&&ctx.closest&&ctx.closest('.ht-drv'));
+  if(drv&&k==='E')b='Y';/* behind the wheel Use (get out, hold to hitch) is Y; A is the handbrake */if(drv&&k==='SPACE')b='A';
+  if(drv&&(k==='MOUSE 2'||k==='RMB'||k==='RIGHT CLICK'))b='D↑';/* Aim in a car: binoculars */
+  if(decoOn()){if(k==='Q')b='D←';else if(k==='TAB')b='RB'}/* decorating: RB / D-pad → next, D-pad ← previous */
   const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:parts.map(x=>g[x]||x).join('+')}}
 let swapping=false;
 /* ---------- key names inside sentences ("hold E at the ladder", "Press G to call the box") ----------
    The one helper every prompt goes through while a pad is in use: HUD text nodes are rewritten in place (and put back for the keyboard).
    Jobs can call HT.Pad.keyText(str) for text they draw themselves (canvas, alerts). */
-const TXT_KEY=/\b(press|hold|tap|Press|Hold|Tap|PRESS|HOLD|TAP)(\s+the)?\s+(E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT)\b(?![\w'’])/g;
-const TXT_EXTRA={W:'RT',S:'LT',B:'B'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
-function keyText(str){if(S.last!=='pad'||typeof str!=='string'||!TXT_KEY.test(str)){TXT_KEY.lastIndex=0;return str}TXT_KEY.lastIndex=0;
-  const drv=!!(IN()&&IN().driving);
-  return str.replace(TXT_KEY,(m,verb,the,k)=>{const K=k.toUpperCase();let g=null;
-    if(TXT_EXTRA[K]&&!KEY2PAD[K])g={label:TXT_EXTRA[K]};else g=glyphFor(K==='SPACE'?'Space':K==='TAB'?'Tab':K==='SHIFT'?'Shift':K,null);
-    if(g&&drv&&K==='E')g={label:(GL[S.kind]||GL.xbox).Y};
-    return g?verb+(the||'')+' '+g.label:m})}
+const KEYS_RX='E|G|R|F|Q|T|X|Z|V|C|H|M|N|S|W|B|Tab|TAB|Space|SPACE|Shift|SHIFT|Esc|ESC|Enter|ENTER';
+/* "press E", "hold the E key", "Tap W" */
+const TXT_KEY=new RegExp("\\b(press|hold|tap|use|Press|Hold|Tap|Use|PRESS|HOLD|TAP|USE)(\\s+the)?\\s+("+KEYS_RX+")(\\s+key)?\\b(?![\\w'’])",'g');
+/* a key that leads a line or follows a separator: "E · zip-tie", "G to draw", "X: call Rick", "E/Enter takes it", "Z zooms" */
+const TXT_LEAD=/(^|[·(\[|—]\s*|[.!?]\s+|,\s+)(E|G|R|F|Q|T|X|Z|V|C|H|M|N|B|Tab|Space|Shift|Esc|Enter)(?=\s*(?:·|:|\/|\)|\]|$)|\s+(?:to|or|again|twice|zooms?|takes|closes|done|place|rotate|move|put|next|·)\b)/g;
+/* mouse words */
+const TXT_MOUSE=/\b(right[- ]click(?:ing)?|right mouse(?: button)?|left[- ]click|left mouse(?: button)?|RMB|LMB|Mouse ?[12]|(?:Right|Left)[- ]click|(?:Right|Left) mouse(?: button)?|click(?=\s+(?:to|again|fires?|shoots?)\b)|Click(?=\s*(?:to|:|·|\/|again)\b))/g;
+const TXT_EXTRA={W:'RT',S:'LT'};/* in sentences W / S are throttle / brake (driving and jet jobs) */
+const MOUSE_CAP=m=>/right|rmb|mouse ?2/i.test(m)?'RMB':'Click';
+/* the label of a default key name for the device in use, or null to leave it */
+function capLabel(K,pad){if(pad){if(TXT_EXTRA[K]&&!KEY2PAD[K])return TXT_EXTRA[K];const g=glyphFor(K==='SPACE'?'Space':K==='TAB'?'Tab':K==='SHIFT'?'Shift':K,null);return g?g.label:null}
+  const r=HT.Keys&&HT.Keys.relabel?HT.Keys.relabel(K==='CLICK'?'Click':K):null;return r||null}
+function keyText(str){if(typeof str!=='string'||!str)return str;const pad=S.last==='pad',kb=!pad&&kbRelabel();if(!pad&&!kb)return str;
+  let out=str.replace(TXT_KEY,(m,verb,the,k,key)=>{const l=capLabel(k.toUpperCase(),pad);return l?verb+(the||'')+' '+l:m});
+  out=out.replace(TXT_LEAD,(m,pre,k)=>{const l=capLabel(k.toUpperCase(),pad);return l?pre+l:m});
+  out=out.replace(TXT_MOUSE,m=>{const c=MOUSE_CAP(m),l=pad?(glyphFor(c==='RMB'?'RMB':'LMB',null)||{}).label:(HT.Keys&&HT.Keys.relabel(c));return l||m});
+  if(pad)out=out.replace(/\bW ?A ?S ?D\b/g,(GL[S.kind]||GL.xbox).LS+' stick').replace(/\b(?:the )?mouse wheel\b|\bthe wheel\b(?= to)/gi,'D-pad ← →').replace(/\bmove the mouse\b/gi,'Move the right stick').replace(/\bthe mouse\b/gi,'the right stick');
+  return out}
 const TXT_ORIG=new WeakMap();
-function swapText(root){if(!root)return;const on=S.last==='pad';
-  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,script,style')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
+function swapText(root){if(!root)return;const on=S.last==='pad'||kbRelabel();
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement&&!n.parentElement.closest('.ht-keys,.ht-kc,.ht-paddia,.ht-rb-note,script,style,textarea')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT});
   for(let n=w.nextNode();n;n=w.nextNode()){const o=TXT_ORIG.get(n);
     if(o&&n.nodeValue!==o.out){TXT_ORIG.delete(n)}/* the HUD wrote new text */
     const base=TXT_ORIG.has(n)?TXT_ORIG.get(n).src:n.nodeValue;
     if(on){const out=keyText(base);if(out!==base){if(n.nodeValue!==out){n.nodeValue=out}TXT_ORIG.set(n,{src:base,out})}else if(TXT_ORIG.has(n)){n.nodeValue=base;TXT_ORIG.delete(n)}}
     else if(TXT_ORIG.has(n)){n.nodeValue=TXT_ORIG.get(n).src;TXT_ORIG.delete(n)}}}
-const textRoots=()=>[...document.querySelectorAll('.ht-root,.ht-scr,.card,.ht-map')];
+const textRoots=()=>[document.body];/* every HUD, job overlay, teach box and panel (the controls tables stay literal) */
 /* keyboard: keycaps of rebound keys show the player's key (js/keys.js) */
 const kbRelabel=()=>!!(HT.Keys&&HT.Keys.changed);
 function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabel();
@@ -73,11 +89,12 @@ function swapGlyphs(){swapping=true;try{const on=S.last==='pad',kb=!on&&kbRelabe
     else if(kb){const r=HT.Keys.relabel(base);if(!r){if(e.dataset.padK!=null)restore(e);return}if(e.classList.contains('pad-g')){e.classList.remove('pad-g');e.style.removeProperty('--pg')}
       e.dataset.padK=base;e.textContent=r;e.dataset.padG=r}
     else if(e.dataset.padK!=null)restore(e)});
-  if(on||TXT_ORIG.dirty){for(const r of textRoots())swapText(r);TXT_ORIG.dirty=on}}finally{swapping=false}}
+  const txt=on||kb;if(txt||TXT_ORIG.dirty){for(const r of textRoots())swapText(r);TXT_ORIG.dirty=txt}}finally{swapping=false}}
 function restore(e){if(e.textContent===e.dataset.padG)e.textContent=e.dataset.padK;delete e.dataset.padK;delete e.dataset.padG;e.classList.remove('pad-g');e.style.removeProperty('--pg')}
 /* the HUD rewrites keycaps when prompts change: re-apply */
 const MO=new MutationObserver(()=>{if(!swapping)schedule()});/* connected only while the pad is the last device, or keys are rebound */
-let swapQ=0;function schedule(){if(!swapQ)swapQ=requestAnimationFrame(()=>{swapQ=0;swapGlyphs()})||setTimeout(()=>{swapQ=0;swapGlyphs()},50)}
+/* next frame, or 60 ms if frames are held (a hidden tab, the test harness): whichever comes first */
+let swapQ=0;function schedule(){if(swapQ)return;const run=()=>{if(!swapQ)return;swapQ=0;swapGlyphs()};swapQ=1;requestAnimationFrame(run);setTimeout(run,60)}
 function setLast(dev){if(S.last===dev)return;S.last=dev;document.documentElement.classList.toggle('ht-pad',dev==='pad');swapGlyphs();if(dev!=='pad'){releaseAll();const I=IN();if(I&&I.relock)I.relock()}}
 addEventListener('keydown',e=>{if(e.isTrusted)setLast('kb')},true);
 addEventListener('mousedown',e=>{if(e.isTrusted)setLast('kb')},true);
@@ -124,6 +141,7 @@ function vehicleKind(I){if(!I.driving)return null;const g=window.__ht,e=g&&g.CV;
 function choiceStrip(){const c=document.querySelector('.ht-ch');return c&&!c.classList.contains('off')&&!c.hidden&&visible(c)?c:null}
 function inMenu(){const I=IN();if(!I)return true;if(!I.running||I.paused)return true;if(HT.Menus&&HT.Menus.isOpen&&HT.Menus.isOpen())return true;
   return mapOpen()}
+function decoOn(){const g=window.__ht;return !!(g&&g.deco&&g.deco.on)}
 function promptUp(){const p=document.querySelector('.ht-pr');return !!p&&!p.classList.contains('off')}
 let lastT=performance.now(),polling=false;
 /* the loop only runs once a controller has shown up (pages without one pay nothing) */
@@ -180,25 +198,38 @@ function poll(now){if(!polling)return;requestAnimationFrame(poll);const dt=Math.
       let mx=lx,my=ly;if(veh==='car'){my=-(rt-lt)||(Math.abs(ly)>.5?ly:0)}
       const on=Math.abs(mx)>.01||Math.abs(my)>.01;
       if(on){st.id='pad';st.x=mx;st.y=my;S.stickOn=true}else if(S.stickOn){if(st.id==='pad'){st.id=null;st.x=st.y=0}S.stickOn=false}
-      if(dn(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
-      if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift');
+      /* L3: jog (a click, stays on until the stick is let go). Aiming (a scope: hold breath) it is Jog itself, held as long as L3 is,
+         so the Aim setting decides tap-to-hold or press-and-hold exactly as Shift does on the keyboard */
+      const scoped=!car&&I.aiming;
+      if(scoped){S.sprint=false;if(btn(B.L3))press('shift');else release('shift')}
+      else{if(dn(B.L3)){S.sprint=!S.sprint}if(S.sprint&&Math.hypot(lx,ly)<.1&&!car)S.sprint=false;
+        if(car){if(btn(B.RB)||btn(B.L3))press('shift');else release('shift')}else if(S.sprint)press('shift');else release('shift')}
       if(rx||ry)I.look(c2(rx)*LOOK*dt,c2(ry)*LOOK*dt);
       if(!car||veh==='tank'){
-        if(rt>.5&&!S.rt){S.rt=true;I.fire(true)}else if(rt<.3&&S.rt){S.rt=false;I.fire(false)}else if(S.rt&&I.auto&&!car)I.fire(true);
+        /* RT / LT are the Fire / Aim actions (js/keys.js): a tool (the phone, the stop sign, binoculars) can claim them before the gun does */
+        if(rt>.5&&!S.rt){S.rt=true;S.rtWho=fireIn(true)}else if(rt<.3&&S.rt){S.rt=false;fireIn(false)}else if(S.rt&&S.rtWho!=='claim'&&I.auto&&!car)I.fire(true);
         if(veh==='tank'){if(lt>.5&&!S.lt){S.lt=true;tap('v')}else if(lt<.3)S.lt=false}/* tank: LT = gunner's sight */
-        else{const tog=HT.Keys&&(HT.Keys.padAimMode||HT.Keys.aimMode)==='toggle';/* Aim: Hold / Toggle (Key bindings tab) */
-          if(lt>.5&&!S.lt){S.lt=true;I.aim(tog?!I.aiming:true)}else if(lt<.3&&S.lt){S.lt=false;if(!tog)I.aim(false)}}
-      }else{if(S.rt){S.rt=false;I.fire(false)}if(S.lt){S.lt=false;I.aim(false)}}
+        else{if(lt>.5&&!S.lt){S.lt=true;aimIn(true)}else if(lt<.3&&S.lt){S.lt=false;aimIn(false)}}/* Aim: Hold / Toggle (Controls & keys) */
+      }else{if(S.rt){S.rt=false;fireIn(false)}if(S.lt){S.lt=false;aimIn(false)}}
+      /* at home B opens / closes Decorate (nothing to crouch behind in the kitchen); while decorating A places, X rotates,
+         RB / D-pad → next item, D-pad ← previous, LB+→ puts away, View moves, B done */
+      const home=I.mode==='home',deco=home&&decoOn();
       if(!ch){
-        if(dn(B.A)){S.aKey=car?' ':promptUp()?'e':' ';press(S.aKey)}
-        if(dn(B.UP))tap('f');if(dn(B.DOWN))tap('n')}
-      if(dn(B.B)&&!car)tap('c');
+        if(dn(B.A)){S.aKey=car?' ':(deco||promptUp())?'e':' ';press(S.aKey)}
+        if(veh==='car'){/* in a car D-pad ↑ is Aim: the binoculars (a flashlight is no use behind the wheel) */
+          if(dn(B.UP)){S.carAim=true;aimIn(true)}}
+        else if(dn(B.UP))tap('f');
+        if(dn(B.DOWN))tap('n')}
+      if(S.carAim&&!btn(B.UP)){S.carAim=false;aimIn(false)}
+      if(dn(B.B)&&!car)tap(home?'b':'c');
       if(dn(B.X))tap(car?'h':'r');
-      if(!car&&(dn(B.RB)||dn(B.RIGHT)))tap('q');
-      if(!car&&dn(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}));
+      if(deco){if(dn(B.RB)||dn(B.RIGHT))tap('tab');if(dn(B.LEFT))tap('q')}
+      else{if(!car&&(dn(B.RB)||dn(B.RIGHT)))tap('q');
+        if(!car&&dn(B.LEFT))window.dispatchEvent(new WheelEvent('wheel',{deltaY:-100}))}
       if(dn(B.R3))tap('v')}
     if(up(B.A)&&S.aKey){release(S.aKey);S.aKey=null}
-    if(dn(B.Y))tap('e');
+    /* Y is Use held for as long as the button is (towing: hold to hitch, tap to get out; ladders; the jet's double tap) */
+    if(dn(B.Y)){press('e');S.yHeld=true}if(S.yHeld&&!btn(B.Y)){S.yHeld=false;if(S.aKey!=='e')release('e')}
     if(dn(B.VIEW))tap('m');
     if(down(B.MENU)){releaseAll();tap('escape')}
   }

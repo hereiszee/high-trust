@@ -1,0 +1,54 @@
+{
+ "roof": true,
+ "LT_scope_held": {
+  "aim": true,
+  "scopeT": 1,
+  "held": false,
+  "zoom": "",
+  "rounds": null
+ },
+ "L3_breath": {
+  "aim": true,
+  "scopeT": 1,
+  "held": false,
+  "zoom": "",
+  "rounds": null
+ },
+ "L3_held_breath": {
+  "aim": true,
+  "scopeT": 1,
+  "held": false,
+  "zoom": "",
+  "rounds": null
+ },
+ "L3_with_stick_breath": {
+  "aim": true,
+  "scopeT": 1,
+  "held": true,
+  "zoom": "",
+  "rounds": null
+ },
+ "LT_released": {
+  "aim": false,
+  "scopeT": 0,
+  "held": false,
+  "zoom": "",
+  "rounds": null
+ },
+ "keys_sent": "Shift ^Shift",
+ "ow_hud": "OBJECTIVE",
+ "ow_leaks": [],
+ "hoa": {
+  "mode": "mission",
+  "photo": true
+ },
+ "LT_phone_raised_while_held": false,
+ "LT_toggle_phone_raised": false,
+ "P_aim": true,
+ "photo_leaks": [],
+ "inTank": "tank",
+ "tank_LT_down": true,
+ "tank_LT_up": true,
+ "tank_leaks": []
+}
+errs []

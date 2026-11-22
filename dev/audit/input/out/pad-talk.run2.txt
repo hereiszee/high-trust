@@ -1,0 +1,32 @@
+{
+ "setup": {
+  "f": 907,
+  "choice": true,
+  "n": 4,
+  "sel": 0
+ },
+ "start": {
+  "sel": 0,
+  "choice": true,
+  "flash": false
+ },
+ "dpadDown": {
+  "sel": 0,
+  "choice": true,
+  "flash": false
+ },
+ "dpadDownKeys": "n",
+ "stickDown": {
+  "sel": 0,
+  "choice": true,
+  "flash": false
+ },
+ "dpadRight": {
+  "sel": 0,
+  "choice": true,
+  "flash": false
+ },
+ "choiceLabels": "1,2,3,4",
+ "leaks": []
+}
+errs []

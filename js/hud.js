@@ -787,7 +787,7 @@ function renderPane(e,d){const pane=e.querySelector('.ht-pane'),tab=d.tab||'cont
   const set=(k,v)=>{S[k]=v;emit('setting',k,v);if(k==='subs')H.subsOn=v;if(k==='mmRotate')H.mmRotate=v};
   pane.querySelectorAll('input[type=range]').forEach(r=>{const it=SETTINGS.flatMap(g=>g.items).find(i=>i.k===r.dataset.k);r.oninput=()=>{const v=+r.value;r.style.setProperty('--p',((v-it.min)/(it.max-it.min)*100).toFixed(1)+'%');r.nextElementSibling.textContent=(it.fmt||String)(v);set(it.k,v)}});
   pane.querySelectorAll('.ht-tog').forEach(t=>t.onclick=()=>{const v=t.getAttribute('aria-checked')!=='true';t.setAttribute('aria-checked',v);set(t.dataset.k,v)});
-  pane.querySelectorAll('.ht-seg3').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
+  pane.querySelectorAll('.ht-seg3[data-k]').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{sg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));set(sg.dataset.k,b.dataset.v)}));
   const rs=pane.querySelector('[data-reset]');if(rs)rs.onclick=()=>{if(rs.dataset.arm){emit('action','resetSave');rs.textContent='Save reset';rs.disabled=true}else{rs.dataset.arm=1;rs.textContent='Tap again to wipe everything';rs.classList.remove('ghost')}};
 }
 /* modal dialog above every screen: HUD.dialog({kicker,title,text|html,buttons:[{label,act,cls}],focus,cancel,wide})

@@ -1,0 +1,196 @@
+{
+ "title": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".w \"High\" x .w \"Trust\"",
+   ".w \"Trust\" x .tag \"Maple Heights Neighborhood Watch\"",
+   ".w \"Trust\" x .w \"High\"",
+   ".tag \"Maple Heights Neighborhood Watch\" x .w \"Trust\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "hud-hub": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".k \"1\" 10.0px"
+  ],
+  "n": 24
+ },
+ "pause-controls": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "pause-display": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 36
+ },
+ "pause-audio": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 21
+ },
+ "pause-keys": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 270
+ },
+ "pause-data": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 16
+ },
+ "map": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-hardware": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-auto": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "shop-dadazon": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "locker": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "brief": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "calendar": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "job-crossing": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".k \"1\" 10.0px",
+   ".k \"2\" 10.0px",
+   ".k \"3\" 10.0px"
+  ],
+  "n": 26
+ },
+ "result": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [],
+  "small": [],
+  "n": 0
+ },
+ "range-menu": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".spd \"0\" x .unit \"MPH\""
+  ],
+  "small": [
+   "span \"Health\" 10.0px",
+   ".v \"100\" 10.0px",
+   ".unit \"MPH\" 10.0px",
+   "span \"Family minivan\" 10.0px",
+   ".ht-num \"100%\" 10.0px",
+   ".ht-kc \"H\" 10.0px",
+   "span \"Horn\" 10.0px",
+   ".ht-kc \"Space\" 10.0px",
+   "span \"Brake\" 10.0px",
+   ".ht-kc \"E\" 10.0px",
+   "span \"Exit\" 10.0px",
+   ".ht-kc \"V\" 10.0px",
+   "span \"Hood\" 10.0px"
+  ],
+  "n": 30
+ },
+ "jet": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "tank": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\""
+  ],
+  "small": [],
+  "n": 26
+ },
+ "credits": {
+  "offscreen": [],
+  "clipped": [],
+  "overlap": [
+   ".kick \"Paused\" x h2 \"Take a breath.\"",
+   "h2 \"Take a breath.\" x .kick \"Paused\"",
+   ".ht-num \"7\" x h3 \"Credits & licences\"",
+   ".ht-num \"55%\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   "button \"Calm\" x pre \"HIGH TRUST\n\nDesign, code, procedural art\"",
+   "h3 \"Credits & licences\" x .ht-num \"7\"",
+   "pre \"HIGH TRUST\n\nDesign, code, procedural art\" x .ht-num \"55%\"",
+   "pre \"HIGH TRUST\n\nDesign, code, procedural art\" x button \"Calm\""
+  ],
+  "small": [],
+  "n": 65
+ }
+}

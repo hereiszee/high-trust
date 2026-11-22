@@ -78,6 +78,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="vendor/three-r128/examples/js/postprocessing/EffectComposer.js"></script>
 <script src="vendor/three-r128/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="js/keys.js"></script><!-- the input action layer: bindings by physical key, Aim / Fire claims, labels (first, so its capture listeners run before every module's) -->
 <script src="js/hud.js"></script>
 <script src="js/credits.js"></script><!-- Credits & licences text (title and pause menus) -->
 <script src="js/fx.js"></script>
@@ -1262,6 +1263,7 @@ const keys={};let mouseDown=false,useTap=false;
 const CFG={sens:7,ads:55,fov:74,inv:false,gfx:'auto'};
 const CFG_STORE=()=>window.HTDesktop?HTDesktop.storage:localStorage;/* desktop shell: settings live in the save file (desktop/save-store.js) */
 try{Object.assign(CFG,JSON.parse(CFG_STORE().getItem('ht-cfg')||'{}'))}catch(e){}
+if('undefined' in CFG){delete CFG.undefined;try{CFG_STORE().setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}/* an old Pause → Controls & keys bug wrote "undefined":"hold" here */
 function saveCfg(){try{CFG_STORE().setItem('ht-cfg',JSON.stringify(CFG))}catch(e){}}
 
 /* ================= UI helpers ================= */
@@ -1981,10 +1983,12 @@ function releaseLock(){lockWanted=false;try{if(document.pointerLockElement){self
 document.addEventListener('pointerlockchange',()=>{const was=locked;locked=document.pointerLockElement===cv;if(locked){lockFailed=false;everLocked=true;/* a request still in flight when a screen opened: give the cursor back */if(!lockWanted||!running){selfExit=true;try{document.exitPointerLock()}catch(e){}}}
   if(was&&!locked){if(selfExit)selfExit=false;else if(lockWanted&&running&&!metaLockLost())openPause()}});
 document.addEventListener('pointerlockerror',()=>{lockFailed=true});
-cv.addEventListener('mousedown',e=>{initAudio();if(!running)return;canvasFocus();
-  if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();e.preventDefault();return}
-  if(e.button===0)mouseDown=true;if(e.button===2)P.aim=aimHoldMode()?true:!P.aim;/* owner rule: aim is a toggle on mouse (click to raise, click again to lower); Key bindings → Aim: Hold makes it press-and-hold */e.preventDefault()});
-addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false;if(e.button===2&&aimHoldMode())P.aim=false});
+/* a click on the view while the game runs unlocked only takes the pointer back. js/keys.js asks this first for every click on the view,
+   whatever the buttons are bound to (C-1); Aim (Mouse 2 by default) arrives through HT.Keys.aimInput, never here */
+function lockClick(){initAudio();if(!running)return false;canvasFocus();if(!locked&&(!lockFailed||everLocked)&&!COARSE){requestLock();return true}return false}
+cv.addEventListener('mousedown',e=>{if(lockClick()){e.preventDefault();return}if(!running)return;
+  if(e.button===0)mouseDown=true;e.preventDefault()});
+addEventListener('mouseup',e=>{if(e.button===0)mouseDown=false});
 function aimHoldMode(){const K=window.HT&&HT.Keys;return!!(K&&K.aimMode==='hold')}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function look(dx,dy){camLookT=1.3;const gw=WEAPONS[P.cur],base=CFG.sens*.00032,s=base*((P.adsT>.5||(P.aim&&!gw))?CFG.ads/100*(gw&&gw.scope?gw.ads.zoom:1):1);P.yaw-=dx*s;
@@ -1998,7 +2002,7 @@ addEventListener('mousemove',e=>{if(!running||pauseOpen)return;
 cv.addEventListener('mouseleave',()=>{lastMX=lastMY=null});
 /* settings: the pause screen edits HUD.settings; every change lands in CFG and is saved */
 function syncPause(){return Object.assign(HUD.settings,{sens:CFG.sens,ads:CFG.ads,fov:CFG.fov,invert:!!CFG.inv,fp:P.fp,gfx:RENDER.sel||RENDER.q,subs:CFG.subs!==false,mmRotate:CFG.mmRotate!==false,master:CFG.master??VOL_DEF.master,sfx:CFG.sfx??VOL_DEF.sfx,music:CFG.music??VOL_DEF.music,ambience:CFG.ambience??VOL_DEF.ambience})}
-HUD.on('setting',(k,v)=>{if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
+HUD.on('setting',(k,v)=>{if(k==null||k==='undefined')return;if(k==='invert')CFG.inv=!!v;else if(k==='fp'){P.fp=!!v;CFG.fp=!!v}else CFG[k]=v;
   if(k==='gfx')RENDER.apply(v);if(k==='rscale'){RENDER.rscale=clamp(+v||100,50,100)/100;RENDER.apply(RENDER.sel||CFG.gfx)}if(k in VOL_DEF)setVolume();saveCfg()});
 /* Resolution scale and Frame rate cap (js/hud.js SETTINGS) */
 HUD.settings={rscale:clamp(+CFG.rscale||100,50,100),fpsCap:String(CFG.fpsCap||'0')};
@@ -2084,12 +2088,14 @@ HUD.on('touch',(a,down)=>{initAudio();
   if(!down)return;
   if(a==='pause'){if(running)openPause();else if(pauseOpen)closePause();return}
   if(!running)return;
-  if(a==='aim')P.aim=!P.aim;else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
+  if(a==='aim'){const K=window.HT&&HT.Keys;if(K&&K.aimInput){K.aimInput(true,'touch');K.aimInput(false,'touch')}else P.aim=!P.aim}else if(a==='reload')reload();else if(a==='crouch')P.crouch=!P.crouch;
   else if(a==='swap')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);else if(a==='view')P.fp=!P.fp;else if(a==='jump'&&!VAN.on)P.jumpBuf=MOVE.buf});
 /* controller hook (js/gamepad.js): the left stick shares the touch stick's path (analog walk, throttle/steer), the right stick calls look() */
 window.HT.Input={stick:tj,look:(dx,dy)=>{if(running&&!pauseOpen)look(dx,dy)},fire:down=>{mouseDown=!!down&&running},aim:on=>{if(running)P.aim=!!on},
   get running(){return running},get paused(){return pauseOpen},get mode(){return mode},get driving(){return !!VAN.on},
-  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},get aiming(){return !!P.aim},relock(){if(!everLocked)lockFailed=false}};
+  get auto(){const w=WEAPONS[P.cur];return !!(w&&w.auto)},get aiming(){return !!P.aim},relock(){if(!everLocked)lockFailed=false},lockClick};
+/* web build: the browser's back button, a mouse back button or closing the tab during a job asks first (the desktop shell has its own quit flow) */
+addEventListener('beforeunload',e=>{if(window.HTDesktop||window.__htNoUnloadGuard)return;if(!(mode==='mission'&&M&&M.state==='go'))return;/* only a job in progress is unsaved */e.preventDefault();e.returnValue=''});
 
 /* ================= WEAPONS ================= */
 const lerp=(a,b,t)=>a+(b-a)*t,approach=(v,t,s)=>v<t?Math.min(t,v+s):Math.max(t,v-s);
@@ -2830,7 +2836,7 @@ let HOME3=null,homeReady=false,homeLoading=null;
 #deco .strip{display:flex;gap:6px;overflow:hidden;margin:8px 0 9px;mask-image:linear-gradient(90deg,#000 85%,transparent);-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent)}
 #deco .strip span{flex:none;padding:3px 8px;border:1px solid rgba(255,255,255,.25);border-radius:4px;font-size:12px;white-space:nowrap;opacity:.75}
 #deco .strip span.on{background:#ffc94a;color:#0f1216;border-color:#ffc94a;opacity:1}
-#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;opacity:.92}#deco .k i{font:700 11px ui-monospace,Menlo,Consolas,monospace;background:#f6f1e3;color:#0f1216;padding:0 5px;border-radius:3px;margin-right:4px}
+#deco .k{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;opacity:.92}#deco .k .ht-kc{height:17px;min-width:17px;font-size:11px;margin-right:2px}#deco .k i{font:700 11px ui-monospace,Menlo,Consolas,monospace;background:#f6f1e3;color:#0f1216;padding:0 5px;border-radius:3px;margin-right:4px}
 @media (max-width:520px){#deco .k{display:none}#deco{top:calc(env(safe-area-inset-top,0px) + 70px)}}`;document.head.appendChild(st);
   const d=document.createElement('div');d.id='deco';d.hidden=true;document.body.appendChild(d)})();
 
@@ -3146,18 +3152,23 @@ function decoAct(a){const D=HOMEM.decorate;if(!DECO.on)return;let r=null;
   else if(a==='move'){if(D.move())decoFlash('Picked it up. Click to put it down.');else decoFlash('Aim at something you placed',true)}
   else if(a==='next')D.cycle(1);else if(a==='prev')D.cycle(-1)}
 function decoPeople(){const out=[P.pos];if(HOME3&&HOME3.family)for(const m of HOME3.family)out.push(m.pos);return out}
+/* the panel's keys: real keycaps (.ht-kc), so js/gamepad.js shows pad glyphs and js/keys.js the player's bindings / layout */
+function decoKeys(){const k=t=>'<b class="ht-kc">'+t+'</b>',pad=document.documentElement.classList.contains('ht-pad');
+  const rows=pad?[[k(KE),'place'],[k('R'),'rotate'],[k('Tab'),'next item'],[k('Q'),'previous'],[k('M'),'move'],[k('X'),'put away'],[k('B'),'done']]
+    :[[k('Click')+'/'+k(KE),'place'],[k('R'),'rotate'],[k('Tab')+'/wheel','next item'],[k('M'),'move'],[k('X')+'/'+k('RMB'),'put away'],[k('B'),'done']];
+  return '<div class="k">'+rows.map(([a,b])=>'<span>'+a+' '+b+'</span>').join('')+'</div>'}
 function decoUpd(dt){const D=HOMEM.decorate;
   UI.obj=null;/* the panel says it all */
   if(mouseDown){mouseDown=false;decoAct('place')}if(P.aim){P.aim=false;decoAct('remove')}
   const info=D.aim(camera.position,camFwd(),decoPeople());
   DECO.msgT-=dt;const inv=D.inventory(),sel=D.selected?HOMEM.catalogById[D.selected]:null;const cnt=sel?(inv.find(i=>i.id===sel.id)||{count:0}).count:0;
-  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aim + M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
+  const why=DECO.msgT>0?DECO.msg:!sel?(D.hovered?'Aimed at it · M to move it · X to put it away':'Nothing in storage · aim at furniture to move it'):!info?(sel.wall?'Aim at a wall':'Aim at the floor'):info.why?info.why:'Fits · click to place';
   const bad=DECO.msgT>0?DECO.bad:!!(sel&&(!info||info.why));
   const strip=inv.slice(0,14).map(i=>'<span class="'+(i.id===D.selected?'on':'')+'">'+i.name.replace(/\s*\(.*\)/,'')+(i.count>1?' ×'+i.count:'')+'</span>').join('');
   const h='<div class="h"><b>Decorating</b><span>'+(inv.length?inv.reduce((a,i)=>a+i.count,0)+' in storage':'Storage empty')+'</span></div>'+
     '<div class="it">'+(sel?sel.name+'<small>'+(D.moving?'moving':cnt+' left')+'</small>':'Nothing selected')+'</div><div class="why'+(bad?' bad':'')+'">'+why+'</div>'+
     (strip?'<div class="strip">'+strip+'</div>':'')+
-    '<div class="k"><span><i>Click</i>/<i>'+KE+'</i>place</span><span><i>R</i>rotate</span><span><i>Tab</i>/<i>wheel</i>next item</span><span><i>M</i>move</span><span><i>X</i>/<i>right click</i>put away</span><span><i>B</i>done</span></div>';
+    decoKeys();
   if(h!==DECO.html){DECO.html=h;$('deco').innerHTML=h}
   if(useTap){useTap=false;decoAct('place')}}
 function homeCam(dt){if(!HOME3)return;
@@ -4579,6 +4590,5 @@ window.__ht.dude={make:makeDude,equip,pose,makeGun,HOMIES,rebuildTargets,get sol
 requestAnimationFrame(frame);
 })();
 </script>
-<script src="js/keys.js"></script><!-- key rebinding (Pause → Key bindings) -->
 <script src="js/gamepad.js"></script><!-- controllers: Gamepad API, menu navigation, pad glyphs -->
 <script src="js/platform.js"></script><!-- desktop shell + Steam glue; no-op on the web (docs/steam/BUILD.md) -->

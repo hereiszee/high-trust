@@ -16,14 +16,14 @@ let fails=0;const ok=(c,m)=>{if(!c)fails++;console.log((c?'ok   ':'FAIL ')+m)};
   await ev(()=>HT.Keys.set('reload','e'));
   ok(await ev(()=>HT.Keys.get('use')==='r'&&HT.Keys.get('reload')==='e'),'taking E for Reload swaps Use onto R');
   ok(await ev(()=>HT.Keys.relabel('E')==='R'&&HT.Keys.relabel('R')==='E'&&HT.Keys.relabel('Space')===null),'keycaps relabel (prompt E shows R)');
-  ok(await ev(()=>JSON.parse(localStorage.getItem('ht-keys')).fwd==='i'),'bindings saved (ht-keys)');
+  ok(await ev(()=>JSON.parse(localStorage.getItem('ht-keys')).fwd==='KeyI'),'bindings saved by physical key (ht-keys)');
   ok(await ev(()=>HT.Keys.set('jump','escape')===false&&HT.Keys.set('jump','1')===false),'Esc and 1-3 are reserved');
   /* mouse: Fire onto a key, Use onto the middle button, Aim as a toggle on the right button */
   await ev(()=>HT.Keys.reset());await ev(()=>{HT.Keys.set('fire','j');HT.Keys.set('use','mouse3')});
   await p.keyboard.down('j');const f1=await ev(()=>window.HT.Roam.mouseDown);await p.keyboard.up('j');const f2=await ev(()=>window.HT.Roam.mouseDown);
   ok(f1===true&&f2===false,'Fire on J: the trigger follows the key ('+f1+' -> '+f2+')');
   const box=await p.locator('#c').boundingBox();const cx=box.x+box.width/2,cy=box.y+box.height/2;
-  await p.mouse.move(cx,cy);await p.mouse.down({button:'middle'});const e1=await ev(()=>window.__ht.keys.e);await p.mouse.up({button:'middle'});const e2=await ev(()=>window.__ht.keys.e);
+  await p.mouse.move(cx,cy);await p.mouse.click(cx,cy);/* any first click on the view only asks for pointer lock (refused headless) */await p.waitForTimeout(150);await p.mouse.down({button:'middle'});const e1=await ev(()=>window.__ht.keys.e);await p.mouse.up({button:'middle'});const e2=await ev(()=>window.__ht.keys.e);
   ok(e1===true&&e2===false,'Use on Mouse 3: middle button holds E ('+e1+' -> '+e2+')');
   ok(await ev(()=>HT.Keys.relabel('E')==='Mouse 3'),'the E prompt reads Mouse 3');
   await ev(()=>{HT.Keys.reset();HT.Keys.aimMode='toggle'});await p.mouse.click(cx,cy);/* first click on the view asks for pointer lock (refused headless) */await ev(()=>{window.__ht.P.aim=false;window.HT.Roam.mouseDown=false});
