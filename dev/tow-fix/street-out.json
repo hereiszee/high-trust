@@ -1,0 +1,221 @@
+[
+ {
+  "case": "oak-kim",
+  "mode": "pass",
+  "done": true,
+  "secs": 6.9,
+  "maxHitchDeg": 40,
+  "stuck": 0,
+  "notes": [],
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": []
+ },
+ {
+  "case": "oak-kim",
+  "mode": "hit",
+  "done": true,
+  "secs": 54.7,
+  "maxHitchDeg": 62,
+  "stuck": 0,
+  "notes": [
+   "stopped by the parked car at 359.4",
+   "reversed out in 1.6 s"
+  ],
+  "truckTouched": [
+   "go:wall@358,25",
+   "rev:wall@358,25",
+   "round:lamp@363,19",
+   "round:bldg@331,26"
+  ],
+  "towedTouched": [],
+  "events": []
+ },
+ {
+  "case": "oak-kim",
+  "mode": "fold",
+  "done": true,
+  "secs": 20.3,
+  "maxHitchDeg": 62,
+  "stuck": 0,
+  "notes": [
+   "folded to 49 deg"
+  ],
+  "truckTouched": [
+   "go:lamp@319,9",
+   "away:lamp@319,9"
+  ],
+  "towedTouched": [],
+  "events": []
+ },
+ {
+  "case": "ash-east",
+  "mode": "pass",
+  "done": true,
+  "secs": 9.5,
+  "maxHitchDeg": 25,
+  "stuck": 0,
+  "notes": [],
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": []
+ },
+ {
+  "case": "ash-east",
+  "mode": "hit",
+  "done": true,
+  "secs": 18.3,
+  "maxHitchDeg": 56,
+  "stuck": 0,
+  "notes": [
+   "stopped by the parked car at 423.1",
+   "reversed out in 1.6 s"
+  ],
+  "truckTouched": [
+   "go:parked@427,73.1",
+   "go:parked@427.1,73.1",
+   "go:parked@427.1,73.2",
+   "go:parked@427.1,73.3",
+   "go:parked@427.2,73.4",
+   "go:parked@427.2,73.5",
+   "go:parked@427.2,73.6",
+   "go:parked@427.3,73.7",
+   "go:parked@427.3,73.8",
+   "go:parked@427.3,73.9",
+   "go:parked@427.3,74",
+   "go:parked@427.4,74",
+   "go:parked@427.4,74.1",
+   "rev:parked@427.4,74.1",
+   "round:fence@427,77"
+  ],
+  "towedTouched": [
+   "round:fence@427,77"
+  ],
+  "events": [
+   "yield",
+   "hit:6.7"
+  ]
+ },
+ {
+  "case": "ash-east",
+  "mode": "fold",
+  "done": true,
+  "secs": 10.1,
+  "maxHitchDeg": 78,
+  "stuck": 0,
+  "notes": [
+   "folded to 74 deg"
+  ],
+  "truckTouched": [
+   "away:parked@427,73.1",
+   "away:parked@427.1,73.2",
+   "away:parked@427.1,73.4"
+  ],
+  "towedTouched": [
+   "go:lamp@395,67",
+   "away:bldg@395,63",
+   "away:lamp@395,67"
+  ],
+  "events": [
+   "hit:8.8",
+   "scrape:2.9",
+   "scrape:2.6",
+   "yield"
+  ]
+ },
+ {
+  "case": "st99",
+  "mode": "pass",
+  "done": true,
+  "secs": 8.3,
+  "maxHitchDeg": 24,
+  "stuck": 0,
+  "notes": [],
+  "truckTouched": [],
+  "towedTouched": [],
+  "events": []
+ },
+ {
+  "case": "st99",
+  "mode": "hit",
+  "done": true,
+  "secs": 52.3,
+  "maxHitchDeg": 79,
+  "stuck": 0,
+  "notes": [
+   "stopped by the parked car at 394.7",
+   "reversed out in 1.6 s"
+  ],
+  "truckTouched": [
+   "go:parked@367,101.1",
+   "go:parked@367.1,101.1",
+   "go:parked@367.1,101.2",
+   "go:parked@367.1,101.3",
+   "go:parked@367.2,101.4",
+   "go:parked@367.2,101.5",
+   "go:parked@367.2,101.6",
+   "go:parked@367.3,101.7",
+   "go:parked@367.3,101.8",
+   "go:parked@367.3,101.9",
+   "go:parked@367.3,102",
+   "go:parked@367.4,102",
+   "go:parked@367.4,102.1",
+   "go:lamp@395,103",
+   "round:lamp@395,95",
+   "round:parked@367.5,102.6",
+   "round:parked@367.4,102.5",
+   "round:parked@367.4,102.4",
+   "round:parked@367.4,102.3",
+   "round:parked@367.4,102.2",
+   "round:parked@367.4,102.1",
+   "round:parked@367.3,102.1",
+   "round:parked@367.3,102",
+   "round:parked@367.3,101.9",
+   "round:parked@367.3,101.8",
+   "round:parked@367.2,101.7",
+   "round:parked@367.2,101.6",
+   "round:parked@367.1,101.5",
+   "round:parked@367.1,101.4",
+   "round:bldg@363,107"
+  ],
+  "towedTouched": [
+   "round:bldg@395,107",
+   "round:lamp@395,103",
+   "round:parked@366.9,101.7",
+   "round:parked@366.9,101.8",
+   "round:parked@366.9,101.6",
+   "round:parked@366.8,101.6",
+   "round:parked@366.8,101.5"
+  ],
+  "events": [
+   "yield",
+   "scrape:3.7"
+  ]
+ },
+ {
+  "case": "st99",
+  "mode": "fold",
+  "done": true,
+  "secs": 10.7,
+  "maxHitchDeg": 78,
+  "stuck": 0,
+  "notes": [
+   "folded to 78 deg"
+  ],
+  "truckTouched": [
+   "away:parked@367,101.1",
+   "away:parked@367.1,101.2",
+   "away:parked@367.1,101.3",
+   "away:parked@367.1,101.4",
+   "away:parked@367.2,101.6"
+  ],
+  "towedTouched": [
+   "go:bldg@331,91",
+   "away:bldg@331,91"
+  ],
+  "events": [
+   "hit:9.2",
+   "yield"
+  ]
+ }
+]

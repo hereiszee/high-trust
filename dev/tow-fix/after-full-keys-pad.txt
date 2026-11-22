@@ -1,0 +1,9 @@
+start {"t":1083,"mode":"mission","ph":"tow","cv":true,"state":"go"}
+{"resets":[],"car":"kim","pickup":{"id":"kim","ok":true,"revS":27.7},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":65,"sweep":93,"events":["81 hitch","101 detach:drop","101 drop"]}
+{"resets":[],"car":"hollis","pickup":{"id":"hollis","ok":true,"revS":17.4},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":126,"sweep":219,"resetShownAfterS":20,"prompt":null,"reset":true,"sweepCost":0.7,"to":[315.1,129.3],"events":["174 hitch","188 scrape:2.7","188 scrape:5.7","195 scrape:2.8","195 scrape:6.3","228 detach:drop","228 drop"]}
+{"resets":[],"car":"rosa","pickup":{"id":"rosa","ok":true,"revS":16.7},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":101,"sweep":320,"events":["306 hitch","328 detach:drop","328 drop"]}
+{"resets":[],"car":"benny","pickup":{"id":"benny","ok":true,"revS":21.3},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":143,"sweep":463,"events":["412 hitch","472 detach:drop","472 drop"]}
+{"resets":[],"car":"earl","pickup":{"id":"earl","ok":true,"revS":18.9},"deliver":{"route":"arrived","dropped":true,"st":"done"},"secs":151,"sweep":614,"nosedIn":true,"parkedCarNowAt":{"x":367.40707296163157,"z":102.51491175416915},"round":"arrived","events":["552 hitch","567 scrape:2.6","583 yield","584 yield","586 yield","590 yield","614 hit:7.9","623 detach:drop","623 drop"]}
+RESULT {"state":"won","medal":2,"pay":1783,"sweep":614,"elapsed":672,"drops":["kim:100","hollis:92","rosa:100","benny:100","earl:96"]}
+no console errors
+exit 0

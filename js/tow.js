@@ -26,8 +26,15 @@ const fwd=y=>[-Math.sin(y),-Math.cos(y)],yawTo=(dx,dz)=>Math.atan2(-dx,-dz);
 const T={
   hitchBack:.25,          /* hitch ball behind the tower's rear bumper (m) */
   gap:.6,                 /* hitch to the towed car's bumper (m) */
-  attachD:2.5,attachYaw:30*D2R,attachSpd:1,hookHold:1.5,dropHold:1,
-  jack:75*D2R,jackSpd:3,clampA:85*D2R,jackDmg:8,snap:9,
+  attachD:3.2,attachYaw:38*D2R,attachSpd:1,hookHold:1.5,dropHold:1,  /* a generous hitch zone: the winch pulls the last metre / few degrees into line */
+  /* the hitch angle has a soft stop well short of the truck's own rear corner (~70 degrees): it can't fold into a lock. A jackknife (the hitch
+     lets go) needs a real fishtail at speed; reversing never does it. A snap needs a real crash, never a bump. */
+  jack:60*D2R,jackSpd:7.5,clampA:62*D2R,jackDmg:8,snap:14,
+  trail:.62,              /* hitch to the towed car's rear axle, x its length: a wheel-lift tracks close behind the truck, inside it on a turn but never a metre wide */
+  bodyIn:.12,             /* the towed body's collision probes are this much slimmer each side than its visual width */
+  straight:1.8,straightFrom:38*D2R, /* reversing: beyond straightFrom the towed car straightens itself back (rad/s at the stop), so it never locks */
+  stuckT:3,stuckD:.7,     /* no progress (< stuckD m) for stuckT s on the throttle -> offer "Reset the rig" */
+  yieldV:1.1,yieldMax:2.6,yieldSpd:4.5, /* a parked car the rig leans on at walking pace slides aside at yieldV m/s, at most yieldMax m from where it was parked */
   mul:{max:.7,acc:.6,brake:.8,steer:.8},
   resp:28,respV:7,        /* towed yaw-rate response 1/s: resp/(1+(v/respV)^2) -> laggy (wide) at speed, exact when slow */
   brakePush:.055,         /* hard braking in a bend: extra articulation rate per (m/s^2 of decel x sin(angle) x v/10) */
@@ -49,7 +56,7 @@ function check(tw,car,side){const H=hitchPoint(tw),B=bumper(car,side),d=Math.hyp
   return{ok:!why,d,rel,ahead,why}}
 function centreFrom(H,psi,len){const f=fwd(psi),o=len/2+T.gap;return{x:H.x-f[0]*o,z:H.z-f[1]*o}}
 function make(tw,car,o){o=o||{};const side=o.side||'front',len=car.len||4.6;
-  const k={car,side,len,wid:car.wid||1.9,L:len*.75+T.gap,psi:faceYaw(car,side),w:0,v0:tw.spd||0,settle:o.instant?0:T.settle,from:{x:car.x,z:car.z,yaw:car.yaw},lift:o.instant?1:0,t:0,hitT:0};
+  const k={car,side,len,wid:car.wid||1.9,L:len*T.trail+T.gap,psi:faceYaw(car,side),w:0,v0:tw.spd||0,settle:o.instant?0:T.settle,from:{x:car.x,z:car.z,yaw:car.yaw},lift:o.instant?1:0,t:0,hitT:0};
   if(o.instant){const H=hitchPoint(tw),C=centreFrom(H,k.psi,len);car.x=C.x;car.z=C.z;car.yaw=side==='rear'?wrap(k.psi+Math.PI):k.psi}
   return k}
 /* one step. tw = {x,z,yaw,spd,len} (already moved this frame). Returns events. */
@@ -61,6 +68,9 @@ function step(k,tw,dt,o){o=o||{};const car=k.car,v=tw.spd||0,H=hitchPoint(tw),ev
   /* braking hard in a bend: the towed car keeps coming and pushes the hitch further round */
   const dec=dt>0?(k.v0-v)/dt:0,rel0=wrap(tw.yaw-k.psi);
   if(v>3&&dec>4)rK-=Math.sign(rel0)*T.brakePush*dec*Math.abs(Math.sin(rel0))*(v/10);
+  /* reversing past the soft stop's lead-in: the towed car comes back toward straight on its own (the wheel-lift's castor), so backing up
+     with a car on the hook can always be recovered by just backing up */
+  if(v<0&&Math.abs(rel0)>T.straightFrom)rK+=Math.sign(rel0)*T.straight*Math.min(1,(Math.abs(rel0)-T.straightFrom)/(T.clampA-T.straightFrom))*Math.min(1,-v/1.5);
   k.w+=(rK-k.w)*Math.min(1,g*dt);
   k.psi=wrap(k.psi+k.w*dt);
   let rel=wrap(tw.yaw-k.psi);
@@ -72,10 +82,13 @@ function step(k,tw,dt,o){o=o||{};const car=k.car,v=tw.spd||0,H=hitchPoint(tw),ev
   k.lift=Math.min(1,k.lift+dt/.6);
   /* the towed body against the world: push it out, keep it on the hitch, report the hit */
   if(o.collide){const f=fwd(k.psi),q=k.len/3;let px=0,pz=0;
-    for(const s of[1,-1]){const p={x:C.x+f[0]*q*s,z:C.z+f[1]*q*s},p0={x:p.x,z:p.z};o.collide(p,k.wid/2+.05);px+=p.x-p0.x;pz+=p.z-p0.z}
+    for(const s of[1,-1]){const p={x:C.x+f[0]*q*s,z:C.z+f[1]*q*s},p0={x:p.x,z:p.z};o.collide(p,Math.max(.5,k.wid/2-T.bodyIn));px+=p.x-p0.x;pz+=p.z-p0.z}
     if(px*px+pz*pz>1e-6){const l=Math.hypot(px,pz),nx=px/l,nz=pz/l,
         /* closing speed into the obstacle: the body's own motion this frame (before the push-out) against the push normal */
-        vx=k.Cp?(C.x-k.Cp.x)/Math.max(dt,1e-3):0,vz=k.Cp?(C.z-k.Cp.z)/Math.max(dt,1e-3):0,sp=Math.min(30,Math.max(0,-(vx*nx+vz*nz)));
+        vx=k.Cp?(C.x-k.Cp.x)/Math.max(dt,1e-3):0,vz=k.Cp?(C.z-k.Cp.z)/Math.max(dt,1e-3):0,
+        /* (bounded by what the truck can give it: last frame's push-out re-aims the body, and that jump is not a speed. A truck creeping
+           back at 2 m/s can't fire a 15 m/s "crash" that snaps the hitch) */
+        sp=Math.min(30,Math.abs(v)*1.6+1.5,Math.max(0,-(vx*nx+vz*nz)));
       const Cx=C.x+px,Cz=C.z+pz,np=yawTo(H.x-Cx,H.z-Cz);k.psi=np;k.w*=.3;C=centreFrom(H,k.psi,k.len);
       ev.hit={sp,push:{x:px/l,z:pz/l}};rel=wrap(tw.yaw-k.psi);ev.rel=rel}}
   car.x=C.x;car.z=C.z;car.yaw=k.side==='rear'?wrap(k.psi+Math.PI):k.psi;
@@ -93,12 +106,14 @@ glue(Tow);
    ===================================================================== */
 function glue(Tow){
 const THREE=window.THREE,J=()=>window.HT&&HT.Jobs,A=()=>J()&&J().api,H_=()=>window.__ht;
-const S={link:null,lend:false,targets:null,rigs:new Map(),guide:null,cand:null,hold:0,eDown:0,eT:0,ev:[],cam:null,camT:0,snd:null,lastHit:0,quipT:0,fx:null};
+const S={nudged:new Set(),yT:0,stuck:false,stk:null,lost:null,link:null,lend:false,targets:null,rigs:new Map(),guide:null,cand:null,hold:0,eDown:0,eT:0,ev:[],cam:null,camT:0,snd:null,lastHit:0,quipT:0,fx:null};
 Tow.S=S;Object.defineProperty(Tow,'link',{get:()=>S.link});
 Tow.on=fn=>{S.ev.push(fn);return()=>{const i=S.ev.indexOf(fn);if(i>=0)S.ev.splice(i,1)}};
 const emit=(t,d)=>{for(const f of S.ev.slice())try{f(t,d)}catch(e){console.warn('[tow]',e)}};
 Tow.lend=on=>{S.lend=!!on};
 Tow.targets=fn=>{S.targets=fn||null};
+/* a job's own parked cars that should yield to the rig like the world's (Hitch Happens: the cars already home at their curbs) */
+Tow.yielders=fn=>{S.yielders=fn||null};
 /* which vehicles have a hitch: the pickup and the work van have one stock; the rest need Dad's Auto's (or Sal's loaner during a job) */
 Tow.can=e=>{if(!e)return false;if(S.lend)return true;if(e.type==='pickup'||e.type==='workvan')return true;
   try{const a=A(),s=a&&a.SV();if(s&&s.garage&&s.garage.util&&s.garage.util.hitch&&e===a.VAN)return true}catch(_){}return false};
@@ -199,12 +214,12 @@ Tow.attach=(e,t,o)=>{const a=A();o=o||{};if(S.link)Tow.detach('swap',{quiet:true
   if(c&&c!==e)c.towMul=towMul();rigFor(e,true);
   if(!k.lw){k.lw=buildLift();a.scene.add(k.lw.g);for(const m of[...k.lw.chains,k.lw.cable])a.scene.add(m)}
   if(o.instant){t.pos.x=b.x;t.pos.z=b.z;t.yaw=b.yaw}
-  sfx('clank');emit('hitch',{car:t,tower:e});return k};
+  S.lost=null;S.stuck=false;S.stk=null;if(!o.quiet)sfx('clank');emit('hitch',{car:t,tower:e});return k};
 Tow.detach=(why,o)=>{const a=A(),k=S.link;if(!k)return null;o=o||{};S.link=null;const e=k.tower,t=k.ref;t.towed=false;
   if(e&&e.car&&e.car!==e)e.car.towMul=null;if(k.lw){if(k.lw.g.parent)k.lw.g.parent.remove(k.lw.g);for(const m of[...k.lw.chains,k.lw.cable])if(m.parent)m.parent.remove(m)}
   /* set it down: nose back on the ground */
   try{a.syncCar(t);if(t.obj){t.obj.rotation.z=0}}catch(_){}
-  if(!o.quiet)sfx(why==='jack'||why==='snap'?'bang':'clank');emit('detach',{car:t,tower:e,why});return t};
+  if(!o.quiet)sfx(why==='jack'||why==='snap'?'bang':'clank');if(why==='jack'||why==='snap')S.lost={car:t,tower:e,t:a.simT};emit('detach',{car:t,tower:e,why});return t};
 
 /* ---------------- per frame while the dad drives (JH.vehicle): physics, model, damage, guide, hold E in free roam ---------------- */
 function tick(e,dt){const a=A();if(!a)return;const c=e.car||e,k=S.link;
@@ -226,18 +241,75 @@ function towTick(e,c,dt){const a=A(),k=S.link,t=k.ref,tw=towerOf(e,c);
   /* the tower's own hard hit (a wall at 9 m/s or more) snaps the hitch */
   const dv=Math.abs((k.vt!=null?k.vt:tw.spd)-tw.spd);k.vt=tw.spd;
   const sx=t.pos.x,sz=t.pos.z;
-  const coll=(p,r)=>{const col=t.col,sv=col&&{x0:col.x0,z0:col.z0,x1:col.x1,z1:col.z1,ob:col.ob};if(col){col.x0=col.z0=-1e4;col.x1=col.z1=-1e4+1;col.ob=null}a.collide(p,r);if(col)Object.assign(col,sv)};
+  const coll=(p,r)=>{colOff(t);a.collide(p,r)};
   const b={x:t.pos.x,z:t.pos.z,yaw:t.yaw};k.car=b;const ev=step(k,tw,dt,{collide:coll});
   t.pos.x=b.x;t.pos.z=b.z;t.yaw=b.yaw;t.spd=tw.spd;t.odo=(t.odo||0)+Math.hypot(b.x-sx,b.z-sz);
-  if(dv>=T.snap&&k.t>.5){hitFx(t,dv);Tow.detach('snap');emit('snap',{car:t,tower:e,sp:dv});return}
+  /* (dv includes the bounce off the wall, 1.25x the impact: a snap needs a real T.snap m/s impact) */
+  if(dv>=T.snap*1.25&&k.t>.5){hitFx(t,dv);Tow.detach('snap');emit('snap',{car:t,tower:e,sp:dv});return}
   if(ev.hit&&k.t>k.settle){const sp=ev.hit.sp;k.hitT=(k.hitT||0)-dt;
     if(sp>=T.snap){crash(t,sp,ev.hit.push);hitFx(t,sp);Tow.detach('snap');emit('snap',{car:t,tower:e,sp});return}
     if(sp>=T.crash&&k.hitT<=0){k.hitT=.35;const got=crash(t,sp,ev.hit.push);hitFx(t,sp);emit('hit',{car:t,sp,hp:got})}
     else if(sp>=T.scrape&&k.hitT<=0){k.hitT=.5;const got=damage(t,.55*(sp-T.scrape)+.6,'crash');sfx('scrape');emit('scrape',{car:t,sp,hp:got})}}
   else if(k.hitT>0)k.hitT-=dt;
   if(ev.jack){/* jackknife: both cars take a knock and the hitch lets go */damage(t,T.jackDmg,'crash');damage(e,T.jackDmg,'crash');hitFx(t,8);Tow.detach('jack');emit('jackknife',{car:t,tower:e});return}
-  k.rel=ev.rel;syncTowed(k);liftUpd(k,e,dt);sound(k,tw,dt)}
-function syncTowed(k){const a=A(),t=k.ref;a.syncCar(t);if(!t.obj)return;const l=k.lift*(k.t<k.settle?k.t/k.settle:1);
+  k.rel=ev.rel;yieldTick(e,c,k,dt);stuckTick(e,c,dt);syncTowed(k);liftUpd(k,e,dt);sound(k,tw,dt)}
+/* ---------------- parked cars yield to the rig ----------------
+   A tow truck leaning on a parked car at walking pace (truck or towed body touching it) slides it aside, by mass, at T.yieldV m/s, at most
+   T.yieldMax m from where it was parked, with a scrape and a small knock to the towed car ("careful"), instead of a dead stop. Only while
+   towing, only cars parked in the world (L.cars). Tow.reset() (the job's end) puts them back. */
+function obDist(px,pz,c){if(c.ob){const b=c.ob,dx=px-b.x,dz=pz-b.z,u=dx*b.fx+dz*b.fz,v=-dx*b.fz+dz*b.fx,cu=clamp(u,-b.hl,b.hl),cv=clamp(v,-b.hw,b.hw);
+    return{d:Math.hypot(u-cu,v-cv),x:b.x+cu*b.fx-cv*b.fz,z:b.z+cu*b.fz+cv*b.fx}}
+  const qx=clamp(px,c.x0,c.x1),qz=clamp(pz,c.z0,c.z1);return{d:Math.hypot(px-qx,pz-qz),x:qx,z:qz}}
+function yieldTick(e,c,k,dt){const a=A(),L=a.L;if(!L||!L.cars||Math.abs(c.spd)>T.yieldSpd)return;const t=k.ref,S_=c.stats||{len:4.4,wid:1.9};
+  const f=fwd(c.yaw),ft=fwd(t.yaw),pr=[];for(const s of[1,-1]){pr.push({x:c.x+f[0]*S_.len/3*s,z:c.z+f[1]*S_.len/3*s,r:S_.wid/2+.05});pr.push({x:t.pos.x+ft[0]*k.len/3*s,z:t.pos.z+ft[1]*k.len/3*s,r:Math.max(.5,k.wid/2-T.bodyIn)})}
+  let any=null;
+  let more=[];if(S.yielders)try{more=S.yielders()||[]}catch(_){}
+  for(const p of more.length?L.cars.concat(more):L.cars){if(p===e||p===t||!p.obj||!p.col||p.col.x0<-1e3||p.towed||p===a.CV)continue;if(Math.abs(p.pos.x-c.x)>16||Math.abs(p.pos.z-c.z)>16)continue;
+    for(const q of pr){const h=obDist(q.x,q.z,p.col);if(h.d>q.r+.06)continue;
+      let nx=h.x-q.x,nz=h.z-q.z,l=Math.hypot(nx,nz);if(l<1e-4){nx=p.pos.x-q.x;nz=p.pos.z-q.z;l=Math.hypot(nx,nz)||1}nx/=l;nz/=l;
+      /* mostly sideways, toward the kerb side it is already on (relative to the rig's way): a car shoved along the lane would just stay in the way */
+      {const fp0=fwd(p.yaw),lat=[fp0[1],-fp0[0]],side=Math.sign((p.pos.x-c.x)*-f[1]+(p.pos.z-c.z)*f[0])||1,rx=-f[1]*side,rz=f[0]*side,sl=Math.sign(lat[0]*rx+lat[1]*rz)||1;
+        nx=nx*.35+lat[0]*sl*.94;nz=nz*.35+lat[1]*sl*.94;const l2=Math.hypot(nx,nz)||1;nx/=l2;nz/=l2}
+      const home=p.yHome||(p.yHome={x:p.pos.x,z:p.pos.z});const st=T.yieldV*dt,nxp=p.pos.x+nx*st,nzp=p.pos.z+nz*st;
+      if(Math.hypot(nxp-home.x,nzp-home.z)>T.yieldMax)continue;
+      /* it slides only where there's room (another car, a wall, a post: it stays put and the rig has to go round) */
+      const pc=p.col,sv={x0:pc.x0,z0:pc.z0,x1:pc.x1,z1:pc.z1,ob:pc.ob};colOff(p);const Sp=a.carSize(p),fp=fwd(p.yaw);let room=true;
+      for(const s2 of[1,-1]){const o={x:nxp+fp[0]*Sp.l/3*s2,z:nzp+fp[1]*Sp.l/3*s2},o0={x:o.x,z:o.z};a.collide(o,Sp.w/2-.05);if(Math.hypot(o.x-o0.x,o.z-o0.z)>1e-3)room=false}
+      Object.assign(pc,sv);if(!room)continue;
+      p.pos.x=nxp;p.pos.z=nzp;a.syncCar(p);S.nudged.add(p);any=p;break}}
+  S.yT-=dt;if(any&&S.yT<=0){S.yT=1.2;const got=damage(t,.8,'crash');sfx('scrape');emit('yield',{car:t,parked:any,hp:got})}}
+/* ---------------- never stuck: "Reset the rig" ----------------
+   No progress (under T.stuckD m) for T.stuckT s with the throttle on, or the car came off the hook: the action helper offers a hold-E (pad:
+   its Use button) "Reset the rig". A short fade puts the truck on the nearest clear stretch of road facing along it (the way it was
+   pointing, if it can), the towed car hooked up straight behind. The job takes a small time cost from the 'reset' event; nothing fails. */
+function stuckTick(e,c,dt){const a=A(),K=a.keys||{},thr=K.w||K.s||K.arrowup||K.arrowdown;const st=S.stk||(S.stk={x:c.x,z:c.z,t:0});
+  const d=Math.hypot(c.x-st.x,c.z-st.z);if(d>(S.stuck?2.2:T.stuckD)){st.x=c.x;st.z=c.z;st.t=0;S.stuck=false;return}
+  /* (on the throttle and not getting anywhere: a three-point turn shuffling back and forth at speed is not stuck) */
+  if(thr&&Math.abs(c.spd)<1.2)st.t+=dt;if(st.t>=T.stuckT&&!S.stuck){S.stuck=true;emit('stuck',{tower:e})}}
+function clearAt(a,x,z,yaw,len,r){const f=fwd(yaw);for(const s of[1,0,-1]){const p={x:x+f[0]*len/3*s,z:z+f[1]*len/3*s},p0={x:p.x,z:p.z};a.collide(p,r);if(Math.hypot(p.x-p0.x,p.z-p0.z)>1e-3)return false}return true}
+function rigSpot(e,t){const a=A(),G=a.roads&&a.roads(),c=e.car||e,Se=a.carSize(e),Sw=(c.stats&&c.stats.len)||Se.l*.86,St=t?a.carSize(t):null;if(!G||!G.nodes)return null;
+  let best=null,bs=1e9;const back=t?Se.l/2+T.hitchBack+T.gap+St.l/2:0;
+  for(const n of G.nodes){if(Math.abs(n.x-c.x)>80||Math.abs(n.z-c.z)>80)continue;
+    for(const ed of n.e){const B=G.nodes[ed.to];if(!B)continue;const dx=B.x-n.x,dz=B.z-n.z,l=Math.hypot(dx,dz)||1,ux=dx/l,uz=dz/l,rx=-uz,rz=ux,yaw=yawTo(ux,uz),fy=fwd(yaw);
+      for(let s=3;s<l-1;s+=1.5){const x=n.x+ux*s+rx*1.5,z=n.z+uz*s+rz*1.5,dd=Math.hypot(x-c.x,z-c.z);if(dd>70)continue;
+        const sc=dd+5*Math.abs(wrap(yaw-c.yaw))/Math.PI;if(sc>=bs)continue;
+        if(!clearAt(a,x,z,yaw,Sw,Se.w/2+.2))continue;
+        if(t){const tx=x-fy[0]*back,tz=z-fy[1]*back;if(!clearAt(a,tx,tz,yaw,St.l*.86,St.w/2+.1))continue}
+        bs=sc;best={x,z,yaw}}}}
+  return best}
+function fade(){try{const d=document.createElement('div');d.className='ht-tow-fade';d.style.cssText='position:fixed;inset:0;background:#000;pointer-events:none;z-index:40;opacity:1;transition:opacity .7s ease .15s';
+  document.body.appendChild(d);requestAnimationFrame(()=>{d.style.opacity='0'});setTimeout(()=>d.remove(),1100)}catch(_){}}
+function resetRig(e,t){const a=A(),c=e.car||e;t=t||(S.link&&S.link.ref)||null;if(t&&!S.link)colOff(t);const sp=rigSpot(e,t);if(t&&!S.link)a.syncCar(t);
+  if(!sp){emit('resetFail',{tower:e});return false}
+  fade();c.x=sp.x;c.z=sp.z;c.yaw=sp.yaw;c.spd=0;c.steer=0;const f=fwd(sp.yaw);c.vdx=f[0];c.vdz=f[1];e.pos.set(sp.x,0,sp.z);e.yaw=sp.yaw;e.spd=0;a.syncCar(e);
+  if(t){if(!S.link||S.link.ref!==t)Tow.attach(e,t,{instant:true,quiet:true});const k=S.link;if(k){const H=hitchPoint({x:c.x,z:c.z,yaw:c.yaw,len:a.carSize(e).l}),C=centreFrom(H,c.yaw,k.len);
+      k.ref.pos.x=C.x;k.ref.pos.z=C.z;k.ref.yaw=k.side==='rear'?wrap(c.yaw+Math.PI):c.yaw;k.psi=c.yaw;k.w=0;k.H0=null;k.Cp=null;k.vt=0;k.settle=0;k.lift=1;syncTowed(k)}}
+  S.stuck=false;S.stk=null;S.lost=null;emit('reset',{tower:e,car:t});return true}
+Tow.resetRig=e=>resetRig(e||A().CV);Tow.spot=(e,t)=>rigSpot(e||A().CV,t);
+/* while it is on the hook the towed car is not a static collider: it can't block (or pin) its own truck. It still has its own probes
+   (towTick) for the world, and traffic sees it (index.html passes Tow.link to the traffic as a moving obstacle). syncCar on detach restores it. */
+function colOff(t){const c=t&&t.col;if(c){c.x0=c.z0=-1e4;c.x1=c.z1=-1e4+1;c.ob=null}}
+function syncTowed(k){const a=A(),t=k.ref;a.syncCar(t);colOff(t);if(!t.obj)return;const l=k.lift*(k.t<k.settle?k.t/k.settle:1);
   const S_=a.carSize(t);t.obj.position.y+=T.lift*l*.55;t.obj.rotation.z=(k.side==='rear'?-1:1)*T.liftPitch*l;
   const VM=window.HT&&HT.Vehicles;if(t.obj.userData.mod&&VM&&VM.update)try{VM.update(t.obj,{speed:k.side==='rear'?-t.spd:t.spd,steer:0,braking:false,headlights:false,dt:1/30})}catch(_){}}
 /* the wheel-lift assembly follows the towed car; chains and the winch cable span tower and towed car */
@@ -283,6 +355,9 @@ Tow.winch=winchSnd;Tow.sfx=sfx;
 /* ---------------- E: hook up / drop (missions: the interact hook; free roam: here) ---------------- */
 /* what E would do right now: {txt, hold, fn} or null */
 function action(){const a=A(),e=a.CV;if(!e)return null;const c=e.car||e;
+  if(S.link&&S.stuck&&S.link.tower===e){const d=S.dropAt?S.dropAt(S.link.ref,S.link):null;if(!(d&&d.prefer&&Math.abs(c.spd)<=T.attachSpd))return{txt:'Reset the rig',hold:.8,reset:true,fn:()=>resetRig(e)}}
+  if(!S.link&&S.lost&&S.lost.tower===e){const t=S.lost.car,ok=t&&t.obj&&t.obj.parent&&!t.towed&&a.simT-S.lost.t<20&&Math.hypot(t.pos.x-c.x,t.pos.z-c.z)<35&&(!S.targets||(candidates(e)||[]).includes(t));
+    if(ok)return{txt:'Re-hitch '+nameOf(t)+' · reset the rig',hold:.8,reset:true,fn:()=>resetRig(e,t)};S.lost=null}
   if(S.link){if(Math.abs(c.spd)>T.attachSpd)return null;const t=S.link.ref,d=S.dropAt?S.dropAt(t,S.link):null;
     if(d===false)return null;/* the job says not here */
     return{txt:(d&&d.txt)||('Unhitch '+nameOf(t)),hold:T.dropHold,fn:()=>{const tt=Tow.detach('drop');if(d&&d.fn)d.fn(tt);emit('drop',{car:tt,at:d||null})}}}
@@ -297,15 +372,14 @@ function freeRoamE(e,c,dt){const a=A(),r=action();S.hint=r;if(!r||r.info){if(!a.
   else{if(S.eDown&&S.hold<.2/r.hold&&!a.keys.e){S.eDown=0;S.hold=0;winchSnd(false);a.exitCar();return}S.eDown=0;S.hold=0;winchSnd(false)}}
 /* missions: the interact hook. A quick tap while hitched still gets you out (to zip-tie somebody, say) */
 function interact(prompt){const a=A();if(!a||!a.CV)return undefined;const r=action();
-  if(!r){winchSnd(false);return undefined}
-  if(r.info){winchSnd(false);return undefined}/* line-up hints live in the HUD meter; E stays "Get out" */
+  if(!r||r.info){/* (and forget a half-counted press, so a later release can't read as a tap and put you out of the car) */S.eT=0;winchSnd(false);return undefined}/* line-up hints live in the HUD meter; E stays "Get out" */
   if(a.keys.e){S.eT+=1/30}else{if(S.eT>0&&S.eT<.22){S.eT=0;winchSnd(false);a.exitCar();return undefined}S.eT=0}
   const o=S.holdO||(S.holdO={prog:0});winchSnd(a.keys.e&&o.prog>0,o.prog);
   return{txt:r.txt+' · tap: get out',hold:r.hold,o,fn:()=>{winchSnd(false);r.fn()}}}
 
 /* ---------------- HUD: the line-up meters, the towing meter ---------------- */
 function hud(st){const a=A();if(!a||!a.CV){return}const m=st.meters||(st.meters=[]);if(m.length>=3)return;
-  if(S.link){const k=S.link,rel=Math.abs(k.rel||0)/D2R;m.push({id:'tow_angle',label:'Hitch angle',v:Math.min(90,rel),max:90,style:'bands',zones:[[0,35,'good','Tracking'],[35,60,'warn','Swinging'],[60,90,'bad','Jackknife!']],marker:Math.min(90,rel)});return}
+  if(S.link){const k=S.link,rel=Math.abs(k.rel||0)/D2R;if(S.stuck)m.push({id:'tow_stuck',label:'Stuck?',v:1,max:1,style:'bar',sub:'Hold E · reset the rig'});m.push({id:'tow_angle',label:'Hitch angle',v:Math.min(90,rel),max:90,style:'bands',zones:[[0,35,'good','Tracking'],[35,55,'warn','Swinging'],[55,90,'bad',Math.abs((A().CV.car||A().CV).spd||0)>T.jackSpd*.8?'Jackknife!':'Full lock']],marker:Math.min(90,rel)});return}
   const cd=S.cand;if(!cd)return;const ch=cd.chk;
   m.push({id:'tow_line',label:'Line up',v:Math.max(0,8-Math.min(8,ch.d)),max:8,style:'bands',zones:[[0,3,'bad','Far'],[3,5.5,'warn','Closer'],[5.5,8,'good','In range']],sub:ch.ok?'Hold E · hitch up':(ch.why==='stop'?'Stop':ch.why==='angle'?'Straighten up · '+Math.round(ch.rel/D2R)+'°':ch.why==='under'?'Too close':ch.d.toFixed(1)+' m')});
   if(a.mode==='hub'&&S.hint&&m.length<3)m.push({id:'tow_e',label:S.hint.info?S.hint.txt:'Hold E · '+S.hint.txt,v:S.hold||0,max:1,style:'bar'})}
@@ -367,6 +441,6 @@ function bind(){const j=J();if(!j||S.bound)return;S.bound=true;
     if(!a.CV){guideOff();S.cand=null;winchSnd(false);if(S.link)syncTowed(S.link)}
     for(const [e,r] of S.rigs){if(!e.obj||!e.obj.parent||(!Tow.can(e)&&!(S.link&&S.link.tower===e))){if(r.g.parent)r.g.parent.remove(r.g);S.rigs.delete(e)}}})}
 Tow.bind=bind;bind();
-Tow.reset=()=>{if(S.link)Tow.detach('reset',{quiet:true});S.cand=null;S.targets=null;S.jobDrop=null;guideOff();winchSnd(false);for(const [e,r] of S.rigs){if(r.g.parent)r.g.parent.remove(r.g)}S.rigs.clear()};
+Tow.reset=()=>{if(S.link)Tow.detach('reset',{quiet:true});S.yielders=null;const a=A();for(const p of S.nudged){if(p.yHome&&p!==(a&&a.CV)){p.pos.x=p.yHome.x;p.pos.z=p.yHome.z;try{a.syncCar(p)}catch(_){}}p.yHome=null}S.nudged.clear();S.stuck=false;S.stk=null;S.lost=null;S.cand=null;S.targets=null;S.jobDrop=null;guideOff();winchSnd(false);for(const [e,r] of S.rigs){if(r.g.parent)r.g.parent.remove(r.g)}S.rigs.clear()};
 }
 })(typeof window!=='undefined'?window:globalThis);
