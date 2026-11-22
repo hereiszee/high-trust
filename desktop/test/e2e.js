@@ -19,7 +19,7 @@ async function launch(extra = [], env = {}) {
   const args = EXE ? [...GPU, '--no-sandbox', '--windowed', ...extra] : [path.join(__dirname, '..'), ...GPU, '--no-sandbox', '--windowed', '--no-devtools', ...extra];
   const app = await _electron.launch({ executablePath: EXE || require(path.join(__dirname, '../node_modules/electron')), args, env: Object.assign({}, process.env, { HT_USER_DATA: PROFILE, HT_WINDOW_SIZE: '1280x720', HT_TEST_HOOKS: '1' /* C-5: a packaged build only lets tests drive it */ }, env), timeout: 120000 });
   const out = []; app.process().stdout.on('data', d => out.push(String(d))); app.process().stderr.on('data', d => out.push(String(d)));
-  const p = await app.firstWindow(); const errs = [], remote = [];
+  const p = await app.firstWindow(); p.setDefaultTimeout(120000); /* software-GL runners can take over 30 s to settle a click */ const errs = [], remote = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()) });
   p.on('request', r => { const u = r.url(); if (!/^(app|data|blob):/.test(u)) remote.push(u) });
   return { app, p, errs, remote, out };
