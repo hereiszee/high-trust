@@ -179,7 +179,7 @@ pending timeouts, AudioContexts, renderer/GPU process RSS. Slope = least squares
 |---|---|---|---|---|---|---|---|
 | start job → Esc → Quit to title → Continue | 6 (+8 in a first run) | flat (254) | flat | flat | +0.9, tapering | DOM flat; detached nodes +160/cycle (texture canvases and name tags, pruned by people.js after 90 frames); intervals 3, timeouts 0 | clean |
 | every job once, Esc → Abandon | 34 | **+18 per job** | +0.3 | bounded (101→153 as new jobs bring shaders) | **+2.8** | DOM flat (614–630); JS listeners +16/job | **PERF-04** |
-| fast travel home ↔ Community Center | 12 (travel did not run, see gaps) | +6.7 | +0.8 | +0.4 | +1.7 | flat | inconclusive |
+| fast travel home ↔ Community Center (corrected run, `evidence/leaks-travel2.txt`) | 8 | 258 → 296, levelling off | flat | +2 | **+2.2** | DOM flat; scene objects +45/cycle (`Mesh` +126, `dressing` +30 over the run) | SUSPECTED growth: scene objects and heap still rising after 8 round trips; too few cycles to say if it is unbounded |
 | enter/exit a parked car | 12 | streaming growth (the loop also drove) | | | +0.6 | flat | inconclusive (see gaps) |
 | tank board/exit (E) | 6 | flat (301) | flat | flat | +0.7 | flat | clean |
 | jet board/exit (E) | 6 | flat (584) | flat | flat | +0.7 | flat | clean |
@@ -237,7 +237,7 @@ supported" at boot.
   per stepped job sample here).
 * **Fast travel ×20 and car ×20:** the first fast-travel loop called `fastTravel` twice in one evaluate and the player never moved
   (travel completes asynchronously); the car loop drove the car each cycle, so world streaming confounds its numbers. Both are
-  fixed in `leaks.js`; a corrected fast-travel run is in `evidence/leaks-travel2.txt` if it finished (see below).
+  fixed in `leaks.js`. The corrected fast-travel run (8 round trips) is in the table; 20 round trips and a corrected car run were not done.
 * **Tab hidden for a full 5 minutes**, real 30 vs 144 Hz displays, audio glitches by ear, and real-GPU VRAM: not possible headless.
   Frame-rate dependence was tested with stepped time instead.
 * **Desktop (Electron) cold start** and its request list: not run here; the Steam file-set check was done by serving the repo the way

@@ -1,0 +1,17 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":2,"ac":3,"nodes":633,"mode":"hub","heapMB":77,"rendererMB":2407,"gpuMB":780,"jsListeners":547,"domNodesAll":928}
+travel 1 {"geo":258,"tex":117,"progs":98,"objs":2249,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":1930,"mode":"hub","heapMB":83,"rendererMB":2366,"gpuMB":732,"jsListeners":410,"domNodesAll":923}
+travel 2 {"geo":259,"tex":117,"progs":98,"objs":2256,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":2425,"mode":"hub","heapMB":83.1,"rendererMB":2300,"gpuMB":738,"jsListeners":385,"domNodesAll":911}
+travel 3 {"geo":260,"tex":117,"progs":98,"objs":2271,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":2861,"mode":"hub","heapMB":84.2,"rendererMB":2306,"gpuMB":738,"jsListeners":380,"domNodesAll":911}
+travel 4 {"geo":278,"tex":117,"progs":99,"objs":2320,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":3352,"mode":"hub","heapMB":86.8,"rendererMB":2370,"gpuMB":737,"jsListeners":400,"domNodesAll":911}
+travel 5 {"geo":290,"tex":118,"progs":100,"objs":2356,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":3857,"mode":"hub","heapMB":88.9,"rendererMB":2366,"gpuMB":738,"jsListeners":384,"domNodesAll":913}
+travel 6 {"geo":291,"tex":118,"progs":100,"objs":2394,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":4427,"mode":"hub","heapMB":91.4,"rendererMB":2338,"gpuMB":739,"jsListeners":379,"domNodesAll":913}
+travel 7 {"geo":291,"tex":118,"progs":100,"objs":2461,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":4856,"mode":"hub","heapMB":92.9,"rendererMB":2376,"gpuMB":739,"jsListeners":381,"domNodesAll":920}
+travel 8 {"geo":296,"tex":118,"progs":100,"objs":2521,"dom":512,"listeners":106,"intervals":3,"timeouts":2,"ac":3,"nodes":5420,"mode":"hub","heapMB":96.7,"rendererMB":2345,"gpuMB":739,"jsListeners":391,"domNodesAll":922}
+SLOPE per cycle (cycles 2..N): {"rendererMB":8.679,"gpuMB":0.25,"jsListeners":-0.036,"domNodesAll":1.893,"heapMB":2.243,"geo":6.643,"tex":0.214,"progs":0.393,"objs":44.607,"dom":0,"listeners":0,"intervals":0,"timeouts":0,"ac":0,"nodes":501.786}
+scene object groups changed (cycle 1 -> last): +126 /Group/Group/Mesh, +33 /Group/Group/Group, +30 /Group/Group/dressing, +15 /Group/Group/w:imp, +5 /Group/Group/w:grass, +5 /Group/Group/w:lot, +4 /Group/Group/w:walk, +4 /Group/Group/w:joint, +4 /Group/Group/w:galv, +3 /Group/Group/w:road, +3 /Group/Group/w:curb, +3 /Group/Group/w:gutter, +3 /Group/Group/w:paint, +3 /Group/Group/w:lamphead, +3 /Group/Group/w:lampglass
+listener types changed (cycle 1 -> last): none
+notes: travel {"r1":true,"r2":true,"p1":[427,45,"river"],"p2":[39,15,"maple"]}
+console errors 0 []
+console warnings 4 [
+]
+unhandled rejections 0 []
