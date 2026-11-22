@@ -21,5 +21,87 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 | W-08 | MINOR | Third-person camera has no occlusion handling: a lamp post or a tree trunk can hide the dad completely | LIKELY |
 | W-09 | MINOR | Range side berm renders as a flat tan wedge with hard facets | CONFIRMED (screenshot) |
 | W-10 | MINOR | Mixed UK/US spelling in player text (neighbour/neighbor 39/37, tyre/tire, colour/color) in an American setting | CONFIRMED |
+| W-11 | MINOR | The dad's wife is "Jen" at home but "Linda" in the jet lines (and the buzz subtitle is captioned Linda) | CONFIRMED |
 
 _Details, coverage and gaps below. (Draft: sections still being filled in as probes finish.)_
+
+## Findings
+
+### W-01 · MAJOR · Map fast travel on foot both refuses and teleports, stranding the minivan
+- **Repro** (`node dev/audit/world/fasttravel.e2e.js`, part A; fresh save): walk (or be put) 60 m from the minivan, press **M**,
+  **Tab** to "Dad's Auto", **Enter**.
+- **Expected:** one outcome. Either the game's rule from `owFastTravel` ("Get back to the minivan to fast travel", fast travel is from
+  the van) or a trip that brings the van along.
+- **Actual:** both. The feed shows "Get back to the minivan to fast travel" **and** "Fast travel · Dad's Auto", and the dad (with
+  his crew) is moved 128 m to Dad's Auto while the minivan stays at home: `{"dad":{"x":221,"z":55},"van":{"x":39,"z":15}}`.
+  Reproduced on two runs (`dev/audit/world/fasttravel.out.txt`).
+- **Cause:** the map's fast-travel button fires two independent handlers: `emit('fastTravel',s)` *and* `MAP.onTravel(s)`
+  (`js/hud.js:668`). `index.html:1471` routes the first to `owFastTravel` (refuses on foot, `index.html:1465`), and
+  `HUD.minimap.onFastTravel` (`index.html:2049-2052`) teleports the dad or the current vehicle straight to the pin regardless.
+  In a vehicle both run, 360 ms apart, and move the car twice.
+- **Impact:** the "fast travel from the minivan" rule never holds; the player ends up somewhere without their van and the HUD
+  contradicts itself. No softlock (the same bug lets them map-travel back on foot).
+
+### W-02 · MAJOR · Map fast travel takes the borrowed tank (or any borrowed car) anywhere, including Maple Heights
+- **Repro:** same script, part C: borrow LAWN ORDER at the motor pool (E), **M**, Tab to "Home", Enter.
+- **Expected:** fast travel is offered "from the minivan" (the base's own feed line says so); the tank stays on the post or is refused.
+- **Actual:** the tank is placed on the home street: `{"from":{"x":216,"z":199},"to":{"x":40.5,"z":12.8}}`. Same path as W-01
+  (`index.html:2050`: `if(VAN.on){const e=CV;e.pos.set(pin.x,0,pin.z)...}` moves whatever is driven). The jet on the ground was
+  not moved. Two runs.
+- **Impact:** the tank turns up on Maple's narrow streets in one keypress (the HOA/trust gag still fires); it also bypasses
+  "Jobs refuse it" positioning for site pins once a job is done.
+
+### W-03 · MAJOR · Traffic drives through people standing in the road
+- **Repro:** `node dev/audit/world/traffic-peds.e2e.js`: a traffic car (OW.trafficAdd, as dev/traffic-check.js uses) approaches a
+  person standing in its lane on a straight Maple road at 9 and 13 m/s; the player is on foot on the far kerb.
+- **Expected:** traffic stops short of anyone on the road, as it does for the player on foot (`k:'foot'`).
+- **Actual:** with a neighbour in the lane the car never slows and its box passes through them in 4/4 runs (`minD 0`, `through:true`).
+  Crew and kid runs: see the rerun results below.
+- **Cause:** the traffic obstacle list (`js/openworld.js` ~1310-1318) contains only the player (`player`/`foot`), other cars,
+  parked cars and props. Allies, givers, neighbours and kids are not obstacles for traffic. Nothing hurts them (no hit path), so
+  this is visual, but it is a car at speed driving through a person, and the crew follow the dad across roads all the time.
+  The player's own car also passes through kids by design (`dev/kids-safe.e2e.js` asserts "nothing happens").
+
+### W-04 · MINOR · "Saved you 8 seconds and one argument about directions." for every trip
+- **Repro:** fasttravel probe part B: in the minivan at Dad's Auto, map to Home (187 m). Also part C (tank, ~250 m).
+- **Actual:** always "Saved you 8 seconds". `index.html:1470` computes the distance *after* `go()` has already moved the dad to the
+  destination, so it is ~0 and `Math.max(8,…)` wins.
+
+### W-05 · MINOR · Hangar 2: black void behind the open doors, sky visible through the inside of the roof
+- **Repro:** `node dev/audit/world/tour.e2e.js jet` (stand on the apron east of the jet, look west). `docs/audit/world/tour-jet.jpg`.
+- **Actual:** the hangar's open doorway is a flat black void, and above it clouds and tree tops show through where the inside of the
+  roof should be (inner faces missing / back-face culled). The jet (the star prop) is parked right in front of it.
+
+### W-06 · MINOR · Backdrop houses at the map edge are bare boxes with black squares for windows
+- **Repro:** `node dev/audit/world/tour.e2e.js map-edge` (stand at x≈4 or x≈460). `tour-map-edge-west.jpg`, `tour-map-edge-east.jpg`.
+- **Actual:** the ring of far houses (js/world.js backdrop, just past the map edge) is 20-40 m from where the player can stand: flat
+  beige boxes, no doors, black square windows, no yards or streets. The rest of the town is detailed, so the contrast is sharp.
+  (docs/base.md already notes they look odd from the air; they look odd from the ground too.)
+
+### W-07 · MINOR · Staff Sgt. Ruiz is a civilian neighbour model: no patrol cap, black T-shirt
+- **Repro:** walk to the motor pool (`tour-tank.jpg`, right of frame).
+- **Expected:** docs/base.md: "Staff come from the neighbour pool with a patrol cap added".
+- **Actual:** Ruiz is `PP.make('neighbour',{variant:'nb_kenji'})` with no cap (`js/tank.js:124`); only the range staff go through
+  `cap()` (`js/range.js:114-118`). He is the same model as street neighbours and Mr. Ferreira in the finale, so the "Staff Sgt." reads as a
+  passer-by.
+
+### W-08 · MINOR · The third-person camera has no occlusion handling
+- **Repro:** `tour-home-front.jpg` (a lamp post between camera and dad hides him) and `tour-map-edge-west.jpg` (a tree trunk hides him).
+- **Actual:** no fade or pull-in for thin occluders; the dad can disappear completely behind a lamp post or trunk while standing still.
+  LIKELY (seen in 2 of 18 framed stops; placement was scripted, but the poses are ordinary ones a player stands in).
+
+### W-09 · MINOR · Range side berm is a flat tan wedge
+- **Repro:** `tour-range.jpg` (from the firing line, right side). The berm is a large single-colour prism with hard facets and a
+  hard intersection with the ground; it reads as unfinished next to the detailed lanes, benches and targets.
+
+### W-10 · MINOR · Mixed UK/US spelling in player-visible text
+- Static scan of string literals in index.html, js/, js/jobs/ (script in the report's coverage notes). "neighbour" 39 / "neighbor" 37,
+  "tyre" (HUD "Flat tyre", "patched up") vs "tire" (Pawn intro, glovebox), "colour" 5 / "color" 33, "centre" vs "center",
+  "metre" vs "meters", "cheque", "licence"/"license", "apologised"/"apologized". The game is set in an American suburb and its own
+  HUD says "NEIGHBORHOOD TRUST" while feed lines say "neighbourhood".
+
+### W-11 · MINOR · The wife's name: Jen at home, Linda in the jet
+- `js/home.js:1157` and `js/save.js:154`: the spouse is **Jen** (home subtitles: "JEN You're home!..."). `js/jet.js:215`: buzzing the
+  house captions the wife's "Is that your father? Wave, kids!" as **Linda**, and tower lines say "Linda says call when you land",
+  "I'll tell Linda", "Linda checked" (`js/jet.js:23,26,35`). Linda is also a neighbour name (`index.html:1497`, car owners, tank/jet
+  street lines), so a player sees "Linda" both as a stranger whose car they borrow and as their wife.
