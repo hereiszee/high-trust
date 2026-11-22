@@ -377,10 +377,10 @@ function truckTick(M,dt,F){const ft=M.ft;if(!ft)return;const a=A(),Tw=TW(),P=a.P
   if(e&&e.car&&ft.state!=='lyleout'){const CA=a.CarAI(),G_=window.HT.Garage,rs=Object.assign({},G_.apply(e.type==='pickup'||G_.VEH[e.type]?e.type:'minivan')),sh={x:e.car.x,z:e.car.z,yaw:e.car.yaw,spd:e.car.spd,hp:999,stats:Object.assign({},e.car.stats,rs,{hp:999})};
     const r=CA.ram(sh,c);if(r){e.car.x=e.pos.x=sh.x;e.car.z=e.pos.z=sh.z;e.car.spd=e.spd=sh.spd;a.syncCar(e);if(r.vn>4){Tw.sfx('bang');if(ft.state==='steal'||ft.state==='tail')stopTruck(M,'rammed')}}}
   if(ft.state==='tail'){/* sit behind the car you're towing, close but never touching */
-    const t=myTow;if(!t||!e){/* nothing to take: hang back near you; at the lot he waits on Dock St's far kerb, never in the way of the gate,
-        River Rd or the turn out (he used to stop right where you back down to the pen) */
-      if(Math.hypot(P.pos.x-LOT.ring.x,P.pos.z-LOT.ring.z)<50){const d=Math.hypot(QH_WAIT.x-c.x,QH_WAIT.z-c.z);truckDrive(M,ft,QH_WAIT,d>3?Math.min(10,d):0,dt);return}
-      truckDrive(M,ft,{x:P.pos.x,z:P.pos.z},Math.hypot(P.pos.x-c.x,P.pos.z-c.z)>30?12:0,dt);return}
+    const t=myTow;if(!t||!e){/* nothing to take: he goes back to wait by his lot, on Dock St's far kerb, never in the way of the gate, River Rd
+        or the turn out; he picks up your tail again when you hook the next car */
+      /* (he used to stop wherever he was once within 30 m of you: after a drop, when you turn for the lot, that was usually your lane) */
+      const d=Math.hypot(QH_WAIT.x-c.x,QH_WAIT.z-c.z);truckDrive(M,ft,QH_WAIT,d>3?Math.min(12,d):0,dt);return}
     const f=fwd(t.yaw),S=a.carSize(t),back={x:t.pos.x-f[0]*(S.l/2+3.2),z:t.pos.z-f[1]*(S.l/2+3.2)},d=Math.hypot(back.x-c.x,back.z-c.z),pv=Math.abs(e.car?e.car.spd:0);
     const spd=d>40?K.fakeMax:Math.max(0,Math.min(K.fakeMax,pv+(d-K.tailGap+3)*.7));truckDrive(M,ft,back,spd,dt);
     if(!ft.said.tail&&ft.t>8){ft.said.tail=1;a.radio('Quik-Hook guy',"I'm just gonna follow you. Professionally.")}

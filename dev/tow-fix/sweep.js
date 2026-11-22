@@ -10,7 +10,7 @@ const {startTow}=require('./lib.js');
       return Math.hypot(px-Math.max(c.x0,Math.min(c.x1,px)),pz-Math.max(c.z0,Math.min(c.z1,pz)))};
     const kind=c=>{const e=M.cars.find(x=>x.col===c);if(e)return'car:'+e.o.id;if(c===M.deskCol)return'desk';return c.k||'pen'};
     const hits=(x,z,yaw,len,r,skip)=>{const out=[],f=[-Math.sin(yaw),-Math.cos(yaw)];for(const s of[1,0,-1]){const px=x+f[0]*len/3*s,pz=z+f[1]*len/3*s;
-      for(const c of L.colliders){if(c.x0<-1e3||c===skip)continue;if(c.x1<px-r||c.x0>px+r||c.z1<pz-r||c.z0>pz+r)continue;if(dist(px,pz,c)<r-.01)out.push(kind(c)+'@'+((c.x0+c.x1)/2).toFixed(1)+','+((c.z0+c.z1)/2).toFixed(1))}}return out};
+      for(const c of L.colliders){if(c.x0<-1e3||c===skip)continue;if(c.x1<px-r||c.x0>px+r||c.z1<pz-r||c.z0>pz+r)continue;if(c.ob?dist(px,pz,c)<r-.01:(px+r-.01>c.x0&&px-r+.01<c.x1&&pz+r-.01>c.z0&&pz-r+.01<c.z1))/* (as collide(): the probe is a square against box colliders) */out.push(kind(c)+'@'+((c.x0+c.x1)/2).toFixed(1)+','+((c.z0+c.z1)/2).toFixed(1))}}return out};
     const van=H.CV,Sv=a.carSize(van),st=van.car.stats;
     const order=[['kim',[]],['hollis',[]],['rosa',['kim','hollis']],['benny',['kim','hollis']],['earl',['kim','hollis','rosa','benny']]];
     const SL={},home={};M.cars.forEach(e=>{SL[e.o.id]={x:e.pos.x,z:e.pos.z,yaw:e.yaw};home[e.o.id]={x:-4000-e.i*20,z:-4000}});

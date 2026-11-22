@@ -244,7 +244,8 @@ function towTick(e,c,dt){const a=A(),k=S.link,t=k.ref,tw=towerOf(e,c);
   const coll=(p,r)=>{colOff(t);a.collide(p,r)};
   const b={x:t.pos.x,z:t.pos.z,yaw:t.yaw};k.car=b;const ev=step(k,tw,dt,{collide:coll});
   t.pos.x=b.x;t.pos.z=b.z;t.yaw=b.yaw;t.spd=tw.spd;t.odo=(t.odo||0)+Math.hypot(b.x-sx,b.z-sz);
-  if(dv>=T.snap&&k.t>.5){hitFx(t,dv);Tow.detach('snap');emit('snap',{car:t,tower:e,sp:dv});return}
+  /* (dv includes the bounce off the wall, 1.25x the impact: a snap needs a real T.snap m/s impact) */
+  if(dv>=T.snap*1.25&&k.t>.5){hitFx(t,dv);Tow.detach('snap');emit('snap',{car:t,tower:e,sp:dv});return}
   if(ev.hit&&k.t>k.settle){const sp=ev.hit.sp;k.hitT=(k.hitT||0)-dt;
     if(sp>=T.snap){crash(t,sp,ev.hit.push);hitFx(t,sp);Tow.detach('snap');emit('snap',{car:t,tower:e,sp});return}
     if(sp>=T.crash&&k.hitT<=0){k.hitT=.35;const got=crash(t,sp,ev.hit.push);hitFx(t,sp);emit('hit',{car:t,sp,hp:got})}
@@ -283,7 +284,8 @@ function yieldTick(e,c,k,dt){const a=A(),L=a.L;if(!L||!L.cars||Math.abs(c.spd)>T
    pointing, if it can), the towed car hooked up straight behind. The job takes a small time cost from the 'reset' event; nothing fails. */
 function stuckTick(e,c,dt){const a=A(),K=a.keys||{},thr=K.w||K.s||K.arrowup||K.arrowdown;const st=S.stk||(S.stk={x:c.x,z:c.z,t:0});
   const d=Math.hypot(c.x-st.x,c.z-st.z);if(d>(S.stuck?2.2:T.stuckD)){st.x=c.x;st.z=c.z;st.t=0;S.stuck=false;return}
-  if(thr)st.t+=dt;if(st.t>=T.stuckT&&!S.stuck){S.stuck=true;emit('stuck',{tower:e})}}
+  /* (on the throttle and not getting anywhere: a three-point turn shuffling back and forth at speed is not stuck) */
+  if(thr&&Math.abs(c.spd)<1.2)st.t+=dt;if(st.t>=T.stuckT&&!S.stuck){S.stuck=true;emit('stuck',{tower:e})}}
 function clearAt(a,x,z,yaw,len,r){const f=fwd(yaw);for(const s of[1,0,-1]){const p={x:x+f[0]*len/3*s,z:z+f[1]*len/3*s},p0={x:p.x,z:p.z};a.collide(p,r);if(Math.hypot(p.x-p0.x,p.z-p0.z)>1e-3)return false}return true}
 function rigSpot(e,t){const a=A(),G=a.roads&&a.roads(),c=e.car||e,Se=a.carSize(e),Sw=(c.stats&&c.stats.len)||Se.l*.86,St=t?a.carSize(t):null;if(!G||!G.nodes)return null;
   let best=null,bs=1e9;const back=t?Se.l/2+T.hitchBack+T.gap+St.l/2:0;
