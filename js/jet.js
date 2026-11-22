@@ -256,17 +256,18 @@ function chuteTick(a,dt){const c=F.chute;if(!c)return;c.t+=dt;const P=a.P,k=a.ke
     /* owner's playtest ("I just float forever"): the whole ride is ~13 s from any height. Above 60 m a fast canopy descent that takes
        3 s whatever the height, below it a normal descent that slows near the ground; near the post it steers to land by his car */
     const y=c.p.y,vyT=y>60?-Math.max(12,((c.yA||y)-60)/3):-Math.max(3.4,.18*Math.max(0,y)+2.5);c.v.y+=(vyT-c.v.y)*Math.min(1,dt*3);
-    const left=chuteLeft(y,c.yA),near=hl<250||B().inBase(c.p.x,c.p.z);/* anywhere over the post counts as near */const drift=near&&hl>1.5?Math.min(26,hl/Math.max(1.2,left)):0;/* far out: land where you are (a ride back is offered) */
+    const left=chuteLeft(y,c.yA),near=hl<250||nearPost(c.p.x,c.p.z);/* anywhere over the post (or just past its fence, e.g. the runway's far end) counts as near */const drift=near&&hl>1.5?Math.min(26,hl/Math.max(1.2,left)):0;/* far out: land where you are (a ride back is offered) */
     c.v.x+=(hx*drift-c.v.x)*Math.min(1,dt*1.5);c.v.z+=(hz*drift-c.v.z)*Math.min(1,dt*1.5);c.p.addScaledVector(c.v,dt)}
   const gy=groundY(a,c.p.x,c.p.z);
   P.pos.set(c.p.x,0,c.p.z);c.mesh.position.set(c.p.x,c.p.y,c.p.z);c.mesh.rotation.y=c.yaw||0;
   if(P.dude){P.dude.root.position.set(c.p.x,c.p.y,c.p.z);P.dude.root.rotation.y=(c.yaw||0)+Math.PI;P.dude.root.visible=true}
   if(c.p.y<=gy+.05&&c.t>1.5){F.chute=null;c.mesh.parent&&c.mesh.parent.remove(c.mesh);P.pos.set(c.p.x,0,c.p.z);try{a.collide(P.pos,.35)}catch(_){}tone(300,200,.15,.1);
-    const far=d&&Math.hypot(c.p.x-d.jet.x,c.p.z-d.jet.z)>RIDE_FAR&&!B().inBase(c.p.x,c.p.z);if(far){F.ride={until:a.simT+120,x:c.p.x,z:c.p.z};say(TOWER,"DAD-1, you're a long way out. Press E and we'll send a car.",true)}
+    const far=d&&Math.hypot(c.p.x-d.jet.x,c.p.z-d.jet.z)>RIDE_FAR&&!nearPost(c.p.x,c.p.z);if(far){F.ride={until:a.simT+120,x:c.p.x,z:c.p.z};say(TOWER,"DAD-1, you're a long way out. Press E and we'll send a car.",true)}
     else{say(TOWER,pick(LINES.ground),true);if(c.drop){P.yaw=c.drop.yaw;vanNote(a,c.drop)}}}}
 /* seconds of canopy left from height y (the same schedule as chuteTick): the drift uses it to arrive on time */
 function chuteLeft(y,yA){const tb=h=>Math.log((.18*Math.max(0,h)+2.5)/2.5)/.18;return y>60?(y-60)/Math.max(12,((yA||y)-60)/3)+tb(60):tb(y)}
-const RIDE_FAR=250;/* farther than this from the apron after a landing: the ride back is offered (and only then) */
+const RIDE_FAR=250;
+function nearPost(x,z){const d=B().def();if(!d||!d.fence)return B().inBase(x,z);const f=d.fence,m=40;return x>=f.x0-m&&x<=f.x1+m&&z>=f.z0-m&&z<=f.z1+m}/* farther than this from the apron after a landing: the ride back is offered (and only then) */
 /* where the dad is put down at the post: beside his van if it's parked on the post, else beside the jet's ladder; facing it */
 function dropPoint(a){const d=B().def();if(!d)return null;const Vn=a.VAN,face=(x,z,tx,tz)=>({x,z,yaw:Math.atan2(-(tx-x),-(tz-z))});
   if(Vn&&Vn.pos&&!Vn.on&&B().inBase(Vn.pos.x,Vn.pos.z)){const rx=Math.cos(Vn.yaw),rz=-Math.sin(Vn.yaw);for(const sd of[-1,1]){const x=Vn.pos.x+rx*2.8*sd,z=Vn.pos.z+rz*2.8*sd;
@@ -279,10 +280,10 @@ function vanNote(a,dp){if(!dp||!dp.vanAway)return;F.vanMark=true;try{const R=HT.
   a.feed('Your van is still where you left it'+(R==='river'?' in Riverside':R==='maple'?' in Maple Heights':'')+'. It\'s on the map.','info')}catch(_){}}
 /* the ride-back prompt exists only while it makes sense: on foot in free roam, still near where he landed, and still far from the post */
 function rideValid(a){const r=F.ride;if(!r)return false;const d=B().def();const P=a.P;
-  if(a.mode!=='hub'||a.CV||a.simT>r.until||!d||Math.hypot(P.pos.x-r.x,P.pos.z-r.z)>60||Math.hypot(P.pos.x-d.jet.x,P.pos.z-d.jet.z)<RIDE_FAR||B().inBase(P.pos.x,P.pos.z)){F.ride=null;return false}return true}
+  if(a.mode!=='hub'||a.CV||a.simT>r.until||!d||Math.hypot(P.pos.x-r.x,P.pos.z-r.z)>60||Math.hypot(P.pos.x-d.jet.x,P.pos.z-d.jet.z)<RIDE_FAR||nearPost(P.pos.x,P.pos.z)){F.ride=null;return false}return true}
 /* E under the canopy: cut to the landing (a quick fade) */
 function cutToLanding(a){const c=F.chute;if(!c)return;const h=helpEl();h.fade.style.transition='none';h.fade.style.opacity='1';
-  const near=c.drop&&(Math.hypot(c.drop.x-c.p.x,c.drop.z-c.p.z)<250||B().inBase(c.p.x,c.p.z));if(near){c.p.x=c.drop.x;c.p.z=c.drop.z}c.p.y=groundY(a,c.p.x,c.p.z);c.t=Math.max(c.t,2);c.v.set(0,0,0);
+  const near=c.drop&&(Math.hypot(c.drop.x-c.p.x,c.drop.z-c.p.z)<250||nearPost(c.p.x,c.p.z));if(near){c.p.x=c.drop.x;c.p.z=c.drop.z}c.p.y=groundY(a,c.p.x,c.p.z);c.t=Math.max(c.t,2);c.v.set(0,0,0);
   setTimeout(()=>{h.fade.style.transition='opacity .45s';h.fade.style.opacity='0'},80)}
 
 /* ================= camera: chase, cockpit (V), look back (C); the parachute ================= */
