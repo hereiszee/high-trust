@@ -25,6 +25,8 @@ const log404 = profile => { let lg = ''; try { lg = fs.readFileSync(path.join(pr
 const logText = profile => { try { return fs.readFileSync(path.join(profile, 'high-trust.log'), 'utf8') } catch (e) { return '' } };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = p => p.keyboard.press('Escape');
+/* a real click; SwiftShader can stall the page long enough for Playwright's click to time out, then fall back to a DOM click */
+const click = async (p, sel) => { try { await p.click(sel, { timeout: 15000 }) } catch (e) { console.log('info (click fell back to DOM click: ' + sel + ')'); await p.evaluate(s => document.querySelector(s).click(), sel) } };
 let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? 'ok   ' : 'FAIL ') + m) };
 const info = m => console.log('info ' + m);
-module.exports = { launch, ready, disk, diskSave, log404, logText, sleep, ok, info, esc, mkProfile, ROOT, EXE, get fails() { return fails } };
+module.exports = { click, launch, ready, disk, diskSave, log404, logText, sleep, ok, info, esc, mkProfile, ROOT, EXE, get fails() { return fails } };

@@ -1,0 +1,34 @@
+info (click fell back to DOM click: .ht-title [data-act=newgame])
+info pause tabs: controls,display,audio,keys,data,found
+info (click fell back to DOM click: .ht-pause [data-tab=controls])
+info applied live: {"dpr":1.25,"q":"low","rscale":0.7}
+ok   rebinding in session, conflict swaps: {"aim":"toggle","reload":"t","use":"q","gun":"e","note":"Swapped: Next gun is now on E."}
+FAIL clicking Aim: Hold in Key bindings sets HT.Keys.aimMode (now toggle, button shows toggle)
+info ht-cfg before quit: {"sens":15,"ads":80,"fov":90,"inv":true,"gfx":"low","inWorld":true,"streetTrouble":"calm","fp":true,"rscale":70,"fpsCap":"30","dispMode":"win","vsync":false,"uiScale":"1.25","subs":false,"mmRotate":false,"master":0,"music":20,"sfx":40,"ambience":10,"undefined":"hold"}
+info quit: {"code":0,"sig":null}
+info desktop-settings.json: {"fullscreen":false,"vsync":false,"uiScale":1.25}
+info save.json keys: ht-cfg,ht-keys
+info second launch: {"sw":{"vsyncOff":true,"fs":false,"zoom":1.25},"g":{"CFG":{"sens":15,"ads":80,"fov":90,"inv":true,"gfx":"low","inWorld":true,"streetTrouble":"calm","fp":true,"rscale":70,"fpsCap":"30","dispMode":"win","vsync":false,"uiScale":"1.25","subs":false,"mmRotate":false,"master":0,"music":20,"sfx":40,"ambience":10,"undefined":"hold"},"q":"low","sel":"low","rscale":0.7,"fp":true,"dpr":1.25,"subsOn":false,"mmRotate":false,"aim":"toggle","reload":"t","use":"q","gun":"e","hs":{"sens":7,"ads":55,"fov":74,"invert":false,"fp":false,"gfx":"med","subs":false,"mmRotate":false,"master":0,"music":20,"sfx":40,"voice":100,"ambience":10,"rscale":70,"fpsCap":"30","streetTrouble":"calm","dispMode":"win","vsync":false,"uiScale":"1.25"}}}
+ok   Look/Aim speed persist (sens 15, ads 80)
+ok   Invert look persists (CFG.inv true)
+ok   First person persists (P.fp true)
+ok   Riverside calm persists (calm)
+ok   FOV persists (90)
+ok   Quality Low applies on launch (render.q low, sel low)
+ok   Resolution scale 70% applies on launch (0.7)
+ok   Frame rate cap persists and shows (CFG 30, shown 30)
+ok   Windowed persists (fullscreen false, shown win)
+ok   VSync off applies after restart (switch true, shown false)
+ok   Interface size 125% applies on launch (dpr 1.25, zoom 1.25, shown 1.25)
+ok   Subtitles off / Rotate minimap off persist (false, false)
+ok   volumes persist, master 0 stays 0 (CFG 0,20,40,10, shown master 0)
+FAIL key bindings + Aim Hold persist (toggle,t,q,e)
+info (click fell back to DOM click: .ht-title [data-act=newgame])
+ok   New game keeps settings and bindings: {"cfg":true,"reload":"t","q":"low"}
+info (click fell back to DOM click: .ht-pause [data-tab=keys])
+info (click fell back to DOM click: [data-rebind-reset])
+ok   Key bindings Reset to defaults: {"aim":"toggle","reload":"r","use":"e","stored":"{}"}
+info ht-tut: {"inSaveFile":null,"inLocalStorage":null}
+ok   tutorial flags live in the save file (cloud-synced) like settings: {"inSaveFile":null,"inLocalStorage":null}
+2 FAILED
+xvfb-run: error: problem while cleaning up temporary directory

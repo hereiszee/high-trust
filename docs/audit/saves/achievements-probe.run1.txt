@@ -1,0 +1,29 @@
+OK     docs table 23 ids vs code 23 ids, same order
+OK     ACH_FIRST_JOB              reachable from {"jobs":{"hoa":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_EXHIBIT_HOA
+OK     ACH_RETURN_TO_SENDER       reachable from {"jobs":{"gary":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_RETURN_TO_SENDER
+OK     ACH_FOURTH_QUARTER         reachable from {"jobs":{"rick":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_FOURTH_QUARTER
+OK     ACH_BLOCK_PARTY            reachable from {"jobs":{"dave":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_BLOCK_PARTY
+OK     ACH_KINGPIN                reachable from {"jobs":{"doug":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_KINGPIN
+OK     ACH_BRIDGE                 reachable from {"world":{"bridgeOpen":true}} -> ACH_BRIDGE
+OK     ACH_RIVERSIDE              reachable from {"jobs":{"earl":{"done":true,"medal":1},"dee":{"done":true,"medal":1},"rosa":{"d -> ACH_FIRST_JOB,ACH_RIVERSIDE
+OK     ACH_THE_DUKE               reachable from {"jobs":{"duke":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_THE_DUKE
+OK     ACH_PORCH_LIGHT            reachable from {"jobs":{"porch":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_PORCH_LIGHT
+OK     ACH_DAD_TAXI               reachable from {"jobs":{"taxi":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_DAD_TAXI
+OK     ACH_EXHIBIT_HOA            reachable from {"jobs":{"hoa":{"done":true,"medal":1}}} -> ACH_FIRST_JOB,ACH_EXHIBIT_HOA
+OK     ACH_BUSY_WEEKEND           reachable from {"jobs":{"gary":{"done":true,"medal":1},"rick":{"done":true,"medal":1},"dave":{" -> ACH_FIRST_JOB,ACH_RETURN_TO_SENDER,ACH_FOURTH_QUARTER,ACH_BLOCK_PARTY,ACH_KINGPIN,ACH_RIVERSIDE,ACH_THE_DUKE,ACH_DAD_TAXI,ACH_EXHIBIT_HOA,ACH_BUSY_WEEKEND
+OK     ACH_EVERYBODY_WAVES        reachable from {"flags":{"festival":true}} -> ACH_EVERYBODY_WAVES
+OK     ACH_GOLD_STAR              reachable from {"jobs":{"gary":{"done":true,"medal":3}}} -> ACH_FIRST_JOB,ACH_RETURN_TO_SENDER,ACH_GOLD_STAR
+OK     ACH_HONOR_ROLL             reachable from {"jobs":{"gary":{"done":true,"medal":3},"rick":{"done":true,"medal":3},"dave":{" -> ACH_FIRST_JOB,ACH_RETURN_TO_SENDER,ACH_FOURTH_QUARTER,ACH_BLOCK_PARTY,ACH_KINGPIN,ACH_RIVERSIDE,ACH_THE_DUKE,ACH_DAD_TAXI,ACH_GOLD_STAR,ACH_HONOR_ROLL
+OK     ACH_DUE_PROCESS            reachable from {"prog":{"cuffed":25}} -> ACH_DUE_PROCESS
+OK     ACH_DOORS_UNLOCKED         reachable from {"prog":{"trust":80}} -> ACH_DOORS_UNLOCKED
+OK     ACH_SIDE_HUSTLE            reachable from {"stats":{"earned":10000}} -> ACH_SIDE_HUSTLE
+OK     ACH_FIRST_FIND             reachable from {"base":{"eggs":{"gnome":{"day":1}}}} -> ACH_FIRST_FIND
+OK     ACH_PROOF                  reachable from {"base":{"eggs":{"bigfoot":{"day":1}}}} -> ACH_FIRST_FIND,ACH_PROOF
+OK     ACH_SEEN_IT_ALL            reachable from {"base":{"eggs":{"gnome":{"day":1},"lights":{"day":1},"phone":{"day":1},"smoker" -> ACH_FIRST_FIND,ACH_PROOF,ACH_SEEN_IT_ALL
+OK     ACH_CLEARED_FOR_TAKEOFF    reachable from {"base":{"jet":{"flights":1}}} -> ACH_CLEARED_FOR_TAKEOFF
+OK     ACH_BORROWED               reachable from {"base":{"tank":{"borrows":1}}} -> ACH_BORROWED
+OK     fresh save: []
+OK     started save (1 run, $400, no job done): []
+INFO   v1 save with the 4 Maple raids done: ACH_FIRST_JOB,ACH_RETURN_TO_SENDER,ACH_FOURTH_QUARTER,ACH_BLOCK_PARTY,ACH_KINGPIN,ACH_BRIDGE
+OK     a failed run unlocks nothing: []
+INFO   one repeatable (Honey-Do Blitz, gold) on a fresh save unlocks: ACH_FIRST_JOB,ACH_GOLD_STAR
