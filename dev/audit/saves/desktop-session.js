@@ -76,7 +76,8 @@ async function startJob(p, id) { await p.evaluate(id => window.__ht.jobs.start(i
   info('after quitting the job: ' + JSON.stringify(atTitle));
   /* Stage C: first session -> title */
   ok(atTitle.cont, `first session, Quit to title: Continue offered (cont=${atTitle.cont}, main button "${atTitle.ng}", lastLoad=${atTitle.lastLoad})`);
-  await p.click('.ht-title [data-act=newgame]'); await p.waitForFunction(() => window.__ht.mode === 'hub', null, { timeout: 60000 }); await sleep(1500);
+  /* fix/saves: with Continue offered (SAV-06) the main button is Continue; New game now asks first */
+  await p.click(atTitle.cont ? '.ht-title [data-act=continue]' : '.ht-title [data-act=newgame]'); await p.waitForFunction(() => window.__ht.mode === 'hub', null, { timeout: 60000 }); await sleep(1500);
   const resumed = await p.evaluate(() => ({ cash: window.HT.Save.data.cash, garyDone: !!window.HT.Save.data.jobs.gary?.done }));
   info('pressing the main title button ("' + atTitle.ng + '") after that: ' + JSON.stringify(resumed) + ' (same save, no new game)');
   /* any later autosave (a purchase) writes the abandoned job's trust/cuffs */

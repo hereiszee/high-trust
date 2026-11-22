@@ -43,7 +43,7 @@ const tog = (p, k) => p.click(`#hts-${k}`);
   const app2 = await _electron.launch({ executablePath: L.EXE, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--no-sandbox', '--no-steam'], env: Object.assign({}, process.env, { HT_USER_DATA: prof, HT_WINDOW_SIZE: '1280x720' }), timeout: 120000 });
   p = await app2.firstWindow(); await ready(p);
   const sw = await app2.evaluate(({ app, BrowserWindow }) => ({ vsyncOff: app.commandLine.hasSwitch('disable-gpu-vsync'), fs: BrowserWindow.getAllWindows()[0].isFullScreen(), zoom: BrowserWindow.getAllWindows()[0].webContents.getZoomFactor() }));
-  const g = await p.evaluate(() => { const H = window.__ht, C = JSON.parse(window.HTDesktop.storage.getItem('ht-cfg') || '{}');
+  const g = await p.evaluate(() => { const H = window.__ht, C = Object.assign(JSON.parse(window.HTDesktop.storage.getItem('ht-cfg') || '{}'), JSON.parse((window.HTDesktop.deviceStorage || window.HTDesktop.storage).getItem('ht-cfg-device') || '{}'));/* fix/saves: graphics settings live in the device store (SAV-13) */
     return { CFG: C, q: H.render.q, sel: H.render.sel, rscale: H.render.rscale, fp: H.P.fp, dpr: devicePixelRatio, subsOn: H.HUD.settings.subs, mmRotate: H.HUD.settings.mmRotate, aim: HT.Keys.aimMode, reload: HT.Keys.get('reload'), use: HT.Keys.get('use'), gun: HT.Keys.get('gun'), hs: Object.assign({}, H.HUD.settings) } });
   info('second launch: ' + JSON.stringify({ sw, g }));
   const C = g.CFG;

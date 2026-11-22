@@ -17,7 +17,7 @@ let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? 'ok   ' 
 
 async function launch(extra = [], env = {}) {
   const args = EXE ? [...GPU, '--no-sandbox', '--windowed', ...extra] : [path.join(__dirname, '..'), ...GPU, '--no-sandbox', '--windowed', '--no-devtools', ...extra];
-  const app = await _electron.launch({ executablePath: EXE || require(path.join(__dirname, '../node_modules/electron')), args, env: Object.assign({}, process.env, { HT_USER_DATA: PROFILE, HT_WINDOW_SIZE: '1280x720' }, env), timeout: 120000 });
+  const app = await _electron.launch({ executablePath: EXE || require(path.join(__dirname, '../node_modules/electron')), args, env: Object.assign({}, process.env, { HT_USER_DATA: PROFILE, HT_WINDOW_SIZE: '1280x720', HT_TEST_HOOKS: '1' /* C-5: a packaged build only lets tests drive it */ }, env), timeout: 120000 });
   const out = []; app.process().stdout.on('data', d => out.push(String(d))); app.process().stderr.on('data', d => out.push(String(d)));
   const p = await app.firstWindow(); const errs = [], remote = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()) });
@@ -27,6 +27,13 @@ async function launch(extra = [], env = {}) {
 const shot = async (p, n) => { if (!SHOTS) return; fs.mkdirSync(SHOT_DIR, { recursive: true }); await p.waitForTimeout(700); await p.screenshot({ path: path.join(SHOT_DIR, n + '.png'), timeout: 180000 }); console.log('     shot ' + n) };
 const { FAKE_PAD } = require('./fake-pad.js');
 
+/* C-5: a packaged build started without the test gate refuses the remote-debugging switch (exits at once, no window) */
+function gateCheck() {
+  if (!EXE) return;
+  const t0 = Date.now(), r = require('child_process').spawnSync(EXE, ['--remote-debugging-port=0', '--no-sandbox', '--windowed', '--no-steam', ...GPU],
+    { env: Object.assign({}, process.env, { HT_USER_DATA: fs.mkdtempSync(path.join(os.tmpdir(), 'ht-gate-')), HT_TEST_HOOKS: '' }), timeout: 60000 });
+  ok(r.status === 0 && Date.now() - t0 < 60000, 'packaged build refuses --remote-debugging-port without the test gate (exit ' + r.status + ', ' + (Date.now() - t0) + ' ms)');
+}
 async function deckRun() {
   let L, app, p;
   /* ---------- third launch as a Steam Deck (SteamDeck=1, 1280x800): controller prompts from the start, Interface size 110% ---------- */
@@ -67,9 +74,28 @@ async function deckRun() {
     try { fs.copyFileSync(path.join(PROFILE, 'high-trust.log'), path.join(OUT_DIR, 'high-trust.log')) } catch (e) { }
     ok(L.errs.length === 0, 'zero console errors' + (L.errs.length ? ': ' + L.errs.slice(0, 5).join(' | ') : ''));
     ok(L.remote.length === 0, 'zero remote requests' + (L.remote.length ? ': ' + L.remote.slice(0, 5).join(' ') : ''));
-    const exited = new Promise(r => app.process().once('exit', c => r(c)));
+    /* new game, a save written to disk, quit, relaunch: Continue offered with the same save (every OS, not only Linux) */
+    await p.click('.ht-title [data-act=newgame]');
+    await p.waitForFunction(() => window.__ht.mode === 'hub' && window.__ht.running, null, { timeout: 180000 });
+    ok(true, 'new game: free roam');
+    const cash = await p.evaluate(() => { window.HT.Save.addCash(321, 'smoke'); window.HT.Save.saveNow(true); return window.HT.Save.data.cash });
+    let disk = null; try { disk = JSON.parse(JSON.parse(fs.readFileSync(path.join(PROFILE, 'saves', 'save.json'), 'utf8')).keys['ht-save']) } catch (e) { }
+    ok(disk && disk.cash === cash, 'save written to disk at once (' + path.join(PROFILE, 'saves', 'save.json') + ', cash ' + (disk && disk.cash) + ')');
+    let exited = new Promise(r => app.process().once('exit', c => r(c)));
     await p.evaluate(() => { window.HT.Save.flush && window.HT.Save.flush(); window.HTDesktop.quit() });
     ok(await Promise.race([exited, new Promise(r => setTimeout(() => r('timeout'), 20000))]) === 0, 'HTDesktop.quit() exits cleanly');
+    const L2 = await launch(); const p2 = L2.p;
+    await p2.waitForFunction(() => window.__ht && window.__ht.assets && window.__ht.assets.done, null, { timeout: 300000 });
+    await p2.waitForSelector('.ht-title [data-act=continue]:not([hidden])', { timeout: 120000 }).catch(() => { });
+    const back = await p2.evaluate(() => ({ cont: !!document.querySelector('.ht-title [data-act=continue]:not([hidden])'), cash: window.HT.Save.data.cash, from: window.HT.Save.lastLoad.status }));
+    ok(back.cont && back.cash === cash, 'relaunch: Continue offered with the same save (' + JSON.stringify(back) + ')');
+    ok(L2.errs.length === 0 && L2.remote.length === 0, 'relaunch: zero console errors, zero remote requests' + (L2.errs.length ? ': ' + L2.errs.slice(0, 3).join(' | ') : '') + (L2.remote.length ? ' ' + L2.remote.slice(0, 3).join(' ') : ''));
+    exited = new Promise(r => L2.app.process().once('exit', c => r(c)));
+    await p2.evaluate(() => window.HTDesktop.quit()); await Promise.race([exited, new Promise(r => setTimeout(r, 20000))]);
+    let lg = ''; try { lg = fs.readFileSync(path.join(PROFILE, 'high-trust.log'), 'utf8'); fs.copyFileSync(path.join(PROFILE, 'high-trust.log'), path.join(OUT_DIR, 'high-trust.log')) } catch (e) { }
+    const nf = lg.split('\n').filter(l => l.startsWith('[app] 404') || l.includes('[net] blocked'));
+    ok(nf.length === 0, 'no 404s or blocked requests in the shell log' + (nf.length ? ': ' + nf.slice(0, 5).join(' | ') : ''));
+    gateCheck();
     console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0) }
   if (has('deck-only')) { await deckRun(); console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0) }
   /* software GL: start on Low graphics so frames come faster (the saved settings live in the same file as the save) */
@@ -167,5 +193,6 @@ async function deckRun() {
   ok(L.errs.length === 0 && L.remote.length === 0, 'second launch: zero errors, zero remote requests');
   await app.close();
   await deckRun();
+  gateCheck();
   console.log(fails ? fails + ' FAILED' : 'all ok'); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1) });

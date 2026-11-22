@@ -4,7 +4,7 @@ This game includes the following third-party software and assets under the MIT L
 
 The desktop version runs on Electron, which includes Chromium and Node.js. Their licences ship with
 the game: LICENSE.electron.txt (Electron, MIT) and LICENSES.chromium.html (Chromium, Node.js, V8 and
-every library they include), in the resources folder (macOS: High Trust.app/Contents/Resources) and,
+every library they include), in the resources folder (macOS: HighTrust.app/Contents/Resources) and,
 on Windows and Linux, also beside this file.
 
 ------------------------------------------------------------------------

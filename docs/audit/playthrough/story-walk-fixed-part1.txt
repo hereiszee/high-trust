@@ -1,0 +1,84 @@
+
+== step 0  trust 12 / R 5  cuffed 0  day 1  cash 0  act 1  bridge false
+   OBJECTIVE: Maple Heights | Gary has a job for you | Follow the yellow marker.
+   MARKER: {"label":"Gary","x":27,"z":21}
+   givers: gary:gary@27,21
+   available: gary   home: 
+   locked: rick:locked dave:locked doug:locked earl:bridge dee:bridge rosa:bridge benny:bridge duke:bridge taxi:locked blitz:locked talk:locked mower:locked mowertt:locked overwatch:locked sabotage:locked hoa:locked tail:locked tow:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked bike:locked heist:locked patrol:locked porch:locked carwash:locked finale:locked
+-> TAKE gary (marker)
+   accepted: {"job":0,"obj":["Return to Sender","Get in the minivan","Drive the crew to Chop shop, Industrial Way"],"marker":"Minivan","screen":null}
+   drive: {"steps":448,"mode":"mission","d":4.5,"dest":{"x":215,"z":93},"markerWhileDriving":"Chop shop, Industrial Way"}
+   job objective: ["Return to Sender","Recover stolen packages · 0/4"]
+   RESULT {"id":"gary","how":"marker","complete":"finish(true)","trustGain":16,"dT":16,"dR":0,"cash":593,"dCuffed":0,"day":[1,2],"pay":593,"state":"won","medal":1,"cards":["Job done · Chop shop, Industrial WayHome in time for dinner.Gary: Four for four. I'll update the spreadsheet. Mrs. Patel is going to cry. Neutralized0Zip-tied0Time0:00Trust28%MedalBronzePayout$593$593 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody pulled a hamstring+$0Quick work+$0Neighbo"]}
+
+== step 1  trust 28 / R 5  cuffed 0  day 2  cash 593  act 1  bridge false
+   OBJECTIVE: Maple Heights | Jen left you a list on the fridge at home · Dad Taxi | Coach Rick has a job for you | Barb has a job for you | Follow the yellow marker.
+   MARKER: {"label":"Home · Dad Taxi","x":37.8,"z":21.1}
+   givers: barb:hoa@121.6,66.7  rick:rick@75,49
+   available: rick taxi hoa   home: taxi@fridge
+   locked: dave:locked doug:locked earl:bridge dee:bridge rosa:bridge benny:bridge duke:bridge blitz:locked talk:locked mower:locked mowertt:locked overwatch:locked sabotage:locked tail:locked tow:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked bike:locked heist:locked patrol:locked porch:locked carwash:locked finale:locked
+-> TAKE taxi (marker-home)
+   home objective: ["Home","Dad Taxi: Jen's list is on the fridge · press E there"]
+   accepted: {"job":9,"obj":["Dad Taxi","Get in the minivan","Drive the crew to Maple Heights, all of it"],"marker":"Minivan","screen":null}
+   drive: {"steps":164,"mode":"mission","d":4.5,"dest":{"x":57,"z":16.7},"markerWhileDriving":"Maple Heights, all of it"}
+   job objective: ["Dad Taxi","Stop 1 · Maple Heights Elementary","Maddie (band) + Ava & Mason"]
+   RESULT {"id":"taxi","how":"marker-home","complete":"bot","trustGain":21,"dT":20,"dR":0,"cash":813,"dCuffed":0,"day":[2,3],"pay":813,"state":"won","medal":2,"cards":["Job done · Maple Heights, all of itHome in time for dinner.Six stops, six on time. Ride score 55. Two teenagers have a Saturday job with a stop sign. Somebody still has to go back for the retainer. Neutralized0Zip-tied0Time3:35Trust48%MedalSilverEvery stop on timePayout$813$1,406 savedPayoutNeighbor"]}
+
+== step 2  trust 48 / R 5  cuffed 0  day 3  cash 1406  act 1  bridge false
+   OBJECTIVE: Maple Heights | Coach Rick has a job for you | Barb has a job for you | Follow the yellow marker.
+   MARKER: {"label":"Coach Rick","x":75,"z":49}
+   givers: rick:rick@75,49  barb:hoa@121.6,66.7
+   available: rick hoa   home: 
+   locked: dave:locked doug:locked earl:bridge dee:bridge rosa:bridge benny:bridge duke:bridge blitz:locked talk:locked mower:locked mowertt:locked overwatch:locked sabotage:locked tail:locked tow:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked bike:locked heist:locked patrol:locked porch:locked carwash:locked finale:locked
+-> TAKE rick (marker)
+   accepted: {"job":1,"obj":["Fourth Quarter","Get in the minivan","Drive the crew to The old duplex on Birch"],"marker":"Minivan","screen":null}
+   drive: {"steps":76,"mode":"mission","d":4.5,"dest":{"x":9,"z":107},"markerWhileDriving":"The old duplex on Birch"}
+   job objective: ["Fourth Quarter","Smash the stash tables · 0/3","2:30 until reinforcements"]
+   RESULT {"id":"rick","how":"marker","complete":"finish(true)","trustGain":16,"dT":16,"dR":0,"cash":1214,"dCuffed":0,"day":[3,4],"pay":1214,"state":"won","medal":1,"cards":["Job done · The old duplex on BirchNobody is proud of this.Coach Rick: That's fundamentals. Bring it in. Hands in. 'Trust' on three. Neutralized0Zip-tied0Time0:00Trust64%MedalBronzePayout$1,214$2,620 savedPayoutNeighborhood Watch fundBake sale fund+$0Nobody pulled a hamstring+$0Clock bonus · 150s lef","Act 2 · One week laterThe bridge is open.Earl Booker, retired, calls Gary's landline. Gary still has a landline. \"You the fellas who cleaned up Birch Street? The King's cousin set up shop across the river. Calls himself the Duke. Of catalytic converters. Bring the van.\" Riverside trust5%People keep "]}
+
+== step 3  trust 64 / R 5  cuffed 0  day 4  cash 2620  act 2  bridge true
+   OBJECTIVE: Maple Heights | Barb has a job for you | Earl has a job for you in Riverside Flats | Big Dave has jobs for you | Doug has a job for you | Follow the yellow marker.
+   MARKER: {"label":"Barb","x":121.6,"z":66.7}
+   givers: barb:hoa@121.6,66.7  dave:mower+dave@41,65  doug:tail@89,37  earl:earl@329,67
+   available: dave earl mower hoa tail   home: 
+   locked: doug:locked dee:locked rosa:locked benny:locked duke:locked blitz:locked talk:locked mowertt:locked overwatch:locked sabotage:locked tow:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked bike:locked heist:locked patrol:locked porch:locked carwash:locked finale:locked
+-> TAKE hoa (marker)
+   accepted: {"job":16,"obj":["Exhibit HOA","Get in the minivan","Drive the crew to 1418 Walnut Dr"],"marker":"Minivan","screen":null}
+   drive: {"steps":186,"mode":"mission","d":4.5,"dest":{"x":118.5,"z":71.2},"markerWhileDriving":"1418 Walnut Dr"}
+   job objective: ["Exhibit HOA","Talk to Barb"]
+   RESULT {"id":"hoa","how":"marker","complete":"bot","trustGain":12,"dT":9,"dR":3,"cash":743,"dCuffed":0,"day":[4,5],"pay":743,"state":"won","medal":2,"cards":["Job done · 1418 Walnut DrThat was necessary. Unfortunately.Barb: Motion carried. The truck left at six a.m. 1418 Walnut is listed Monday, with an actual realtor. Neutralized0Zip-tied0Time2:40Trust73%MedalSilverAll six at 2 stars or betterPayout$743$3,363 savedPayoutNeighborhood Watch fundBake sale f"]}
+
+== step 4  trust 73 / R 8  cuffed 0  day 5  cash 3363  act 2  bridge true
+   OBJECTIVE: Maple Heights | Earl has a job for you in Riverside Flats | Big Dave has jobs for you | Doug has a job for you | Follow the yellow marker.
+   MARKER: {"label":"Earl","x":329,"z":67}
+   givers: earl:earl@329,67  doug:tail@89,37  dave:mower+dave@41,65
+   available: dave earl mower tail porch   home: porch@laptop
+   locked: doug:locked dee:locked rosa:locked benny:locked duke:locked blitz:locked talk:locked mowertt:locked overwatch:locked sabotage:locked tow:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked bike:locked heist:locked patrol:locked carwash:locked finale:locked
+-> TAKE earl (marker)
+   accepted: {"job":4,"obj":["End of the Line","Get in the minivan","Drive the crew to The Spoke Shop, Dock St"],"marker":"Minivan","screen":null}
+   drive: {"steps":95,"mode":"mission","d":4.5,"dest":{"x":333,"z":127},"markerWhileDriving":"The Spoke Shop, Dock St"}
+   job objective: ["End of the Line","Load the stolen bikes into your ride · 0/6","Bonus: catalytic converters · 0/4"]
+   RESULT {"id":"earl","how":"marker","complete":"finish(true)","trustGain":14,"dT":0,"dR":14,"cash":799,"dCuffed":0,"day":[5,6],"pay":799,"state":"won","medal":1,"cards":["Job done · The Spoke Shop, Dock StHome in time for dinner.Earl: Thirty-six years and that's the best stop I ever made. I'm starting a bike library. Free. Bring 'em back by Sunday. Neutralized0Zip-tied0Time0:00Trust22%Riverside FlatsMedalBronzePayout$799$4,162 savedPayoutNeighborhood Watch fundBake s"]}
+
+== step 5  trust 73 / R 22  cuffed 0  day 6  cash 4162  act 2  bridge true
+   OBJECTIVE: Maple Heights | Big Dave has jobs for you | Doug has a job for you | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank | Follow the yellow marker.
+   MARKER: {"label":"Big Dave","x":41,"z":65}
+   givers: dave:mower+dave@41,65  dee:dee@331,39  sal:tow@221,55  doug:tail@89,37  tyler:bike@41.3,19.9  hank:blitz@43,11
+   available: dave dee blitz mower tail tow bike porch   home: porch@laptop
+   locked: doug:locked rosa:locked benny:locked duke:locked talk:locked mowertt:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked patrol:locked carwash:locked finale:locked
+-> TAKE mower (marker)
+   accepted: {"job":12,"obj":["The Grass Is Greener","Get in the minivan","Drive the crew to Linden Park"],"marker":"Minivan","screen":null}
+   drive: {"steps":117,"mode":"mission","d":4.5,"dest":{"x":92,"z":98},"markerWhileDriving":"Linden Park"}
+   job objective: ["The Grass Is Greener","Pick a mower in the paddock"]
+   RESULT {"id":"mower","how":"marker","complete":"bot","trustGain":20,"dT":14,"dR":6,"cash":1200,"dCuffed":2,"day":[6,7],"pay":1200,"state":"won","medal":2,"cards":["Job done · Linden ParkThat was necessary. Unfortunately.Linden Park smells like cut grass and lemonade. Riverside and Maple Heights shared a podium. Gil says this one doesn't count as an Incident. Neutralized0Zip-tied2second chancesTime2:23Trust87%MedalSilverOn the podiumPayout$1,200$5,362 savedPayo"]}
+
+== step 6  trust 87 / R 28  cuffed 2  day 7  cash 5362  act 2  bridge true
+   OBJECTIVE: Maple Heights | Big Dave has a job for you | Doug has a job for you | Pastor Dee has a job for you in Riverside Flats | Sal has a job for you | Tyler has a job for you | Side jobs: Hank · Big Dave | Follow the yellow marker.
+   MARKER: {"label":"Big Dave","x":41,"z":65}
+   givers: dave:dave@41,65  doug:tail@89,37  tyler:bike@41.3,19.9  sal:tow@221,55  dee:dee@331,39  dave:mowertt@97.6,100.8  hank:blitz@43,11
+   available: dave dee blitz mowertt tail tow bike porch   home: porch@laptop
+   locked: doug:locked rosa:locked benny:locked duke:locked talk:locked overwatch:locked sabotage:locked cargo:locked crossing:locked pawn:locked cones:locked moving:locked arrest:locked brake:locked roundup:locked heist:locked patrol:locked carwash:locked finale:locked
+  ! step 6: dave twice: dave & mowertt
+-> TAKE dave (marker)
+CRASH keyboard.press: Target crashed 
+    at /home/user/high-trust/dev/audit/playthrough/story-walk.js:81:74

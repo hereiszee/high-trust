@@ -23,7 +23,7 @@ Valve asks for "a few hundred characters", plain text, with nothing time-based (
 Somebody's been taking packages off porches in Maple Heights, and now nobody waves any more. You're a dad with a minivan, a garage pistol and a lawn that needs mowing. Gary has a spreadsheet. Coach Rick has a whistle. Big Dave has a grill. Doug has opinions about call signs. Together you're going to fix this.
 
 **Earn the town's trust back**
-- **28 story jobs and a festival finale**, taken from the people on your street and across the river:
+- **27 story jobs and a festival finale**, taken from the people on your street and across the river:
   - raid a chop shop for stolen packages
   - hold Linden Park through three waves
   - tail a car without being made
@@ -36,7 +36,7 @@ Somebody's been taking packages off porches in Maple Heights, and now nobody wav
 **A whole dad life**
 - **A home that is actually yours.** Walk around it, decorate it with 33 pieces of furniture, keep your guns in the garage locker, and check the fridge calendar for replays and medals. Your family (Jen, Tyler, Maddie and Biscuit the dog) has opinions.
 - **Dad's Auto.** Upgrade the family minivan or buy The Contractor, The Tailgater or The Suburbanite. V6 swaps, bull bars, reinforced panels, a gun rack, rims, paint, stickers and novelty horns.
-- **Nine sensible firearms**, including Garage Pistol, Grandpa's Pump, Weekend Nailer, The Carpool, Deer Season and The Talking-To (non-lethal beanbag). Each has attachments, including The HOA-Approved Muffler.
+- **Nine sensible firearms**, including Garage Pistol, Grandpa's Pump, Weekend Nailer, The Carpool, Deer Season and The Talking-To (non-lethal beanbag). All but Uncle Ray's Side-by-Side take attachments, including The HOA-Approved Muffler.
 - **More than shooting.** Stealth at night with a Maglite and night-vision, conversation jobs where tone matters, tailing, towing, convoys, a mower race, and a phone camera for collecting evidence for the HOA.
 
 **Fort Sensible**
@@ -49,9 +49,9 @@ Somebody's been taking packages off porches in Maple Heights, and now nobody wav
 - Auto graphics quality adjusts itself to keep the frame rate up.
 
 *Before publishing, check this copy against CONTENT.md and the open QA items:*
-- *"28 story jobs" counts the 27 story jobs plus the finale; recount if jobs are added or cut.*
+- *"27 story jobs" = the 9 built-in missions plus every registered job that is neither repeatable nor the finale; `node dev/store-claims.test.js` derives it from the registry and fails when this copy drifts.*
 - *Leave "takes about 10 hours" out until timed play-throughs exist.*
-- *Controller support can be claimed (Full, see below); key rebinding is in Pause → Key bindings.*
+- *Controller support can be claimed (Full, see below); key rebinding is in Pause → Controls & keys.*
 - *Valve does not allow links or fake Steam UI in this section ([description](https://partner.steamgames.com/doc/store/page/description)).*
 
 ## Genre and tags
@@ -92,7 +92,7 @@ Evidence (`docs/PERF.md`, Medium preset):
 - **Heaviest mission:** about 1,650 draw calls, about 1.3 M triangles and 231 MB texture memory.
 - **Low preset:** uses the 512-px texture tier (about ¼ of the texture memory), 1024 hard shadows, no post-processing, and resolution scale down to 0.6.
 - **Auto mode:** targets 60 fps and steps down below about 45 fps.
-- **Install size:** about 155 MB of game data (`assets/opt` 70 MB plus source assets 80 MB, JS 4 MB) plus the Electron runtime (about 250–300 MB).
+- **Install size:** about 70 MB of game data (`resources/game`: the optimised `assets/opt` plus JS; source assets don't ship) plus the Electron runtime (about 265–310 MB), so about 340–390 MB unpacked (BUILD.md).
 
 WebGL 2 through the bundled Chromium is the hard floor. Draw-call submission in WebGL is CPU-bound, so a 4-thread CPU matters as much as the GPU.
 
@@ -131,7 +131,7 @@ The game plays fully on a controller through the Gamepad API (`js/gamepad.js`; X
 - **Gameplay:** walking, looking, aiming (hold LT), firing, reloading, crouch, jump, use/talk (hold works), switching guns, flashlight and night vision, driving (RT/LT throttle and brake, handbrake, horn, get in and out), map and pause.
 - **Menus:** title, pause, briefs, results, calendar, map and choice strips move focus with the D-pad or stick, A selects, B backs out; the shop and locker have their own pad navigation (`js/save.js`).
 - **Prompts** switch between keycaps and pad glyphs depending on the last device used. Keyboard and mouse keep working side by side.
-- **Key rebinding** for the keyboard: Pause → Key bindings (`js/keys.js`, tested by `dev/keys.e2e.js`), in the web and desktop builds.
+- **Key rebinding** for the keyboard: Pause → Controls & keys (`js/keys.js`, tested by `dev/keys.e2e.js`), in the web and desktop builds.
 - **Steam Deck defaults:** Interface size 110% at 1280×800 (BUILD.md).
 
 **Declare Full Controller Support** in the controller questionnaire. Full requires that a controller reaches all content and that on-screen prompts match it ([controller questionnaire](https://store.steampowered.com/news/group/4145017/view/3684558162504860650), [Steam Input dev guide](https://partner.steamgames.com/doc/features/steam_controller/getting_started_for_devs)), which is also what Deck Verified checks ([steamdeck/compat](https://partner.steamgames.com/doc/steamdeck/compat)). Before ticking it, play one job start to finish on a real pad and on a Deck: the automated checks drive the game by script, not by a controller.

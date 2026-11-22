@@ -7,7 +7,7 @@ const GPU = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swift
 const mkProfile = n => fs.mkdtempSync(path.join(os.tmpdir(), 'ht-audit-' + (n || '') + '-'));
 async function launch(profile, extra = [], env = {}) {
   const app = await _electron.launch({ executablePath: EXE, args: [...GPU, '--no-sandbox', '--windowed', '--no-steam', ...extra],
-    env: Object.assign({}, process.env, { HT_USER_DATA: profile, HT_WINDOW_SIZE: '1280x720' }, env), timeout: 120000, cwd: os.tmpdir() });
+    env: Object.assign({}, process.env, { HT_USER_DATA: profile, HT_WINDOW_SIZE: '1280x720', HT_TEST_HOOKS: '1' /* C-5 gate (fix/saves) */ }, env), timeout: 120000, cwd: os.tmpdir() });
   const out = []; app.process().stdout.on('data', d => out.push(String(d))); app.process().stderr.on('data', d => out.push(String(d)));
   const p = await app.firstWindow(); const errs = [], remote = [];
   p.on('pageerror', e => errs.push('pageerror ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()) });
