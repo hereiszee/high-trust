@@ -1894,6 +1894,7 @@ function carLabel(e){return e===VAN||!e?'Family minivan':e.name+"'s "+feel(e).la
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[[VAN.on&&CV!==VAN?'Borrow a ride':'Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
 function enterHub(o){
+  if(!enterHub.ex){enterHub.ex=setTimeout(()=>{const HW=HTM('World');if(HW&&HW.needExtras)HW.needExtras()},6000)}/* PERF-05: interior furniture after the game is running, never before Start */
   if(!(M&&M.state==='won'))metaJobRollback();/* SAV-04: any way out of a job that wasn't a win drops what it earned */
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
@@ -1933,10 +1934,11 @@ function castKeysFor(i){const pm=HTM('People'),m=MISSIONS[i];if(!m||!pm||!pm.ok|
   return[...new Set([...(m.crew||[]).concat(m.hood==='river'&&m.giver?[m.giver]:[]).map(c=>DAD[c]||(typeof giverKey==='function'&&giverKey(c))||castKey(pm,c)),'thug_hoodie','thug_red','thug_cap','thug_jacket',...(m.type==='boss'?['boss']:[])])].filter(k=>k&&!pm.has(k))}
 function startMissionWhenReady(i){const pm=HTM('People'),m=MISSIONS[i];if(castWait)return;
   const DAD={gary:'dad_gary',rick:'dad_rick',dave:'dad_dave',doug:'dad_doug'};
-  const keys=castKeysFor(i);
-  if(!keys.length){startMission(i);return}
+  const keys=castKeysFor(i),HW=HTM('World'),ex=HW&&HW.needExtras?HW.needExtras():null;/* PERF-05: interior furniture, on demand */
+  const exReady=!ex||(HW.extrasReady&&HW.extrasReady());
+  if(!keys.length&&exReady){startMission(i);return}
   if(ASSETS.prefetch)ASSETS.prefetch('m'+i);try{HUD.feed('Loading the crew…','info')}catch(e){}
-  castWait=Promise.race([pm.preload(keys).catch(()=>{}),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
+  castWait=Promise.race([Promise.all([keys.length&&pm?pm.preload(keys).catch(()=>{}):null,ex]),new Promise(r=>setTimeout(r,10000))]).then(()=>{castWait=null;startMission(i);requestLock()})}
 function startMission(i,legacy){
   if(!legacy&&typeof missionInWorld==='function'&&missionInWorld(i))return startMissionWorld(i);/* WORLD MISSIONS: run at the real site */
   settleBorrow(true);engine(false);VAN.on=false;JOB=null;

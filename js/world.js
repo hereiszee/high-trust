@@ -303,11 +303,17 @@ function kindOf(B,x,z){const g=B.g;if(x<0||z<0||x>=B.W||z>=B.H)return 'out';cons
 /* extra furniture for mission interiors (assets/home, credited in assets/CREDITS.md). Optional: anything missing falls back to procedural boxes or is skipped. */
 const EXTRA_MODELS=['Sofa_01','ArmChair_01','wooden_bookshelf_worn','kenney_rugRectangle','kenney_rugRounded','kenney_cabinetTelevision','kenney_televisionModern','fancy_picture_frame_01','hanging_picture_frame_01','potted_plant_04',
   'pixel_combination_safe','kenney_bedDouble','kenney_kitchenFridgeLarge','kenney_kitchenStove','kenney_kitchenSink','kenney_kitchenCabinet','metal_tool_chest','bench_vice_01','round_wooden_table_02','painted_wooden_chair_02','kenney_lampRoundFloor','dartboard','modern_coffee_table_01','kenney_trophy','pixel_barbecue_grill'];
-const EXTRA={};let extraStarted=false;
-function loadExtras(){if(extraStarted||!THREE.GLTFLoader)return;extraStarted=true;const ld=new THREE.GLTFLoader();
-  for(const n of EXTRA_MODELS)try{ld.load('assets/home/'+n+'.glb',g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});EXTRA[n]=g},undefined,()=>{EXTRA[n]=null})}catch(e){EXTRA[n]=null}}
-W.init=ctx=>{C=ctx;try{loadExtras()}catch(e){}};
+const EXTRA={};let extraP=null;
+/* PERF-05: never at boot. Loaded on demand (W.needExtras(): a job about to start awaits it; the hub asks once the game is running), through
+   the asset manifest, so the optimised assets/opt/home/*.glb tier comes down instead of the source files (which the Steam build doesn't ship). */
+function extraUrl(n){const u='assets/home/'+n+'.glb';try{const A=C&&C.ASSETS;if(A&&A.man&&A.url){const v=A.url(u,A.tier);if(v)return v}}catch(e){}return u}
+function loadExtras(){if(extraP)return extraP;if(!THREE.GLTFLoader)return Promise.resolve();const ld=new THREE.GLTFLoader();
+  extraP=Promise.all(EXTRA_MODELS.map(n=>new Promise(res=>{try{ld.load(extraUrl(n),g=>{g.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});EXTRA[n]=g;res()},undefined,()=>{EXTRA[n]=null;res()})}catch(e){EXTRA[n]=null;res()}})));
+  return extraP}
+W.init=ctx=>{C=ctx};
+W.needExtras=()=>{try{return loadExtras()}catch(e){return Promise.resolve()}};
 W.extrasReady=()=>EXTRA_MODELS.every(n=>n in EXTRA);
+W.extrasLoaded=()=>EXTRA_MODELS.filter(n=>EXTRA[n]).length;W.EXTRA_MODELS=EXTRA_MODELS;
 W.ROADY=ROADY;
 W.begin=lvl=>{const def=lvl.def,id=def.id||'hub';
   const B={lod:[],impGB:{},lvl,def,id,hub:id==='hub',g:lvl.g,W:lvl.W,H:lvl.H,gb:{},inst:{},extra:[],lights:[],q:C.quality(),r:rngOf(hashStr(id)+7),style:LEVEL_STYLE[id]||LEVEL_STYLE.doug,group:lvl.group,yards:[],opens:[],clear:[],parked:[],shadowless:new Set(['paint','joint','gutter','curb','mulch','path','road','lot','walk','grass','inside','far','farroad'])};
