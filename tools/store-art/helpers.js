@@ -67,6 +67,10 @@ window.T_={noVM:true,
   parcel(d,hand='Bip01_R_Hand',off=[0.12,0.02,0.1]){const g=new T.Group(),bx=(w,h,dd,c,x,y,z)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,dd),new T.MeshStandardMaterial({color:lin(c),roughness:.85}));m.position.set(x,y,z);m.castShadow=true;g.add(m)};
     bx(.46,.3,.36,'#b8874f',0,.15,0);bx(.47,.035,.08,'#d9c9a0',0,.3,0);bx(.2,.004,.14,'#f4f1ea',.08,.302,.09);
     const B=d.rb&&d.rb.bones&&d.rb.bones[hand];if(B){B.add(g);g.position.set(...off);g.scale.setScalar(1/Math.max(1e-3,B.getWorldScale(new T.Vector3()).x))}else{d.root.add(g);g.position.set(0,1,0.35)}return g},
+  /* the jet in flight: afterburner cones lit (the game's own ab mesh) and a faint vapour trail from each nozzle */
+  jetFly(m,ab=1){const J=m.userData.jet||{};if(J.abm){J.abm.opacity=.9*ab}for(const c of J.ab||[]){c.visible=true;c.scale.set(1,.5+ab*1.3,1)}
+    const vm=new T.MeshBasicMaterial({color:0xfff4e8,transparent:true,opacity:.16,blending:T.AdditiveBlending,depthWrite:false,fog:false});
+    for(const c of J.ab||[]){const g=new T.CylinderGeometry(.12,.9,26,10,1,true);g.rotateZ(Math.PI/2);g.translate(-13,0,0);const t=new T.Mesh(g,vm);t.position.copy(c.position);t.position.x-=1.2;c.parent.add(t)}},
   applyBones(){for(const d of T_.row){const b=d.__bones,B=d.rb&&d.rb.bones;if(!b||!B)continue;for(const n in b){const bo=B[n];if(bo){bo.rotation.x+=b[n][0];bo.rotation.y+=b[n][1];bo.rotation.z+=b[n][2]}}d.root.updateMatrixWorld(true)}},
   WAVE:{Bip01_R_UpperArm:[0.15,0,-1.9],Bip01_R_Forearm:[0,0,-0.6]},
   /* hide the live game characters (player, crew followers, optionally everyone else) */
