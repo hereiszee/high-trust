@@ -161,7 +161,7 @@ const RACERS=[
   d:{rt:.15,rtSd:.045,redP:.03,launchQ:.85,missP:.02},lines:{hello:"I've logged forty-one passes in this thing. Variance is low. Like my expectations of you.",win:'Within budget.',lose:"I'm adding you to the spreadsheet. In red."}},
  {id:'dutch',name:'Dutch Hendricks',car:'workvan',tier:1,pool:'nb_sweater',bio:'Plumber. The van is full of pipe. He refuses to unload it. "It\'s ballast."',
   d:{rt:.38,rtSd:.10,redP:.03,launchQ:.55,missP:.04},lines:{hello:"Van's loaded. Two hundred pounds of copper. It's ballast. Don't ask.",win:'Copper, baby.',lose:'Should have unloaded the pipe. Not doing that.'}},
- {id:'tomas',name:'Tomás Reyes',car:'pickup',tier:4,pool:'nb_kenji',bio:'Out of town, from two counties over. Brought his own tyre pressure gauge.',
+ {id:'tomas',name:'Tomás Reyes',car:'pickup',tier:4,pool:'nb_kenji',bio:'Out of town, from two counties over. Brought his own tire pressure gauge.',
   d:{rt:.2,rtSd:.06,redP:.04,launchQ:.8,missP:.03},lines:{hello:"Two counties I drove for this. Don't make it boring.",win:"Tell your neighbours. I'll be back next month.",lose:'Okay. Okay! The local guy can drive.'}},
  {id:'june',name:'June Abernathy',car:'sedan',tier:6,pool:'nb_gran',bio:'Grandmother of six. Fastest reaction times at the strip. Nobody knows why.',
   d:{rt:.11,rtSd:.04,redP:.035,launchQ:.86,missP:.015},lines:{hello:'Buckle up, sweetheart.',win:'I used to do this before the grandkids. And during. And now.',lose:"Well. Look at you. I'll get you next time, sweetheart."}},
