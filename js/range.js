@@ -270,7 +270,7 @@ function menuOpen(a,idx){if(S.menu)return;const h=HT.HUD,icon=id=>{try{return h&
   d.innerHTML='<div style="max-width:min(1000px,94vw);text-align:center"><div style="font-size:30px;font-weight:800;letter-spacing:.04em">RENTAL RACK</div>'+
     '<div style="font-size:15px;opacity:.8;margin:2px 0 12px">Free on the range. '+rackHint()+'</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">'+cards+'</div>'+
-    '<div data-own style="cursor:pointer;margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:8px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)"><b>0</b> · Your own guns'+(S.rent?' (return the rental)':'')+'</div></div>';
+    '<div data-own style="cursor:pointer;margin:12px auto 0;display:inline-block;padding:6px 14px;border-radius:8px;background:rgba(20,26,30,.92);border:2px solid rgba(255,255,255,.12)"><b>'+(HT.Pad&&HT.Pad.active?HT.Pad.btn('X'):'0')+'</b> · Your own guns'+(S.rent?' (return the rental)':'')+'</div></div>';
   document.body.appendChild(d);/* pointer lock stays as it is (losing it opens the pause menu): keys choose; the mouse works when the cursor isn't locked */
   const M=S.menu={el:d,i:idx,cards:[...d.querySelectorAll('[data-i]')]};const sel=i=>{M.i=(i+RACK_IDS.length)%RACK_IDS.length;M.cards.forEach((c,j)=>{c.style.borderColor=j===M.i?'#ffd34a':'rgba(255,255,255,.12)';c.style.background=j===M.i?'rgba(60,52,20,.95)':'rgba(20,26,30,.92)'})};sel(idx);
   M.cards.forEach((c,j)=>{c.onmouseenter=()=>sel(j);c.onclick=()=>{sel(j);menuTake(a)}});d.querySelector('[data-own]').onclick=()=>{menuClose();rentReturn(a)};
