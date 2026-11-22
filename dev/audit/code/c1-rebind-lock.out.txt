@@ -1,0 +1,3 @@
+defaults             {"running":true,"paused":false,"locked":false,"map":{}} -> after one left click on the view: {"lockRequests":2,"mouseDown":false,"aim":false}
+fire<->aim swapped   {"running":true,"paused":false,"locked":false,"map":{"mouse2":"mouse1","mouse1":"mouse2"}} -> after one left click on the view: {"lockRequests":0,"mouseDown":false,"aim":true}
+fire on J            {"running":true,"paused":false,"locked":false,"map":{"j":"mouse1","mouse1":null}} -> after one left click on the view: {"lockRequests":0,"mouseDown":false,"aim":false}

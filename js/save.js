@@ -423,6 +423,13 @@ function parseRaw(raw){
   return{state:'ok',s,migrated:(s.v||0)<SAVE_V}}
 
 function attachProg(){if(!boundProg)return;Object.assign(boundProg,data.prog);data.prog=boundProg}
+/* a job in progress (SAV-04): what it earns (zip-ties, trust) is only committed when the job is won. jobOpen() keeps the
+   pre-job values; until jobCommit() every write and every 'saved' listener sees the save as it was before the job, plus any trust
+   the job LOST (penalties are never undone by quitting). jobRollback() puts the live prog back the same way (quit, abandon, fail). */
+const JOB_GAIN=['cuffed','trust','trustR'];
+let jobHold=null;
+function jobView(p){const o={};if(!jobHold||!p)return o;for(const k of JOB_GAIN){const b=jobHold[k],v=p[k];if(typeof b!=='number'||typeof v!=='number')continue;o[k]=k==='cuffed'?b:Math.min(v,b)}return o}
+function committed(){if(!data)return data;const p=boundProg||data.prog;if(!jobHold)return data;return Object.assign({},data,{prog:Object.assign({},p,jobView(p))})}
 
 const Save={
   KEY:SAVE_KEY,VERSION:SAVE_V,
@@ -451,10 +458,11 @@ const Save={
     if(boundProg)data.prog=boundProg;
     data.t=Date.now();
     const prev=sGet(SAVE_KEY);if(prev&&parseRaw(prev).state==='ok')sSet(BAK_KEY,prev);
-    const ok=sSet(SAVE_KEY,JSON.stringify(data));emit('saved',data);return ok},
+    const out=committed();
+    const ok=sSet(SAVE_KEY,JSON.stringify(out));emit('saved',out);return ok},
   flush(){if(timer)Save.saveNow()},
   /* a new game: the old save moves to the 'previous' slot (Save.restorePrevious brings it back) instead of being deleted */
-  reset(){clearTimeout(timer);timer=null;
+  reset(){clearTimeout(timer);timer=null;jobHold=null;
     if(data){if(boundProg)data.prog=boundProg;if(Save.hasProgress(data))sSet(PREV_KEY,JSON.stringify(data))}
     sDel(SAVE_KEY);sDel(BAK_KEY);data=SAVE_DEFAULT();attachProg();Save.saveNow();
     for(const k in data)emit(k,data[k]);emit('load',data);return data},
@@ -463,10 +471,21 @@ const Save={
   previous(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return null;const p=r.s.prog||{},j=r.s.jobs&&typeof r.s.jobs==='object'?r.s.jobs:{};
     return{t:r.s.t||0,cash:r.s.cash||0,jobs:Object.keys(j).filter(k=>j[k]&&j[k].done).length,runs:p.missionsRun||0}},
   /* swap the current save and the previous slot (so a restore can itself be undone) */
-  restorePrevious(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return false;clearTimeout(timer);timer=null;
+  restorePrevious(){const r=parseRaw(sGet(PREV_KEY));if(r.state!=='ok')return false;clearTimeout(timer);timer=null;jobHold=null;
     if(data){if(boundProg)data.prog=boundProg;if(Save.hasProgress(data))sSet(PREV_KEY,JSON.stringify(data));else sDel(PREV_KEY)}
     const old=data;data=sanitize(migrate(r.s));attachProg();sDel(BAK_KEY);Save.saveNow();lastLoad={status:'ok',from:r.s.v||0};
     for(const k in data)emit(k,data[k],old&&old[k]);emit('load',data);return true},
+  /* jobs (SAV-04): open when a job starts, commit when it is won, roll back on quit/abandon/fail */
+  jobOpen(){const p=boundProg||(data&&data.prog);if(!p)return;jobHold={};for(const k of JOB_GAIN)jobHold[k]=p[k]},
+  get jobOpenNow(){return!!jobHold},
+  jobCommit(){if(!jobHold)return;jobHold=null;Save.save()},
+  jobRollback(){if(!jobHold)return false;const p=boundProg||(data&&data.prog),v=jobView(p);jobHold=null;let ch=false;
+    if(p)for(const k in v)if(p[k]!==v[k]){p[k]=v[k];ch=true}if(ch){emit('prog',p);Save.save()}return ch},
+  /* what the open job has earned so far ({cuffed,trust,trustR} >= 0), for a checkpoint to hand back on a retry from it */
+  jobGain(){const p=boundProg||(data&&data.prog);if(!jobHold||!p)return null;const g={};for(const k of JOB_GAIN)g[k]=Math.max(0,(+p[k]||0)-(+jobHold[k]||0));return g},
+  jobApply(g){const p=boundProg||(data&&data.prog);if(!g||!p)return;for(const k of JOB_GAIN)if(+g[k]>0)p[k]=k==='cuffed'?(p[k]|0)+(g[k]|0):Math.min(100,(+p[k]||0)+(+g[k]))},
+  /* the save as it would be written now (an open job's gains left out) */
+  committed(){if(!data)Save.load();return committed()},
   /* link the game's live prog object: SAVE.prog becomes that same object */
   bindProg(p){boundProg=p;if(data)attachProg();return p},
   on(key,f){(listeners[key]=listeners[key]||[]).push(f);return()=>Save.off(key,f)},

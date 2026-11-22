@@ -408,3 +408,21 @@ test('v3 helpers announce changes through Save.on',()=>{
   Save.recordRun(null,'taxi',{ok:true,medal:1});Save.album(null,{id:'q'});Save.household(null,'h');Save.perk(null,'rick',true);off();
   for(const k of['jobs','calendar','day','album','world','perks'])assert.ok(got.includes(k),k);
 });
+
+/* SAV-04: a job's zip-ties and trust are only committed when it is won */
+test('job hold: an open job writes the pre-job prog; rollback drops gains but keeps penalties; commit keeps them',()=>{
+  const st=fresh();const p=Save.bindProg({});Object.assign(p,{trust:20,trustR:5,cuffed:3,missionsRun:1});
+  const disk=()=>JSON.parse(st.getItem('ht-save')).prog;let seen=null;const off=Save.on('saved',d=>{seen=d.prog.cuffed});
+  Save.jobOpen();p.cuffed+=2;p.trust+=8;p.missionsRun++;Save.saveNow();
+  assert.equal(disk().cuffed,3);assert.equal(disk().trust,20);assert.equal(disk().missionsRun,2,'run counter is not held');assert.equal(seen,3,"'saved' listeners see the committed save");
+  assert.deepEqual(Save.jobGain(),{cuffed:2,trust:8,trustR:0});
+  assert.equal(Save.committed().prog.cuffed,3);assert.equal(p.cuffed,5,'live prog keeps the gain while the job runs');
+  Save.jobRollback();assert.equal(p.cuffed,3);assert.equal(p.trust,20);assert.equal(Save.jobOpenNow,false);
+  /* a penalty inside the job survives quitting */
+  Save.jobOpen();p.trust-=10;Save.jobRollback();assert.equal(p.trust,10,'trust lost in an abandoned job stays lost');
+  /* a won job commits */
+  Save.jobOpen();p.cuffed+=1;p.trust+=16;Save.jobCommit();Save.saveNow();assert.equal(disk().cuffed,4);assert.equal(disk().trust,26);
+  /* checkpoint hand-back */
+  Save.jobOpen();p.cuffed+=2;const g=Save.jobGain();Save.jobRollback();assert.equal(p.cuffed,4);Save.jobOpen();Save.jobApply(g);assert.equal(p.cuffed,6);Save.saveNow();assert.equal(disk().cuffed,4);
+  Save.jobRollback();off();
+});
