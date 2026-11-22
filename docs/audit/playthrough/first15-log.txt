@@ -1,0 +1,232 @@
+7s TITLE {"btns":["Continue","Clock in","Restore previous save","Settings","Credits & licences"],"focus":"Clock in","premise":"HighTrustMaple Heights Neighborhood WatchPackages are vanishing, a chop shop opened on Industrial Way, and somebody is dealing out of the duplex on Birch. You and the guys would rather be grilling. ContinueClock inRestore previous saveSettingsCredits & licences TipHurt enemies sometimes give up. Zip-ties earn more trust than the alternative.Ready · streaming details…Build "}
+shot docs/audit/playthrough/first15-01-title.jpg
+55s AFTER NEW GAME {"mode":"hub","screen":null,"running":true,"obj":"SaturdayMaple HeightsGary has a job for youFollow the yellow marker.","hint":"MouseMove the mouse to look around","prompt":null,"marker":{"label":"Gary","x":27,"z":21},"pos":{"x":31,"z":19},"yaw":-1.57,"inVan":false,"job":null,"trust":12,"trustR":5,"cash":0,"cuffed":0,"day":1,"toasts":[""],"sub":"YouOkay. Let's see who needs help."}
+shot docs/audit/playthrough/first15-02-spawn.jpg
+76s after clicking the view {"screen":null,"running":true,"hint":"MouseMove the mouse to look around"}
+look calibration: yaw per px 0.00230
+93s HINT MouseMove the mouse to look around
+93s OBJECTIVE SaturdayMaple HeightsGary has a job for youFollow the yellow marker.
+93s MARKER {"label":"Gary","x":27,"z":21}
+shot docs/audit/playthrough/first15-03-hints.jpg
+156s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":32.7,"z":20.2} dist 6
+169s HINT null
+182s HINT WASDWalk
+196s HINT null
+208s HINT ShiftHold Shift while walking to jog
+208s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+209s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+210s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+213s arrived near {"x":29,"z":21.2} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-0.jpg
+221s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+221s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":28.7,"z":21.1} dist 2
+225s HINT null
+225s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+227s arrived near {"x":28.1,"z":21} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-1.jpg
+236s HINT EWalk up to someone with a ring and press E · follow the yellow marker
+236s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+236s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":27.8,"z":20.9} dist 1
+238s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+241s arrived near {"x":27.3,"z":20.8} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-2.jpg
+248s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+248s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":26.9,"z":20.8} dist 0
+251s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+254s arrived near {"x":26.4,"z":20.6} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-3.jpg
+262s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+262s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":26.1,"z":20.6} dist 1
+265s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+268s arrived near {"x":25.6,"z":20.5} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-4.jpg
+276s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+276s WALK to marker {"label":"Gary","x":27,"z":21} from {"x":25.2,"z":20.4} dist 2
+280s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+285s PROMPT null
+306s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+313s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+315s arrived near {"x":26.5,"z":21.6} prompt {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-04-giver-5.jpg
+327s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+327s after Enter on the brief {"screen":null,"job":null,"obj":"SaturdayMaple HeightsGary has a job for youFollow the yellow marker.","marker":{"label":"Gary","x":27,"z":21}}
+shot docs/audit/playthrough/first15-06-accepted.jpg
+336s van at {"x":39,"z":15} player {"x":26.8,"z":21.5}
+340s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+344s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+346s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+347s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+349s PROMPT {"key":"E","text":"Talk to Gary","hold":false,"progress":0}
+350s PROMPT null
+383s PROMPT {"key":"E","text":"Drive the minivan","hold":false,"progress":0}
+384s PROMPT {"key":"E","text":"Drive the minivan","hold":false,"progress":0}
+386s at van, prompt {"key":"E","text":"Drive the minivan","hold":false,"progress":0}
+391s HINT WASDW S drive · A D steer · Shift boost · Space handbrake
+391s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+391s after E at van: inVan true
+shot docs/audit/playthrough/first15-07-van.jpg
+400s DRIVE to Gary {"x":27,"z":21} route pts 2
+404s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+407s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+409s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+411s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+414s PROMPT null
+442s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+445s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+447s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+449s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+452s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+454s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+456s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+458s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+461s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+463s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+465s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+467s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+469s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+472s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+474s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+476s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+479s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+481s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+483s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+486s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+488s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+491s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+493s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+495s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+498s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+500s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+503s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+505s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+507s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+510s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+512s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+515s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+519s PROMPT null
+524s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+528s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+532s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+536s PROMPT null
+540s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+543s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+546s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+550s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+552s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+555s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+557s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+561s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+563s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+566s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+568s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+571s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+573s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+576s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+578s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+580s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+583s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+585s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+588s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+590s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+593s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+595s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+598s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+600s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+602s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+605s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+607s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+610s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+612s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+614s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+617s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+619s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+622s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+624s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+627s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+629s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+632s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+634s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+637s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+639s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+642s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+644s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+647s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+649s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+652s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+654s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+657s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+659s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+662s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+664s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+667s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+669s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+672s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+674s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+677s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+679s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+682s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+685s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+687s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+690s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+692s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+694s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+697s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+699s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+702s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+705s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+707s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+710s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+712s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+715s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+717s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+720s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+722s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+725s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+727s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+730s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+732s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+735s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+737s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+740s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+742s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+745s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+747s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+750s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+752s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+755s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+757s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+760s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+762s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+764s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+767s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+770s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+772s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+774s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+777s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+779s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+782s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+784s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+787s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+789s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+792s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+795s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+797s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+800s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+802s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+805s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+807s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+810s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+813s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+815s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+818s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+820s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+822s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+822s after the drive {"mode":"hub","screen":null,"obj":"SaturdayMaple HeightsGary has a job for youFollow the yellow marker."}
+shot docs/audit/playthrough/first15-08-arrive.jpg
+834s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-09-job.jpg
+842s PROMPT {"key":"E","text":"Get out","hold":false,"progress":0}
+shot docs/audit/playthrough/first15-10-end.jpg
+850s END {"mode":"hub","screen":null,"running":true,"obj":"SaturdayMaple HeightsGary has a job for youFollow the yellow marker.","hint":"WASDW S drive · A D steer · Shift boost · Space handbrake","prompt":{"key":"E","text":"Get out","hold":false,"progress":0},"marker":{"label":"Gary","x":27,"z":21},"pos":{"x":36,"z":20.7},"yaw":-4.69,"inVan":true,"job":null,"trust":12,"trustR":5,"cash":0,"cuffed":0,"day":1,"toasts":[""],"sub":"YouOkay. Let's see who needs help."}
+
+console errors:
