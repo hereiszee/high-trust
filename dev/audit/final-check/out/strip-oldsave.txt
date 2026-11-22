@@ -1,0 +1,6 @@
+ok   title offers Continue for the old save
+ok   Continue: free roam, cash kept (27376 vs 27376), day 17
+ok   SAVE.strip defaults (visited,barked,taught,book,hist,ladder,days,stats,bracket), office opens: office: Race the ladder | Bracket night | Turf class · Gus and his mower | Bet on the next race | The garage book
+ok   the car picker opens: Your Family Minivan, Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+ok   console errors: 0 
+all ok

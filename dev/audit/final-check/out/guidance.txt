@@ -1,0 +1,147 @@
+ok   after gary: next is taxi (home): marker home, first line says so · {"label":"Home · Dad Taxi","x":37.8,"z":21.1} Jen left you a list on the fridge at home · Dad Taxi
+ok   after gary: every open story job has a giver ()
+ok   after gary: every character stands in one place ()
+ok   after gary: no locked giver holds an open job
+ok   after taxi: next is rick: marker on its giver, first line names them · {"who":"rick","jobs":["rick"],"locked":false,"repeat":false} | Coach Rick has a job for you
+ok   after taxi: every open story job has a giver ()
+ok   after taxi: every character stands in one place ()
+ok   after taxi: no locked giver holds an open job
+ok   after rick: next is hoa: marker on its giver, first line names them · {"who":"barb","jobs":["hoa"],"locked":false,"repeat":false} | Barb has a job for you
+ok   after rick: every open story job has a giver ()
+ok   after rick: every character stands in one place ()
+ok   after rick: no locked giver holds an open job
+ok   after hoa: next is earl: marker on its giver, first line names them · {"who":"earl","jobs":["earl"],"locked":false,"repeat":false} | Earl has a job for you in Riverside Flats
+ok   after hoa: every open story job has a giver ()
+ok   after hoa: every character stands in one place ()
+ok   after hoa: no locked giver holds an open job
+ok   after earl: next is mower: marker on its giver, first line names them · {"who":"dave","jobs":["mower","dave"],"locked":false,"repeat":false} | Big Dave has jobs for you
+ok   after earl: every open story job has a giver ()
+ok   after earl: every character stands in one place ()
+ok   after earl: no locked giver holds an open job
+ok   after earl: standing at side giver Hank (blitz): marker still on mower · {"label":"Big Dave","x":41,"z":65}
+ok   after mower: next is dave: marker on its giver, first line names them · {"who":"dave","jobs":["dave"],"locked":false,"repeat":false} | Big Dave has a job for you
+ok   after mower: every open story job has a giver ()
+ok   after mower: every character stands in one place ()
+ok   after mower: no locked giver holds an open job
+ok   after mower: standing at side giver Hank (blitz): marker still on dave · {"label":"Big Dave","x":41,"z":65}
+ok   after dave: next is tail: marker on its giver, first line names them · {"who":"doug","jobs":["tail","doug"],"locked":false,"repeat":false} | Doug has jobs for you
+ok   after dave: every open story job has a giver ()
+ok   after dave: every character stands in one place ()
+ok   after dave: no locked giver holds an open job
+ok   after dave: standing at side giver Hank (blitz): marker still on tail · {"label":"Doug","x":89,"z":37}
+ok   after tail: next is doug: marker on its giver, first line names them · {"who":"doug","jobs":["doug","patrol"],"locked":false,"repeat":false} | Doug has a job for you
+ok   after tail: every open story job has a giver ()
+ok   after tail: every character stands in one place ()
+ok   after tail: no locked giver holds an open job
+ok   after tail: standing at side giver Hank (blitz): marker still on doug · {"label":"Doug","x":89,"z":37}
+ok   after doug: next is dee: marker on its giver, first line names them · {"who":"dee","jobs":["dee"],"locked":false,"repeat":false} | Pastor Dee has a job for you in Riverside Flats
+ok   after doug: every open story job has a giver ()
+ok   after doug: every character stands in one place ()
+ok   after doug: no locked giver holds an open job
+ok   after doug: standing at side giver Hank (blitz): marker still on dee · {"label":"Pastor Dee","x":331,"z":39}
+ok   after dee: next is tow: marker on its giver, first line names them · {"who":"sal","jobs":["tow"],"locked":false,"repeat":false} | Sal has a job for you
+ok   after dee: every open story job has a giver ()
+ok   after dee: every character stands in one place ()
+ok   after dee: no locked giver holds an open job
+ok   after dee: standing at side giver Hank (blitz): marker still on tow · {"label":"Sal","x":221,"z":55}
+ok   after crossing: next is tow: marker on its giver, first line names them · {"who":"sal","jobs":["tow"],"locked":false,"repeat":false} | Sal has a job for you
+ok   after crossing: every open story job has a giver ()
+ok   after crossing: every character stands in one place ()
+ok   after crossing: no locked giver holds an open job
+ok   after crossing: standing at side giver Hank (blitz): marker still on tow · {"label":"Sal","x":221,"z":55}
+ok   after tow: next is rosa: marker on its giver, first line names them · {"who":"rosa","jobs":["rosa"],"locked":false,"repeat":false} | Rosa has a job for you in Riverside Flats
+ok   after tow: every open story job has a giver ()
+ok   after tow: every character stands in one place ()
+ok   after tow: no locked giver holds an open job
+ok   after tow: standing at side giver Hank (blitz): marker still on rosa · {"label":"Rosa","x":411,"z":81}
+ok   after rosa: next is overwatch: marker on its giver, first line names them · {"who":"doug","jobs":["overwatch","patrol"],"locked":false,"repeat":false} | Doug has a job for you
+ok   after rosa: every open story job has a giver ()
+ok   after rosa: every character stands in one place ()
+ok   after rosa: no locked giver holds an open job
+ok   after rosa: standing at side giver Hank (blitz): marker still on overwatch · {"label":"Doug","x":89,"z":37}
+ok   after overwatch: next is pawn: marker on its giver, first line names them · {"who":"dee","jobs":["pawn"],"locked":false,"repeat":false} | Pastor Dee has a job for you in Riverside Flats
+ok   after overwatch: every open story job has a giver ()
+ok   after overwatch: every character stands in one place ()
+ok   after overwatch: no locked giver holds an open job
+ok   after overwatch: standing at side giver Hank (blitz): marker still on pawn · {"label":"Pastor Dee","x":323,"z":39}
+ok   after pawn: next is moving: marker on its giver, first line names them · {"who":"okafor","jobs":["moving"],"locked":false,"repeat":false} | Ms. Okafor has a job for you in Riverside Flats
+ok   after pawn: every open story job has a giver ()
+ok   after pawn: every character stands in one place ()
+ok   after pawn: no locked giver holds an open job
+ok   after pawn: standing at side giver Hank (blitz): marker still on moving · {"label":"Ms. Okafor","x":364,"z":95.1}
+ok   after moving: next is benny: marker on its giver, first line names them · {"who":"benny","jobs":["benny"],"locked":false,"repeat":false} | Benny has a job for you in Riverside Flats
+ok   after moving: every open story job has a giver ()
+ok   after moving: every character stands in one place ()
+ok   after moving: no locked giver holds an open job
+ok   after moving: standing at side giver Hank (blitz): marker still on benny · {"label":"Benny","x":427,"z":31}
+ok   after benny: next is cones: marker on its giver, first line names them · {"who":"earl","jobs":["cones","duke"],"locked":false,"repeat":false} | Earl has jobs for you in Riverside Flats
+ok   after benny: every open story job has a giver ()
+ok   after benny: every character stands in one place ()
+ok   after benny: no locked giver holds an open job
+ok   after benny: standing at side giver Hank (blitz): marker still on cones · {"label":"Earl","x":329,"z":67}
+ok   after cones: next is cargo: marker on its giver, first line names them · {"who":"dave","jobs":["cargo"],"locked":false,"repeat":false} | Big Dave has a job for you
+ok   after cones: every open story job has a giver ()
+ok   after cones: every character stands in one place ()
+ok   after cones: no locked giver holds an open job
+ok   after cones: standing at side giver Hank (blitz): marker still on cargo · {"label":"Big Dave","x":41,"z":65}
+ok   after cargo: next is duke: marker on its giver, first line names them · {"who":"earl","jobs":["duke"],"locked":false,"repeat":false} | Earl has a job for you in Riverside Flats
+ok   after cargo: every open story job has a giver ()
+ok   after cargo: every character stands in one place ()
+ok   after cargo: no locked giver holds an open job
+ok   after cargo: standing at side giver Hank (blitz): marker still on duke · {"label":"Earl","x":329,"z":67}
+ok   after duke: next is talk: marker on its giver, first line names them · {"who":"gary","jobs":["talk"],"locked":false,"repeat":false} | Gary has a job for you
+ok   after duke: every open story job has a giver ()
+ok   after duke: every character stands in one place ()
+ok   after duke: no locked giver holds an open job
+ok   after duke: standing at side giver Hank (blitz): marker still on talk · {"label":"Gary","x":27,"z":21}
+ok   after talk: next is sabotage: marker on its giver, first line names them · {"who":"sal","jobs":["sabotage"],"locked":false,"repeat":false} | Sal has a job for you
+ok   after talk: every open story job has a giver ()
+ok   after talk: every character stands in one place ()
+ok   after talk: no locked giver holds an open job
+ok   after talk: standing at side giver Hank (blitz): marker still on sabotage · {"label":"Sal","x":221,"z":55}
+ok   after sabotage: next is brake: marker on its giver, first line names them · {"who":"rick","jobs":["brake"],"locked":false,"repeat":false} | Coach Rick has a job for you
+ok   after sabotage: every open story job has a giver ()
+ok   after sabotage: every character stands in one place ()
+ok   after sabotage: no locked giver holds an open job
+ok   after sabotage: standing at side giver Hank (blitz): marker still on brake · {"label":"Coach Rick","x":75,"z":49}
+ok   after brake: next is bike: marker on its giver, first line names them · {"who":"tyler","jobs":["bike"],"locked":false,"repeat":false} | Tyler has a job for you
+ok   after brake: every open story job has a giver ()
+ok   after brake: every character stands in one place ()
+ok   after brake: no locked giver holds an open job
+ok   after brake: standing at side giver Hank (blitz): marker still on bike · {"label":"Tyler","x":41.3,"z":19.9}
+ok   after bike: next is roundup: marker on its giver, first line names them · {"who":"rick","jobs":["roundup"],"locked":false,"repeat":false} | Coach Rick has a job for you
+ok   after bike: every open story job has a giver ()
+ok   after bike: every character stands in one place ()
+ok   after bike: no locked giver holds an open job
+ok   after bike: standing at side giver Hank (blitz): marker still on roundup · {"label":"Coach Rick","x":75,"z":49}
+ok   after roundup: next is arrest: marker on its giver, first line names them · {"who":"rosa","jobs":["arrest"],"locked":false,"repeat":false} | Rosa has a job for you in Riverside Flats
+ok   after roundup: every open story job has a giver ()
+ok   after roundup: every character stands in one place ()
+ok   after roundup: no locked giver holds an open job
+ok   after roundup: standing at side giver Hank (blitz): marker still on arrest · {"label":"Rosa","x":411,"z":81}
+ok   after arrest: next is heist: marker on its giver, first line names them · {"who":"gary","jobs":["heist"],"locked":false,"repeat":false} | Gary has a job for you
+ok   after arrest: every open story job has a giver ()
+ok   after arrest: every character stands in one place ()
+ok   after arrest: no locked giver holds an open job
+ok   after arrest: standing at side giver Hank (blitz): marker still on heist · {"label":"Gary","x":27,"z":21}
+ok   after job 1 the marker is on home for Dad Taxi {"label":"Home · Dad Taxi","x":37.8,"z":21.1}
+ok   first objective line: Jen left you a list on the fridge at home · Dad Taxi
+ok   at the fridge and the calendar next to it the prompt names the job ["Jen's list · Dad Taxi","Jen's list · Dad Taxi"]
+ok   home objective names the list ["Home","Dad Taxi: Jen's list is on the fridge · press E there"]
+ok   a real E at the fridge opens the Dad Taxi brief {"screen":"brief","title":"Dad Taxi","acts":["brief:go","brief:skip","brief:no"]}
+ok   PT-03: after taking it at home the panel shows that job only {"job":9,"obj":["Dad Taxi","Get in the minivan","Drive the crew to Maple Heights, all of it"],"marker":"Minivan"}
+ok   Cone Zone is offered at Earl's spot while the Duke is locked {"who":"earl","name":"Earl","x":329,"z":67,"jobs":["cones"],"locked":null,"tag":null,"first":"cones","region":"river"}
+ok   Big Dave offers both of his open jobs {"who":"dave","name":"Big Dave","x":41,"z":65,"jobs":["mower","dave"],"locked":null,"tag":null,"first":"mower","region":"maple"}
+ok   the brief lists both jobs and the prompt says so {"pr":"Talk to Big Dave · 2 jobs","t1":"The Grass Is Greener","btns":["The Grass Is Greener","Block Party"]}
+ok   clicking the other job switches the brief (The Grass Is Greener -> Block Party)
+ok   Big Dave stands in maple: "Big Dave has a job for you"
+ok   Doug stands in maple: "Doug has a job for you"
+ok   Coach Rick stands in maple: "Coach Rick has a job for you"
+ok   locked Dee says something true: Folks around here don't know you well enough yet. Go see Hank by the hardware store, he's got a Honey-Do list for this side of the river. And when a man puts his hands up, you zip-tie him. You don't drop him.
+ok   finale: "2 left" line ["Maple Heights","Jen left you a list on the fridge at home · Dad Taxi","Finale: 25 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80","2 left: Dad Taxi (home), Chain Reaction (Tyler, after Dad Taxi)","Side jobs: Hank · Big Dave · Pastor Dee · Doug","Follow the yellow marker."]
+ok   25 of 27: the marker goes home for Dad Taxi {"label":"Home · Dad Taxi","x":37.8,"z":21.1}
+ok   all done: festival line first, marker home {"label":"Home · the family","x":37.8,"z":21.1} The festival: go home and talk to the family
+ok   Act 3 card after the Duke, prog.act 3 {"screen":"result","act":3,"flag":true,"text":"Act 3 · Good People StayPeople are coming home.There's a moving truck on Ash Street. Then another one. Earl's old neighbours, Rosa's kids' friends, somebody's cousins from two towns over. Nobody's selling, and nobody's leaving. Gary has a corkboard now,
+ok   the Act 3 card shows once
+ok   no console errors 
+all passed

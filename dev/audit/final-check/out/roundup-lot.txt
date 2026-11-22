@@ -1,0 +1,6 @@
+first time in the lot {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":true,"overlay":true,"guards":4,"watch":3,"scam":"coach","att":true}
+fail card ["Head home","Retry from The lot","Restart job"]
+2 s after "Retry from The lot" {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":true,"overlay":true,"guards":3,"watch":3,"scam":"coach","att":false}
+20 s later {"state":"go","stage":"lot","ph":"lot","alarm":false,"stealth":true,"shud":true,"overlay":true,"guards":3,"watch":0,"scam":"coach","att":false}
+page errors []
+PASS J-02: the stealth HUD and every guard are back after "Retry from The lot"

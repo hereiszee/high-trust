@@ -1,0 +1,18 @@
+  ok   HT.Jet.on is true in the jet
+  ok   under the canopy at 159 m, HT.Jet.on still true (fast travel waits for the landing)
+  ok   eject -> quit to title: clean (title, dad y 0)
+  ok   ... -> Continue: clean (hub, dad y 0)
+  ok   eject -> quit -> New game: clean (hub, dad y 0)
+  ok   flying: the flight draw radius is on
+  ok   flying -> quit -> Continue: clean (hub, dad y 0)
+  ok   HT.Tank.on is true in the tank, gunner sight on
+  ok   tank + sight -> quit -> Continue: clean (hub, dad y 0)
+  ok   rental taken from the rack (E, then 2)
+  ok   rental -> quit -> Continue: clean (hub, dad y 0)
+  ok   eject -> job starts: clean (mission, dad y 0)
+  ok   job -> hub: clean (hub, dad y 0)
+  ok   tank -> hub (tow / job end): clean (hub, dad y 0)
+  ok   rental -> job starts: clean (mission, dad y 0)
+  ok   rental -> job -> hub: clean (hub, dad y 0)
+no console errors
+all ok · 82 s

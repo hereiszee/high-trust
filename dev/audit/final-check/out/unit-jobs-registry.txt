@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: register pushes a MISSIONS entry and prices it in the catalog; duplicates are ignored
+ok 1 - register pushes a MISSIONS entry and prices it in the catalog; duplicates are ignored
+  ---
+  duration_ms: 2.802588
+  type: 'test'
+  ...
+# Subtest: registering before bind() is queued and attached on bind
+ok 2 - registering before bind() is queued and attached on bind
+  ---
+  duration_ms: 0.272389
+  type: 'test'
+  ...
+# Subtest: hooks: active job first, then systems; errors isolated; nothing registered = cheap no-op
+ok 3 - hooks: active job first, then systems; errors isolated; nothing registered = cheap no-op
+  ---
+  duration_ms: 0.842773
+  type: 'test'
+  ...
+# Subtest: gating: done ids, trust, Riverside trust, cuffs, flags, when()
+ok 4 - gating: done ids, trust, Riverside trust, cuffs, flags, when()
+  ---
+  duration_ms: 0.287121
+  type: 'test'
+  ...
+# Subtest: medals: bronze when finished, gold capped to silver after a stage retry
+ok 5 - medals: bronze when finished, gold capped to silver after a stage retry
+  ---
+  duration_ms: 2.123003
+  type: 'test'
+  ...
+# Subtest: job files: every SPEC3 file exists, a missing one is skipped, stubs register nothing
+ok 6 - job files: every SPEC3 file exists, a missing one is skipped, stubs register nothing
+  ---
+  duration_ms: 78.867323
+  type: 'test'
+  ...
+# Subtest: [CP] every registered job file round-trips its checkpoint state (save -> JSON -> load -> save)
+ok 7 - [CP] every registered job file round-trips its checkpoint state (save -> JSON -> load -> save)
+  ---
+  duration_ms: 15.801128
+  type: 'test'
+  ...
+# Subtest: the template job is a valid registration
+ok 8 - the template job is a valid registration
+  ---
+  duration_ms: 0.988608
+  type: 'test'
+  ...
+# Subtest: save v2 -> v3: prog.done becomes jobs[id].done with calendar pins
+ok 9 - save v2 -> v3: prog.done becomes jobs[id].done with calendar pins
+  ---
+  duration_ms: 13.650268
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 373.36662

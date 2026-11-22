@@ -1,0 +1,5 @@
+setup {"mode":"mission","squads":true,"nav":true,"eAi":false,"cur":"pistol"}
+a gunshot near the disarmed enemy: {"ok":true}
+10 s with the AI driving him: {"threw":null,"unarmed":true,"aiMode":"idle","state":"idle","hpLost":0,"mode":"mission"}
+page errors: []
+PASS J-01: no throw, the disarmed enemy stays unarmed

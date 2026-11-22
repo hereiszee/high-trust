@@ -1,0 +1,11 @@
+ok   registered: {"title":"Crossing Guard","from":{"place":"g_dee"},"index":20,"stages":["gear","main","river","corner","mill"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: dee
+ok   giver in the world offers the brief ({"brief":true,"job":20})
+ok   drove into the ring, the job started ({"steps":88,"mode":"mission","d":4.4788888888888785})
+ok   job running {"mode":"mission","id":"crossing","stage":"gear"}
+ok   scripted win: {"t":10717,"state":"won","stage":"mill","elapsed":357}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":1291,"rerun":false,"lines":["Bake sale fund:700","Nobody pulled a hamstring:150","Quick work:100","All eleven home:200","Talked it down:150","Clean crossings ×3:45","Neighbors are nervous:-54"]},"medal":3,"replay":false,"retried":false}
+ok   saved: jobs.crossing {"done":true,"best":{"t":357,"score":11,"trustGain":20,"clean":true},"medal":3,"runs":1,"replays":0,"plan":null,"medalPaid":3} calendar {"id":"crossing","day":1,"medal":3,"best":{"t":357,"trustGain":20,"clean":true},"runs":1} day 1->2
+ok   no console errors
+all ok

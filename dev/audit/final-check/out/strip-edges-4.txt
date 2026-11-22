@@ -1,0 +1,14 @@
+map metres {"W":464,"H":304}
+ok   on foot south from x 60: stopped at 60,250.5 (map ends 304), region base, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   on foot south from x 200: stopped at 200,250.5 (map ends 304), region base, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   on foot south from x 292: stopped at 283.6,300.6 (map ends 304), region strip, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   on foot south from x 330: stopped at 330,300.6 (map ends 304), region river, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   on foot south from x 420: stopped at 420,300.6 (map ends 304), region river, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   minivan south from x 60: stopped at 60,248.4 (map ends 304), region base, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   minivan south from x 200: stopped at 200,248.4 (map ends 304), region base, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   minivan south from x 292: stopped at 283,300 (map ends 304), region strip, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   minivan south from x 330: stopped at 330.5,300 (map ends 304), region river, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   minivan south from x 420: stopped at 420.2,300 (map ends 304), region river, ray down: null (the ray probe misses the ground everywhere, even on the base lot: read the screenshots)
+ok   pre-strip save: Continue true, {"mode":"hub","cash":0,"strip":true,"stripKeys":"visited,barked,taught,book,hist,ladder,days,stats,bracket","menu":"office: Race the ladder | Bracket night | Turf class · Gus and his mower | Bet on the next race | The garage book","day":1}
+FAIL console errors: 10 THREE.Sprite: "Raycaster.camera" needs to be set in order to raycast against sprites. | THREE.Sprite: "Raycaster.camera" needs to be set in order to raycast against sprites. | THREE.Sprite: "Raycaster.camera" needs to be set in order to raycast against sprites.
+1 FAIL

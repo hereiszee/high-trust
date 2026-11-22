@@ -1,0 +1,12 @@
+ok   registered: {"title":"Dad Taxi","from":{"home":"fridge"},"index":9,"stages":["run","bikes","back"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: already loaded
+ok   home giver "fridge" offers the brief ({"used":true,"acts":["brief:go","brief:skip","brief:no"]})
+ok   accepted at home, out the front door with the job on the list ({"mode":"hub","job":9,"i":9})
+ok   drove into the ring, the job started ({"steps":144,"mode":"mission","d":4.462019286157191})
+ok   job running {"mode":"mission","id":"taxi","stage":"run"}
+ok   scripted win: {"t":6223,"state":"won","stage":"back","elapsed":207}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":904,"rerun":false,"lines":["Bake sale fund:400","Nobody pulled a hamstring:150","On-time stops ×6 of 6:240","Smooth ride · score 98:100","Nobody forgot anything (trombone):50","Maddie's video · 377 views:30","Neighbors are nervous:-66"]},"medal":3,"replay":false,"retried":false}
+ok   saved: jobs.taxi {"done":true,"best":{"t":207,"score":1580,"trustGain":21,"clean":true},"medal":3,"runs":1,"replays":0,"plan":null,"medalPaid":3} calendar {"id":"taxi","day":1,"medal":3,"best":{"t":207,"trustGain":21,"clean":true},"runs":1} day 1->2
+ok   no console errors
+all ok

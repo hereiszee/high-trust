@@ -1,0 +1,22 @@
+title          text 16 off 0 clip 0 ovl 4 small 0
+hud-hub        text 23 off 0 clip 0 ovl 2 small 0
+pause state {"run":false,"paused":true,"screen":"pause","scr":["ht-scr ht-pause on op=1"]}
+pause-controls text 32 off 0 clip 0 ovl 1 small 0
+pause-display  text 36 off 0 clip 0 ovl 1 small 0
+pause-audio    text 21 off 0 clip 0 ovl 1 small 0
+pause-keys     text 303 off 0 clip 0 ovl 1 small 0
+pause-data     text 16 off 0 clip 0 ovl 1 small 0
+map            text 25 off 0 clip 0 ovl 0 small 0
+shop-hardware  text 89 off 0 clip 0 ovl 1 small 0
+shop-auto      text 93 off 0 clip 0 ovl 2 small 0
+shop-dadazon   text 88 off 0 clip 0 ovl 1 small 0
+locker         text 96 off 0 clip 0 ovl 2 small 0
+brief          text 16 off 0 clip 0 ovl 1 small 0
+calendar       text 53 off 0 clip 0 ovl 2 small 0
+job-crossing   text 21 off 1 clip 0 ovl 2 small 0
+result         text 24 off 0 clip 0 ovl 0 small 0
+range-menu     text 66 off 0 clip 0 ovl 19 small 0
+jet            text 44 off 0 clip 0 ovl 3 small 0
+tank           text 36 off 0 clip 0 ovl 1 small 0
+credits        text 50 off 0 clip 0 ovl 8 small 0
+errs []

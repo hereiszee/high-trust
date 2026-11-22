@@ -1,0 +1,8 @@
+fail 1 {"state":"lost","secs":0,"pay":34,"lines":["Gas money 40","Neighbors are nervous -6"]} cash now 34
+fail 2 {"state":"lost","secs":0,"pay":0,"lines":[]} cash now 34
+fail 3 {"state":"lost","secs":0,"pay":0,"lines":[]} cash now 34
+fail 4 {"state":"lost","secs":0,"pay":0,"lines":[]} cash now 34
+fail 5 {"state":"lost","secs":0,"pay":0,"lines":[]} cash now 34
+cash 0 -> 34 (+34) after 5 deliberate fails, 0 s of game time
+page errors []
+PASS J-04: deliberate fails are not a cash loop (+34)

@@ -1,0 +1,17 @@
+built-in 9 (gary,rick,dave,doug,earl,dee,rosa,benny,duke) + registered story 18 (taxi,talk,mower,overwatch,sabotage,hoa,tail,tow,cargo,crossing,pawn,cones,moving,arrest,brake,roundup,bike,heist) = 27 story jobs; finale: true; repeatables 5 (blitz,mowertt,patrol,porch,carwash)
+ok   nine built-in missions found in index.html
+ok   STORE.md headline says "27 story jobs and a festival finale"
+ok   every "N story jobs" in STORE.md/CHECKLIST.md is 27 (27,27,27)
+ok   the finale is a registered job
+ok   STORE.md: "five repeatable side gigs"
+ok   STORE.md: "nine sensible firearms" (9 in HT.CATALOG.guns)
+ok   attachment claim matches the catalogue (8/9 guns take attachments)
+ok   STORE.md: "33 pieces of furniture"
+ok   no "Key bindings" menu path left (the tab is "Controls & keys")
+ok   install size no longer counts source assets that do not ship
+ok   LICENSE holder is hereiszee
+ok   electron-builder copyright names hereiszee
+ok   desktop/package.json author is hereiszee (hereiszee)
+ok   desktop/package.json description no longer says "taking their neighborhood back"
+ok   CHECKLIST.md lists appId, RELEASE_APP_ID and the depot ids as owner inputs
+all ok

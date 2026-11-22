@@ -1,0 +1,16 @@
+ok   seeded save on disk: {"trust":30,"trustR":20,"cuffed":4}
+ok   an enemy gave up and was zip-tied with a real E press
+ok   live counts rise inside the job: {"trust":30,"trustR":20,"cuffed":4,"mode":"mission"} -> {"trust":34,"trustR":20,"cuffed":5,"mode":"mission"}
+ok   an autosave inside the job writes the pre-job counts: {"trust":30,"trustR":20,"cuffed":4}
+ok   Quit to title rolls the live counts back: {"trust":30,"trustR":20,"cuffed":4,"mode":"title"}
+ok   and the save on disk still has the pre-job counts: {"trust":30,"trustR":20,"cuffed":4}
+ok   Abandon job rolls back: {"trust":30,"trustR":20,"cuffed":4,"mode":"hub"}
+ok   a failed job rolls back (live {"trust":30,"trustR":20,"cuffed":4,"mode":"mission"}, disk {"trust":30,"trustR":20,"cuffed":4})
+ok   a won job commits its zip-tie and trust: disk {"trust":50,"trustR":20,"cuffed":5}
+ok   job taxi failed after a checkpoint: rolled back (5)
+info fail card retry button: Retry from Test-stage
+ok   "Retry from" the checkpoint hands back the zip-ties earned before it (live 7, want 7)
+ok   still uncommitted on disk (5)
+ok   quitting after the retry rolls back again (5)
+ok   no page errors
+all ok

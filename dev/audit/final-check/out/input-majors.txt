@@ -1,0 +1,29 @@
+ok   IN-05 setup: pad LT (Aim: Toggle) scopes in {"aim":true,"scopeT":1,"held":false}
+ok   IN-05 L3 tapped with the stick centred holds the breath (Toggle) and it stays held {"aim":true,"scopeT":1,"held":true}
+ok   IN-05 L3 again breathes {"aim":true,"scopeT":1,"held":false}
+ok   IN-05 Aim: Hold: L3 held holds the breath, released breathes {"s3":{"aim":true,"scopeT":1,"held":true},"s4":{"aim":true,"scopeT":1,"held":false}}
+ok   IN-10 pad LT raises the phone (not the gun aim) and LT again lowers it {"ph1":{"up":true,"aim":false},"ph2":false}
+ok   IN-06 setup: Y at the rack opens the rental menu {"open":true,"i":6,"id":"rifle"}
+ok   IN-06 the menu line names pad buttons "Free on the range. D-pad to choose · A takes it · X your own guns · B closes"
+ok   IN-06 D-pad →, stick → and RB each move the selection {"m0":{"open":true,"i":6,"id":"rifle"},"m1":{"open":true,"i":7,"id":"smg"},"m2":{"open":true,"i":8,"id":"hunter"},"m3":{"open":true,"i":0,"id":"pistol"}}
+ok   IN-06 B closes the menu {"open":false}
+ok   IN-06 A takes the selected gun {"pick":{"open":true,"i":7,"id":"smg"},"took":{"open":false,"cur":"smg"}}
+ok   IN-08 tank: no keyboard / mouse names on the pad (teach line, meter, hint bar "Sight") {"tk":{"feed":"Tank: left stick drives and turns on the spot · right stick aims the turret · RT fires · LT gunner sight · Y gets out | Rental: The Carpool · Use at the rack for another · it goes back when you leave the range","hint":"XHorn ABrake YExit LTSight"},"tl":[]}
+ok   IN-08 jet: strip, step prompt and feed name pad buttons only []
+ok   IN-07 the jet prompt shows Y for get out ["Y"]
+ok   IN-09 setup: a conversation choice is up {"choice":true,"n":4,"sel":0}
+ok   IN-09 D-pad ↓ and the stick move the reply (no flashlight / night vision keys sent) {"c1":{"sel":1,"choice":true,"badges":["","A","",""]},"c2":{"sel":2,"choice":true,"badges":["","","A",""]},"sent":""}
+ok   IN-09 the selected reply shows the A badge, the others none ["","","A",""]
+ok   IN-09 A picks the reply {"sel":2,"choice":false,"badges":["","","A",""]}
+ok   no console errors (pad run) []
+ok   IN-11 Use on U: the keycap and the sentence both say U {"shown":true,"keycap":"U","text":"Walk up to the minivan and press U to drive"}
+ok   IN-12 Crouch onto X swaps the job key onto C: X crouches, C reaches jobs as x, prompts relabel {"sx":["c/KeyC*"],"sc2":["x/KeyX*"],"rl":{"X":"C","C":"X","jobX":"c"}}
+ok   IN-13 Move forward on ; (4-9 are reserved now): released after Shift went down, the dad stops {"w1":true,"w2":false,"moved":0}
+ok   IN-14 AZERTY: the Z key (QWERTY W place) is Move forward, Q (QWERTY A place) is Move left {"zW":{"keys":["w"],"map":false},"qA":{"keys":["a"],"map":false}}
+ok   IN-14 AZERTY labels: forward Z, left Q, WASD reads ZQSD, the map key and its sentences show the layout's label {"fwd":"Z","left":"Q","map":",","wasd":"ZQSD","M":",","txt":"Press , for the map · Z to walk"}
+ok   IN-14 the key whose label the prompt shows for Map opens the map {"keys":[],"map":true}
+ok   IN-14 AZERTY digits (unshifted &) still switch guns as 1 {"keys":["1"],"map":false}
+ok   IN-15 Mouse 4 on the capture screen binds Jump and doesn't navigate {"url":"http://ht.local/index.html","alive":true}
+ok   IN-12 taking X for Crouch says it was a job key and where it went "Swapped: X was Call for help · put away · jet rudder right (a job key), which is now on C."
+ok   no console errors (keyboard run) []
+all ok

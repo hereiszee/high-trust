@@ -1,0 +1,90 @@
+       chase tally (12 seeds each, bot driver): {"sedan:stopped":11,"sedan:van_disabled":1,"hatch:stopped":8,"hatch:escaped":4,"workvan:stopped":11,"workvan:van_disabled":1}
+  ok   carai · stock minivan stats equal index.html updVan constants
+  ok   carai · index.html CAR_FEEL matches HT.Garage stock stats for every type
+  ok   carai · upgrades: eng2 + tyre2 + brk2 (SPEC2 E W5-1)
+  ok   carai · protection and utility map to hp, ram, bullets, ammo, slots
+  ok   carai · requirements give readable reasons
+  ok   carai · buy mutates a SAVE.garage and applies loyalty discount
+  ok   carai · horns: synthesized notes, capped at 2.4 s, light bar never red/blue
+  ok   carai · feel parity: stock van ends within 10% of path length of the current updVan
+  ok   carai · top speeds: stock boost 33, eng3 41, sport burst 47 then 14 s cooldown
+  ok   carai · van impact damage numbers (SPEC2 C.3)
+  ok   carai · ram: head-on 15 m/s into a stopped sedan deals 48, bull bar 96
+  ok   carai · PIT: rear-quarter hit on a fast car spins it
+  ok   carai · crew fire: 3 shooters, 9 hp/s within 18 m, none beyond
+  ok   carai · followPath: Benny's truck drives the escort route, centre never more than 0.75 m past the kerb, and arrives
+  ok   carai · followPath waits for the escort
+  ok   carai · followPath: a truck wedged off its route recovers onto the lane and still arrives (escort soft-lock)
+  ok   carai · followPath: something parked on the lane is skipped past, never an endless wedge
+  ok   carai · flee: stays mostly on the road, slows when the van is far, escapes after 8 s past 110 m
+  ok   carai · chase sims always finish, deterministic per seed
+  ok   carai · tutorial chase (stolen ice-cream truck, max 19): a stock van stops it in at least 18 of 20
+  ok   carai · upgraded van (eng2, tyre2, bull bar) always stops the Duke
+  ok   carai · stock van stops the Duke in most chases (rubber band keeps it winnable)
+  ok   dragsim · every lendable car makes a plausible eighth-mile pass (ET 8.5-12.5 s street, 18-30 s mower; trap 55-90 mph street)
+  ok   dragsim · the order is the honest one: sedan quickest, then the SUV and pickup, minivan, hatch, work van; mower last
+  ok   dragsim · flooring it off the line costs time (wheelspin), most on the pickup; a good launch beats it
+  ok   dragsim · engine upgrades make your own car quicker (garage upgrades matter)
+  ok   dragsim · every Dad's Auto upgrade moves the strip numbers the right way, and is named (tyres: 60 ft; sport: ET; armour: slower; book rows differ)
+  ok   dragsim · staged with the brake on: the car does not move, the rpm follows the throttle
+  ok   dragsim · leaving before the green is a red light (negative RT) and it loses
+  ok   dragsim · bracket: the quicker dial waits; running under your dial is a breakout and loses
+  ok   dragsim · odds: over 2,000 simulated races, each matchup wins as often as its stated probability (within 3.5 points)
+  ok   dragsim · the ladder climbs: each racer beats the one below more often than not (consistent skills)
+  ok   dragsim · money: purses shrink on repeat wins and stop at the daily cap; first-win bonuses are one-off
+  ok   dragsim · bets: limits, the cash floor, the daily loss and win caps; no stake you do not have
+  ok   dragsim · class rules: the street class is the six garage cars; the mower has its own; tank / jet / bike are refused
+  ok   dragsim · achievements (js/platform.js) read the strip from the save: first pass, the whole ladder, a perfect light
+  ok   roadgraph · 60 nodes / 82 edges (Oak St runs through the minivan spot) with the bridge open, connected
+  ok   roadgraph · bridge closed: Route 9 edge gone, Riverside is a separate component
+  ok   roadgraph · every edge is axis-aligned and its centreline is drivable
+  ok   roadgraph · no dead-end stubs shorter than 4 tiles
+  ok   roadgraph · shortest path is valid and optimal-ish (no repeated nodes, consecutive nodes share an edge)
+  ok   roadgraph · routes from home to every site: lane points stay on the road
+  ok   roadgraph · lane is on the right-hand side of travel
+  ok   roadgraph · Benny escort route nodes exist and connect
+  ok   roadgraph · nearestRoad projects onto a centreline
+  ok   roadgraph · stopPoints: one per incoming edge, behind the node on the right lane
+  ok   roadgraph · GPS: path exists with the bridge open, none with it closed, avoids solids, fast enough
+  ok   roadgraph · GPS prefers roads: most of the route is asphalt
+  ok   roadgraph · GPS is bounded: from a roof, off the map, NaN, or to an enclosed tile it answers fast and never stalls
+  ok   roadgraph · route along one stretch of road goes straight there (Industrial Way to the chop shop: no U-turn via Route 9)
+  ok   sites · all 8 new sites exist with the shape the activation code expects
+  ok   sites · new site tiles (SPEC3 table; walnut and parkride moved, see the report)
+  ok   sites · park and huddle spots are walkable and reachable from the driveway (flood fill) and by the GPS
+  ok   sites · bridge closed: Maple and Route 9 sites reachable, Riverside sites not
+  ok   sites · no marker chars leak into the map; legend unchanged
+  ok   sites · every interactive tile in a new site is reachable from its huddle
+  ok   sites · school: building, bike rack, drop-off lane, crossing
+  ok   sites · walnut: house, open garage with two items, garage walls as colliders
+  ok   sites · storage: 47 roll-up units in rows A/B/C, unit 47 exists, gate and office reachable
+  ok   sites · parkride: 24 bays inside the lot, gate tiles open
+  ok   sites · pawn: storefront and staff-only back room behind a door; millshop: office, shop, yard, gate
+  ok   sites · roof: the Community Center, roof at 7 m, ladder on the east wall over a sidewalk tile
+  ok   sites · market: box only, stalls on Main St, no tile changes
+  ok   sites · potholes: 8 on Route 9, 6 in Riverside, on asphalt road tiles, deterministic
+  ok   sites · pins: orthodontist on the Fill-Er-Up lot, 4 bus stops on Riverside sidewalks next to road nodes, a place per new site
+  ok   sites · porches: Maple house fronts plus Riverside porches
+  ok   sites · no existing site, place, building, door or start moved
+  ok   sites · extra colliders are inside their site windows
+  ok   worldgen · grid is 152 rows x 232 columns (rows 80-126: Fort Sensible, docs/base.md; 127-150: Sensible Dragway, docs/dragstrip.md)
+  ok   worldgen · deterministic: two builds are identical
+  ok   worldgen · reference hash of the open-bridge map is stable
+  ok   worldgen · old HUB coordinates kept: home door, store, markers
+  ok   worldgen · every site has park, huddle, ring, box and window
+  ok   worldgen · site entity counts
+  ok   worldgen · reachability with the bridge open: every site and place from the driveway
+  ok   worldgen · bridge closed: Riverside unreachable, Maple and Route 9 reachable
+  ok   worldgen · inside each site, every interactive tile is reachable from the huddle
+  ok   worldgen · bridge unlock follows the save (after Rick's job)
+  ok   worldgen · openBridge() mutates map, ground and chunk lists
+  ok   worldgen · regionAt uses world metres
+  ok   worldgen · chunks: 8x5, cover the grid, every object in exactly one chunk
+  ok   worldgen · counts match SPEC2 A.4 (after SPEC3: school replaced 3 houses, Mill St Auto Recovery replaced block 3,3; Fort Sensible strip added; Sensible Dragway rows 127-150)
+  ok   worldgen · house door rule keeps SPEC.md home facing north
+  ok   worldgen · ground chars are all colour chars
+  ok   worldgen · tags: 48 distinct Riverside faces, spaced, valid clearAt
+  ok   worldgen · dressing tiers
+  ok   worldgen · neighbour pool never exceeds 10 and respects tier
+  ok   worldgen · build({missions}) overrides a mission map
+all 88 passed

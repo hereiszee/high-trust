@@ -1,0 +1,38 @@
+== control: a red light played out to the slip
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   red light, LOSS: [["Rental",-20],["Entry",-25],["Your bet on yourself",-100]]
+  cash 1500 -> 1355 (-145), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+== A: red light (certain loss), then Esc -> Quit to title -> Continue
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  ok   the red bulb is lit in our lane, race still on (phase tree)
+  pause screen: pause, after quit: title, Continue offered: true, mode now hub
+  cash 1355 -> 1355 (saved: 1355), today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  FAIL A: the certain loss costs what the played-out loss cost ($145): it cost $0
+== B: the same race, never let go of the brake (the opponent runs, "asleep" after 8 s)
+  ok   race office open
+  self-bet offer: No bet | Bet $10 on yourself | Bet $25 on yourself | Bet $50 on yourself | Bet $100 on yourself
+  ok   racing Dutch (Bet $100 on yourself)
+  opponent finished his pass while we sat: null; cash 1355 -> 1355, today {"won":0,"betWon":0,"betLost":100,"beat":{}}
+  FAIL B: sitting it out costs what a loss costs ($145): it cost $0
+== C: a bet on another race, page reloaded mid-race (closing the game), then Continue
+  ok   office
+  ok   watching (priya vs june), stake $100
+  mid-race: {"phase":"roll","t":2.066666666666549}
+elementHandle.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - attempting click action[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+[2m    - element is visible, enabled and stable[22m
+[2m    - scrolling into view if needed[22m
+[2m    - done scrolling[22m
+[2m    - performing click action[22m
+
+  log: [
+    '  - attempting click action',
+  ],
+  name: 'TimeoutError'
+}

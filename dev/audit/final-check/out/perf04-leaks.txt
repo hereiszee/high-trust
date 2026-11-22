@@ -1,0 +1,28 @@
+start {"geo":291,"tex":125,"progs":103,"objs":2108,"dom":531,"listeners":112,"intervals":3,"timeouts":2,"ac":3,"nodes":847,"mode":"hub","heapMB":85.5,"rendererMB":2535,"gpuMB":785,"jsListeners":631,"domNodesAll":964}
+jobs 1 {"geo":330,"tex":163,"progs":107,"objs":3174,"dom":664,"listeners":109,"intervals":3,"timeouts":1,"ac":3,"nodes":2798,"mode":"hub","heapMB":95.9,"rendererMB":2425,"gpuMB":887,"jsListeners":448,"domNodesAll":1280}
+jobs 2 {"geo":345,"tex":165,"progs":107,"objs":3167,"dom":647,"listeners":108,"intervals":3,"timeouts":1,"ac":3,"nodes":3372,"mode":"hub","heapMB":99.2,"rendererMB":2518,"gpuMB":869,"jsListeners":474,"domNodesAll":1416}
+jobs 3 {"geo":345,"tex":165,"progs":107,"objs":3201,"dom":647,"listeners":108,"intervals":3,"timeouts":0,"ac":3,"nodes":4289,"mode":"hub","heapMB":100.7,"rendererMB":2479,"gpuMB":872,"jsListeners":496,"domNodesAll":1483}
+jobs 4 {"geo":345,"tex":165,"progs":107,"objs":3210,"dom":647,"listeners":108,"intervals":3,"timeouts":0,"ac":3,"nodes":5472,"mode":"hub","heapMB":106.2,"rendererMB":2520,"gpuMB":881,"jsListeners":537,"domNodesAll":1594}
+jobs 5 {"geo":345,"tex":165,"progs":107,"objs":3239,"dom":647,"listeners":108,"intervals":3,"timeouts":0,"ac":3,"nodes":6247,"mode":"hub","heapMB":107.2,"rendererMB":2505,"gpuMB":887,"jsListeners":553,"domNodesAll":1687}
+jobs 6 {"geo":369,"tex":172,"progs":108,"objs":3776,"dom":652,"listeners":108,"intervals":3,"timeouts":1,"ac":3,"nodes":6905,"mode":"hub","heapMB":108.1,"rendererMB":2571,"gpuMB":896,"jsListeners":538,"domNodesAll":1840}
+jobs 7 {"geo":369,"tex":172,"progs":108,"objs":3789,"dom":647,"listeners":108,"intervals":3,"timeouts":0,"ac":3,"nodes":8063,"mode":"hub","heapMB":113.2,"rendererMB":2520,"gpuMB":894,"jsListeners":542,"domNodesAll":1929}
+jobs 8 {"geo":369,"tex":172,"progs":108,"objs":3789,"dom":647,"listeners":108,"intervals":3,"timeouts":0,"ac":4,"nodes":8904,"mode":"hub","heapMB":113.1,"rendererMB":2547,"gpuMB":893,"jsListeners":578,"domNodesAll":2027}
+SLOPE per cycle (cycles 2..N): {"rendererMB":7.857,"gpuMB":4.679,"jsListeners":14.464,"domNodesAll":106.107,"heapMB":2.45,"geo":5.143,"tex":1.5,"progs":0.214,"objs":128.857,"dom":0.179,"listeners":0,"intervals":0,"timeouts":-0.071,"ac":0.107,"nodes":913.464}
+scene object groups changed (cycle 1 -> last): +291 /Group/rb_son/Bip01, -160 /rb_pending_rosa/rb_rosa/gunHold, +114 /Group/rb_rosa/Bip01, +97 /Group/rb_thug_cap/Bip01, +66 /Group/Group/Mesh, +21 /Group/Group/m:, +15 /Group/Group/w:imp, +13 /Group/traffic/vehicle_suv, +10 /Group/Group/Group, +7 /Group/Group/m:base:metal, +6 /Group/Group/m:base:paint, +5 /Group/Group/w:grass, +5 /Group/Group/w:walk, +5 /Group/Group/w:lot, +5 /Group/Group/w:joint
+listener types changed (cycle 1 -> last): element:click -1
+notes: job 0: {"mode":"mission","title":"Return to Sender","err":null}
+  job 1: {"mode":"mission","title":"Fourth Quarter","err":null}
+  job 2: {"mode":"mission","title":"Block Party","err":null}
+  job 3: {"mode":"mission","title":"The Kingpin","err":null}
+  job 4: {"mode":"mission","title":"End of the Line","err":null}
+  job 5: {"mode":"mission","title":"Fellowship Hall","err":null}
+  job 6: {"mode":"mission","title":"Garden Variety","err":null}
+  job 7: {"mode":"mission","title":"Brain Freeze","err":null}
+console errors 0 []
+console warnings 4 [
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.',
+  'THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.'
+]
+unhandled rejections 0 []

@@ -1,0 +1,26 @@
+ok   protected: {"nb_kid":"true/nb_kid","nb_kid.mesh":null,"nb_teen":"true/nb_teen","nb_teen.mesh":null,"son":"true/son","son.mesh":true,"daughter":"true/daughter","daughter.mesh":true,"wife":"true/wife","wife.mesh":true,"dad_gary":"false/dad_gary","dad_gary.mesh":false,"thug_hoodie":"false/thug_hoodie","thug_hoodie.mesh":false,"nb_pops":"false/nb_pops","nb_pops.mesh":null}
+ok   not protected: dads, crew, adults
+ok   hub: pistol, beanbag, shotgun and a direct hurtEnemy on each kid/family member: no damage, no hit {"out":["nb_kid:100/idle/9","nb_teen:100/idle/9","son:100/idle/9","daughter:100/idle/9","wife:100/idle/9"],"log":[]}
+ok   in Riverside ({"region":"river","liveKids":[]})
+ok   Riverside: key 1 draws with no kid around (key Q) (true), refused with a kid 12 m away (false)
+ok   Riverside: the crew within 25 m of the kid put their guns away [{"id":"gary","d":21.2,"gun":false},{"id":"rick","d":21.2,"gun":false}]
+ok   Riverside: drawn at 60 m, holstered when the kid comes within 20 m {"before":true,"after":false,"running":true,"dist":20}
+ok   Riverside: point blank on each kid/family member (registered as an enemy): no damage, no hit {"out":["nb_kid:100/idle/6/armed false","nb_teen:100/idle/6/armed false","son:100/idle/6/armed false","daughter:100/idle/6/armed false","wife:100/idle/6/armed false"],"log":[]}
+ok   Riverside: the minivan driven through three kids on the road: nothing happens to them {"minD":0.2,"moved":false,"dead":false,"log":[]}
+ok   started overwatch {"mode":"mission","job":"overwatch"}
+ok   Higher Ground: aiming at Kevin refuses the shot and lowers the rifle, 12 m off it fires, rounds at him fly past {"fr":true,"y":6.98,"visY":5.98,"refused":true,"dropped":true,"hold":1,"offFired":true,"hits":["ground","none"],"kevinStat":0,"state":"go","log":[]}
+ok   started crossing {"mode":"mission","job":"crossing"}
+ok   crossing: every kid on set shot at point blank with guns forced on: no hit {"kids":["nb_kid","nb_kid"],"state":"go","log":[]}
+ok   started taxi {"mode":"mission","job":"taxi"}
+ok   taxi: every kid on set shot at point blank with guns forced on: no hit {"kids":["nb_kid","nb_kid","son"],"state":"go","log":[]}
+ok   started finale {"mode":"mission","job":"finale"}
+ok   finale: every kid on set shot at point blank with guns forced on: no hit {"kids":["nb_kid","nb_kid"],"state":"go","log":[]}
+ok   no console errors 
+info forced ceiling: {"kid":{"boxed":false,"pending":true,"prot":true,"meshes":0,"protMesh":true},"daughter":{"boxed":false,"pending":true,"prot":true,"meshes":2,"protMesh":true},"near":true,"region":"river"}
+ok   W-14: past the ceiling a kid and a daughter whose models never arrive stay hidden and retrying, never boxed {"kid":{"boxed":false,"pending":true,"prot":true,"meshes":0,"protMesh":true},"daughter":{"boxed":false,"pending":true,"prot":true,"meshes":2,"protMesh":true},"near":true,"region":"river"}
+ok   W-14: both still protected, character and every mesh they own
+ok   W-14: protectedNear sees them (the 25 m no-gun rule, the crew holster, the jet)
+ok   W-14: key Q refused 8 m from the loading kid (false); drawn at 80 m, holstered when it comes within 18 m {"before":true,"after":false}
+ok   W-14: pistol, beanbag and a direct hurtEnemy on the loading kid and daughter (registered as enemies): no damage, no hit {"out":["nb_kid:100/idle","daughter:100/idle"],"log":[]}
+ok   W-14: the minivan driven at the loading kid: nothing happens to it {"minD":0.3,"moved":false,"log":[]}
+PASS

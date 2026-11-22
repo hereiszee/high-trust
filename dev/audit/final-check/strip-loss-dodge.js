@@ -77,7 +77,7 @@ const say=(...a)=>console.log(a.join(' '));let fails=0;const ok=(c,m)=>{say((c?'
   }else{c0=0;c1=0}
   say('== C: a bet on another race, watched from the tower; mid-race P (pause) -> Quit to title -> Continue');
   await ev(()=>{HT.Save.save();HT.Save.flush&&HT.Save.flush()});ok(await office(),'office');await pickItem(/^Bet on the next race$/);await press('1',1);let m=await menu();
-  say('  menu '+m.id+': '+(m.items||[]).join(' | '));const st1=m.items.filter(x=>/^\$\d+$/.test(x));c0=await cashNow();await pickItem(new RegExp('^\\'+st1[st1.length-1]+'$'));await step(2);m=await menu();if(m.open)say('  menu after the stake '+m.id+': '+(m.items||[]).join(' | '));let w=await ev(()=>HT.Strip.watch());ok(!!w,'watching ('+(w&&w.m.join(' vs '))+'), stake '+st1[st1.length-1]);
+  say('  menu '+m.id+': '+(m.items||[]).join(' | '));const offs=await ev(()=>HT.Strip.S.menu.o.items.map(x=>!!x.off));const st1=m.items.filter((x,i)=>/^\$\d+$/.test(x)&&!offs[i]);say('  stakes the booth allows: '+st1.join(' '));c0=await cashNow();await pickItem(new RegExp('^\\'+st1[st1.length-1]+'$'));await step(2);m=await menu();if(m.open)say('  menu after the stake '+m.id+': '+(m.items||[]).join(' | '));let w=await ev(()=>HT.Strip.watch());ok(!!w,'watching ('+(w&&w.m.join(' vs '))+'), stake '+st1[st1.length-1]);
   for(let n=0;n<400;n++){w=await ev(()=>HT.Strip.watch());if(!w||w.phase==='go'&&w.t>3)break;await step(1)}
   say('  mid-race: '+JSON.stringify(w&&{phase:w.phase,t:w.t}));
   await p.keyboard.press('p');await p.waitForTimeout(400);const scrC=await ev(()=>window.__ht.HUD.screen),wC=await ev(()=>!!HT.Strip.watch());say('  after P: screen '+scrC+', still watching '+wC);

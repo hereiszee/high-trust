@@ -1,0 +1,14 @@
+A {"updates":1,"firstUpdateMs":419.3,"nearMeshes":125,"groundHit":{"d":2.1,"name":"w:lot"},"built":22,"units":80,"visible":17}
+A {"updates":14,"firstUpdateMs":113.8,"nearMeshes":138,"groundHit":{"d":2.1,"name":"w:lot"},"built":27,"units":80,"visible":18}
+A {"updates":45,"firstUpdateMs":14.2,"nearMeshes":170,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34}
+A {"updates":120,"firstUpdateMs":0.2,"nearMeshes":170,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34}
+B mode home
+B mode hub
+B {"updates":1,"firstUpdateMs":417.2,"nearMeshes":113,"groundHit":{"d":2,"name":"w:lot"},"built":18,"units":80,"visible":14}
+B {"updates":14,"firstUpdateMs":19.7,"nearMeshes":137,"groundHit":{"d":2.1,"name":"w:lot"},"built":23,"units":80,"visible":17}
+B {"updates":45,"firstUpdateMs":81.4,"nearMeshes":171,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34}
+B {"updates":120,"firstUpdateMs":0.4,"nearMeshes":171,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34}
+ok   after a visit home, Fort Sensible is drawn like on a fresh game within 3 s of arriving {"A":{"updates":120,"firstUpdateMs":0.2,"nearMeshes":170,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34},"B":{"updates":120,"firstUpdateMs":0.4,"nearMeshes":171,"groundHit":{"d":2.1,"name":"w:lot"},"built":74,"units":80,"visible":34}}
+ok   fresh game: ground under the camera 1 s after arriving at the motor pool {"updates":14,"firstUpdateMs":113.8,"nearMeshes":138,"groundHit":{"d":2.1,"name":"w:lot"},"built":27,"units":80,"visible":18}
+ok   the first frame after the jump has ground under the camera (fresh game and after a visit home) {"A":{"updates":1,"firstUpdateMs":419.3,"nearMeshes":125,"groundHit":{"d":2.1,"name":"w:lot"},"built":22,"units":80,"visible":17},"B":{"updates":1,"firstUpdateMs":417.2,"nearMeshes":113,"groundHit":{"d":2,"name":"w:lot"},"built":18,"units":80,"visible":14}}
+ok   the first frame after the jump draws most of what is near (>=70%, the 400 ms arrival build; the fast-travel fade waits for all of it) (125 of 170 meshes within 70 m) {"updates":1,"firstUpdateMs":419.3,"nearMeshes":125,"groundHit":{"d":2.1,"name":"w:lot"},"built":22,"units":80,"visible":17}

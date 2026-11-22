@@ -1,0 +1,8 @@
+gate in index.html: HT.FrameCap accumulator (js/fpscap.js)
+ 60 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 60 fps | cap 144 -> 60 fps
+ 75 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 75 fps | cap 144 -> 75 fps
+ 90 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 90 fps | cap 144 -> 90 fps
+120 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 120 fps
+144 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 144 fps
+165 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 144 fps
+240 Hz display: cap 30 -> 30 fps | cap 60 -> 60 fps | cap 120 -> 120 fps | cap 144 -> 144 fps

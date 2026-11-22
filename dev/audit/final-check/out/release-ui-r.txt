@@ -1,0 +1,21 @@
+ok   new game: in the hub
+ok   first hint: look (Move the mouse to look around)
+ok   after looking: walk (Walk)
+ok   after walking (W held): jog (Hold Shift while walking to jog)
+ok   after jogging (Shift+W): talk to someone with a ring (Walk up to someone with a ring and press E · follow the yellow marker)
+ok   done hints persist: look,walk,jog
+ok   right mouse toggles aim: click → true, click again → false (no hold)
+ok   pause → Controls lists foot, guns, cars, tank, jet
+ok   context lost: paused with a message {"dlg":"Graphics reset","running":false,"lost":true}
+ok   context restored: message gone, GL back {"dlg":false,"lost":false,"gl":true}
+ok   the world draws again after the restore (picture mean 77, before the loss 77)
+ok   Act 3: objective shows "Finale: 20 of 27 jobs · Maple trust 61/80 · Riverside trust 44/80" {"title":"Maple Heights","lines":[{"text":"Sal has a job for you"},{"text":"Coach Rick has a job for you"},{"text":"Tyler has a job for you"},{"text":"Rosa has a job for you in Riverside Flats"},{"text":"Small Talk (Gary): zip-tie 10 people alive · 0/10"},{"text":"Finale: 20 of 27 jobs · Maple trust 61/80 · Riverside trust 44/80"},{"text":"Side jobs: Hank · Big Dave · Pastor Dee · Doug"},{"text":"Follow the yellow marker."}]} {"n":27,"total":27,"tM":85,"tR":82,"need":80,"needR":80,"ready":true,"act3":true,"left":"","line":"Finale: 27 of 27 jobs · Maple trust 80/80 · Riverside trust 80/80","hint":"Raise Maple trust: Doug's Watch Your Step patrols, Porch Light on the laptop, zip-ties instead of shots"}
+ok   all done + 80/80: objective says go home, marker points home {"x":37.836,"z":21.1,"label":"Home · the family"}
+ok   "Not yet" on the finale: offered again on the next visit home {"first":true,"sameVisit":false,"nextVisit":true,"title":"Everybody Waves"}
+ok   fridge calendar shows the finale line (The festival is ready: talk to the family.)
+ok   Small Talk gate in the objective: Small Talk (Gary): zip-tie 10 people alive · 3/10
+ok   one Dave, one Doug in the hub {"dave":1,"doug":1,"barb":1,"earl":1}
+ok   Quit to title mid-job asks first, Keep playing focused {"q":"mission","foc":"cancel"}
+ok   Keep playing: still in the job
+ok   no console errors 
+PASS

@@ -1,0 +1,4 @@
+map metres {"W":464,"H":304}
+page.evaluate: TypeError: Cannot read properties of null (reading 'matrixWorld')
+  log: []
+}

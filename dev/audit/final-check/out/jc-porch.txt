@@ -1,0 +1,12 @@
+ok   registered: {"title":"Porch Light","from":{"home":"laptop"},"index":30,"stages":["deliveries","pirates"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: already loaded
+ok   home giver "laptop" offers the brief ({"used":true,"acts":["brief:go","brief:skip","brief:no"]})
+ok   accepted at home, out the front door with the job on the list ({"mode":"hub","job":30,"i":30})
+ok   drove into the ring, the job started ({"steps":279,"mode":"mission","d":4.475674729574946})
+ok   job running {"mode":"mission","id":"porch","stage":"deliveries"}
+ok   scripted win: {"t":1875,"state":"won","stage":"pirates","elapsed":62}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":382,"rerun":false,"lines":["Bake sale fund:50","Second chances ×2:120","Nobody pulled a hamstring:150","Parcels saved ×4:60","A word first ×1:10","Not a scratch on a single box:40","Neighbors are nervous:-48"]},"medal":2,"replay":false,"retried":false}
+ok   saved: jobs.porch {"done":true,"best":{"t":62,"score":4,"trustGain":10,"clean":true},"medal":2,"runs":1,"replays":0,"plan":{"runs":1},"medalPaid":2} calendar {"id":"porch","day":1,"medal":2,"best":{"t":62,"trustGain":10,"clean":true},"runs":1} day 1->1
+ok   no console errors
+all ok

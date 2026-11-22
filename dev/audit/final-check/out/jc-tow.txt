@@ -1,0 +1,11 @@
+ok   registered: {"title":"Hitch Happens","from":{"place":"auto"},"index":18,"stages":["lot","car1","car2","car3","car4","car5","sal"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: already loaded
+ok   giver in the world offers the brief ({"brief":true,"job":18})
+ok   drove into the ring, the job started ({"steps":240,"mode":"mission","d":4.455503040205618})
+ok   job running {"mode":"mission","id":"tow","stage":"lot"}
+ok   scripted win: {"t":8141,"state":"won","stage":"sal","elapsed":271}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":2156,"rerun":false,"lines":["Bake sale fund:700","Second chances ×4:240","Guns turned in to Officer Dana ×3:75","Nobody pulled a hamstring:150","Quick work:100","Cars returned ×5:400","Not a scratch:200","Brought me the truck:250","Talked past the \"attendants\":50","Neighbors are nervous:-9"]},"medal":3,"replay":false,"retried":false}
+ok   saved: jobs.tow {"done":true,"best":{"t":271,"score":null,"trustGain":29,"clean":true},"medal":3,"runs":1,"replays":0,"plan":null,"medalPaid":3} calendar {"id":"tow","day":1,"medal":3,"best":{"t":271,"trustGain":29,"clean":true},"runs":1} day 1->2
+ok   no console errors
+all ok

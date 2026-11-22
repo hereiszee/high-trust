@@ -1,0 +1,4 @@
+requests for files the Steam build does not ship: 0 {}
+first few: 
+world.js extras settled: {"extrasReady":true}
+console errors 0 []

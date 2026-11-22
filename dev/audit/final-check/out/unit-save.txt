@@ -1,0 +1,270 @@
+(node:744) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# Subtest: fresh boot gives the SPEC E + SPEC2 D defaults (now saved as v3)
+ok 1 - fresh boot gives the SPEC E + SPEC2 D defaults (now saved as v3)
+  ---
+  duration_ms: 5.055991
+  type: 'test'
+  ...
+# Subtest: save then load round-trips; bogus gun in loadout is replaced (SPEC L3-1)
+ok 2 - save then load round-trips; bogus gun in loadout is replaced (SPEC L3-1)
+  ---
+  duration_ms: 1.160513
+  type: 'test'
+  ...
+# Subtest: corrupt JSON recovers from the backup and keeps the broken copy
+ok 3 - corrupt JSON recovers from the backup and keeps the broken copy
+  ---
+  duration_ms: 4.904876
+  type: 'test'
+  ...
+# Subtest: corrupt JSON with no backup resets to defaults
+ok 4 - corrupt JSON with no backup resets to defaults
+  ---
+  duration_ms: 1.008576
+  type: 'test'
+  ...
+# Subtest: a save from a newer version is set aside, not overwritten blindly
+ok 5 - a save from a newer version is set aside, not overwritten blindly
+  ---
+  duration_ms: 0.485075
+  type: 'test'
+  ...
+# Subtest: SAV-09: an empty or "null" save falls back to a good backup
+ok 6 - SAV-09: an empty or "null" save falls back to a good backup
+  ---
+  duration_ms: 1.689541
+  type: 'test'
+  ...
+# Subtest: SAV-10: a failed write fires savefail, not saved; urgent saves flush the store
+ok 7 - SAV-10: a failed write fires savefail, not saved; urgent saves flush the store
+  ---
+  duration_ms: 0.986791
+  type: 'test'
+  ...
+# Subtest: SAV-06: hasProgress counts finished jobs, eggs and zip-ties, not just runs and cash
+ok 8 - SAV-06: hasProgress counts finished jobs, eggs and zip-ties, not just runs and cash
+  ---
+  duration_ms: 0.750162
+  type: 'test'
+  ...
+# Subtest: v0 prototype save migrates through v2 to v3
+ok 9 - v0 prototype save migrates through v2 to v3
+  ---
+  duration_ms: 0.91823
+  type: 'test'
+  ...
+# Subtest: wrong types are repaired field by field
+ok 10 - wrong types are repaired field by field
+  ---
+  duration_ms: 0.764286
+  type: 'test'
+  ...
+# Subtest: export/import code round-trips and rejects damage
+ok 11 - export/import code round-trips and rejects damage
+  ---
+  duration_ms: 3.202793
+  type: 'test'
+  ...
+# Subtest: change events fire and can be removed
+ok 12 - change events fire and can be removed
+  ---
+  duration_ms: 0.517201
+  type: 'test'
+  ...
+# Subtest: save() is debounced into one write
+ok 13 - save() is debounced into one write
+  ---
+  duration_ms: 1.067424
+  type: 'test'
+  ...
+# Subtest: bindProg shares the live prog object
+ok 14 - bindProg shares the live prog object
+  ---
+  duration_ms: 0.667528
+  type: 'test'
+  ...
+# Subtest: gas money on a fail: once per job per day, none for walking off (JOBS-AUDIT J-04)
+ok 15 - gas money on a fail: once per job per day, none for walking off (JOBS-AUDIT J-04)
+  ---
+  duration_ms: 1.957704
+  type: 'test'
+  ...
+# Subtest: payout matches SPEC L3-2
+ok 16 - payout matches SPEC L3-2
+  ---
+  duration_ms: 32.713285
+  type: 'test'
+  ...
+# Subtest: applyPayout credits cash, stats and the home event
+ok 17 - applyPayout credits cash, stats and the home event
+  ---
+  duration_ms: 0.527727
+  type: 'test'
+  ...
+# Subtest: hardware buy rules (SPEC L4-1)
+ok 18 - hardware buy rules (SPEC L4-1)
+  ---
+  duration_ms: 1.010033
+  type: 'test'
+  ...
+# Subtest: Dadazon orders wait in pending until delivered (SPEC L4-2)
+ok 19 - Dadazon orders wait in pending until delivered (SPEC L4-2)
+  ---
+  duration_ms: 0.611716
+  type: 'test'
+  ...
+# Subtest: attachments change weapon stats (SPEC L4-3)
+ok 20 - attachments change weapon stats (SPEC L4-3)
+  ---
+  duration_ms: 1.295364
+  type: 'test'
+  ...
+# Subtest: loadout rules (SPEC L3-8)
+ok 21 - loadout rules (SPEC L3-8)
+  ---
+  duration_ms: 0.573027
+  type: 'test'
+  ...
+# Subtest: armory collection unlocks at the threshold (SPEC B.5)
+ok 22 - armory collection unlocks at the threshold (SPEC B.5)
+  ---
+  duration_ms: 0.468
+  type: 'test'
+  ...
+# Subtest: selling
+ok 23 - selling
+  ---
+  duration_ms: 0.459304
+  type: 'test'
+  ...
+# Subtest: v1 save migrates to v2 (SPEC2 D)
+ok 24 - v1 save migrates to v2 (SPEC2 D)
+  ---
+  duration_ms: 1.413019
+  type: 'test'
+  ...
+# Subtest: Dad's Auto delegates to HT.Garage (SPEC2 C)
+ok 25 - Dad's Auto delegates to HT.Garage (SPEC2 C)
+  ---
+  duration_ms: 2.864694
+  type: 'test'
+  ...
+# Subtest: Riverside payouts (SPEC2 B.1-B.5) use Riverside trust
+ok 26 - Riverside payouts (SPEC2 B.1-B.5) use Riverside trust
+  ---
+  duration_ms: 0.510165
+  type: 'test'
+  ...
+# Subtest: supplies and furniture caps
+ok 27 - supplies and furniture caps
+  ---
+  duration_ms: 0.385389
+  type: 'test'
+  ...
+# Subtest: HT.CATALOG.guns matches the game WEAPONS table field for field (index.html, docs/combat-integration.md)
+ok 28 - HT.CATALOG.guns matches the game WEAPONS table field for field (index.html, docs/combat-integration.md)
+  ---
+  duration_ms: 2.524205
+  type: 'test'
+  ...
+# Subtest: furniture ids are 1:1 with js/home.js and the starter layout is HT.Home's (docs/home.md)
+ok 29 - furniture ids are 1:1 with js/home.js and the starter layout is HT.Home's (docs/home.md)
+  ---
+  duration_ms: 1.306738
+  type: 'test'
+  ...
+# Subtest: catalogue is complete and consistent
+ok 30 - catalogue is complete and consistent
+  ---
+  duration_ms: 0.865475
+  type: 'test'
+  ...
+# Subtest: a Dadazon gun order is refunded when the armory unlocks the same gun first (no lost purchase)
+ok 31 - a Dadazon gun order is refunded when the armory unlocks the same gun first (no lost purchase)
+  ---
+  duration_ms: 0.459465
+  type: 'test'
+  ...
+# Subtest: fresh save has every v3 field
+ok 32 - fresh save has every v3 field
+  ---
+  duration_ms: 0.249252
+  type: 'test'
+  ...
+# Subtest: v2 save migrates to v3: prog.done -> jobs by id, bronze calendar pins, day, gadgets
+ok 33 - v2 save migrates to v3: prog.done -> jobs by id, bronze calendar pins, day, gadgets
+  ---
+  duration_ms: 0.496829
+  type: 'test'
+  ...
+# Subtest: v1 save still migrates all the way to v3
+ok 34 - v1 save still migrates all the way to v3
+  ---
+  duration_ms: 0.387469
+  type: 'test'
+  ...
+# Subtest: recordRun: best, medal, done, calendar pin and day rules
+ok 35 - recordRun: best, medal, done, calendar pin and day rules
+  ---
+  duration_ms: 0.544055
+  type: 'test'
+  ...
+# Subtest: medal upgrade pays +100 silver / +250 gold once each
+ok 36 - medal upgrade pays +100 silver / +250 gold once each
+  ---
+  duration_ms: 0.770472
+  type: 'test'
+  ...
+# Subtest: replay never sets done or changes households
+ok 37 - replay never sets done or changes households
+  ---
+  duration_ms: 0.446388
+  type: 'test'
+  ...
+# Subtest: album keeps 24 photos, dropping the oldest non-3-star first
+ok 38 - album keeps 24 photos, dropping the oldest non-3-star first
+  ---
+  duration_ms: 1.071589
+  type: 'test'
+  ...
+# Subtest: gadgets, perks, jobRec helpers
+ok 39 - gadgets, perks, jobRec helpers
+  ---
+  duration_ms: 0.386596
+  type: 'test'
+  ...
+# Subtest: night-vision goggles: Hank's Gadgets tab, buy sets owned, equip toggle
+ok 40 - night-vision goggles: Hank's Gadgets tab, buy sets owned, equip toggle
+  ---
+  duration_ms: 0.619939
+  type: 'test'
+  ...
+# Subtest: unknown job ids and v3 data survive normalise and a save/load round trip
+ok 41 - unknown job ids and v3 data survive normalise and a save/load round trip
+  ---
+  duration_ms: 2.344213
+  type: 'test'
+  ...
+# Subtest: v3 helpers announce changes through Save.on
+ok 42 - v3 helpers announce changes through Save.on
+  ---
+  duration_ms: 0.383775
+  type: 'test'
+  ...
+# Subtest: job hold: an open job writes the pre-job prog; rollback drops gains but keeps penalties; commit keeps them
+ok 43 - job hold: an open job writes the pre-job prog; rollback drops gains but keeps penalties; commit keeps them
+  ---
+  duration_ms: 0.879053
+  type: 'test'
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 43
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 277.288306

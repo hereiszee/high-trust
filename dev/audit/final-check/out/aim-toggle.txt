@@ -1,0 +1,15 @@
+ok   gun aim: right click raises and it stays up 2 s after the button is released, right click lowers {"a1":true,"a1b":true,"a2":false}
+ok   Key bindings (real pause pane): Aim is Toggle by default (the pad LT keeps hold until a mode is picked), clicking Hold switches it, it is saved, and ht-cfg gets no "undefined" key {"m":"hold","pad1":"hold","keys":"{\"__v\":2,\"__aim\":\"hold\"}","cfgUndefined":false,"t0":"toggle","t1":"hold","pad0":"hold"}
+ok   Aim: Hold brings back press-and-hold (down: up, release: down) {"h1":true,"h2":false}
+ok   overwatch started {"mode":"mission","id":"overwatch"}
+ok   on the roof with the rifle {"up":true}
+ok   scope: right click scopes in and it stays (2 s later, button long released) {"s1":{"aim":true,"cur":"hunter","scopeT":1,"held":false,"holdT":0,"recover":0},"s1b":{"aim":true,"cur":"hunter","scopeT":1,"held":false,"holdT":0,"recover":0}}
+ok   Shift tap holds the breath and it stays held with the key up; tap again breathes {"b1":{"aim":true,"cur":"hunter","scopeT":1,"held":true,"holdT":1,"recover":0},"b2":{"aim":true,"cur":"hunter","scopeT":1,"held":false,"holdT":1.03,"recover":0}}
+ok   left alone, the held breath lets go by itself when the lungs run out (4.5 s steady + 1.8 s shake), then a gasp {"b3":{"aim":true,"cur":"hunter","scopeT":1,"held":true,"holdT":1,"recover":0},"b4":{"aim":true,"cur":"hunter","scopeT":1,"held":false,"holdT":6.33,"recover":1.33}}
+ok   Aim: Hold: Shift is press-and-hold for the breath again {"h3":{"aim":true,"cur":"hunter","scopeT":1,"held":true,"holdT":1,"recover":0},"h4":{"aim":true,"cur":"hunter","scopeT":1,"held":false,"holdT":1.03,"recover":0}}
+ok   right click again lowers the scope {"aim":false,"cur":"hunter","scopeT":0,"held":false,"holdT":1.03,"recover":0}
+ok   camera: right click raises it, it stays raised, right click lowers {"c1":true,"c1b":true,"c2":false}
+ok   camera, Aim: Hold: up while the button is down, down on release {"c3":true,"c4":false}
+ok   tank gunner's sight: V toggles it on, it stays with the key up, V leaves it {"inT":"tank","v1":true,"v1b":true,"v2":false}
+ok   no console errors []
+all passed

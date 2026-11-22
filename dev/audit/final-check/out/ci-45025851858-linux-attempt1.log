@@ -1,0 +1,489 @@
+﻿2026-11-22T13:07:57.2011501Z Current runner version: '2.338.2'
+2026-11-22T13:07:57.2038950Z ##[group]Runner Image Provisioner
+2026-11-22T13:07:57.2040016Z Hosted Compute Agent
+2026-11-22T13:07:57.2040690Z Version: 20261111.635
+2026-11-22T13:07:57.2042109Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-22T13:07:57.2043154Z Build Date: 2026-11-11T01:49:01Z
+2026-11-22T13:07:57.2043908Z Worker ID: {6aef8da7-5f86-4958-9363-9a3cd1fb8ff0}
+2026-11-22T13:07:57.2044716Z Region: westus
+2026-11-22T13:07:57.2045379Z Cloud: Azure
+2026-11-22T13:07:57.2046111Z ##[endgroup]
+2026-11-22T13:07:57.2047738Z ##[group]Operating System
+2026-11-22T13:07:57.2048409Z Ubuntu
+2026-11-22T13:07:57.2049034Z 26.04.1
+2026-11-22T13:07:57.2049621Z LTS
+2026-11-22T13:07:57.2050147Z ##[endgroup]
+2026-11-22T13:07:57.2050837Z ##[group]Runner Image
+2026-11-22T13:07:57.2051856Z Image: ubuntu-26.04
+2026-11-22T13:07:57.2052540Z Version: 20261116.202.1
+2026-11-22T13:07:57.2053868Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.202/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-22T13:07:57.2055461Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.202
+2026-11-22T13:07:57.2056486Z ##[endgroup]
+2026-11-22T13:07:57.2057709Z ##[group]GITHUB_TOKEN Permissions
+2026-11-22T13:07:57.2059984Z Contents: read
+2026-11-22T13:07:57.2060709Z Metadata: read
+2026-11-22T13:07:57.2061658Z ##[endgroup]
+2026-11-22T13:07:57.2063919Z Secret source: Actions
+2026-11-22T13:07:57.2065194Z Cache mode: write
+2026-11-22T13:07:57.2065972Z Prepare workflow directory
+2026-11-22T13:07:57.2640411Z Prepare all required actions
+2026-11-22T13:07:57.2690447Z Getting action download info
+2026-11-22T13:07:57.5977268Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-22T13:07:57.6960709Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-11-22T13:07:57.7655476Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-22T13:07:57.9579927Z Complete job name: build (ubuntu-latest, --linux --x64, linux-unpacked, high-trust-linux-x64)
+2026-11-22T13:07:58.0623112Z ##[group]Run actions/checkout@v4
+2026-11-22T13:07:58.0624033Z with:
+2026-11-22T13:07:58.0624509Z   repository: hereiszee/high-trust
+2026-11-22T13:07:58.0628312Z   token: ***
+2026-11-22T13:07:58.0628757Z   ssh-strict: true
+2026-11-22T13:07:58.0629205Z   ssh-user: git
+2026-11-22T13:07:58.0629656Z   persist-credentials: true
+2026-11-22T13:07:58.0630173Z   clean: true
+2026-11-22T13:07:58.0630643Z   sparse-checkout-cone-mode: true
+2026-11-22T13:07:58.0631413Z   fetch-depth: 1
+2026-11-22T13:07:58.0631887Z   fetch-tags: false
+2026-11-22T13:07:58.0632351Z   show-progress: true
+2026-11-22T13:07:58.0632819Z   lfs: false
+2026-11-22T13:07:58.0633332Z   submodules: false
+2026-11-22T13:07:58.0634122Z   set-safe-directory: true
+2026-11-22T13:07:58.0635174Z   allow-unsafe-pr-checkout: false
+2026-11-22T13:07:58.0636395Z env:
+2026-11-22T13:07:58.0636843Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:07:58.0637356Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:07:58.0637878Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:07:58.0638388Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:07:58.0638855Z ##[endgroup]
+2026-11-22T13:07:58.3423042Z Syncing repository: hereiszee/high-trust
+2026-11-22T13:07:58.3425050Z ##[group]Getting Git version info
+2026-11-22T13:07:58.3426346Z Working directory is '/home/runner/work/high-trust/high-trust'
+2026-11-22T13:07:58.3428149Z [command]/usr/bin/git version
+2026-11-22T13:07:58.3443500Z git version 2.56.1
+2026-11-22T13:07:58.3466335Z ##[endgroup]
+2026-11-22T13:07:58.3482658Z Temporarily overriding HOME='/home/runner/work/_temp/68e128cc-30b0-4d45-b4d6-6bec2a8ea935' before making global git config changes
+2026-11-22T13:07:58.3485010Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-22T13:07:58.3487666Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/high-trust/high-trust
+2026-11-22T13:07:58.3665785Z Deleting the contents of '/home/runner/work/high-trust/high-trust'
+2026-11-22T13:07:58.3670249Z ##[group]Initializing the repository
+2026-11-22T13:07:58.3672325Z [command]/usr/bin/git init /home/runner/work/high-trust/high-trust
+2026-11-22T13:07:58.3836171Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-22T13:07:58.3838022Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-22T13:07:58.3839721Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-22T13:07:58.3840867Z hint: call:
+2026-11-22T13:07:58.3841577Z hint:
+2026-11-22T13:07:58.3842161Z hint: 	git config --global init.defaultBranch <name>
+2026-11-22T13:07:58.3843313Z hint:
+2026-11-22T13:07:58.3844104Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-22T13:07:58.3845042Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-22T13:07:58.3845806Z hint:
+2026-11-22T13:07:58.3846248Z hint: 	git branch -m <name>
+2026-11-22T13:07:58.3846796Z hint:
+2026-11-22T13:07:58.3847479Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-22T13:07:58.3848522Z Initialized empty Git repository in /home/runner/work/high-trust/high-trust/.git/
+2026-11-22T13:07:58.3864965Z [command]/usr/bin/git remote add origin https://github.com/hereiszee/high-trust
+2026-11-22T13:07:58.3921004Z ##[endgroup]
+2026-11-22T13:07:58.3922662Z ##[group]Disabling automatic garbage collection
+2026-11-22T13:07:58.3942928Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-22T13:07:58.3986752Z ##[endgroup]
+2026-11-22T13:07:58.3994296Z ##[group]Setting up auth
+2026-11-22T13:07:58.3995493Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-22T13:07:58.4061999Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-22T13:07:58.4543576Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-22T13:07:58.4580094Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-22T13:07:58.4869469Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-22T13:07:58.4910825Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T13:07:58.5213895Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-22T13:07:58.5258206Z ##[endgroup]
+2026-11-22T13:07:58.5259589Z ##[group]Fetching the repository
+2026-11-22T13:07:58.5268544Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0013c04b606c2512edc4281542f03382402c4be4:refs/remotes/origin/main
+2026-11-22T13:08:05.8774528Z From https://github.com/hereiszee/high-trust
+2026-11-22T13:08:05.8776562Z  * [new ref]         0013c04b606c2512edc4281542f03382402c4be4 -> origin/main
+2026-11-22T13:08:05.8780491Z ##[endgroup]
+2026-11-22T13:08:05.8782431Z ##[group]Determining the checkout info
+2026-11-22T13:08:05.8784393Z ##[endgroup]
+2026-11-22T13:08:05.8791408Z [command]/usr/bin/git sparse-checkout disable
+2026-11-22T13:08:05.8853761Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-22T13:08:05.8893515Z ##[group]Checking out the ref
+2026-11-22T13:08:05.8895792Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-22T13:08:06.9015258Z Updating files:  85% (2336/2723)
+2026-11-22T13:08:06.9158059Z Updating files:  86% (2342/2723)
+2026-11-22T13:08:06.9244760Z Updating files:  87% (2370/2723)
+2026-11-22T13:08:06.9339218Z Updating files:  88% (2397/2723)
+2026-11-22T13:08:06.9431932Z Updating files:  89% (2424/2723)
+2026-11-22T13:08:06.9541054Z Updating files:  90% (2451/2723)
+2026-11-22T13:08:06.9676342Z Updating files:  91% (2478/2723)
+2026-11-22T13:08:06.9814212Z Updating files:  92% (2506/2723)
+2026-11-22T13:08:06.9961953Z Updating files:  93% (2533/2723)
+2026-11-22T13:08:07.0201665Z Updating files:  94% (2560/2723)
+2026-11-22T13:08:07.0294883Z Updating files:  95% (2587/2723)
+2026-11-22T13:08:07.0385093Z Updating files:  96% (2615/2723)
+2026-11-22T13:08:07.0481757Z Updating files:  97% (2642/2723)
+2026-11-22T13:08:07.0523156Z Updating files:  98% (2669/2723)
+2026-11-22T13:08:07.0566368Z Updating files:  99% (2696/2723)
+2026-11-22T13:08:07.0566909Z Updating files: 100% (2723/2723)
+2026-11-22T13:08:07.0567349Z Updating files: 100% (2723/2723), done.
+2026-11-22T13:08:07.0603952Z Switched to a new branch 'main'
+2026-11-22T13:08:07.0609884Z branch 'main' set up to track 'origin/main'.
+2026-11-22T13:08:07.0678027Z ##[endgroup]
+2026-11-22T13:08:07.0732613Z [command]/usr/bin/git log -1 --format=%H
+2026-11-22T13:08:07.0760520Z 0013c04b606c2512edc4281542f03382402c4be4
+2026-11-22T13:08:07.1048024Z ##[group]Run actions/setup-node@v4
+2026-11-22T13:08:07.1048398Z with:
+2026-11-22T13:08:07.1048649Z   node-version: 22
+2026-11-22T13:08:07.1048919Z   cache: npm
+2026-11-22T13:08:07.1049214Z   cache-dependency-path: desktop/package-lock.json
+2026-11-22T13:08:07.1049582Z   always-auth: false
+2026-11-22T13:08:07.1049845Z   check-latest: false
+2026-11-22T13:08:07.1052891Z   token: ***
+2026-11-22T13:08:07.1053161Z env:
+2026-11-22T13:08:07.1053400Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:08:07.1053674Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:08:07.1053933Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:08:07.1054200Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:08:07.1054454Z ##[endgroup]
+2026-11-22T13:08:07.2566147Z (node:2416) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-22T13:08:07.2567324Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-22T13:08:07.2567984Z Found in cache @ /opt/hostedtoolcache/node/22.23.5/x64
+2026-11-22T13:08:07.2569470Z ##[group]Environment details
+2026-11-22T13:08:07.6952774Z node: v22.23.5
+2026-11-22T13:08:07.6953535Z npm: 10.9.9
+2026-11-22T13:08:07.6953932Z yarn: 1.22.22
+2026-11-22T13:08:07.6954947Z ##[endgroup]
+2026-11-22T13:08:07.6978794Z [command]/opt/hostedtoolcache/node/22.23.5/x64/bin/npm config get cache
+2026-11-22T13:08:07.8107374Z /home/runner/.npm
+2026-11-22T13:08:08.0774875Z Cache hit for: node-cache-Linux-x64-npm-a4fbdd7e701d4aafae923a57433173d0e24e1245ac462114d38aea6308b88575
+2026-11-22T13:08:08.0893599Z (node:2416) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-22T13:08:09.3444223Z Received 20971520 of 122046777 (17.2%), 20.0 MBs/sec
+2026-11-22T13:08:10.1682227Z Received 122046777 of 122046777 (100.0%), 63.8 MBs/sec
+2026-11-22T13:08:10.1683216Z Cache Size: ~116 MB (122046777 B)
+2026-11-22T13:08:10.1760596Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d5aaca26-185f-4330-bf21-e6ff67e0d859/cache.tzst -P -C /home/runner/work/high-trust/high-trust --use-compress-program unzstd
+2026-11-22T13:08:10.4417492Z Cache restored successfully
+2026-11-22T13:08:10.4476892Z Cache restored from key: node-cache-Linux-x64-npm-a4fbdd7e701d4aafae923a57433173d0e24e1245ac462114d38aea6308b88575
+2026-11-22T13:08:10.4768151Z ##[group]Run npm ci
+2026-11-22T13:08:10.4768458Z [36;1mnpm ci[0m
+2026-11-22T13:08:10.4813971Z shell: /usr/bin/bash -e {0}
+2026-11-22T13:08:10.4814282Z env:
+2026-11-22T13:08:10.4814509Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:08:10.4814749Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:08:10.4814971Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:08:10.4815182Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:08:10.4815406Z ##[endgroup]
+2026-11-22T13:08:11.2223580Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-11-22T13:08:12.8400258Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-11-22T13:08:12.8645450Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-11-22T13:08:12.8807497Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-11-22T13:08:12.8961660Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-11-22T13:08:12.9262594Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-22T13:08:12.9313293Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-22T13:08:12.9324119Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-22T13:08:13.3507680Z npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-22T13:08:13.7117302Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-22T13:08:14.9886048Z 
+2026-11-22T13:08:14.9888958Z added 325 packages, and audited 326 packages in 4s
+2026-11-22T13:08:14.9889542Z 
+2026-11-22T13:08:14.9889906Z 59 packages are looking for funding
+2026-11-22T13:08:14.9890549Z   run `npm fund` for details
+2026-11-22T13:08:15.0311956Z 
+2026-11-22T13:08:15.0313061Z 16 vulnerabilities (4 moderate, 11 high, 1 critical)
+2026-11-22T13:08:15.0313711Z 
+2026-11-22T13:08:15.0314186Z To address issues that do not require attention, run:
+2026-11-22T13:08:15.0314914Z   npm audit fix
+2026-11-22T13:08:15.0315190Z 
+2026-11-22T13:08:15.0315458Z To address all issues, run:
+2026-11-22T13:08:15.0316019Z   npm audit fix --force
+2026-11-22T13:08:15.0316343Z 
+2026-11-22T13:08:15.0316609Z Run `npm audit` for details.
+2026-11-22T13:08:15.1058016Z ##[group]Run npm test
+2026-11-22T13:08:15.1058303Z [36;1mnpm test[0m
+2026-11-22T13:08:15.1092847Z shell: /usr/bin/bash -e {0}
+2026-11-22T13:08:15.1093115Z env:
+2026-11-22T13:08:15.1093333Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:08:15.1093564Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:08:15.1093773Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:08:15.1093988Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:08:15.1094190Z ##[endgroup]
+2026-11-22T13:08:15.2124475Z 
+2026-11-22T13:08:15.2125133Z > high-trust@1.0.0 test
+2026-11-22T13:08:15.2125604Z > node --test test/*.test.js
+2026-11-22T13:08:15.2125855Z 
+2026-11-22T13:08:15.2593186Z TAP version 13
+2026-11-22T13:08:15.3343259Z # Subtest: fresh folder loads empty, writes on flush, reloads the same keys
+2026-11-22T13:08:15.3349582Z ok 1 - fresh folder loads empty, writes on flush, reloads the same keys
+2026-11-22T13:08:15.3350874Z   ---
+2026-11-22T13:08:15.3351816Z   duration_ms: 13.280536
+2026-11-22T13:08:15.3352361Z   type: 'test'
+2026-11-22T13:08:15.3352834Z   ...
+2026-11-22T13:08:15.3357446Z # Subtest: second write keeps the first as save.json.bak
+2026-11-22T13:08:15.3360052Z ok 2 - second write keeps the first as save.json.bak
+2026-11-22T13:08:15.3361617Z   ---
+2026-11-22T13:08:15.3362228Z   duration_ms: 1.63246
+2026-11-22T13:08:15.3362859Z   type: 'test'
+2026-11-22T13:08:15.3363402Z   ...
+2026-11-22T13:08:15.3364448Z # Subtest: a corrupt save.json falls back to the backup, keeps the broken copy, and repairs the file
+2026-11-22T13:08:15.3367395Z ok 3 - a corrupt save.json falls back to the backup, keeps the broken copy, and repairs the file
+2026-11-22T13:08:15.3368500Z   ---
+2026-11-22T13:08:15.3369092Z   duration_ms: 2.881587
+2026-11-22T13:08:15.3369711Z   type: 'test'
+2026-11-22T13:08:15.3371639Z   ...
+2026-11-22T13:08:15.3379660Z # Subtest: a corrupt file never overwrites a good backup
+2026-11-22T13:08:15.3380782Z ok 4 - a corrupt file never overwrites a good backup
+2026-11-22T13:08:15.3381917Z   ---
+2026-11-22T13:08:15.3382703Z   duration_ms: 3.72097
+2026-11-22T13:08:15.3383204Z   type: 'test'
+2026-11-22T13:08:15.3383596Z   ...
+2026-11-22T13:08:15.3384171Z # Subtest: both files unreadable: starts empty
+2026-11-22T13:08:15.3384947Z ok 5 - both files unreadable: starts empty
+2026-11-22T13:08:15.3385549Z   ---
+2026-11-22T13:08:15.3385934Z   duration_ms: 0.573448
+2026-11-22T13:08:15.3386351Z   type: 'test'
+2026-11-22T13:08:15.3386711Z   ...
+2026-11-22T13:08:15.3387435Z # Subtest: debounced writes coalesce and flush() writes synchronously
+2026-11-22T13:08:15.3388533Z ok 6 - debounced writes coalesce and flush() writes synchronously
+2026-11-22T13:08:15.3389230Z   ---
+2026-11-22T13:08:15.3389627Z   duration_ms: 2.374012
+2026-11-22T13:08:15.3390103Z   type: 'test'
+2026-11-22T13:08:15.3390477Z   ...
+2026-11-22T13:08:15.3391474Z # Subtest: works as the storage behind js/save.js (HT.Save round trip through the file)
+2026-11-22T13:08:15.3392639Z ok 7 - works as the storage behind js/save.js (HT.Save round trip through the file)
+2026-11-22T13:08:15.3393380Z   ---
+2026-11-22T13:08:15.3393754Z   duration_ms: 13.695499
+2026-11-22T13:08:15.3394196Z   type: 'test'
+2026-11-22T13:08:15.3394572Z   ...
+2026-11-22T13:08:15.3459860Z 1..7
+2026-11-22T13:08:15.3460334Z # tests 7
+2026-11-22T13:08:15.3460743Z # suites 0
+2026-11-22T13:08:15.3461335Z # pass 7
+2026-11-22T13:08:15.3462370Z # fail 0
+2026-11-22T13:08:15.3463120Z # cancelled 0
+2026-11-22T13:08:15.3463575Z # skipped 0
+2026-11-22T13:08:15.3464167Z # todo 0
+2026-11-22T13:08:15.3464706Z # duration_ms 99.639993
+2026-11-22T13:08:15.3613799Z ##[group]Run node dev/check-build.js
+2026-11-22T13:08:15.3614148Z [36;1mnode dev/check-build.js[0m
+2026-11-22T13:08:15.3648766Z shell: /usr/bin/bash -e {0}
+2026-11-22T13:08:15.3649039Z env:
+2026-11-22T13:08:15.3649236Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:08:15.3649462Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:08:15.3649687Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:08:15.3649907Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:08:15.3650121Z ##[endgroup]
+2026-11-22T13:08:15.5509973Z assets/opt is up to date (241 sources); notices and credits OK
+2026-11-22T13:08:15.5657118Z ##[group]Run npx electron-builder -c electron-builder.config.js --linux --x64 --publish never
+2026-11-22T13:08:15.5657879Z [36;1mnpx electron-builder -c electron-builder.config.js --linux --x64 --publish never[0m
+2026-11-22T13:08:15.5693784Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-22T13:08:15.5694146Z env:
+2026-11-22T13:08:15.5694339Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:08:15.5694575Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:08:15.5694798Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:08:15.5695024Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:08:15.5695254Z   CSC_IDENTITY_AUTO_DISCOVERY: false
+2026-11-22T13:08:15.5695518Z   APPLE_ID: 
+2026-11-22T13:08:15.5695723Z   APPLE_APP_SPECIFIC_PASSWORD: 
+2026-11-22T13:08:15.5695966Z   APPLE_TEAM_ID: 
+2026-11-22T13:08:15.5696163Z ##[endgroup]
+2026-11-22T13:08:16.4077576Z   • electron-builder  version=26.0.12 os=7.0.0-1020-azure
+2026-11-22T13:08:16.4177784Z   • loaded configuration  file=/home/runner/work/high-trust/high-trust/desktop/electron-builder.config.js
+2026-11-22T13:08:16.5640918Z   • skipped dependencies rebuild  reason=npmRebuild is set to false
+2026-11-22T13:08:16.5644283Z   • packaging       platform=linux arch=x64 electron=45.4.1 appOutDir=dist/linux-unpacked
+2026-11-22T13:08:16.8824930Z   • downloading     url=https://github.com/electron/electron/releases/download/v45.4.1/electron-v45.4.1-linux-x64.zip size=124 MB parts=8
+2026-11-22T13:08:17.1027958Z   • downloaded      url=https://github.com/electron/electron/releases/download/v45.4.1/electron-v45.4.1-linux-x64.zip duration=527ms
+2026-11-22T13:08:19.7267857Z   • skipping "afterSign" hook as no signing occurred, perhaps you intended "afterPack"?
+2026-11-22T13:08:19.7272732Z   • building        target=tar.gz arch=x64 file=dist/high-trust-1.0.0.tar.gz
+2026-11-22T13:11:41.1098807Z ##[group]Run node dev/check-build.js
+2026-11-22T13:11:41.1099154Z [36;1mnode dev/check-build.js[0m
+2026-11-22T13:11:41.1132875Z shell: /usr/bin/bash -e {0}
+2026-11-22T13:11:41.1133138Z env:
+2026-11-22T13:11:41.1133336Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:11:41.1133571Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:11:41.1133800Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:11:41.1134034Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:11:41.1134241Z ##[endgroup]
+2026-11-22T13:11:41.2968516Z assets/opt is up to date (241 sources); notices and credits OK
+2026-11-22T13:11:41.3070342Z ##[group]Run sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+2026-11-22T13:11:41.3070908Z [36;1msudo apt-get update -qq && sudo apt-get install -y -qq xvfb[0m
+2026-11-22T13:11:41.3071555Z [36;1mnpm i --no-save playwright@1[0m
+2026-11-22T13:11:41.3072025Z [36;1mxvfb-run -a -s "-screen 0 1600x900x24" node test/e2e.js --exe dist/linux-unpacked/HighTrust[0m
+2026-11-22T13:11:41.3105539Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-22T13:11:41.3105901Z env:
+2026-11-22T13:11:41.3106102Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:11:41.3106332Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:11:41.3106551Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:11:41.3106770Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:11:41.3106980Z ##[endgroup]
+2026-11-22T13:11:47.1529317Z 
+2026-11-22T13:11:47.1530235Z added 2 packages, and audited 328 packages in 2s
+2026-11-22T13:11:47.1530924Z 
+2026-11-22T13:11:47.1531732Z 59 packages are looking for funding
+2026-11-22T13:11:47.1534268Z   run `npm fund` for details
+2026-11-22T13:11:47.2000187Z 
+2026-11-22T13:11:47.2001092Z 16 vulnerabilities (4 moderate, 11 high, 1 critical)
+2026-11-22T13:11:47.2001922Z 
+2026-11-22T13:11:47.2002233Z To address issues that do not require attention, run:
+2026-11-22T13:11:47.2002788Z   npm audit fix
+2026-11-22T13:11:47.2003107Z 
+2026-11-22T13:11:47.2003364Z To address all issues, run:
+2026-11-22T13:11:47.2003870Z   npm audit fix --force
+2026-11-22T13:11:47.2004158Z 
+2026-11-22T13:11:47.2004443Z Run `npm audit` for details.
+2026-11-22T13:11:47.6350957Z profile /tmp/ht-e2e-XypCs6 · exe dist/linux-unpacked/HighTrust
+2026-11-22T13:11:48.4187926Z ok   HTDesktop bridge present (contextIsolation on, no Node in the page: undefined)
+2026-11-22T13:11:48.4193116Z ok   loaded from local files: app://game/index.html
+2026-11-22T13:12:24.1088588Z ok   no service worker in control
+2026-11-22T13:12:24.1588397Z ok   title screen has Quit to desktop
+2026-11-22T13:12:37.8762519Z ok   new game: free roam (mode hub, region null)
+2026-11-22T13:12:37.9276008Z ok   pause menu shows Quit to desktop
+2026-11-22T13:12:53.2362665Z ok   display settings: Field of view, Quality, Resolution scale, Frame rate cap, Display mode, VSync, Interface size, Subtitles, Rotate minimap
+2026-11-22T13:13:05.3934026Z ok   resolution scale 50% lowers the pixel ratio (1 -> 0.5)
+2026-11-22T13:13:43.6473915Z page.click: Timeout 30000ms exceeded.
+2026-11-22T13:13:43.6480559Z Call log:
+2026-11-22T13:13:43.6485301Z   - waiting for locator('.ht-pause [data-tab=keys]')
+2026-11-22T13:13:43.6486563Z     - locator resolved to <button data-tab="keys" class="ht-btn tab" aria-selected="false">Controls & keys</button>
+2026-11-22T13:13:43.6487521Z   - attempting click action
+2026-11-22T13:13:43.6488132Z     - waiting for element to be visible, enabled and stable
+2026-11-22T13:13:43.6488566Z 
+2026-11-22T13:13:43.6488989Z     at /home/runner/work/high-trust/high-trust/desktop/test/e2e.js:134:11 {
+2026-11-22T13:13:43.6489772Z   log: [
+2026-11-22T13:13:43.6490099Z     "  - waiting for locator('.ht-pause [data-tab=keys]')",
+2026-11-22T13:13:43.6490779Z     '    - locator resolved to <button data-tab="keys" class="ht-btn tab" aria-selected="false">Controls & keys</button>',
+2026-11-22T13:13:43.6491684Z     '  - attempting click action',
+2026-11-22T13:13:43.6492071Z     '    - waiting for element to be visible, enabled and stable'
+2026-11-22T13:13:43.6492409Z   ],
+2026-11-22T13:13:43.6492610Z   name: 'TimeoutError'
+2026-11-22T13:13:43.6492832Z }
+2026-11-22T13:13:43.6718246Z ##[error]Process completed with exit code 1.
+2026-11-22T13:13:43.6825016Z ##[group]Run actions/upload-artifact@v4
+2026-11-22T13:13:43.6825327Z with:
+2026-11-22T13:13:43.6825536Z   name: high-trust-linux-x64
+2026-11-22T13:13:43.6825808Z   path: desktop/dist/linux-unpacked/
+2026-11-22T13:13:43.6826086Z   if-no-files-found: ignore
+2026-11-22T13:13:43.6826323Z   retention-days: 14
+2026-11-22T13:13:43.6826557Z   compression-level: 6
+2026-11-22T13:13:43.6826775Z   overwrite: false
+2026-11-22T13:13:43.6826996Z   include-hidden-files: false
+2026-11-22T13:13:43.6827229Z env:
+2026-11-22T13:13:43.6827408Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:13:43.6827621Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:13:43.6827826Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:13:43.6828039Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:13:43.6828243Z ##[endgroup]
+2026-11-22T13:13:43.8715365Z (node:3070) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-22T13:13:43.8716937Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-22T13:13:43.9794614Z With the provided path, there will be 598 files uploaded
+2026-11-22T13:13:43.9801349Z Artifact name is valid!
+2026-11-22T13:13:43.9802068Z Root directory input is valid!
+2026-11-22T13:13:44.3714311Z Beginning upload of artifact content to blob storage
+2026-11-22T13:13:45.3159480Z (node:3070) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-22T13:13:47.1748317Z Uploaded bytes 8388608
+2026-11-22T13:13:47.1762289Z Uploaded bytes 16777216
+2026-11-22T13:13:47.3649956Z Uploaded bytes 25165824
+2026-11-22T13:13:47.9681527Z Uploaded bytes 33554432
+2026-11-22T13:13:47.9712877Z Uploaded bytes 41943040
+2026-11-22T13:13:48.6023571Z Uploaded bytes 50331648
+2026-11-22T13:13:49.2434620Z Uploaded bytes 58720256
+2026-11-22T13:13:49.9497469Z Uploaded bytes 67108864
+2026-11-22T13:13:50.4367099Z Uploaded bytes 75497472
+2026-11-22T13:13:51.0348657Z Uploaded bytes 83886080
+2026-11-22T13:13:51.6292428Z Uploaded bytes 92274688
+2026-11-22T13:13:52.2172981Z Uploaded bytes 100663296
+2026-11-22T13:13:52.7856094Z Uploaded bytes 109051904
+2026-11-22T13:13:53.3321597Z Uploaded bytes 117440512
+2026-11-22T13:13:53.7069986Z Uploaded bytes 125829120
+2026-11-22T13:13:54.0023628Z Uploaded bytes 134217728
+2026-11-22T13:13:54.2795602Z Uploaded bytes 142606336
+2026-11-22T13:13:54.5565358Z Uploaded bytes 150994944
+2026-11-22T13:13:54.8557486Z Uploaded bytes 159383552
+2026-11-22T13:13:55.1889422Z Uploaded bytes 167772160
+2026-11-22T13:13:55.6002254Z Uploaded bytes 176160768
+2026-11-22T13:13:55.8556476Z Uploaded bytes 184038109
+2026-11-22T13:13:55.9324360Z Finished uploading artifact content to blob storage!
+2026-11-22T13:13:55.9327842Z SHA256 digest of uploaded artifact zip is 48f59683e95348518d083926d04f14d3931a8ad919108c25c6502f6c540341d1
+2026-11-22T13:13:55.9333571Z Finalizing artifact upload
+2026-11-22T13:13:56.4582501Z Artifact high-trust-linux-x64.zip successfully finalized. Artifact ID 14755926609
+2026-11-22T13:13:56.4584158Z Artifact high-trust-linux-x64 has been successfully uploaded! Final size is 184038109 bytes. Artifact ID is 14755926609
+2026-11-22T13:13:56.4592286Z Artifact download URL: https://github.com/hereiszee/high-trust/actions/runs/45025851858/artifacts/14755926609
+2026-11-22T13:13:56.4842228Z ##[group]Run actions/upload-artifact@v4
+2026-11-22T13:13:56.4842556Z with:
+2026-11-22T13:13:56.4842786Z   name: high-trust-linux-x64-archive
+2026-11-22T13:13:56.4843113Z   path: desktop/dist/*.zip
+desktop/dist/*.tar.gz
+
+2026-11-22T13:13:56.4843444Z   if-no-files-found: ignore
+2026-11-22T13:13:56.4843689Z   retention-days: 14
+2026-11-22T13:13:56.4843917Z   compression-level: 6
+2026-11-22T13:13:56.4844143Z   overwrite: false
+2026-11-22T13:13:56.4844366Z   include-hidden-files: false
+2026-11-22T13:13:56.4844606Z env:
+2026-11-22T13:13:56.4844799Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:13:56.4845021Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:13:56.4845243Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:13:56.4845456Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:13:56.4845662Z ##[endgroup]
+2026-11-22T13:13:56.6586675Z (node:3084) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-22T13:13:56.6587699Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-22T13:13:56.6648462Z With the provided path, there will be 1 file uploaded
+2026-11-22T13:13:56.6656550Z Artifact name is valid!
+2026-11-22T13:13:56.6657518Z Root directory input is valid!
+2026-11-22T13:13:57.0632285Z Beginning upload of artifact content to blob storage
+2026-11-22T13:13:57.3503917Z (node:3084) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-22T13:13:58.2374219Z Uploaded bytes 8388608
+2026-11-22T13:13:58.5043061Z Uploaded bytes 16777216
+2026-11-22T13:13:58.6014179Z Uploaded bytes 25165824
+2026-11-22T13:13:58.7944952Z Uploaded bytes 33554432
+2026-11-22T13:13:58.8590813Z Uploaded bytes 41943040
+2026-11-22T13:13:59.0166227Z Uploaded bytes 50331648
+2026-11-22T13:13:59.1426541Z Uploaded bytes 58720256
+2026-11-22T13:13:59.3789112Z Uploaded bytes 67108864
+2026-11-22T13:13:59.6290944Z Uploaded bytes 75497472
+2026-11-22T13:13:59.8554998Z Uploaded bytes 83886080
+2026-11-22T13:14:00.0803600Z Uploaded bytes 92274688
+2026-11-22T13:14:00.3029058Z Uploaded bytes 100663296
+2026-11-22T13:14:00.5556218Z Uploaded bytes 109051904
+2026-11-22T13:14:00.8955712Z Uploaded bytes 117440512
+2026-11-22T13:14:00.9962400Z Uploaded bytes 125829120
+2026-11-22T13:14:01.2442454Z Uploaded bytes 134217728
+2026-11-22T13:14:01.4548979Z Uploaded bytes 142606336
+2026-11-22T13:14:01.7049884Z Uploaded bytes 150994944
+2026-11-22T13:14:01.9573108Z Uploaded bytes 159383552
+2026-11-22T13:14:02.1767662Z Uploaded bytes 167772160
+2026-11-22T13:14:02.4229684Z Uploaded bytes 176160768
+2026-11-22T13:14:02.5211481Z Uploaded bytes 177359142
+2026-11-22T13:14:02.5992432Z Finished uploading artifact content to blob storage!
+2026-11-22T13:14:02.5996069Z SHA256 digest of uploaded artifact zip is 1d003d6c52492c091e563bd49a783609163c3b286bd434ccaa9b9d5cb60cee42
+2026-11-22T13:14:02.5998332Z Finalizing artifact upload
+2026-11-22T13:14:03.1134293Z Artifact high-trust-linux-x64-archive.zip successfully finalized. Artifact ID 14756170772
+2026-11-22T13:14:03.1135355Z Artifact high-trust-linux-x64-archive has been successfully uploaded! Final size is 177359142 bytes. Artifact ID is 14756170772
+2026-11-22T13:14:03.1143933Z Artifact download URL: https://github.com/hereiszee/high-trust/actions/runs/45025851858/artifacts/14756170772
+2026-11-22T13:14:03.1376941Z ##[group]Run actions/upload-artifact@v4
+2026-11-22T13:14:03.1377268Z with:
+2026-11-22T13:14:03.1377513Z   name: high-trust-linux-x64-test-output
+2026-11-22T13:14:03.1377827Z   path: desktop/test-output/
+2026-11-22T13:14:03.1378100Z   if-no-files-found: ignore
+2026-11-22T13:14:03.1378349Z   retention-days: 14
+2026-11-22T13:14:03.1378586Z   compression-level: 6
+2026-11-22T13:14:03.1378857Z   overwrite: false
+2026-11-22T13:14:03.1379093Z   include-hidden-files: false
+2026-11-22T13:14:03.1379379Z env:
+2026-11-22T13:14:03.1379596Z   MAC_CERT_P12_BASE64: 
+2026-11-22T13:14:03.1379843Z   MAC_CERT_PASSWORD: 
+2026-11-22T13:14:03.1380289Z   WIN_CERT_P12_BASE64: 
+2026-11-22T13:14:03.1380513Z   WIN_CERT_PASSWORD: 
+2026-11-22T13:14:03.1380738Z ##[endgroup]
+2026-11-22T13:14:03.3118911Z (node:3098) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-22T13:14:03.3119900Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-22T13:14:03.3135494Z No files were found with the provided path: desktop/test-output/. No artifacts will be uploaded.
+2026-11-22T13:14:03.3415217Z Post job cleanup.
+2026-11-22T13:14:03.4350713Z [command]/usr/bin/git version
+2026-11-22T13:14:03.4396461Z git version 2.56.1
+2026-11-22T13:14:03.4437275Z Temporarily overriding HOME='/home/runner/work/_temp/9c391d60-6dff-4138-ac6c-0a463c153aff' before making global git config changes
+2026-11-22T13:14:03.4438939Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-22T13:14:03.4443945Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/high-trust/high-trust
+2026-11-22T13:14:03.4490306Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-22T13:14:03.4540383Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-22T13:14:03.4866872Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-22T13:14:03.4897512Z http.https://github.com/.extraheader
+2026-11-22T13:14:03.4910787Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-22T13:14:03.4964817Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-22T13:14:03.5292659Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-22T13:14:03.5336445Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T13:14:03.5811107Z Cleaning up orphan processes
+2026-11-22T13:14:03.6250688Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

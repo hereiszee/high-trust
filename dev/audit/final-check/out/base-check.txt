@@ -1,0 +1,108 @@
+== drive: home to Fort Sensible in the minivan
+  ok   E gets in the minivan
+  ok   drove through the gate (203,182)
+  ok   region is the base
+  ok   Fort Sensible pin is open for fast travel after the visit
+  perf base gate (driving) {"calls":473,"tris":518006,"drawMs":29.3,"stepMs":4.24}
+== range
+  ok   out of the car by the range
+  on foot at 128,189
+  ok   walked to the range officer
+  ok   E talks to Sgt. Pruitt
+  ok   E again starts the timed course
+  ok   course finished: score 774, medal 2, 39 shots
+  ok   best saved per gun: {"pistol":[{"score":774,"time":18.6,"acc":0.33,"medal":2,"day":1,"rental":false}]}
+  ok   Enter closes the results card
+  ok   E closes it too
+  ok   looking at a gun on the rack names it: "Take Rick's Carbine · Rifle (rack menu)"
+  ok   E opens the rack menu on the gun you looked at (rifle)
+  ok   → moves along the rack (smg)
+  ok   Enter takes it: smg
+  ok   the HUD shows the rental with its ammo: The Carpool · 32 / 192
+  ok   number keys pick straight away (1 · pistol)
+  ok   9 · the .308 (hunter)
+  ok   free ammo on the line
+  ok   firing away from downrange is refused
+  ok   leaving the range returns the rental (pistol) and holsters
+  ok   the gun stays holstered elsewhere on the post
+  ok   no heat from range shooting
+  perf range {"calls":471,"tris":639285,"drawMs":24.5,"stepMs":3}
+== tank
+  ok   walked to the motor pool
+  ok   the tank is parked in the motor pool
+  ok   the tank can be boarded from every side (front:yes left:yes back:yes right:yes)
+  ok   E borrows the tank
+  ok   the borrow is on disk at once (0 → 1) and meets ACH_BORROWED
+  ok   A turns it on the spot (0.85 rad)
+  ok   W drives it (19.1 m, top 10.5 m/s)
+  ok   the turret follows the mouse look (turret 1.07 rad, off by -0.000)
+  ok   left click fires the main gun
+  ok   a second click while reloading does nothing (3.1 s left)
+  ok   a hidden, still-loading child 45 m down the line of fire: the main gun refuses ({"r0":{"hidden":true,"last":109.29999999999636,"prot":true},"r1":{"last":109.29999999999636,"reload":0.5666666666666667}})
+  FAIL with the child gone it fires again
+  ok   drove through the cones and hay bales (13 knocked over)
+  ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
+  perf tank driving {"calls":461,"tris":478915,"drawMs":20,"stepMs":4.29}
+  ok   jobs refuse the tank: "You can't bring that to the bake sale."
+  ok   E gets out
+== jet
+  ok   walked to the jet on the apron
+  ok   the jet is parked by Hangar 2
+  ok   the jet can be boarded from any side within 3.5 m of the fuselage (nose:yes left:yes tail:yes right:yes left-front:yes)
+  ok   E climbs into the jet
+  ok   sitting in the jet is not a flight (0)
+  ok   ten taps of W set full throttle, nothing held (100%)
+  ok   took off (101 mph at x 167)
+  ok   wheels-up counts the flight on disk (0 → 1) and meets ACH_CLEARED_FOR_TAKEOFF
+  ok   G raises the gear
+  perf jet climbing out {"calls":53,"tris":141315,"drawMs":10.3,"stepMs":12.66}
+  ok   C toggles the look back on and off (no held keys)
+  ok   the throttle holds with no key down (100%)
+  perf jet inbound to Maple Heights {"calls":202,"tris":366897,"drawMs":41.7,"stepMs":22.38}
+  ok   buzzed the house: the family came out (3 waving)
+  ok   sonic boom over the neighborhood
+  ok   flew under the High Bridge (still flying)
+  ok   gear down for landing (came down by itself on the approach)
+  ok   landed on runway 27 (111,240)
+  ok   E gets out on the ground
+  ok   E twice ejects (one tap arms it): parachute at 115 m
+  ok   under the canopy the screen says E cuts to the landing (chute)
+  ok   landed under the parachute at 128,190 (back on the post)
+  ok   E cut to the landing: by his van (0.0 m, facing it)
+  ok   the jet is back on the apron (it was a rental)
+== a new pilot who only does what the screen says
+  ok   E climbs in
+  ok   the controls strip is on screen: W / SThrottle 0%SPACE / QNose up / down (or mouse, ↑ ↓)A / DBankGGear downSHIFTBurner (at 100%)V · CView · look backE EE
+  ok   took off by following the prompts (taxi → thr → rotate)
+  ok   hands off it climbs out and the gear comes up by itself (no G; 151 ft)
+  ok   the landing prompt came up on the approach
+  ok   landed on runway 27, gear down by itself (62,232)
+  ok   the crew stayed on the apron while he flew (0.15 m, highest 0.00 m)
+  ok   landed near the base: the crew walked over from where he left them (4.0 m, biggest step 0.17 m, no teleport)
+    (before eject: {"x":30,"z":88,"alt":112,"on":true,"air":true})
+  ok   E twice: out over Maple Heights
+  ok   the parachute ride took 12.3 s (owner: not "forever"; cap ~13 s from any height)
+  ok   hanging under the canopy the whole way down (pose "chute" 92/92, no run cycle)
+  ok   no follower ever left the ground (highest 0.00 m)
+  ok   within reach of his car: the canopy steered him down by his van (0.0 m)
+  ok   the screen offers the ride back only when far (null)
+  ok   the feed says where the jet went
+  ok   a marker on the jet (DAD-1 · Hangar 2)
+  ok   landed far out: the crew appeared out of the camera's view (2 spawned, 0 in view)
+  FAIL and jogged up (4.5 m)
+  ok   no ride-back prompt at the base afterwards (null)
+  ok   (set up: far out, the ride is offered: ride)
+  ok   at the base by other means (by the range): no ride-back prompt (null)
+  ok   the crew rode back too: at the apron with him (1.7 m)
+== easter eggs
+  ok   found the gnome (E at 89,19)
+  ok   found the lights (E at 121,67)
+  ok   found the phone (E at 245,35)
+  ok   found the smoker (E at 195,177)
+  ok   shave and a haircut on the horn: two bits
+  ok   G in Walt's car finds the mug
+  ok   hit the cardboard Bigfoot at 100 m
+  ok   pause menu has "Things your dad found"
+  ok   the list fills in: 7/7
+no console errors
+2 FAILED · 1029 s

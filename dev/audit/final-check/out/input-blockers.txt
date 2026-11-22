@@ -1,0 +1,25 @@
+ok   crossing: vest and sign on {"gear":true,"stage":"main"}
+ok   IN-01 pad LT (no Aim mode picked yet: hold) raises the sign while held and lowers it on release {"h1":true,"h2":false}
+ok   IN-01 pad LT with Aim: Toggle: tap raises (stays up), tap lowers {"t1":true,"t1b":true,"t2":false}
+ok   IN-01 the sign chip reads LT on the pad ["D↑","LT","LB","LB+↑"]
+ok   the gun aim stays down under the sign
+ok   IN-03 control: default Mouse 2 raises the sign
+ok   IN-03 Aim on K: K raises the sign, K again lowers it {"k1":true,"k2":false}
+ok   IN-03 Aim on Mouse 5: Mouse 5 raises the sign
+ok   IN-15 Mouse 5 did not navigate "http://ht.local/index.html"
+ok   C-1 defaults: a click on the view asks for pointer lock (and only that) {"lockRequests":2,"aim":false}
+ok   C-1 fire<->aim swapped: a click on the view asks for pointer lock (and only that) {"lockRequests":2,"aim":false}
+ok   C-1 fire on J: a click on the view asks for pointer lock (and only that) {"lockRequests":2,"aim":false}
+ok   no console errors (crossing run) []
+ok   tow: lined up behind the car {"f":881,"ok":true,"link":false,"state":"go"}
+ok   IN-02/IN-07 the hitch prompt shows Y (the button that does it) and no keyboard key {"kc":["Y"],"txt":"OBJECTIVE HITCH HAPPENS Back up to a car's front bumper, then hold Y to hitch it ||  || Y HITCH UP MR. HOLLIS'S HATCHBACK · TAP: GET OUT HOLD || CARS HOME LINE UP IN RANGE · HOLD Y · HITCH UP FAR CLOSER IN RANGE"}
+ok   IN-02 holding Y hitches the car (still in the truck) {"inCar":true,"link":true}
+ok   IN-02 a quick tap of Y gets out {"inCar":false,"link":true}
+ok   no console errors (tow run) []
+ok   at home {"mode":"home"}
+ok   IN-04 the home objective names no keyboard key on the pad []
+ok   IN-04 pad B opens Decorate
+ok   IN-04 the decorate panel shows pad buttons only {"panel":{"caps":["A","X","RB","D←","View","LB+→","B"],"plain":[]},"leaks":[]}
+ok   IN-04 pad B closes Decorate
+ok   no console errors (home run) []
+all ok

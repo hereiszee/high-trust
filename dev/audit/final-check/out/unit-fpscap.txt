@@ -1,0 +1,12 @@
+ok   index.html loads js/fpscap.js and gates frames with HT.FrameCap
+ok   the old vsync-skipping gate is gone
+ 60 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 60.0 | cap 144 -> 60.0
+ 75 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 75.0 | cap 144 -> 75.0
+ 90 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 90.0 | cap 144 -> 90.0
+120 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 120.0 | cap 144 -> 120.0
+144 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 120.0 | cap 144 -> 144.0
+165 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 120.0 | cap 144 -> 144.1
+240 Hz: cap 30 -> 30.1 | cap 60 -> 60.0 | cap 120 -> 120.0 | cap 144 -> 144.1
+ok   cap 0 renders every frame
+ok   no catch-up burst after a stall (2 frames in the next 5 vsyncs)
+all ok

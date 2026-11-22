@@ -1,0 +1,9 @@
+on the roof {"simT":50.17,"mode":"mission","M":"overwatch","state":"go","stage":"court","loadout":{"side":null,"p1":"hunter","p2":null},"weapons":["hunter"],"cur":"hunter","roof":true,"scopedClass":false,"overlays":["overwatch"]} {"t":1500,"state":"go","stage":"court","el":50}
+before abandon {"simT":50.27,"mode":"mission","M":"overwatch","state":"go","stage":"court","loadout":{"side":null,"p1":"hunter","p2":null},"weapons":["hunter"],"cur":"hunter","roof":true,"scopedClass":false,"overlays":["overwatch"]}
+abandon clicked true
+hub simT across 1.5 s of real frames 50.27 -> 50.37
+hub after abandoning {"simT":50.37,"mode":"hub","M":null,"state":null,"stage":null,"loadout":{"side":"pistol","p1":"shotgun","p2":"rifle"},"weapons":["pistol","shotgun","rifle"],"cur":"rifle","roof":false,"scopedClass":false,"overlays":[]}
+finale after {"simT":52.73,"mode":"mission","M":"finale","state":"go","stage":"plan","loadout":{"side":"pistol","p1":"shotgun","p2":"rifle"},"weapons":["pistol","shotgun","rifle"],"cur":"rifle","roof":false,"scopedClass":false,"overlays":[]}
+page errors []
+console warnings []
+PASS overwatch: no loadout or overlay leak after abandoning on the roof

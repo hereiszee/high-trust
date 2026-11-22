@@ -1,0 +1,11 @@
+ok   registered: {"title":"Heavy Lifting","from":{"x":364,"z":95.1},"index":23,"stages":["unload","couch","piano"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: rosa,nb_office
+ok   giver in the world offers the brief ({"brief":true,"job":23})
+ok   drove into the ring, the job started ({"steps":95,"mode":"mission","d":4.465368688915932})
+ok   job running {"mode":"mission","id":"moving","stage":"unload"}
+ok   scripted win: {"t":5872,"state":"won","stage":"piano","elapsed":196}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":2504,"rerun":false,"lines":["Bake sale fund:1000","Second chances ×16:960","Nobody pulled a hamstring:150","Quick work:100","Not a scuff on the couch:100","Neighbors chipped in:194"]},"medal":3,"replay":false,"retried":false}
+ok   saved: jobs.moving {"done":true,"best":{"t":196,"score":null,"trustGain":31,"clean":true},"medal":3,"runs":1,"replays":0,"plan":null,"medalPaid":3} calendar {"id":"moving","day":1,"medal":3,"best":{"t":196,"trustGain":31,"clean":true},"runs":1} day 1->2
+ok   no console errors
+all ok

@@ -1,0 +1,7 @@
+ok   west (Maple, the road out): stopped at 3.4,15.8
+ok   west z40: stopped at 3.4,40
+ok   north: stopped at 60,3.4
+ok   east: stopped at 460.6,60
+ok   minivan west: stopped at 3.96,15.8
+ok   no console errors 
+all passed

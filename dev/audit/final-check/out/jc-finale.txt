@@ -1,0 +1,12 @@
+ok   registered: {"title":"Everybody Waves","from":{"home":"family"},"index":32,"stages":["plan","tail","roof","roadblock","defend","chase","handsup","festival"],"test":true,"builtin":false}
+ok   unlocked (lock=null)
+     cast: already loaded
+ok   home giver "family" offers the brief ({"used":true,"acts":["brief:go","brief:skip","brief:no"]})
+ok   accepted at home, out the front door with the job on the list ({"mode":"hub","job":32,"i":32})
+ok   drove into the ring, the job started ({"steps":94,"mode":"mission","d":4.469338212882937})
+ok   job running {"mode":"mission","id":"finale","stage":"plan"}
+ok   scripted win: {"t":9760,"state":"won","stage":"festival","elapsed":325}
+ok   paid: {"acts":["result:retry","result:go"],"pay":{"total":5196,"rerun":false,"lines":["Bake sale fund:2500","Second chances ×3:180","Nobody pulled a hamstring:150","Everyone home:500","Hands up · The Wholesaler zip-tied:1000","Neighbors chipped in:866"]},"medal":3,"replay":false,"retried":false}
+ok   saved: jobs.finale {"done":true,"best":{"t":325,"score":100,"trustGain":8,"clean":true},"medal":3,"runs":1,"replays":0,"plan":{"assign":{"swap":"earl","spotter":"doug","walker":"dee","supply":"gary","stage":"dave","porch":"rosa","box":"rick"},"entry":null,"seen":{"wave":true,"credits":true}},"medalPaid":3} calendar {"id":"finale","day":1,"medal":3,"best":{"t":325,"trustGain":8,"clean":true},"runs":1} day 1->2
+ok   no console errors
+all ok

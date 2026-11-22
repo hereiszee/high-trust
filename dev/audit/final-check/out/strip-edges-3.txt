@@ -1,0 +1,25 @@
+map metres {"W":464,"H":304}
+FAIL on foot south from x 60: stopped at 60,250.5 (map ends 304), region base, ground under: null
+FAIL on foot south from x 200: stopped at 200,250.5 (map ends 304), region base, ground under: null
+FAIL on foot south from x 292: stopped at 283.6,300.6 (map ends 304), region strip, ground under: null
+FAIL on foot south from x 330: stopped at 330,300.6 (map ends 304), region river, ground under: null
+FAIL on foot south from x 420: stopped at 420,300.6 (map ends 304), region river, ground under: null
+FAIL minivan south from x 60: stopped at 60,248.4 (map ends 304), region base, ground under: null
+FAIL minivan south from x 200: stopped at 200,248.4 (map ends 304), region base, ground under: null
+FAIL minivan south from x 292: stopped at 283,300 (map ends 304), region strip, ground under: null
+FAIL minivan south from x 330: stopped at 330.5,300 (map ends 304), region river, ground under: null
+FAIL minivan south from x 420: stopped at 420.2,300 (map ends 304), region river, ground under: null
+elementHandle.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - attempting click action[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+[2m    - element is visible, enabled and stable[22m
+[2m    - scrolling into view if needed[22m
+[2m    - done scrolling[22m
+[2m    - performing click action[22m
+
+  log: [
+    '  - attempting click action',
+  ],
+  name: 'TimeoutError'
+}

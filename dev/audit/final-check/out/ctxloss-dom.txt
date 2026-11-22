@@ -1,0 +1,8 @@
+cycle 1: renderer frames +1, simT +0.05
+cycle 2: renderer frames +1, simT +0.05
+cycle 3: renderer frames +2, simT +0.10
+cycle 12: renderer frames +1, simT +0.05
+ok   render loop alive after every cycle (12 cycles, dead 0)
+info page errors during the run: 0
+ok   no uncaught "trim" error reaches the page
+all ok
