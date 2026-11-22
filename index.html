@@ -4258,6 +4258,9 @@ function wmHubGivers(){const out=[],story=[],side=[],locked=[];
   /* one character, one spot: every job a spot has (the same giver within 4 m, or anyone within 1.5 m) goes to one giver, who offers all
      of them that are open (a choice on the brief); a locked job never hides an open one */
   const spots=[];for(const g of out){const gv=MISSIONS[g.i].giver;const s=spots.find(s=>Math.hypot(s.x-g.x,s.z-g.z)<1.5||(MISSIONS[s.g[0].i].giver===gv&&Math.hypot(s.x-g.x,s.z-g.z)<4));if(s)s.g.push(g);else spots.push({x:g.x,z:g.z,g:[g]})}
+  /* one character, one place: a giver with jobs on two spots (Big Dave's yard and the mower paddock) stands at the one with the earliest open job */
+  const sRank=s=>{const o=s.g.filter(g=>!g.lock);return o.length?Math.min(...o.map(g=>storyRank(g.i))):1e7};
+  for(let k=spots.length-1;k>=0;k--){const gv=MISSIONS[spots[k].g[0].i].giver,r=sRank(spots[k]);if(spots.some((o,j)=>j!==k&&MISSIONS[o.g[0].i].giver===gv&&(sRank(o)<r||sRank(o)===r&&j<k)))spots.splice(k,1)}
   const pm=people();
   for(const s of spots){const open=s.g.filter(g=>!g.lock).sort((a,b)=>storyRank(a.i)-storyRank(b.i)),g=open[0]||s.g[0],m=MISSIONS[g.i];
     const n=spawnNpc(m.giver,s.x,s.z,{i:g.i,x:s.x,z:s.z});n.jobs=open.map(o=>o.i);n.rank=open.length?storyRank(open[0].i):1e7;n.side=!!open.length&&open.every(o=>MISSIONS[o.i].repeatable);

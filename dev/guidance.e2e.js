@@ -28,9 +28,9 @@ const ORDER=['gary','taxi','rick','hoa','earl','mower','dave','tail','doug','dee
         openStory:MI.map((m,i)=>({m,i})).filter(({m,i})=>!m.repeatable&&!H.prog.done[i]&&m.id!=='finale'&&!H.jobs.lock(m.id)).map(({m})=>m.id),
         home:MI.filter((m,i)=>m.from&&m.from.home&&m.from.home!=='family'&&!m.repeatable&&!H.prog.done[i]&&!H.jobs.lock(m.id)).map(m=>m.id),
         act:H.prog.act,screen:H.HUD.screen}};
-    T.shotPrep=()=>{if(H.HUD.screen)H.HUD.hide(H.HUD.screen);H.running=true}});
+    T.shotPrep=keep=>{if(!keep){if(H.HUD.screen)H.HUD.hide(H.HUD.screen);H.running=true}}});
   const set=(ids,o)=>ev(([ids,o])=>window.__G.set(ids,o||{}),[ids,o]);
-  const shot=async(n)=>{if(!SHOTS)return;await ev(()=>window.__G.shotPrep());await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(2500);
+  const shot=async(n,keep)=>{if(!SHOTS)return;await ev(k=>window.__G.shotPrep(k),!!keep);await ev(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(2500);
     fs.mkdirSync(DIR,{recursive:true});await p.screenshot({path:path.join(DIR,'guidance-'+n+'.jpg'),type:'jpeg',quality:82,timeout:120000}).catch(e=>console.log('shot fail '+e.message));await ev(()=>{window.__rafOn=false})};
 
   /* 1. every point of the story: the lead is the next story job */
@@ -41,6 +41,7 @@ const ORDER=['gary','taxi','rick','hoa','earl','mower','dave','tail','doug','dee
     if(nextHome)ok(st.marker&&/^Home/.test(st.marker.label)&&/list on the fridge|at home/.test(st.obj[1]||''),tag+' next is '+next+' (home): marker home, first line says so · '+JSON.stringify(st.marker)+' '+st.obj[1]);
     else ok(st.lead&&!st.lead.locked&&!st.lead.repeat&&st.lead.jobs.includes(next)&&(st.obj[1]||'').startsWith(st.givers.find(g=>g.jobs.includes(next)).name),tag+' next is '+next+': marker on its giver, first line names them · '+JSON.stringify(st.lead)+' | '+st.obj[1]);
     const hidden=st.openStory.filter(id=>!st.home.includes(id)&&!st.givers.some(g=>g.jobs.includes(id)));ok(!hidden.length,tag+' every open story job has a giver ('+hidden.join(' ')+')');
+    const twice=st.givers.filter((g,j)=>st.givers.some((o,k)=>k<j&&o.who===g.who));ok(!twice.length,tag+' every character stands in one place ('+twice.map(g=>g.who).join(' ')+')');
     const lockedHides=st.givers.filter(g=>g.locked&&st.openStory.some(id=>g.jobs.includes(id)));ok(!lockedHides.length,tag+' no locked giver holds an open job');
     /* walk up to the nearest side-job giver: the marker stays on the story */
     const sideG=st.givers.find(g=>g.jobs.length&&g.jobs.every(id=>!ORDER.includes(id)));
@@ -70,7 +71,7 @@ const ORDER=['gary','taxi','rick','hoa','earl','mower','dave','tail','doug','dee
   if(dave){const ch=await ev(g=>{const H=window.__ht;H.P.pos.set(g.x+1.6,0,g.z);H.step(2);const pr=H.prompt&&H.prompt.text;H.use=true;H.step(1);const e=document.querySelector('.ht-brief');
       const t1=e&&e.querySelector('h2').textContent,btns=e?[...e.querySelectorAll('.ht-jobs [data-act]')].map(b=>b.textContent):[];return{pr,t1,btns}},dave);
     ok(ch.btns.length===2&&/2 jobs/.test(ch.pr||''),'the brief lists both jobs and the prompt says so '+JSON.stringify(ch));
-    await shot('dave-choice');
+    await shot('dave-choice',true);
     const other=await p.evaluate(async()=>{const b=[...document.querySelectorAll('.ht-brief .ht-jobs [data-act]')].find(b=>b.getAttribute('aria-pressed')!=='true');b.click();await new Promise(r=>setTimeout(r,400));const h=[...document.querySelectorAll('.ht-brief h2')].pop();return h&&h.textContent});
     ok(other&&other!==ch.t1,'clicking the other job switches the brief ('+ch.t1+' -> '+other+')');await ev(()=>{const H=window.__ht;H.UIacts['brief:no']();H.step(1)})}
 

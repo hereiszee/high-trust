@@ -42,6 +42,10 @@ const L=[];const log=(...a)=>{const s=a.map(x=>typeof x==='string'?x:JSON.string
       const go=s.acts.find(a=>a==='result:go')||s.acts.find(a=>/close|go$/.test(a));if(!go)break;await ev(a=>{const H=window.__ht;H.UIacts[a]();H.step(2)},go)}
     await ev(()=>{const H=window.__ht;if(H.mode==='home'){H.exitHome('front');H.step(3)}if(H.mode!=='hub'){H.enterHub();H.step(2)}if(H.HUD.screen&&H.HUD.screen!=='pause'){try{H.HUD.hide(H.HUD.screen)}catch(e){}}H.running=true});return cards};
   let cards=await settle();if(cards.length)log('cards at start',cards);
+  /* --resume id,id,...[:trust:trustR:cuffed]  continue a walk the container's memory cut short: those jobs done (as the walk left them), then on */
+  const RES=arg('resume',null);if(RES){const [ids,t,tr,cf]=RES.split(':');log('RESUME after '+ids+' trust '+t+' / R '+tr+' cuffed '+cf);
+    await ev(([ids,t,tr,cf])=>{const H=window.__ht,S=HT.Save,s=S.data;for(const id of ids.split(',')){const i=H.jobs.index(id);if(i>=0)H.prog.done[i]=true;S.jobRec(s,id).done=true}
+      s.flags.finale2=true;if(H.prog.done[1]){s.flags.act2Intro=true;H.WM.beat=true;s.world.bridgeOpen=true;H.prog.act=2}if(t)H.prog.trust=+t;if(tr)H.prog.trustR=+tr;if(cf)H.prog.cuffed=+cf;H.enterHub();H.step(3)},[ids,t,tr,cf]);cards=await settle();if(cards.length)log('cards on resume',cards)}
   for(let k=0;k<MAX;k++){
     const st=await ev(()=>window.__W.hubState());steps.push(st);
     const storyLeft=(await ev(()=>window.__ht.MISSIONS.filter((m,i)=>!m.repeatable&&!window.__ht.prog.done[i]).map(m=>m.id)));
