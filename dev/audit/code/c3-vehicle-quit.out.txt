@@ -1,0 +1,4 @@
+in tank, sight up: {"mode":"hub","screen":null,"CV":"tank","driving":true,"fp":true,"reticleShown":false,"P":[216,199],"dudeVis":false}
+title: {"mode":"title","screen":"title","CV":null,"driving":false,"fp":false,"reticleShown":false,"P":[39,15],"dudeVis":true}
+after Continue: {"mode":"hub","screen":null,"CV":null,"driving":false,"fp":false,"reticleShown":false,"P":[31,19],"dudeVis":true}
+no console errors

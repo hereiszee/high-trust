@@ -1,0 +1,4 @@
+job: {"started":true,"mode":"mission","job":"sabotage","state":"go","night":1}
+title: {"mode":"title","screen":"title","nightTarget":1,"nightK":0.35}
+title, live frames for 2.5 s: {"stealthGemOnTitle":["Lit up"],"titleVisible":true,"nightTarget":1,"nightK":0.35}
+no console errors

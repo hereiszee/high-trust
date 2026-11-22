@@ -80,6 +80,7 @@ html,body{height:100%;margin:0;background:var(--ink);color:var(--paper);font-fam
 <script src="vendor/three-r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="js/hud.js"></script>
 <script src="js/credits.js"></script><!-- Credits & licences text (title and pause menus) -->
+<script src="js/fpscap.js"></script><!-- Frame rate cap limiter -->
 <script src="js/fx.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/guns.js"></script>
@@ -1887,6 +1888,7 @@ function carLabel(e){return e===VAN||!e?'Family minivan':e.name+"'s "+feel(e).la
 function hubObj(){if(JOB===null)return;const m=MISSIONS[JOB];const k=JOB+'|'+VAN.on;if(k===objKey)return;objKey=k;
   setObj(m.title,[[VAN.on&&CV!==VAN?'Borrow a ride':'Get in the minivan',VAN.on],'Drive the crew to '+m.place])}
 function enterHub(o){
+  if(!(M&&M.state==='won'))metaJobRollback();/* SAV-04: any way out of a job that wasn't a win drops what it earned */
   mode='hub';M=null;clearChars();buildLevel(HUB);makePlayer();
   engine(false);JOB=null;objKey='';makeHubVan();HUD.minimap.setPins([{id:'home',kind:'home',label:'Home',x:L.start.x,z:L.start.z,fast:true},{id:'drive',kind:'travel',label:"The minivan's spot",x:L.vanStart.x,z:L.vanStart.z,fast:true}]);destRings=(L.dests||[]).map(d=>{const g=new THREE.Group();const r=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.06,32),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.35}));r.position.y=.04;g.add(r);
     const w=new THREE.Mesh(new THREE.CylinderGeometry(4,4,4,32,1,true),new THREE.MeshBasicMaterial({color:lin('#ffc94a'),transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));w.position.y=2;g.add(w);g.position.set(d.x,0,d.z);g.visible=false;L.group.add(g);return g});
@@ -2025,7 +2027,7 @@ function showCredits(){const C=window.HT&&HT.Credits;if(!C)return;const e=t=>Str
 function titleFocus(){if(HUD.screen!=='title'||HUD.dialogOpen)return;const c=document.querySelector('.ht-title [data-act=continue]');const b=(c&&!c.hidden&&!c.disabled)?c:document.querySelector('.ht-title [data-act=newgame]');if(b&&!b.disabled)b.focus({preventScroll:true})}
 /* title backdrop: stand in the street (the minivan's spot) looking down the road, not at a house wall */
 function titlePose(){const v=L&&L.vanStart;if(v)P.pos.set(v.x,0,v.z);else P.pos.copy(L.start);P.yaw=-Math.PI/2+.35;P.pitch=-.1}
-function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
+function quitToTitle(){pauseOpen=false;if(M)M.state='abandoned';metaJobRollback();engine(false);VAN.on=false;JOB=null;clearChars();M=null;mode='title';running=false;releaseLock();
   buildLevel(HUB);makePlayer();P.pos.copy(L.start);resetMove();P.yaw=.4;P.pitch=-.12;titlePose();vm.visible=false;UI.obj=UI.prompt=UI.marker=UI.sub=null;showTitle()}
 HUD.on('action',(a,arg)=>{
   if(a==='continue'){start()}
@@ -2039,7 +2041,7 @@ HUD.on('action',(a,arg)=>{
   else if(a==='credits'){showCredits()}
   else if(UI.acts[a])UI.acts[a](arg);
   else if(a==='resume'){if(pauseOpen)closePause()}
-  else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';enterHub();canvasFocus();requestLock()}
+  else if(a==='abandon'){pauseOpen=false;HUD.hide('pause');if(M)M.state='abandoned';metaJobRollback();enterHub();canvasFocus();requestLock()}
   else if(a==='quit'){if(mode==='mission'&&M&&M.state==='go'){HUD.dialog({kicker:M.def&&M.def.title||'Job in progress',title:'Quit to title?',text:'Progress in this job will be lost. Everything from finished jobs and purchases is saved.\n\nNext time, the job starts from the beginning.',
       buttons:[{label:'Quit to title',act:'ok',cls:'dng'},{label:'Keep playing',act:'cancel',cls:'pri'}],focus:'cancel'}).then(r=>{if(r==='ok')quitToTitle()})}else quitToTitle()}
   else if(a==='resetSave'){Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});metaResetSave()}});
@@ -2886,11 +2888,13 @@ function metaOnBuy(r){
 if(HTM('Shop')&&HT.Shop.gltfThumbs&&!HT.Shop.thumbRenderer&&THREE.GLTFLoader){try{HT.Shop.thumbRenderer=HT.Shop.gltfThumbs(THREE,new THREE.GLTFLoader(),{kinds:['furn','gun','car','gar','cos']})}catch(e){console.warn('shop thumbnails unavailable',e)}}
 
 /* ---------- payout ---------- */
-function metaMissionStart(i){if(!M)return;M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;
+/* SAV-04: what a job earns (zip-ties, trust) is held until it is won; quit, abandon and fail roll it back (js/save.js jobOpen) */
+function metaJobRollback(){try{if(SAVEM&&SAVEM.jobRollback)SAVEM.jobRollback()}catch(e){console.warn('job rollback failed',e)}}
+function metaMissionStart(i){if(!M)return;metaJobRollback();try{if(SAVEM&&SAVEM.jobOpen)SAVEM.jobOpen()}catch(e){}M.rerun=!!prog.done[i];M.ss0=prog.shotSurr;M.allyDowns=M.allyDowns||0;
   /* no job starts on a wreck: the crew gives the van a once-over to 85% (jobs are balanced for a healthy van; Dad's Auto does the rest) */try{if(VAN&&carFrac(VAN)<JOB_PATCH){carRepair(VAN,carHpMax(VAN)*JOB_PATCH-carHp(VAN),{fresh:false});setTimeout(()=>radio(speaker()||'you',"Gary zip-tied the bumper back on. She'll hold. Probably."),1800)}}catch(_){}
   metaSave()}
 /* the result screen: payout rows in the HUD's payout slot, "Head home" as the main button and the street as the other */
-function metaResult(ok,res,mi){if(!M||!ECON)return null;const m=M.def;let pay=null;
+function metaResult(ok,res,mi){if(SAVEM){try{ok?SAVEM.jobCommit():SAVEM.jobRollback()}catch(e){}}if(!M||!ECON)return null;const m=M.def;let pay=null;
   try{pay=ECON.computePayout({mission:m.reg?m.id:M.i,ok,cuffs:M.cuffs,confiscated:M.confiscated||0,allyDowns:M.allyDowns||0,got:M.got||0,timeLeft:Math.max(0,M.t||0),elapsed:M.elapsed,
     bossDone:M.bossDone,exec:Math.max(0,prog.shotSurr-(M.ss0||0)),trust:m.hood==='river'?prog.trustR:prog.trust,rerun:!!M.rerun,...(M.payX||{})});ECON.applyPayout(pay)}catch(e){console.warn('payout failed',e);return null}
   /* Coach Rick lets you keep the carbine after his job */
@@ -4364,7 +4368,7 @@ const CP={
     const snap={stage,player:{x:P.pos.x,z:P.pos.z,yaw:P.yaw,hp:P.hp,weapons:Object.assign({},P.loadout),cur:P.cur,ammo,pool:Object.assign({},P.pool),inCar:!!VAN.on,
       car:car?{i:ci,van:car===VAN,x:car.pos.x,z:car.pos.z,yaw:car.yaw,hp:car.car?car.car.hp:null}:null},
       crew:allies.map(a=>({id:a.id,x:a.pos.x,z:a.pos.z,ride:!!a.ride})),cars:(M.borrowed||[]).map(c=>({i:L.cars.indexOf(c),x:c.pos.x,z:c.pos.z,yaw:c.yaw})),
-      job:j&&j.save&&!j.builtin?j.save(M):null,t:M.elapsed};
+      job:j&&j.save&&!j.builtin?j.save(M):null,t:M.elapsed,gain:SAVEM&&SAVEM.jobGain?SAVEM.jobGain():null};
     const txt=JSON.stringify(snap);if(txt.length>16384)console.warn('[CP] snapshot over 16 KB: '+txt.length);
     const sn=JRS.cp.snaps,k=sn.findIndex(s=>s.stage===stage);if(k>=0)sn[k]=JSON.parse(txt);else sn.push(JSON.parse(txt));M.stage=stage;
     if(!opt.quiet&&HUD.checkpoint)try{HUD.checkpoint(cpLabel(stage))}catch(_){}return snap},
@@ -4376,7 +4380,8 @@ function cpRestore(s){const p=s.player;if(!p)return;
   if(p.inCar&&M.car){if(!CV)enterCar(M.car)}else{if(CV)exitCar();P.pos.set(p.x,0,p.z);P.yaw=p.yaw;collide(P.pos,.35);resetMove()}
   P.hp=p.hp||100;for(const g in p.ammo||{})if(P.ammo[g])P.ammo[g].mag=p.ammo[g];if(p.pool)Object.assign(P.pool,p.pool);/* a stage retry refills ammo to the snapshot, not to full */
   for(const c of s.crew||[]){const a=allies.find(a=>a.id===c.id);if(a){a.pos.set(c.x,0,c.z);a.ride=!!c.ride&&!!CV;a.dude.root.visible=!a.ride}}
-  if(s.t!=null)M.elapsed=s.t}
+  if(s.t!=null)M.elapsed=s.t;
+  if(s.gain&&SAVEM&&SAVEM.jobApply)SAVEM.jobApply(s.gain)/* SAV-04: a retry from a checkpoint hands back what the job had earned by then (still uncommitted) */}
 /* stealth broken (owner decision 2): escalate into a fight and lose the clean bonus, unless the job fails softly to its checkpoint */
 function jobSpotted(why){if(!M||M.state!=='go')return;M.clean=false;M.spotted=(M.spotted||0)+1;
   if(M.def.failPolicy==='soft')return endMission(false,why||"Somebody spotted you. Back to the van, try it again.","Spotted.");
@@ -4483,8 +4488,9 @@ function groundPass(sign){if(L)stepPass(sign);if(sign>0&&L&&L.ow){const O=OW();i
 function stepPass(sign){for(const e of[...allies,...npcs,...enemies]){const r=e.dude&&e.dude.root;if(!r)continue;
   if(sign>0){const b=baseGroundY(r.position.x,r.position.z);e.stepY=Math.max(0,supportAt(r.position.x,r.position.z,b+.05,.15).y-b)}if(e.stepY)r.position.y+=sign*e.stepY}}
 let last=performance.now();
+const FCAP=window.HT&&HT.FrameCap?HT.FrameCap.make(window.HTDesktop&&HTDesktop.refreshRate):null;
 function frame(now){
-  {const cap=+CFG.fpsCap||0;if(cap>0&&now-last<1000/cap-2){requestAnimationFrame(frame);return}}/* Frame rate cap setting; 0 = display rate (VSync) */
+  if(FCAP&&!FCAP.gate(now,+CFG.fpsCap||0)){requestAnimationFrame(frame);return}/* Frame rate cap setting (js/fpscap.js); 0 = display rate (VSync) */
   const dt=Math.min(.05,(now-last)/1000);last=now;
   if(running&&L){simT+=dt;
     (VAN.on?updVan:updPlayer)(dt);carTick(dt);
