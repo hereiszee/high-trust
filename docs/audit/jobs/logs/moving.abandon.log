@@ -1,0 +1,23 @@
+{"step":"info","stages":["unload","couch","piano"],"roam":false,"night":false,"noGuns":false,"stay":false,"fp":"escalate","builtin":false}
+{"step":"unlock","lock":null}
+{"step":"base","mode":"hub","running":true,"M":null,"JOB":null,"night":{"target":0,"k":0},"jrsNight":false,"hp":100,"loadout":"{\"side\":\"pistol\",\"p1\":\"shotgun\",\"p2\":\"rifle\"}","cur":"pistol","gunShown":false,"CV":null,"vanOn":false,"vanVisible":true,"cars":15,"carsHidden":0,"wmObjs":0,"wmInScene":0,"lgroup":94,"scene":20,"solids":497,"cols":2406,"enemies":0,"allies":3,"fov":74,"zoom":1,"keysHeld":[],"overlays":[],"screen":null,"obj":"Maple Heights","noTraffic":false,"traffic":1,"timeScale":null,"pos":[31,19],"widgets":0,"cp":null,"vm":false,"cash":0,"flags":154,"borrowed":"null","prompt":null}
+{"step":"start","mode":"mission","running":true,"M":{"id":"moving","state":"go","stage":"unload","replay":false,"retried":false,"noGuns":true,"item":null},"JOB":null,"night":{"target":0,"k":0},"jrsNight":false,"hp":100,"loadout":"{\"side\":\"pistol\",\"p1\":\"shotgun\",\"p2\":\"rifle\"}","cur":"rifle","gunShown":false,"CV":null,"vanOn":false,"vanVisible":true,"cars":15,"carsHidden":0,"wmObjs":13,"wmInScene":13,"lgroup":107,"scene":13,"solids":497,"cols":2407,"enemies":0,"allies":4,"fov":74,"zoom":1,"keysHeld":[],"overlays":["moving-crew"],"screen":null,"obj":"Maple Heights","noTraffic":false,"traffic":1,"timeScale":null,"pos":[380,64],"widgets":0,"cp":"moving","vm":false,"cash":0,"flags":154,"borrowed":"null","prompt":null}
+{"step":"at","stage":"unload","snap":{"mode":"mission","running":true,"M":{"id":"moving","state":"go","stage":"unload","replay":false,"retried":false,"noGuns":true,"item":null},"JOB":null,"night":{"target":0,"k":0},"jrsNight":false,"hp":100,"loadout":"{\"side\":\"pistol\",\"p1\":\"shotgun\",\"p2\":\"rifle\"}","cur":"rifle","gunShown":false,"CV":null,"vanOn":false,"vanVisible":true,"cars":15,"carsHidden":0,"wmObjs":13,"wmInScene":13,"lgroup":107,"scene":13,"solids":497,"cols":2407,"enemies":0,"allies":4,"fov":74,"zoom":1,"keysHeld":[],"overlays":["moving-crew"],"screen":null,"obj":"Maple Heights","noTraffic":false,"traffic":1,"timeScale":null,"pos":[380,64],"widgets":0,"cp":"moving","vm":false,"cash":0,"flags":154,"borrowed":"null","prompt":null}}
+{"step":"fail","stage":"unload","way":"down","f":{"state":"lost","stage":"unload"}}
+{"step":"card","stage":"unload","c":{"shown":true,"stamp":"Job failed · 3rd St at Mill St, Riverside","title":"The guys carried you to the van.","btns":[{"act":"result:go","label":"Head home"},{"act":"result:retry","label":"Retry from Moving day"},{"act":"result:restart","label":"Restart job"}],"acts":["result:retry","result:go","result:restart"]}}
+{"step":"after","stage":"unload","act":"result:retry","clicked":true,"snap":{"mode":"mission","running":true,"M":{"id":"moving","state":"go","stage":"unload","replay":false,"retried":true,"noGuns":true,"item":null},"JOB":null,"night":{"target":0,"k":0},"jrsNight":false,"hp":100,"loadout":"{\"side\":\"pistol\",\"p1\":\"shotgun\",\"p2\":\"rifle\"}","cur":"rifle","gunShown":false,"CV":null,"vanOn":false,"vanVisible":true,"cars":15,"carsHidden":0,"wmObjs":13,"wmInScene":13,"lgroup":107,"scene":13,"solids":497,"cols":2407,"enemies":0,"allies":4,"fov":74,"zoom":1,"keysHeld":[],"overlays":["moving-crew"],"screen":null,"obj":"Maple Heights","noTraffic":false,"traffic":1,"timeScale":null,"pos":[380,64],"widgets":0,"cp":"moving","vm":false,"cash":38,"flags":154,"borrowed":"null","prompt":null},"diff":{"stage":["unload","unload"],"wmObjs":[13,13],"lgroup":[107,107],"enemies":[0,0],"allies":[4,4],"solids":[497,497],"cols":[2407,2407],"overlays":[["moving-crew"],["moving-crew"]]}}
+page.evaluate: TypeError: Cannot read properties of null (reading 'mag')
+    at memOf (http://ht.local/js/ai.js:390:134)
+    at AI.shotFired (http://ht.local/js/ai.js:655:56)
+    at aiShot (http://ht.local/index.html:2401:266)
+    at shootAt (http://ht.local/index.html:2272:63)
+    at aiAlly (http://ht.local/index.html:2440:80)
+    at updAlly (http://ht.local/index.html:2515:40)
+    at Object.step (http://ht.local/index.html:4545:210)
+    at A.play (eval at evaluate (:311:30), <anonymous>:23:168)
+    at eval (eval at evaluate (:311:30), <anonymous>:1:23)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at ev (/home/user/high-trust/dev/audit/jobs/probe.js:13:60)
+    at /home/user/high-trust/dev/audit/jobs/probe.js:30:28 {
+  log: []
+}

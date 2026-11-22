@@ -30,10 +30,10 @@ function install(){const H=window.__ht,A=window.__A={};const k=H.keys;
       keysHeld:Object.keys(k).filter(x=>k[x]),overlays:ov,screen:H.HUD.screen||null,obj:H.HUD&&window.__ht.jobs&&(document.querySelector('.ht-obj h3,.ht-obj .t')||{}).textContent||null,
       noTraffic:!!H.OWS.noTraffic,traffic,timeScale:H.timeScale||null,pos:[Math.round(H.P.pos.x),Math.round(H.P.pos.z)],
       widgets:document.querySelectorAll('.ht-wg > *, .ht-mt > *').length,cp:H.jobs.JRS.cp?H.jobs.JRS.cp.id:null,
-      vm:!!(window.__ht.dude&&H.P&&H.P.vmVisible),prompt:(document.querySelector('.ht-prompt')||{}).textContent||null}};
+      vm:!!(window.__ht.dude&&H.P&&H.P.vmVisible),cash:(A.SV()||{}).cash,flags:JSON.stringify((A.SV()||{}).flags||{}).length,borrowed:JSON.stringify(H.BORROW&&H.BORROW.list?H.BORROW.list:null),prompt:(document.querySelector('.ht-prompt')||{}).textContent||null}};
   A.unlock=id=>{const j=H.jobs.registry.get(id),u=j.def.unlock||{},s=A.SV();for(const d of[].concat(u.done||[])){const i=H.jobs.index(d);if(i>=0)H.prog.done[i]=true;if(s&&window.HT.Save.jobRec)window.HT.Save.jobRec(s,d).done=true}
     if(u.trust)H.prog.trust=Math.max(H.prog.trust,u.trust);if(u.trustR)H.prog.trustR=Math.max(H.prog.trustR||0,u.trustR);if(u.cuffed)H.prog.cuffed=Math.max(H.prog.cuffed||0,u.cuffed);if(j.test&&j.test.give)j.test.give(A.api());
-    try{const sv=H.save;if(sv&&sv.flags&&H.prog.done[1]){sv.flags.act2Intro=true;H.prog.act=Math.max(H.prog.act||1,2)}}catch(e){}return H.jobs.lock(id)};
+    try{const sv=A.SV();if(H.prog.done[1]){if(sv&&sv.flags)sv.flags.act2Intro=true;H.WM.beat=true;H.prog.act=Math.max(H.prog.act||1,2)}}catch(e){}return H.jobs.lock(id)};
   A.cast=async id=>{const pm=window.HT&&HT.People;if(!pm||!pm.preload)return;const want=H.jobs.castKeys(id);await Promise.race([pm.preload(want).catch(()=>{}),new Promise(r=>setTimeout(r,25000))])};
   A.play=(id,o,max,untilSrc)=>{const j=H.jobs.registry.get(id),a=A.api(),until=untilSrc?new Function('M','H','return ('+untilSrc+')'):null;let t=0;A.f=A.f||0;
     for(;t<max&&H.M&&H.M.state==='go';t++){if(until&&until(H.M,H))break;if(j.test&&j.test.step)j.test.step(a,A.f++,o||{});if(!(o&&o.hurt))H.P.hp=Math.max(H.P.hp,60);H.step(1)}
