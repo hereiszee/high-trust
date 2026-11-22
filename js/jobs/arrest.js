@@ -841,7 +841,7 @@ J.register('arrest',{
 });
 /* restoring a checkpoint: the clues and notes come back onto the fresh crowd */
 function applyLoad(O){if(!O.spawned)return;O.pendingLoad=false;(O.savedNotes||[]).forEach((ns,i)=>{const c=O.cols[i];if(!c)return;c.notes=ns.map(n=>({k:n[0],icon:n[1],txt:n[2],bad:!!n[3]}));for(const n of c.notes)c['n_'+n.k]=1});
-  O.nbDirty=true;if(O.stage==='aside'){const sk=O.cols[O.skim];sk.seen=K.idTell}O.nbOn=O.talked}
+  O.nbDirty=true;if(O.stage==='aside'){const sk=O.cols[O.skim];sk.seen=K.idTell;/* JOBS-AUDIT: what identify() sets up: Rosa watching from the east end, Gary closer, the music */try{if(O.rosa)crewUp(O)}catch(_){}try{music('tension',.3)}catch(_){}}O.nbOn=O.talked}
 
 /* ---------------- objectives, markers, prompts ---------------- */
 function stageObjs(O,M,F){const a=A(),P=a.P,sk=O.cols[O.skim],E=KEY_E();

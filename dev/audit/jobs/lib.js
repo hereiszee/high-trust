@@ -8,8 +8,11 @@
      card()            the result card as the player sees it (buttons + data-act)
    Node side: click(p,act) clicks a HUD button with a real mouse click; live(p,ms) lets the real rAF loop run. */
 const {open}=require('../../ai-ingame-lib.js');
+/* the shared rAF pause keeps only the LAST callback requested while paused, so a UI animation (a pause-menu fade, a letterbox) can
+   replace the game's frame() and live() then never restarts the loop (seen: simT frozen after Esc -> Abandon). Queue them all instead. */
+function rafQueue(){const shim=window.requestAnimationFrame;window.__rafQ=[];window.requestAnimationFrame=cb=>{if(window.__rafOn)return shim(cb);if(!window.__rafQ.includes(cb))window.__rafQ.push(cb);return 0}}
 async function boot(o={}){
-  const r=await open(o);const {p}=r;
+  const r=await open(Object.assign({init:rafQueue},o));const {p}=r;
   await p.click('.ht-title [data-act=newgame]');await p.waitForTimeout(400);
   await p.evaluate(async()=>{await window.__ht.jobs.ready;window.__ht.step(2)});
   await p.evaluate(install);
@@ -42,8 +45,8 @@ function install(){const H=window.__ht,A=window.__A={};const k=H.keys;
     return{shown:H.HUD.screen==='result',stamp:(c.querySelector('.stamp,.ht-stamp')||{}).textContent||null,title:(c.querySelector('h2')||{}).textContent||null,btns,acts:Object.keys(H.UIacts||{})}};
 }
 async function click(p,act){const sel='[data-act="'+act+'"]';const el=await p.$(sel);if(!el)return false;
-  const v=await el.isVisible();if(!v)return false;await el.click({timeout:5000}).catch(async()=>{await p.evaluate(s=>document.querySelector(s).click(),sel)});return true}
-async function live(p,ms){await p.evaluate(()=>{window.__rafOn=true;const c=window.__rafPending;window.__rafPending=null;if(c)requestAnimationFrame(c)});await p.waitForTimeout(ms);await p.evaluate(()=>{window.__rafOn=false})}
+  const v=await el.isVisible();if(!v)return false;const ok=await el.click({timeout:5000}).then(()=>true).catch(async()=>p.evaluate(s=>{const e=document.querySelector(s);if(!e)return false;e.click();return true},sel));return ok}
+async function live(p,ms){await p.evaluate(()=>{window.__rafOn=true;const q=(window.__rafQ||[]).splice(0);const c=window.__rafPending;window.__rafPending=null;if(c&&!q.includes(c))q.push(c);for(const f of q)requestAnimationFrame(f)});await p.waitForTimeout(ms);await p.evaluate(()=>{window.__rafOn=false})}
 /* wait for the fail/win card: it is shown by a 0.9-1.2 s setTimeout */
 async function waitCard(p,ms=4000){await p.evaluate(()=>window.__ht.step(40));const t0=Date.now();while(Date.now()-t0<ms){const s=await p.evaluate(()=>window.__ht.HUD.screen);if(s==='result')break;await p.waitForTimeout(200)}return p.evaluate(()=>window.__A.card())}
 module.exports={boot,click,live,waitCard,install};

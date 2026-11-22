@@ -331,13 +331,15 @@ J.register('moving',{
     hud(M,F)},
 
   save:M=>{const V=S(M);if(!V)return{};return{pct:Math.round(V.pct*10)/10,you:V.you,scuffs:V.scuffs,china:V.china,andre:V.andre,cd:!!V.couchDone,pd:!!V.pianoDone,wave:V.waveI,calm:Math.round(V.calm),
-    orders:Object.assign({},V.orders),lost:V.lost,talked:V.talked,tackled:V.tackled,pianoBonks:V.pianoBonks||0}},
+    orders:Object.assign({},V.orders),lost:V.lost,talked:V.talked,tackled:V.tackled,pianoBonks:V.pianoBonks||0,st:M.stage||null}},
   load(M,s){const V=S(M);if(!V||!s)return;V.pct=s.pct||0;V.you=s.you|0;V.scuffs=s.scuffs|0;V.china=s.china||'truck';V.andre=s.andre||'none';V.couchDone=!!s.cd;V.pianoDone=!!s.pd;V.waveI=s.wave|0;
     V.calm=Math.max(60,s.calm||K.calm0);V.lost=s.lost|0;V.talked=s.talked|0;V.tackled=s.tackled|0;V.pianoBonks=s.pianoBonks|0;if(s.orders)for(const id in s.orders)V.orders[id]=s.orders[id];
     if(V.couchDone)couchGone(M);if(V.pianoDone)pianoGone(M);
     /* resume the stage this checkpoint opened */
-    if(M.stage==='couch'&&!V.couchDone){V.pct=Math.max(V.pct,K.couchAt);startCouch(M,true)}
-    else if(M.stage==='piano'&&!V.pianoDone){V.pct=Math.max(V.pct,K.pianoAt);startPiano(M,true)}},
+    /* JOBS-AUDIT: M.stage is still null while load() runs (index.html sets it after), so the snapshot carries its own stage */
+    const st=M.stage||s.st;
+    if(st==='couch'&&!V.couchDone){V.pct=Math.max(V.pct,K.couchAt);startCouch(M,true)}
+    else if(st==='piano'&&!V.pianoDone){V.pct=Math.max(V.pct,K.pianoAt);startPiano(M,true)}},
 
   payout(M,ok){const V=S(M);if(!ok||!V)return[];const out=[];
     if(V.you>=K.silver)out.push(['Helping hands · '+V.you+' boxes',200]);

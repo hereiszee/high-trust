@@ -15,7 +15,11 @@ const {boot,click,waitCard}=require('./lib.js');
   await ev(()=>{window.__ht.jobs.api.endMission(false,'audit');});await waitCard(p);await click(p,'result:restart');await ev(()=>window.__ht.step(3));
   console.log('2 restarted',JSON.stringify(await st()));
   await ev(()=>{window.__ht.jobs.api.endMission(false,'audit: fail at the walk up')});const c=await waitCard(p);console.log('2 fail card',JSON.stringify(c.btns.map(x=>x.label)));
-  await click(p,'result:retry');await ev(()=>window.__ht.step(1));console.log('2 one frame after "Retry from The walk up"',JSON.stringify(await st()));
-  await ev(()=>window.__ht.step(30));console.log('2 one second later',JSON.stringify(await st()));
-  await ev(()=>window.__ht.jobs.api.endMission(false,'audit: fail in the conversation'));const c2=await waitCard(p);console.log('3 fail card in the conversation offers',JSON.stringify(c2.btns.map(x=>x.label)));
-  console.log('page errors',JSON.stringify(errs.filter(e=>!/favicon/.test(e)).slice(0,3)));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+  await click(p,'result:retry');await ev(()=>window.__ht.step(1));const r1=await st();console.log('2 one frame after "Retry from The walk up"',JSON.stringify(r1));
+  await ev(()=>window.__ht.step(30));const r2=await st();console.log('2 one second later',JSON.stringify(r2));
+  /* regression (fix/jobs): the bot walks up and sits again, which marks 'talk' */
+  await ev(()=>window.__A.play('talk',{},6000,"M.seated"));const r3=await st();console.log('2 seated by the bot after the retry',JSON.stringify(r3));
+  await ev(()=>window.__ht.jobs.api.endMission(false,'audit: fail in the conversation'));const c2=await waitCard(p);const L2=c2.btns.map(x=>x.label);console.log('3 fail card in the conversation offers',JSON.stringify(L2));
+  const pe=errs.filter(e=>!/favicon/.test(e));console.log('page errors',JSON.stringify(pe.slice(0,3)));
+  const ok=!r1.seated&&!r2.seated&&r1.stage==='arrive'&&r3.seated&&r3.stage==='talk'&&L2.includes('Retry from The conversation')&&!pe.length;
+  console.log(ok?'PASS J-05: the walk-up retry walks, and the conversation checkpoint is marked':'FAIL J-05');await b.close();process.exit(ok?0:1)})().catch(e=>{console.error(e);process.exit(1)});
