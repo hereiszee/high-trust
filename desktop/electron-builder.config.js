@@ -43,6 +43,18 @@ module.exports = {
     extendInfo: { NSHighResolutionCapable: true, LSApplicationCategoryType: 'public.app-category.action-games', GCSupportsControllerUserInteraction: true }
   },
   publish: null, /* Steam delivers updates */
+  /* Electron's own licences (Electron MIT; Chromium, Node.js, V8 and their libraries): electron-builder leaves them in the output folder
+     beside the exe/.app; also copy them into resources/ (Contents/Resources on macOS) so they travel inside the app and its zip.
+     THIRD-PARTY-NOTICES.txt points there; dev/check-build.js checks a built dist has them. */
+  afterPack: async ctx => {
+    const fs = require('fs'), path = require('path'), out = ctx.appOutDir;
+    const app = fs.readdirSync(out).find(f => f.endsWith('.app'));
+    const res = app ? path.join(out, app, 'Contents', 'Resources') : path.join(out, 'resources');
+    for (const f of ['LICENSE.electron.txt', 'LICENSES.chromium.html']) {
+      const src = [path.join(out, f), ...(app ? [path.join(out, app, 'Contents', 'Frameworks', 'Electron Framework.framework', 'Resources', f)] : [])].find(p => fs.existsSync(p));
+      if (src) fs.copyFileSync(src, path.join(res, f)); else console.warn('  • afterPack: ' + f + ' not found in ' + out);
+    }
+  },
   /* no Developer ID: ad-hoc sign the whole bundle (arm64 code must carry at least an ad-hoc signature to run, and electron-builder 26.0
      only signs with a certificate). Gatekeeper still blocks it until it is notarised; this just lets it run on Apple Silicon after
      right-click → Open / removing the quarantine flag (docs/steam/PLAYTEST.md). */

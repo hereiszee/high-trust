@@ -1,0 +1,7 @@
+boarded: {"cv":"jet","on":true}
+after eject: {"chute":{"y":158.73444444444445,"open":false},"cv":false,"P":[41.7,40]}
+screen: pause
+after quit to title: {"screen":"title","mode":"title","chute":{"y":158.73444444444445,"open":false},"F_on":false}
+title backdrop, 5 steps later: {"P":[39,15],"dudeY":0,"dudeVis":true}
+after Continue: {"mode":"hub","chute":{"y":161.69333333333333,"open":false},"P":[38.3,40],"dudeY":161.7}
+no console errors

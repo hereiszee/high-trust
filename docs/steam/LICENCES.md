@@ -47,6 +47,10 @@ Not blockers, but they should be fixed in the same pass:
 | three.js r128 `three.min.js` | vendored: `vendor/three-r128/` (was CDN) | three.js authors (mrdoob and contributors) | MIT | yes | MIT notice must accompany copies | three.js repo LICENSE (MIT); vendor/three-r128/LICENSE | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
 | three.js r128 examples: GLTFLoader, RGBELoader, SkeletonUtils, EffectComposer, ShaderPass, UnrealBloomPass, CopyShader, LuminosityHighPassShader, FXAAShader | vendored: `vendor/three-r128/` (was CDN) | three.js authors (FXAA shader after NVIDIA/T. Lottes, bloom after a three.js contributor) | MIT (as part of the three.js package) | yes | same notice as three.js | npm three@0.128.0 package licence | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
 | `meshopt_decoder.js` (three@0.128.0/examples/js/libs) | vendored: `vendor/three-r128/` (was CDN) | Arseny Kapoulkine (meshoptimizer) | MIT | yes | MIT notice | meshoptimizer licence (MIT) | OK (vendored with LICENSE / LICENSE-meshoptimizer; vendor/README.md) |
+| Electron 45.4.1 (desktop runtime), which includes Chromium, Node.js and V8 | the desktop shell itself (`desktop/package.json`) | Electron contributors, GitHub Inc.; the Chromium and Node.js authors | MIT (Electron); Chromium/Node.js: BSD-style and many others, listed in `LICENSES.chromium.html` | yes | licence texts must accompany copies | `LICENSE.electron.txt` and `LICENSES.chromium.html`, which electron-builder puts beside the exe and `afterPack` (desktop/electron-builder.config.js) copies into `resources/` | OK (shipped; referenced from THIRD-PARTY-NOTICES.txt) |
+| steamworks.js 0.4.0 | production dependency, in `resources/app.asar.unpacked/node_modules/steamworks.js` | Gabriel Francisco Dos Santos | MIT | yes | MIT notice | its `LICENSE` ships with it | OK (also in THIRD-PARTY-NOTICES.txt) |
+| Steamworks SDK redistributables (`steam_api64.dll`, `libsteam_api.so`, `libsteam_api.dylib`) | inside steamworks.js's `dist/` | Valve Corporation | Steamworks SDK Access Agreement | yes, for Steam releases | — | Steamworks partner agreement | OK (named in THIRD-PARTY-NOTICES.txt) |
+| @types/node 24.x, undici-types 7.x | packed into `app.asar` as production transitive dependencies of steamworks.js (TypeScript typings, unused at runtime) | Microsoft Corporation; Matteo Collina and Undici contributors | MIT | yes | MIT notice | their `LICENSE` files ship inside the asar | OK (in THIRD-PARTY-NOTICES.txt) |
 | Google Fonts CSS `@import` (Barlow, Barlow Condensed, Bowlby One) | `css/menus.css:5` fetches from fonts.googleapis.com, a duplicate of the self-hosted woff2 files | see fonts rows | OFL 1.1 | yes | — | — | OK (remove the @import for the Steam build: it is a network call and a privacy point) |
 | Service worker `sw.js` | own code | High Trust | repo licence | — | — | — | OK (disable it in the desktop wrapper; see QA-GAPS.md) |
 | Horn tunes (`js/carai.js:67-74`): Shave and a Haircut (1899), Ode to Joy (Beethoven 1824), Take Me Out to the Ball Game (von Tilzer/Norworth 1908), Für Elise (Beethoven), William Tell Overture (Rossini 1829), The Entertainer (Joplin 1902) | note data, synthesized | composers listed | public domain compositions; no recordings used | yes | no | `assets/credits/menus.md` | OK |
@@ -54,7 +58,7 @@ Not blockers, but they should be fixed in the same pass:
 | Effects textures, vehicles, in-world signage, icons | procedural (`js/fx.js`, `js/vehicles.js`, `js/world.js`, `js/save.js`) | High Trust | repo licence | yes | no | `assets/credits/fx.md`, `CREDITS.md` "Vehicles" | OK |
 | Build tools (not shipped): glTF-Transform 4.1.1 (MIT), meshoptimizer 0.22.0 (MIT), sharp 0.33.5 (Apache-2.0, bundles libvips LGPL-3.0), Blender 5.0 (GPL; its output is not covered by the GPL) | `tools/package.json`, `tools/rocketbox/*` | — | — | — | not needed (not distributed) | — | OK |
 
-**Done: the libraries are vendored.** `three.min.js` r128 and the ten example files are in `vendor/three-r128/` with three.js's `LICENSE` and meshoptimizer's licence (provenance in `vendor/README.md`), and index.html loads them locally. The Google Fonts `@import` is gone (the fonts were already local). Desktop packages also carry `THIRD-PARTY-NOTICES.txt` at the install root.
+**Done: the libraries are vendored.** `three.min.js` r128 and the ten example files are in `vendor/three-r128/` with three.js's `LICENSE` and meshoptimizer's licence (provenance in `vendor/README.md`), and index.html loads them locally. The Google Fonts `@import` is gone (the fonts were already local). Desktop packages also carry `THIRD-PARTY-NOTICES.txt` at the install root, plus Electron's `LICENSE.electron.txt` and `LICENSES.chromium.html`. `node dev/check-build.js` fails if a packaged npm module has no notice, if those two files are missing from a built `desktop/dist/*-unpacked`, or if the in-game credits drift from `assets/credits/credits.txt`.
 
 ## Does the game have a credits screen?
 
@@ -62,7 +66,7 @@ Not blockers, but they should be fixed in the same pass:
 
 ## In-game CREDITS text
 
-**Single source of truth: `assets/credits/credits.txt`.** The in-game Credits screen loads or embeds that file verbatim; edit it there, never in code, and copy it here when it changes. Copy as of 2026-11-21:
+**Single source of truth: `assets/credits/credits.txt`.** The in-game Credits screen shows that file verbatim: `js/credits.js` is generated from it by `node tools/gen-credits.js`, and `node dev/audit/saves/credits-diff.js` (also run by `node dev/check-build.js`) fails if they drift. Edit it there, never in code, then regenerate and copy it here. Copy as of 2026-11-22:
 
 ```
 HIGH TRUST
@@ -105,7 +109,7 @@ MUSIC
 Horn tunes after public-domain compositions by Beethoven, Rossini,
   Joplin, and von Tilzer & Norworth
 
-Full licence texts: see THIRD-PARTY-NOTICES.txt in the install folder.
+Full licence texts: THIRD-PARTY-NOTICES.txt beside the game (macOS: inside the app, in Contents).
 Thank you to everyone who gives their work away.
 ```
 
