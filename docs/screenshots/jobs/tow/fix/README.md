@@ -46,4 +46,22 @@ Scripts are in `dev/tow-fix/`. Raw before/after output is next to them (`before-
 
 ## After
 
-See the test section of the report and `after-*.txt`. Screenshots: `before/*.jpg` and `after/*.jpg` (street cases `<street>-pass|hit|fold`, pick-ups `<car>-a-reversing / -b-hitched / -c-pulling-out`, the full key run `fix-*.jpg`).
+| Check | Before | After |
+|-------|--------|-------|
+| `pickup.js --var=all`: real-key back-up, hold E, pull out, 5 cars × 5 line-ups (on line, ±0.7 m, ±7°) | Benny 0/5 and Earl 0/5 hitched (the Quik-Hook truck in the stub); Hollis: truck touching its own car on every pull-out, 2 jack-knives | **25/25 hitched and out**, no touches of their own car. The only contact left is the Quik-Hook truck brushing past on Dock St as the rig turns out (it spawns mid-test here). |
+| `sweep.js`: extraction swept path, 5 cars × 2 exits × 5 hook-up offsets (±0.6 m, ±8°), static colliders | 8 of 50 overlap (east gate post, pen lamp, west gate post) | **50/50 clear** |
+| `street.js`: pass / nose-in + reverse out / full-lock fold, on Oak St (Kim), Ash St (427,73) and the 99 street (367,101) | 2 of 9 stuck for 100 s (Ash St and 99 street nose-ins), 1 snapped hitch, own-car contact in every fold | **9/9 done, none stuck, no snaps.** Reversing out takes 1.5–1.7 s. The parked car slides 1.5 m toward the kerb. Fold peaks at the soft stop. |
+| `full-keys.js`: whole towing part with real keys, all 5 cars (wedge + Reset, nose-in + yield, passes at (427,73) and (367,101)) | n/a | **won**, silver, $1,783, 605 of 720 s used, cars 95–100%. Reset was offered 4.1 s into the deliberate wedge and cost 8.9 s. |
+| `full-keys.js --pad`: the same with a fake standard pad only (stick, RT/LT, hold Y) | n/a | **won**, silver, $1,783, 614 of 720 s, cars 92–100% (the deliberate wedge didn't jam with the feathered stick, so Reset wasn't exercised on the pad) |
+| `node dev/tow.test.js` | | 8/8 (updated: no lock or jackknife in a full-lock reverse; self-straightening; snap at 15 m/s; hitch zone 3.1/3.3 m, 37/39°) |
+| `node dev/jobs-check.js tow --retry --replay` | | all ok |
+
+Screenshots: `before/*.jpg` and `after/*.jpg` (street cases `<street>-pass|hit|fold`, pick-ups `<car>-a-reversing / -b-hitched / -c-pulling-out`, the full key run `fix-*.jpg`), `after-pad/` (the pad run).
+
+## Known weaknesses
+
+- The towed body's push-out still rotates it past the 62° soft stop when it's shoved hard against something (up to ~79° seen). It no longer pins the truck, because the towed car isn't a collider for it.
+- Parked cars yield only while towing and at walking pace. An empty truck still has to steer round them like any car.
+- Kerbside cars on these 6 m streets stick about 1 m into the lane, so passing one means using some of the oncoming lane. Oncoming traffic now sees the rig and waits, but this headless world had no traffic on the test streets, so the "doesn't box you in" behaviour is from the code path, not an observed run.
+- "Reset the rig" is offered after 3 s of no progress on the throttle. Pressing the truck against a lamp at full lock counts. That's intended: it's an offer, and nothing happens unless you hold Use.
+- The real-key driver in `full-keys.js` is a scripted thumb. It still clips corner lamps now and then, and when it does it uses Reset as a player would.

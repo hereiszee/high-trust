@@ -32,7 +32,7 @@ const wrap=a=>{while(a>Math.PI)a-=2*Math.PI;while(a<-Math.PI)a+=2*Math.PI;return
   const diag=()=>ev(()=>{const H=window.__ht,c=H.CV&&H.CV.car,k=window.HT.Tow.link,C=window.__TF.contacts();let tr=[];try{const O=window.HT.OpenWorld;tr=(O.trafficLive?O.trafficLive():[]).filter(t=>c&&Math.hypot(t.c.x-c.x,t.c.z-c.z)<9).map(t=>[+t.c.x.toFixed(1),+t.c.z.toFixed(1),+t.c.spd.toFixed(1)])}catch(_){}
     return{x:c&&+c.x.toFixed(2),z:c&&+c.z.toFixed(2),yaw:c&&+c.yaw.toFixed(2),rel:k?Math.round((k.rel||0)*57):null,contacts:C,traffic:tr,spd:c&&+c.spd.toFixed(2),keys:Object.keys(H.keys).filter(x=>H.keys[x]).join('')}});
   /* drive a polyline with the pure-pursuit "thumb": binary keys PWM'd over 6 frames, or the analog stick on the pad */
-  const steerK=(k,st)=>{st=Math.max(-1,Math.min(1,st));if(PAD){k.st=-st;return}const q=(T%6)/6;k.a=st>0&&q<Math.abs(st);k.d=st<0&&q<Math.abs(st)};
+  const steerK=(k,st)=>{st=Math.max(-1,Math.min(1,st));const q=(T%6)/6;if(PAD){/* the stick has a 0.15 dead zone: small corrections are feathered (full deflection on some frames), as a thumb does */k.st=Math.abs(st)>.6?-st:(q<Math.abs(st)?-Math.sign(st)*.8:0);return}k.a=st>0&&q<Math.abs(st);k.d=st<0&&q<Math.abs(st)};
   const lyle=async s=>{if(s.ft!=='lyleout'||!s.link)return false;/* he's at the hitch: drive off */for(let i=0;i<40;i++){const s2=await S();const k={w:s2.spd<4};steerK(k,0);await input(k);await step(2);T++}return true};
   async function follow(pts,o={}){const v=o.v||9;let wi=0,stk=0;for(let i=0;i<(o.max||4000);i++){const s=await S();if(s.state!=='go')return'ended';if(!s.cv)return'out of car';
       if(await lyle(s))continue;if(o.until&&o.until(s))return'until';
