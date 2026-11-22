@@ -2063,7 +2063,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k===' '&&!VAN.on)P.jumpBuf=MOVE.buf;
   if(k==='r')reload();if(k==='v')P.fp=!P.fp;if(k==='c'||k==='control')P.crouch=!P.crouch;
   if(k==='1'||k==='2'||k==='3'){const w=P.loadout[SLOT_KEYS[+k-1]];if(w)swap(w)}
-  if(k==='q')swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);
+  if(k==='q'&&!(CV&&CV.type==='jet'))swap(P.weapons[(P.weapons.indexOf(P.cur)+1)%P.weapons.length]);/* in the jet Q is nose down (js/jet.js) */
   if(k==='h'&&VAN.on)honk();
   if(k==='f')nightToggle('flash');if(k==='n')nightToggle('nvg');/* flashlight, night-vision goggles (SKY + ENVIRONMENT: NIGHT) */
   if(k==='e')useTap=true});
@@ -2505,6 +2505,7 @@ function updEnemy(e,dt){
   d.root.position.set(e.pos.x,0,e.pos.z);d.root.rotation.y=e.yaw;pose(d,dt,{moving,speed:1.2,aim:e.alert});
 }
 function updAlly(a,dt){
+  if(mode==='hub'&&window.HT&&HT.Jet&&HT.Jet.crew&&HT.Jet.crew(a,dt))return;/* the jet: the crew stay at the base while you fly or hang under the chute, then catch up (js/jet.js) */
   if(VAN.on&&(mode==='hub'||a.ride))return;if(a.medic&&!a.down&&wmMedic(a,dt))return;
   const d=a.dude;
   if(a.down){a.downT-=dt;pose(d,dt,{mode:'down'});if(a.downT<=0){a.down=false;a.hp=60;d.root.rotation.x=0;radio(a.id,pick(LINES.allyUp))}return}
@@ -2836,8 +2837,9 @@ let HOME3=null,homeReady=false,homeLoading=null;
 /* ---------- title: continue / new game (HUD buttons) ---------- */
 function hasSave(){const s=SV();return !!(s&&SAVEM.lastLoad.status!=='fresh'&&(s.prog.missionsRun>0||s.cash>0||s.stats.spent>0))}
 function metaWhen(t){if(!t)return'earlier';try{return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return'earlier'}}
+function metaDay(t){try{return t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}):''}catch(e){return''}}
 function metaTitle(dataOnly){if(!SAVEM)return;const has=hasSave();UI.title.canContinue=has;
-  const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaWhen(pv.t)+' · '+pv.jobs+' jobs':'';
+  const pv=SAVEM.previous&&SAVEM.previous();UI.title.canRestore=!!pv;UI.title.restoreLabel=pv?metaDay(pv.t)+' · '+pv.jobs+' jobs':'';
   if(has){const s=SV(),done=s.prog.done.slice(0,MISSIONS.length).filter(Boolean).length;UI.title.continueLabel=done+'/'+MISSIONS.length+' jobs · '+money(s.cash)}
   if(!dataOnly&&HUD.screen==='title'){HUD.show('title',UI.title);setTimeout(titleFocus,80)}}
 metaTitle();
@@ -4550,7 +4552,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();
+window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},

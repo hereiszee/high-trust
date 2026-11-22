@@ -7,7 +7,7 @@
 const {open}=require('./ai-ingame-lib.js'),fs=require('fs'),path=require('path');
 const OUT=path.join(__dirname,'../docs/screenshots/base');fs.mkdirSync(OUT,{recursive:true});
 const args=process.argv.slice(2),SHOTS=args.includes('--shots');let phases=(args.find(a=>!a.startsWith('--'))||'all').split(',');
-if(phases.includes('all'))phases=['drive','range','tank','jet','eggs'];
+if(phases.includes('all'))phases=['drive','range','tank','jet','pilot','eggs'];
 const log=[];const say=(...a)=>{const s=a.join(' ');console.log(s);log.push(s)};let fails=0;
 const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
 (async()=>{const {b,p,errs}=await open({viewport:{width:1280,height:720}});
@@ -37,6 +37,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
   const aimAt=(x,y,z)=>ev(([x,y,z])=>{const H=window.__ht,P=H.P;P.bloom=0;P.rDebt=0;/* the bot waits for the crosshair to settle */for(let k=0;k<2;k++){const c=H.camera.position;const dx=x-c.x,dy=y-c.y,dz=z-c.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));H.step(1)}},[x,y,z]);
   const click=async(n=1)=>{for(let k=0;k<n;k++){await p.mouse.down();await step(2);await p.mouse.up();await step(4)}};
   const press=async k=>{await p.keyboard.press(k);await step(3)};
+  const promptText=()=>ev(()=>{const H=window.__ht;H.draw();const el=[...document.querySelectorAll('*')].filter(x=>x.children.length===0&&/(Climb into|Borrow|Drive)/.test(x.textContent||''));return el.map(x=>x.textContent).join(' | ')});
+  /* stand at an approach angle around a vehicle (ang 0 = in front of the nose, PI/2 = its left...), dist m off its hull */
+  const around=(e,ang,hl,hw,dist)=>ev(([ex,ez,yaw,ang,hl,hw,dist])=>{const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=-fz,rz=fx;const ca=Math.cos(ang),sa=Math.sin(ang);const al=ca*(hl+dist),sd=sa*(hw+dist);const P=window.__ht.P;P.pos.set(ex+fx*al+rx*sd,0,ez+fz*al+rz*sd);P.yaw=Math.atan2(-(ex-P.pos.x),-(ez-P.pos.z));window.__ht.step(3)},[e.x,e.z,e.yaw,ang,hl,hw,dist]);
   const T0=Date.now();
   /* a fresh game in the open world */
   await ev(()=>{try{localStorage.removeItem('ht-save')}catch(_){}const H=window.__ht;H.HUD.hide('title');H.enterHub();H.step(3)});
@@ -89,6 +92,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     ok(await route([[150,190],[206,190],[213.6,199]],.5),'walked to the motor pool');
     let t=await ev(()=>HT.Tank.state());ok(t.e,'the tank is parked in the motor pool');
     if(SHOTS){await ev(()=>{const H=window.__ht;H.P.dude&&(H.P.dude.root.visible=false)});await ev(()=>{const H=window.__ht,c=H.camera;H.step(1);H.draw();c.position.set(205,3.2,212);c.lookAt(216,1.6,199);H.render.draw()});await p.screenshot({path:path.join(OUT,'tank-outside.jpg'),type:'jpeg',quality:82});say('  shot tank-outside.jpg')}
+    {const te=await ev(()=>{const c=window.__ht.L.cars.find(q=>q.type==='tank');return c?{x:c.pos.x,z:c.pos.z,yaw:c.yaw}:null});const got=[];
+     for(const[nm,ang]of[['front',0],['left',Math.PI/2],['back',Math.PI],['right',-Math.PI/2]]){await around(te,ang,3.8,1.8,1.6);got.push(nm+':'+(/Climb into|Borrow/.test(await promptText())?'yes':'no'))}
+     ok(!got.join().includes(':no'),'the tank can be boarded from every side ('+got.join(' ')+')');await around(te,Math.PI/2,3.8,1.8,1.2)}
     await press('e');s=await st();ok(s.car&&s.car.type==='tank','E borrows the tank');
     const y0=s.car.yaw;await key('a',true);await step(40);await key('a',false);await step(4);s=await st();ok(Math.abs(s.car.yaw-y0)>.4&&Math.abs(s.car.spd)<1.5,'A turns it on the spot ('+(s.car.yaw-y0).toFixed(2)+' rad)');
     await key('d',true);await step(40);await key('d',false);
@@ -121,6 +127,10 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await ev(()=>{const P=window.__ht.P;P.pos.set(240,0,214)});await step(6);
     ok(await route([[256,215.6]],.7),'walked to the jet on the apron');let j=await js();ok(j.e,'the jet is parked by Hangar 2');
     if(SHOTS){await ev(()=>{const H=window.__ht,c=H.camera;H.P.dude&&(H.P.dude.root.visible=false);H.step(1);H.draw();c.position.set(266,3.6,238);c.lookAt(255,1.8,221);H.render.draw()});await p.screenshot({path:path.join(OUT,'jet-apron.jpg'),type:'jpeg',quality:82});say('  shot jet-apron.jpg')}
+    {const je=await ev(()=>{const e=HT.Jet.S.e;return{x:e.pos.x,z:e.pos.z,yaw:e.yaw}});const got=[];
+     for(const[nm,ang]of[['nose',0],['left',Math.PI/2],['tail',Math.PI],['right',-Math.PI/2],['left-front',Math.PI/4]]){await around(je,ang,5.7,.95,2.6);got.push(nm+':'+(/Climb into DAD-1/.test(await promptText())?'yes':'no'))}
+     ok(!got.join().includes(':no'),'the jet can be boarded from any side within 3.5 m of the fuselage ('+got.join(' ')+')');
+     await around(je,Math.PI/2+.5,5.7,.95,2.4);await shot('jet-board-prompt')}
     await press('e');j=await js();ok(j.on,'E climbs into the jet');
     /* a tiny autopilot that only presses keys: heading by roll (A/D), climb by pitch (arrows), speed by throttle (W/S, Shift) */
     let famMax=0;const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();famMax=Math.max(famMax,j.fam||0);if(o.until&&o.until(j))break;
@@ -164,7 +174,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     else{await fly({to:[520,d.runway.z],alt:90,spd:70,max:500,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
       await fly({to:[720,d.runway.z],alt:40,spd:60,max:300,until:q=>q.x>680});/* out past the threshold, then a long final */
       await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:400,until:q=>q.x<480&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
-      await press('g');j=await js();ok(j.gear===1,'G lowers the gear for landing');
+      j=await js();const autoG=j.gear===1;if(!autoG)await press('g');j=await js();ok(j.gear===1,'gear down for landing ('+(autoG?'came down by itself on the approach':'G')+')');
       await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
       for(let i=0;i<10;i++)await p.keyboard.press('s');/* taps to idle: idle on the ground brakes on its own */for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}
       j=await js();ok(!j.air&&j.spd<2&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27 ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')')}
@@ -179,6 +189,75 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     for(let i=0;i<500;i++){j=await js();if(!j.chute)break;await step(4)}const pp=await st();
     ok(!j.chute,'landed under the parachute at '+pp.x.toFixed(0)+','+pp.z.toFixed(0)+(pp.z>160&&pp.x<290?' (back on the post)':''));
     const jb=await ev(()=>{const e=HT.Jet.S.e;return e?{x:e.pos.x,z:e.pos.z}:null});ok(jb&&Math.hypot(jb.x-256,jb.z-221)<2,'the jet is back on the apron (it was a rental)');
+  }
+  if(phases.includes('pilot')){say('== a new pilot who only does what the screen says');
+    let s=await st();if(s.car){await press('e');await step(4)}
+    const d=await ev(()=>HT.Base.def());const js=()=>ev(()=>HT.Jet.state());const tip=()=>ev(()=>HT.Jet.tip&&HT.Jet.tip());
+    await ev(()=>{const b=HT.Jobs.api.SV().base;if(b&&b.jet)b.jet.tut={};HT.Jet.home()});/* first flights again */
+    await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
+    /* two of the crew came along to the apron (they stay there while he flies) */
+    await press('e');await ev(()=>{const a=HT.Jobs.api,P=window.__ht.P;for(const[id,k]of[['gary',0],['rick',1]])a.spawnAlly(id,P.pos.x+(k?2.4:-2.4),P.pos.z+2);
+      /* every step: the highest any follower gets off the ground, and the biggest single-step jump */
+      const H=window.__ht;window.__crew={maxY:0,maxJump:0,last:null};if(!H.__stepW){const s0=H.step.bind(H);H.__stepW=true;H.step=(n,dt)=>{s0(n,dt);const c=window.__crew;const al=HT.Jobs.api.allies;const pos=al.map(q=>({x:q.pos.x,z:q.pos.z}));
+        for(const q of al){c.maxY=Math.max(c.maxY,q.dude.root.position.y,q.pos.y||0)}if(c.last&&c.last.length===pos.length&&c.track)for(let k=0;k<pos.length;k++)c.maxJump=Math.max(c.maxJump,Math.hypot(pos[k].x-c.last[k].x,pos[k].z-c.last[k].z)/Math.max(1,n));c.last=pos}}});
+    const crew0=await ev(()=>HT.Jobs.api.allies.map(q=>({x:q.pos.x,z:q.pos.z})));await press('e');
+    let j=await js();ok(j.on,'E climbs in');
+    const strip=await ev(()=>{const el=[...document.querySelectorAll('div')].find(x=>x.textContent.includes('Nose up / down')&&x.style.display==='flex');return el?el.textContent:''});
+    ok(/Throttle/.test(strip)&&/Gear/.test(strip)&&/SPACE/.test(strip)&&/Eject/.test(strip),'the controls strip is on screen: '+strip.replace(/\s+/g,' ').slice(0,120));
+    const seen={},shotTip=async id=>{if(seen[id])return;seen[id]=1;await shot('jet-tip-'+id)};let gPress=0;
+    /* the prompt loop: read the prompt, press what it names (taxi: steer onto the centreline with A / D) */
+    for(let n=0;n<700;n++){const t=await tip();j=await js();if(j.air&&j.alt>3&&t!=='rotate')break;
+      if(t)await shotTip(t);
+      if(t==='taxi'){if(j.thr<.25)await p.keyboard.press('w');const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04)}
+      else if(t==='thr'){await release();await p.keyboard.press('w')}
+      else if(t==='rotate'){await key(' ',true)}
+      else{await release()}
+      if(!j.air){const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));if(t!=='taxi'){await key('a',he>.03);await key('d',he<-.03)}}
+      await step(2)}
+    await release();j=await js();ok(j.air,'took off by following the prompts ('+Object.keys(seen).join(' → ')+')');
+    for(let n=0;n<300&&j.gear;n++){j=await js();const t=await tip();if(t)await shotTip(t);await step(2)}ok(j.gear===0&&gPress===0,'hands off it climbs out and the gear comes up by itself (no G; '+(j.alt*3.28).toFixed(0)+' ft)');
+    /* the bank prompt: hold A for a moment, as it says */
+    for(let n=0;n<120;n++){const t=await tip();if(t==='bank'){await shotTip('bank');await key('a',true);await step(30);await release();break}await step(2)}
+    await shot('jet-strip');
+    /* back round to runway 27 with the prompted keys only: A / D bank, SPACE / Q nose, W / S throttle */
+    const fly=async(o)=>{let n=0;for(;n<(o.max||900);n++){j=await js();if(o.until&&o.until(j))break;const TT=typeof o.to==='function'?o.to(j):o.to;const want=Math.atan2(-(TT[0]-j.x),-(TT[1]-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
+        const bankW=Math.max(-1,Math.min(1,-he*1.8));await key('a',j.bank>bankW+.08);await key('d',j.bank<bankW-.08);const altW=typeof o.alt==='function'?o.alt(j):o.alt,pw=Math.max(-.3,Math.min(.32,(altW-j.alt)*.03))+Math.abs(j.bank)*.06;
+        await key(' ',j.pitch<pw-.03);await key('q',j.pitch>pw+.05);const sw=o.spd||75,mt=o.minThr==null?.35:o.minThr;await key('w',j.spd<sw||j.thr<mt);await key('s',j.spd>sw+(o.minThr==null?8:2)&&j.thr>mt-.05);
+        const t=await tip();if(t)await shotTip(t);if(process.env.FLYLOG&&n%10===0)console.log('    pfly',n,j.x.toFixed(0),j.z.toFixed(0),'alt',j.alt.toFixed(1),'pitch',j.pitch.toFixed(2),'spd',j.spd.toFixed(0),'thr',j.thr.toFixed(2),'gear',j.gear,'air',j.air);await step(2)}await release();return n};
+    await fly({to:[520,d.runway.z],alt:80,spd:70,max:700,until:q=>q.x>470&&Math.abs(q.z-d.runway.z)<80});
+    await fly({to:[860,d.runway.z],alt:40,spd:60,max:500,until:q=>q.x>820});
+    await fly({to:q=>[Math.min(q.x-150,440),d.runway.z],alt:26,spd:55,max:500,until:q=>q.x<560&&Math.abs(q.hdg-Math.PI/2)<.12&&Math.abs(q.z-d.runway.z)<8});
+    await fly({to:q=>[q.x-120,d.runway.z],alt:q=>Math.max(0,(q.x-290)*.09),spd:42,minThr:.1,max:700,until:q=>!q.air});
+    for(let i=0;i<10;i++)await p.keyboard.press('s');for(let i=0;i<200;i++){j=await js();if(j.spd<1)break;await step(2)}
+    ok(seen.land,'the landing prompt came up on the approach');ok(!j.air&&Math.abs(j.z-d.runway.z)<12,'landed on runway 27, gear down by itself ('+j.x.toFixed(0)+','+j.z.toFixed(0)+')');
+    /* eject far from the post (over Maple Heights), land there, take the ride back */
+    {const c1=await ev(()=>HT.Jobs.api.allies.map(q=>({x:q.pos.x,z:q.pos.z})));const moved=Math.max(...c1.map((q,k)=>Math.hypot(q.x-crew0[k].x,q.z-crew0[k].z)));const my=await ev(()=>window.__crew.maxY);
+     ok(moved<1&&my<.5,'the crew stayed on the apron while he flew ('+moved.toFixed(2)+' m, highest '+my.toFixed(2)+' m)')}
+    await press('e');await ev(()=>{window.__crew.track=true;window.__crew.maxJump=0});
+    for(let i=0;i<300;i++){const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});if(dd<4)break;await step(4)}
+    {const r=await ev(()=>{const P=window.__ht.P;return{d:Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z))),jump:window.__crew.maxJump}});ok(r.d<4.5&&r.jump<1,'landed near the base: the crew walked over from where he left them ('+r.d.toFixed(1)+' m, biggest step '+r.jump.toFixed(2)+' m, no teleport)')}
+    await ev(()=>{window.__crew.track=false});
+    /* out, the Air Wing tows it to the apron (as when you leave it), back in, and off again down runway 27 */
+await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.pos.set(e.pos.x+Math.cos(e.yaw)*5.2,0,e.pos.z-Math.sin(e.yaw)*5.2);window.__ht.step(4)});await step(4);await press('e');
+    for(let i=0;i<10;i++)await p.keyboard.press('w');for(let i=0;i<300;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));await key('a',he>.04);await key('d',he<-.04);if(j.air&&j.alt>12)break;await step(2)}await release();
+    await fly({to:[40,30],alt:110,spd:70,max:700,until:q=>Math.hypot(q.x-40,q.z-30)<60});
+    j=await js();say('    (before eject: '+JSON.stringify({x:Math.round(j.x),z:Math.round(j.z),alt:Math.round(j.alt),on:j.on,air:j.air})+')');
+    await press('e');await step(4);await press('e');await step(10);j=await js();ok(!!j.chute,'E twice: out over Maple Heights'+(j.chute?'':' '+JSON.stringify({on:j.on,air:j.air,tip:await tip()})));
+    const fed=await ev(()=>!!(window.__ht&&document.body.textContent.includes('back at Fort Sensible')));
+    let poseOk=0,poseN=0;for(let i=0;i<600;i++){j=await js();if(!j.chute)break;poseN++;if(j.pose==='chute')poseOk++;if(i===12)await shot('jet-parachute-pose');await step(4)}
+    ok(poseN>0&&poseOk===poseN,'hanging under the canopy the whole way down (pose "chute" '+poseOk+'/'+poseN+', no run cycle)');
+    ok((await ev(()=>window.__crew.maxY))<.5,'no follower ever left the ground (highest '+(await ev(()=>window.__crew.maxY)).toFixed(2)+' m)');
+    const where=await st();const far=Math.hypot(where.x-d.jet.x,where.z-d.jet.z);ok(far>200,'landed where he came down, '+far.toFixed(0)+' m from the jet (no long drift)');
+    let t=await tip();ok(t==='ride','the screen offers the ride back ('+t+')');ok(fed,'the feed says where the jet went');
+    const mk=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='DAD-1 · Hangar 2')});ok(mk,'a marker on the jet (DAD-1 · Hangar 2)');
+    /* far from the base: the crew turn up out of sight and jog over */
+    {await step(2);const log=await ev(()=>HT.Jet.crewLog.slice(-2));const seen=await ev(lg=>{const H=window.__ht,cam=H.camera;H.draw();const fr=new THREE.Frustum();cam.updateMatrixWorld();fr.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix,cam.matrixWorldInverse));return lg.filter(q=>fr.containsPoint(new THREE.Vector3(q.x,1,q.z))).length},log);
+     ok(log.length===2&&seen===0,'landed far out: the crew appeared out of the camera\'s view ('+log.length+' spawned, '+seen+' in view)');let shotDone=false;
+     for(let i=0;i<300;i++){const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});if(!shotDone&&dd<16){shotDone=true;await ev(()=>{const H=window.__ht,P=H.P;P.yaw=Math.atan2(-(HT.Jobs.api.allies[0].pos.x-P.pos.x),-(HT.Jobs.api.allies[0].pos.z-P.pos.z))});await step(2);await shot('jet-crew-jog')}if(dd<4)break;await step(4)}
+     const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});ok(dd<4.5,'and jogged up ('+dd.toFixed(1)+' m)')}
+    await shot('jet-ride-prompt');await press('e');await step(10);s=await st();const back=Math.hypot(s.x-d.jet.x,s.z-d.jet.z);ok(back<20,'E: back at the apron ('+back.toFixed(1)+' m from the jet)');
+    await p.waitForTimeout(800);await shot('jet-ride-back');
+    {const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});ok(dd<6,'the crew rode back too: at the apron with him ('+dd.toFixed(1)+' m)')}
   }
   if(phases.includes('eggs')){say('== easter eggs');
     let s=await st();if(s.car){await key('s',true);await step(30);await release();await press('e')}

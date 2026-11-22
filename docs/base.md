@@ -69,10 +69,10 @@ On the apron by Hangar 2; E climbs in. Controls (taught on screen the first time
 |---|---|
 | W / S | throttle: each tap steps it 10% (holding ramps it); it stays where you set it. Idle on the ground brakes |
 | Shift | afterburner on / off (at 100% throttle) |
-| mouse up/down, ↑ / ↓ | nose up / down (the game's look convention: mouse up = nose up) |
+| SPACE / Q, mouse up/down, ↑ / ↓ | nose up (climb) / down (dive). Mouse up = nose up, like looking up |
 | mouse left/right, A / D, ← / → | roll (A / D steer the nose wheel on the ground) |
 | Z / X | rudder |
-| G | gear up / down |
+| G | gear up / down by hand (it is automatic: up above ~150 ft climbing, down on a low slow approach to the runway; G wins for 15 s) |
 | V / C | cockpit view / look back (both toggles) |
 | E, E (in the air) | eject: the first tap arms it for 3 s, the second ejects |
 
@@ -80,8 +80,35 @@ Flight model: thrust, drag (top speed ~190 mph, ~250 with the afterburner), grav
 a stall below ~74 mph (the nose drops, the tower nags), take-off past ~94 mph with the nose up. A landing needs the gear down, a
 sink rate under ~1400 fpm, wings roughly level. With the gear down and the throttle back, the last few metres settle onto the
 wheels (an arcade flare, so the jet doesn't float the length of the runway); S at idle brakes hard enough to stop on 258 m. Anything else is a comic crash: a puff, a "boing", and the dad ejects; the jet is
-back on the apron ("it's a rental"). The parachute turns and drifts you back toward the post on its own (no keys). The HUD shows speed (mph),
+back on the apron ("it's a rental"). The parachute turns and drifts you back toward the post on its own (no keys; see below for far away). The HUD shows speed (mph),
 altitude (ft), heading, a pitch ladder, throttle, gear, vertical speed, the callsign and STALL / PULL UP / GEAR warnings.
+
+**For a new pilot** (the owner's playtest: "how do you climb/descend/pick up the landing gear"):
+
+* A controls strip sits bottom right whenever you're in the jet (W / S throttle with the %, SPACE / Q nose, A / D bank, G gear,
+  Shift burner, V · C view, E E eject); the gear and burner chips light up with their state, the eject chip when armed.
+* Step prompts, upper middle, one at a time, on the first flights (`SAVE.base.jet.tut`): steer onto the runway, tap W, nose up to
+  take off, the gear comes up by itself, A / D to bank, and on the approach how to land. Any step comes back if you sit in it for
+  6 s without doing it (rolling fast down the runway without rotating, flying around with the gear down).
+* Assists: at take-off speed with the throttle up the nose eases up by itself; let go of A / D and the wings level; let go of the
+  nose with the wings level and it settles to level flight (or a gentle climb-out right after take-off, gear down).
+* After an eject or a crash the feed says where the jet went ("back at Fort Sensible, Hangar 2. It was a rental.") and a marker
+  sits on it (map and screen). The parachute drifts you home within 250 m; farther out you land where you are and the screen
+  offers "E: ride back to Fort Sensible" (a quick fade to the apron).
+* Boarding: the jet collides only with its fuselage (the wings used to be an 8.8 m wall), there's a yellow ladder under the cockpit
+  and a "Climb in" marker on it, and "E · Climb into DAD-1" comes up anywhere within 3.5 m of the fuselage, from any side. The
+  tank boards from any side within 2.8 m of the hull ("Climb into LAWN ORDER").
+* Under the canopy the dad hangs: arms up on the risers, legs loose, a slow sway (no run cycle); a crouched landing step when
+  he's down (`HT.Jet.state().pose` is `'chute'`, then `'land'`).
+* The crew (index.html's `updAlly` asks `HT.Jet.crew` first): while you fly or hang under the canopy they stay where you left them
+  at the base. Down near where they are, they walk over. Down far out, they turn up out of sight (behind you and outside the
+  camera's view, on walkable ground, 30-45 m off) and jog up with a line. After "ride back to Fort Sensible" they're at the apron
+  with you. In the tank they wait where they are (the game's own rule for any car).
+* `node dev/base-check.js pilot`: a player script that only does what the prompts say takes off, lets the gear come up, banks,
+  lands (gear down by itself), then ejects over Maple Heights and rides back; with two of the crew along, it checks they never leave the ground, stay put while
+  he flies, walk over near the base, appear out of view and jog up far out. Screenshots: `jet-tip-*.jpg`, `jet-strip.jpg`, `jet-board-prompt.jpg`,
+  `jet-parachute-pose.jpg`, `jet-crew-jog.jpg`,
+  `jet-ride-prompt.jpg`, `jet-ride-back.jpg`.
 
 * **Sonic boom**: faster than ~225 mph under ~260 ft over Maple, Route 9 or Riverside: a double boom, a shake, car alarms, the
   neighbours' lines.
