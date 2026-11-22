@@ -1386,6 +1386,10 @@ if(!prog.world)prog.world={visited:{maple:true,route9:false,river:false},pins:['
 /* SAVE.world (js/save.js) when present, so visits, pins and the bridge persist with the game */
 function owW(){let s=null;try{s=typeof SV==='function'?SV():null}catch(e){s=null}const w=s&&s.world||prog.world;if(!w.visited)w.visited={};if(!w.pins)w.pins=['home','hank','auto','gas'];return w}
 const RIVER_TIERS=['Blinds down','Trash day','Lights back on','Chalk on the sidewalk','People wave','Doors unlocked'];
+/* [TOW] a car on the tow hook (js/tow.js keeps it out of the static colliders so it can't pin its own truck) and a job's own parked cars
+   (M.trafficCars, e.g. Hitch Happens' delivered cars at their curbs) are obstacles for the traffic, so it waits for the rig instead of driving through it */
+function owTowOthers(){const out=[],Tw=HTM('Tow'),k=Tw&&Tw.link;if(k&&k.ref&&k.ref.pos){const t=k.ref,S=carSize(t);out.push({x:t.pos.x,z:t.pos.z,yaw:t.yaw,spd:t.spd||0,stats:{len:S.l,wid:S.w}})}
+  if(mode==='mission'&&M&&M.trafficCars)for(const t of M.trafficCars){if(!t||!t.pos||t.towed||!t.obj)continue;const S=carSize(t);out.push({x:t.pos.x,z:t.pos.z,yaw:t.yaw,spd:0,stats:{len:S.l,wid:S.w}})}return out}
 function owRiverDone(){return MISSIONS.map((m,i)=>prog.done[i]&&WORLD.sites[m.id]&&WORLD.sites[m.id].hood==='river'?m.id:null).filter(Boolean)}
 function owTierName(t){const G=HTM('WorldGen');return RIVER_TIERS[G&&G.tierOf?G.tierOf(t):0]}
 const OWS={noTraffic:false,region:null,ret:null,gps:null,gpsT:0,gpsKey:'',chev:null,q:null};
@@ -1455,7 +1459,7 @@ function owUpdate(dt){const def=WORLD,O=OW();if(!L||!L.ow)return;
     pv:CV&&!CV.fly?{x:CV.pos.x,z:CV.pos.z,yaw:CV.yaw,spd:CV.spd,hl:carSize(CV).l/2,hw:carSize(CV).w/2,type:CV.type}:null,/* [TRAFFIC] the player's vehicle, any type */
     cars:L.cars?L.cars.filter(e=>e!==CV&&e.obj):null,say:(who,txt)=>radio(who,txt),
     people:OWS.trafficNoPeople?null:trafficPeople(dt),/* (OWS.trafficNoPeople: dev/traffic-check.js's before/after step time) *//* everyone on foot but the dad: traffic stops for them (wider for a child, and never goes round one) */
-    others:mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||null});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
+    others:(mode==='mission'&&M?[M.truck&&M.truck.car,M.chase&&M.chase.car,M.getaway&&M.getaway.car].filter(Boolean):OWS.trafficOthers||[]).concat(owTowOthers())});/* (OWS.trafficOthers: dev/traffic-check.js stand-in mission cars) *//* traffic yields to the escort truck and getaway cars too */
 }
 /* the people ambient traffic must see (W-03): every HT.People character standing in the world (neighbours, kids, family, crew, givers,
    job casts, the festival crowd, a wreck's driver) plus crew/npcs drawn as box figures; position from the last drawn frame, velocity from

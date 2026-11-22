@@ -21,11 +21,15 @@ const TW=()=>window.HT&&HT.Tow&&HT.Tow.S?HT.Tow:null;
 
 /* ---------------- tuning ---------------- */
 const K={sweep:720,goldT:540,talkR:3.2,dropR:3.4,dropYaw:32,ownerSee:85,pounceSlow:1.3,pounceD:20,unhook:4.5,tailGap:11,brakeDv:5.5,stall:9,
-  stealSpd:10.5,fakeMax:15,carPay:80,clean:200,truck:250,talk:50,hire:3,wreckFail:3};
+  stealSpd:10.5,fakeMax:15,carPay:80,clean:200,truck:250,talk:50,hire:3,wreckFail:3,
+  resetCost:8,/* seconds of street sweeping a 'Reset the rig' costs */thinR:16/* parked cars this close to an owner's curb are moved off the street for the job */};
 const D2R=Math.PI/180;
 /* the lot: grass at the river end of Dock St, in line with River Rd; gate on the north side */
-const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:310.9,g1:318.9,desk:{x:309.6,z:131.3},ring:{x:322,z:127}};
-const SLOTS=[{x:313.4,z:136.7},{x:317.1,z:136.7},{x:313.4,z:143.5},{x:317.1,z:143.5},{x:313.4,z:150.3}];/* front bumper points; cars face north */
+/* (the gate spans nearly the whole north side and the two columns sit 0.8 m west of the pen's middle line: every car pulls straight out
+   onto River Rd with a metre and a half to spare to the posts, the east wall and its lamp; dev/tow-fix/sweep.js checks the swept path) */
+const LOT={x0:308.4,x1:319.3,z0:133,z1:158.2,g0:309.2,g1:318.9,desk:{x:309.6,z:131.3},ring:{x:322,z:127}};
+const SLOTS=[{x:312.6,z:136.7},{x:316.3,z:136.7},{x:312.6,z:143.5},{x:316.3,z:143.5},{x:312.6,z:150.3}];/* front bumper points; cars face north */
+const QH_WAIT={x:339,z:124.9};/* the Quik-Hook truck's waiting spot while you're at the lot: Dock St's north kerb, east of the junction */
 const SAL={x:221,z:55},SAL_RING={x:233,z:44.5},SAL_BAY={x:224,z:51};
 const OWNERS=[
   {id:'kim',name:'Mrs. Kim',who:'neighbour',v:0,type:'sedan',color:'#9db7cf',street:'Oak St',at:[340,16.5],
@@ -116,7 +120,7 @@ function buildLot(M){const a=A(),T3=a.THREE,g=new T3.Group();g.name='towLot';a.w
   for(const x of[L_.g0-.4,L_.g1+.4]){const c=new T3.Mesh(new T3.ConeGeometry(.17,.55,10),a.mat('#ff7a1a'));c.position.set(x,.28,L_.z0-.7);c.castShadow=true;g.add(c)}
   M.lotG=g}
 function gateTick(M,dt){const G=M.gate;if(!G)return;G.open+=(G.want-G.open)*Math.min(1,dt*1.6);const k=G.open;
-  G.leaves[0].rotation.y=-k*1.5;G.leaves[1].rotation.y=k*1.5;for(const l of G.lock)l.visible=k<.05;
+  G.leaves[0].rotation.y=-k*Math.PI/2;G.leaves[1].rotation.y=k*Math.PI/2;/* flat against the side walls when open */for(const l of G.lock)l.visible=k<.05;
   if(k>.5&&G.col.x0>-1e3){G.col.x0=G.col.z0=-1e4;G.col.x1=G.col.z1=-1e4+1}}
 /* a yellow wheel boot on the front-left wheel and an orange sticker on the driver's window (model space: +x forward, +z right) */
 function boot(e){const a=A(),T3=a.THREE,S=a.carSize(e),g=new T3.Group();g.name='boot';const y=a.mat('#f2c230'),k=a.mat('#1c1c1c');
@@ -175,8 +179,8 @@ J.register('tow',{
 
   start(M,o){const a=A(),Tw=TW();M.ph='fit';M.fitT=0;M.cars=[];M.done=0;M.wrecked=0;M.sweep=0;M.sweepOn=true;M.said={};M.lotClear=false;M.talked=false;M.fought=false;M.bot=null;
     M.ft=null;M.truckOut=false;M.lyleCuffed=false;M.brought=false;M.slowT=0;M.spdHist=[];M.owners=[];M.sweepDone=null;
-    if(Tw){Tw.reset();Tw.lend(false);Tw.targets(e=>targets(M));Tw.dropAt((t,k)=>dropAt(M,t,k))}
-    buildLot(M);OWNERS.forEach((ow,i)=>{const e=mkCar(M,ow,i);M.cars.push(e);const c=curb(ow);M.owners.push({o:ow,curb:c,zone:dropZone({spot:c}),d:null,st:'wait',waveT:0,said:false})});
+    if(Tw){Tw.reset();Tw.lend(false);Tw.targets(e=>targets(M));Tw.dropAt((t,k)=>dropAt(M,t,k));Tw.yielders&&Tw.yielders(()=>M.cars.filter(x=>x.st==='done'))}
+    thinParked(M);M.trafficCars=[];buildLot(M);OWNERS.forEach((ow,i)=>{const e=mkCar(M,ow,i);M.cars.push(e);const c=curb(ow);M.owners.push({o:ow,curb:c,zone:dropZone({spot:c}),d:null,st:'wait',waveT:0,said:false})});
     const PP=window.HT&&HT.People;if(PP&&PP.preload)try{PP.preload(['rosa','benny','earl']).catch(()=>{})}catch(_){}
     /* the three "attendants" on the kerb by the office */
     M.att=[attendant(M,LOT.desk.x+.1,LOT.desk.z+.95,'MANAGER','pistol',Math.PI),attendant(M,LOT.desk.x+2.6,LOT.desk.z+.2,'KYLE','nailer',Math.PI*.85),attendant(M,LOT.g1+.9,LOT.z0-.9,'VEST GUY','pistol',Math.PI*1.2)];
@@ -199,7 +203,7 @@ J.register('tow',{
     else if(M.ph==='lot')lotTick(M,dt,F);
     else if(M.ph==='tow')towTick(M,dt,F);
     else if(M.ph==='sal')salTick(M,dt,F);
-    ownersTick(M,dt);truckTick(M,dt,F);
+    ownersTick(M,dt);truckTick(M,dt,F);M.trafficCars=M.cars.filter(x=>x.st==='done'||x.loose);
     if(M.ph!=='fit'&&M.ph!=='drive'){const n=M.cars.filter(x=>x.st==='done').length;F.meters.unshift({id:'cars',label:'Cars home',v:n,max:5,style:'pips'})}
     const k=Tw.link;if(k&&M.cars.includes(k.ref)){const t=k.ref,f=hpF(t);F.meters.push({id:'cond',label:t.o.name.replace(/^(Mrs?\.) /,'$1 ')+"'s car",v:Math.round(f*100),max:100,style:'bar',warn:60,warnBelow:true,sub:Math.round(f*100)+'%'})}
     sal_lines(M,dt)},
@@ -324,7 +328,7 @@ function onHitch(M,t){const a=A();if(!M.said.hitch){M.said.hitch=1;a.radio('sal'
 function dropOk(t,ow){const cb=ow.curb,d=Math.hypot(t.pos.x-cb.x,t.pos.z-cb.z),dy=Math.abs(wrap(t.yaw-cb.yaw)),dy2=Math.abs(wrap(t.yaw-cb.yaw-Math.PI));return d<K.dropR&&Math.min(dy,dy2)<K.dropYaw*D2R}
 function dropAt(M,t,k){if(M.ph==='fit')return false;if(M.ft&&t===M.ft.e){const d=Math.hypot(t.pos.x-SAL_BAY.x,t.pos.z-SAL_BAY.z);return{txt:d<14?"Leave the truck at Sal's":'Unhitch the Quik-Hook truck',fn:()=>{solid(t,true);if(d<14&&!M.brought){M.brought=true;broughtTruck(M)}}}}
   if(!M.cars.includes(t))return null;const ow=M.owners[t.i];
-  if(dropOk(t,ow))return{txt:'Drop '+t.o.name+"'s car at the curb",fn:()=>deliver(M,t)};
+  if(dropOk(t,ow))return{txt:'Drop '+t.o.name+"'s car at the curb",prefer:true,fn:()=>deliver(M,t)};
   return{txt:'Unhitch '+t.towName+' here',fn:()=>{t.st='lot';t.loose=true;solid(t,true);A().radio('gary',pick(["Leaving it here? Bold. I'll put a note on the windshield.","We're parking it in the middle of the street. Okay. Okay."]))}}}
 function deliver(M,t){const a=A(),ow=M.owners[t.i],f=hpF(t);deliverNow(M,t,false);t.dropF=f;M.done=M.cars.filter(e=>e.st==='done').length;
   const tier=hpOf(t)<=0?'wreck':f>=.9?'good':f>=.6?'ok':'bad';t.tier=tier;if(tier==='wreck'){t.wreck=true;M.wrecked++}
@@ -373,7 +377,10 @@ function truckTick(M,dt,F){const ft=M.ft;if(!ft)return;const a=A(),Tw=TW(),P=a.P
   if(e&&e.car&&ft.state!=='lyleout'){const CA=a.CarAI(),G_=window.HT.Garage,rs=Object.assign({},G_.apply(e.type==='pickup'||G_.VEH[e.type]?e.type:'minivan')),sh={x:e.car.x,z:e.car.z,yaw:e.car.yaw,spd:e.car.spd,hp:999,stats:Object.assign({},e.car.stats,rs,{hp:999})};
     const r=CA.ram(sh,c);if(r){e.car.x=e.pos.x=sh.x;e.car.z=e.pos.z=sh.z;e.car.spd=e.spd=sh.spd;a.syncCar(e);if(r.vn>4){Tw.sfx('bang');if(ft.state==='steal'||ft.state==='tail')stopTruck(M,'rammed')}}}
   if(ft.state==='tail'){/* sit behind the car you're towing, close but never touching */
-    const t=myTow;if(!t||!e){/* nothing to take: hang back near you */truckDrive(M,ft,{x:P.pos.x,z:P.pos.z},Math.hypot(P.pos.x-c.x,P.pos.z-c.z)>30?12:0,dt);return}
+    const t=myTow;if(!t||!e){/* nothing to take: hang back near you; at the lot he waits on Dock St's far kerb, never in the way of the gate,
+        River Rd or the turn out (he used to stop right where you back down to the pen) */
+      if(Math.hypot(P.pos.x-LOT.ring.x,P.pos.z-LOT.ring.z)<50){const d=Math.hypot(QH_WAIT.x-c.x,QH_WAIT.z-c.z);truckDrive(M,ft,QH_WAIT,d>3?Math.min(10,d):0,dt);return}
+      truckDrive(M,ft,{x:P.pos.x,z:P.pos.z},Math.hypot(P.pos.x-c.x,P.pos.z-c.z)>30?12:0,dt);return}
     const f=fwd(t.yaw),S=a.carSize(t),back={x:t.pos.x-f[0]*(S.l/2+3.2),z:t.pos.z-f[1]*(S.l/2+3.2)},d=Math.hypot(back.x-c.x,back.z-c.z),pv=Math.abs(e.car?e.car.spd:0);
     const spd=d>40?K.fakeMax:Math.max(0,Math.min(K.fakeMax,pv+(d-K.tailGap+3)*.7));truckDrive(M,ft,back,spd,dt);
     if(!ft.said.tail&&ft.t>8){ft.said.tail=1;a.radio('Quik-Hook guy',"I'm just gonna follow you. Professionally.")}
@@ -467,16 +474,29 @@ function hookEvents(){const Tw=TW();if(!Tw||_off)return;_off=Tw.on((type,d)=>{co
   else if(type==='scrape'&&!M.said.scrape){M.said.scrape=1;a.radio('sal',"That's coming off the owner's thank-you.",true)}
   else if(type==='hit'&&d&&d.sp>8){a.radio('gary',pick(["That's going in "+(d.car.o?d.car.o.name:'the owner')+"'s newsletter.","Was that a mailbox? Tell me that wasn't a mailbox."]),false)}
   else if(type==='bump'){a.radio('sal',"Gently! You're hitching it, not proposing to it.",true)}
+  else if(type==='yield'&&!M.said.yield){M.said.yield=1;a.radio('gary',pick(["Excuse us. Sorry. Coming through. Sorry.","We're just going to... gently relocate your car. Thank you for your patience."]),true)}
+  else if(type==='stuck'&&!M.said.stuck){M.said.stuck=1;a.radio('sal',"Wedged? Hold the button and I'll talk you out of it. Costs you a minute of my patience, not the job.",true)}
+  else if(type==='reset'){M.sweep+=K.resetCost;a.feed('Rig reset','info','-'+K.resetCost+' s of sweeping');if(!M.said.reset){M.said.reset=1;a.radio('gary',"And we're back on the road. Nobody saw that. Okay, everybody saw that.",true)}}
   if((type==='jackknife'||type==='snap')&&d&&d.car&&M.cars&&M.cars.includes(d.car)){d.car.st='lot';d.car.loose=true;solid(d.car,true)}
   if(type==='detach'&&d&&d.car&&M.cars&&M.cars.includes(d.car)&&d.car.st==='tow'&&d.why!=='drop'){d.car.st='lot';d.car.loose=true;solid(d.car,true)}})}
 /* the job's own lifecycle: wire HT.Tow while it runs, give the world back when it's over */
 J.on('pose',()=>{const a=A(),Tw=TW();if(!a||!Tw)return;hookEvents();const M=a.M,mine=a.mode==='mission'&&M&&M.def&&M.def.id==='tow';
-  if(mine&&M.state==='go'){Tw.targets(e=>targets(M));Tw.dropAt((t,k)=>dropAt(M,t,k));if(M.lend)Tw.lend(true);return}
+  if(mine&&M.state==='go'){Tw.targets(e=>targets(M));Tw.dropAt((t,k)=>dropAt(M,t,k));Tw.yielders&&Tw.yielders(()=>M.cars.filter(x=>x.st==='done'));if(M.lend)Tw.lend(true);return}
   if(!mine&&Tw.S.lend){Tw.reset();Tw.lend(false);if(M&&M.cars)for(const e of M.cars)solid(e,false)}
   if(mine&&M.state!=='go'&&Tw.link){Tw.detach('end',{quiet:true})}
+  if(!mine)unthin();
   if(!mine&&M&&M.def&&M.def.id==='tow'&&M.cars&&!M.cleaned){M.cleaned=true;for(const e of M.cars)solid(e,false);if(M.ft)solid(M.ft.e,false)}
   /* after the job: Sal's new tow guy's truck parked on Dock St (SPEC3 3.4) */
   afterTruck(a)});
+/* parked cars right by an owner's curb (one sits in Oak St's kerb lane 9 m before Mrs. Kim's) are taken off the street while the job runs,
+   so every drop has room to line a rig up; the rest of the street's parked cars stay and yield to the rig (js/tow.js). unthin() puts them back. */
+let THIN=[];
+function thinParked(M){const a=A(),L=a.L;unthin();if(!L||!L.cars)return;for(const ow of OWNERS){const c=curb(ow);
+  for(const e of L.cars.slice()){if(e===a.VAN||e===a.CV||e.owner!=='neighbour'||!e.obj||!e.col)continue;if(Math.hypot(e.pos.x-c.x,e.pos.z-c.z)>K.thinR)continue;
+    const i=L.cars.indexOf(e);if(i<0)continue;L.cars.splice(i,1);const sv={x0:e.col.x0,z0:e.col.z0,x1:e.col.x1,z1:e.col.z1,ob:e.col.ob};e.col.x0=e.col.z0=-1e4;e.col.x1=e.col.z1=-1e4+1;e.col.ob=null;
+    const ms=[];e.obj.traverse(m=>{if(m.isMesh)ms.push(m)});const Ls=L.solids,set=new Set(ms);if(Ls){let j=0;for(let k=0;k<Ls.length;k++)if(!set.has(Ls[k]))Ls[j++]=Ls[k];Ls.length=j}
+    e.obj.visible=false;THIN.push({e,L,sv,ms,i})}}}
+function unthin(){for(const r of THIN){const e=r.e;if(!r.L.cars.includes(e))r.L.cars.splice(Math.min(r.i,r.L.cars.length),0,e);Object.assign(e.col,r.sv);e.obj.visible=true;if(r.L.solids)for(const m of r.ms)r.L.solids.push(m)}THIN=[]}
 let AFTER=null;
 function afterTruck(a){if(a.mode!=='hub'||!a.L||!a.L.ow){return}const s=a.SV();if(!s||!s.flags||!s.flags.towGuy){return}
   if(AFTER&&AFTER.L===a.L&&AFTER.g.parent)return;const Tw=TW();if(!Tw)return;
