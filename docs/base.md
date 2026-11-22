@@ -171,6 +171,13 @@ manufacturer names, designations or real unit insignia.
   are unchanged. `jet.js` / `tank.js` fall back to the old model if this file isn't loaded.
 * Before / after from four angles: `docs/screenshots/base/models/{jet,tank}-{front-left,side,rear,top}-{before,after}.jpg`.
 
+## Cost of the rental rack
+
+The nine hung guns are merged once (untextured surfaces into two vertex-coloured materials, each textured or unlit material into one
+mesh): 8 draw calls at the rack (was ~342), built the first time you come within 30 m and drawn only within 45 m (0 elsewhere). The
+post's other runtime pieces re-cull at once after a jump of more than 20 m (fast travel, a job, a teleport). Auditor's probes
+(`dev/audit/perf/budget-probes.js --q=med,low --settle=12 --extra`): every probe within 450 / 120 on Medium and Low.
+
 ## Easter eggs ("Things your dad found", pause menu)
 
 | Egg | Where | How |
