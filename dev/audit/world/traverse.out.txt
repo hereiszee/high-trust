@@ -1,0 +1,29 @@
+bridge closed, walked at barricade {"x":282.25,"y":-0.12,"z":43,"car":null,"W":464,"H":256}
+ok   closed: walking into the barricade stops at it {"x":282.25,"y":-0.12,"z":43,"car":null,"W":464,"H":256}
+vault attempt z=41 {"x":282.25,"y":-0.12,"z":41,"car":null,"W":464,"H":256}
+vault attempt z=43 {"x":282.25,"y":-0.12,"z":43,"car":null,"W":464,"H":256}
+vault attempt z=45 {"x":282.25,"y":-0.12,"z":45,"car":null,"W":464,"H":256}
+walk past the end of the sawhorses z=38.9 {"x":280.2,"y":0,"z":38.9,"car":null,"W":464,"H":256}
+walk past the end of the sawhorses z=39.2 {"x":280.2,"y":0,"z":39.2,"car":null,"W":464,"H":256}
+walk past the end of the sawhorses z=46.8 {"x":280.2,"y":0,"z":46.8,"car":null,"W":464,"H":256}
+walk past the end of the sawhorses z=47.1 {"x":280.2,"y":0,"z":47.1,"car":null,"W":464,"H":256}
+FAIL closed: the sneak works on foot (vault, or round the end of the sawhorses: [])
+drove the parapet gap z=39 {"x":278.04,"z":39,"y":-0.12,"rx":0,"rz":0,"spd":0.45}
+ok   closed: no car squeezes past the barricade along the parapet (z=39) {"x":278.04,"z":39,"y":-0.12,"rx":0,"rz":0,"spd":0.45}
+drove the parapet gap z=47 {"x":278.04,"z":47,"y":-0.12,"rx":0,"rz":0,"spd":0.45}
+ok   closed: no car squeezes past the barricade along the parapet (z=47) {"x":278.04,"z":47,"y":-0.12,"rx":0,"rz":0,"spd":0.45}
+bridge closed, drove at barricade {"x":280.09,"y":0,"z":43.05,"car":{"x":280.09,"z":43.05,"y":-0.12,"rx":0,"rz":0,"spd":0.45},"W":464,"H":256}
+ok   closed: the minivan does not get through the barricade {"x":280.09,"z":43.05,"y":-0.12,"rx":0,"rz":0,"spd":0.45}
+after opening {"vis":false,"cols":0,"sol":0,"open":true}
+ok   open: sawhorses hidden, no collider, no raycast proxy {"vis":false,"cols":0,"sol":0,"open":true}
+bridge open, drove across {"x":358.69,"y":0,"z":43,"car":{"x":358.69,"z":43,"y":-0.12,"rx":0,"rz":0,"spd":25},"W":464,"H":256}
+ok   open: the minivan drives across {"x":358.69,"z":43,"y":-0.12,"rx":0,"rz":0,"spd":25}
+ok   open: nothing invisible stops a shot at the old barricade line null
+blocked at w {"running":false,"screen":"result","mode":"hub"}
+edges: 48 runs
+ok   edges: never out of the map or flipped (0 bad) []
+water [{"from":[270,30],"car":false,"end":{"x":283.65,"y":0,"z":30,"car":null,"W":464,"H":256},"inWater":false},{"from":[270,30],"car":true,"end":{"x":278.04,"z":30,"y":0,"rx":0,"rz":0,"spd":0.45},"inWater":false},{"from":[316,30],"car":false,"end":{"x":304.35,"y":0,"z":30,"car":null,"W":464,"H":256},"inWater":false},{"from":[316,30],"car":true,"end":{"x":309.96,"z":30,"y":0,"rx":0,"rz":0,"spd":0.45},"inWater":false},{"from":[270,70],"car":false,"end":{"x":278.53,"y":0,"z":70,"car":null,"W":464,"H":256},"inWater":false},{"from":[270,70],"car":true,"end":{"x":276.37,"z":70,"y":0,"rx":0,"rz":0,"spd":0.45},"inWater":false},{"from":[316,70],"car":false,"end":{"x":304.35,"y":0,"z":70,"car":null,"W":464,"H":256},"inWater":false},{"from":[316,70],"car":true,"end":{"x":309.96,"z":70,"y":-0.12,"rx":0,"rz":0,"spd":0.45},"inWater":false},{"from":[270,150],"car":false,"end":{"x":270.53,"y":0,"z":150,"car":null,"W":464,"H":256},"inWater":false},{"from":[270,150],"car":true,"end":{"x":271.3,"z":150,"y":0,"rx":0,"rz":0,"spd":0.45},"inWater":false},{"from":[316,150],"car":false,"end":{"x":304.35,"y":0,"z":150,"car":null,"W":464,"H":256},"inWater":false},{"from":[316,150],"car":true,"end":{"x":309.96,"z":150,"y":0,"rx":0,"rz":0,"spd":0.45},"inWater":false}]
+ok   water: nobody walks or drives into the river (solid bank) []
+wall spots 6
+exit [{"at":[27,9.1],"wallSide":"left","out":true,"dad":[27,10.84],"inside":null,"walkAway":2.87},{"at":[27,9.1],"wallSide":"right","out":true,"dad":[27,10.84],"inside":null,"walkAway":2.87},{"at":[39,9.1],"wallSide":"left","out":true,"dad":[39,10.84],"inside":null,"walkAway":2.87},{"at":[39,9.1],"wallSide":"right","out":true,"dad":[39,10.84],"inside":null,"walkAway":2.87},{"at":[51,9.1],"wallSide":"left","out":true,"dad":[47.34,9.1],"inside":null,"walkAway":2.87},{"at":[51,9.1],"wallSide":"right","out":true,"dad":[54.66,9.1],"inside":null,"walkAway":2.87},{"at":[75,9.1],"wallSide":"left","out":true,"dad":[75,10.84],"inside":null,"walkAway":2.87},{"at":[75,9.1],"wallSide":"right","out":true,"dad":[75,10.84],"inside":null,"walkAway":2.87},{"at":[87,9.1],"wallSide":"left","out":true,"dad":[87,10.84],"inside":null,"walkAway":2.87},{"at":[87,9.1],"wallSide":"right","out":true,"dad":[87,10.84],"inside":null,"walkAway":2.87}]
+ok   exit: next to a wall on either side the dad gets out clear and can walk away []

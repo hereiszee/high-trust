@@ -679,7 +679,19 @@ OW.groundMap=()=>{const ws=WS;if(!ws)return null;if(ws.gmap)return ws.gmap;const
   for(const t of def.trees){const g=x.createRadialGradient(t.x/2*PX,t.z/2*PX,0,t.x/2*PX,t.z/2*PX,PX*1.5);g.addColorStop(0,'#3f6d2c');g.addColorStop(1,'rgba(40,80,30,0)');x.fillStyle=g;x.beginPath();x.arc(t.x/2*PX,t.z/2*PX,PX*1.5,0,6.283);x.fill()}
   for(const c of def.parked||[]){x.save();x.translate(c.x/2*PX,c.z/2*PX);x.rotate(-(c.yaw||0));x.fillStyle=c.col||'#888';x.fillRect(-PX*1.1,-PX*.45,PX*2.2,PX*.9);x.restore()}
   const tx=ctex(cv);tx.anisotropy=4;ws.gmap=tx;return tx};
-OW.buildAhead=r=>{if(WS)WS.buildR=+r||0};/* build (not draw) every unit within r m: the jet calls it on boarding so the town streams in while you taxi */
+OW.buildAhead=r=>{if(WS)WS.buildR=+r||0};
+/* arrivals (fast travel, a ride back, a job's start or end, Continue, back from the house): build every unit within r m of (x,z) now,
+   up to budget ms, instead of in 6 ms slices over the next frames (the player would fade in on a void). Returns how many are still
+   unbuilt there. Keeps the streaming invariant: at most one half-built unit, and it is ws.active. */
+function buildNear(x,z,r,budget){const ws=WS;if(!ws)return 0;const t0=performance.now(),left=()=>Math.max(1,budget-(performance.now()-t0));
+  if(ws.active){if(!stepUnit(ws.active,left()))return pendingNear(x,z,r);ws.active=null}
+  const want=ws.units.filter(u=>!u.ready&&dist2(u.box,x,z)<r).sort((a,b)=>dist2(a.box,x,z)-dist2(b.box,x,z));
+  for(const u of want){if(performance.now()-t0>=budget)break;startUnit(u);if(!stepUnit(u,left())){ws.active=u;break}}
+  return pendingNear(x,z,r)}
+function pendingNear(x,z,r){const ws=WS;if(!ws)return 0;let n=0;for(const u of ws.units)if(!u.ready&&dist2(u.box,x,z)<r)n++;return n}
+const ARRIVE_R=120;OW.ARRIVE_R=ARRIVE_R;
+OW.buildNear=(x,z,r,budget)=>buildNear(x,z,r||ARRIVE_R,budget==null?1e9:budget);
+OW.pendingNear=(x,z,r)=>pendingNear(x,z,r||ARRIVE_R);/* build (not draw) every unit within r m: the jet calls it on boarding so the town streams in while you taxi */
 OW.flight=o=>{const ws=WS;if(!ws)return;ws.fly=o||null;for(const u of ws.units){u.near=null;u.mnear=null;u.far=null}};
 const s3Vc=()=>stdMat('rvc',{color:'#ffffff',vertexColors:true,roughness:.55,metalness:.1});
 const S3C={white:[.82,.81,.77],galv:[.5,.53,.55],dark:[.1,.11,.12],conc:[.5,.49,.46],glass:[.03,.05,.08],wood:[.33,.22,.13],red:[.62,.06,.05],yellow:[.85,.62,.06],paint:[.86,.85,.8],brass:[.6,.45,.15]};
@@ -1168,9 +1180,12 @@ OW.sourcesChanged=()=>{if(WS){WS.tsrc=null;const t=WS.trust;WS.trust=null;OW.dre
 
 /* ================= per frame ================= */
 const _v=new THREE.Vector3(),_b=new THREE.Box3();
-OW.update=(camera,dt)=>{const ws=WS;if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
+OW.update=(camera,dt)=>{const ws=WS;if(ws&&!ws.lvl.group.parent)ws.camAt=null;/* the world was away (a job's level, the house): coming back is an arrival */if(!ws||!ws.lvl.group.parent)return;{const now=performance.now();dt=dt||Math.min(.1,(now-(ws.lastT||now))/1000)||1/30;ws.lastT=now}ws.t+=dt;
   const fogFar=C.fogFar?C.fogFar():200;const R=ws.fly?Math.max(ws.fly.R||0,Math.min(ws.R||(ws.R=200),fogFar+8)):Math.min(ws.R||(ws.R=200),fogFar+8);   /* ws.fly: OW.flight (the jet) */ws.MID=ws.MID||(ws.q==='high'?160:110);ws.DETAIL=ws.DETAIL||(ws.q==='high'?110:65);ws.BLOD=ws.BLOD||(ws.q==='high'?110:ws.q==='low'?45:60);ws.TUFT=ws.TUFT||(ws.q==='high'?60:36);camera.updateMatrixWorld();ws.pm.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);ws.frustum.setFromProjectionMatrix(ws.pm);
   const cx=camera.position.x,cz=camera.position.z;
+  /* a jump (teleport of any kind: the camera moved 40 m+ since the last update, or the world was away): build what is around the
+     arrival before this frame draws, 400 ms at most (the rest streams as usual). Callers that hold a fade use OW.buildNear/pendingNear. */
+  if(!ws.fly&&(!ws.camAt||Math.hypot(cx-ws.camAt.x,cz-ws.camAt.z)>40))buildNear(cx,cz,ARRIVE_R,400);ws.camAt={x:cx,z:cz};
   if(ws.active&&stepUnit(ws.active,ws.SLICE||6))ws.active=null;
   const BR=Math.max(R,ws.buildR||0)+40;   /* ws.buildR (OW.buildAhead) builds past the draw radius without drawing it */
   for(const u of ws.units){const d=dist2(u.box,cx,cz);
@@ -1201,7 +1216,7 @@ OW.quality=q=>{const ws=WS;if(!ws)return;ws.q=q;if(ws.gB)ws.gB.q=treeQ(q);const 
 OW.reset=lvl=>{const ws=lvl.ow;WS=ws;lvl.colliders.length=lvl.nBaseCols;const gone=[];
   for(const o of [...lvl.group.children])if(!ws.own.has(o)&&!(o.userData&&o.userData.wkey==='batch')){lvl.group.remove(o);gone.push(o)}   /* index.html's static batcher merges parked cars once per level: keep its meshes */
   disposeDropped(gone,lvl.group);
-  if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;
+  if(ws.mine)ws.mine.clear();lvl.solids.length=lvl.nBaseSolids;ws.solAt=null;ws.camAt=null;/* the next update is an arrival */
   if(lvl.cars&&ws.cars0)lvl.cars=lvl.cars.filter(c=>ws.cars0.includes(c));
   if(ws.traffic){for(const t of ws.traffic.cars)ws.traffic.g.remove(t.v);ws.traffic.cars.length=0}
   lvl.items=[];lvl.stashes=[];lvl.spawns=[];lvl.ammo=[];lvl.waveSpawns=[];lvl.boss=null;lvl.exit=null};

@@ -1,0 +1,14 @@
+ok   home: no box figure at any of 4 samples []
+ok   home: every character in the scene is a real model within 30 s {"readyMs":13068,"live":1,"notReal":[]}
+mode after home home
+ok   base: no box figure at any of 9 samples []
+ok   base: every character in the scene is a real model within 30 s {"readyMs":1427,"live":5,"notReal":[]}
+ok   maple-givers: no box figure at any of 8 samples []
+ok   maple-givers: every character in the scene is a real model within 30 s {"readyMs":1344,"live":8,"notReal":[]}
+ok   wreck-driver: no box figure at any of 12 samples []
+ok   wreck-driver: every character in the scene is a real model within 30 s {"readyMs":18,"live":8,"notReal":[]}
+ok   jet-buzz: no box figure at any of 12 samples []
+ok   jet-buzz: every character in the scene is a real model within 30 s {"readyMs":94,"live":8,"notReal":[]}
+ok   ceiling: no box figure at any of 13 samples []
+ok   ceiling: every character in the scene is a real model within 75 s {"readyMs":3,"live":9,"notReal":[]}
+network {"n":72,"aborted":48,"abortFirst":5,"rate":0.4,"ms":2000,"block":null}

@@ -1,0 +1,10 @@
+colliders around the barricade [{"k":"water","x0":284,"z0":0,"x1":304,"z1":38},{"k":"water","x0":284,"z0":48,"x1":304,"z1":256},{"k":"tree","x0":280.55,"z0":34.55,"x1":281.45,"z1":35.45},{"k":"tree","x0":280.55,"z0":38.55,"x1":281.45,"z1":39.45},{"k":"tree","x0":280.55,"z0":46.55,"x1":281.45,"z1":47.45},{"k":"tree","x0":280.55,"z0":50.55,"x1":281.45,"z1":51.45},{"k":"rail","x0":284,"z0":37.75,"x1":304,"z1":38.35},{"k":"rail","x0":284,"z0":47.65,"x1":304,"z1":48.25},{"k":"barricade","x0":282.6,"z0":40,"x1":283.6,"z1":42},{"k":"barricade","x0":282.6,"z0":42,"x1":283.6,"z1":44},{"k":"barricade","x0":282.6,"z0":44,"x1":283.6,"z1":46}]
+north_lane {"reached":false,"stoppedAt":[282.25,41],"leg":1}
+mid {"reached":false,"stoppedAt":[282.25,43],"leg":1}
+south_lane {"reached":false,"stoppedAt":[282.25,45],"leg":1}
+north_parapet {"reached":false,"stoppedAt":[280.2,39.2],"leg":1}
+south_parapet {"reached":false,"stoppedAt":[280.2,46.8],"leg":1}
+north_round_tree {"reached":true,"stoppedAt":[295.85,39.15],"leg":4}
+south_round_tree {"reached":true,"stoppedAt":[295.85,46.85],"leg":4}
+north_tight {"reached":true,"stoppedAt":[295.87,39.3],"leg":5}
+ok   before the bridge opens, a player on foot can get past the barricade on at least one line {"north_lane":{"reached":false,"stoppedAt":[282.25,41],"leg":1},"mid":{"reached":false,"stoppedAt":[282.25,43],"leg":1},"south_lane":{"reached":false,"stoppedAt":[282.25,45],"leg":1},"north_parapet":{"reached":false,"stoppedAt":[280.2,39.2],"leg":1},"south_parapet":{"reached":false,"stoppedAt":[280.2,46.8],"leg":1},"north_round_tree":{"reached":true,"stoppedAt":[295.85,39.15],"leg":4},"south_round_tree":{"reached":true,"stoppedAt":[295.85,46.85],"leg":4},"north_tight":{"reached":true,"stoppedAt":[295.87,39.3],"leg":5}}

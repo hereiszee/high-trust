@@ -1460,15 +1460,35 @@ function owChevrons(){if(!OWS.chev){const sh=new THREE.Shape();sh.moveTo(-.45,-.
     while(acc<len&&n<20&&travelled+acc<80){const x=a.x+(b.x-a.x)*acc/len,z=a.z+(b.z-a.z)*acc/len;o.position.set(x,(L.world&&HTM('World')?HTM('World').groundY(L,x,z):0)+.03,z);o.rotation.set(0,yaw,0);o.updateMatrix();m.setMatrixAt(n++,o.matrix);acc+=4}
     acc-=len;travelled+=len}
   m.count=n;m.instanceMatrix.needsUpdate=true}
-/* fast travel from the map: 0.35 s fade, the van and crew at the pin, fade back (SPEC2 A.9) */
-function owFastTravel(pin){if(!L||!L.ow||mode!=='hub'||!pin||!pin.place||!pin.fast)return false;
-  if(!(VAN.on||Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30)){HUD.feed('Get back to the minivan to fast travel','info');return false}
-  let p;if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p={x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place];if(!p)return false;
-  const go=()=>{if(!VAN.on&&typeof enterVan==='function')enterVan();const e=(typeof CV!=='undefined'&&CV)||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;owStopCar(e);if(typeof syncCar==='function')syncCar(e);else syncVan();P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;
-    for(const a of allies)a.pos.set(e.pos.x,0,e.pos.z);sunFollow(e.pos.x,e.pos.z);OWS.gpsKey='';const O=OW();if(O)O.update(camera)};
-  let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}
-  f.style.opacity='1';setTimeout(()=>{go();f.style.opacity='0';HUD.feed('Saved you '+Math.max(8,Math.round(Math.hypot(p.x-P.pos.x,p.z-P.pos.z)/14))+' seconds and one argument about directions.','info')},360);return true}
-HUD.on('fastTravel',pin=>owFastTravel(pin));
+/* fast travel from the map: 0.35 s fade, the van and crew at the pin, fade back once the destination is built (SPEC2 A.9).
+   One rule, one handler (the map's button and __ht.fastTravel): fast travel is by the family car. In it, or on foot within 30 m
+   of it (he gets in), the car, the dad and the crew go; on foot further away, or in anything else, it is refused and nothing moves. */
+function ftRefusal(){const e=CV;
+  if(!e)return Math.hypot(P.pos.x-VAN.pos.x,P.pos.z-VAN.pos.z)<30?null:'Fast travel is by minivan. Get back to the minivan first.';
+  if(e===VAN)return null;
+  if(e.type==='tank')return "The tank doesn't fast travel. It goes 25 mph, everywhere, on purpose. Take it back to the motor pool.";
+  if(e.type==='jet')return "You're in a fighter jet. You are the fast travel.";
+  if(e.type==='mower')return "The mower doesn't fast travel. It goes at mowing speed, like Big Dave intended.";
+  if(e.type==='bike')return 'Fast travel is by minivan. The bike goes where your legs take it.';
+  return 'Fast travel is by minivan. Get '+(e.name||'the owner')+"'s "+feel(e).label+' back first.'}
+function owFade(){let f=$('owFade');if(!f){f=document.createElement('div');f.id='owFade';f.style.cssText='position:fixed;inset:0;background:#c9dcea;opacity:0;pointer-events:none;transition:opacity .35s;z-index:50';document.body.appendChild(f)}return f}
+/* hold a fade until the open world around (x,z) is built (OW.buildNear in 50 ms slices, so the page stays alive), 3 s at most, then done() */
+function owArrive(x,z,done){const O=OW(),t0=performance.now();
+  const tick=()=>{let left=0;try{left=O&&O.buildNear?O.buildNear(x,z,O.ARRIVE_R,50):0}catch(e){left=0}
+    if(left>0&&performance.now()-t0<3000)return void setTimeout(tick,0);
+    try{if(O)O.update(camera)}catch(e){}done()};tick()}
+function owFastTravel(pin){if(!L||mode!=='hub'||!pin||!pin.fast)return false;
+  const no=ftRefusal();if(no){HUD.feed(no,'info');return false}
+  let p;if(pin.place&&L.ow){if(pin.place.startsWith('site:')){const s=WORLD.sites[pin.place.slice(5)];p=s&&{x:s.ring.x,z:s.ring.z-4,yaw:-Math.PI/2}}else p=WORLD.places[pin.place]}
+  else if(pin.x!=null)p={x:pin.x,z:pin.z};/* the small hub's pins (no world places) */
+  if(!p)return false;
+  const from=CV||VAN,dist=Math.hypot(p.x-from.pos.x,p.z-from.pos.z);/* before the move (it used to be measured after: always "8 seconds") */
+  const go=()=>{if(!CV)enterVan();const e=CV||VAN;e.pos.set(p.x,0,p.z);e.yaw=p.yaw!=null?p.yaw:-Math.PI/2;owStopCar(e);if(e.car){e.car.spd=0}e.spd=0;if(!L.ow)collide(e.pos,1.1);syncCar(e);P.pos.set(e.pos.x,0,e.pos.z);P.yaw=e.yaw;P.vault=null;P.vy=0;
+    for(const a of allies)a.pos.set(e.pos.x,0,e.pos.z);sunFollow(e.pos.x,e.pos.z);OWS.gpsKey=''};
+  const f=owFade();f.style.opacity='1';
+  setTimeout(()=>{go();owArrive(p.x,p.z,()=>{f.style.opacity='0';HUD.feed('Fast travel · '+(pin.label||(WORLD&&WORLD.places[pin.place]||{}).label||'there'),'info');
+    HUD.feed('Saved you '+Math.max(8,Math.round(dist/14))+' seconds and one argument about directions.','info')})},360);return true}
+HUD.minimap.onFastTravel(pin=>owFastTravel(pin));
 /* meta hook: shop entrances at the world's own Hank's Hardware (door R) and Dad's Auto (door U, service bay ring) */
 function owShops(){const d=WORLD.doors,pl=WORLD.places;
   if(d.store){const door={x:d.store.x,z:d.store.z-.9,nx:0,nz:1};HUBX.shops.push({kind:'hardware',label:"Hank's Hardware",x:door.x,z:door.z+.9,door,bay:{x:door.x,z:door.z+4}})}
@@ -2045,11 +2065,7 @@ HUD.on('action',(a,arg)=>{
   else if(a==='resetSave'){Object.assign(prog,{done:[false,false,false,false],trust:12,cuffed:0,downed:0,shotSurr:0,missionsRun:0});metaResetSave()}});
 /* full map (M): the world waits while it is open, and the cursor is free */
 HUD.on('map',open=>{if(open){if(running){mapPaused=true;running=false;mouseDown=false;releaseLock()}}else if(mapPaused){mapPaused=false;running=true;last=performance.now();canvasFocus();requestLock()}});
-/* fast travel from the map: on foot the dad and crew move, behind the wheel the van does */
-HUD.minimap.onFastTravel(pin=>{if(mode!=='hub'||!L)return;
-  if(VAN.on){const e=CV;e.pos.set(pin.x,0,pin.z);e.spd=0;if(e.car)e.car.spd=0;collide(e.pos,1.1);syncCar(e);P.pos.set(e.pos.x,0,e.pos.z);P.vault=null;P.vy=0}
-  else{P.pos.set(pin.x,0,pin.z);collide(P.pos,.35);resetMove();for(const a of allies){a.pos.set(P.pos.x+rand(-1.5,1.5),0,P.pos.z+rand(-1.5,1.5));collide(a.pos,.35)}}
-  HUD.feed('Fast travel · '+pin.label,'info')});
+/* fast travel from the map: owFastTravel (OPEN WORLD block) is the only handler */
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(metaKey(e,k))return;
   const card=[...document.querySelectorAll('.card')].find(c=>!c.hidden);
@@ -3002,11 +3018,22 @@ function metaOpenPorch(){const s=SV();if(!s||!ECON)return[];const n=porchCount()
   HUD.banner({kind:'done',kicker:'Delivered',title:names.length>1?names.length+' packages':names[0]||'Package',sub:names.slice(0,3).join(' · ')+(names.length>3?' +'+(names.length-3)+' more':''),dur:2.8});
   for(const e of got)HUD.feed('Delivered: '+((e.kind==='furn'?C.furniture[e.id]:e.kind==='gun'?C.guns[e.id]:C.attachments[e.id])||{name:e.id}).name,'info',e.kind==='furn'?'set up inside':e.kind==='gun'?'in the gun rack':'on the workbench');
   radio('you',pick(["Free shipping. Love free shipping.","Somebody's been shopping. It was me.","Biscuit, no. Biscuit, that's cardboard."]));aud(A=>A.ui('pickup'));return got}
+/* Dad's Auto takes the family car and neighbours' cars; anything else gets a line instead of the shop */
+function autoRefusal(e){if(!e||e===VAN)return null;
+  if(e.type==='tank')return "Sal took one look at the tank: \"That's a government problem.\" Back to the motor pool with it.";
+  if(e.type==='jet')return "Sal doesn't have a lift for a fighter jet. Nobody in town does.";
+  if(e.type==='mower')return "Sal doesn't do mowers. Big Dave has a guy for that.";
+  if(e.type==='bike'||e.owner!=='neighbour')return "Sal only works on cars. Bring it back to whoever lent it.";
+  return null}
 function metaHubUpd(dt){const t=performance.now()/1000;for(const s of HUBX.sprites)s.s.position.y=s.y+Math.sin(t*2.2)*.08;
   let best=null,bd=1e9;const cand=[];const pn=porchCount();if(HUBX.home&&pn&&HUBX.porch)cand.push({id:'porch',x:HUBX.home.x+HUBX.home.nx*.2,z:HUBX.home.z+HUBX.home.nz*.2,r:2.4,label:'Open the Dadazon boxes ('+pn+')',pri:1});
   if(HUBX.home)cand.push({id:'home',x:HUBX.home.x,z:HUBX.home.z,r:2.1,label:homeReady?'Go inside':'Go inside (unlocking…)'});
   for(const s of HUBX.shops){cand.push({id:s.kind,x:s.x,z:s.z,r:2.3,label:s.label});if(s.kind==='auto')cand.push({id:'autobay',x:s.bay.x,z:s.bay.z,r:7,label:'Pull into '+s.label,van:1})}
-  for(const c of cand){if(!!c.van!==(CV===VAN))continue;if(CV&&CV!==VAN)continue;const p=CV?CV.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&(d-(c.pri?1.5:0))<bd){bd=d-(c.pri?1.5:0);best=c}}
+  /* behind the wheel only the bay counts: your own car or a borrowed neighbour's (openShop repairs whichever you pulled in with);
+     the tank, the jet, the mower and the bike get a no from Sal instead of a shop */
+  const bayNo=CV?autoRefusal(CV):null;
+  for(const c of cand){if(!!c.van!==!!CV)continue;const p=CV?CV.pos:P.pos,d=Math.hypot(c.x-p.x,c.z-p.z);if(d<c.r&&(d-(c.pri?1.5:0))<bd){bd=d-(c.pri?1.5:0);best=c}}
+  if(best&&best.id==='autobay'&&bayNo){if(CV&&Math.abs(CV.spd)>3)return null;if(useTap){useTap=false;HUD.feed(bayNo,'info')}return KE+" · Dad's Auto · cars only"}
   if(!best)return null;if(!VAN.on)for(const n of npcs)if(n.pos.distanceTo(P.pos)<Math.min(2.8,bd))return null;
   if(CV&&Math.abs(CV.spd)>3)return null;
   if(useTap){useTap=false;if(best.id==='porch'){metaOpenPorch();return null}if(best.id==='home'){if(homeReady)enterHome();else{homeInit();homeWant=true;HUD.feed('Unlocking the front door…','info')}}
