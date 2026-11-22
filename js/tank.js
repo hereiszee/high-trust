@@ -152,6 +152,9 @@ function fire(a,e){if(S.reload>0){if(a.simT-S.lastNagT>1.2){S.lastNagT=a.simT;a.
   /* safety: nobody near the line of fire (the dad's family, neighbours, the crew, anybody) */
   const ppl=people(a);for(const q of ppl){const rx=q.x-_v.x,rz=q.z-_v.z,along=rx*_d.x+rz*_d.z;if(along<-2||along>260)continue;const off=Math.hypot(rx-_d.x*along,rz-_d.z*along);
     if(off<6+along*.04){say('you',LINES.safety,true);try{HT.Audio.tone({f:300,type:'square',d:.12,gain:.08,bus:'ui'})}catch(_){}S.reload=.6;return}}
+  /* children and the family, including ones whose model is still loading (hidden) or a stand-in: HT.People.protectedNear sees them all.
+     Nothing within 25 m of the tank, and nothing near the line of fire out to 260 m (sampled every 8 m, the same widening cone) */
+  if(protectedInLine(_v,_d)){say('you',LINES.safety,true);try{HT.Audio.tone({f:300,type:'square',d:.12,gain:.08,bus:'ui'})}catch(_){}S.reload=.6;return}
   S.reload=3.5;S.lastFireT=a.simT;const s=sv();if(s&&s.tank)s.tank.shots=(s.tank.shots|0)+1;
   /* where it lands: march the shell along a gentle arc and test each segment against the world */
   const sol=a.L.solids,start=_v.clone(),dir=_d.clone();let pos=start.clone(),vel=dir.clone().multiplyScalar(140),hit=null,dist=0,path=[start.clone()];
@@ -162,6 +165,9 @@ function fire(a,e){if(S.reload>0){if(a.simT-S.lastNagT>1.2){S.lastNagT=a.simT;a.
   /* at the muzzle: flash, a blast of dust off the deck, the whole hull rocks back, a boom */
   try{const F=HT.FX;if(F){F.muzzleFlash(start,dir,{type:'double'});F.impact(new THREE.Vector3(e.pos.x,.2,e.pos.z),new THREE.Vector3(0,1,0),'dirt',{big:true,decal:false});F.shake(.55)}}catch(_){}
   boom(1,0);recoil(e);a.feed('Main gun · reloading 3.5 s','info');teach(a,'gun','Main gun reloads for 3.5 s · it never hurts anyone: it won\'t fire with people near the line of fire')}
+function protectedInLine(v,d){const PP=HT.People;if(!PP||!PP.protectedNear)return false;if(PP.protectedNear(v.x,v.z,25))return true;
+  for(let along=8;along<=260;along+=8){if(PP.protectedNear(v.x+d.x*along,v.z+d.z*along,6+along*.04+4))return true}return false}
+Tank.protectedInLine=(x,z,dx,dz)=>protectedInLine({x,z},{x:dx,z:dz});/* test hook */
 function isOwn(o,e){let p=o;while(p){if(p===e.obj)return true;p=p.parent}return false}
 function shellMesh(a){const m=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),MT.shell||(MT.shell=new THREE.MeshBasicMaterial({color:new THREE.Color(4,3,1.6),toneMapped:false})));a.L.group.add(m);return m}
 function recoil(e){S.rock=.06}

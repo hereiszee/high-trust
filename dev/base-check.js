@@ -121,6 +121,15 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await p.mouse.down();await step(2);await p.mouse.up();t=await ev(()=>HT.Tank.state());ok(t.shells===1||t.reload>3,'left click fires the main gun');
     await step(2);await shot('tank-firing');await step(8);await shot('tank-impact');
     await p.mouse.down();await step(2);await p.mouse.up();t=await ev(()=>HT.Tank.state());ok(t.shells<=1&&t.reload>2,'a second click while reloading does nothing ('+t.reload.toFixed(1)+' s left)');
+    /* a child whose model is still loading (hidden stand-in) 45 m down the line of fire: the gun refuses */
+    {await ev(()=>{HT.Tank.S.reload=0});const r0=await ev(()=>{const H=window.__ht,e=H.CV,t=e.obj.userData.tank,v=new THREE.Vector3(),d=new THREE.Vector3();e.obj.updateMatrixWorld(true);t.muzzle.getWorldPosition(v);d.set(1,0,0).transformDirection(t.mantle.matrixWorld);
+        const k=HT.People.make('neighbour',{variant:'nb_kid'});k.root.position.set(v.x+d.x*45,0,v.z+d.z*45);H.L.group.add(k.root);
+        if(!k.root._htPend){k.root._htVis=true;k.root._htPend=true;Object.defineProperty(k.root,'visible',{configurable:true,enumerable:true,get(){return this._htVis&&!this._htPend},set(q){this._htVis=!!q}})}
+        window.__kid=k;return{hidden:!k.root.visible,last:HT.Tank.S.lastFireT,prot:!!HT.People.protectedNear(v.x+d.x*45,v.z+d.z*45,2)}});
+      await p.mouse.down();await step(2);await p.mouse.up();const r1=await ev(()=>({last:HT.Tank.S.lastFireT,reload:HT.Tank.S.reload}));
+      ok(r0.hidden&&r0.prot&&r1.last===r0.last&&r1.reload<1,'a hidden, still-loading child 45 m down the line of fire: the main gun refuses ('+JSON.stringify({r0,r1})+')');
+      await ev(()=>{const k=window.__kid;k.root.parent&&k.root.parent.remove(k.root);HT.Tank.S.reload=0});await step(2);
+      await p.mouse.down();await step(2);await p.mouse.up();const r2=await ev(()=>HT.Tank.S.lastFireT);ok(r2!==r0.last,'with the child gone it fires again')}
     await press('v');await step(6);await shot('tank-sight');await press('v');
     /* the cone slalom and the hay bales: drive through them */
     await drive([[214,213],[245,213]],{vmax:7,reach:3});t=await ev(()=>HT.Tank.state());ok(t.props>0,'drove through the cones and hay bales ('+t.props+' knocked over)');

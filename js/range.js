@@ -24,7 +24,7 @@ const LINES={
   start:["Course is hot. Make ready.","Shooter ready? Stand by.","Alright. Let's see what the minivan taught you."],
   mailman:["You shot the mailman. He's cardboard. He's still filing a complaint.","That was Phil. Phil delivers your magazines. Phil is cardboard, but still."],
   medal:[["Well. The berm is safe.","I've seen worse. I've seen worse yesterday. From a golden retriever."],["You hit things. Some of them were targets.","Bronze. Like a nice deck stain."],
-    ["Solid. I'd let you hold my coffee.","Silver. Your neighbours should feel moderately safe."],["That'll do. Don't let it go to your mustache.","Gold. I'm putting you on the board. Don't make it weird."]],
+    ["Solid. I'd let you hold my coffee.","Silver. Your neighbors should feel moderately safe."],["That'll do. Don't let it go to your mustache.","Gold. I'm putting you on the board. Don't make it weird."]],
   rent:["Rental's on the house. Bring it back clean. Bring it back at all.","Try before you buy. Like a mattress, but louder."],
   rentBack:["Rental goes back on the rack. Like it? Hank's Hardware carries it. Tell him Pruitt sent you. He won't know who that is.","Rental's back on the rack. Your own gun's in your hand. Like a homecoming."],
   aim:["Downrange, please. That's west. The way the targets are.","Muzzle downrange. I'm not asking twice. I'm asking once, slowly."]};
