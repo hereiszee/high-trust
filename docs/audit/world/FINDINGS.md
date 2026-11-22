@@ -13,7 +13,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 |---|---|---|---|
 | W-01 | MAJOR | Map fast travel on foot both refuses ("Get back to the minivan") and teleports you, stranding the van | CONFIRMED |
 | W-02 | MAJOR | Map fast travel moves the borrowed tank into Maple Heights (any borrowed vehicle goes too) | CONFIRMED |
-| W-03 | MAJOR | Traffic drives straight through people standing in the road: neighbours 8/8, kids 8/8, crew 2/4 (at 13 m/s) over two runs | CONFIRMED |
+| W-03 | MAJOR | Traffic drives straight through people standing in the road: neighbours 8/8, kids 8/8, crew 4/8 (every 13 m/s run) over two runs | CONFIRMED |
 | W-12 | MAJOR | Arriving by fast travel (or any jump) shows the destination unbuilt: no ground, no buildings, the dad on a sky-reflecting void, for the first ~15-60 frames | CONFIRMED (headless) |
 | W-13 | MAJOR | Dad's Auto can't be used from a borrowed car: no "Pull into" prompt, E does nothing, so the advertised borrowed-car repair (and its +1 trust) is unreachable | CONFIRMED |
 | W-04 | MINOR | "Saved you 8 seconds…" after every fast travel, whatever the distance | CONFIRMED |
@@ -181,8 +181,6 @@ material), no floating or sunken characters or cars within 60 m at any stop (fee
   lost keyboard input after its first exit (top speed 0 with W held, E ignored), so none of its results are used. Covered instead by
   `dev/car-damage/flows.js` (repair, dents, lamps; baseline, see below), `dev/base-check.js` (tank/jet boarding from any side) and the
   wall-exit test above. The mower (free roam only after the Grand Prix) and the tow truck (job-only) were not driven.
-- **Kids standing in a traffic lane**: the probe's first kid run built the kid model incorrectly (probe bug, fixed); rerun results are
-  in `traffic-peds.out.txt`. The neighbour and crew cases are confirmed.
 - **The 60 s People ceiling** (`HT.People.PENDING_CEILING`, after which a named character *may* get the box stand-in by design): the
   probe blocked a model that had already loaded, so it proved nothing. By code, a named character whose model fails for over 60 s will
   be boxed (`js/people.js:389-406`), which conflicts with the owner rule; on a packaged build (local files) that is unlikely.
