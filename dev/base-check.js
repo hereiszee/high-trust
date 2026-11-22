@@ -213,8 +213,12 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     await fly({to:[-100,d.runway.z],alt:110,max:200,until:q=>q.alt>80});
     await press('e');await step(4);j=await js();const still=j.on;await press('e');await step(30);j=await js();ok(still&&!!j.chute&&!j.on,'E twice ejects (one tap arms it): parachute at '+(j.chute?j.chute.y.toFixed(0):'?')+' m');
     await shot('jet-parachute');
+    /* owner's playtest: E under the canopy cuts to the landing, by his car (the van if it's on the post, else the jet's ladder), facing it */
+    await step(45);{const tp=await ev(()=>HT.Jet.tip&&HT.Jet.tip());ok(tp==='chute','under the canopy the screen says E cuts to the landing ('+tp+')')}
+    const dp=await ev(()=>HT.Jet.dropPoint());await press('e');await step(12);
     for(let i=0;i<500;i++){j=await js();if(!j.chute)break;await step(4)}const pp=await st();
     ok(!j.chute,'landed under the parachute at '+pp.x.toFixed(0)+','+pp.z.toFixed(0)+(pp.z>160&&pp.x<290?' (back on the post)':''));
+    {const dd=Math.hypot(pp.x-dp.x,pp.z-dp.z);let dy=pp.yaw-dp.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));ok(dd<8&&Math.abs(dy)<.4,'E cut to the landing: by '+(dp.by==='van'?'his van':'the jet\'s ladder')+' ('+dd.toFixed(1)+' m, facing it)');await shot('jet-chute-landing')}
     const jb=await ev(()=>{const e=HT.Jet.S.e;return e?{x:e.pos.x,z:e.pos.z}:null});ok(jb&&Math.hypot(jb.x-256,jb.z-221)<2,'the jet is back on the apron (it was a rental)');
   }
   if(phases.includes('pilot')){say('== a new pilot who only does what the screen says');
@@ -271,7 +275,8 @@ await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.p
     j=await js();say('    (before eject: '+JSON.stringify({x:Math.round(j.x),z:Math.round(j.z),alt:Math.round(j.alt),on:j.on,air:j.air})+')');
     await press('e');await step(4);await press('e');await step(10);j=await js();ok(!!j.chute,'E twice: out over Maple Heights'+(j.chute?'':' '+JSON.stringify({on:j.on,air:j.air,tip:await tip()})));
     const fed=await ev(()=>!!(window.__ht&&document.body.textContent.includes('back at Fort Sensible')));
-    let poseOk=0,poseN=0;for(let i=0;i<600;i++){j=await js();if(!j.chute)break;poseN++;if(j.pose==='chute')poseOk++;if(i===12)await shot('jet-parachute-pose');await step(4)}
+    const t0=await ev(()=>HT.Jobs.api.simT);let poseOk=0,poseN=0;for(let i=0;i<600;i++){j=await js();if(!j.chute)break;poseN++;if(j.pose==='chute')poseOk++;if(i===12)await shot('jet-parachute-pose');await step(4)}
+    {const dt=await ev(()=>HT.Jobs.api.simT)-t0;ok(dt<=15.5,'the parachute ride took '+dt.toFixed(1)+' s (owner: not "forever"; cap ~13 s from any height)')}
     ok(poseN>0&&poseOk===poseN,'hanging under the canopy the whole way down (pose "chute" '+poseOk+'/'+poseN+', no run cycle)');
     ok((await ev(()=>window.__crew.maxY))<.5,'no follower ever left the ground (highest '+(await ev(()=>window.__crew.maxY)).toFixed(2)+' m)');
     const where=await st();const far=Math.hypot(where.x-d.jet.x,where.z-d.jet.z);ok(far>200,'landed where he came down, '+far.toFixed(0)+' m from the jet (no long drift)');
@@ -282,8 +287,16 @@ await ev(()=>HT.Jet.home());await ev(()=>{const e=HT.Jet.S.e,P=window.__ht.P;P.p
      ok(log.length===2&&seen===0,'landed far out: the crew appeared out of the camera\'s view ('+log.length+' spawned, '+seen+' in view)');let shotDone=false;
      for(let i=0;i<300;i++){const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});if(!shotDone&&dd<16){shotDone=true;await ev(()=>{const H=window.__ht,P=H.P;P.yaw=Math.atan2(-(HT.Jobs.api.allies[0].pos.x-P.pos.x),-(HT.Jobs.api.allies[0].pos.z-P.pos.z))});await step(2);await shot('jet-crew-jog')}if(dd<4)break;await step(4)}
      const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});ok(dd<4.5,'and jogged up ('+dd.toFixed(1)+' m)')}
-    await shot('jet-ride-prompt');await press('e');await step(10);s=await st();const back=Math.hypot(s.x-d.jet.x,s.z-d.jet.z);ok(back<20,'E: back at the apron ('+back.toFixed(1)+' m from the jet)');
+    await shot('jet-ride-prompt');const dp2=await ev(()=>HT.Jet.dropPoint());await press('e');await step(10);s=await st();const back=Math.hypot(s.x-dp2.x,s.z-dp2.z);
+    {let dy=s.yaw-dp2.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));ok(back<8&&Math.abs(dy)<.4,'E: dropped by '+(dp2.by==='van'?'his van':'the jet\'s ladder')+' ('+back.toFixed(1)+' m, facing it)'+(dp2.vanAway?'; the van is elsewhere':''))}
+    if(dp2.vanAway){const fed2=await ev(()=>document.body.textContent.includes('Your van is still where you left it'));ok(fed2,'the feed says the van is elsewhere');const mk2=await ev(()=>{const H=window.__ht;H.draw();return !![...document.querySelectorAll('*')].find(x=>x.textContent==='Your van')});ok(mk2,'a marker on the van')}
+    await step(20);{const t2=await tip();ok(t2!=='ride','no ride-back prompt at the base afterwards ('+t2+')')}
     await p.waitForTimeout(800);await shot('jet-ride-back');
+    /* owner's screenshot: he landed far out, then got to the post another way (fast travel / a teleport): the prompt must go at once */
+    await ev(()=>{const H=window.__ht,P=H.P,a=HT.Jobs.api;P.pos.set(40,0,30);H.step(2);HT.Jet.F.ride={until:a.simT+120,x:40,z:30}});await step(4);
+    {const t3=await tip();ok(t3==='ride','(set up: far out, the ride is offered: '+t3+')')}
+    await ev(()=>{const H=window.__ht,P=H.P,d=HT.Base.def();P.pos.set(d.range.line+6,0,d.range.box.z0-6);H.step(2)});await step(6);
+    {const t4=await tip();const pr=await ev(()=>{const H=window.__ht;H.draw();return [...document.querySelectorAll('*')].some(x=>x.children.length===0&&/You landed a long way out/.test(x.textContent||'')&&x.offsetParent!==null&&getComputedStyle(x).visibility!=='hidden')});ok(t4!=='ride'&&!pr,'at the base by other means (by the range): no ride-back prompt ('+t4+')');await shot('jet-no-prompt-at-base')}
     {const dd=await ev(()=>{const P=window.__ht.P;return Math.max(...HT.Jobs.api.allies.map(q=>Math.hypot(q.pos.x-P.pos.x,q.pos.z-P.pos.z)))});ok(dd<6,'the crew rode back too: at the apron with him ('+dd.toFixed(1)+' m)')}
   }
   if(phases.includes('eggs')){say('== easter eggs');
