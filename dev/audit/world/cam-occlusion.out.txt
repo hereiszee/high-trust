@@ -1,4 +1,9 @@
-posts 0 poses, 0 hidden []
+home-front {"visible":true,"res":{"head":null,"chest":null},"camD":0.72}
+ok   home-front: the dad can be seen (head or chest) from the camera {"visible":true,"res":{"head":null,"chest":null},"camD":0.72}
+map-edge-west {"visible":true,"res":{"head":null,"chest":null},"camD":0.76}
+ok   map-edge-west: the dad can be seen (head or chest) from the camera {"visible":true,"res":{"head":null,"chest":null},"camD":0.76}
+posts 17 poses, 0 hidden []
+ok   walking past lamp posts and trees: the dad is never hidden (0 of 17 poses) []
 head outside {"mode":"hub","p":[37.8,20.3],"yaw":0} {"visible":true,"res":{"head":null,"chest":null},"camD":1.76}
 ok   right after Head outside: the dad can be seen (the flag by the front walk does not hide him) {"hx":{"mode":"hub","p":[37.8,20.3],"yaw":0},"ho":{"visible":true,"res":{"head":null,"chest":null},"camD":1.76}}
 flag boxes [[38.3,20.7,1.6,3.3]]

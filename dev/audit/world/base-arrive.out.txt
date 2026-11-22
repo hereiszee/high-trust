@@ -1,14 +1,14 @@
-A {"updates":1,"nearMeshes":123,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18}
-A {"updates":14,"nearMeshes":129,"groundHit":{"d":2.1,"name":"w:lot"},"built":29,"units":69,"visible":20}
-A {"updates":45,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
-A {"updates":120,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
+A {"updates":1,"firstUpdateMs":500.2,"nearMeshes":118,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18}
+A {"updates":14,"firstUpdateMs":7.9,"nearMeshes":124,"groundHit":{"d":2.1,"name":"w:lot"},"built":28,"units":69,"visible":19}
+A {"updates":45,"firstUpdateMs":57.4,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
+A {"updates":120,"firstUpdateMs":0.2,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
 B mode home
 B mode hub
-B {"updates":1,"nearMeshes":124,"groundHit":{"d":2,"name":"w:lot"},"built":23,"units":69,"visible":18}
-B {"updates":14,"nearMeshes":124,"groundHit":{"d":2.1,"name":"w:lot"},"built":27,"units":69,"visible":19}
-B {"updates":45,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
-B {"updates":120,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
-ok   after a visit home, Fort Sensible is drawn like on a fresh game within 3 s of arriving {"A":{"updates":120,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33},"B":{"updates":120,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}}
-ok   fresh game: ground under the camera 1 s after arriving at the motor pool {"updates":14,"nearMeshes":129,"groundHit":{"d":2.1,"name":"w:lot"},"built":29,"units":69,"visible":20}
-ok   the first frame after the jump has ground under the camera (fresh game and after a visit home) {"A":{"updates":1,"nearMeshes":123,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18},"B":{"updates":1,"nearMeshes":124,"groundHit":{"d":2,"name":"w:lot"},"built":23,"units":69,"visible":18}}
-ok   the first frame after the jump draws most of what is near (123 of 152 meshes within 70 m) {"updates":1,"nearMeshes":123,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18}
+B {"updates":1,"firstUpdateMs":530.6,"nearMeshes":124,"groundHit":{"d":2,"name":"w:lot"},"built":22,"units":69,"visible":18}
+B {"updates":14,"firstUpdateMs":44.2,"nearMeshes":124,"groundHit":{"d":2.1,"name":"w:lot"},"built":27,"units":69,"visible":19}
+B {"updates":45,"firstUpdateMs":62.4,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
+B {"updates":120,"firstUpdateMs":0.2,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}
+ok   after a visit home, Fort Sensible is drawn like on a fresh game within 3 s of arriving {"A":{"updates":120,"firstUpdateMs":0.2,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33},"B":{"updates":120,"firstUpdateMs":0.2,"nearMeshes":152,"groundHit":{"d":2.1,"name":"w:lot"},"built":64,"units":69,"visible":33}}
+ok   fresh game: ground under the camera 1 s after arriving at the motor pool {"updates":14,"firstUpdateMs":7.9,"nearMeshes":124,"groundHit":{"d":2.1,"name":"w:lot"},"built":28,"units":69,"visible":19}
+ok   the first frame after the jump has ground under the camera (fresh game and after a visit home) {"A":{"updates":1,"firstUpdateMs":500.2,"nearMeshes":118,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18},"B":{"updates":1,"firstUpdateMs":530.6,"nearMeshes":124,"groundHit":{"d":2,"name":"w:lot"},"built":22,"units":69,"visible":18}}
+ok   the first frame after the jump draws most of what is near (>=70%, the 400 ms arrival build; the fast-travel fade waits for all of it) (118 of 152 meshes within 70 m) {"updates":1,"firstUpdateMs":500.2,"nearMeshes":118,"groundHit":{"d":2.1,"name":"w:lot"},"built":24,"units":69,"visible":18}

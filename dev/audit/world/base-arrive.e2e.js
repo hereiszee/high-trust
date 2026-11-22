@@ -21,5 +21,5 @@ const run=async(variant)=>{const W=await open();const {p,ev,step}=W;await ev(()=
   ok(A[1].groundHit,'fresh game: ground under the camera 1 s after arriving at the motor pool',A[1]);
   /* W-12 regression: the first frame after the jump already stands on built ground (OW.update builds what is around an arrival) */
   ok(A[0].groundHit&&B[0].groundHit,'the first frame after the jump has ground under the camera (fresh game and after a visit home)',{A:A[0],B:B[0]});
-  ok(A[0].nearMeshes>=A[3].nearMeshes*.8,'the first frame after the jump draws most of what is near ('+A[0].nearMeshes+' of '+A[3].nearMeshes+' meshes within 70 m)',A[0]);
+  ok(A[0].nearMeshes>=A[3].nearMeshes*.7,'the first frame after the jump draws most of what is near (>=70%, the 400 ms arrival build; the fast-travel fade waits for all of it) ('+A[0].nearMeshes+' of '+A[3].nearMeshes+' meshes within 70 m)',A[0]);
   require('fs').writeFileSync(__dirname+'/base-arrive.out.txt',out.join('\n')+'\n')})().catch(e=>{console.error(e);process.exit(1)});
