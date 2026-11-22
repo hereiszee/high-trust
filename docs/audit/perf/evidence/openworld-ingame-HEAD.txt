@@ -1,0 +1,36 @@
+ok   hub is the world (L.def.id=world, L.g[10][19]=H)
+ok   collider hash equals brute force on 1000 random queries (2403 colliders)
+     first build 1370 ms (title screen, start area only; the rest streams in), re-entering the cached world 87 ms
+ok   closed barricade stops the van (x=280.1 m, barricade at 282)
+ok   bridge open: across into Riverside and around the 3rd St / Ash St / River Rd block ({"x":422.0043067479626,"z":38.40538374273369,"wp":5,"maxZ":72.62142841488195,"region":"river"})
+ok   ring 0 launches world (10 enemies), back in the world with the van at the ring
+ok   ring 1 launches world (8 enemies), back in the world with the van at the ring
+ok   ring 2 launches world (0 enemies), back in the world with the van at the ring
+ok   ring 3 launches world (13 enemies), back in the world with the van at the ring
+ok   GPS route to the job site (5 points, 2.7 ms per solve)
+ok   fast travel to Dad's Auto puts the van on the pin (0.00 m)
+ok   crossing into Riverside: region banner, visited.river, Community Center + Corner Mart pins unlocked
+ok   fuzz: 3000 steps of random walking/driving, never ends a segment inside a collider or out of bounds (transient overlaps: 0)
+ok   med home: 302 draw calls, 38 shadow calls, 889k triangles (worst of 4 headings)
+FAIL med mapleSE: 606 draw calls, 69 shadow calls, 960k triangles (worst of 4 headings)
+FAIL med dadsAuto: 675 draw calls, 76 shadow calls, 641k triangles (worst of 4 headings)
+FAIL med midBridge: 777 draw calls, 73 shadow calls, 703k triangles (worst of 4 headings)
+ok   med riversideMain3rd: 431 draw calls, 49 shadow calls, 530k triangles (worst of 4 headings)
+ok   med scrapyardGate: 431 draw calls, 53 shadow calls, 497k triangles (worst of 4 headings)
+ok   low home: 268 draw calls, 35 shadow calls, 772k triangles (worst of 4 headings)
+ok   low mapleSE: 399 draw calls, 69 shadow calls, 735k triangles (worst of 4 headings)
+ok   low dadsAuto: 314 draw calls, 69 shadow calls, 450k triangles (worst of 4 headings)
+ok   low midBridge: 358 draw calls, 66 shadow calls, 514k triangles (worst of 4 headings)
+ok   low riversideMain3rd: 415 draw calls, 48 shadow calls, 456k triangles (worst of 4 headings)
+ok   low scrapyardGate: 414 draw calls, 53 shadow calls, 439k triangles (worst of 4 headings)
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.evaluate: Target crashed 
+    at /home/user/high-trust/dev/openworld-ingame.js:57:20 {
+  log: [],
+  name: 'Error'
+}
+
+Node.js v22.23.5

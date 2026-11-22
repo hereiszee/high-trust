@@ -1,0 +1,57 @@
+start {"geo":245,"tex":117,"progs":97,"objs":2212,"dom":501,"listeners":110,"intervals":3,"timeouts":4,"ac":3,"nodes":559,"mode":"hub","heapMB":77.1}
+jobquit 1 {"geo":254,"tex":111,"progs":96,"objs":2217,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":1852,"mode":"hub","heapMB":83.5}
+jobquit 2 {"geo":254,"tex":111,"progs":96,"objs":2230,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2440,"mode":"hub","heapMB":87.7}
+jobquit 3 {"geo":254,"tex":111,"progs":96,"objs":2236,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":2961,"mode":"hub","heapMB":89.3}
+jobquit 4 {"geo":254,"tex":111,"progs":96,"objs":2228,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":3393,"mode":"hub","heapMB":89.9}
+jobquit 5 {"geo":254,"tex":111,"progs":96,"objs":2246,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":4426,"mode":"hub","heapMB":90.2}
+jobquit 6 {"geo":254,"tex":111,"progs":96,"objs":2238,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":5487,"mode":"hub","heapMB":90.9}
+jobquit 7 {"geo":254,"tex":111,"progs":96,"objs":2256,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":6022,"mode":"hub","heapMB":90.8}
+jobquit 8 {"geo":254,"tex":111,"progs":96,"objs":2261,"dom":500,"listeners":106,"intervals":3,"timeouts":0,"ac":3,"nodes":6940,"mode":"hub","heapMB":91.2}
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+page.evaluate: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --use-gl=swiftshader --ignore-gpu-blocklist --enable-unsafe-swiftshader --user-data-dir=/tmp/playwright_chromiumdev_profile-0jWj0c --remote-debugging-pipe --no-startup-window
+<launched> pid=3364
+[pid=3364][err] [1122/012739.347190:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory
+[pid=3364][err] [1122/012739.347289:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[pid=3364][err] [1122/012739.348104:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory
+[pid=3364][err] [1122/012739.348136:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory
+[pid=3364][err] [1122/012739.348451:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[pid=3364][err] [1122/012739.348814:WARNING:dbus/object_proxy.cc:439] Failed to connect to NameOwnerChanged signal for object: /org/freedesktop/portal/desktop
+[pid=3364][err] [1122/012739.349295:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[pid=3364][err] [1122/012739.349324:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[pid=3364][err] [1122/012739.359504:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[pid=3364][err] [1122/012739.359560:WARNING:device/bluetooth/dbus/bluez_dbus_manager.cc:209] Floss manager service not available, cannot set Floss enable/disable.
+[pid=3364][err] [1122/012739.361703:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[pid=3364][err] [1122/012739.367334:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[pid=3364][err] [1122/012739.368555:WARNING:media/gpu/vaapi/vaapi_wrapper.cc:1652] drmGetDevices2() has not found any devices
+[pid=3364][err] [1122/012739.370298:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.
+[pid=3364][err] [1122/012739.510052:INFO:CONSOLE:28] "Warning: meshopt_decoder is using experimental SIMD support", source: http://ht.local/vendor/three-r128/examples/js/libs/meshopt_decoder.js (28)
+[pid=3364][err] [1122/012740.309708:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=3364][err] [1122/012740.705992:INFO:CONSOLE:4585] "[.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://ht.local/index.html (4585)
+[pid=3364][err] [1122/012740.713069:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=3364][err] [1122/012740.843578:INFO:CONSOLE:0] "[.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://ht.local/index.html (0)
+[pid=3364][err] [1122/012740.853110:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=3364][err] [1122/012740.973263:INFO:CONSOLE:0] "[.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://ht.local/index.html (0)
+[pid=3364][err] [1122/012740.987043:ERROR:gpu/command_buffer/service/gl_utils.cc:431] [.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[pid=3364][err] [1122/012741.158947:INFO:CONSOLE:0] "[.WebGL-0xd94001b6400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)", source: http://ht.local/index.html (0)
+[pid=3364][err] [1122/012741.502220:INFO:CONSOLE:16] "THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.", source:  (16)
+[pid=3364][err] [1122/012749.761881:WARNING:media/audio/linux/audio_manager_linux.cc:53] Falling back to ALSA for audio output. PulseAudio is not available or could not be initialized.
+[pid=3364][err] [1122/012752.270264:INFO:CONSOLE:16] "THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.", source:  (16)
+[pid=3364][err] [1122/012752.290286:INFO:CONSOLE:16] "THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.", source:  (16)
+[pid=3364][err] [1122/012752.299247:INFO:CONSOLE:16] "THREE.GLTFLoader: Custom UV sets in "KHR_texture_transform" extension not yet supported.", source:  (16)
+[pid=3364] <gracefully close start>
+[pid=3364] <forcefully close>
+[pid=3364] <kill>
+[pid=3364] <will force kill>
+    at ev (/home/user/high-trust/dev/audit/perf/leaks.js:28:75)
+    at sample (/home/user/high-trust/dev/audit/perf/leaks.js:32:19)
+    at async /home/user/high-trust/dev/audit/perf/leaks.js:84:13 {
+  log: []
+}
+
+Node.js v22.23.5

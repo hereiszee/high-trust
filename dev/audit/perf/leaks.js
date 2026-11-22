@@ -4,7 +4,7 @@
    put in the air, E E, land under the chute, walk back), menus (shop/locker/map/calendar/pause open-close), newgame (quit -> title -> New
    game -> confirm), night (day <-> night with flashlight and goggles), roam (free roam with traffic, --n = simulated minutes, 1 sample/min).
    After every cycle (after a forced GC through CDP) it samples: JS heap, renderer.info.memory geometries/textures, programs, scene
-   object count, DOM elements, live event listeners (addEventListener minus removeEventListener, on window/document/connected elements/other live targets), live intervals, pending
+   object count, DOM elements, renderer + GPU process RSS (ps), CDP Memory.getDOMCounters (all nodes incl. detached, JS listeners), live event listeners (addEventListener minus removeEventListener, on window/document/connected elements/other live targets), live intervals, pending
    timeouts, pending rAF callbacks, AudioContexts, audio nodes created; prints the series and a least-squares slope per cycle.
    Real key presses / clicks where the game takes them (Esc, E, M, pause buttons, title buttons); internals for setup. */
 const path=require('path');const lib=require(path.join(process.cwd(),'dev/ai-ingame-lib.js'));
@@ -31,7 +31,10 @@ const INIT=()=>{const L=window.__probe={listeners:new Map(),intervals:new Set(),
   const sample=async()=>{await cdp.send('HeapProfiler.collectGarbage');await cdp.send('HeapProfiler.collectGarbage');const hu=await cdp.send('Runtime.getHeapUsage');
     const m=await ev(()=>{const H=window.__ht,R=H.renderer,L=window.__probe;try{H.draw()}catch(_){}let objs=0;H.scene.traverse(()=>objs++);const byT={};let nl=0;for(const v of L.listeners.values()){const t=v.t.deref();if(!t||(t.nodeType&&!t.isConnected))continue;nl++;byT[v.label]=(byT[v.label]||0)+1}
       return{geo:R.info.memory.geometries,tex:R.info.memory.textures,progs:R.info.programs.length,objs,dom:document.getElementsByTagName('*').length,listeners:nl,intervals:L.intervals.size,timeouts:L.timeouts.size,ac:L.ac,nodes:L.nodes,byT,mode:H.mode}});
-    m.heapMB=+(hu.usedSize/1e6).toFixed(1);return m};
+    m.heapMB=+(hu.usedSize/1e6).toFixed(1);
+    try{const ps=require('child_process').execSync('ps -eo rss,args').toString().split('\n');let r=0,g=0;for(const l of ps){const kb=parseInt(l);if(/chrome-headless-shell.*--type=renderer/.test(l))r+=kb;else if(/chrome-headless-shell.*--type=gpu-process/.test(l))g+=kb}m.rendererMB=Math.round(r/1024);m.gpuMB=Math.round(g/1024)}catch(_){}
+    try{const dc=await cdp.send('Memory.getDOMCounters');m.jsListeners=dc.jsEventListeners;m.domNodesAll=dc.nodes}catch(_){}
+    return m};
   const clickAct=async(sel)=>{const el=await p.$(sel);if(!el)return false;await el.click({timeout:3000}).catch(()=>ev(s=>document.querySelector(s).click(),sel));await step(3);return true};
   /* start: title -> New game */
   await ev(()=>{try{localStorage.removeItem('ht-save')}catch(_){}});
@@ -83,7 +86,7 @@ const INIT=()=>{const L=window.__probe={listeners:new Map(),intervals:new Set(),
         for(const x of['w','a','s','d'])k[x]=false})}
     const s=await sample();rows.push(s);console.log(SC+' '+(i+1),JSON.stringify({...s,byT:undefined}))}
   /* slope per cycle (least squares) over cycles 1..N, skipping the first cycle (first-use caches) */
-  const ser=rows.slice(1);const keys=['heapMB','geo','tex','progs','objs','dom','listeners','intervals','timeouts','ac','nodes'];const sl={};
+  const ser=rows.slice(1);const keys=['rendererMB','gpuMB','jsListeners','domNodesAll','heapMB','geo','tex','progs','objs','dom','listeners','intervals','timeouts','ac','nodes'];const sl={};
   for(const k of keys){const ys=ser.slice(1).map(r=>r[k]);const n=ys.length;if(n<2){sl[k]=0;continue}const mx=(n-1)/2,my=ys.reduce((a,b)=>a+b,0)/n;let num=0,den=0;ys.forEach((y,x)=>{num+=(x-mx)*(y-my);den+=(x-mx)*(x-mx)});sl[k]=+(num/den).toFixed(3)}
   console.log('SLOPE per cycle (cycles 2..N):',JSON.stringify(sl));
   const first=rows[1].byT,last=rows[rows.length-1].byT,dl=[];for(const k of new Set([...Object.keys(first),...Object.keys(last)])){const d=(last[k]||0)-(first[k]||0);if(d)dl.push(k+' '+(d>0?'+':'')+d)}

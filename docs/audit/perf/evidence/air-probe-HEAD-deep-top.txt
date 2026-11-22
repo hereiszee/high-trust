@@ -1,0 +1,47 @@
+== maple100 calls 1167 shadow - tris 1421706 
+      76  > w:imp mat:MeshBasicMaterial geo:BufferGeometry
+      55 gun_smg/gunBody/smg > Mesh mat:bore geo:CylinderGeometry
+      55 gun_smg/gunBody/smg > Mesh mat:parkerized geo:TorusGeometry
+      50  > m: mat:MeshStandardMaterial geo:BufferGeometry
+      36  > Mesh mat:MeshStandardMaterial geo:BoxGeometry
+      28  > w:grass mat:MeshStandardMaterial geo:BufferGeometry
+      24  > Mesh mat:MeshStandardMaterial geo:BufferGeometry
+      22  > w:lot mat:MeshStandardMaterial geo:BufferGeometry
+      20  > w:walk mat:MeshStandardMaterial geo:BufferGeometry
+      19 gun_shotgun/gunBody/shotgun > Mesh mat:blued geo:BoxGeometry
+      19 gun_beanbag/gunBody/shotgun > Mesh mat:blued geo:BoxGeometry
+      17  > Mesh mat:ShaderMaterial geo:BufferGeometry
+      16  > w:road mat:MeshStandardMaterial geo:BufferGeometry
+      16 nailer/mag/round > Mesh mat:nailStrip geo:LatheGeometry
+      12 gun_smg/gunBody/smg > Mesh mat:parkerized geo:CylinderGeometry
+      12 barricade > Mesh mat:MeshStandardMaterial geo:BoxGeometry
+      11  > w:trimdark mat:MeshStandardMaterial geo:BufferGeometry
+      10 gun_nailer/gunBody/nailer > Mesh mat:bore geo:BoxGeometry
+       9  > w:inside mat:MeshStandardMaterial geo:BufferGeometry
+       9 {ladder,size,type} > Mesh mat:MeshStandardMaterial geo:BoxGeometry
+       8 gun_revolver/gunBody/revolver > Mesh mat:blued geo:ExtrudeGeometry
+       8  > w:lamphead mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:found mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:ply mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:ext mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:int mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:cap mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:trim mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:plinth mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:wain mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:d_leakB mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:d_leakA mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:d_graf mat:MeshStandardMaterial geo:BufferGeometry
+       8  > w:d_post mat:MeshStandardMaterial geo:BufferGeometry
+       7  > m:trim mat:MeshStandardMaterial geo:BufferGeometry
+       7  > Mesh[inst] mat:Leaves_TwistedTree geo:BufferGeometry
+       7  > w:merged mat:MeshStandardMaterial geo:BufferGeometry
+       7  > shell mat:MeshStandardMaterial geo:BufferGeometry
+       7  > w:joist mat:MeshStandardMaterial geo:BufferGeometry
+       7  > m:glass mat:MeshStandardMaterial geo:BufferGeometry
+       7  > m:base:metal mat:base:metal geo:BufferGeometry
+       6  > w:lampglass mat:MeshStandardMaterial geo:BufferGeometry
+       6  > m:base:paint mat:base:paint geo:BufferGeometry
+       6 cylinder/rounds/round > Mesh mat:brass geo:LatheGeometry
+       6 cylinder/rounds/round > Mesh mat:copper geo:LatheGeometry
+       6 gun_revolver/gunBody/revolver > Mesh 
