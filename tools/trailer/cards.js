@@ -17,12 +17,12 @@ const CSS=`
 html,body{margin:0;width:1920px;height:1080px;background:transparent;overflow:hidden}
 /* title-safe: everything inside 10% margins (192 x 108 px) */
 .safe{position:absolute;left:192px;right:192px;top:108px;bottom:108px}
-.sup{position:absolute;left:0;bottom:24px;max-width:1300px}
+.sup{position:absolute;left:-30px;top:92px;max-width:1200px;padding:26px 60px 34px 30px;background:radial-gradient(ellipse at 30% 50%,rgba(10,12,16,.42) 0%,rgba(10,12,16,.22) 45%,rgba(10,12,16,0) 72%)}
 .sup .k{display:flex;align-items:center;gap:14px;font:700 28px/1 "Barlow Condensed";letter-spacing:.32em;text-transform:uppercase;color:var(--sun);text-shadow:0 2px 6px rgba(0,0,0,.65);margin-bottom:14px}
 .sup .k:before{content:"";width:40px;height:3px;background:var(--sun);box-shadow:0 1px 4px rgba(0,0,0,.5)}
-.sup .l{font:400 76px/1.02 "Bowlby One";text-transform:uppercase;color:#fff;letter-spacing:-.005em;text-shadow:0 4px 0 rgba(0,0,0,.28),0 0 24px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.7)}
+.sup .l{font:400 64px/1.04 "Bowlby One";text-transform:uppercase;color:#fff;letter-spacing:-.005em;text-shadow:0 4px 0 rgba(0,0,0,.28),0 0 24px rgba(0,0,0,.55),0 2px 4px rgba(0,0,0,.7)}
 .sup .l b{color:var(--sun);font-weight:400}
-.sup.c{left:50%;transform:translateX(-50%);text-align:center;bottom:auto;top:50%;margin-top:-90px;width:1400px;max-width:none}
+.sup.c{left:50%;transform:translateX(-50%);text-align:center;top:50%;margin-top:-120px;width:1400px;max-width:none;background:radial-gradient(ellipse at 50% 50%,rgba(10,12,16,.45) 0%,rgba(10,12,16,0) 65%)}
 .sup.c .k{justify-content:center}.sup.c .k:after{content:"";width:40px;height:3px;background:var(--sun)}
 .full{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,#1d232b 0%,#0f1216 70%)}
 .end .logo{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:left}
@@ -40,10 +40,12 @@ const CARDS={
   crew:{sup:{k:'The crew',l:'Four dads.<br><b>One minivan.</b>'}},
   mercy:{sup:{k:'Mercy is a mechanic',l:'They would really prefer<br>violence <b>wasn\'t necessary.</b>'}},
   trust:{sup:{k:'Doors Locked to Doors Unlocked',l:'Trust is the<br><b>whole point.</b>',c:1}},
-  dadlife:{sup:{k:'A whole dad life',l:'Somebody has to<br><b>do the school run.</b>'}},
+  dadlife:{sup:{k:'A whole dad life',l:'Walk eleven kids home<br><b>with a stop sign.</b>'}},
+  open:{sup:{k:'Fort Sensible',l:'Open from the<br><b>first minute.</b>'}},
   river:{sup:{k:'Riverside Flats',l:'Two neighbourhoods.<br><b>Two trust meters.</b>'}},
   fort:{sup:{k:'Fort Sensible',l:'A tank that never<br><b>hurts anyone.</b>'}},
   jet:{sup:{k:'Fort Sensible',l:'A jet you probably<br><b>shouldn\'t fly.</b>'}},
+  dragmini:{sup:{k:'Sensible Dragway',l:'Bring the<br><b>minivan.</b>'}},
   drag:{sup:{k:'Sensible Dragway',l:'Quarter mile.<br><b>Sensible speeds.</b>'}},
   waves:{sup:{k:'The festival',l:'Everybody<br><b>waves.</b>',c:1}},
   end:{end:1},

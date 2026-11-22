@@ -12,13 +12,15 @@
 'use strict';
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..','..');
-const SCRATCH=process.env.TRAILER_SCRATCH||path.join(require('os').tmpdir(),'ht-trailer');
+const SCRATCH=process.env.TRAILER_SCRATCH||'/tmp/ht-trailer';
 const FPS=+(process.env.TRAILER_FPS||30);
 const TYPES={'.html':'text/html','.js':'application/javascript','.json':'application/json','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.hdr':'application/octet-stream','.glb':'model/gltf-binary','.gltf':'model/gltf+json','.css':'text/css','.svg':'image/svg+xml','.wav':'audio/wav','.mp3':'audio/mpeg','.ogg':'audio/ogg','.woff2':'font/woff2','.webp':'image/webp','.ktx2':'application/octet-stream'};
 
 /* runs in the page before any game script */
-function clockShim(fps){
+function clockShim([fps,seed]){
   const R={raf:window.requestAnimationFrame.bind(window),pnow:performance.now.bind(performance),dnow:Date.now,st:window.setTimeout.bind(window),si:window.setInterval.bind(window),ct:window.clearTimeout.bind(window),ci:window.clearInterval.bind(window)};
+  /* a seeded Math.random, so a staged moment plays out the same way in the preview and the real take */
+  {let a=(seed>>>0)||1;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
   const V=window.__vt={on:false,live:true,t:0,base:0,dbase:0,q:[],timers:new Map(),seq:1,frame:0,dt:1000/fps,anims:new WeakSet()};
   window.requestAnimationFrame=cb=>{if(V.live&&!V.on)return R.raf(cb);if(!V.q.includes(cb))V.q.push(cb);return 1};
   performance.now=()=>V.on?V.base+V.t:R.pnow();
@@ -52,7 +54,7 @@ async function boot(o={}){
   /* settings: High preset, full resolution, no fps cap, every tutorial hint already seen, subtitles on */
   await p.addInitScript(gfx=>{try{localStorage.clear();localStorage.setItem('ht-cfg-device',JSON.stringify({gfx,rscale:100,fpsCap:0}));
     localStorage.setItem('ht-tut',JSON.stringify({look:1,walk:1,jog:1,talk:1,van:1,drive:1,map:1,aim:1,reload:1,tie:1,pause:1}))}catch(e){}},o.gfx||'high');
-  await p.addInitScript(clockShim,o.fps||FPS);
+  await p.addInitScript(clockShim,[o.fps||FPS,o.seed||1234]);
   if(o.init)await p.addInitScript(o.init);
   const t0=Date.now();await p.goto('http://ht.local/index.html');
   await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:180000});
@@ -74,6 +76,8 @@ async function capture(s,o){const dir=o.dir;fs.mkdirSync(dir,{recursive:true});c
   const n=o.frames;let done=0;const t0=Date.now();
   await s.p.evaluate(()=>window.__vt.start());
   if(o.warm)for(let i=0;i<o.warm;i++){if(o.perFrame)await o.perFrame(-o.warm+i);await s.p.evaluate(()=>window.__vt.advance(1))}
+  /* a letterbox requested from a queued rAF during staging can outlive its banner: drop it unless a banner is really up */
+  if(!o.keepBanner)await s.p.evaluate(()=>{const H=window.__ht;try{H.HUD.banner(null)}catch(e){}for(const e of document.querySelectorAll('.ht-bn.lbx'))e.classList.remove('lbx');window.__vt.advance(1)});
   for(let i=0;i<n;i++){
     await s.p.evaluate(i=>{window.__trFrame=i},i);
     if(o.perFrame)await o.perFrame(i);
@@ -102,5 +106,9 @@ function helpers(){const H=window.__ht,T=window.__T={};
   /* cinematic camera: window.__camFn() runs after the game has placed its camera and before the frame is drawn */
   try{HT.Jobs.on('pose',()=>{if(window.__camFn)try{window.__camFn(H.camera)}catch(e){console.warn('camFn',e)}})}catch(e){console.warn('no pose hook',e)}
   T.cam=(pos,look,fov)=>{window.__camFn=c=>{c.position.set(pos[0],pos[1],pos[2]);c.lookAt(look[0],look[1],look[2]);if(fov&&c.fov!==fov){c.fov=fov;c.updateProjectionMatrix()}}};
+  T.hide=sel=>{const st=document.createElement('style');st.textContent=sel+'{visibility:hidden!important}';document.head.appendChild(st)};
+  /* run a job's own scripted player (test.step) for up to max frames until until(M,H) is true */
+  T.play=(id,until,max,o)=>{const j=H.jobs.registry.get(id),a=H.jobs.api;window.__bt=window.__bt||0;let n=0;for(;n<max&&H.M&&H.M.state==='go';n++){if(until&&until(H.M,H))break;j.test.step(a,window.__bt++,o||{});H.P.hp=Math.max(H.P.hp,80);H.step(1)}return{n,state:H.M&&H.M.state,stage:H.M&&H.M.stage}};
+  T.bot=(id,o)=>{const j=H.jobs.registry.get(id);j.test.step(H.jobs.api,window.__bt++,o||{});H.P.hp=Math.max(H.P.hp,80)};
   T.hud(true);T.flags()}
 module.exports={helpers,boot,settle,capture,close,ev,ROOT,SCRATCH,FPS};
