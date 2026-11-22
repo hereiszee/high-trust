@@ -693,7 +693,7 @@ function hookTouch(){const a=A();if(!a||!a.HUD||hookTouch.done)return;hookTouch.
 function touch(){const a=A();return!!(a&&a.HUD&&a.HUD.touch&&document.querySelector('.ht-touch')&&matchMedia('(pointer:coarse)').matches)}
 /* after the job (won, lost, quit): give the dad his own guns back and put the roof back the way it was */
 J.on('hud',()=>{hookTouch();const a=A();if(!a)return;const M=a.M;if(LAST&&LAST!==M||LAST&&M&&M.state!=='go'){const L_=LAST;LAST=null;try{roofOn(L_,false)}catch(_){}try{returnRifle(L_,a.mode!=='mission'||M!==L_)}catch(_){}
-    for(const p of L_.ow.proj)removeProj(p);L_.ow.proj.length=0;for(const m of L_.ow.meshes)if(m.parent)m.parent.remove(m);if(OV&&OV.on){a.overlay('overwatch',null);OV.on=false}fadeEl(false)}
+    for(const p of L_.ow.proj)removeProj(p);L_.ow.proj.length=0;for(const m of L_.ow.meshes)if(m.parent)m.parent.remove(m);if(OV&&OV.on){a.overlay('overwatch',null);OV.on=false}fadeEl(false);/* left scoped: the HUD stays hidden everywhere after */if(document.body)document.body.classList.remove('ow-scoped')}
   if(M&&M.state==='go'&&M.def&&M.def.id==='overwatch'&&M.ow)LAST=M});
 let LAST=null;
 /* game-time timers (lines and beats wait for the game, not the wall clock: pause, slow frames and the step-driven tests all agree) */

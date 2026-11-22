@@ -45,7 +45,7 @@ function install(){const H=window.__ht,A=window.__A={};const k=H.keys;
     return{shown:H.HUD.screen==='result',stamp:(c.querySelector('.stamp,.ht-stamp')||{}).textContent||null,title:(c.querySelector('h2')||{}).textContent||null,btns,acts:Object.keys(H.UIacts||{})}};
 }
 async function click(p,act){const sel='[data-act="'+act+'"]';const el=await p.$(sel);if(!el)return false;
-  const v=await el.isVisible();if(!v)return false;await el.click({timeout:5000}).catch(async()=>{await p.evaluate(s=>document.querySelector(s).click(),sel)});return true}
+  const v=await el.isVisible();if(!v)return false;const ok=await el.click({timeout:5000}).then(()=>true).catch(async()=>p.evaluate(s=>{const e=document.querySelector(s);if(!e)return false;e.click();return true},sel));return ok}
 async function live(p,ms){await p.evaluate(()=>{window.__rafOn=true;const q=(window.__rafQ||[]).splice(0);const c=window.__rafPending;window.__rafPending=null;if(c&&!q.includes(c))q.push(c);for(const f of q)requestAnimationFrame(f)});await p.waitForTimeout(ms);await p.evaluate(()=>{window.__rafOn=false})}
 /* wait for the fail/win card: it is shown by a 0.9-1.2 s setTimeout */
 async function waitCard(p,ms=4000){await p.evaluate(()=>window.__ht.step(40));const t0=Date.now();while(Date.now()-t0<ms){const s=await p.evaluate(()=>window.__ht.HUD.screen);if(s==='result')break;await p.waitForTimeout(200)}return p.evaluate(()=>window.__A.card())}
