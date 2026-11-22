@@ -94,14 +94,18 @@ jobs:
           codesign -dv --verbose=2 "$APP" 2>&1 || echo "UNSIGNED: Gatekeeper will block this build (see BUILD.md)"
           spctl -a -vv -t exec "$APP" 2>&1 || true
 
-      - name: Smoke test (launch to title) on Windows
+      - name: Package carries the licence files (Electron, Chromium, THIRD-PARTY-NOTICES)
+        working-directory: .
+        run: node dev/check-build.js
+
+      - name: Smoke test on Windows (title, new game, save on disk, relaunch -> Continue, no 404s/remote requests, test gate)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           npm i --no-save playwright@1
           node test/e2e.js --exe dist/win-unpacked/HighTrust.exe --smoke
 
-      - name: Smoke test (launch to title) on macOS
+      - name: Smoke test on macOS (title, new game, save on disk, relaunch -> Continue, no 404s/remote requests, test gate)
         if: runner.os == 'macOS'
         shell: bash
         run: |
