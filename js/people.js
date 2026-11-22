@@ -217,34 +217,42 @@ function fabricNormal(){if(capNrm)return capNrm;const S=256,c=document.createEle
     let nx=-dx*1.2,ny=-dy*1.2,nz=1;const l=Math.hypot(nx,ny,nz);const k=(j*S+i)*4;id.data[k]=(nx/l*.5+.5)*255;id.data[k+1]=(ny/l*.5+.5)*255;id.data[k+2]=(nz/l*.5+.5)*255;id.data[k+3]=255}
   x.putImageData(id,0,0);capNrm=new T.CanvasTexture(c);capNrm.wrapS=capNrm.wrapT=T.RepeatWrapping;return capNrm}
 /* skull extent in head-bone space, from head + hair vertices above the eyes */
-function skull(s,head){const inv=head.matrixWorld.clone().invert(),v=new T.Vector3(),bb=new T.Box3();let n=0;
+function skull(s,head,minX,nose){const inv=head.matrixWorld.clone().invert(),v=new T.Vector3(),bb=new T.Box3();let n=0;
   s.traverse(o=>{if(!o.isMesh||!o.visible||/acc_|hit_/.test(o.name))return;const p=o.geometry.attributes.position;const sk=o.geometry.attributes.skinIndex,sw=o.geometry.attributes.skinWeight;if(!sk||!o.skeleton)return;
     const hb=o.skeleton.bones.indexOf(head);if(hb<0)return;
     for(let i=0;i<p.count;i++){let w=0;const si=[sk.getX(i),sk.getY(i),sk.getZ(i),sk.getW(i)],ws=[sw.getX(i),sw.getY(i),sw.getZ(i),sw.getW(i)];for(let k=0;k<4;k++)if(si[k]===hb)w+=ws[k];if(w<.5)continue;
-      v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);if(v.x<.1)continue;bb.expandByPoint(v);n++}});
+      v.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);if(nose&&v.x>.04&&v.y>nose.y){nose.y=v.y;nose.x=v.x}if(v.x<(minX==null?.1:minX))continue;bb.expandByPoint(v);n++}});
   return n>20?bb:null}
 /* cap space: y up, z forward; mapped into head space (x up, y forward, z left) */
 const CAP2HEAD=new T.Matrix4().makeBasis(new T.Vector3(0,0,1),new T.Vector3(1,0,0),new T.Vector3(0,1,0));
 function makeCap(s,head,col,key){let bb=skull(s,head);P._skull=P._skull||{};P._skull[key]=bb&&[bb.min.toArray(),bb.max.toArray()];bb=bb||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
+  /* fit the crown to the cranium only (the skull box reaches down to the nose, which ballooned the old crown and pushed it forward) */
+  const top0=bb.max.x,nose={x:0,y:-1},cr=skull(s,head,top0-.07,nose)||bb;
   const g=new T.Group();g.name='rb_cap';g.applyMatrix4(CAP2HEAD);
-  const hw=Math.min((bb.max.z-bb.min.z)/2+.012,.095),hd=Math.min((bb.max.y-bb.min.y)/2+.012,.118),cz=(bb.max.y+bb.min.y)/2-.004,top=bb.max.x+.004+(CAP_LIFT[key]||0);
-  const base=top-.088;/* low crown: the band sits just above the brow line */
+  const hw=Math.min((cr.max.z-cr.min.z)/2+.012,.097),hd=Math.min((cr.max.y-cr.min.y)/2+.012,.114),cz=(cr.max.y+cr.min.y)/2,top=top0+.01+(CAP_LIFT[key]||0);
+  /* the band sits on the brow line, just above the eyebrows: about 6 cm above the tip of the nose, never lower than 8 cm under the crown */
+  const base=Math.max(top-.08,(nose.y>0?nose.x+.068:top-.08)+(CAP_LIFT[key]||0)*.5);
   const fab=new T.MeshStandardMaterial({color:col,roughness:.96,metalness:0,normalMap:fabricNormal(),normalScale:new T.Vector2(.55,.55)});
   fab.color.multiplyScalar(1.15);
-  /* crown: squashed half-dome, slightly higher at the front panel */
-  const cg=new T.SphereGeometry(1,28,10,0,Math.PI*2,0,Math.PI*.52);const p=cg.attributes.position;
-  for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i),z=p.getZ(i);const yy=Math.max(y,-.05);/* flatter top, straighter sides */const yf=yy>0?Math.pow(yy,.62):yy;p.setXYZ(i,x*hw,base+yf*(top-base)+z*.014*(1-yy),cz+z*hd)}
+  /* crown: six panels (the seams are in the fabric normal map) over a fitted dome that follows the skull: round on top, straight sides,
+     the front panel a touch fuller, the back dipping 8 mm toward the nape */
+  const cg=new T.SphereGeometry(1,32,12,0,Math.PI*2,0,Math.PI*.5);const p=cg.attributes.position;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const yf=Math.pow(Math.max(y,0),.8);const back=z<0?-z*.008*(1-y):0;
+    p.setXYZ(i,x*hw*(1-.06*y*y),base-back+yf*(top-base),cz+z*hd*(z>0?1.02:1)*(1-.06*y*y))}
   cg.computeVertexNormals();const crown=new T.Mesh(cg,fab);crown.castShadow=true;g.add(crown);
-  /* curved brim: arched across, gently pitched down */
-  const bw=hw*1.0,bl=.1,seg=16,rows=5,pos=[],idx=[],uv=[];
-  for(let r=0;r<=rows;r++){const t=r/rows;for(let c=0;c<=seg;c++){const u=c/seg*2-1;const ang=u*1.05;
-    const ex=Math.sin(ang)*bw*(1-t*.18),ez=Math.cos(ang)*hd*.92+t*bl*(1-u*u*.55);
-    /* arched across (edges curl down), gently pitched down */const ey=base+.004+Math.cos(ang)*.014-t*bl*.12-(u*u)*.034*(.3+t);pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
+  /* brim: projects forward from the front of the band, ~7 cm, pitched about 9 degrees down, gently arched side to side */
+  const bl=.072,sweep=1.0,seg=18,rows=6,pos=[],idx=[],uv=[],pitch=Math.tan(.1);
+  for(let r=0;r<=rows;r++){const t=r/rows;for(let c=0;c<=seg;c++){const u=c/seg*2-1,ang=u*sweep;
+    const rx=Math.sin(ang)*hw*1.01,rz=Math.cos(ang)*hd*1.01;/* the band edge */
+    const out=t*bl*(1-u*u*.6);/* rounded front: the brim is longest in the middle */
+    const ex=rx*(1+out*.9),ez=rz+out;const ey=base+.002-out*pitch-(u*u)*.012*t;pos.push(ex,ey,cz+ez);uv.push(c/seg,t)}}
   for(let r=0;r<rows;r++)for(let c=0;c<seg;c++){const a=r*(seg+1)+c,b=a+1,d=a+seg+1,e=d+1;idx.push(a,d,b,b,d,e)}
   const brG=new T.BufferGeometry();brG.setAttribute('position',new T.Float32BufferAttribute(pos,3));brG.setAttribute('uv',new T.Float32BufferAttribute(uv,2));brG.setIndex(idx);brG.computeVertexNormals();
-  fab.side=T.DoubleSide;const brim=new T.Mesh(brG,fab);brim.castShadow=true;g.add(brim);
-  /* under-brim and the band inside the crown edge */
-  const btn=new T.Mesh(new T.SphereGeometry(.011,8,6),fab);btn.position.set(0,top+.003,cz);btn.scale.y=.5;btn.castShadow=true;g.add(btn);
+  /* the brim's top in the cap fabric, its underside a darker shade (both faces, so it reads as a brim from below and above) */
+  const under=fab.clone();under.color.multiplyScalar(.3);under.envMapIntensity=.12;under.side=T.BackSide;const brimTop=fab.clone();brimTop.side=T.FrontSide;
+  const brim=new T.Mesh(brG,brimTop);brim.castShadow=true;g.add(brim);const brimU=new T.Mesh(brG,under);g.add(brimU);
+  /* the button on top */
+  const btn=new T.Mesh(new T.SphereGeometry(.009,8,6),fab);btn.position.set(0,top+.002,cz);btn.scale.y=.55;btn.castShadow=true;g.add(btn);
   mergeStatic(g);return g}
 function makeCrown(s,head){const bb=skull(s,head)||new T.Box3(new T.Vector3(.1,-.11,-.085),new T.Vector3(.22,.1,.085));
   const g=new T.Group();g.name='rb_crown';g.applyMatrix4(CAP2HEAD);

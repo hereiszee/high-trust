@@ -140,3 +140,21 @@ Re-render the plates (about a minute each), then `python3 tools/store-art/build.
 - **Gun-range screenshot:** if it is used, mark it all-ages. It is not in the current set of thirteen; the file is `alternates/round1/screenshots_round1/` (range rack).
 - **Library logo position over the hero:** bottom left.
 - **Key art:** the tank-in-the-driveway version is the one in use. The other concepts stay in `alternates/` for reference only.
+
+### The cap fix (game change)
+
+The player model's cap covered his eyes at eye level, so the cap itself was rebuilt in `js/people.js` (`makeCap`; `skull()` takes an optional height and finds the nose). This is the only game-code change made for the store art.
+- **Crown:** a fitted six-panel crown sized to the cranium only. Before, the skull box reached down to the nose, and that ballooned the crown.
+- **Band:** sits on the brow line, about 7 cm above the nose tip.
+- **Brim:** a 7 cm curved brim projecting forward and slightly down, with a darker underside.
+- **Unchanged:** the button, the colour, and Earl's `CAP_LIFT`.
+
+It changes the cap on everyone who wears one made by `makeCap`: the dad, Coach Rick, Earl and Benny. The Fort Sensible staff's patrol caps (`js/staff.js`) are separate and untouched.
+
+Before/after pictures (front at eye level, three-quarter, back, the dad close up, the default third-person camera) are in `alternates/cap-fix/`. Checked with:
+- `node dev/run-tests.js` (95 passed)
+- `dev/people-load.e2e.js` (all passed)
+- `dev/smoke.js` (all ok, no console errors)
+- `node dev/jobs-check.js porch` (all ok)
+
+In the key art the dad is now larger (about two-thirds of the frame height, cropped at mid-thigh in the main and header), head level, with a soft key from front-left just above the eye line and catch-lights.
