@@ -57,7 +57,7 @@ function sv(){try{const s=A().SV();if(s&&!s.base)s.base={};return s&&s.base}catc
 function persist(){try{A().save()}catch(_){}}
 
 /* ================= building the runtime pieces (once per world level; re-attached after resets) ================= */
-function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.root=root;S.L=a.L;S.hits=[];S.targets=[];S.pops=[];S.plates=[];S.gongs=[];S.papers=[];S.mover=null;
+function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.root=root;S.L=a.L;S.rackG=null;S.rackFr=null;/* a new level builds a new rack */ S.hits=[];S.targets=[];S.pops=[];S.plates=[];S.gongs=[];S.papers=[];S.mover=null;
   const K=B().kit,P=K.painter();const R=d.range,L=R.lanes,line=R.line;
   const wood=mt('wood',{color:K.lin('#8a6a45'),roughness:.9}),steel=mt('steel',{color:K.lin('#5d6266'),roughness:.4,metalness:.7}),paint=mt('steelp',{color:K.lin('#e8e3d2'),roughness:.55,metalness:.3});
   const add=(m,list,o)=>{m.castShadow=true;m.receiveShadow=true;root.add(m);S.hits.push(m);const t=Object.assign({mesh:m},o);list.push(t);S.targets.push(t);m.userData.onShot=(hit,gun,w,dir)=>onHit(t,hit,gun,w,dir);return t};
@@ -224,10 +224,33 @@ function rackIds(){try{const o=HT.CATALOG&&HT.CATALOG.gunOrder;const w=A().WEAPO
 function rackZ(i){const k=B().def().range.rack,n=RACK_IDS.length;return k.z+(i-(n-1)/2)*RACK_W}
 function rackCls(id){try{const g=HT.CATALOG&&HT.CATALOG.guns&&HT.CATALOG.guns[id];if(g&&g.cls)return g.cls}catch(_){}const w=(A().WEAPONS||{})[id]||{};return w.slot==='side'?'Sidearm':'Long gun'}
 /* the real models on the pegs (HT.Guns, loaded async), the highlight frame */
-function rackGuns(a){const GN=HT.Guns;if(S.rackG||!GN||!GN.model||!S.root)return;const k=B().def().range.rack,T=THREE,g=new T.Group();g.name='rentalRack';
+/* audit PERF-01: the rack is drawn only near it (camera within RACK_SHOW m), built the first time you come within RACK_BUILD m */
+const RACK_BUILD=30,RACK_SHOW=45;
+function rackNear(a,r){const k=B().def().range.rack,c=a.camera.position;return Math.hypot(c.x-k.x,c.z-k.z)<r}
+/* merge the hung guns: untextured surfaces into two vertex-coloured materials (metal / not), each textured or unlit material into one
+   mesh; the highlight frame stays its own (it moves). Every part is put in the group's space and given position, normal, uv (+ colour) */
+function rackMerge(g){const T=THREE;g.updateMatrixWorld(true);const inv=new T.Matrix4().copy(g.matrixWorld).invert(),M=new T.Matrix4(),N=new T.Matrix3();const B2=new Map(),drop=[];
+  g.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||Array.isArray(o.material)||!o.geometry||!o.geometry.attributes.position)return;if(o.parent===g&&o.material.depthWrite===false)return;/* the frame */
+    let vis=true;for(let q=o;q&&q!==g;q=q.parent)if(!q.visible)vis=false;if(!vis){drop.push(o);return}
+    const m=o.material,tex=!!m.map,basic=m.type==='MeshBasicMaterial',key=tex?'t'+m.uuid:basic?'b'+m.uuid:'m'+((m.metalness||0)>=.5?1:0)+(m.transparent?'t':'');
+    let b=B2.get(key);if(!b)B2.set(key,b={mat:m,col:!tex&&!basic,parts:[],r:0,n:0});M.multiplyMatrices(inv,o.matrixWorld);N.getNormalMatrix(M);
+    const src=o.geometry.index?o.geometry.toNonIndexed():o.geometry,pa=src.attributes.position,na=src.attributes.normal,ua=src.attributes.uv,ca=src.attributes.color,n=pa.count;
+    const P=new Float32Array(n*3),Nn=new Float32Array(n*3),U=new Float32Array(n*2),C=b.col?new Float32Array(n*3):null,v=new T.Vector3();
+    for(let i=0;i<n;i++){v.fromBufferAttribute(pa,i).applyMatrix4(M);P.set([v.x,v.y,v.z],i*3);if(na){v.fromBufferAttribute(na,i).applyMatrix3(N).normalize();Nn.set([v.x,v.y,v.z],i*3)}else Nn[i*3+1]=1;
+      if(ua){U[i*2]=ua.getX(i);U[i*2+1]=ua.getY(i)}if(C){const cc=m.color||{r:1,g:1,b:1};C[i*3]=cc.r*(ca?ca.getX(i):1);C[i*3+1]=cc.g*(ca?ca.getY(i):1);C[i*3+2]=cc.b*(ca?ca.getZ(i):1)}}
+    b.parts.push({P,N:Nn,U,C});b.r+=(m.roughness==null?.6:m.roughness)*n;b.n+=n;drop.push(o)});
+  for(const o of drop)if(o.parent)o.parent.remove(o);
+  for(const c of[...g.children])if(c.type==='Group'||c.type==='Object3D')g.remove(c);/* the emptied gun roots */
+  for(const[key,b]of B2){let n=0;for(const q of b.parts)n+=q.P.length/3;const geo=new T.BufferGeometry(),cat=(f,w)=>{const a=new Float32Array(n*w);let o=0;for(const q of b.parts){a.set(q[f],o);o+=q[f].length}return a};
+    geo.setAttribute('position',new T.BufferAttribute(cat('P',3),3));geo.setAttribute('normal',new T.BufferAttribute(cat('N',3),3));geo.setAttribute('uv',new T.BufferAttribute(cat('U',2),2));
+    let mat=b.mat;if(b.col){geo.setAttribute('color',new T.BufferAttribute(cat('C',3),3));mat=new T.MeshStandardMaterial({vertexColors:true,roughness:Math.min(1,b.r/Math.max(1,b.n)),metalness:key[1]==='1'?.85:0,envMap:b.mat.envMap||null,transparent:!!b.mat.transparent,opacity:b.mat.opacity==null?1:b.mat.opacity})}
+    geo.computeBoundingSphere();const mesh=new T.Mesh(geo,mat);mesh.name='rack:'+key[0];mesh.castShadow=false;mesh.receiveShadow=true;mesh.userData.noBatch=true;g.add(mesh)}
+  S.rackCalls=B2.size}
+function rackGuns(a){const GN=HT.Guns;if(S.rackG||!GN||!GN.model||!S.root||!rackNear(a,RACK_BUILD))return;/* PERF-01: built only when you're at the range */const k=B().def().range.rack,T=THREE,g=new T.Group();g.name='rentalRack';
   for(let i=0;i<RACK_IDS.length;i++){const id=RACK_IDS[i],w=a.WEAPONS[id];let m=null;try{m=GN.model(id)}catch(_){m=null}if(!m)continue;
     m.rotation.set(Math.PI/2,0,0);/* muzzle (-Z) up */const side=w&&w.slot==='side';m.position.set(k.x-.16,side?1.16:.62,rackZ(i));if(side){m.rotation.set(Math.PI/2,0,0);m.position.y=1.2}
     m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.userData.noBatch=true}});g.add(m)}
+  rackMerge(g);/* audit PERF-01: 9 guns were ~342 draw calls; merged they are a handful */
   const fr=new T.Mesh(new T.BoxGeometry(.04,1.95,RACK_W*.94),new T.MeshBasicMaterial({color:0xffd34a,transparent:true,opacity:.28,depthWrite:false}));fr.position.set(k.x-.2,1.2,k.z);fr.visible=false;g.add(fr);
   const edge=new T.LineSegments(new T.EdgesGeometry(fr.geometry),new T.LineBasicMaterial({color:0xffd34a}));fr.add(edge);S.rackFr=fr;
   S.root.add(g);S.rackG=g}
@@ -284,8 +307,9 @@ function teach(a,id,text){const s=sv();const t=s?(s.taught||(s.taught={})):S.tau
 
 /* the post's runtime pieces are drawn only within ~170 m of the camera (each child's bounds cached once; checked 3× a second) */
 const _cv=new THREE.Vector3(),_cb=new THREE.Box3(),_cs=new THREE.Sphere();
-function cull(a){S.cullT=(S.cullT||0)-1/30;if(S.cullT>0)return;S.cullT=.33;const c=a.camera.position;
-  for(const o of S.root.children){let sp=o.userData._cs;if(!sp){_cb.setFromObject(o);if(_cb.isEmpty())continue;sp=o.userData._cs=_cb.getBoundingSphere(new THREE.Sphere())}
+function cull(a){const c=a.camera.position;const jump=!S.cullP||S.cullP.distanceTo(c)>20;/* PERF-02: a teleport, fast travel or job start re-culls at once */
+  S.cullT=(S.cullT||0)-1/30;if(S.cullT>0&&!jump)return;S.cullT=.33;S.cullP=(S.cullP||new THREE.Vector3()).copy(c);
+  for(const o of S.root.children){if(o===S.rackG)continue;let sp=o.userData._cs;if(!sp){_cb.setFromObject(o);if(_cb.isEmpty())continue;sp=o.userData._cs=_cb.getBoundingSphere(new THREE.Sphere())}
     o.visible=c.distanceTo(sp.center)-sp.radius<170}}
 /* ================= per frame (hud hook: runs in free roam and in jobs) ================= */
 const _v=new THREE.Vector3();
@@ -315,7 +339,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   if(onR)teach(a,'draw','Fort Sensible range · 1 / 2 / 3 or Fire draws your gun · Right mouse aims · H holsters · free ammo on the line');
   courseTick(a,dt);drawBoard(false);
   /* the rental rack: models once HT.Guns has them, the highlight on the gun you mean */
-  if(!S.rackG)rackGuns(a);if(S.rackFr){const on=!S.menu&&!a.CV&&nearRack(a);S.rackFr.visible=on;if(on)S.rackFr.position.z=rackZ(rackPick(a))}
+  if(!S.rackG)rackGuns(a);if(S.rackG)S.rackG.visible=rackNear(a,RACK_SHOW);/* PERF-01: 0 draw calls away from the range (checked every frame, so a teleport can't leave it stale) */if(S.rackFr){const on=!S.menu&&!a.CV&&nearRack(a);S.rackFr.visible=on;if(on)S.rackFr.position.z=rackZ(rackPick(a))}
   if(S.menu&&(a.CV||!nearRack(a)))menuClose();
 }
 /* HUD (the 'hud' hook, only in the real frame): the course widgets, the last hit, the marker to the range officer on the first visit, the objective on the post */
