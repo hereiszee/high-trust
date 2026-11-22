@@ -1,0 +1,6 @@
+boxed kid {"boxed":true,"pending":false,"inLive":false,"prot":false,"protMesh":false,"near":false,"kidNear":null}
+ok   kid model blocked: the box stand-in appears after the ceiling {"boxed":true,"pending":false,"inLive":false,"prot":false,"protMesh":false,"near":false,"kidNear":null}
+FAIL the boxed kid is still HT.People.isProtected (character and mesh) {"boxed":true,"pending":false,"inLive":false,"prot":false,"protMesh":false,"near":false,"kidNear":null}
+FAIL the boxed kid counts for protectedNear (25 m no-gun bubble) {"boxed":true,"pending":false,"inLive":false,"prot":false,"protMesh":false,"near":false,"kidNear":null}
+gun drawn next to the boxed kid false
+ok   no gun can be drawn 4 m from the boxed kid false

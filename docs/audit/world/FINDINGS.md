@@ -11,6 +11,7 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 
 | ID | Sev | Title | Confidence |
 |---|---|---|---|
+| W-14 | BLOCKER | A kid whose model fails to load for 60 s becomes a box stand-in that is no longer protected: `isProtected` false, invisible to `protectedNear` (25 m no-gun bubble) | CONFIRMED |
 | W-01 | MAJOR | Map fast travel on foot both refuses ("Get back to the minivan") and teleports you, stranding the van | CONFIRMED |
 | W-02 | MAJOR | Map fast travel moves the borrowed tank into Maple Heights (any borrowed vehicle goes too) | CONFIRMED |
 | W-03 | MAJOR | Traffic drives straight through people standing in the road: neighbours 8/8, kids 8/8, crew 4/8 (every 13 m/s run) over two runs | CONFIRMED |
@@ -25,9 +26,23 @@ Run any probe with `node dev/audit/world/<name>.e2e.js` from the repo root.
 | W-10 | MINOR | Mixed UK/US spelling in player text (neighbour/neighbor 39/37, tyre/tire, colour/color) in an American setting | CONFIRMED |
 | W-11 | MINOR | The dad's wife is "Jen" at home but "Linda" in the jet lines (and the buzz subtitle is captioned Linda) | CONFIRMED |
 
-**Counts:** 0 BLOCKER · 5 MAJOR · 8 MINOR. Details, what was covered clean, and what could not be covered follow.
+**Counts:** 1 BLOCKER · 5 MAJOR · 8 MINOR. Details, what was covered clean, and what could not be covered follow.
 
 ## Findings
+
+### W-14 · BLOCKER · A boxed kid loses its protection
+- **Repro:** `node dev/audit/world/kid-boxed.e2e.js`: every `nb_kid*.glb` request is aborted, `HT.People.PENDING_CEILING` is
+  shortened from 60 s to 2 s (the same code path, only sooner), a kid is made next to the dad in Riverside free roam.
+- **Expected:** the owner rule: no child can ever be hit, and no gun within 25 m, whatever model it is drawn with.
+- **Actual (two runs):** `{"boxed":true,"inLive":false,"prot":false,"protMesh":false,"near":false}`. Once boxed, the kid is
+  not `isProtected` (neither the character nor its meshes), and `protectedNear`, which the 25 m no-gun rule, the crew holster,
+  the tank's safety and the jet's belly-landing all use, doesn't see it.
+- **Cause:** `boxIn` (`js/people.js:390-397`) moves `d.rb` to `d._rb`, and the box parts come from `boxFallback` → `boxDude`
+  directly (`index.html:807`), skipping `makeDude`'s protected flag (816). `isProtected` (683) checks `x.rb.key`, never `_rb`.
+  A pending model only joins `P.live` in `fill()` (386), so a boxed one is never in the list `protectedNear` (686) scans.
+- **Exposure:** needs a kid's (or wife/son/daughter's) model to fail for 60 s, e.g. a flaky or missing file. That's rare in the
+  packaged build, but the owner rule is absolute. Not tested: actually firing at the boxed kid (the draw check in the script is
+  inconclusive, so it isn't counted).
 
 ### W-01 · MAJOR · Map fast travel on foot both refuses and teleports, stranding the minivan
 - **Repro** (`node dev/audit/world/fasttravel.e2e.js`, part A; fresh save): walk (or be put) 60 m from the minivan, press **M**,
