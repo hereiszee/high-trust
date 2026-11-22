@@ -37,6 +37,8 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
   const aimAt=(x,y,z)=>ev(([x,y,z])=>{const H=window.__ht,P=H.P;P.bloom=0;P.rDebt=0;/* the bot waits for the crosshair to settle */for(let k=0;k<2;k++){const c=H.camera.position;const dx=x-c.x,dy=y-c.y,dz=z-c.z;P.yaw=Math.atan2(-dx,-dz);P.pitch=Math.atan2(dy,Math.hypot(dx,dz));H.step(1);H.draw()/* the camera follows the view in the real frame */}},[x,y,z]);
   const click=async(n=1)=>{for(let k=0;k<n;k++){await p.mouse.down();await step(2);await p.mouse.up();await step(4)}};
   const press=async k=>{await p.keyboard.press(k);await step(3)};
+  /* audit SAV-02: what is on disk (the save the game writes), and which achievement rules (js/platform.js) it meets */
+  const disk=()=>ev(()=>{let d=null;try{d=JSON.parse(localStorage.getItem('ht-save')||'null')}catch(_){}const b=d&&d.base||{};return{borrows:(b.tank&&b.tank.borrows)|0,flights:(b.jet&&b.jet.flights)|0,ach:d&&HT.Steam&&HT.Steam.evaluate?HT.Steam.evaluate(d):[]}});
   const promptText=()=>ev(()=>{const H=window.__ht;H.draw();const el=[...document.querySelectorAll('*')].filter(x=>x.children.length===0&&/(Climb into|Borrow|Drive)/.test(x.textContent||''));return el.map(x=>x.textContent).join(' | ')});
   /* stand at an approach angle around a vehicle (ang 0 = in front of the nose, PI/2 = its left...), dist m off its hull */
   const around=(e,ang,hl,hw,dist)=>ev(([ex,ez,yaw,ang,hl,hw,dist])=>{const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=-fz,rz=fx;const ca=Math.cos(ang),sa=Math.sin(ang);const al=ca*(hl+dist),sd=sa*(hw+dist);const P=window.__ht.P;P.pos.set(ex+fx*al+rx*sd,0,ez+fz*al+rz*sd);P.yaw=Math.atan2(-(ex-P.pos.x),-(ez-P.pos.z));window.__ht.step(3)},[e.x,e.z,e.yaw,ang,hl,hw,dist]);
@@ -106,7 +108,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     {const te=await ev(()=>{const c=window.__ht.L.cars.find(q=>q.type==='tank');return c?{x:c.pos.x,z:c.pos.z,yaw:c.yaw}:null});const got=[];
      for(const[nm,ang]of[['front',0],['left',Math.PI/2],['back',Math.PI],['right',-Math.PI/2]]){await around(te,ang,3.8,1.8,1.6);got.push(nm+':'+(/Climb into|Borrow/.test(await promptText())?'yes':'no'))}
      ok(!got.join().includes(':no'),'the tank can be boarded from every side ('+got.join(' ')+')');await around(te,Math.PI/2,3.8,1.8,1.2)}
+    const dk0=await disk();
     await press('e');s=await st();ok(s.car&&s.car.type==='tank','E borrows the tank');
+    {const dk=await disk();ok(dk.borrows===dk0.borrows+1&&dk.ach.includes('ACH_BORROWED'),'the borrow is on disk at once ('+dk0.borrows+' → '+dk.borrows+') and meets ACH_BORROWED');}
     const y0=s.car.yaw;await key('a',true);await step(40);await key('a',false);await step(4);s=await st();ok(Math.abs(s.car.yaw-y0)>.4&&Math.abs(s.car.spd)<1.5,'A turns it on the spot ('+(s.car.yaw-y0).toFixed(2)+' rad)');
     await key('d',true);await step(40);await key('d',false);
     const p0=await st();await key('w',true);await step(70);await key('w',false);await step(20);s=await st();const moved=Math.hypot(s.car.x-p0.car.x,s.car.z-p0.car.z);ok(moved>3,'W drives it ('+moved.toFixed(1)+' m, top '+(await ev(()=>window.__ht.CV.car.stats.maxSpeed)).toFixed(1)+' m/s)');
@@ -142,7 +146,9 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
      for(const[nm,ang]of[['nose',0],['left',Math.PI/2],['tail',Math.PI],['right',-Math.PI/2],['left-front',Math.PI/4]]){await around(je,ang,5.7,.95,2.6);got.push(nm+':'+(/Climb into DAD-1/.test(await promptText())?'yes':'no'))}
      ok(!got.join().includes(':no'),'the jet can be boarded from any side within 3.5 m of the fuselage ('+got.join(' ')+')');
      await around(je,Math.PI/2+.5,5.7,.95,2.4);await shot('jet-board-prompt')}
+    const fl0=await disk();
     await press('e');j=await js();ok(j.on,'E climbs into the jet');
+    {const dk=await disk();ok(dk.flights===fl0.flights,'sitting in the jet is not a flight ('+dk.flights+')')}
     /* a tiny autopilot that only presses keys: heading by roll (A/D), climb by pitch (arrows), speed by throttle (W/S, Shift) */
     let famMax=0;const fly=async(o)=>{const t0=o.max||900;let n=0;for(;n<t0;n++){j=await js();famMax=Math.max(famMax,j.fam||0);if(o.until&&o.until(j))break;
         const TT=typeof o.to==='function'?o.to(j):o.to,tx=TT[0],tz=TT[1];/* o.to may be a function (a look-ahead point) */const want=Math.atan2(-(tx-j.x),-(tz-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
@@ -157,6 +163,7 @@ const ok=(c,m)=>{say((c?'  ok   ':'  FAIL ')+m);if(!c)fails++};
     for(let i=0;i<260;i++){j=await js();const want=Math.atan2(-(d.runway.end.x-j.x),-(d.runway.z-4*Math.sign(d.runway.z-j.z)*0-j.z));let he=want-j.hdg;he=Math.atan2(Math.sin(he),Math.cos(he));
       await key('a',he>.04);await key('d',he<-.04);await key('ArrowUp',j.spd>42);if(j.air)break;if(i===40)await shot('jet-takeoff');await step(2)}
     await release();j=await js();ok(j.air,'took off ('+(j.spd*2.237).toFixed(0)+' mph at x '+j.x.toFixed(0)+')');
+    {const dk=await disk();ok(dk.flights===fl0.flights+1&&dk.ach.includes('ACH_CLEARED_FOR_TAKEOFF'),'wheels-up counts the flight on disk ('+fl0.flights+' → '+dk.flights+') and meets ACH_CLEARED_FOR_TAKEOFF')}
     await press('g');j=await js();ok(j.gear===0,'G raises the gear');
     await fly({to:[-200,230],alt:90,max:140});await perf('jet climbing out');
     await press('v');await step(4);await shot('jet-cockpit');await press('v');await step(2);await ev(()=>{window.__ht.P.fp=false});

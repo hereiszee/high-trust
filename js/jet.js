@@ -104,6 +104,7 @@ const S={e:null,L:null,taught:{},fam:[],famT:0,simT:0};
 Jet.F=F;Jet.S=S;
 function sv(){try{const s=A().SV();return s&&s.base}catch(_){return null}}
 function persist(){try{A().save()}catch(_){}}
+function saveNow(){try{if(HT.Save&&HT.Save.saveNow)HT.Save.saveNow();else A().save()}catch(_){}}/* written at once: a quit right after still has it */
 function glue(){const a=A();if(!a||typeof a.carFeel!=='function')return false;if(!glue.done){a.carFeel('jet',FEEL,[[1.4,1.65,0]]);glue.done=true}return true}
 function ensure(a){const d=B().def();if(!d||!glue())return;if(S.e&&a.L.cars&&a.L.cars.includes(S.e)&&S.L===a.L)return;
   let v=null;try{v=a.makeVehicle('jet','#e9ebe8')}catch(_){v=null}if(!v)return;v.userData.lod=0;v.position.set(d.jet.x,0,d.jet.z);a.L.group.add(v);const e=a.registerCar(v,d.jet.x,d.jet.z);if(!e)return;
@@ -125,7 +126,7 @@ F.gearKFor=v=>S.e&&v===S.e.obj?F.gearK:1;
 const _f=V(0,0,0),_u=V(0,0,0),_r=V(0,0,0),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_y=V(0,1,0);
 function start(a,e){try{OWm().buildAhead&&OWm().buildAhead(900)}catch(_){}/* stream the town in while taxiing, not in the air */F.on=true;F.air=false;F.look=false;F.abOn=false;F.ejArm=null;F.pos.set(e.pos.x,0,e.pos.z);F.spd=0;F.thr=0;F.ab=0;F.gear=1;F.gearK=1;F.stall=false;F.pitchG=0;F.prevYaw=null;
   F.q.setFromEuler(_e.set(0,e.yaw+Math.PI/2,0,'YZX'));e.fly=true;F.trails=[[],[]];F.said={};F.flightT=0;
-  const s=sv();if(s&&s.jet)s.jet.flights=(s.jet.flights|0)+1;say(TOWER,pick(LINES.enter),true);
+  say(TOWER,pick(LINES.enter),true);/* audit SAV-02: a flight counts at wheels-up (liftoff below), not when you sit in it */
   try{if(HT.People&&HT.People.preload)HT.People.preload(['wife','son','daughter'])}catch(_){}/* so they can come out and wave when you buzz the house */
   teach(a,'fly1','Jet: tap W to set the throttle (it stays) · SPACE / Q nose up / down (or mouse, ↑ ↓) · A / D steer · Shift burner at 100%');
   hudShow(true)}
@@ -156,7 +157,7 @@ function ground(a,e,dt,pitchIn,yawIn,k){/* rolling: thrust, rolling drag, brakes
   F.q.setFromEuler(_e.set(0,yaw,pitch,'YZX'));_f.set(1,0,0).applyQuaternion(F.q);F.pos.x+=_f.x*F.spd*dt;F.pos.z+=_f.z*F.spd*dt;F.pos.y=0;
   /* off the paved area at speed: bumpy, slows you down; buildings stop you (comic) */
   if(hitSolid(a,F.pos.x,F.pos.z,1.5)&&F.spd>2){crash(a,e,'ground');return}
-  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;say(TOWER,pick(LINES.takeoff));teach(a,'fly2','In the air: SPACE climbs, Q dives (or mouse up / down, ↑ ↓) · A / D bank, let go and the wings level · gear is automatic (G by hand) · V cockpit · C look back · E twice to eject')}}
+  if(pitch>.1&&F.spd>K.LIFTOFF){F.air=true;F.pos.y=.6;F.vs=0;{const s=sv();if(s&&s.jet){s.jet.flights=(s.jet.flights|0)+1;saveNow()}}/* audit SAV-02: counted at wheels-up and saved now (ACH_CLEARED_FOR_TAKEOFF reads it) */say(TOWER,pick(LINES.takeoff));teach(a,'fly2','In the air: SPACE climbs, Q dives (or mouse up / down, ↑ ↓) · A / D bank, let go and the wings level · gear is automatic (G by hand) · V cockpit · C look back · E twice to eject')}}
 function air(a,e,dt,pitchIn,rollIn,yawIn){const eff=clamp((F.spd-12)/45,.12,1);
   /* hands off: the wings level and the nose settles toward level flight (gently: a held bank or climb is untouched) */
   {_u.set(0,1,0).applyQuaternion(F.q);_r.set(0,0,1).applyQuaternion(F.q);_f.set(1,0,0).applyQuaternion(F.q);const bk=Math.atan2(-_r.y,_u.y),pt=Math.asin(clamp(_f.y,-1,1));

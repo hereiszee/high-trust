@@ -255,7 +255,7 @@ function tick(){const a=A();if(!a||!a.L||!a.L.ow||!B()||!B().def())return;const 
   {/* far away it isn't drawn: the tank, its sergeant and the training-lane props (the camera is the judge) */const c=a.camera.position,d=B().def(),far=Math.hypot(c.x-d.tank.x,c.z-d.tank.z)>110;
     if(S.e&&S.e.obj)S.e.obj.visible=a.CV===S.e||Math.hypot(c.x-S.e.pos.x,c.z-S.e.pos.z)<130||c.y>40;if(S.sarge&&S.sarge.d)S.sarge.d.root.visible=!far;if(S.propRoot)S.propRoot.visible=!far}
   const e=S.e;if(e&&a.mode==='hub'){
-    if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank)s.tank.borrows=(s.tank.borrows|0)+1;say(SARGE,pick(LINES.borrow),true);
+    if(a.CV===e&&!S.inside){S.inside=true;const s=sv();if(s&&s.tank){s.tank.borrows=(s.tank.borrows|0)+1;try{if(HT.Save&&HT.Save.saveNow)HT.Save.saveNow();else a.save()}catch(_){}}/* audit SAV-02: saved now (ACH_BORROWED reads it) */say(SARGE,pick(LINES.borrow),true);
       teach(a,'drive','Tank: W/S drive · A/D turn on the spot · mouse aims the turret · left click fires · V gunner sight · E gets out')}
     if(a.CV!==e&&S.inside){S.inside=false;S.drive=false;const d=B().def();if(Math.hypot(e.pos.x-d.tank.x,e.pos.z-d.tank.z)<14)say(SARGE,pick(LINES.back))}
     /* left far away and out of sight: the motor pool brings it home */
