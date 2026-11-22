@@ -306,6 +306,7 @@ const HP=kw=>Math.round(kw*1.341);
 function carLine(sp){const g=sp.vg.length;return HP(sp.kw)+' hp · '+Math.round(sp.mass*2.2046).toLocaleString('en-US')+' lb · '+sp.drive+' · '+g+'-speed · top '+Math.round(sp.vg[g-1]*D().MPH)+' mph'}
 function bookOf(t){const s=sv();return s&&s.book[t]||null}
 function ownType(a){try{return a.VAN.obj&&a.VAN.obj.userData.type||'minivan'}catch(_){return'minivan'}}
+function ownUtil(a){try{return a.SV().garage.util||null}catch(_){return null}}
 function ownVeh(a){try{const g=a.SV().garage;return g&&g.vehicles&&g.vehicles[ownType(a)]||null}catch(_){return null}}
 const FEEL_MOWER={label:'ride-on mower',seats:1,bed:0,max:9,boostMax:11,acc:5.2,boostAcc:6.4,brake:13,hbrake:11,turn:2.4,steerResp:11,grip:7,roll:.55,cam:[4.4,1.15],eng:1.9,gears:1,horn:'short',door:'close',rear:1,torque:0};
 
@@ -325,16 +326,19 @@ function walkTo(a,p,yaw){a.P.pos.set(p.x,0,p.z);if(yaw!=null)a.P.yaw=yaw}
 
 /* ================= TEST & TUNE: the picker ================= */
 function openPicker(a){const s=sv(),types=D().types(),own=ownType(a);
-  const items=types.map(t=>{const sp=D().spec(t),b=bookOf(t),tags=[];if(t===own)tags.push(['YOURS','g']);if(sp.cls==='mower')tags.push(['TURF CLASS','y']);
-    return{label:sp.name,tags,sub:carLine(sp),right:b&&b.best?'best '+b.best.et.toFixed(3)+' s · '+b.best.mph.toFixed(1)+' mph':'no passes yet',act:()=>{closeMenu();startTune(a,t)}}});
-  menu({id:'picker',title:'TEST & TUNE',kicker:'PADDOCK · FREE',sub:'Any car in town, no charge. A loaner at the line, as many passes as you like, a timeslip after each. Your best in every car goes in the garage book.',items,foot:'Loaners stay at the strip'})}
+  const osp=D().spec(own,ownVeh(a),ownUtil(a)),here=inStrip(a.VAN.pos.x,a.VAN.pos.z),ob=s&&s.book[D().bookKey(osp)];
+  const items=[{label:'Your '+osp.name,tags:[['YOURS','g']],sub:carLine(osp)+' · '+D().upText(osp),right:ob&&ob.best?'best '+ob.best.et.toFixed(3)+' s · '+ob.best.mph.toFixed(1)+' mph':'no passes yet',
+    off:here?null:'Your car is not at the strip (fast travel brings it)',act:()=>{closeMenu();startTuneOwn(a)}}].concat(types.map(t=>{const sp=D().spec(t),b=bookOf(t),tags=[['STOCK','']];if(sp.cls==='mower')tags.push(['TURF CLASS','y']);
+    return{label:sp.name,tags,sub:carLine(sp),right:b&&b.best?'best '+b.best.et.toFixed(3)+' s · '+b.best.mph.toFixed(1)+' mph':'no passes yet',act:()=>{closeMenu();startTune(a,t)}}}));
+  menu({id:'picker',title:'TEST & TUNE',kicker:'PADDOCK · FREE',sub:'Any car in town, no charge: loaners are stock; your own car runs with its upgrades. A car at the line, as many passes as you like, a timeslip after each. Your best in every car goes in the garage book.',items,foot:'Loaners stay at the strip'})}
+function startTuneOwn(a){const e=laneCar(a,{own:true});if(!e)return;newRun(a,{mode:'tune',e,lane:0,type:ownType(a),veh:ownVeh(a),util:ownUtil(a)})}
 function startTune(a,type){const d=ST.def();if(a.CV&&a.CV!==S.loaner)try{a.exitCar()}catch(_){}
   const e=spawnLoaner(a,type,d.start+8,d.laneZ[0],d.yaw);if(!e){feed('The loaner would not start. Try another one.','bad');return}
   a.enterCar(e);say(NAMES.office,pick(LINES.loaner));newRun(a,{mode:'tune',e,lane:0,type})}
 
 /* ================= a pass / a race ================= */
 const TREE={a:.5,green:1.5};/* a full ("sportsman") tree: three ambers half a second apart, green half a second after the last */
-function newRun(a,o){const d=ST.def(),e=o.e,lane=o.lane||0;const sp=o.spec||D().spec(o.type||e.type,o.veh||null);
+function newRun(a,o){const d=ST.def(),e=o.e,lane=o.lane||0;const sp=o.spec||D().spec(o.type||e.type,o.veh||null,o.veh?o.util||null:null);
   const R={mode:o.mode,phase:'roll',t:0,e,lane,type:o.type||e.type,spec:sp,run:D().run(sp),tree0:null,offs:[0,0],opp:null,dial:o.dial||null,racer:o.racer||null,bet:o.bet||null,
     entry:o.entry||0,rent:o.rent||0,bracket:o.bracket||null,turf:!!o.turf,shutX:null,res:null,lights:[{},{}],noLaunchT:0,said:{}};
   S.run=R;e.fly=true;e.noExit=true;if(!e.stripLoaner)e.loaner='Finish the pass first. Fast travel waits for the slip.';placeCar(a,e,lane,4);/* rolls up from 4 m back */
@@ -384,7 +388,7 @@ function posOpp(a,R,off,v,dt){const m=R.opp&&R.opp.model;if(!m)return;placeModel
 function placeModel(m,lane,off,v,dt){const d=ST.def(),L=(m.userData.size&&m.userData.size.l)||4.6;m.position.set(d.start+L/2+off,0,d.laneZ[lane]);m.rotation.y=Math.PI;/* front (+X) faces west */
   try{HT.Vehicles.update(m,{speed:v||0,steer:0,braking:false,dt:dt||1/60})}catch(_){}}
 /* past the finish: lift and brake to a stop before the sand (the strip's shutdown is ~50 m) */
-function shut(R,r,dt,L){if(r.v<=0)return;const d=ST.def(),front=d.start-r.x,room=Math.max(3,front-(d.shut.x+2)),dec=Math.max(7,r.v*r.v/(2*room));r.v=Math.max(0,r.v-dec*dt);r.x+=r.v*dt}
+function shut(R,r,dt,L){if(r.v<=0)return;const d=ST.def(),front=d.start-r.x,room=Math.max(3,front-(d.shut.x+2)),dec=Math.max(7*(r.s&&r.s.shutK||1),r.v*r.v/(2*room));r.v=Math.max(0,r.v-dec*dt);r.x+=r.v*dt}
 
 /* ================= results ================= */
 function finishRun(a){const R=S.run,me=R.run,sl=D().slip(me);R.phase='done';const s=sv();
@@ -392,7 +396,7 @@ function finishRun(a){const R=S.run,me=R.run,sl=D().slip(me);R.phase='done';cons
   /* the book, the history (for the odds), the stats */
   if(s){s.stats.passes++;if(sl.red)s.stats.reds++;if(sl.rt!=null&&sl.rt>=0&&(s.stats.bestRt==null||sl.rt<s.stats.bestRt))s.stats.bestRt=sl.rt;if(sl.rt!=null&&sl.rt>=0&&sl.rt<=.05)s.stats.perfect=true;
     s.hist.push({rt:sl.rt,launchQ:sl.launchQ,type:R.type});if(s.hist.length>20)s.hist.splice(0,s.hist.length-20);
-    const key=R.type+(R.spec.up&&(R.spec.up.engine||R.spec.up.tyres)?'+':'');const b=s.book[key]||(s.book[key]={best:null,n:0,last:null});b.n++;b.last=slim(sl);
+    const key=D().bookKey(R.spec);const b=s.book[key]||(s.book[key]={best:null,n:0,last:null});b.type=R.type;b.label=D().upText(R.spec);b.n++;b.last=slim(sl);
     sl.prevBest=b.best?b.best.et:null;if(!sl.red&&(!b.best||sl.et<b.best.et)){b.best=slim(sl);sl.newBest=true}}
   let res=null;
   if(R.opp){const o=R.opp,osl=D().slip(o.ctl.R),l0=R.lane===0;res=D().judge(l0?[me,o.ctl.R]:[o.ctl.R,me],l0?[sl,osl]:[osl,sl],R.dial?(l0?R.dial:[R.dial[1],R.dial[0]]):null);
@@ -435,30 +439,32 @@ function settleRace(a,R,res,sl){const E=D().ECON,s=sv(),Dd=D().day(s,dayN()),r=R
 
 /* ================= the timeslip ================= */
 const f3=x=>x==null?'—':(x<0?'-':'')+Math.abs(x).toFixed(3).replace(/^0\./,'.');
-function slipHtml(R,sl,res,money){const s=sv(),key=R.type+(R.spec.up&&(R.spec.up.engine||R.spec.up.tyres)?'+':''),book=s?s.book:{};
+function slipHtml(R,sl,res,money){const s=sv(),key=D().bookKey(R.spec),book=s?s.book:{};
   const dlt=(v,b)=>b==null||v==null?'':`<span class="dl${v>b?' bad':''}">${v<=b?'▼ ':'▲ '}${Math.abs(v-b).toFixed(3)}</span>`;const bb=sl.prevBest;
   const rows=[['Reaction time',f3(sl.rt)+(sl.red?' <b style="color:#ff6a4a">RED</b>':sl.rt!=null&&sl.rt<=.05&&sl.rt>=0?' <b style="color:#7fdc6e">PERFECT</b>':'')],['60 ft',f3(sl.t60)],['330 ft',f3(sl.t330)],
     ['1/8 mile ET',f3(sl.et)+' '+(bb!=null?dlt(sl.et,bb):'')],['1/8 mile speed',sl.mph.toFixed(2)+' mph'],['1/4 mile (est.)',sl.et14.toFixed(2)+' s · '+sl.mph14.toFixed(1)+' mph'],
-    ['Launch',sl.launchQ>=.95&&sl.spin<.3?'clean':sl.spin>.6?'wheelspin ('+Math.round(sl.spin*100)+'%)':sl.launchQ<.7?'bogged':'a little spin']];
+    ['Car',esc(R.spec.name)+' · '+esc(D().upText(R.spec))],['Launch',sl.launchQ>=.95&&sl.spin<.3?'clean':sl.spin>.6?'wheelspin ('+Math.round(sl.spin*100)+'%)':sl.launchQ<.7?'bogged':'a little spin']];
   let h='<table>'+rows.map(r=>`<tr><td>${r[0]}</td><td class="v">${r[1]}</td></tr>`).join('')+'</table>';
   if(res){const how=res.how==='red'?(res.red[res.me]?'You red-lit':'They red-lit'):res.how==='breakout'?'Breakout':'';
     h=`<div class="sub" style="font-size:20px"><b style="color:${res.won?'#7fdc6e':'#ff8a6b'}">${res.won?'WIN':'LOSS'}</b> vs ${esc(R.racer.name)} · ${esc(D().spec(R.racer.car).name)}${how?' · '+how:''}${res.margin!=null&&res.how==='finish'?' · by '+res.margin.toFixed(3)+' s ('+res.marginM.toFixed(1)+' m)':''}</div>`+h;
     const o=res.oppSlip;if(o)h+=`<div class="sub">${esc(R.racer.name)}: R/T ${f3(o.rt)}${o.red?' RED':''} · ${f3(o.et)} s @ ${o.mph!=null?o.mph.toFixed(1):'—'} mph</div>`}
-  else h=`<div class="sub">${esc(R.spec.name)}${R.spec.up?' (your upgrades)':''} · ${sl.newBest?'<b style="color:#7fdc6e">New best in this car.</b>':bb!=null?'Your best in this car: '+f3(bb)+' s':''}</div>`+h;
+  else h=`<div class="sub">${esc(R.spec.name)} · ${R.spec.own?'yours':'stock loaner'} · ${sl.newBest?'<b style="color:#7fdc6e">New best in this car.</b>':bb!=null?'Your best in this car: '+f3(bb)+' s':''}</div>`+h;
   if(money&&money.lines.length)h+='<table>'+money.lines.map(([l,n])=>`<tr><td>${esc(l)}</td><td class="v ${n>0?'cash':n<0?'dl bad':''}">${n?money0(n):''}</td></tr>`).join('')+(money.net?`<tr><td><b>Net</b></td><td class="v ${money.net>0?'cash':'dl bad'}">${money0(money.net)}</td></tr>`:'')+'</table>';
   /* the garage book: best per car, quickest first */
   const all=Object.entries(book).filter(([k,b])=>b&&b.best).sort((x,y)=>x[1].best.et-y[1].best.et);
-  if(all.length>1||!res){h+='<div class="sub" style="text-transform:uppercase;letter-spacing:.08em;font-size:12px">Garage book · your best slip in each car</div><table>'+all.slice(0,9).map(([k,b],i)=>{const t=k.replace('+',''),nm=(D().SPEC[t]||{}).name||t;
-    return`<tr style="${k===key?'color:#ffd34a;font-weight:700':''}"><td>${i+1}. ${esc(nm)}${k.endsWith('+')?' (upgraded)':''}</td><td class="v">${f3(b.best.et)} s · ${b.best.mph.toFixed(1)} mph</td><td class="v" style="opacity:.7">${b.n} pass${b.n>1?'es':''}</td></tr>`}).join('')+'</table>'}
+  if(all.length>1||!res){h+='<div class="sub" style="text-transform:uppercase;letter-spacing:.08em;font-size:12px">Garage book · your best slip in each car</div><table>'+all.slice(0,9).map(([k,b],i)=>{const nm=bookName(k,b);
+    return`<tr style="${k===key?'color:#ffd34a;font-weight:700':''}"><td>${i+1}. ${esc(nm)}</td><td class="v">${f3(b.best.et)} s · ${b.best.mph.toFixed(1)} mph</td><td class="v" style="opacity:.7">${b.n} pass${b.n>1?'es':''}</td></tr>`}).join('')+'</table>'}
   return h}
+/* a garage book row's name: the car, and stock / yours with its upgrades */
+function bookName(k,b){const t=b&&b.type||k.split('@')[0].replace('+',''),nm=(D().SPEC[t]||{}).name||t;return nm+' · '+(k.includes('@')?'yours: '+(b&&b.label||'?'):'stock')}
 const money0=n=>(n>0?'+':'-')+'$'+Math.abs(n);
 function showSlip(a,R,sl,res,money){const items=[];
-  if(R.mode==='tune'){items.push({label:'Run it again',sub:'Same car, back to the line',act:()=>{closeMenu();again(a,R)}});items.push({label:'Change car',sub:'Back to the paddock board',act:()=>{closeMenu();S.run=null;dropLoaner(a,true);openPicker(a)}});
+  if(R.mode==='tune'){items.push({label:'Run it again',sub:'Same car, back to the line',act:()=>{closeMenu();again(a,R)}});items.push({label:'Change car',sub:'Back to the paddock board',act:()=>{closeMenu();doneRun(a,R);openPicker(a)}});
     items.push({label:'Done',sub:'Hand the loaner back',act:()=>{closeMenu();doneRun(a,R)}})}
   else if(money&&money.next){items.push({label:'Next round',sub:'Round '+(R.bracket.round+1)+' of '+R.bracket.field.length+' · '+R.bracket.field[R.bracket.round].name,act:()=>{closeMenu();nextRound(a,R)}})}
   else items.push({label:'Done',sub:R.e===a.VAN?'Park in the paddock':'Hand the car back',act:()=>{closeMenu();doneRun(a,R)}});
   menu({id:'slip',title:R.opp?(R.bracket?'BRACKET NIGHT · ROUND '+R.bracket.round:'HEADS-UP'):'TIMESLIP',kicker:'SENSIBLE DRAGWAY · 1/8 MILE',html:slipHtml(R,sl,res,money),items,back:()=>{closeMenu();R.mode==='tune'?doneRun(a,R):items[0].act()}})}
-function again(a,R){S.run=null;newRun(a,{mode:'tune',e:R.e,lane:0,type:R.type,spec:R.spec})}
+function again(a,R){S.run=null;const own=!R.e.stripLoaner;newRun(a,{mode:'tune',e:R.e,lane:0,type:R.type,veh:own?ownVeh(a):null,util:own?ownUtil(a):null})}
 function doneRun(a,R){S.run=null;dropOpp(R);const d=ST.def(),e=R.e;freeCar(e)
   if(e&&e.stripLoaner){dropLoaner(a);walkTo(a,R.mode==='tune'?{x:d.paddockBoard.x,z:d.paddockBoard.z+1.4}:{x:d.booth.x-1.6,z:d.booth.z},R.mode==='tune'?Math.PI:Math.PI/2)}
   else if(e){e.pos.set(d.park.x,0,d.park.z);e.yaw=d.park.yaw;try{a.owStopCar(e)}catch(_){}a.syncCar(e);a.P.pos.set(e.pos.x,0,e.pos.z)}
@@ -478,7 +484,7 @@ function openOffice(a){const E=D().ECON,s=sv(),Dd=today(),c=cash();const nextB=d
       {label:'Bet on the next race',sub:'Two of the regulars · odds from the tower · watch from the tower camera',act:()=>openBet(a)},
       {label:'The garage book',sub:'Your best slip in every car',act:()=>showBook(a)}]})}
 function showBook(a){const s=sv(),all=Object.entries(s.book).filter(([k,b])=>b&&b.best).sort((x,y)=>x[1].best.et-y[1].best.et);
-  const h=all.length?'<table>'+all.map(([k,b],i)=>{const t=k.replace('+',''),nm=(D().SPEC[t]||{}).name||t;return`<tr><td>${i+1}. ${esc(nm)}${k.endsWith('+')?' (upgraded)':''}</td><td class="v">R/T ${f3(b.best.rt)}</td><td class="v">${f3(b.best.et)} s</td><td class="v">${b.best.mph.toFixed(1)} mph</td><td class="v" style="opacity:.7">${b.n}</td></tr>`}).join('')+'</table>':'<div class="sub">No passes yet. The paddock board lends you any car, free.</div>';
+  const h=all.length?'<table>'+all.map(([k,b],i)=>{const nm=bookName(k,b);return`<tr><td>${i+1}. ${esc(nm)}</td><td class="v">R/T ${f3(b.best.rt)}</td><td class="v">${f3(b.best.et)} s</td><td class="v">${b.best.mph.toFixed(1)} mph</td><td class="v" style="opacity:.7">${b.n}</td></tr>`}).join('')+'</table>':'<div class="sub">No passes yet. The paddock board lends you any car, free.</div>';
   menu({id:'book',title:'GARAGE BOOK',html:h+`<div class="sub">Passes ${s.stats.passes} · races ${s.stats.races} (won ${s.stats.wins}) · red lights ${s.stats.reds} · best light ${s.stats.bestRt!=null?f3(s.stats.bestRt):'—'}</div>`,items:[{label:'Back',act:()=>openOffice(a)}],back:()=>openOffice(a)})}
 function openLadder(a){const s=sv(),Dd=today(),E=D().ECON,L=D().LADDER.map(D().racer);let open=true;
   const items=L.map((r,i)=>{const beaten=!!s.ladder.beaten[r.id],n=Dd.beat[r.id]|0,locked=!open&&!beaten;if(!beaten)open=false;
@@ -488,15 +494,15 @@ function openLadder(a){const s=sv(),Dd=today(),E=D().ECON,L=D().LADDER.map(D().r
 /* which car: yours (if it's a street car and it's here) or a rental */
 function pickCar(a,r,o){const d=ST.def(),E=D().ECON,items=[];const turf=!!o.turf;
   if(turf){items.push({label:'The strip\'s mower',sub:carLine(D().spec('mower')),right:'free',act:()=>pickBet(a,r,{type:'mower',rent:0,turf:true,bracket:o.bracket})})}
-  else{const ot=ownType(a),ok=D().CLASSES.street.types.includes(ot),here=inStrip(a.VAN.pos.x,a.VAN.pos.z),sp=D().spec(ot,ownVeh(a));
-    items.push({label:'Your '+sp.name,tags:sp.up&&(sp.up.engine||sp.up.tyres)?[['UPGRADED','g']]:[],sub:carLine(sp),right:'no rental',off:!ok?'Not in the street class':!here?'Your car is not at the strip (fast travel brings it)':null,act:()=>pickBet(a,r,{own:true,type:ot,rent:0,bracket:o.bracket})});
-    for(const t of D().CLASSES.street.types){const s2=D().spec(t);items.push({label:'Rent: '+s2.name,sub:carLine(s2),right:'$'+E.rent,act:()=>pickBet(a,r,{type:t,rent:E.rent,bracket:o.bracket})})}}
+  else{const ot=ownType(a),ok=D().CLASSES.street.types.includes(ot),here=inStrip(a.VAN.pos.x,a.VAN.pos.z),sp=D().spec(ot,ownVeh(a),ownUtil(a));
+    items.push({label:'Your '+sp.name,tags:sp.up?[['UPGRADED','g']]:[],sub:carLine(sp)+' · '+D().upText(sp),right:'no rental',off:!ok?'Not in the street class':!here?'Your car is not at the strip (fast travel brings it)':null,act:()=>pickBet(a,r,{own:true,type:ot,rent:0,bracket:o.bracket})});
+    for(const t of D().CLASSES.street.types){const s2=D().spec(t);items.push({label:'Rent: '+s2.name,sub:carLine(s2)+' · stock',right:'$'+E.rent,act:()=>pickBet(a,r,{type:t,rent:E.rent,bracket:o.bracket})})}}
   menu({id:'car',title:o.bracket?'BRACKET NIGHT · YOUR CAR':'RACE '+r.name.toUpperCase(),sub:o.bracket?'One car for all three rounds.':r.name+' runs '+D().spec(r.car).name+'. '+r.bio,items,back:()=>o.bracket?openOffice(a):turf?openOffice(a):openLadder(a)})}
 /* a bet on yourself, priced from your own history in that car against him */
 function myProfile(){const s=sv();return D().playerProfile(s?s.hist:[])}
 function pickBet(a,r,c){const E=D().ECON;if(c.bracket){startBracket(a,c);return}
   const entry=c.turf?E.turf.entry:E.entry,need=entry+c.rent;if(cash()<need){feed("You need "+money(need)+" for that (entry"+(c.rent?' and rental':'')+"). You have "+money(cash())+'.','bad');return}
-  const sp=c.own?D().spec(c.type,ownVeh(a)):D().spec(c.type),prof=myProfile();const p=D().winP({spec:sp,driver:prof},{spec:D().spec(r.car),driver:r.d},240,(Math.random()*1e9)|0),m=D().payout(p),Dd=today();
+  const sp=c.own?D().spec(c.type,ownVeh(a),ownUtil(a)):D().spec(c.type),prof=myProfile();const p=D().winP({spec:sp,driver:prof},{spec:D().spec(r.car),driver:r.d},240,(Math.random()*1e9)|0),m=D().payout(p),Dd=today();
   const left=cash()-need,mx=D().maxStake(left,Dd,m);const items=[{label:'No bet',sub:'Just the race',act:()=>{closeMenu();startRace(a,r,c,null)}}];
   for(const st of[10,25,50,100]){const why=D().canBet(left,Dd,st,m);items.push({label:'Bet $'+st+' on yourself',right:'pays '+m.toFixed(2)+'× · +$'+Math.round(st*(m-1)),off:why,act:()=>{closeMenu();startRace(a,r,c,{stake:st,mult:m,p})}})}
   menu({id:'selfbet',title:'BET ON YOURSELF?',sub:'The tower makes you '+Math.round(p*100)+'% to win ('+(prof.novice?'a new driver: it watches your next few passes':'from your last '+Math.min(12,sv().hist.length)+' passes')+'). Payout '+m.toFixed(2)+'× your stake with an '+Math.round(E.bet.edge*100)+'% house edge. You can stake up to $'+mx+' right now.',items,back:()=>pickCar(a,r,c)})}
@@ -504,19 +510,19 @@ function racerIntro(r){say(r.name,r.lines.hello,true)}
 function laneCar(a,c){const d=ST.def();if(c.own){const e=a.VAN;if(a.CV&&a.CV!==e)try{a.exitCar()}catch(_){}dropLoaner(a,true);if(a.CV!==e){placeCar(a,e,0,4);a.enterCar(e)}return e}
   if(a.CV&&a.CV!==S.loaner)try{a.exitCar()}catch(_){}const e=spawnLoaner(a,c.type,d.start+8,d.laneZ[0],d.yaw);if(e)a.enterCar(e);return e}
 function startRace(a,r,c,bet){const e=laneCar(a,c);if(!e){feed('That car would not start.','bad');return}racerIntro(r);
-  newRun(a,{mode:'race',e,lane:0,type:c.type,veh:c.own?ownVeh(a):null,racer:r,bet,rent:c.rent,turf:!!c.turf,entry:c.turf?D().ECON.turf.entry:D().ECON.entry})}
+  newRun(a,{mode:'race',e,lane:0,type:c.type,veh:c.own?ownVeh(a):null,util:c.own?ownUtil(a):null,racer:r,bet,rent:c.rent,turf:!!c.turf,entry:c.turf?D().ECON.turf.entry:D().ECON.entry})}
 /* bracket night: three ladder racers, dial-ins from their own typical runs and your best in that car */
 function openBracket(a){const E=D().ECON;if(cash()<E.bracket.entry){feed('Bracket entry is '+money(E.bracket.entry)+'. You have '+money(cash())+'.','bad');return}pickCar(a,null,{bracket:true})}
 function dialFor(sp,drv,n){const rnd=D().rng(4242);let t=0;for(let i=0;i<n;i++)t+=D().slip(D().sim(sp,drv,rnd)).et;return Math.round((t/n+.04)*100)/100}
 function startBracket(a,c){const E=D().ECON;if(cash()<E.bracket.entry+c.rent){feed('Bracket entry and rental come to '+money(E.bracket.entry+c.rent)+'.','bad');return}closeMenu();
   const s=sv(),pool=D().LADDER.map(D().racer),k=Object.keys(s.ladder.beaten).length;const lo=clamp(k-2,0,pool.length-3);
   const field=pool.slice(lo,lo+5).sort(()=>Math.random()-.5).slice(0,3).sort((x,y)=>x.tier-y.tier);
-  const sp=c.own?D().spec(c.type,ownVeh(a)):D().spec(c.type),key=c.type+(sp.up&&(sp.up.engine||sp.up.tyres)?'+':''),b=s.book[key];
+  const sp=c.own?D().spec(c.type,ownVeh(a),ownUtil(a)):D().spec(c.type),key=D().bookKey(sp),b=s.book[key];
   const myDial=b&&b.best?Math.round((b.best.et+.05)*100)/100:dialFor(sp,{rt:.3,rtSd:0,redP:0,launchQ:.6,missP:0},4)+.1;
   feed('Bracket night: your dial-in is '+myDial.toFixed(2)+' s'+(b&&b.best?' (your best in this car + .05)':' (no book time in this car: the tower guessed)')+'. Run quicker than your dial and you break out.','info');
   const br={field,round:1,dial:myDial,c};const e=laneCar(a,c);if(!e)return;bracketRound(a,br,e)}
 function bracketRound(a,br,e){const r=br.field[br.round-1];racerIntro(r);const od=dialFor(D().spec(r.car),r.d,6);
-  newRun(a,{mode:'bracket',e,lane:0,type:br.c.type,veh:br.c.own?ownVeh(a):null,racer:r,rent:br.round===1?br.c.rent:0,bracket:br,dial:[br.dial,od]});
+  newRun(a,{mode:'bracket',e,lane:0,type:br.c.type,veh:br.c.own?ownVeh(a):null,util:br.c.own?ownUtil(a):null,racer:r,rent:br.round===1?br.c.rent:0,bracket:br,dial:[br.dial,od]});
   feed('Round '+br.round+': you '+br.dial.toFixed(2)+' · '+r.name+' '+od.toFixed(2)+'. '+(br.dial>od?'You leave first.':'They leave first.'),'info')}
 function nextRound(a,R){const br=R.bracket;br.round++;S.run=null;dropOpp(R);bracketRound(a,br,R.e)}
 
