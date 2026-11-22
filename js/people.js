@@ -278,7 +278,7 @@ function mergeStatic(root,dyn){dyn=dyn||new Set();root.updateMatrixWorld(true);c
     for(const o of g.list){M.multiplyMatrices(inv,o.matrixWorld);const gg=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(M);parts.push(gg)}
     const out=new T.BufferGeometry();for(const name of Object.keys(parts[0].attributes)){const a0=parts[0].attributes[name];let n=0;for(const q of parts)n+=q.attributes[name].array.length;
       const arr=new a0.array.constructor(n);let off=0;for(const q of parts){arr.set(q.attributes[name].array,off);off+=q.attributes[name].array.length}out.setAttribute(name,new T.BufferAttribute(arr,a0.itemSize,a0.normalized))}
-    out.computeBoundingSphere();const m=new T.Mesh(out,g.mat);m.name='rb_merged';m.castShadow=g.cast;m.receiveShadow=g.recv;g.anchor.add(m);
+    out.computeBoundingSphere();out.userData.rbOwned=true;/* this character's alone: freed with it (PERF-04) */const m=new T.Mesh(out,g.mat);m.name='rb_merged';m.castShadow=g.cast;m.receiveShadow=g.recv;g.anchor.add(m);
     for(const o of g.list){if(o.children.length){o.geometry=EMPTY;o.castShadow=false}else o.parent.remove(o);removed++}}
   return removed}
 /* in third person only the pump moves (People's pump stroke); muzzle/eject are markers */
@@ -301,11 +301,19 @@ function buildGunLod(gun){gun.updateMatrixWorld(true);const inv=new T.Matrix4().
     g.setAttribute('color',new T.BufferAttribute(ca,3));parts.push(g);rs+=(m.roughness!=null?m.roughness:.6)*cnt;ms+=(m.metalness||0)*cnt;n+=cnt});
   if(parts.length<2)return;let tot=0;for(const g of parts)tot+=g.attributes.position.count;const out=new T.BufferGeometry();
   for(const name of['position','normal','color']){const arr=new Float32Array(tot*3);let off=0;for(const g of parts){arr.set(g.attributes[name].array,off);off+=g.attributes[name].array.length}out.setAttribute(name,new T.BufferAttribute(arr,3))}
-  out.computeBoundingSphere();const r=Math.round(rs/n*10)/10,mt=Math.round(ms/n*10)/10,key=r+'|'+mt;
+  out.computeBoundingSphere();out.userData.rbOwned=true;const r=Math.round(rs/n*10)/10,mt=Math.round(ms/n*10)/10,key=r+'|'+mt;
   const mat=lodMats[key]||(lodMats[key]=new T.MeshStandardMaterial({vertexColors:true,roughness:r,metalness:mt}));
   const lod=new T.Mesh(out,mat);lod.name='rb_gunlod';lod.visible=false;lod.castShadow=false;gun.add(lod);gun.userData.rbLod={lod,detail,on:false}}
 function gunLod(d,on){const L=d.gun&&d.gun.userData.rbLod;if(!L||L.on===on)return;L.on=on;L.lod.visible=on;for(const o of L.detail)o.visible=!on}
 P.batchGun=batchGun;P.mergeStatic=mergeStatic;
+/* free what a character owns on the GPU (PERF-04): geometry made for it alone (rbOwned: merged gun/accessory meshes, the gun's far
+   stand-in) and everything under a gun model (HT.Guns builds a fresh one per call, nothing cached). Template geometry shared by every
+   clone of a model, shared materials and textures are left alone. Returns how many geometries it disposed */
+P.free=function(root){let n=0;if(!root)return 0;const done=new Set();
+  const drop=g=>{if(!g||done.has(g)||g===EMPTY)return;done.add(g);g.dispose();n++};
+  root.traverse(o=>{if(o.geometry&&o.geometry.userData&&o.geometry.userData.rbOwned)drop(o.geometry);
+    if(o.userData&&o.userData.gun)o.traverse(q=>{if(q.geometry)drop(q.geometry)})});
+  return n};
 
 /* ---------- instances ---------- */
 /* crews: a shuffle bag over the variants that are loaded, so the spread stays even and no two spawned in a row look alike */
