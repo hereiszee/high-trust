@@ -1,0 +1,11 @@
+pins api []
+start {"p":{"x":31,"z":19},"van":{"x":39,"z":15},"cv":null,"mode":"hub"}
+A on foot, van 60 m away -> {"l":"Dad's Auto","btn":true} {"p":{"x":221,"z":55},"van":{"x":39,"z":15},"cv":null,"mode":"hub"} ["Fast travel · Dad's Auto","Get back to the minivan to fast travel","Minivan"]
+FAIL A: fast travel on foot either refuses (needs the minivan) or goes, never both (moved 128 m) ["Fast travel · Dad's Auto","Get back to the minivan to fast travel","Minivan"]
+FAIL A: after fast travel the minivan is not left far behind {"dad":{"x":221,"z":55},"van":{"x":39,"z":15}}
+B in van -> {"l":"Home","btn":true} {"p":{"x":39,"z":15},"van":{"x":39,"z":15},"cv":{"type":"minivan","x":39,"y":-0.1,"z":15},"mode":"hub"} {"p":{"x":39,"z":15},"van":{"x":39,"z":15},"cv":{"type":"minivan","x":39,"y":-0.1,"z":15},"mode":"hub"} ["Saved you 8 seconds and one argument about directions.","Fast travel · Home","Fast travel · Dad's Auto","Get back to the minivan to fast travel","Minivan"]
+ok   B: "Saved you N seconds" reflects the distance (trip 0 m, said 8)
+C tank {"type":"tank","x":216,"y":0,"z":199} -> {"l":"Home","btn":true} {"type":"tank","x":40.5,"y":-0.1,"z":12.8} ["Saved you 8 seconds and one argument about directions.","Fast travel · Home","Fort Sensible added to the map · fast travel from the minivan","Minivan"]
+FAIL C: fast travel does not take the tank into town {"from":{"type":"tank","x":216,"y":0,"z":199},"to":{"type":"tank","x":40.5,"y":-0.1,"z":12.8}}
+C jet {"type":"jet","x":256,"y":0,"z":221} -> {"l":"Home","btn":true} {"type":"jet","x":256,"y":0,"z":221} ["Saved you 8 seconds and one argument about directions.","Fast travel · Home","Minivan"]
+ok   C: fast travel does not take the jet into town {"from":{"type":"jet","x":256,"y":0,"z":221},"to":{"type":"jet","x":256,"y":0,"z":221}}
