@@ -2644,13 +2644,13 @@ function updPlayer(dt){
 let camDist=2.7;
 /* can the camera at c see the dad (head at t, chest .55 m lower)? Uses the static collider grid (lamps, trees, poles, walls: L.cnear) and
    the buildings' camera-only occluders (the home's flag); no scene raycasts. Hidden = both head and chest behind something tall enough */
-const CAMOCC={on:true};/* __ht.camOcc: dev A/B switch (dev/audit/world/cam-occlusion.e2e.js) */
+const CAMOCC={on:true,k:1,want:1};/* __ht.camOcc: dev A/B switch (dev/audit/world/cam-occlusion.e2e.js) */
 function camSeg(cx,cz,tx,tz,b){let t0=0,t1=1;const dx=tx-cx,dz=tz-cz;
   for(const[p,d,lo,hi]of[[cx,dx,b.x0,b.x1],[cz,dz,b.z0,b.z1]]){if(Math.abs(d)<1e-9){if(p<lo||p>hi)return null;continue}let a=(lo-p)/d,c=(hi-p)/d;if(a>c){const q=a;a=c;c=q}if(a>t0)t0=a;if(c<t1)t1=c;if(t0>t1)return null}return[t0,t1]}
 function camClear(cx,cy,cz,tx,ty,tz){const l=Math.hypot(tx-cx,tz-cz);if(l<.5)return true;const k=(l-.35)/l,ex=cx+(tx-cx)*k,ez=cz+(tz-cz)*k;/* stop short of the dad: what he stands against doesn't count */
   const hid=y=>{const yA=cy,yB=y;
     for(const c of L.cnear((cx+ex)/2,(cz+ez)/2,l/2+1)){if(c.off||c.veh)continue;const top=c.h||c.ph||0;if(top<.9)continue;const s=camSeg(cx,cz,ex,ez,c);if(s&&yA+(yB-yA)*s[0]<top)return true}
-    const B=HTM('Buildings'),O=B&&B.camOccluders;if(O)for(const o of O){if(Math.abs(o.x0-tx)>8||Math.abs(o.z0-tz)>8)continue;const s=camSeg(cx,cz,ex,ez,o);if(!s)continue;const ya=yA+(yB-yA)*s[0],yb=yA+(yB-yA)*s[1];if(Math.max(ya,yb)>o.y0&&Math.min(ya,yb)<o.y1)return true}
+    const OWm=OW(),O=OWm&&OWm.camOccluders?OWm.camOccluders():null;if(O)for(const o of O){if(Math.abs(o.x0-tx)>8||Math.abs(o.z0-tz)>8)continue;const s=camSeg(cx,cz,ex,ez,o);if(!s)continue;const ya=yA+(yB-yA)*s[0],yb=yA+(yB-yA)*s[1];if(Math.max(ya,yb)>o.y0&&Math.min(ya,yb)<o.y1)return true}
     return false};
   return!(hid(ty)&&hid(ty-.55))}
 function updCamera(dt){
@@ -2661,18 +2661,24 @@ function updCamera(dt){
   const gw=WEAPONS[P.cur],base=CFG.fov*(armedNow()&&gw?lerp(1,P.fp||gw.scope?gw.ads.zoom:Math.max(.8,gw.ads.zoom),P.adsT):1);/* portrait screens: keep a usable horizontal view */
   const fov=camera.aspect<1?Math.min(100,2*Math.atan(Math.tan(base*Math.PI/360)/camera.aspect)*180/Math.PI*.8):base;camera.fov+=(fov-camera.fov)*Math.min(1,dt*12);camera.updateProjectionMatrix();
   if(P.fp){camera.position.copy(eye);if(vmCam.aspect!==camera.aspect){vmCam.aspect=camera.aspect;vmCam.updateProjectionMatrix()}vmPose(dt)}
-  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const right=V3(Math.cos(P.yaw),0,-Math.sin(P.yaw));
+  else{const home=mode==='home',back=P.aim?1.5:home?1.75:2.7,side=P.aim?.62:home?.42:.7;const sk=P.aim||home?1:CAMOCC.k,sg=sk<0?-1:1,right=V3(Math.cos(P.yaw)*sg,0,-Math.sin(P.yaw)*sg),sideK=side*Math.max(.05,Math.abs(sk));/* sk: -1 = over the left shoulder (W-08), eased through the middle */
     /* two-segment boom: eye -> shoulder pivot (stops short of walls), then pivot -> back along the view; kept above the ground */
-    ray.set(eye,right);ray.near=0;ray.far=side+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
-    const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,hs.distance-.25):side);
+    ray.set(eye,right);ray.near=0;ray.far=sideK+.25;const hs=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;
+    const pivot=eye.clone().addScaledVector(right,hs?Math.max(0,Math.min(sideK,hs.distance-.25)):sideK);
     const fwdH=V3(-Math.sin(P.yaw),0,-Math.cos(P.yaw));
     const want=pivot.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));want.y=Math.max(.45,want.y);
     const dir=want.clone().sub(pivot),len=dir.length();dir.normalize();ray.set(pivot,dir);ray.near=0;ray.far=len;
     const h=L?ray.intersectObjects(L.camSolids||L.solids,false)[0]:null;let dist=h?Math.max(.15,h.distance-.25):len,occ=false;
     /* occluders between the camera and the dad (a lamp post, a tree trunk, the flag by the front walk): the boom comes in to the first
        spot he can be seen from (W-08). Not while aiming (the aim view stays put) and not in the house */
-    if(!P.aim&&!home&&L&&L.cnear&&CAMOCC.on){const at=d=>camClear(pivot.x+dir.x*d,pivot.y+dir.y*d,pivot.z+dir.z*d,P.pos.x,eye.y,P.pos.z);let d=Math.min(dist,len);
-      if(!at(d)){d-=.25;while(d>.7&&!at(d))d-=.25;if(d>.7){dist=d;occ=true}}}
+    if(!P.aim&&!home&&L&&L.cnear&&CAMOCC.on){const at=d=>camClear(pivot.x+dir.x*d,pivot.y+dir.y*d,pivot.z+dir.z*d,P.pos.x,eye.y,P.pos.z);let d=Math.min(dist,len),sw=CAMOCC.want;
+      if(!at(d)){d-=.25;while(d>.7&&!at(d))d-=.25;if(d>.7){dist=d;occ=true}
+        else{/* nowhere on this boom sees him (he's under the flag by his own front door): look from over the other shoulder */
+          const mp=eye.clone().addScaledVector(right,-side),mw=mp.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0)),md=mw.clone().sub(mp),ml=md.length();md.normalize();
+          if(camClear(mp.x+md.x*ml,mp.y+md.y*ml,mp.z+md.z*ml,P.pos.x,eye.y,P.pos.z)||camClear(mp.x+md.x*ml*.6,mp.y+md.y*ml*.6,mp.z+md.z*ml*.6,P.pos.x,eye.y,P.pos.z))sw=-CAMOCC.want}}
+      else if(CAMOCC.want<0&&Math.abs(CAMOCC.k+1)<.05){/* back to the right shoulder once it sees him again */const rp=eye.clone().addScaledVector(right,side*-1),rw=rp.clone().addScaledVector(fwdH,-back*Math.cos(P.pitch)).add(V3(0,.2-back*Math.sin(P.pitch)*.6,0));if(camClear(rw.x,rw.y,rw.z,P.pos.x,eye.y,P.pos.z))sw=1}
+      CAMOCC.want=sw}else CAMOCC.want=1;
+    CAMOCC.k+=(CAMOCC.want-CAMOCC.k)*Math.min(1,dt*5);
     camDist=occ?camDist+(dist-camDist)*Math.min(1,dt*14):dist<camDist?dist:camDist+(dist-camDist)*Math.min(1,dt*8);
     camera.position.copy(pivot).addScaledVector(dir,Math.min(camDist,len));camera.position.y=Math.max(.3,camera.position.y);
     const cd=camera.position.distanceTo(eye);if(P.dude)P.dude.root.visible=cd>.9;

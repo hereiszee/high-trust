@@ -815,7 +815,6 @@
     const net = new T.CylinderGeometry(.23, .15, .4, 12, 1, true); b.geo('trim', net, new T.Matrix4().makeTranslation(p[0], p[1] - .2, p[2]), lc('#e4e4e0', .9));
     b.col = WHITE;
   }
-  const CAM_OCC = [];
   function flag(b, F, s, y) {
     const p0 = F.P(s, y, -.04), dir = nrm(add(mul(F.N, 1), [0, .9, 0])), p1 = add(p0, mul(dir, 1.5));
     b.col = lc('#d8d6d0'); b.beam('metal', p0, p1, F.U, .025, .025); b.col = lc('#2a2a2a'); wbox(b, F, 'metal', s - .05, s + .05, y - .08, y + .08, -.05, 0, {});
@@ -828,9 +827,9 @@
       b.col = WHITE; b.poly('fixt', P, uv, null, F.U); b.poly('fixt', P, uv, null, mul(F.U, -1));
     }
     b.col = WHITE;
-    /* the cloth's box, for the third-person camera (index.html camClear): it hangs at head height by the front walk and has no collider */
-    const k = Math.round(fa[0] * 10) + ',' + Math.round(fa[2] * 10);
-    if (!CAM_OCC.some(o => o.k === k)) CAM_OCC.push({ k, x0: Math.min(fa[0], fb[0]) - .15, x1: Math.max(fa[0], fb[0]) + .15, z0: Math.min(fa[2], fb[2]) - .15, z1: Math.max(fa[2], fb[2]) + .15, y0: Math.min(fa[1], fb[1]) - hang, y1: Math.max(fa[1], fb[1]) + .1 });
+    /* the cloth's box (house-local, rotated in finish into userData.camOcc) for the third-person camera (index.html camClear): it hangs
+       at head height by the front walk and has no collider */
+    (b.camOcc || (b.camOcc = [])).push({ x0: Math.min(fa[0], fb[0]) - .15, x1: Math.max(fa[0], fb[0]) + .15, z0: Math.min(fa[2], fb[2]) - .15, z1: Math.max(fa[2], fb[2]) + .15, y0: Math.min(fa[1], fb[1]) - hang, y1: Math.max(fa[1], fb[1]) + .1 });
   }
 
   /* ------------------------------------------------------------------ house */
@@ -844,6 +843,7 @@
     const ls = lights.map(l => { const p = R2(l.x, l.z); return Object.assign({}, l, { x: p[0], z: p[1] }); });
     g.userData = Object.assign({ colliders: cols, door: { x: dp[0], z: dp[1], nx: Math.round(dn[0] * 1e6) / 1e6, nz: Math.round(dn[1] * 1e6) / 1e6 }, lights: ls, tris: g.userData.tris, drawCalls: g.userData.drawCalls }, extra || {});
     if (door.step) { const s = R2(door.step[0], door.step[1]); g.userData.doorStep = { x: s[0], z: s[1] }; }
+    if (b.camOcc) g.userData.camOcc = b.camOcc.map(o => { const a = R2(o.x0, o.z0), c = R2(o.x1, o.z1); return { x0: Math.min(a[0], c[0]), z0: Math.min(a[1], c[1]), x1: Math.max(a[0], c[0]), z1: Math.max(a[1], c[1]), y0: o.y0, y1: o.y1 }; });
     if (extra && extra.driveway) { const s = R2(extra.driveway.x, extra.driveway.z); g.userData.driveway = Object.assign({}, extra.driveway, { x: s[0], z: s[1] }); }
     return g;
   }
@@ -1349,5 +1349,5 @@
     for (const m of SIGNS) m.emissiveIntensity = lerp(.25, 1.1 * g, NIGHT);
   }
   function stats(g) { let tris = 0, draws = 0; g.traverse(o => { if (o.isMesh) { draws++; tris += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3; } }); return { draws, tris }; }
-  HT.Buildings = { init, house, shop, shell, setNight, stats, get materials() { return MAT; }, STYLES, camOccluders: CAM_OCC };
+  HT.Buildings = { init, house, shop, shell, setNight, stats, get materials() { return MAT; }, STYLES };
 })();

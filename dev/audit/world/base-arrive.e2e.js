@@ -9,11 +9,11 @@ const run=async(variant)=>{const W=await open();const {p,ev,step}=W;await ev(()=
     log(variant,'mode',await ev(()=>window.__ht.mode));await ev(()=>{const H=window.__ht;H.exitHome();H.running=true;H.step(4)});log(variant,'mode',await ev(()=>window.__ht.mode))}
   await ev(()=>{const H=window.__ht;const d=HT.Base.def();H.P.pos.set(d.tank.x+8,0,d.tank.z+8);H.collide(H.P.pos,.35);H.P.yaw=Math.PI/4;H.P.pitch=-.1;H.step(1)});
   const res=[];let done=0;
-  for(const n of[1,15,60,180]){const r=await ev(n=>{const H=window.__ht;for(let i=0;i<n;i++){H.step(1);H.ow.update(H.camera)}H.draw();
+  for(const n of[1,15,60,180]){const r=await ev(n=>{const H=window.__ht;let ms0=null;for(let i=0;i<n;i++){H.step(1);const t0=performance.now();H.ow.update(H.camera);if(ms0==null)ms0=+(performance.now()-t0).toFixed(1)}H.draw();
       const cam=H.camera.position,v=new THREE.Vector3();let near=0,ground=false;const shown=o=>{for(let a=o;a;a=a.parent)if(!a.visible)return false;return true};
       H.scene.traverse(o=>{if(!o.isMesh||!shown(o))return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();v.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);if(v.distanceTo(cam)<70)near++});
       const R=new THREE.Raycaster(cam.clone(),new THREE.Vector3(0,-1,0).add(new THREE.Vector3(Math.sin(-H.P.yaw)*.2,0,-Math.cos(H.P.yaw)*.2)).normalize(),0,60);const hits=[];H.scene.traverse(o=>{if(o.isMesh&&shown(o)&&o.material&&o.material.visible!==false)hits.push(o)});const h=R.intersectObjects(hits,false).find(q=>q.object.material&&!q.object.material.transparent);
-      const s=H.ow.stats();return{updates:n,nearMeshes:near,groundHit:h?{d:+h.distance.toFixed(1),name:h.object.name||h.object.parent&&h.object.parent.name||'?'}:null,built:s.built,units:s.units,visible:s.visible}},n-done);done=n;
+      const s=H.ow.stats();return{updates:n,firstUpdateMs:ms0,nearMeshes:near,groundHit:h?{d:+h.distance.toFixed(1),name:h.object.name||h.object.parent&&h.object.parent.name||'?'}:null,built:s.built,units:s.units,visible:s.visible}},n-done);done=n;
     res.push(r);log(variant,JSON.stringify(r));await W.shot('base-arrive-'+variant+'-'+n)}
   await W.b.close();return res};
 (async()=>{const A=await run('A'),B=await run('B');

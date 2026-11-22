@@ -289,7 +289,7 @@ function* buildChunk(u){const ws=WS,def=ws.def,ch=u.ch,W_=HW(),win={x0:ch.x0,z0:
     const w=h.x1-h.x0,d=h.z1-h.z0;let grp=null;
     try{if(BUm)grp=h.store?BUm.shop({kind:'hardware',w,d,seed:h.seed,facing:h.facing}):BUm.house({w,d,seed:h.seed,style:['ranch','colonial','craftsman','cape'][h.seed%4],facing:h.facing,home:!!h.home})}catch(e){console.warn('house failed',e);grp=null}
     if(!grp)grp=W_.fallbackHouse(B,{w,d,seed:h.seed,facing:h.facing,cx,cz});
-    if(grp){grp.position.set(cx,0,cz);if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
+    if(grp){grp.position.set(cx,0,cz);if(grp.userData.camOcc)for(const o of grp.userData.camOcc)(ws.camOcc||(ws.camOcc=[])).push({x0:o.x0+cx,x1:o.x1+cx,z0:o.z0+cz,z1:o.z1+cz,y0:o.y0,y1:o.y1});/* the home's flag: camera-only occluder (index.html camClear) */if(!grp.userData.proxy)blds.push(grp);owPorch(ws,grp,cx,cz);const dr=grp.userData.door;if(dr)h.door={x:cx+dr.x,z:cz+dr.z,nx:dr.nx,nz:dr.nz}}
     if(grp)grp.userData._owCol=h.src.col;try{W_.yard(B,h)}catch(e){}yield}
   for(const s of ws.fenceSegs||[]){const mx=(s[0]+s[2])/2,mz=(s[1]+s[3])/2;if(mx>=box.x0&&mx<box.x1&&mz>=box.z0&&mz<box.z1)W_.fence(B,s[0],s[1],s[2],s[3])}
   /* rowhouses, warehouses, commercial buildings */
@@ -1239,6 +1239,7 @@ OW.regionAt=(x,z)=>{const G=HT.WorldGen;return G&&G.regionAt?G.regionAt(x,z):'ma
 OW.stats=()=>{const ws=WS;if(!ws)return null;return{units:ws.units.length,built:ws.built,visible:ws.units.filter(u=>u.visible).length,chunks:ws.chunks.map(u=>({cx:u.ch.cx,cz:u.ch.cz,visible:u.visible,built:u.built,ms:u.ms&&Math.round(u.ms)})),
   buildMs:Math.round(ws.tBuild||0),maxStepMs:+(ws.maxStep||0).toFixed(1),colliders:ws.lvl.colliders.length,nStatic:ws.lvl.nStatic,solids:ws.lvl.solids.length,tier:ws.tier,trust:ws.trust}};
 OW.units=()=>WS?WS.units:[];
+OW.camOccluders=()=>WS&&WS.camOcc||[];/* boxes the camera can't see through but nobody collides with (the home's wall flag) */
 OW.events=()=>{const ws=WS;if(!ws)return null;const T=ws.truck,pb=blockOf((PARTY.x0+PARTY.x1)/2,(PARTY.z0+PARTY.z1)/2);return{truck:T&&T.visible?{x:T.position.x,z:T.position.z,yaw:T.rotation.y}:null,party:ws.blockT&&ws.blockT[pb]>=90?{x:(PARTY.x0+PARTY.x1)/2,z:(PARTY.z0+PARTY.z1)/2}:null}};
 /* ================= ambient traffic (HT.Roads graph + HT.CarAI wander, HT.Vehicles LOD1) ================= */
 /* a handful of cars near the player, spawned and removed out of view. Every car looks ahead along its own lane (trSweep) for the player's

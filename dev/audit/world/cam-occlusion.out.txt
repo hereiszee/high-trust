@@ -1,0 +1,7 @@
+posts 0 poses, 0 hidden []
+head outside {"mode":"hub","p":[37.8,20.3],"yaw":0} {"visible":true,"res":{"head":null,"chest":null},"camD":1.76}
+ok   right after Head outside: the dad can be seen (the flag by the front walk does not hide him) {"hx":{"mode":"hub","p":[37.8,20.3],"yaw":0},"ho":{"visible":true,"res":{"head":null,"chest":null},"camD":1.76}}
+flag boxes [[38.3,20.7,1.6,3.3]]
+aim {"visible":true,"res":{"head":null,"chest":null},"camD":0.64} aim without the W-08 code {"visible":true,"res":{"head":null,"chest":null},"camD":0.64} fp {"visible":true,"res":{"head":null,"chest":null},"camD":0}
+ok   aiming beside a lamp post: the camera is exactly where it was without the occlusion code (0.64 vs 0.64 m) {"a":{"visible":true,"res":{"head":null,"chest":null},"camD":0.64},"a0":{"visible":true,"res":{"head":null,"chest":null},"camD":0.64}}
+ok   first person: the camera is at the eye (0 m) {"visible":true,"res":{"head":null,"chest":null},"camD":0}
