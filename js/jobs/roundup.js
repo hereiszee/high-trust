@@ -249,7 +249,8 @@ function blinkers(v){const T=T3(),R=res(),m=R.blinkOn||(R.blinkOn=M_(new T.MeshB
 function lightCar(type,color){const VM=window.HT&&HT.Vehicles;if(!VM||!VM.make)return null;try{const v=VM.make(type,{color,lod:1});if(!v)return null;v.userData.mod=true;v.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;m.userData.noBatch=true}});return v}catch(_){return null}}
 
 /* ---------------- people ---------------- */
-function person(key,look,x,z,ry){const a=A(),PP=window.HT&&HT.People;let d=null;if(PP&&PP.ok&&PP.has&&PP.has(key)){try{d=PP.make(key,{})}catch(_){d=null}}
+/* People hands back a pending (invisible) character while the model streams and swaps the real one in when it lands, retrying on its own */
+function person(key,look,x,z,ry){const a=A(),PP=window.HT&&HT.People;let d=null;if(PP&&(PP.usable?PP.usable():PP.ok&&PP.has&&PP.has(key))){try{d=PP.make(key,{})}catch(_){d=null}}
   if(!d)return null;d.root.position.set(x,a.groundAt(x,z),z);d.root.rotation.y=ry||0;a.wmAdd(d.root);return d}
 /* an unseen driver: the model never arrived, so the van still moves (no stand-in on screen); swapped for the real person if he loads later */
 function ghostDrv(who){const a=A(),g=new(T3().Group)();g.visible=false;a.wmAdd(g);return{root:g,ghost:who}}
@@ -613,7 +614,7 @@ function crewAssign(M,v){const a=A();const taken=new Set(Object.values(M.vans).m
   al.ride=false;al.dude.root.visible=true;v.walk={who:id,d:al.dude,ally:al,from:null};a.rebuildTargets()}
 function crewTick(M,dt){const a=A();for(const id in M.vans){const v=M.vans[id],w=v.walk;if(!w)continue;
     if(!w.d){w.wt=(w.wt||0)+dt;if(w.wt>K.crewLate){v.drv=ghostDrv(w.who);v.walk=null;if(M.prog)M.prog.t=0;say(M,'rick',w.who==='earl'?"Earl came round the back way. He's in the Garcias' seat, mirrors set, ready.":CREW_NAME[w.who]+"'s in. Didn't even see him go.",true);sfx.click();continue}
-      if(w.who==='earl'){if(!ready('earl')){w.rq=(w.rq||0)-dt;if(w.rq<=0){w.rq=2.5;const PP=window.HT&&HT.People;try{PP&&PP.preload&&PP.preload(['earl']).catch(()=>{})}catch(_){}}continue}w.d=person('earl',null,w.from.x,w.from.z,0);if(!w.d)continue;if(once(M,'earl'))say(M,'earl',"Bus was early. It's never early. Who needs a driver?",true)}
+      if(w.who==='earl'){w.d=person('earl',null,w.from.x,w.from.z,0);if(!w.d)continue;if(once(M,'earl'))say(M,'earl',"Bus was early. It's never early. Who needs a driver?",true)}
       else{const look=a.HOMIES[w.who];if(!look)continue;w.d=a.makeDude(look);w.d.root.position.set(w.from.x,0,w.from.z);a.wmAdd(w.d.root)}}
     /* round the parked cars, not through them: the west column, then along the van's aisle to its nose, then in */
     if(!w.path){const fp=vanFront(v),r=w.d.root.position,az=fp.z;w.path=[];if(hyp(r.x-fp.x,r.z-fp.z)>7){if(r.x<259.6)w.path.push({x:260.2,z:64});if(Math.abs(r.z-az)>2.2)w.path.push({x:261.3,z:clamp(r.z,61,82)},{x:261.3,z:az})}w.path.push(fp)}
@@ -892,7 +893,7 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
   for(const id in M.vans){if(M.found[id])glow(M.vans[id],!M.started[id])}
   /* the crew who were driving get their vans back (out of the squad again) */
   const drivers=CREW.slice();for(const f of FLEET){if(!M.started[f.id])continue;const v=M.vans[f.id];const who=drivers.shift();v.crew=who;
-    if(who==='earl'){const d=ready('earl')?person('earl',null,v.c.x,v.c.z,0):null;if(d)v.drv=d;else v.walk={who:'earl',d:null,from:vanDoor(v)}}
+    if(who==='earl'){const d=person('earl',null,v.c.x,v.c.z,0);if(d)v.drv=d;else v.walk={who:'earl',d:null,from:vanDoor(v)}}
     else{const al=a.allies.find(x=>x.id===who);if(al){const i=a.allies.indexOf(al);a.allies.splice(i,1);if(al.tag){al.tag.remove();al.tag=null}al.ride=false;al.dude.root.visible=true;try{a.wmAdd(al.dude.root)}catch(_){}v.drv=al.dude}
       else{const look=a.HOMIES[who];if(look){const d=a.makeDude(look);a.wmAdd(d.root);v.drv=d}else v.drv=ghostDrv(who)}}}
   for(const f of FLEET)if(M.delivered[f.id]){const v=M.vans[f.id];v.st='home';v.c.x=f.home.x-1.2;v.c.z=f.home.z;v.c.yaw=f.home.yaw;v.c.hp=(M.cond[f.id]||1)*v.hpMax;famSpawn(M,f);if(v.drv){v.drvOut={d:v.drv,t:9};v.drv=null}}

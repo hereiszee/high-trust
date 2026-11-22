@@ -302,7 +302,9 @@ const tells={list:[],installed:false};
 const TB=['Bip01_Spine','Bip01_Spine1','Bip01_Spine2','Bip01_Neck','Bip01_Head','Bip01_L_Clavicle','Bip01_R_Clavicle','Bip01_L_UpperArm','Bip01_R_UpperArm','Bip01_L_Forearm','Bip01_R_Forearm','Bip01_L_Hand','Bip01_R_Hand','Bip01_R_Calf','Bip01_R_Foot','Bip01_L_Calf','Bip01_L_Foot'];
 /* runs on the job registry's 'pose' hook (index.html calls JH.pose(dt) right after HT.People.update), so People.update is never wrapped.
    If People skipped a character this frame (render-cost pass), its bones still hold last frame's tell: put the clean pose back first. */
-function poseTells(dt){for(const t of tells.list){try{if(t.has){for(const n in t.B){const o=t.out&&t.out[n],b=t.B[n];if(o&&b.quaternion.equals(o))b.quaternion.copy(t.saved[n])}}
+function poseTells(dt){for(const t of tells.list){try{/* a character attached while its model was still streaming (People pending) gets its bones once the model is in */
+    const bd=t.dude&&t.dude.rb&&(t.dude.rb.body||t.dude.body);if(bd&&t.bodyRef!==bd){if(t.bodyRef){t.has=false;t.saved=null;t.out=null}t.bodyRef=bd;t.B=bonesOf(t.dude)}
+    if(t.has){for(const n in t.B){const o=t.out&&t.out[n],b=t.B[n];if(o&&b.quaternion.equals(o))b.quaternion.copy(t.saved[n])}}
     save(t);apply(t,dt||0);t.out=t.out||{};for(const n in t.B)(t.out[n]||(t.out[n]=new THREE.Quaternion())).copy(t.B[n].quaternion)}catch(e){}}}
 function installTells(){if(tells.installed)return true;if(!root.THREE||!HT.Jobs||!HT.Jobs.on)return false;HT.Jobs.on('pose',poseTells);tells.installed=true;return true}
 function bonesOf(d){const out={};if(!d||!d.rb)return out;const b=d.rb.body||d.body;for(const n of TB){const o=b.getObjectByName(n);if(o)out[n]=o}return out}

@@ -198,7 +198,8 @@ function groundY(a,x,z){const def=a.WORLD;if(def&&x>0&&z>0&&x<def.W*2&&z<def.H*2
 function hitSolid(a,x,z,r,y){const L=a.L;if(!L||!L.cnear)return false;for(const c of L.cnear(x,z,8)){if(c.off||!(c.ph>0))continue;if(c.k==='fence'||c.k==='tree'&&y!=null&&y>3.5)continue;
     if(y!=null&&y>c.ph)continue;if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r){if(S.e&&c===S.e.col)continue;return true}}return false}
 function crash(a,e,why){const s=sv();if(s&&s.jet)s.jet.crashes=(s.jet.crashes|0)+1;
-  try{const Fx=HT.FX;if(Fx){Fx.explosion(F.pos.clone().setY(Math.max(.3,F.pos.y)),.9);Fx.impact(F.pos.clone(),V(0,1,0),'dirt',{big:true});Fx.shake(.7)}}catch(_){}
+  /* no fireball near a kid or the family: a dusty belly landing instead */let kid=null;try{kid=HT.People&&HT.People.protectedNear&&HT.People.protectedNear(F.pos.x,F.pos.z,25)}catch(_){}
+  try{const Fx=HT.FX;if(Fx&&kid){Fx.impact(F.pos.clone(),V(0,1,0),'dirt',{big:true});Fx.shake(.4)}else if(Fx){Fx.explosion(F.pos.clone().setY(Math.max(.3,F.pos.y)),.9);Fx.impact(F.pos.clone(),V(0,1,0),'dirt',{big:true});Fx.shake(.7)}}catch(_){}
   tone(90,30,.6,.3);tone(600,1400,.25,.08,.15);say(TOWER,pick(LINES.crash),true);eject(a,e,true)}
 
 /* ================= events: takeoff/landing lines live above; sonic boom, the bridge, buzzing home ================= */

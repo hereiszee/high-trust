@@ -90,9 +90,11 @@ function assign(id,k){const old=get(id),other=ACTIONS.find(a=>a.id!==id&&get(a.i
 function bind(pane,rerender){
   pane.querySelectorAll('[data-rebind]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(capture)return;const id=b.dataset.rebind,note=pane.querySelector('.ht-rb-note');
     b.textContent='Press a key or button';b.classList.add('wait');
-    const done=()=>{capture=null;removeEventListener('click',cancel,true);rerender()};
-    const cancel=ev=>{if(ev.target!==b){ev.stopPropagation();ev.preventDefault();done()}};
-    setTimeout(()=>addEventListener('click',cancel,true),0);
+    let over=false;
+    const done=()=>{over=true;capture=null;removeEventListener('click',cancel,true);rerender()};
+    const cancel=ev=>{if(over){removeEventListener('click',cancel,true);return}if(ev.target!==b){ev.stopPropagation();ev.preventDefault();done()}};
+    /* armed after this click has finished; never if the capture already ended (a key pressed within the same tick) */
+    setTimeout(()=>{if(!over)addEventListener('click',cancel,true)},0);
     capture=k=>{if(k==='escape'){done();return}
       if(RESERVED.has(k)||!k){if(note)note.textContent=name(k||'?')+' is reserved. Pick another, or Esc to cancel.';return}
       const swapped=assign(id,k);done();const n=pane.querySelector('.ht-rb-note');if(n&&swapped)n.textContent='Swapped: '+swapped+' is now on '+name(get(ACTIONS.find(a=>a.l===swapped).id))+'.'};

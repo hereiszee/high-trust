@@ -12,8 +12,10 @@ async function open(o={}){
   await p.route('http://ht.local/**',async r=>{const u=new URL(r.request().url());const f=path.join(ROOT,decodeURIComponent(u.pathname));
     if(!f.startsWith(ROOT)||!fs.existsSync(f)||fs.statSync(f).isDirectory())return r.fulfill({status:404,body:'not found'});
     r.fulfill({status:200,body:fs.readFileSync(f),headers:{'content-type':TYPES[path.extname(f).toLowerCase()]||'application/octet-stream','access-control-allow-origin':'*'}})});
+  if(o.before)await o.before(p);
   await p.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);window.__rafOn=true;
     window.requestAnimationFrame=cb=>{if(window.__rafOn)return raf(cb);window.__rafPending=cb;return 0}});
+  if(o.init)await p.addInitScript(o.init);
   const t0=Date.now();await p.goto('http://ht.local/index.html');
   await p.waitForFunction(()=>window.__ht&&window.__ht.assets&&window.__ht.assets.done,null,{timeout:90000});
   await p.evaluate(()=>{window.__rafOn=false});await p.waitForTimeout(300);
