@@ -2,11 +2,11 @@
 <title>High Trust</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta name="description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="High Trust">
 <meta property="og:title" content="High Trust">
-<meta property="og:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible. Play free in your browser.">
+<meta property="og:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta property="og:url" content="https://hereiszee.github.io/high-trust/">
 <meta property="og:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -14,7 +14,7 @@
 <meta property="og:image:alt" content="High Trust: a dad walks down a suburban street toward his minivan">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="High Trust">
-<meta name="twitter:description" content="An open-world shooter about suburban dads taking their neighborhood back. Politely, where possible.">
+<meta name="twitter:description" content="An open-world game about suburban dads restoring a high-trust neighbourhood. Politely, where possible.">
 <meta name="twitter:image" content="https://hereiszee.github.io/high-trust/assets/og.jpg">
 <meta name="theme-color" content="#16181c">
 <link rel="preload" href="assets/fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
@@ -4523,9 +4523,16 @@ const FCAP=window.HT&&HT.FrameCap?HT.FrameCap.make(window.HTDesktop&&HTDesktop.r
 /* PERF-06: nothing that throws in one frame may stop the loop (the next frame is always requested), and nothing renders while the GL
    context is lost; three rebuilds its programs and buffers itself on 'webglcontextrestored'. A context that is already lost before three
    hears the event makes a shader compile throw ("reading 'trim'" of a null info log): that frame is dropped, the loop carries on. */
-const FRAME_ERR={n:0,seen:new Set()};
-function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e);if(FRAME_ERR.seen.size<20&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);
-  const lost=(()=>{try{return renderer.getContext().isContextLost()}catch(_){return false}})();(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e)}}
+const FRAME_ERR={n:0,seen:new Set(),key:null,since:0,last:0,told:false};
+/* each distinct error is logged once (console.error, which the desktop shell also writes to high-trust.log). If the same error keeps
+   failing every frame for more than 2 s, a small non-blocking toast says so and the game saves (a job in progress keeps its pre-job save) */
+function frameError(e){FRAME_ERR.n++;const k=String(e&&e.message||e),t=performance.now();
+  const lost=(()=>{try{return GLX.lost||renderer.getContext().isContextLost()}catch(_){return false}})();
+  if(FRAME_ERR.seen.size<50&&!FRAME_ERR.seen.has(k)){FRAME_ERR.seen.add(k);(lost?console.warn:console.error)('frame skipped'+(lost?' (graphics context lost)':''),e&&e.stack||e)}
+  if(lost)return;
+  if(FRAME_ERR.key!==k||t-FRAME_ERR.last>250){FRAME_ERR.key=k;FRAME_ERR.since=t;FRAME_ERR.told=false}FRAME_ERR.last=t;
+  if(!FRAME_ERR.told&&t-FRAME_ERR.since>2000){FRAME_ERR.told=true;try{metaSave(true)}catch(_){}
+    try{HUD.feed("Something went wrong · your progress is saved",'bad')}catch(_){}}}
 function frame(now){
   if(FCAP&&!FCAP.gate(now,+CFG.fpsCap||0)){requestAnimationFrame(frame);return}/* Frame rate cap setting (js/fpscap.js); 0 = display rate (VSync) */
   try{frameBody(now)}catch(e){frameError(e)}finally{requestAnimationFrame(frame)}
@@ -4597,7 +4604,7 @@ window.__ht={assets:ASSETS,render:RENDER,renderer,scene,camera,P,draw(){if(L){up
   jump(){P.jumpBuf=MOVE.buf},get move(){return{y:P.pos.y,vy:P.vy,onGround:P.onGround,vault:P.vault&&P.vault.k,landT:P.landT,peakY:P.peakY,airT:P.airT}},ground:worldGroundAt,MOVE,solidAt(x,z,r,y){return solidAt(x,z,r,y)},support(x,z,y){return supportAt(x,z,y)},
   set mouse(v){mouseDown=v},set use(v){useTap=v}};
 metaExpose(window.__ht);wmExpose(window.__ht);nightExpose(window.__ht);
-window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
+window.__ht.FRAME_ERR=FRAME_ERR;window.__ht.quitToTitle=()=>quitToTitle();window.__ht.TUT=TUT;Object.defineProperty(window.__ht,'marker',{get:()=>UI.marker});window.__ht.finaleInfo=()=>finaleInfo();window.__ht.tieGoal=()=>tieGoal();window.__ht.tutTick=dt=>tutTick(dt||1/30);window.__ht.GLX=GLX;window.__ht.showCredits=()=>showCredits();window.__ht.showTitle=()=>showTitle();
 /* JOBS test surface: __ht.jobs.start('porch'), .cp, .ready (all job files loaded), .calendar(), .replay(id), .finish(ok) */
 window.__ht.jobs={get registry(){return JR},get api(){return JR&&JR.api},CP,JH,JRS,get ready(){return jrLoadFiles()},list:()=>JR?JR.list().map(j=>({id:j.id,builtin:!!j.builtin,index:j.index,title:j.def.title})):[],
   index:id=>MISSIONS.findIndex(m=>m.id===id),start(id,o){const i=MISSIONS.findIndex(m=>m.id===id);if(i<0)return null;if(mode==='home'){homeTeardown();if(L&&L.def&&L.def.id==='home')L.group=null}return startMissionWorld(i,o||{})},

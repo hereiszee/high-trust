@@ -18,7 +18,9 @@ module.exports = {
   executableName: 'HighTrust',
   copyright: 'Copyright © 2026 hereiszee',
   directories: { output: 'dist', buildResources: 'build' },
-  files: ['main.js', 'preload.js', 'save-store.js', 'steam.js', 'package.json', 'build/icon.png', '!test/**', '!scripts/**', '!dist/**', '!steam_appid.txt', '!STEAM_APPID_README.txt'],
+  files: ['main.js', 'preload.js', 'save-store.js', 'steam.js', 'package.json', 'build/icon.png', '!test/**', '!scripts/**', '!dist/**', '!steam_appid.txt', '!STEAM_APPID_README.txt',
+    /* P-8: TypeScript typings (production deps of steamworks.js, unused at runtime) and the Windows link library don't ship */
+    '!node_modules/@types/**', '!node_modules/undici-types/**', '!node_modules/steamworks.js/dist/win64/*.lib', '!node_modules/steamworks.js/**/*.d.ts'],
   extraResources: [{ from: '..', to: 'game', filter: game }],
   /* licences at the install root, next to the exe (Contents/ on macOS): third-party notices from the content audit + vendored libraries */
   extraFiles: [{ from: '../assets/credits/THIRD-PARTY-NOTICES.txt', to: 'THIRD-PARTY-NOTICES.txt' }],
