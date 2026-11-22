@@ -371,7 +371,7 @@ AI.squad=function(nav,o){o=o||{};const diff=o.diff||AI.DIFFICULTY[o.difficulty||
     if(sq.flanker&&(isOut(sq.flanker)||!sq.flanker.ai||sq.flanker.ai.sub!=='flank'))sq.flanker=null;
     const nb=sq.flanker||!diff.flank||!fighting.length?[]:sq.neighbours();let engaged=fighting.length;for(const o of nb)engaged+=o.alive().filter(a=>a.ai&&a.ai.mode==='combat').length;
     if(!sq.flanker&&diff.flank&&engaged>=3&&t-sq.flankT>12&&t-sq.alertT>3&&!nb.some(o=>o.flanker&&t-o.flankT<12)){const th=sq.best(0,0,t)||nb.map(o=>o.best(0,0,t)).find(Boolean);
-      if(th&&t-th.t<4){const c=fighting.filter(a=>a.ai.role!=='boss'&&a.ai.role!=='marksman'&&a.hp>a.maxHp*.5);
+      if(th&&t-th.t<4){const c=fighting.filter(a=>!a.ai.gun.unarmed&&a.ai.role!=='boss'&&a.ai.role!=='marksman'&&a.hp>a.maxHp*.5);
         if(c.length){c.sort((a,b)=>(a.ai.role==='rusher'?-5:0)+hyp(a.pos.x-th.x,a.pos.z-th.z)*.1-((b.ai.role==='rusher'?-5:0)+hyp(b.pos.x-th.x,b.pos.z-th.z)*.1));
           sq.flanker=c[0];sq.flankT=t;c[0].ai.wantFlank=true}}}
     for(const m of sq.threats.values())if(t-m.t>30)sq.threats.delete(m.id);
@@ -384,8 +384,15 @@ AI.squad=function(nav,o){o=o||{};const diff=o.diff||AI.DIFFICULTY[o.difficulty||
 function queueBark(a,ev,t,vars){if(!a.ai)return;const sq=a.squad;const b=sq?sq.barker.say('enemy',ev,a.id??a,t,vars):AI.barker().say('enemy',ev,null,t,vars);if(b)a.ai.pendingBark=b;return b}
 
 /* ================= enemy think ================= */
-function memOf(a,world){if(a.ai&&a.ai.v===1)return a.ai;const role=a.role||AI.roleFor(typeof a.gun==='string'?a.gun:'pistol',a.boss);
-  const gun=typeof a.gun==='object'?a.gun:(AI.GUNS[a.gun]||AI.GUNS.pistol);
+/* an enemy with no gun (a job disarms him with e.gun=null: movers, porch pirates, Lyle, the finale's pushers...) gets this profile:
+   he can be heard, suppressed, scared and cuffed like anyone else, but he never aims or fires. typeof null is 'object', so test null first */
+AI.UNARMED={acc:0,dmg:0,burst:0,cd:1,want:[2,5],mag:0,reload:1,aim:1,range:24,unarmed:true};
+function gunOf(a){const g=a.gun;if(g==null)return AI.UNARMED;if(typeof g==='object')return g;return AI.GUNS[g]||AI.GUNS.pistol}
+AI.gunOf=gunOf;
+/* a job can take his gun away (or hand one back) after his memory exists: keep the memory's gun in step with the body's */
+function syncGun(a,ai){const g=gunOf(a);if(ai.gun!==g&&(g===AI.UNARMED||ai.gun===AI.UNARMED||typeof a.gun==='object')){ai.gun=g;ai.mag=g.mag;ai.reloadT=0;ai.burstLeft=0}}
+function memOf(a,world){if(a.ai&&a.ai.v===1){syncGun(a,a.ai);return a.ai}const role=a.role||AI.roleFor(typeof a.gun==='string'?a.gun:'pistol',a.boss);
+  const gun=gunOf(a);
   a.ai={v:1,role,gun,mode:'idle',sub:'post',post:{x:a.pos.x,z:a.pos.z},home:null,patrol:null,pi:0,waitT:rr(1,4),thinkT:rr(0,.3),react:0,
     target:null,lkp:null,visT:-1e9,seenOnce:false,cover:null,phase:'hide',phaseT:0,aimT:0,firstShot:true,burstLeft:0,shotT:0,mag:gun.mag,reloadT:0,
     path:null,pi2:0,goal:null,repathT:0,supp:0,hurtT:-1e9,retreated:false,stance:'stand',face:null,intent:{},pendingBark:null,
@@ -580,7 +587,7 @@ const gunWant=ai=>ai.role==='rusher'?[3,8]:ai.gun.want;
 function decideRefreshPeek(ai){return ai.phase==='hide'}
 
 /* one shot attempt; returns true when a shot went off this frame */
-function tryFire(a,ai,world,dt,I,th,accMul,burstMul){const t=world.t,sq=a.squad;if(ai.reloadT>0)return false;
+function tryFire(a,ai,world,dt,I,th,accMul,burstMul){const t=world.t,sq=a.squad;if(ai.gun.unarmed){if(sq)sq.releaseFire(a);return false}if(ai.reloadT>0)return false;
   if(ai.mag<=0){ai.reloadT=ai.gun.reload;I.reloading=true;if(sq)sq.releaseFire(a);if(R()<.6)queueBark(a,'reloading',t);ai.phase='hide';return false}
   ai.aimT+=dt;I.aiming=true;const tele=ai.gun.aim*(world.diff?world.diff.aim:1);if(ai.aimT<tele)return false;
   if(ai.burstLeft<=0&&ai.shotT<=t){ai.burstLeft=Math.max(1,Math.round(ai.gun.burst*(burstMul||1)))}
