@@ -8,10 +8,10 @@
    --rough: clips whose shot is not captured yet are replaced by a slate instead of failing. */
 'use strict';
 const fs=require('fs'),path=require('path'),cp=require('child_process');
-const {SCRATCH,ROOT}=require('./lib.js');const E=require('./edit.js');
+const {SCRATCH,ROOT}=require('./lib.js');const E=require(process.env.TRAILER_EDIT?require('path').resolve(process.env.TRAILER_EDIT):'./edit.js');
 const CFG=JSON.parse(fs.readFileSync(path.join(__dirname,'config.json'),'utf8'));const FPS=CFG.fps||30;
 const has=k=>process.argv.includes('--'+k);
-const OUTD=path.join(ROOT,'assets/store/trailer'),W=path.join(SCRATCH,'build');fs.mkdirSync(OUTD,{recursive:true});fs.mkdirSync(W,{recursive:true});
+const OUTD=process.env.TRAILER_OUT?path.resolve(process.env.TRAILER_OUT):path.join(ROOT,'assets/store/trailer'),W=path.join(SCRATCH,'build');fs.mkdirSync(OUTD,{recursive:true});fs.mkdirSync(W,{recursive:true});
 const sh=(args,o={})=>{const r=cp.spawnSync('ffmpeg',['-hide_banner','-loglevel',o.log||'error','-y',...args],{stdio:o.capture?['ignore','pipe','pipe']:'inherit',maxBuffer:1<<28});if(r.status!==0)throw new Error('ffmpeg failed: '+args.join(' ').slice(0,400)+(r.stderr?'\n'+r.stderr.toString().slice(-2000):''));return r};
 const node=(f,args=[])=>{const r=cp.spawnSync(process.execPath,[path.join(__dirname,f),...args],{stdio:'inherit'});if(r.status!==0)throw new Error(f+' failed')};
 const frameDir=s=>path.join(SCRATCH,'frames',s);
