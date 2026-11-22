@@ -46,12 +46,14 @@ const KEY2PAD={E:'A',USE:'A',SPACE:'A',ENTER:'A',CLICK:'RT',B:'B',RMB:'LT','RIGH
   F:'D↑',N:'D↓','MOUSE 1':'RT','MOUSE 2':'LT',WHEEL:'RS',DRAG:'LS','W A S D':'LS','W S · A D':'LS','1 2 3 · Q · WHEEL':'D← →',
   /* job keys through the LB layer */G:'LB',T:'LB+↑',Z:'LB+←',X:'LB+→','1':'LB+A','2':'LB+B','3':'LB+X','4':'LB+Y'};
 const COLOR={A:'#5fbf4f',B:'#e0493f',X:'#3b82d6',Y:'#e8b52c'};
-function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b)return null;
+function glyphFor(txt,ctx){const k=String(txt).trim().toUpperCase();let b=KEY2PAD[k];if(!b&&!(ctx&&ctx.closest&&ctx.closest('.htm')&&/^\d$/.test(k)))return null;
   const drv=!!(IN()&&IN().driving)||!!(ctx&&ctx.closest&&ctx.closest('.ht-drv'));
   if(drv&&k==='E')b='Y';/* behind the wheel Use (get out, hold to hitch) is Y; A is the handbrake */if(drv&&k==='SPACE')b='A';
   if(drv&&(k==='MOUSE 2'||k==='RMB'||k==='RIGHT CLICK'))b='D↑';/* Aim in a car: binoculars */
   if(drv&&k==='V'&&IN()&&vehicleKind(IN())==='tank')b='LT';/* the tank: LT is the gunner's sight */
   if(decoOn()){if(k==='Q')b='D←';else if(k==='TAB')b='RB'}/* decorating: RB / D-pad → next, D-pad ← previous */
+  if(ctx&&ctx.closest&&ctx.closest('.htm')){/* shops and the locker (js/save.js) run their own pad keys: LB / RB tabs, B back, D-pad + A for slots */
+    const o={Q:'LB',E:'RB',ESC:'B',ENTER:'A'}[k];if(o)b=o;else if(/^\d$/.test(k))return{b:'',label:''}}
   if(ctx&&ctx.closest&&ctx.closest('.ht-map')){const o={CLICK:'A',WHEEL:'RT/LT',TAB:'LB/RB',ENTER:'A',M:'B',DRAG:'LS'}[k];if(o)b=o}/* the full map's own pad controls */
   const g=GL[S.kind]||GL.xbox,parts=b.split('+');return{b:parts[parts.length-1],label:b.split(/([+\/ ])/).map(x=>g[x]||x).join('')}}
 let swapping=false;

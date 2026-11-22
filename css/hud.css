@@ -1041,3 +1041,6 @@ html.ht-deck .htm-slotk{font-size:11px}
   .ht-root:not(.compact) .ht-title .premise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:56ch}
   .ht-root:not(.compact) .ht-title .ht-logo .w{font-size:clamp(44px,9vh,80px)}
   .ht-root:not(.compact) .ht-title .ht-btn{height:38px}}
+
+/* pad: shop / locker digit keys have no pad button (D-pad + A picks): hide the empty keycap */
+html.ht-pad .htm kbd.pad-g:empty{display:none}

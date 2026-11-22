@@ -105,7 +105,7 @@ function build(a,d){const T=THREE,root=new T.Group();root.name='fortSensible';S.
       if(w.slot==='side')P.box('paint',x-.3,1.06,gz-RACK_W*.42,x-.04,1.1,gz+RACK_W*.42,'#6b4f37');/* a little shelf for a sidearm */
       else{P.box('metal',x-.16,.18,gz-.05,x-.04,.3,gz+.05,'#2c2f31');/* butt cup */P.box('metal',x-.16,1.48,gz-.06,x-.04,1.54,gz+.06,'#2c2f31')/* peg */}
       P.sign(x-.07,2.02,gz,RACK_W*.92,.36,Math.PI/2,K.board('rk'+id,[(i+1)+' · '+(w.name||id).toUpperCase(),cls.toUpperCase()],2,1,w.slot==='side'?'brown':'green'))}
-    P.sign(x-.07,2.62,z,Math.min(3.6,W2*2),.42,Math.PI/2,K.board('rack',['RENTAL RACK · FREE · TRY ANY GUN','E AT THE RACK · PICK ONE · IT COMES BACK WHEN YOU LEAVE'],2,1,'yellow'))}
+    P.sign(x-.07,2.62,z,Math.min(3.6,W2*2),.42,Math.PI/2,K.board('rack',['RENTAL RACK · FREE · TRY ANY GUN','WALK UP · PICK ONE · IT COMES BACK WHEN YOU LEAVE'],2,1,'yellow'))}
   P.flush(root);drawBoard(true);
   people(a,d)}
 /* the guard and the range officer, from the neighbour pool (never the crew or the family) */
