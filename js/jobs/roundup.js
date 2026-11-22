@@ -473,6 +473,13 @@ function gateBegin(M){const a=A();const e=a.spawnEnemy(261.3,61.3,false);e.noLea
   attTo(e,WINDOW,1.3,()=>{M.attAt=true});
   if(M.S){const gd={id:'att',e,def:null,pos:{x:e.pos.x,z:e.pos.z},yaw:0,ob:null,att:true};gd.ob=M.S.addObserver({id:'att',kind:'guard',pos:gd.pos,yaw:0,R:12});M.S.bindEnemy(e,'att');M.guards.push(gd);gd.ob.off=true}
   a.rebuildTargets()}
+/* a checkpoint start skips gateBegin(), so a retry into the gate or the lot brings the attendant back where the scam left him:
+   at the window (no deal yet), at the booth (paid) or on the phone by the cooler (asked for a receipt); Rick's alumni walked off, and a rammed gate is a fight */
+function attRestore(M){if(M.att||M.alarm||(M.ph!=='gate'&&M.ph!=='lot')||M.scam==='coach'||M.scam==='rammed')return;
+  gateBegin(M);const e=M.att,post=M.scam==='pay'?{x:263.6,z:60.8}:M.scam==='receipt'?{x:276,z:69.5}:null;if(!e)return;
+  if(!post){e.script=null;e.pos.set(WINDOW.x,0,WINDOW.z);M.attAt=true}
+  else{e.script=null;e.pos.set(post.x,0,post.z);M.attBooth=true;const g=M.guards.find(x=>x.id==='att');if(g&&g.ob){g.ob.off=false;if(M.scam==='pay')g.yaw=Math.PI*.95;g.pos.x=post.x;g.pos.z=post.z}}
+  if(e.ai)e.ai.post={x:e.pos.x,z:e.pos.z};if(e.dude)e.dude.root.position.set(e.pos.x,0,e.pos.z)}
 function gateTick(M,dt,F){const a=A(),e=M.att,P=a.P;M.F=F;
   if(M.attAt&&!M.scam&&!M.choices&&!M.barrierBroken){if(e&&e.dude)faceTo(e.dude,P.pos.x,P.pos.z,dt);if(once(M,'gate'))seq(M,L.gate);if(M.t>4.5)openChoices(M)}
   if(!M.scam&&M.barrierBroken){/* straight through him: no conversation, and the lot knows */M.scam='rammed';closeChoices(M);if(M.att)M.att.script={kind:'to',x:263.6,z:60.8,speed:2.4,then:()=>{}};raiseAlarm(M,'rammed')}
@@ -888,6 +895,7 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
   const set=arr=>{const o={};for(const k of arr||[])o[k]=true;return o};M.found=set(s.found);M.started=set(s.started);M.cleared=set(s.cleared);M.delivered=set(s.delivered);M.wrecked=set(s.wrecked);M.cond=Object.assign({},s.cond||{});M.shook=!!s.shook;
   if(s.barrier)M.barrierOpen=true,M.barrierK=1;if(s.broken)M.barrierBroken=true;M.attAt=true;
   if(M.scam&&M.att){vanish(M.att);M.att=null}
+  attRestore(M);
   if(M.alarm&&M.S){try{M.S.release()}catch(_){}}
   for(const id in M.blk){if(M.cleared[id]){const k=M.blk[id],p=k.f.boxed.push;k.c.x=k.x0+p[0]*5.4;k.c.z=k.z0+p[1]*5.4;k.done=true;syncBlk(k)}}
   for(const id in M.vans){if(M.found[id])glow(M.vans[id],!M.started[id])}
@@ -907,7 +915,8 @@ function applyLoad(M,s){const a=A();M.ph=s.ph||'gate';M.scam=s.scam||null;M.alar
       for(const f of FLEET){const v=M.vans[f.id],r=by[f.id];if(!M.started[f.id]||M.delivered[f.id]||M.wrecked[f.id])continue;v.st='convoy';if(r){v.c.x=r.x;v.c.z=r.z;v.c.yaw=r.yaw;v.c.hp=r.hp}v.m=M.C.add(v.c,{id:f.id,name:v.crew});v.m.st='line'}
       if(s.conv){M.C.gap=s.conv.gap||'normal'}M.pursuit=null;M.shook=true}
     M.convT0=M.t}
-  if(M.ph==='lot'&&!M.alarm)stashCrew(M);
+  /* JOBS-AUDIT J-02: a retry into the lot gets what lotBegin() gives a first visit (crew in the van, the ?/! tags and the visibility gem) */
+  if(M.ph==='lot'&&!M.alarm){stashCrew(M);stealthHud(M)}
   M.LEAD.x=M.car?M.car.pos.x:M.LEAD.x;M.LEAD.z=M.car?M.car.pos.z:M.LEAD.z;M.C.leader(M.LEAD);M.C.lead.crumbs=[{x:M.LEAD.x,z:M.LEAD.z}];
   for(const id in M.vans)syncVan(M.vans[id],0)}
 
