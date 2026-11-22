@@ -2,15 +2,16 @@
      node -r ./tools/store-art/hiq.js dev/jobs-check.js overwatch --shots
    - every new page/context is 1920x1080 (STORE_W/STORE_H to change) and starts on the High graphics preset
    - screenshots aimed at docs/screenshots/** are written to tools/store-art/shots/** instead (the repo's docs stay as they are)
-   - the streaming-details corner text is hidden; a shot waits up to 20 s for texture streaming to finish first */
+   - the streaming-details corner text is hidden (STORE_NOHUD=1 hides the whole HUD for a clean picture); a shot waits up to 20 s for texture streaming to finish first */
 'use strict';
 const path=require('path'),fs=require('fs');
-const ROOT=path.resolve(__dirname,'../..'),DOCS=path.join(ROOT,'docs','screenshots')+path.sep,SHOTS=path.join(__dirname,'shots');
+const ROOT=path.resolve(__dirname,'../..'),DOCS=path.join(ROOT,'docs','screenshots')+path.sep,SHOTS=path.join(__dirname,process.env.STORE_NOHUD?'shots-clean':'shots');
 const W=+process.env.STORE_W||1920,H=+process.env.STORE_H||1080;
 const pw=require('playwright');
-const init=()=>{try{const c=JSON.parse(localStorage.getItem('ht-cfg')||'{}');c.gfx='high';localStorage.setItem('ht-cfg',JSON.stringify(c))}catch(e){}
-  addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');s.textContent='#strm{visibility:hidden!important}';document.head.appendChild(s)})};
-function wrapPage(p){if(p.__hiq)return p;p.__hiq=true;p.addInitScript(init).catch(()=>{});
+const NOHUD=!!process.env.STORE_NOHUD;
+const init=nohud=>{try{const c=JSON.parse(localStorage.getItem('ht-cfg')||'{}');c.gfx='high';localStorage.setItem('ht-cfg',JSON.stringify(c))}catch(e){}
+  addEventListener('DOMContentLoaded',()=>{const s=document.createElement('style');s.textContent=nohud?'#strm,#lock,.ht-root,.hud,#banner{visibility:hidden!important}':'#strm,#lock{visibility:hidden!important}';document.head.appendChild(s)})};
+function wrapPage(p){if(p.__hiq)return p;p.__hiq=true;p.addInitScript(init,NOHUD).catch(()=>{});
   const shot=p.screenshot.bind(p);
   p.screenshot=async(o={})=>{if(o.path){const a=path.resolve(o.path);if(a.startsWith(DOCS)){o=Object.assign({},o,{path:path.join(SHOTS,path.relative(DOCS,a))});fs.mkdirSync(path.dirname(o.path),{recursive:true})}}
     try{await p.waitForFunction(()=>{const h=window.__ht;return !h||!h.assets||!h.assets.stream||!h.assets.stream.pending()},null,{timeout:20000})}catch(e){}

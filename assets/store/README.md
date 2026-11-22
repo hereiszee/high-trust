@@ -75,7 +75,36 @@ hero is a PNG; the screenshot content rules and the PG-13 rule are now spelled o
 
 ## Screenshots
 
-SCREENSHOTS_TABLE
+Fifteen screenshots, all 1920×1080 JPG, all real gameplay on the High preset with the game's own HUD (the finale shot is the
+in-engine cutscene the player sees, letterbox and subtitle included). Upload them in this order: Steam shows the first few
+first. **All-ages** is the mark to tick in Steamworks ("suitable for all ages": no gore, violence or suggestive themes); Steam
+needs at least four.
+
+| # | File | What it shows | Where it came from | All-ages |
+|---|---|---|---|---|
+| 1 | `01_maple_heights_free_roam.jpg` | The dad on Maple Heights between jobs: the minivan, Hank's Hardware, the trust meter at 62% ("Borrowing ladders"), Gary's job marker | staged in the hub (`tools/store-art/studio.js`) | yes |
+| 2 | `02_porch_light_talk_first.jpg` | Porch Light: a porch pirate with a parcel, and the three ways to say something first ("That's not yours, friend. Put it back.") | `dev/jobs/porch.js` | yes |
+| 3 | `03_zip_tie_second_chance.jpg` | Return to Sender: a man who gave up, zip-tied, "+TRUST · zip-tied" | staged in the chop-shop job with the real surrender and zip-tie | no (aftermath of a fight) |
+| 4 | `04_higher_ground_scope.jpg` | Higher Ground: overwatch through the scope on the basketball court, Rosa on the radio | `dev/jobs/overwatch.js` | no (rifle scope) |
+| 5 | `05_dad_taxi_route_9_traffic.jpg` | Dad Taxi: the minivan on Route 9 in traffic, Jen's list, the ride meter | `dev/jobs/taxi.js` | yes |
+| 6 | `06_crossing_guard.jpg` | Crossing Guard: walking eleven kids home with a stop sign, the headcount | `dev/jobs/crossing.js` | yes |
+| 7 | `07_dad_taxi_school_pickup.jpg` | Dad Taxi: the school pickup line ("Can we not be the first car in line"), no weapons in frame | `dev/jobs/taxi.js` | yes |
+| 8 | `08_riverside_flats_market.jpg` | Riverside Flats: the farmers' market after Hands Off, trust "Waves from porches" | `dev/jobs/arrest.js` | yes |
+| 9 | `09_everybody_waves_festival.jpg` | The festival finale, Everybody Waves: the crew and both neighbourhoods waving (no spoilers beyond the title) | `dev/jobs/finale.js --from festival` | yes |
+| 10 | `10_fort_sensible_range_rack.jpg` | Fort Sensible: the free rental rack at the public range | `dev/base-check.js` | yes (guns on a rack, nobody threatened) |
+| 11 | `11_jet_under_the_high_bridge.jpg` | The jet under the High Bridge; the tower is "very impressed" | `dev/base-check.js` | yes |
+| 12 | `12_sensible_dragway_staged.jpg` | Sensible Dragway: staged at the tree against Dutch Hendricks's copper-ballast van | `dev/dragstrip-check.js` | yes |
+| 13 | `13_home_kitchen.jpg` | Home: Jen in the kitchen ("Did you remember the milk?") | staged at home | yes |
+| 14 | `14_home_decorate_mode.jpg` | Home, decorate mode: the cut-away house, the family, the minivan in the garage | staged at home (B) | yes |
+| 15 | `15_map_two_neighbourhoods.jpg` | The map: Maple Heights, Route 9 and Riverside Flats with both trust bars | staged in the hub (M) | yes |
+
+Staging notes, so nothing here misleads: trust values were set (62% for shot 1, 46%/24% for the map) to show the mid-game; in
+shot 3 the crew member standing beside the dad was moved out of frame so nobody is pointing a gun at the man who gave up; every
+other frame is exactly what the harness's play-through showed. The range rack and the scope shot have guns in them; the
+family-friendly shots (5–9, 11–15) have none drawn. Children appear in 6, 7, 9 and 14, never near a drawn weapon.
+
+Not used: the tank (the frames from the play-through had the dad's hand clipping the camera in the turret view; a clean tank
+shot is the one thing from the list still worth a re-shoot), and the "Hands Off" beanbag moment (readable only with the copy).
 
 ## What an illustrator would still do better
 

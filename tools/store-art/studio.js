@@ -41,7 +41,7 @@ const log=(...a)=>console.log(new Date().toISOString().slice(11,19),...a);
     try{
       const w=job.w||1920,h=job.h||1080;await p.setViewportSize({width:w,height:h});
       await p.evaluate(h=>{document.documentElement.classList.toggle('st-nohud',!h);let s=document.getElementById('st-hud-style');if(!s){s=document.createElement('style');s.id='st-hud-style';document.head.appendChild(s)}
-        s.textContent=h?'#strm{visibility:hidden!important}':'.ht-root,#lock,.hud,#banner,#strm{visibility:hidden!important}'},!!job.hud);
+        s.textContent=h?'#strm,#lock{visibility:hidden!important}':'.ht-root,#lock,.hud,#banner,#strm{visibility:hidden!important}'},!!job.hud);
       await p.evaluate(()=>{__ht.render.apply('high');window.dispatchEvent(new Event('resize'))});
       const info=await p.evaluate(`(async()=>{${job.run}})()`);
       for(const k of(job.press||[])){if(typeof k==='number'){await p.waitForTimeout(k);continue}await p.keyboard.press(k);await p.waitForTimeout(350)}

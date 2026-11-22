@@ -64,3 +64,86 @@ no console errors
 no console errors
 === end 18:58:57
 === dev/base-check.js range,tank,jet --shots 18:58:57
+  FAIL with the child gone it fires again
+  shot tank-sight.jpg
+  ok   drove through the cones and hay bales (13 knocked over)
+  ok   flattened Linda's car through the car-damage API (hp 100 -> 0)
+  shot tank-flattened.jpg
+  ok   jobs refuse the tank: "You can't bring that to the bake sale."
+  ok   E gets out
+  ok   walked to the jet on the apron
+  ok   the jet is parked by Hangar 2
+  shot jet-apron.jpg
+  ok   the jet can be boarded from any side within 3.5 m of the fuselage (nose:yes left:yes tail:yes right:yes left-front:yes)
+  shot jet-board-prompt.jpg
+  ok   E climbs into the jet
+  ok   sitting in the jet is not a flight (0)
+  ok   ten taps of W set full throttle, nothing held (100%)
+  shot jet-takeoff.jpg
+  ok   took off (101 mph at x 167)
+  ok   wheels-up counts the flight on disk (0 → 1) and meets ACH_CLEARED_FOR_TAKEOFF
+  ok   G raises the gear
+  shot jet-cockpit.jpg
+  ok   C toggles the look back on and off (no held keys)
+  ok   the throttle holds with no key down (100%)
+  shot jet-inbound.jpg
+  shot jet-family.jpg
+  ok   buzzed the house: the family came out (3 waving)
+  ok   sonic boom over the neighborhood
+  shot jet-bridge.jpg
+  ok   flew under the High Bridge (still flying)
+  ok   gear down for landing (came down by itself on the approach)
+  ok   landed on runway 27 (111,240)
+  ok   E gets out on the ground
+  ok   E twice ejects (one tap arms it): parachute at 115 m
+  shot jet-parachute.jpg
+  ok   under the canopy the screen says E cuts to the landing (chute)
+  ok   landed under the parachute at 128,190 (back on the post)
+  ok   E cut to the landing: by his van (0.0 m, facing it)
+  shot jet-chute-landing.jpg
+  ok   the jet is back on the apron (it was a rental)
+no console errors
+1 FAILED · 1442 s
+=== end 19:23:12
+=== dev/dragstrip-check.js travel,tune,race --shots 19:23:12
+  ok   the strip pin opens for fast travel after the visit
+  ok   out of the minivan in the paddock
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   your own car first, then every car the strip lends, stock (HT.Garage six + the mower): Your Family Minivan, Hatchback, Family Minivan, Sedan, The Suburbanite, The Tailgater, The Contractor, Ride-On Mower
+  shot picker.jpg
+  ok   a sedan loaner at the line
+  shot tree-staged.jpg
+  ok   sedan: slip RT 0.316 60ft 2.166 330 5.99 ET 9.176 @ 77.1 mph (1/4 est 14.31)
+  shot timeslip.jpg
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a minivan loaner at the line
+  ok   minivan: slip RT 0.342 60ft 2.369 330 6.516 ET 9.956 @ 71.4 mph (1/4 est 15.53)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   E at the paddock board opens the car picker (8 cars)
+  ok   a workvan loaner at the line
+  ok   workvan: slip RT 0.354 60ft 2.479 330 7.121 ET 11.029 @ 62.7 mph (1/4 est 17.21)
+  ok   the timeslip card is up
+  ok   Done hands the loaner back
+  ok   order: sedan 9.176 < minivan 9.956 < work van 11.029
+  ok   the garage book has sedan, minivan, workvan
+  ok   E at the race office window opens it
+  shot race-office.jpg
+  ok   the ladder: Dutch Hendricks, Marisol Vega, Walt Okafor, Tomás Reyes, Priya Raman, June Abernathy, "Rook" Delacroix
+  shot ladder.jpg
+  ok   the self-bet offer
+  shot self-bet.jpg
+  ok   racing Dutch Hendricks, lane 0
+  shot race-staged.jpg
+  ok   won: {"won":true,"how":"finish","margin":2.061,"red":[false,false]}
+  shot race-board.jpg
+  shot race-result.jpg
+  ok   cash moved by the settlement exactly: 71 = 71 [["Rental",-20],["Purse",40],["First win over Dutch Hendricks",50],["Your bet on yourself · 1.05x",1]]
+  ok   Dutch marked beaten (first-win bonus paid once)
+  ok   lost: {"won":false,"how":"finish","margin":1.806,"red":[false,false]}
+  ok   a loss costs the rental, the entry and the bet: -55
+  ok   repeat win capped: {"lines":[["Rental",-20],["Purse (repeat win × 2 today)",7],["Daily cap reached · $400 a day from the strip",0]],"net":-13} day {"won":400,"betWon":1,"betLost":10,"beat":{"dutch":2}}
+== done in 467 s; console errors: 0
+=== end 19:31:17

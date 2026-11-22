@@ -9,3 +9,4 @@ tools/store-art/studio.log
 tools/store-art/.tmp-*
 tools/store-art/shots/
 tools/store-art/*.log
+tools/store-art/shots-clean/

@@ -74,11 +74,12 @@ def plate(name):
 SCRIM_LEFT = ('<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,14,18,.86) 0%,'
               'rgba(12,14,18,.62) 26%,rgba(12,14,18,.18) 50%,rgba(12,14,18,0) 62%),'
               'linear-gradient(0deg,rgba(12,14,18,.35),rgba(12,14,18,0) 30%)"></div>')
-SCRIM_TOP = ('<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,14,18,.55) 0%,'
-             'rgba(12,14,18,.22) 28%,rgba(12,14,18,0) 46%),linear-gradient(0deg,rgba(12,14,18,.3),rgba(12,14,18,0) 22%)"></div>')
+SCRIM_TOP = ('<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,14,18,.42) 0%,'
+             'rgba(12,14,18,.14) 28%,rgba(12,14,18,0) 46%),linear-gradient(0deg,rgba(12,14,18,.3),rgba(12,14,18,0) 22%)"></div>')
 
-def img(p, style=''):
-    return '<img src="%s" style="position:absolute;left:0;top:0;%s">' % (rel(p), style)
+def img(p, style='', grade=True):
+    g = 'filter:saturate(1.1) contrast(1.04);' if grade and 'filter:' not in style else ''
+    return '<img src="%s" style="position:absolute;left:0;top:0;%s%s">' % (rel(p), g, style)
 
 # ---------------------------------------------------------------- capsules
 def header(tag, dest):
