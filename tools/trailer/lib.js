@@ -85,6 +85,7 @@ async function capture(s,o){const dir=o.dir;fs.mkdirSync(dir,{recursive:true});c
     const f=path.join(dir,'f'+String(i).padStart(5,'0')+'.jpg');
     if(o.skipExisting&&fs.existsSync(f))continue;
     if(o.every>1&&i%o.every)continue;
+    if(o.only&&!o.only.has(i))continue;
     const r=await cdp.send('Page.captureScreenshot',{format:'jpeg',quality:o.q||93,captureBeyondViewport:false});
     fs.writeFileSync(f,Buffer.from(r.data,'base64'));done++;
     if(o.log!==false&&(i%10===0||i===n-1))process.stdout.write(`\r${path.basename(dir)} ${i+1}/${n}  ${((Date.now()-t0)/1000/(i+1)).toFixed(2)} s/frame   `)}

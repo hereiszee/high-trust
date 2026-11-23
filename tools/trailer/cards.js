@@ -48,10 +48,30 @@ const CARDS={
   dragmini:{sup:{k:'Sensible Dragway',l:'Bring the<br><b>minivan.</b>'}},
   drag:{sup:{k:'Sensible Dragway',l:'Quarter mile.<br><b>Sensible speeds.</b>'}},
   waves:{sup:{k:'The festival',l:'Everybody<br><b>waves.</b>',c:1}},
+  /* v2 punchlines (replace the feature-speak 'dadlife' and 'open' cards) */
+  guard:{sup:{k:'Crossing guard',l:'Every kid gets home.<br><b>Every single one.</b>'}},
+  hoa:{sup:{k:'Maple Heights',l:'The HOA has been<br><b>notified.</b>'}},
+  /* Jen's line from the take where DAD-1 buzzes the house (js/jet.js), set in the game's own subtitle style over the bridge pass */
+  /* v2 subtitles, re-set 1.7x larger on a solid backing over the game's own line (same words, same speaker, same moment) */
+  jen:{sub:{who:'Jen',l:'Your father is buzzing the house. In a jet. On a Tuesday.'}},
+  s_pirate1:{sub:{who:'Porch pirate',l:"You'll never take me alive! ...Wait, you can, I'm slow."}},
+  s_pirate2:{sub:{who:'Porch pirate',l:"Okay okay okay. It's a nose hair trimmer. I don't even want it."}},
+  s_rick:{sub:{who:'Coach Rick',l:'Set up behind the picnic tables. Make them come to us.'}},
+  s_benji:{sub:{who:'Benji',l:"When you're tired can I hold it?"}},
+  s_jaylen:{sub:{who:"Jaylen's dad",l:'Is that chalk on your knees?'}},
+  s_ava:{sub:{who:'Ava',l:'My mom lets me sit in the front.'}},
+  s_mom:{sub:{who:'You',l:'Your mom is not here.',you:1}},
+  s_gary:{sub:{who:'Gary',l:'Contact right!'}},
+  s_crew:{sub:{who:'Crew',l:'They got him!'}},
+  s_barb:{sub:{who:'Barb',l:'My petunias! ...Never mind, he went around them. What a gentleman.'}},
+  s_sharon:{sub:{who:'Sharon',l:'My petunias! ...Never mind, he went around them. What a gentleman.'}},
+  s_tower1:{sub:{who:'Tower',l:"DAD-1, Fort Sensible Tower. You're cleared for... honestly, whatever you want. Runway two-seven, wind calm."}},
+  s_tower2:{sub:{who:'Tower',l:"Ejection! DAD-1, sit back, the chute knows the way home. The jet is fine. It's a rental."}},
   end:{end:1},
   title:{end:1,title:1},
 };
-function html(c){if(c.end)return`<div class="full end"><div class="logo"><span class="roof">${ROOF}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
+function html(c){if(c.sub)return`<div style="position:absolute;left:0;right:0;bottom:70px;text-align:center"><div style="display:inline-block;max-width:1560px;padding:22px 34px 23px;background:rgb(14,16,21);border-radius:6px;font:600 54px/1.3 Barlow;color:#fff;text-align:center"><b style="font:700 50px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;color:${c.sub.you?'#6fb8ff':'#ffc94a'};margin-right:16px">${c.sub.who}</b>${c.sub.l}</div></div>`;
+  if(c.end)return`<div class="full end"><div class="logo"><span class="roof">${ROOF}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
   ${c.title?'':`<div class="cta"><div class="btn">${CFG.cta}</div>${CFG.ctaSub?`<div class="sub">${CFG.ctaSub}</div>`:''}</div>`}</div>`;
   const s=c.sup;return`<div class="safe"><div class="sup${s.c?' c':''}"><div class="k">${s.k}</div><div class="l">${s.l}</div></div></div>`}
 async function render(names){fs.mkdirSync(OUT,{recursive:true});const b=await chromium.launch();const p=await b.newPage({viewport:{width:1920,height:1080}});
