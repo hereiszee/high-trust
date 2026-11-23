@@ -2,7 +2,7 @@
    2nd St crossing the dad holds the STOP sign up in the road and waves the line across. Two cars come up 2nd St and stop for the sign
    (the job's own rule: cars stop within 25 m of the raised sign). Camera at a kid's eye height (0.9 m), at the back of the line,
    looking past the kids to the dad and the stopped cars. No guns exist in this job. HUD: none. */
-module.exports={frames:150,warm:4,
+module.exports={frames:160,from:66,warm:4,
   async stage(s){const r=await s.p.evaluate(async()=>{const H=window.__ht,T=window.__T;const j=H.jobs.registry.get('crossing');j.test.give(H.jobs.api);H.prog.done[H.jobs.index('dee')]=true;T.flags();
       await T.cast(['dee','son','daughter','nb_kid','nb_gran','nb_pops','nb_office','nb_sweater','nb_teen','nb_kenji','nb_marcus','nb_mei','nb_lucia','thug_cap','thug_hoodie','thug_track','thug_f_hood','thug_beanie','thug_red','thug_jacket']);
       H.jobs.start('crossing');H.step(22);T.flags();

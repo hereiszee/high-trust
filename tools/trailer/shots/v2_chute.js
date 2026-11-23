@@ -4,7 +4,7 @@
      B: on the ground beside the minivan, low, as he comes down the last metres and lands next to it.
    The minutes of drifting in between are simulated but not drawn (keep: 'page'). HUD: subtitles only
    (Tower: "DAD-1 has ejected. Repeat: DAD-1 is enjoying the parachute."). */
-module.exports={frames:130,warm:2,
+module.exports={frames:150,from:60,warm:2,
   async stage(s){const p=s.p;
     await p.evaluate(()=>{const H=window.__ht,d=HT.Base.def();H.P.pos.set(d.jet.x,0,d.jet.z-4.6);H.step(4)});
     await p.keyboard.press('e');await p.evaluate(()=>window.__ht.step(4));

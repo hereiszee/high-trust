@@ -11,6 +11,42 @@ Deliverables (in `assets/store/trailer/`):
 | `poster.jpg` | A 1920×1080 frame from the video with no text on it (Steam wants custom thumbnails to be a frame from the video, without text) |
 | `contact-sheet.jpg` | One frame per second, with timecodes |
 
+## v2 (2026-11-23): re-shot with a free camera
+
+v1's structure and jokes, new pictures. `SCREENPLAY-V2.md` is the shot plan; `edit-v2.js` is the cut; the v2 shots are `shots/v2_*.js`.
+Build: `TRAILER_EDIT=tools/trailer/edit-v2.js node tools/trailer/build.js` writes `high-trust-trailer-v2-1080p.mp4`,
+`high-trust-trailer-v2-720p.mp4`, `poster-v2.jpg` and `contact-sheet-v2.jpg` next to the v1 files (which are kept).
+
+What is new in the pipeline:
+
+- **`rig.js`** (installed as `window.__R` after `lib.js` helpers): the camera is set in the game's `pose` hook, after the game has
+  placed its own camera and just before the frame is drawn. Keyframes with easing (`R.use`), follow-with-offset (`R.off`),
+  deterministic handheld shake (`R.shake`), long-lens framing; **golden hour** (`R.golden`) lowers and warms the game's own sun and
+  mood (`HT.Roam.mood` + `setMood`, the sun's direction re-placed each frame, the hemisphere fill raised so faces are not in shadow);
+  **cinematic HUD** (`R.cine`): every HUD layer hidden except the game's subtitle line (enlarged ×1.5) and its world pop-ups (+TRUST,
+  enlarged); `R.subBig` enlarges only the subtitle on HUD-on gameplay shots; **clean lens** (`R.clearLens`): small props and thin
+  posts between the lens and the subjects are hidden for the shot (never characters, vehicles, buildings, or anything at the subject);
+  `R.jetClean` hides the jet's boarding ladder, which the model keeps in flight.
+- **Test renders**: `node tools/trailer/shoot.js <shot> --only 0-29,60,90` renders only those frames at full size into
+  `<scratch>/test/<shot>/`; every other frame is simulated but not drawn (~0.1-0.3 s instead of ~3 s). Shots can set `from` (first
+  frame worth drawing) or `keep` (a predicate) so a full take skips drawing the run-up.
+- **`queue.sh`**: a render queue (`<scratch>/queue.txt`, one `shot args` per line) that runs at most 3 browsers at once (5 at once ran
+  the 16 GB container out of memory).
+- **`sheet.sh`**: `review/v2-contact-sheet.jpg`, one row per v2 shot (5 frames each, full takes or test stills).
+- **Event-driven in-points**: `edit-v2.js` reads each take's logged events (`shot.json`) for its in-points (`camB`, `caught`,
+  `liftoff`...), so a re-render that plays out a few frames differently still cuts on the action.
+- **Sound**: two cut accents from the game's own WebAudio graph (`whoosh`, `impact` in `audio.js`); the music drops out under the
+  parachute for one deadpan beat and comes back on the drag tree's green.
+
+Staging notes worth knowing (all done through `__ht`, never in game code):
+
+- The female character rigs have no run clip (`js/people.js chooseBase`), so the hook waits for a male porch pirate.
+- A parked car's push collider stops the tank nose-to-bumper; the tank shot opens Linda's car's collider so the game's own crush fires.
+- Seen from the ground, the jet is not drawn once it is north of the delivery street near the home (cause not found; the open
+  world culls it), so the Maple fly-by is flown from the south toward a camera behind the family.
+- The tank's main gun refused on the apron ("Not with people downrange."): the main-gun shot was cut rather than forced.
+- The HOA letter (stinger) reads `save.base.hoaTank`, set directly; the tank take is a separate session.
+
 ## Steam's trailer requirements (checked 2026-11-22)
 
 Source: Steamworks documentation, [Trailers](https://partner.steamgames.com/doc/store/trailer), read on 2026-11-22. What it asks for, and what we do:

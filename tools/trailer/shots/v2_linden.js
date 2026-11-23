@@ -4,10 +4,13 @@
 module.exports={frames:105,warm:2,
   async stage(s){const r=await s.p.evaluate(async()=>{const H=window.__ht,T=window.__T;await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.startMissionWorld(2);H.step(2);T.flags();try{H.give('beanbag');H.swap('beanbag')}catch(e){}
-      let n=0;while(n<900&&H.enemies.filter(e=>e.state!=='dead'&&e.alert).length<3){H.step(1);H.P.hp=100;n++}
+      /* v2: hold until the wave is close (an alert attacker within 15 m), so the beanbags land on someone you can see */
+      const near=()=>{let m=1e9;for(const e of H.enemies)if(e.state!=='dead'&&e.state!=='surrender'&&e.state!=='cuffed'&&e.alert)m=Math.min(m,Math.hypot(e.pos.x-H.P.pos.x,e.pos.z-H.P.pos.z));return m};
+      let n=0;while(n<2400&&near()>15){H.step(1);H.P.hp=100;for(const a of H.allies)a.hp=Math.max(a.hp||0,60);n++}
       for(let k=0;k<6;k++){H.step(3);await new Promise(r=>setTimeout(r,300))}
       return{n,enemies:H.enemies.map(e=>[e.state,Math.round(e.pos.x),Math.round(e.pos.z)]),P:[H.P.pos.x,H.P.pos.z],cur:H.P.cur}});console.log('  ',JSON.stringify(r));
     await s.p.evaluate(()=>{const H=window.__ht,P=H.P;window.__camFn=cam=>{const piv=new THREE.Vector3(P.pos.x,P.visY+1.55,P.pos.z);cam.position.lerp(piv,.25);const f=cam.fov*.92;cam.fov=f;cam.updateProjectionMatrix()}})},
+  async after(s){await s.p.evaluate(()=>window.__R.subBig())},
   frame:i=>{const H=window.__ht,P=H.P;P.hp=100;window.__fire=false;const c=H.camera.position;
     const live=H.enemies.filter(e=>e.state!=='dead'&&e.state!=='surrender'&&e.state!=='cuffed').sort((a,b)=>Math.hypot(a.pos.x-P.pos.x,a.pos.z-P.pos.z)-Math.hypot(b.pos.x-P.pos.x,b.pos.z-P.pos.z));
     const e=live[0];P.aim=true;if(!e)return;const y=Math.atan2(-(e.pos.x-c.x),-(e.pos.z-c.z)),pt=Math.atan2(1.2-c.y,Math.hypot(e.pos.x-c.x,e.pos.z-c.z));

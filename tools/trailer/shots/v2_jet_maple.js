@@ -11,23 +11,22 @@ module.exports={frames:150,warm:2,
       const fam=(HT.Jet.S&&HT.Jet.S.fam||[]).map(f=>{const q=f.d.root.position;return[+q.x.toFixed(1),+q.z.toFixed(1),+f.d.root.rotation.y.toFixed(2)]});
       const fc=fam.length?fam.reduce((a,b)=>[a[0]+b[0]/fam.length,a[1]+b[1]/fam.length],[0,0]):[h.x,h.z];window.__fc=fc;
       /* the van moves down the kerb, out of the foreground */const V=H.VAN;V.pos.set(47,0,V.pos.z);try{H.syncVan&&H.syncVan()}catch(_){}try{HT.Jobs.api.syncCar(V)}catch(_){}
-      /* the jet: from the south, behind the camera, heading +z (north) at 18 m, over the lens and over the family, away over their roof.
-         The family turn to watch it (js/jet.js familyTick), so they face the lens as it comes in. */
-      F.air=true;F.gear=0;F.gearK=0;F.spd=84;F.thr=.8;F.pos.set(fc[0]+1.5,24,fc[1]-150);F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,0,'YZX'));H.step(2);
+      /* the jet: from the NORTH, over the roofs behind the house, heading -z, low over the street and the lens, away south.
+         (Flown from the south it vanished behind the houses: something in the world culls it north of the street when seen from the
+         ground, so the take keeps it on the camera's side of the roofline.) */
+      F.air=true;F.gear=0;F.gearK=0;F.spd=84;F.thr=.8;F.pos.set(fc[0]+5,17,fc[1]-150);F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,0,'YZX'));H.step(2);
       return{fam,fc,h,jet:[F.pos.x,F.pos.y,F.pos.z]}});console.log('  ',JSON.stringify(r));
     await p.evaluate(()=>{const H=window.__ht,R=window.__R,F=HT.Jet.F,c=window.__fc;R.golden({el:13,az:200,exp:1.05,far:420});R.cine(true);R.jetClean();
-      /* A: one continuous locked-off shot from the far kerb: the family mid-ground LEFT, large enough to read the wave, their roofline
-            above; the jet enters top-right over the lens and goes away low over the roof toward the horizon.
-         B: (once it is well past) from just behind the family, over their shoulders, as it shrinks away. */
-      /* (the home's invisible interior occluder hides anything flown behind the house itself, so the jet keeps to the house's east side) */
-      const A={p:[c[0]-4.5,.8,c[1]-4.2],l:[c[0]+2.6,3.3,c[1]+6.5],f:44};let mode='A',sl=null;window.__mode=()=>mode;
-      window.__camFn=cam=>{const i=window.__trFrame||0;const j=[F.pos.x,F.pos.y,F.pos.z];const dz=j[2]-A.p[2];
-        if(mode==='A'&&dz>95){mode='B';sl=null;window.__T.ev('camB')}
-        let pos,look,f;if(mode==='A'){pos=A.p;look=A.l;f=A.f}else{pos=[c[0]-1.2,1.3,c[1]-2.0];look=[j[0],j[1]*.8,j[2]];f=38}
-        if(!sl)sl=look.slice();else for(let k=0;k<3;k++)sl[k]+=(look[k]-sl[k])*.25;
-        const sh=R.shake(i,.012),jo=mode==='A'?Math.max(0,1-Math.abs(dz)/25)*.04:0;
-        cam.position.set(pos[0]+sh[0]+Math.sin(i*5.1)*jo,pos[1]+sh[1]+Math.sin(i*6.3)*jo,pos[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);
-        if(cam.fov!==f){cam.fov=f;cam.updateProjectionMatrix()}R.sunPlace([c[0],0,c[1]])}})},
-  /* held level on its line (the flight model would otherwise settle the nose): 24 m, down to 17 m over the street, climbing away over the roofs */
-  frame:i=>{const F=HT.Jet.F,c=window.__fc,dz=F.pos.z-(c[1]-4.2);F.pos.x=c[0]+1.5;const y=dz<-60?24:dz<0?24-10*(dz+60)/60:14+Math.min(16,dz*.22);F.pos.y=y;F.vs=0;F.spd=84;
-    F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,dz>0?Math.min(.18,dz*.006):0,'YZX'));const H=window.__ht;if(H.P.hp<100)H.P.hp=100;if(i%10===0)window.__T.ev('j '+[F.pos.x,F.pos.y,F.pos.z].map(v=>v.toFixed(0)).join(',')+' '+(HT.Jet.state().on?'on':'off'))}};
+      /* One continuous shot from just behind the family, low on their front walk, looking south across the street: Jen and the kids
+         in the foreground waving, the jet coming in over the rooftops opposite (top-right), growing, and screaming over their heads and
+         the lens. (Seen from the ground the jet is culled once it is north of the street, so it is flown toward this side.) */
+      const A={p:[c[0]-1.4,1.05,c[1]+2.8],l:[c[0]-1.0,5.5,c[1]-22],f:48};
+      window.__camFn=cam=>{const i=window.__trFrame||0;const j=[F.pos.x,F.pos.y,F.pos.z];const dz=A.p[2]-j[2];
+        /* the last few frames tilt up after it as it goes over */const w=Math.max(0,Math.min(1,(30-Math.max(dz,4))/26));const ww=w*w*(3-2*w)*.28;
+        const look=[A.l[0]+(j[0]-A.l[0])*ww,A.l[1]+(j[1]-A.l[1])*ww,A.l[2]+(j[2]-A.l[2])*ww];
+        const sh=R.shake(i,.012),jo=Math.max(0,1-Math.abs(dz)/25)*.04;
+        cam.position.set(A.p[0]+sh[0]+Math.sin(i*5.1)*jo,A.p[1]+sh[1]+Math.sin(i*6.3)*jo,A.p[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(look[0],look[1],look[2]);
+        if(cam.fov!==A.f){cam.fov=A.f;cam.updateProjectionMatrix()}R.sunPlace([c[0],0,c[1]])}})},
+  /* held level on its line: 24 m over the far roofs, 13 m over the street, climbing a little as it goes over */
+  frame:i=>{const F=HT.Jet.F,c=window.__fc,dz=(c[1]+2.8)-F.pos.z;F.pos.x=c[0]+5;const y=dz>60?18:dz>0?14.5+3.5*dz/60:14.5+Math.min(20,-dz*.3);F.pos.y=y;F.vs=0;F.spd=84;
+    F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,dz<0?Math.min(.3,-dz*.01):0,'YZX'));const H=window.__ht;if(H.P.hp<100)H.P.hp=100;if(i%10===0)window.__T.ev('j '+[F.pos.x,F.pos.y,F.pos.z].map(v=>v.toFixed(0)).join(','))}};

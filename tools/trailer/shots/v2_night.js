@@ -16,6 +16,7 @@ module.exports={frames:150,warm:4,
       H.setNight(1);H.flash(true);for(let k=0;k<8;k++){H.step(3);await new Promise(r=>setTimeout(r,300))}
       return{E,P:[P.pos.x,P.pos.z],crew:window.__crew.map(e=>[+e.pos.x.toFixed(1),+e.pos.z.toFixed(1),e.state]),night:H.night.k,flash:H.night.flash}});console.log('  ',JSON.stringify(r));
     await s.p.evaluate(()=>{const H=window.__ht,P=H.P;window.__camFn=cam=>{const piv=new THREE.Vector3(P.pos.x,P.visY+1.55,P.pos.z);cam.position.lerp(piv,.22)}})},
+  async after(s){await s.p.evaluate(()=>window.__R.subBig())},
   frame:i=>{const H=window.__ht,P=H.P,c=window.__crew||[];H.keys.w=i>=4&&i<110;H.keys.shift=false;P.hp=100;
     const t=c[0];if(t){/* the beam sweeps across the yards, then settles on them */const y=Math.atan2(-(t.pos.x-P.pos.x),-(t.pos.z-P.pos.z));const sweep=i<40?Math.sin(i/40*Math.PI)*.45:0;
       let d=y+sweep-P.yaw;d=Math.atan2(Math.sin(d),Math.cos(d));P.yaw+=d*.12;P.pitch+=(-.04-P.pitch)*.1;

@@ -6,10 +6,12 @@
 
 **Cards** (five, each a dry punchline; v1's feature-speak cards are gone):
 1. "Maple Heights used to wave." (traffic stand-off)
-2. "They would really prefer violence wasn't necessary." (zip-tie)
-3. "Every child gets home. Every single one." → *Crossing Guard*, replaces "Walk eleven kids home with a stop sign."
-4. "The HOA has been notified." (tank on Maple, replaces "Fort Sensible. Open from the first minute.")
+2. "They would really prefer violence wasn't necessary." (the night shot: the flashlight finds them, hands up)
+3. "Every kid gets home. Every single one." (Crossing Guard; replaces "Walk eleven kids home with a stop sign.")
+4. "The HOA has been notified." (the pancaked car; replaces "Fort Sensible. Open from the first minute.")
 5. End card: logo + "Wishlist on Steam" (config.json `cta`)
+
+**Stinger** (after the logo): the HOA's letter about the tank (js/tank.js letter(): "RE: The Tank ... Bylaw 14(c)"), the dad: "There's a letter from the HOA. About the tank. They said it's very nice." It pays off card 4. The v1 timeslip is the fallback.
 
 **Content rules.** No child in frame with a drawn weapon (Crossing Guard, the jet family and the festival are unarmed; their HUD weapon panel is hidden). Nobody is hurt: zip-ties, beanbags, the tank's practice round only into a clear range. Enemy casts mixed. Crew and family as they are. All on current main (rebuilt caps). The Higher Ground court view (a child on court) is not used; the scope shot looks at the rooftop.
 

@@ -1,7 +1,7 @@
 /* v2 TRAFFIC STAND-OFF: the family minivan stopped in an SUV's lane on a long Maple Heights street (js/openworld.js traffic). The SUV
    comes up, stops nose-to-nose, honks, and its driver says his line (the game's traffic bark: "Wave me through or move. I'm begging you.").
    Camera side-on between the two bumpers at 1 m, both grilles filling the frame. Golden hour. HUD: subtitles only. */
-module.exports={frames:240,warm:4,
+module.exports={frames:240,from:136,warm:4,
   async stage(s){const r=await s.p.evaluate(()=>{const H=window.__ht,T=window.__T,O=H.ow,G=O.roads(),OWS=H.OWS;
       OWS.trafficWant=0;OWS.noTraffic=true;H.step(1);OWS.noTraffic=false;
       if(!H.CV){H.P.pos.copy(H.VAN.pos);H.enterVan();H.step(2)}

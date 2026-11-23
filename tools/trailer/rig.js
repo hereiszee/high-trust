@@ -65,6 +65,8 @@ function rig(){
     st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} .ht-root .ht-sub{visibility:visible!important;transform:translateX(-50%) scale(1.5);transform-origin:50% 100%;bottom:96px!important;max-width:900px!important} #sub{transform:scale(1.45);transform-origin:50% 100%} .htfx-pop{font-size:58px!important} .htfx-pop small{font-size:24px!important}'};
   /* the jet's boarding ladder stays on the model in flight (js/jet.js model): hidden for the airborne shots (noted in README) */
   R.jetClean=()=>{try{const L=HT.Jet.S.e.obj.userData.ladder;if(L)L.visible=false}catch(e){}};
+  /* gameplay shots keep the whole HUD; only the subtitle line is enlarged so the joke reads on a store page */
+  R.subBig=()=>{const st=document.createElement('style');st.textContent='.ht-root .ht-sub{transform:translateX(-50%) scale(1.35);transform-origin:50% 100%}';document.head.appendChild(st)};
   /* draw skipping for test renders: the simulation still advances every frame */
   const rd=H.render.draw.bind(H.render);let skip=false;H.render.draw=(...a)=>{if(skip)return;return rd(...a)};R.skipDraw=v=>{skip=!!v};
 }
