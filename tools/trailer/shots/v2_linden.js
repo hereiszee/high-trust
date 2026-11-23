@@ -1,7 +1,7 @@
 /* v2 (G, HUD on): linden.js with the gameplay camera pulled in over the shoulder (25% closer to the dad, a slightly longer lens).
    Action: Big Dave's job at Linden Park (built-in mission 2, waves). The crew in cover, the dad with The Talking-To (the beanbag shotgun)
    knocking the fight out of the wave; real mouse clicks fire, the script only aims. HUD on. */
-module.exports={frames:105,warm:2,
+module.exports={frames:110,from:18,warm:2,
   async stage(s){const r=await s.p.evaluate(async()=>{const H=window.__ht,T=window.__T;await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.startMissionWorld(2);H.step(2);T.flags();try{H.give('beanbag');H.swap('beanbag')}catch(e){}
       /* v2: hold until the wave is close (an alert attacker within 15 m), so the beanbags land on someone you can see */

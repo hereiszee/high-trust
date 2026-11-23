@@ -4,7 +4,7 @@
    the camera is blended from the close set-up into the crane's pose (position lerp, orientation slerp) over frames 40..95.
    HUD: the game's own banner ("Everybody waves."), as v1. */
 const setupSave=require('../../../dev/jobs/finale-saves.js');
-module.exports={frames:165,from:8,warm:2,keepBanner:true,
+module.exports={frames:235,from:8,warm:2,keepBanner:true,
   async stage(s){const p=s.p;const st=await p.evaluate(setupSave,'clean');console.log('  save',JSON.stringify(st));
     await p.evaluate(async()=>{window.__T.flags();await window.HT.Finale.preloadCast()});
     const r=await p.evaluate(()=>{const H=window.__ht,FN=window.HT.Finale,T=window.__T;H.jobs.start('finale');H.step(4);T.flags();const M=H.M;M.fn.plan=window.HT.Plan.auto(FN.PLAN_DEF,{});FN.advance(M,'festival');

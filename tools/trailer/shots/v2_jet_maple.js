@@ -14,7 +14,7 @@ module.exports={frames:150,warm:2,
       /* the jet: from the NORTH, over the roofs behind the house, heading -z, low over the street and the lens, away south.
          (Flown from the south it vanished behind the houses: something in the world culls it north of the street when seen from the
          ground, so the take keeps it on the camera's side of the roofline.) */
-      F.air=true;F.gear=0;F.gearK=0;F.spd=84;F.thr=.8;F.pos.set(fc[0]+5,17,fc[1]-150);F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,0,'YZX'));H.step(2);
+      F.air=true;F.gear=0;F.gearK=0;F.spd=84;F.thr=.8;F.pos.set(fc[0]+5,26,fc[1]-150);F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,0,'YZX'));H.step(2);
       return{fam,fc,h,jet:[F.pos.x,F.pos.y,F.pos.z]}});console.log('  ',JSON.stringify(r));
     await p.evaluate(()=>{const H=window.__ht,R=window.__R,F=HT.Jet.F,c=window.__fc;R.golden({el:13,az:200,exp:1.05,far:420});R.cine(true);R.jetClean();
       /* One continuous shot from just behind the family, low on their front walk, looking south across the street: Jen and the kids
@@ -28,5 +28,5 @@ module.exports={frames:150,warm:2,
         cam.position.set(A.p[0]+sh[0]+Math.sin(i*5.1)*jo,A.p[1]+sh[1]+Math.sin(i*6.3)*jo,A.p[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(look[0],look[1],look[2]);
         if(cam.fov!==A.f){cam.fov=A.f;cam.updateProjectionMatrix()}R.sunPlace([c[0],0,c[1]])}})},
   /* held level on its line: 24 m over the far roofs, 13 m over the street, climbing a little as it goes over */
-  frame:i=>{const F=HT.Jet.F,c=window.__fc,dz=(c[1]+2.8)-F.pos.z;F.pos.x=c[0]+5;const y=dz>60?18:dz>0?14.5+3.5*dz/60:14.5+Math.min(20,-dz*.3);F.pos.y=y;F.vs=0;F.spd=84;
+  frame:i=>{const F=HT.Jet.F,c=window.__fc,dz=(c[1]+2.8)-F.pos.z;F.pos.x=c[0]+5;const y=dz>45?26:dz>0?14.5+11.5*dz/45:14.5+Math.min(20,-dz*.3);F.pos.y=y;F.vs=0;F.spd=84;
     F.q.setFromEuler(new THREE.Euler(0,-Math.PI/2,dz<0?Math.min(.3,-dz*.01):0,'YZX'));const H=window.__ht;if(H.P.hp<100)H.P.hp=100;if(i%10===0)window.__T.ev('j '+[F.pos.x,F.pos.y,F.pos.z].map(v=>v.toFixed(0)).join(','))}};

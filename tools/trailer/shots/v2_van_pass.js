@@ -2,7 +2,7 @@
    0.45 m off the ground, about a metre and a half off its flank; the camera whips round to follow it away down Maple. Golden hour.
    HUD: none on this one (subtitles only). */
 const LANE=16.2,CX=74,CZ=18.0;
-module.exports={frames:112,from:48,warm:2,
+module.exports={frames:120,from:46,warm:2,
   async stage(s){const r=await s.p.evaluate(async([LANE])=>{const H=window.__ht;H.OWS.noTraffic=true;
       if(!H.CV){H.P.pos.set(H.VAN.pos.x+2,0,H.VAN.pos.z);H.enterVan();H.step(4)}
       const e=H.CV,x=46,z=LANE,yaw=-Math.PI/2;/* nose east (+x) */

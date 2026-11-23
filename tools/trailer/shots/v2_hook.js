@@ -43,7 +43,7 @@ module.exports={frames:200,from:24,warm:6,
         else{/* C: close and low, three-quarter on the pirate's face (between him and the dad, off to the side), hands up, the dad's
              hand coming in with the zip-tie, ending on the kneel */const ux=P.pos.x-e.pos.x,uz=P.pos.z-e.pos.z,m=Math.hypot(ux,uz)||1;
           let sx=-uz/m,sz=ux/m;if(window.__sideC==null){window.__sideC=R.clear([e.pos.x,1,e.pos.z],[e.pos.x+ux/m*1.4+sx*1.6,.95,e.pos.z+uz/m*1.4+sz*1.6],.3)?1:-1}sx*=window.__sideC;sz*=window.__sideC;
-          const kneel=window.__caught&&i-window.__caught>45?1:0;pos=[e.pos.x+ux/m*1.5+sx*1.7,.95-kneel*.15,e.pos.z+uz/m*1.5+sz*1.7];look=[e.pos.x+ux/m*.35,1.35-kneel*.35,e.pos.z+uz/m*.35];f=40}
+          const kneel=window.__caught&&i-window.__caught>45?1:0;pos=[e.pos.x+ux/m*.9+sx*2.6,.95-kneel*.15,e.pos.z+uz/m*.9+sz*2.6];look=[e.pos.x+ux/m*.45,1.3-kneel*.3,e.pos.z+uz/m*.45];f=40}
         if(!sm){sm=pos.slice();sl=look.slice()}else{for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*.35;sl[k]+=(look[k]-sl[k])*.35}}
         if(mode!=='A')R.clearLens({position:{x:sm[0],y:sm[1],z:sm[2]}},[[e.pos.x,1.2,e.pos.z],[P.pos.x,1.2,P.pos.z],[e.pos.x,.4,e.pos.z],[P.pos.x,.4,P.pos.z]]);
         const sh=R.shake(i,.03);cam.position.set(sm[0]+sh[0],sm[1]+sh[1],sm[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);

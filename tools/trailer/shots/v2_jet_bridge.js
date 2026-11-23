@@ -9,7 +9,7 @@ module.exports={frames:80,from:30,warm:2,
       F.air=true;F.gear=0;F.gearK=0;F.spd=72;F.thr=.7;F.pos.set(x,9,B.z+125);F.q.setFromEuler(new THREE.Euler(0,Math.PI/2,0,'YZX'));H.P.yaw=Math.PI;H.P.pitch=-.05;
       for(let i=0;i<10;i++){H.step(1);H.ow.update(H.camera,1/30);F.pos.y=9;F.pos.x=x;F.pos.z=B.z+125;await new Promise(r=>setTimeout(r,200))}window.__jx=x;
       return{B,F:[F.pos.x,F.pos.y,F.pos.z],gy:H.ground?H.ground(x+9,B.z-28):null}});console.log('  ',JSON.stringify(r));
-    await p.evaluate(()=>{const H=window.__ht,R=window.__R,F=HT.Jet.F,B=HT.Jet.HB,x=window.__jx;R.golden({el:11,az:330,exp:1.05,far:420});R.cine(true);R.jetClean();
+    await p.evaluate(()=>{const H=window.__ht,R=window.__R,F=HT.Jet.F,B=HT.Jet.HB,x=window.__jx;R.golden({el:11,az:330,exp:1.05,far:420});R.cine(true);R.jetClean();window.__T.hide('.ht-root .ht-sub,#sub');
       /* the bank: 8 m off the jet's line, 17 m downstream of the bridge, 1.2 m above the ground there */
       const gy=(H.ground&&H.ground(x+8,B.z-17))||0;const C=[x+8,gy+1.0,B.z-17];let sl=null;
       window.__camFn=cam=>{const i=window.__trFrame||0;const j=[F.pos.x,F.pos.y,F.pos.z];const dz=j[2]-C[2];

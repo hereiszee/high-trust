@@ -62,7 +62,7 @@ function rig(){
   /* cinematic HUD: only the game's subtitles (#sub) and its world pop-ups (+TRUST, .htfx-pop) stay; G shots keep the full HUD */
   R.cine=on=>{let st=document.getElementById('__trcine');if(!st){st=document.createElement('style');st.id='__trcine';document.head.appendChild(st)}
     R.cineOn=on!==false;if(!R._cineHook){R._cineHook=1;HT.Jobs.on('pose',()=>{if(!R.cineOn)return;const X=H.hubx;if(X&&X.sprites)for(const q of X.sprites)if(q.s)q.s.visible=false})}
-    st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} .ht-root .ht-sub{visibility:visible!important;transform:translateX(-50%) scale(1.5);transform-origin:50% 100%;bottom:96px!important;max-width:900px!important} #sub{transform:scale(1.45);transform-origin:50% 100%} .htfx-pop{font-size:58px!important} .htfx-pop small{font-size:24px!important}'};
+    st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} .ht-root .ht-sub{visibility:visible!important;transform:translateX(-50%) scale(1.5);transform-origin:50% 100%;bottom:96px!important;max-width:900px!important} #sub{transform:scale(1.45);transform-origin:50% 100%} .htfx-pop{font-size:58px!important} .htfx-pop small{display:none!important}'};
   /* the jet's boarding ladder stays on the model in flight (js/jet.js model): hidden for the airborne shots (noted in README) */
   R.jetClean=()=>{try{const L=HT.Jet.S.e.obj.userData.ladder;if(L)L.visible=false}catch(e){}};
   /* gameplay shots keep the whole HUD; only the subtitle line is enlarged so the joke reads on a store page */

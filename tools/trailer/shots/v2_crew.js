@@ -1,7 +1,7 @@
 /* v2 THE CREW: the dad and his crew (Gary, Rick, Big Dave, Doug: the allies who follow him in the open world) walk down the middle of
    Maple toward a long lens on the asphalt, the family minivan parked behind them, at golden hour. The dad walks with W; the crew follow
    on their own AI. Guns stowed (equip null): it's a walk, not a raid. HUD: none. */
-module.exports={frames:110,from:28,warm:4,
+module.exports={frames:130,from:44,warm:4,
   async stage(s){const r=await s.p.evaluate(async()=>{const H=window.__ht,T=window.__T;await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.OWS.noTraffic=true;H.startMissionWorld(2);H.step(2);T.flags();H.OWS.noTraffic=true;
       if(H.CV)H.exitVehicle();H.step(2);

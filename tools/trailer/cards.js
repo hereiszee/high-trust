@@ -51,10 +51,13 @@ const CARDS={
   /* v2 punchlines (replace the feature-speak 'dadlife' and 'open' cards) */
   guard:{sup:{k:'Crossing guard',l:'Every kid gets home.<br><b>Every single one.</b>'}},
   hoa:{sup:{k:'Maple Heights',l:'The HOA has been<br><b>notified.</b>'}},
+  /* Jen's line from the take where DAD-1 buzzes the house (js/jet.js), set in the game's own subtitle style over the bridge pass */
+  jen:{sub:{who:'Jen',l:'Your father is buzzing the house. In a jet. On a Tuesday.'}},
   end:{end:1},
   title:{end:1,title:1},
 };
-function html(c){if(c.end)return`<div class="full end"><div class="logo"><span class="roof">${ROOF}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
+function html(c){if(c.sub)return`<div style="position:absolute;left:0;right:0;bottom:96px;text-align:center"><span style="display:inline-block;padding:8px 18px;background:rgba(10,12,16,.62);border-radius:4px;font:600 33px/1.5 Barlow;color:#fff"><b style="font:700 30px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;color:#ffc94a;margin-right:12px">${c.sub.who}</b>${c.sub.l}</span></div>`;
+  if(c.end)return`<div class="full end"><div class="logo"><span class="roof">${ROOF}</span><span class="w">High</span><span class="w b">Trust</span><span class="tag">Maple Heights Neighborhood Watch</span></div>
   ${c.title?'':`<div class="cta"><div class="btn">${CFG.cta}</div>${CFG.ctaSub?`<div class="sub">${CFG.ctaSub}</div>`:''}</div>`}</div>`;
   const s=c.sup;return`<div class="safe"><div class="sup${s.c?' c':''}"><div class="k">${s.k}</div><div class="l">${s.l}</div></div></div>`}
 async function render(names){fs.mkdirSync(OUT,{recursive:true});const b=await chromium.launch();const p=await b.newPage({viewport:{width:1920,height:1080}});

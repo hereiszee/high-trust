@@ -5,7 +5,7 @@
      C: at the finish, under the timing board, as the van crosses the stripe and the board lights its ET and speed.
    The run between is simulated but not drawn (keep: 'page'). Golden hour. HUD: none. */
 const D=require('./_drag.js');const st={i:0};
-module.exports={frames:420,warm:0,keep:'page',
+module.exports={frames:150,from:0,warm:0,
   async stage(s){const r=await D.toLine(s,/^Your /);console.log('  ',JSON.stringify(r));
     for(let n=0;n<600;n++){const q=await s.p.evaluate(()=>{const R=HT.Strip.state();return R.run&&R.run.phase});if(q&&q!=='roll')break;await s.p.evaluate(()=>{const H=window.__ht;H.step(1)})}
     const g=await s.p.evaluate(()=>{const H=window.__ht,d=HT.Strip.def(),e=H.CV;return{start:d.start,finish:d.finish,board:d.board,track:d.track,van:e&&[e.pos.x,e.pos.z,e.yaw],keys:Object.keys(d).slice(0,40)}});console.log('  geo',JSON.stringify(g));
