@@ -4,7 +4,7 @@
      B (closing): side-on at hip height, long lens, the dad closing the gap left to right;
      C (caught): low two-shot, hands up, the dad walks in and zip-ties him (+TRUST).
    HUD: subtitles and the trust pop only (the rest of the HUD hidden: it's a cinematic angle of real play). */
-module.exports={frames:175,from:16,warm:6,
+module.exports={frames:200,from:24,warm:6,
   async stage(s){const p=s.p;
     await p.evaluate(async()=>{const H=window.__ht,T=window.__T;T.unlock('porch');await T.castJob('porch');await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.jobs.start('porch');H.step(4);T.flags()});
@@ -54,7 +54,7 @@ module.exports={frames:175,from:16,warm:6,
     if(i===0){const prev=window.__trEv.length;}
     if(i<14){k.w=true;k.shift=false;T.face(e.pos.x,e.pos.z);return}
     /* directing: a full run, a touch under the job's 4.6 m/s so the catch lands on camera */if(q.st==='run'&&e.script&&e.script.speed>4.25)e.script.speed=4.25;
-    if(q.st==='brisk'||q.st==='run'){k.w=true;k.shift=true;const y=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.yaw+=(y-P.yaw)*.25;
+    if(q.st==='brisk'||q.st==='run'){k.w=true;k.shift=i>=34;/* a jog first (he hasn't clocked it yet), then the sprint */const y=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.yaw+=(y-P.yaw)*.25;
       if(q.st==='brisk'&&d<12.2){window.__rnd=Math.random;Math.random=()=>.99;T.ev('bolt')}return}
     if(e.state==='surrender'){if(!window.__caught){window.__caught=i;T.ev('caught')}k.shift=false;k.w=d>1.9;T.face(e.pos.x,e.pos.z);if(i-window.__caught===40){H.use=true;T.ev('ziptie')}return}
     T.release()}};

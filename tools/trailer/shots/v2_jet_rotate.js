@@ -1,7 +1,7 @@
 /* v2 JET TAKE-OFF: DAD-1 (js/jet.js), boarded with a real E on the apron, on its take-off roll down runway 27 (west), full throttle
    (W held): the nose comes up on the game's own rotate assist, it leaves the ground beside a lens on the runway edge 0.35 m off the
    concrete, and the gear comes up (a real G press). The camera follows it away as it climbs. Golden hour. HUD: subtitles only. */
-const CX=128,CZ=245.2;
+const CX=176,CZ=245.2;
 module.exports={frames:130,warm:2,
   async stage(s){const p=s.p;
     await p.evaluate(()=>{const H=window.__ht,d=HT.Base.def();H.P.pos.set(d.jet.x,0,d.jet.z-4.6);H.step(4)});

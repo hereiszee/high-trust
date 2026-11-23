@@ -57,7 +57,8 @@ function rig(){
         if(skip||o.isSkinnedMesh||!o.isMesh)continue;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const s=o.getWorldScale(new THREE.Vector3());const r=o.geometry.boundingSphere.radius*Math.max(s.x,s.y,s.z);
         /* never anything at the subjects themselves (a held stop sign, a parcel): only props well short of them */
         const c=o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld);let near=false;for(const q of targets)if(Math.hypot(c.x-q[0],c.z-q[2])<1.8)near=true;
-        if(r<1.6&&!o.isInstancedMesh&&!near){o.visible=false;R.hidden.add(o)}}}};
+        if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const bb=o.geometry.boundingBox,thin=Math.max((bb.max.x-bb.min.x)*s.x,(bb.max.z-bb.min.z)*s.z)<.6;
+        if((r<1.6||thin)&&!o.isInstancedMesh&&!near){o.visible=false;R.hidden.add(o)}}}};
   /* cinematic HUD: only the game's subtitles (#sub) and its world pop-ups (+TRUST, .htfx-pop) stay; G shots keep the full HUD */
   R.cine=on=>{let st=document.getElementById('__trcine');if(!st){st=document.createElement('style');st.id='__trcine';document.head.appendChild(st)}
     R.cineOn=on!==false;if(!R._cineHook){R._cineHook=1;HT.Jobs.on('pose',()=>{if(!R.cineOn)return;const X=H.hubx;if(X&&X.sprites)for(const q of X.sprites)if(q.s)q.s.visible=false})}

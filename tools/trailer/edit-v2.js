@@ -3,12 +3,15 @@
    super = a card from cards.js over the clip, sfx at frame offsets within the clip. cam: C = cinematic (free camera, HUD reduced to
    subtitles/pop-ups), G = gameplay (HUD on). Cut lengths accelerate through the escalation. */
 const BEAT=18.75;
+/* in-points from the takes' own logged events (shot.json), so a re-render that plays out a few frames differently still cuts on the action */
+const fs=require('fs'),path=require('path');const SCR=process.env.TRAILER_SCRATCH||'/tmp/ht-trailer';
+const ev=(shot,name,off=0,dflt=0)=>{try{const j=JSON.parse(fs.readFileSync(path.join(SCR,'frames',shot,'shot.json'),'utf8'));const e=j.events.find(e=>e[1]===name);return e?Math.max(0,e[0]+off):dflt}catch(_){return dflt}};
 const W=(f=0,g=.5)=>({cue:'whoosh',f,gain:g}),I=(f=0,g=.6)=>({cue:'impact',f,gain:g});
 const clips=[
   /* COLD OPEN (ambience, no music): the porch pirate. One take, three set-ups. */
-  {shot:'v2_hook',in:22,beats:2.5,cam:'C',note:'HOOK A: in front of the running pirate, the dad sprinting in behind. "You\'ll never take me alive! ...Wait, you can, I\'m slow."'},
-  {shot:'v2_hook',in:76,beats:1.5,cam:'C',note:'HOOK B: side-on, the dad closing'},
-  {shot:'v2_hook',in:128,beats:2.5,cam:'C',note:'HOOK C: hands up, "I do cardio!", zip-tie, +TRUST',sfx:[{cue:'ziptie',f:34,gain:1}]},
+  {shot:'v2_hook',in:ev('v2_hook','camB',-49,30),beats:2.5,cam:'C',note:'HOOK A: in front of the running pirate, the dad sprinting in behind. "You\'ll never take me alive! ...Wait, you can, I\'m slow."'},
+  {shot:'v2_hook',in:ev('v2_hook','camB',21,100),beats:1.5,cam:'C',note:'HOOK B: side-on, the dad closing'},
+  {shot:'v2_hook',in:ev('v2_hook','camC',8,140),beats:2.5,cam:'C',note:'HOOK C: hands up, "I do cardio!", zip-tie, +TRUST',sfx:[{cue:'ziptie',f:ev('v2_hook','ziptie',0,170)-ev('v2_hook','camC',8,140),gain:1}]},
   {card:'title',beats:2,fadeIn:.12,fadeOut:.2,mark:'music',note:'title sting',sfx:[I(0,.5)]},
   /* ACT 1: the neighbourhood, golden hour */
   {shot:'v2_van_pass',in:30,beats:3,cam:'C',note:'the minivan sweeps past the kerb lens',sfx:[{cue:'engine_pull',f:-20,gain:.6},W(30,.45)]},
@@ -20,8 +23,8 @@ const clips=[
   {shot:'v2_linden',in:24,beats:2,cam:'G',note:'Linden Park: The Talking-To (beanbags)',sfx:[{cue:'shot_beanbag',f:6,gain:.7}]},
   {shot:'scope',in:30,beats:2,cam:'G',note:'Higher Ground: through the scope',sfx:[{cue:'shot_rifle',f:14,gain:.8}]},
   {shot:'v2_night',in:60,beats:3,cam:'G',note:'night: the flashlight finds them, hands up. Card 2',super:{card:'mercy',from:4,to:52}},
-  {shot:'v2_tank',in:82,beats:2.5,cam:'C',note:'LAWN ORDER rolls at the lens, barrel swinging onto camera',sfx:[I(0,.55)]},
-  {shot:'v2_tank',in:136,beats:2.5,cam:'C',note:'the pancake. Card 4',super:{card:'hoa',from:10,to:47}},
+  {shot:'v2_tank',in:ev('v2_tank','camB',-47,80),beats:2.5,cam:'C',note:'LAWN ORDER rolls at the lens, barrel swinging onto camera',sfx:[I(0,.55)]},
+  {shot:'v2_tank',in:ev('v2_tank','camB',8,135),beats:2.5,cam:'C',note:'the pancake. Card 4',super:{card:'hoa',from:10,to:47}},
   {shot:'v2_tank_fire',in:28,beats:1.5,cam:'C',note:'main gun on the range: cut on the blast',sfx:[{cue:'tank',f:9,gain:.75}]},
   {shot:'v2_jet_rotate',in:40,beats:2,cam:'C',note:'DAD-1 rotates beside the lens, gear up',sfx:[{cue:'jet',f:-48,gain:.7}]},
   {shot:'v2_jet_maple',in:36,beats:2,cam:'C',note:'over the family on Maple ("buzzing the house")',sfx:[{cue:'jet',f:-60,gain:.9}]},

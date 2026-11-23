@@ -4,7 +4,8 @@
 module.exports={frames:150,warm:4,
   async stage(s){const r=await s.p.evaluate(async()=>{const H=window.__ht,T=window.__T,O=H.ow,G=O.roads();
       await T.cast(['thug_hoodie','thug_cap','thug_track','thug_f_hood','thug_beanie','thug_red','thug_jacket']);H.openBridge();T.flags();
-      const edges=[];for(const [i,n] of G.nodes.entries())for(const e of n.e){const m=G.nodes[e.to],l=Math.hypot(m.x-n.x,m.z-n.z);if(l>=36&&O.regionAt((n.x+m.x)/2,(n.z+m.z)/2)==='river')edges.push({a:i,b:e.to,l})}
+      const edges=[];for(const [i,n] of G.nodes.entries())for(const e of n.e){const m=G.nodes[e.to],l=Math.hypot(m.x-n.x,m.z-n.z);const rg=O.regionAt((n.x+m.x)/2,(n.z+m.z)/2);if(l>=26&&(/river/.test(rg)||(n.x+m.x)/2>340))edges.push({a:i,b:e.to,l,rg})}
+      if(!edges.length)return{err:'no riverside edge'};
       edges.sort((p,q)=>q.l-p.l);const E=edges[Math.min(1,edges.length-1)],A=G.nodes[E.a],B=G.nodes[E.b],ux=(B.x-A.x)/E.l,uz=(B.z-A.z)/E.l;
       /* on the pavement (5 m off the centre line), facing down the street */const sx=-uz*5,sz=ux*5;
       const P=H.P;P.pos.set(A.x+ux*4+sx,0,A.z+uz*4+sz);H.collide(P.pos,.35);P.yaw=Math.atan2(-ux,-uz);P.pitch=-.08;H.step(4);

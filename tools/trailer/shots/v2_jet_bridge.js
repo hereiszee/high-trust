@@ -1,7 +1,7 @@
 /* v2 UNDER THE HIGH BRIDGE: DAD-1 down on the river at 7 m (js/jet.js HB, the "flew under the High Bridge" flight-log entry and the
    tower's line), seen from the riverbank beyond the bridge, low, looking back up the river: the viaduct fills the top of the frame,
    the jet comes out from under the deck at the lens and goes past on camera-left. Golden hour. HUD: subtitles only. */
-module.exports={frames:110,warm:2,
+module.exports={frames:80,from:30,warm:2,
   async stage(s){const p=s.p;
     await p.evaluate(()=>{const H=window.__ht,d=HT.Base.def();H.P.pos.set(d.jet.x,0,d.jet.z-4.6);H.step(4)});
     await p.keyboard.press('e');await p.evaluate(()=>window.__ht.step(4));

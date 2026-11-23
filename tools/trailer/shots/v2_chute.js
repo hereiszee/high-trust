@@ -4,7 +4,7 @@
      B: on the ground beside the minivan, low, as he comes down the last metres and lands next to it.
    The minutes of drifting in between are simulated but not drawn (keep: 'page'). HUD: subtitles only
    (Tower: "DAD-1 has ejected. Repeat: DAD-1 is enjoying the parachute."). */
-module.exports={frames:520,warm:2,keep:'page',
+module.exports={frames:130,warm:2,
   async stage(s){const p=s.p;
     await p.evaluate(()=>{const H=window.__ht,d=HT.Base.def();H.P.pos.set(d.jet.x,0,d.jet.z-4.6);H.step(4)});
     await p.keyboard.press('e');await p.evaluate(()=>window.__ht.step(4));
@@ -18,10 +18,10 @@ module.exports={frames:520,warm:2,keep:'page',
         if(c&&c.p.y<16&&mode==='A'){mode='B';sm=null;window.__T.ev('camB')}
         if(!c&&mode==='B'&&window.__landed==null){window.__landed=i;window.__T.ev('landed')}
         if(mode==='A'){if(!c){/* before the seat fires: under the jet */pos=[F.pos.x+5,F.pos.y-16,F.pos.z+3];look=[F.pos.x,F.pos.y,F.pos.z];f=46}
-          else{pos=[c.p.x+4.5,c.p.y-14,c.p.z+3.5];look=[c.p.x,c.p.y+2.2,c.p.z];f=44}}
+          else{const k=Math.min(1,c.t/1.6);pos=[c.p.x+3.2-k*.8,c.p.y-12+k*4.5,c.p.z+2.6-k*.6];look=[c.p.x,c.p.y+1.6+k*.8,c.p.z];f=48}}
         else{/* by the van: 6 m off his landing spot, low */const d=c?(c.drop||{x:c.p.x,z:c.p.z}):{x:P.pos.x,z:P.pos.z};if(!window.__lc)window.__lc=[d.x+5.5,.7,d.z-4];
           const q=c?c.p:{x:P.pos.x,y:1,z:P.pos.z};pos=window.__lc;look=[q.x,Math.max(1.2,q.y+(c?1.5:0)),q.z];f=40}
-        if(!sm){sm=pos.slice();sl=look.slice()}else for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*(mode==='A'?.5:.3);sl[k]+=(look[k]-sl[k])*.5}
+        if(!sm){sm=pos.slice();sl=look.slice()}else for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*(mode==='A'?.7:.3);sl[k]+=(look[k]-sl[k])*.5}
         const sh=R.shake(i,.02);cam.position.set(sm[0]+sh[0],sm[1]+sh[1],sm[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);
         if(cam.fov!==f){cam.fov=f;cam.updateProjectionMatrix()}if(P.dude)P.dude.root.visible=true;R.sunPlace([sl[0],0,sl[2]])}})},
   frameNode:async(s,i)=>{if(i===8){await s.p.keyboard.press('e');await s.p.evaluate(()=>window.__T.ev('eject'))}},
