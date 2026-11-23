@@ -4,15 +4,15 @@
      B (closing): side-on at hip height, long lens, the dad closing the gap left to right;
      C (caught): low two-shot, hands up, the dad walks in and zip-ties him (+TRUST).
    HUD: subtitles and the trust pop only (the rest of the HUD hidden: it's a cinematic angle of real play). */
-module.exports={frames:175,warm:6,
+module.exports={frames:175,from:16,warm:6,
   async stage(s){const p=s.p;
     await p.evaluate(async()=>{const H=window.__ht,T=window.__T;T.unlock('porch');await T.castJob('porch');await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.jobs.start('porch');H.step(4);T.flags()});
     const r=await p.evaluate(()=>{const H=window.__ht,a=H.jobs.api,j=H.jobs.registry.get('porch');let t=0;
-      while(H.M&&H.M.state==='go'&&t<12000){const M=H.M;if(M.pir&&M.pir.some(q=>q.st==='brisk'))break;j.test.step(a,t++,{});H.P.hp=100;H.step(1)}
+      while(H.M&&H.M.state==='go'&&t<12000){const M=H.M;/* a pirate who can RUN: the female character rigs have no run clip (js/people.js chooseBase), so wait for a male one */const male=q=>{const d=q.e&&(q.e.dude||q.e.d);return !(d&&d.rb&&d.rb.female)};if(M.pir&&M.pir.some(q=>q.st==='brisk'&&male(q)))break;j.test.step(a,t++,{});H.P.hp=100;H.step(1)}
       window.__T.release();const M=H.M;return{t,st:M.pir.map(q=>q.st),stage:M.stage}});
     console.log('  bot:',JSON.stringify(r));
-    const st=await p.evaluate(()=>{const H=window.__ht,M=H.M,P=H.P,T=window.__T;const q=M.pir.find(q=>q.st==='brisk');window.__pir=q;
+    const st=await p.evaluate(()=>{const H=window.__ht,M=H.M,P=H.P,T=window.__T;const q=M.pir.find(q=>q.st==='brisk'&&!((q.e.dude||q.e.d||{}).rb||{}).female)||M.pir.find(q=>q.st==='brisk');window.__pir=q;
       for(let k=0;k<150;k++){H.P.hp=100;H.step(1)}q.from={x:q.e.pos.x,z:q.e.pos.z};
       if(M.pc.sit){M.pc.sit=false;try{HT.People.force(P.dude,null)}catch(_){}}
       const e=q.e,dx=e.pos.x-q.exit.x,dz=e.pos.z-q.exit.z,L=Math.hypot(dx,dz)||1;P.pos.set(e.pos.x+dx/L*11,0,e.pos.z+dz/L*11);H.collide(P.pos,.35);T.face(e.pos.x,e.pos.z);P.pitch=-.08;
@@ -40,10 +40,12 @@ module.exports={frames:175,warm:6,
           /* the street side, 3.8 m out: inside the parked cars on the far kerb */
           if(window.__sideB==null){const c=s=>R.clear([mx,1.1,mz],[mx+rx*3.8*s,1.0,mz+rz*3.8*s],.5)&&R.clear([e.pos.x,1.1,e.pos.z],[mx+rx*3.8*s+hx*4,1.0,mz+rz*3.8*s+hz*4],.5);window.__sideB=c(1)?1:c(-1)?-1:1}
           const sd=window.__sideB;pos=[mx+rx*3.8*sd+hx*1.0,1.05,mz+rz*3.8*sd+hz*1.0];look=[mx+hx*.5,1.1,mz+hz*.5];f=44}
-        else{/* two-shot from low, 3.2 m, the pirate hands-up camera-left, the dad stepping in */const mx=(e.pos.x+P.pos.x)/2,mz=(e.pos.z+P.pos.z)/2,ux=P.pos.x-e.pos.x,uz=P.pos.z-e.pos.z,m=Math.hypot(ux,uz)||1;
-          let sx=-uz/m,sz=ux/m;if(window.__sideC==null){window.__sideC=R.clear([mx,1,mz],[mx+sx*3.2,.85,mz+sz*3.2],.4)?1:-1}sx*=window.__sideC;sz*=window.__sideC;
-          pos=[mx+sx*2.9,.85,mz+sz*2.9];look=[mx,1.1,mz];f=44}
+        else{/* C: close and low, three-quarter on the pirate's face (between him and the dad, off to the side), hands up, the dad's
+             hand coming in with the zip-tie, ending on the kneel */const ux=P.pos.x-e.pos.x,uz=P.pos.z-e.pos.z,m=Math.hypot(ux,uz)||1;
+          let sx=-uz/m,sz=ux/m;if(window.__sideC==null){window.__sideC=R.clear([e.pos.x,1,e.pos.z],[e.pos.x+ux/m*1.4+sx*1.6,.95,e.pos.z+uz/m*1.4+sz*1.6],.3)?1:-1}sx*=window.__sideC;sz*=window.__sideC;
+          const kneel=window.__caught&&i-window.__caught>45?1:0;pos=[e.pos.x+ux/m*1.5+sx*1.7,.95-kneel*.15,e.pos.z+uz/m*1.5+sz*1.7];look=[e.pos.x+ux/m*.35,1.35-kneel*.35,e.pos.z+uz/m*.35];f=40}
         if(!sm){sm=pos.slice();sl=look.slice()}else{for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*.35;sl[k]+=(look[k]-sl[k])*.35}}
+        if(mode!=='A')R.clearLens({position:{x:sm[0],y:sm[1],z:sm[2]}},[[e.pos.x,1.2,e.pos.z],[P.pos.x,1.2,P.pos.z],[e.pos.x,.4,e.pos.z],[P.pos.x,.4,P.pos.z]]);
         const sh=R.shake(i,.03);cam.position.set(sm[0]+sh[0],sm[1]+sh[1],sm[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);
         if(cam.fov!==f){cam.fov=f;cam.updateProjectionMatrix()}
         R.sunPlace([e.pos.x,0,e.pos.z]);if(P.dude)P.dude.root.visible=true}})},
@@ -51,7 +53,7 @@ module.exports={frames:175,warm:6,
     if(window.__rnd){Math.random=window.__rnd;window.__rnd=null}
     if(i===0){const prev=window.__trEv.length;}
     if(i<14){k.w=true;k.shift=false;T.face(e.pos.x,e.pos.z);return}
-    if(q.st==='run'&&e.script&&e.script.speed>3.9)e.script.speed=3.9;
+    /* directing: a full run, a touch under the job's 4.6 m/s so the catch lands on camera */if(q.st==='run'&&e.script&&e.script.speed>4.25)e.script.speed=4.25;
     if(q.st==='brisk'||q.st==='run'){k.w=true;k.shift=true;const y=Math.atan2(-(e.pos.x-P.pos.x),-(e.pos.z-P.pos.z));P.yaw+=(y-P.yaw)*.25;
       if(q.st==='brisk'&&d<12.2){window.__rnd=Math.random;Math.random=()=>.99;T.ev('bolt')}return}
     if(e.state==='surrender'){if(!window.__caught){window.__caught=i;T.ev('caught')}k.shift=false;k.w=d>1.9;T.face(e.pos.x,e.pos.z);if(i-window.__caught===40){H.use=true;T.ev('ziptie')}return}

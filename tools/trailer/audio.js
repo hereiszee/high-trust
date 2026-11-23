@@ -45,6 +45,14 @@ const CUES={
     pan.pan.setValueAtTime(-.8,t);pan.pan.linearRampToValueAtTime(.8,t+4);n.start(t);o.start(t);n.stop(t+6);o.stop(t+6);
     for(const[dl,v]of[[2.7,1],[2.82,.8]]){const L=1.6,bb=ctx.createBuffer(1,ctx.sampleRate*L,ctx.sampleRate),dd=bb.getChannelData(0);let b=0;for(let i=0;i<dd.length;i++){b=b*.97+(Math.random()*2-1)*.1;dd[i]=b*Math.exp(-i/ctx.sampleRate*3)*4}
       const s=ctx.createBufferSource();s.buffer=bb;const l2=ctx.createBiquadFilter();l2.type='lowpass';l2.frequency.value=500;const g2=ctx.createGain();g2.gain.value=v;s.connect(l2);l2.connect(g2);g2.connect(out);s.start(t+dl)}})`],
+  /* v2 cut accents, on the game's sfx bus: a whoosh (noise through a sweeping band-pass) and a low impact (the tank report's sub thump, short) */
+  whoosh:[1.2,`at(.02,()=>{const ctx=A.ctx,out=A.bus('sfx'),t=ctx.currentTime,len=1,buf=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const n=ctx.createBufferSource();n.buffer=buf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.4;bp.frequency.setValueAtTime(300,t);bp.frequency.exponentialRampToValueAtTime(3200,t+.32);bp.frequency.exponentialRampToValueAtTime(700,t+.6);
+    const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.55,t+.3);g.gain.exponentialRampToValueAtTime(.001,t+.75);const pan=ctx.createStereoPanner();pan.pan.setValueAtTime(-.6,t);pan.pan.linearRampToValueAtTime(.6,t+.6);
+    n.connect(bp);bp.connect(g);g.connect(pan);pan.connect(out);n.start(t);n.stop(t+1)})`],
+  impact:[1.4,`at(.02,()=>{const ctx=A.ctx,out=A.bus('sfx'),t=ctx.currentTime;const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(90,t);o.frequency.exponentialRampToValueAtTime(32,t+.45);og.gain.setValueAtTime(.95,t);og.gain.exponentialRampToValueAtTime(.001,t+.8);o.connect(og);og.connect(out);o.start(t);o.stop(t+.9);
+    const len=.6,buf=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate),d=buf.getChannelData(0);let b=0;for(let i=0;i<d.length;i++){b=b*.9+(Math.random()*2-1)*.2;d[i]=b*Math.exp(-i/ctx.sampleRate*9)*2.5}
+    const n=ctx.createBufferSource();n.buffer=buf;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1400;n.connect(lp);lp.connect(out);n.start(t)})`],
   chute:[1,`at(.05,()=>A.tone({f:200,to:900,type:'triangle',d:.5,gain:.15}))`],
   shot_beanbag:[1.5,`at(.05,()=>A.gun('beanbag'))`],
   shot_pistol:[1.5,`at(.05,()=>A.gun('pistol'))`],

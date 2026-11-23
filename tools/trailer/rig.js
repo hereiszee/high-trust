@@ -42,17 +42,28 @@ function rig(){
   /* ---- light: golden hour from the game's own sun, mood and grade (HT.Roam.mood is the live mood object; setMood re-applies it) ---- */
   let sun=null;H.scene.traverse(o=>{if(o.isDirectionalLight&&o.castShadow)sun=o});R.sun=sun;
   R.golden=o=>{o=o||{};const m=HT.Roam.mood,el=(o.el!=null?o.el:16)*Math.PI/180,az=(o.az!=null?o.az:200)*Math.PI/180;
-    Object.assign(m,{exp:o.exp!=null?o.exp:1.0,tint:o.tint||'#ffd2a6',sun:o.sun||'#ffb46e',si:o.si!=null?o.si:2.6,hemi:o.hemi!=null?o.hemi:.28,fb:'#e9b88a'});
+    Object.assign(m,{exp:o.exp!=null?o.exp:1.0,tint:o.tint||'#ffd2a6',sun:o.sun||'#ffb46e',si:o.si!=null?o.si:2.6,hemi:o.hemi!=null?o.hemi:.55,fb:'#e9b88a'});
     if(o.far)m.far=o.far;if(o.near)m.near=o.near;HT.Roam.setMood();
     R.sunDir=new THREE.Vector3(Math.cos(el)*Math.sin(az),Math.sin(el),Math.cos(el)*Math.cos(az)).normalize()};
   R.sunPlace=c=>{if(!sun||!R.sunDir)return;HT.Roam.sunFollow(c[0],c[2]);sun.position.copy(sun.target.position).addScaledVector(R.sunDir,90);sun.target.updateMatrixWorld()};
   /* line of sight against the level's solids (walls, cars, posts): true when nothing is between a and b */
-  const _rc=new THREE.Raycaster();R.clear=(a,b,pad)=>{const L=H.L;if(!L)return true;const A=new THREE.Vector3(a[0],a[1],a[2]),B=new THREE.Vector3(b[0],b[1],b[2]),d=B.clone().sub(A),len=d.length();
+  const _rc=new THREE.Raycaster();_rc.camera=H.camera;R.clear=(a,b,pad)=>{const L=H.L;if(!L)return true;const A=new THREE.Vector3(a[0],a[1],a[2]),B=new THREE.Vector3(b[0],b[1],b[2]),d=B.clone().sub(A),len=d.length();
     _rc.set(A,d.normalize());_rc.near=pad||.3;_rc.far=Math.max(.1,len-(pad||.3));return !_rc.intersectObjects(L.camSolids||L.solids,false).length};
+  /* clear the lens: small props (mailboxes, hydrants, bins, signs, posts) between the camera and the subjects are hidden for the shot,
+     the way a capture crew would move a mailbox out of a dolly track. Characters, vehicles, buildings and the ground are never touched. */
+  R.hidden=new Set();
+  R.clearLens=(cam,targets)=>{const sc=H.scene,cp=cam.position;for(const t of targets){const T3=new THREE.Vector3(t[0],t[1],t[2]),d=T3.clone().sub(cp),len=d.length();_rc.set(cp,d.normalize());_rc.near=.05;_rc.far=len-.6;
+      for(const h of _rc.intersectObjects(sc.children,true)){let o=h.object,skip=false;for(let q=o;q;q=q.parent){if(q.isSkinnedMesh||q.userData&&(q.userData.type||q.userData.car||q.userData.hitbox)){skip=true;break}}
+        if(skip||o.isSkinnedMesh||!o.isMesh)continue;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const s=o.getWorldScale(new THREE.Vector3());const r=o.geometry.boundingSphere.radius*Math.max(s.x,s.y,s.z);
+        /* never anything at the subjects themselves (a held stop sign, a parcel): only props well short of them */
+        const c=o.geometry.boundingSphere.center.clone().applyMatrix4(o.matrixWorld);let near=false;for(const q of targets)if(Math.hypot(c.x-q[0],c.z-q[2])<1.8)near=true;
+        if(r<1.6&&!o.isInstancedMesh&&!near){o.visible=false;R.hidden.add(o)}}}};
   /* cinematic HUD: only the game's subtitles (#sub) and its world pop-ups (+TRUST, .htfx-pop) stay; G shots keep the full HUD */
   R.cine=on=>{let st=document.getElementById('__trcine');if(!st){st=document.createElement('style');st.id='__trcine';document.head.appendChild(st)}
     R.cineOn=on!==false;if(!R._cineHook){R._cineHook=1;HT.Jobs.on('pose',()=>{if(!R.cineOn)return;const X=H.hubx;if(X&&X.sprites)for(const q of X.sprites)if(q.s)q.s.visible=false})}
-    st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} #sub{transform:scale(1.45);transform-origin:50% 100%}'};
+    st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} .ht-root .ht-sub{visibility:visible!important;transform:translateX(-50%) scale(1.5);transform-origin:50% 100%;bottom:96px!important;max-width:900px!important} #sub{transform:scale(1.45);transform-origin:50% 100%} .htfx-pop{font-size:58px!important} .htfx-pop small{font-size:24px!important}'};
+  /* the jet's boarding ladder stays on the model in flight (js/jet.js model): hidden for the airborne shots (noted in README) */
+  R.jetClean=()=>{try{const L=HT.Jet.S.e.obj.userData.ladder;if(L)L.visible=false}catch(e){}};
   /* draw skipping for test renders: the simulation still advances every frame */
   const rd=H.render.draw.bind(H.render);let skip=false;H.render.draw=(...a)=>{if(skip)return;return rd(...a)};R.skipDraw=v=>{skip=!!v};
 }
