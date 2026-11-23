@@ -12,7 +12,7 @@ const PREV=has('preview');
 const oi=process.argv.indexOf('--only');const ONLY=oi>0?new Set([].concat(...process.argv[oi+1].split(',').map(r=>{const[a,b]=r.split('-').map(Number);const o=[];for(let k=a;k<=(isNaN(b)?a:b);k++)o.push(k);return o}))):null;
 const dir=path.join(T.SCRATCH,PREV?'preview':ONLY?'test':'frames',name);
 (async()=>{
-  if(!PREV&&!ONLY&&!has('force')&&fs.existsSync(dir)&&fs.readdirSync(dir).filter(f=>f.endsWith('.jpg')).length>=S.frames){console.log(name+': already captured');return}
+  if(!PREV&&!ONLY&&!has('force')&&fs.existsSync(dir)&&fs.readdirSync(dir).filter(f=>f.endsWith('.jpg')).length>=S.frames-(S.from||0)){console.log(name+': already captured');return}
   if(fs.existsSync(dir))for(const f of fs.readdirSync(dir))fs.unlinkSync(path.join(dir,f));
   const t0=Date.now();const s=await T.boot(Object.assign({w:960,h:540},S.boot||{}));/* boot small (SwiftShader renders the loading title every frame), resize before the capture */console.log(name+': booted in '+Math.round((Date.now()-t0)/1000)+' s');
   await s.p.evaluate(T.helpers);await s.p.evaluate(require('./rig.js').rig);
@@ -22,7 +22,7 @@ const dir=path.join(T.SCRATCH,PREV?'preview':ONLY?'test':'frames',name);
   if(S.after)await S.after(s,T);
   const info=await s.p.evaluate(()=>{const H=window.__ht;return{mode:H.mode,M:H.M&&H.M.def.id,stage:H.M&&H.M.stage,pos:[+H.P.pos.x.toFixed(1),+H.P.pos.z.toFixed(1)],van:!!H.VAN.on}});console.log(name+': staged',JSON.stringify(info),'in',Math.round((Date.now()-t0)/1000),'s');
   const fr=(S.frame||S.frameNode)?(async i=>{if(S.frameNode)await S.frameNode(s,i);if(S.frame)await s.p.evaluate(S.frame,i)}):null;
-  const r=await T.capture(s,{dir,frames:S.frames,warm:Math.max(1,S.warm||0),keepBanner:!!S.keepBanner,perFrame:ONLY?(async i=>{await s.p.evaluate(v=>window.__R.skipDraw(!v),ONLY.has(i));if(fr)await fr(i)}):fr,every:PREV?15:1,only:ONLY});
+  const r=await T.capture(s,{dir,frames:S.frames,warm:Math.max(1,S.warm||0),keepBanner:!!S.keepBanner,perFrame:(ONLY||S.from)?(async i=>{await s.p.evaluate(v=>window.__R.skipDraw(!v),ONLY?ONLY.has(i):i>=S.from);if(fr)await fr(i)}):fr,every:PREV?15:1,only:ONLY||(S.from?{has:i=>i>=S.from}:null)});
   const events=await s.p.evaluate(()=>window.__trEv||[]).catch(()=>[]);
   fs.writeFileSync(path.join(dir,'shot.json'),JSON.stringify({name,frames:S.frames,events,secPerFrame:r.secPerFrame,errs:s.errs.slice(0,20),info,at:new Date().toISOString()},null,1));
   console.log(name+': '+r.done+' frames, '+r.secPerFrame.toFixed(2)+' s/frame, total '+Math.round((Date.now()-t0)/1000)+' s'+(s.errs.length?'  page errors: '+s.errs.slice(0,3).join(' | '):''));

@@ -52,7 +52,7 @@ function rig(){
   /* cinematic HUD: only the game's subtitles (#sub) and its world pop-ups (+TRUST, .htfx-pop) stay; G shots keep the full HUD */
   R.cine=on=>{let st=document.getElementById('__trcine');if(!st){st=document.createElement('style');st.id='__trcine';document.head.appendChild(st)}
     R.cineOn=on!==false;if(!R._cineHook){R._cineHook=1;HT.Jobs.on('pose',()=>{if(!R.cineOn)return;const X=H.hubx;if(X&&X.sprites)for(const q of X.sprites)if(q.s)q.s.visible=false})}
-    st.textContent=on===false?'':'body>*:not(canvas):not(#sub):not(.htfx-pop):not(:has(canvas)){visibility:hidden!important} #sub{transform:scale(1.45);transform-origin:50% 100%}'};
+    st.textContent=on===false?'':'body>*:not(#c):not(#sub):not(.htfx-pop){visibility:hidden!important} #sub{transform:scale(1.45);transform-origin:50% 100%}'};
   /* draw skipping for test renders: the simulation still advances every frame */
   const rd=H.render.draw.bind(H.render);let skip=false;H.render.draw=(...a)=>{if(skip)return;return rd(...a)};R.skipDraw=v=>{skip=!!v};
 }

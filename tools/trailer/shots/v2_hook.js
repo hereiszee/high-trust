@@ -4,7 +4,7 @@
      B (closing): side-on at hip height, long lens, the dad closing the gap left to right;
      C (caught): low two-shot, hands up, the dad walks in and zip-ties him (+TRUST).
    HUD: subtitles and the trust pop only (the rest of the HUD hidden: it's a cinematic angle of real play). */
-module.exports={frames:240,warm:6,
+module.exports={frames:175,warm:6,
   async stage(s){const p=s.p;
     await p.evaluate(async()=>{const H=window.__ht,T=window.__T;T.unlock('porch');await T.castJob('porch');await T.cast(['dad_gary','dad_rick','dad_dave','dad_doug']);
       H.jobs.start('porch');H.step(4);T.flags()});

@@ -4,7 +4,7 @@
      A (frames 0..~75): low three-quarter front, lens 0.45 m off the asphalt, the hull coming at the lens, turret swinging round to it;
      B (from ~75): side-on at Linda's car, low, the treads climbing over it. Nobody is in or near the car. HUD: subtitles only. */
 const Z=13.0;/* the tank's line: over Linda's car (parked at z 12.5) */
-module.exports={frames:240,warm:2,
+module.exports={frames:205,from:66,warm:2,
   async stage(s){const p=s.p;
     await p.evaluate(()=>{const H=window.__ht,d=HT.Base.def();H.P.pos.set(d.tank.x+2.6,0,d.tank.z);H.step(4)});
     await p.keyboard.press('e');
@@ -26,8 +26,9 @@ module.exports={frames:240,warm:2,
         if(mode==='A'){/* a fixed low spot down the street, ahead and to the tank's left (south kerb side), slow push toward it */
           const k=Math.min(1,i/130);pos=[55.5-k*.6,.42+k*.06,Z+3.7];look=[e.pos.x-2.5,1.45,e.pos.z-.2];f=31}
         else{
-          /* the car's side of the street (south kerb), 4 m off the car, so the treads climb over it toward the lens */
-          const cx=v?v.pos.x:52;pos=[cx+1.5+(e.pos.x-cx)*.2,.55,8.3];look=[cx+(e.pos.x-cx)*.45,1.2,Z];f=50}
+          /* ahead of the car on its kerb, low, looking back up the street: the car mid-frame, the tank comes in from the right and
+             climbs over it toward the lens (it passes 3 m to camera-right) */
+          const cx=v?v.pos.x:51;const k=Math.max(0,Math.min(1,(cx+7-e.pos.x)/12));pos=[cx-8.5,.5,9.4];look=[cx+2.2-k*4,1.1+k*.4,12.7];f=38}
         if(!sm){sm=pos.slice();sl=look.slice()}else{for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*.3;sl[k]+=(look[k]-sl[k])*.3}}
         const sh=R.shake(i,mode==='A'?.012:.02);const rum=Math.abs(e.spd||0)>1?.006:0;
         cam.position.set(sm[0]+sh[0]+Math.sin(i*2.7)*rum,sm[1]+sh[1]+Math.sin(i*3.3)*rum,sm[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);

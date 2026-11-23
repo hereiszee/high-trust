@@ -15,7 +15,8 @@ const OUTD=process.env.TRAILER_OUT?path.resolve(process.env.TRAILER_OUT):path.jo
 const sh=(args,o={})=>{const r=cp.spawnSync('ffmpeg',['-hide_banner','-loglevel',o.log||'error','-y',...args],{stdio:o.capture?['ignore','pipe','pipe']:'inherit',maxBuffer:1<<28});if(r.status!==0)throw new Error('ffmpeg failed: '+args.join(' ').slice(0,400)+(r.stderr?'\n'+r.stderr.toString().slice(-2000):''));return r};
 const node=(f,args=[])=>{const r=cp.spawnSync(process.execPath,[path.join(__dirname,f),...args],{stdio:'inherit'});if(r.status!==0)throw new Error(f+' failed')};
 const frameDir=s=>path.join(SCRATCH,'frames',s);
-const nFrames=s=>fs.existsSync(frameDir(s))?fs.readdirSync(frameDir(s)).filter(f=>/^f\d+\.jpg$/.test(f)).length:0;
+/* frames on disk: the highest frame number + 1 (a shot with 'from' starts its files at that frame) */
+const nFrames=s=>{if(!fs.existsSync(frameDir(s)))return 0;let m=0;for(const f of fs.readdirSync(frameDir(s))){const r=/^f(\d+)\.jpg$/.exec(f);if(r)m=Math.max(m,+r[1]+1)}return m};
 const card=n=>path.join(SCRATCH,'cards',n+'.png');
 
 /* ---- 1/2: cards and audio ---- */
