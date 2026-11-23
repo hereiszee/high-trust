@@ -32,7 +32,7 @@ What is new in the pipeline:
   frame worth drawing) or `keep` (a predicate) so a full take skips drawing the run-up.
 - **`queue.sh`**: a render queue (`<scratch>/queue.txt`, one `shot args` per line) that runs at most 3 browsers at once (5 at once ran
   the 16 GB container out of memory).
-- **`sheet.sh`**: `review/v2-contact-sheet.jpg`, one row per v2 shot (5 frames each, full takes or test stills).
+- **`sheet.sh`**: a working sheet of the takes, one row per v2 shot (5 frames each). **`cutsheet.js`**: `review/v2-contact-sheet.jpg`, one row per clip of a built cut, in cut order, with timecodes.
 - **Event-driven in-points**: `edit-v2.js` reads each take's logged events (`shot.json`) for its in-points (`camB`, `caught`,
   `liftoff`...), so a re-render that plays out a few frames differently still cuts on the action.
 - **Sound**: two cut accents from the game's own WebAudio graph (`whoosh`, `impact` in `audio.js`); the music drops out under the
@@ -47,48 +47,48 @@ Staging notes worth knowing (all done through `__ht`, never in game code):
 - The tank's main gun refused on the apron ("Not with people downrange."): the main-gun shot was cut rather than forced.
 - The HOA letter (stinger) reads `save.base.hoaTank`, set directly; the tank take is a separate session.
 
-### v2 deliverables and the cut (44.7 s)
+### v2 deliverables and the cut (37.8 s)
 
 | File | What |
 |---|---|
-| `high-trust-trailer-v2-1080p.mp4` | 1920×1080, 30 fps, H.264 High, ~8 Mbit/s two-pass, AAC-LC 192 kbit/s 48 kHz stereo, −14 LUFS |
+| `high-trust-trailer-v2-1080p.mp4` | 1920×1080, 30 fps, H.264 High, ~8 Mbit/s two-pass, AAC-LC 192 kbit/s 48 kHz stereo, −13.8 LUFS integrated, true peak −1.0 dBTP |
 | `high-trust-trailer-v2-720p.mp4` | 1280×720, 5 Mbit/s |
-| `poster-v2.jpg` | a text-free frame from the video (the chase plane, 23.4 s) |
+| `poster-v2.jpg` | a text-free frame from the video (the chase plane, 20.9 s) |
 | `contact-sheet-v2.jpg` | one frame per second; `review/v2-contact-sheet.jpg` is one row per clip in cut order with timecodes |
 
-C = cinematic (free camera, HUD reduced to the game's subtitles and pop-ups), G = gameplay (full HUD).
+C = cinematic (free camera, HUD reduced to subtitles and pop-ups), G = gameplay (full HUD). Every subtitle is the game's own line from that
+take, re-set 1.7× larger on a solid backing over the game's line (`subs` in `edit-v2.js`, `s_*` cards in `cards.js`); the festival is
+framed above its subtitle instead (crop), and the HOA letter is cropped in with "notes it is very nice." highlighted.
 
 | Time | Shot | In | Length | Cam | What |
 |---|---|---|---|---|---|
-| 0:00.0 | `v2_hook` | 30 | 1.57 s | C | HOOK A: in front of the running pirate, the dad sprinting in behind. "You'll never take me alive! ...Wait, you can, I'm slow." |
-| 0:01.6 | `v2_hook` | 100 | 0.93 s | C | HOOK B: side-on, the dad closing |
-| 0:02.5 | `v2_hook` | 150 | 1.57 s | C | HOOK C: hands up, "I do cardio!", zip-tie, +TRUST |
-| 0:04.1 | `card:title` | 0 | 1.23 s | — | title sting |
-| 0:05.3 | `v2_van_pass` | 50 | 1.90 s | C | the minivan sweeps past the kerb lens. Card 1 |
-| 0:07.2 | `v2_crew` | 92 | 1.23 s | C | the crew walk down Maple at the long lens |
-| 0:08.4 | `v2_crossing` | 117 | 1.87 s | C | Crossing Guard at a kid's height, cars stopped for the sign. Card 3 |
-| 0:10.3 | `v2_taxi` | 46 | 2.50 s | G | Dad Taxi: kids in the van, the clock running |
-| 0:12.8 | `v2_linden` | 22 | 2.20 s | G | Linden Park: The Talking-To (beanbags), the wave gives up. Card 2 |
-| 0:15.0 | `scope` | 24 | 0.93 s | G | Higher Ground: through the scope |
-| 0:15.9 | `v2_tank` | 66 | 2.03 s | C | LAWN ORDER rolls at the lens, barrel swinging onto camera |
-| 0:18.0 | `v2_tank` | 135 | 2.20 s | C | the pancake. Card 4 |
-| 0:20.2 | `v2_jet_rotate` | 20 | 1.57 s | C | DAD-1 rotates beside the lens, gear up |
-| 0:21.7 | `v2_jet_bridge` | 32 | 1.53 s | C | under the High Bridge, with Jen's line from the buzz |
-| 0:23.3 | `v2_jet_chase` | 27 | 1.27 s | C | chase plane, banking over town |
-| 0:24.5 | `v2_chute` | 101 | 1.57 s | C | the canopy, from below. Tower: "Ejection! ... The jet is fine. It is a rental." (music out) |
-| 0:26.1 | `v2_drag` | 42 | 0.77 s | C | the tree: ambers, green |
-| 0:26.9 | `v2_drag` | 72 | 0.93 s | C | the launch |
-| 0:27.8 | `drag_slip` | 2 | 1.27 s | G | the timeslip: 9.955 s at 71.4 mph, in a minivan |
-| 0:29.1 | `v2_festival` | 10 | 7.50 s | C | close on the front row, then the game's crane: "Everybody waves." |
-| 0:36.6 | `card:end` | 0 | 5.00 s | — | end card (config.json cta) |
-| 0:41.6 | `v2_hoa` | 4 | 3.13 s | G | stinger: the HOA letter about the tank |
+| 0:00.0 | `v2_hook` | 30 | 1.27 s | C | HOOK A: in front of the running pirate, the dad sprinting in behind |
+| 0:01.3 | `v2_hook` | 100 | 0.93 s | C | HOOK B: side-on, the dad closing |
+| 0:02.2 | `v2_hook` | 147 | 1.70 s | C | HOOK C: hands up, the nose hair trimmer, zip-tie, +TRUST. Card 2 |
+| 0:03.9 | `card:title` | 0 | 1.27 s | — | title sting |
+| 0:05.2 | `v2_van_pass` | 50 | 1.10 s | C | the minivan sweeps past the kerb lens (the door wipe kept to the last 6 frames). Card 1 |
+| 0:06.3 | `v2_crew` | 92 | 1.23 s | C | the crew walk down Maple at the long lens |
+| 0:07.5 | `v2_crossing` | 117 | 1.87 s | C | Crossing Guard at a kid's height, cars stopped for the sign (framed right, off the adult in the foreground). Card 3 |
+| 0:09.4 | `v2_taxi` | 46 | 2.50 s | G | Dad Taxi: "My mom lets me sit in the front." / "Your mom is not here." |
+| 0:11.9 | `v2_linden` | 58 | 1.27 s | G | Linden Park: a beanbag lands, the wave gives up |
+| 0:13.1 | `v2_tank` | 66 | 2.03 s | C | LAWN ORDER rolls at the lens, barrel swinging onto camera |
+| 0:15.2 | `v2_tank` | 135 | 2.17 s | C | the pancake. Card 4 |
+| 0:17.3 | `v2_jet_rotate` | 20 | 1.57 s | C | DAD-1 rotates beside the lens, gear up |
+| 0:18.9 | `v2_jet_bridge` | 32 | 1.57 s | C | under the High Bridge, with Jen's line from the buzz |
+| 0:20.5 | `v2_jet_chase` | 27 | 1.27 s | C | chase plane, banking over town |
+| 0:21.7 | `v2_chute` | 101 | 1.53 s | C | the canopy, from below (music out) |
+| 0:23.3 | `v2_drag` | 42 | 0.80 s | C | the tree: ambers, green (music back on the green) |
+| 0:24.1 | `v2_drag` | 72 | 0.93 s | C | the launch |
+| 0:25.0 | `v2_festival` | 10 | 7.50 s | C | close on the front row, then the game's crane (framed above the speech subtitles): "Everybody waves." |
+| 0:32.5 | `card:end` | 0 | 2.80 s | — | end card (config.json cta) |
+| 0:35.3 | `v2_hoa` | 6 | 2.50 s | G | stinger: the HOA letter about the tank, "The Board notes it is very nice." highlighted |
 
-By running time: 10.0 s of HUD-on gameplay (taxi, Linden, scope, timeslip, HOA letter), 28.4 s cinematic, 6.2 s cards (title, end).
+By running time: 6.3 s of HUD-on gameplay (taxi, Linden, HOA letter), 27.5 s cinematic, 4.1 s cards (title, end).
 
 ### v2 weaknesses (honest)
 
-- **44.7 s, not 60–70.** Four set-ups were shot twice and cut rather than padded: the jet over the family on Maple (the jet is not drawn north of the street when seen from the ground; the working angle left it tiny), the traffic stand-off (never more than two bumpers at the frame edges), the night flashlight shot (subjects small and dark), and the tank's main gun (it refused to fire: "Not with people downrange."). Each needs a fresh staging idea, not another take.
-- **Gameplay share is about 26 % of picture time**, under the half the brief asked for; the cinematic shots are of real play, but a viewer only sees the HUD in five shots.
+- **37.8 s, not 60–70** (the review asked for a tight ~40 s over a padded 55). Shots tried twice and cut: the jet over the family on Maple (the jet is not drawn north of the street when seen from the ground; the working angle left it tiny), the traffic stand-off (never more than two bumpers at the frame edges), the night flashlight shot (subjects small and dark), the tank's main gun (it refused to fire: "Not with people downrange."); cut in revision: the scope shot (the target reads as a person), the timeslip (unreadable at trailer size).
+- **Gameplay share is about 19 % of picture time**, under the half the brief asked for; the cinematic shots are of real play, but a viewer only sees the HUD in five shots.
 - **Every take is a different performance.** Casting and timing vary between renders (asset load order), so in-points come from logged events; a re-render can bring a different porch pirate.
 - **Game limits that show:** female character rigs have no run clip; the parachute canopy is a plain sphere; the jet's boarding ladder is on the model in flight (hidden in these shots); the festival's crane lighting is flat next to the golden-hour streets.
 - **Sound is placed, not recorded:** music, horn, engine, zip-tie, tank, jet, chute, tree and two cut accents (whoosh, impact) from the game's synth; no footsteps or impacts recorded with the picture.
