@@ -11,7 +11,7 @@ const clips=[
   /* COLD OPEN (ambience, no music): the porch pirate. One take, three set-ups. */
   {shot:'v2_hook',in:ev('v2_hook','camB',-49,30),beats:2.5,cam:'C',note:'HOOK A: in front of the running pirate, the dad sprinting in behind. "You\'ll never take me alive! ...Wait, you can, I\'m slow."'},
   {shot:'v2_hook',in:ev('v2_hook','camB',21,100),beats:1.5,cam:'C',note:'HOOK B: side-on, the dad closing'},
-  {shot:'v2_hook',in:ev('v2_hook','camC',8,140),beats:2.5,cam:'C',note:'HOOK C: hands up, "I do cardio!", zip-tie, +TRUST',sfx:[{cue:'ziptie',f:ev('v2_hook','ziptie',0,170)-ev('v2_hook','camC',8,140),gain:1}]},
+  {shot:'v2_hook',in:ev('v2_hook','camC',18,150),beats:2.5,cam:'C',note:'HOOK C: hands up, "I do cardio!", zip-tie, +TRUST',sfx:[{cue:'ziptie',f:ev('v2_hook','ziptie',0,170)-ev('v2_hook','camC',18,150),gain:1}]},
   {card:'title',beats:2,fadeIn:.12,fadeOut:.2,mark:'music',note:'title sting',sfx:[I(0,.5)]},
   /* ACT 1: the neighbourhood, golden hour */
   {shot:'v2_van_pass',in:50,beats:3,cam:'C',note:'the minivan sweeps past the kerb lens. Card 1',super:{card:'wave',from:4,to:50},sfx:[{cue:'engine_pull',f:-20,gain:.6},W(30,.45)]},
@@ -19,16 +19,15 @@ const clips=[
   {shot:'v2_crossing',in:117,beats:3,cam:'C',note:'Crossing Guard at a kid\'s height, cars stopped for the sign. Card 3',super:{card:'guard',from:4,to:56}},
   {shot:'v2_taxi',in:46,beats:4,cam:'G',note:'Dad Taxi: kids in the van, the clock running'},
   /* ACT 2: escalation, shorter and bigger */
-  {shot:'v2_linden',in:22,beats:3,cam:'G',note:'Linden Park: The Talking-To (beanbags)',sfx:[{cue:'shot_beanbag',f:6,gain:.7}]},
-  {shot:'scope',in:26,beats:1.75,cam:'G',note:'Higher Ground: through the scope',sfx:[{cue:'shot_rifle',f:14,gain:.8}]},
-  {shot:'v2_night',in:ev('v2_night','hands',8,58),beats:3.5,cam:'G',note:'night: the flashlight finds them, hands up. Card 2',super:{card:'mercy',from:4,to:62}},
+  {shot:'v2_linden',in:22,beats:3.5,cam:'G',note:'Linden Park: The Talking-To (beanbags), the wave gives up. Card 2',super:{card:'mercy',from:8,to:56},sfx:[{cue:'shot_beanbag',f:6,gain:.7}]},
+  {shot:'scope',in:24,beats:1.5,cam:'G',note:'Higher Ground: through the scope',sfx:[{cue:'shot_rifle',f:14,gain:.8}]},
   {shot:'v2_tank',in:ev('v2_tank','camB',-61,66),beats:3.25,cam:'C',note:'LAWN ORDER rolls at the lens, barrel swinging onto camera',sfx:[I(0,.55)]},
   {shot:'v2_tank',in:ev('v2_tank','camB',8,135),beats:3,cam:'C',note:'the pancake. Card 4',super:{card:'hoa',from:16,to:56}},
   {shot:'v2_jet_rotate',in:ev('v2_jet_rotate','liftoff',-13,20),beats:2.5,cam:'C',note:'DAD-1 rotates beside the lens, gear up',sfx:[{cue:'jet',f:-48,gain:.7}]},
   {shot:'v2_jet_bridge',in:ev('v2_jet_bridge','under',-16,32),beats:2.5,cam:'C',note:'under the High Bridge, with Jen\'s line from the buzz',super:{card:'jen',from:0,to:999},sfx:[{cue:'jet',f:-55,gain:.8}]},
   {shot:'v2_jet_chase',in:27,beats:2,cam:'C',note:'chase plane, banking over town'},
   /* the deadpan beat: music out */
-  {shot:'v2_chute',in:72,beats:4,cam:'C',mark:'drop',note:'the canopy, from below. Tower: "Ejection! ... The jet is fine. It is a rental." (music out)'},
+  {shot:'v2_chute',in:101,beats:2.5,cam:'C',mark:'drop',note:'the canopy, from below. Tower: "Ejection! ... The jet is fine. It is a rental." (music out)'},
   {shot:'v2_drag',in:ev('v2_drag','green',-20,42),beats:1.25,cam:'C',mark:'back',note:'the tree: ambers, green',sfx:[{cue:'tree',f:-27,gain:1.1}]},
   {shot:'v2_drag',in:ev('v2_drag','green',10,72),beats:1.5,cam:'C',note:'the launch',sfx:[{cue:'engine_launch',f:0,gain:.9}]},
   {shot:'drag_slip',in:2,beats:2,cam:'G',note:'the timeslip: 9.955 s at 71.4 mph, in a minivan'},

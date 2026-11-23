@@ -5,7 +5,7 @@
      C: at the finish, under the timing board, as the van crosses the stripe and the board lights its ET and speed.
    The run between is simulated but not drawn (keep: 'page'). Golden hour. HUD: none. */
 const D=require('./_drag.js');const st={i:0};
-module.exports={frames:150,from:0,warm:0,
+module.exports={frames:112,from:34,warm:0,
   async stage(s){const r=await D.toLine(s,/^Your /);console.log('  ',JSON.stringify(r));
     for(let n=0;n<600;n++){const q=await s.p.evaluate(()=>{const R=HT.Strip.state();return R.run&&R.run.phase});if(q&&q!=='roll')break;await s.p.evaluate(()=>{const H=window.__ht;H.step(1)})}
     const g=await s.p.evaluate(()=>{const H=window.__ht,d=HT.Strip.def(),e=H.CV;return{start:d.start,finish:d.finish,board:d.board,track:d.track,van:e&&[e.pos.x,e.pos.z,e.yaw],keys:Object.keys(d).slice(0,40)}});console.log('  geo',JSON.stringify(g));
@@ -18,7 +18,7 @@ module.exports={frames:150,from:0,warm:0,
         if(mode==='A'&&run.launched){mode='B';sm=null;window.__T.ev('B')}
         const bx=d.board?d.board.x:d.finish;if(mode==='B'&&Math.abs(e.pos.x-bx)<70&&i>150){mode='C';sm=null;window.__T.ev('C')}
         if(mode==='A'){pos=[tree[0]+2.6,tree[1]+.15,tree[2]+1.9];look=tree;fv=30}
-        else if(mode==='B'){pos=[v0[0]+f[0]*15+rt[0]*-2.4,.45,v0[1]+f[1]*15+rt[1]*-2.4];look=[e.pos.x+f[0]*1.5,.85,e.pos.z+f[1]*1.5];fv=40}
+        else if(mode==='B'){pos=[v0[0]+f[0]*8+rt[0]*2.6,.42,v0[1]+f[1]*8+rt[1]*2.6];look=[e.pos.x+f[0]*1.5,.85,e.pos.z+f[1]*1.5];fv=40}
         else{/* past the finish on the track's edge, looking back up the strip: the van comes at the lens under the board, its numbers lit */const b=d.board||{x:d.finish,z:v0[1]-10};pos=[b.x+f[0]*16+rt[0]*-3.0,1.0,v0[1]+f[1]*16+rt[1]*-3.0];look=[b.x-f[0]*6,2.6,(v0[1]*.7+b.z*.3)];fv=50}
         if(!sm){sm=pos.slice();sl=look.slice()}else for(let k=0;k<3;k++){sm[k]+=(pos[k]-sm[k])*.6;sl[k]+=(look[k]-sl[k])*.6}
         const sh=R.shake(i,mode==='A'?.004:.012);cam.position.set(sm[0]+sh[0],sm[1]+sh[1],sm[2]+sh[2]);cam.up.set(0,1,0);cam.lookAt(sl[0],sl[1],sl[2]);
