@@ -22,10 +22,10 @@ const clips=[
   {shot:'v2_linden',in:22,beats:3.5,cam:'G',note:'Linden Park: The Talking-To (beanbags), the wave gives up. Card 2',super:{card:'mercy',from:8,to:56},sfx:[{cue:'shot_beanbag',f:6,gain:.7}]},
   {shot:'scope',in:24,beats:1.5,cam:'G',note:'Higher Ground: through the scope',sfx:[{cue:'shot_rifle',f:14,gain:.8}]},
   {shot:'v2_tank',in:ev('v2_tank','camB',-61,66),beats:3.25,cam:'C',note:'LAWN ORDER rolls at the lens, barrel swinging onto camera',sfx:[I(0,.55)]},
-  {shot:'v2_tank',in:ev('v2_tank','camB',8,135),beats:3,cam:'C',note:'the pancake. Card 4',super:{card:'hoa',from:16,to:56}},
+  {shot:'v2_tank',in:ev('v2_tank','camB',8,135),beats:3.5,cam:'C',note:'the pancake. Card 4',super:{card:'hoa',from:16,to:56}},
   {shot:'v2_jet_rotate',in:ev('v2_jet_rotate','liftoff',-13,20),beats:2.5,cam:'C',note:'DAD-1 rotates beside the lens, gear up',sfx:[{cue:'jet',f:-48,gain:.7}]},
   {shot:'v2_jet_bridge',in:ev('v2_jet_bridge','under',-16,32),beats:2.5,cam:'C',note:'under the High Bridge, with Jen\'s line from the buzz',super:{card:'jen',from:0,to:999},sfx:[{cue:'jet',f:-55,gain:.8}]},
-  {shot:'v2_jet_chase',in:27,beats:2,cam:'C',note:'chase plane, banking over town'},
+  {shot:'v2_jet_chase',in:27,beats:2,cam:'C',note:'chase plane, banking over town',sfx:[W(0,.4)]},
   /* the deadpan beat: music out */
   {shot:'v2_chute',in:101,beats:2.5,cam:'C',mark:'drop',note:'the canopy, from below. Tower: "Ejection! ... The jet is fine. It is a rental." (music out)'},
   {shot:'v2_drag',in:ev('v2_drag','green',-20,42),beats:1.25,cam:'C',mark:'back',note:'the tree: ambers, green',sfx:[{cue:'tree',f:-27,gain:1.1}]},
@@ -49,4 +49,4 @@ const music=[
   {cue:'horn_shave',at:at.end+.6,from:0,dur:2.2,gain:.85},
   {cue:'amb_suburb',at:at.sting,from:2,dur:4*BEAT/30,fin:.1,fout:.4,gain:.9},
 ];
-module.exports={clips,music,sfx:[],poster:9.5,BEAT,name:'high-trust-trailer-v2',suffix:'-v2'};
+module.exports={clips,music,sfx:[],poster:23.4,BEAT,name:'high-trust-trailer-v2',suffix:'-v2'};
