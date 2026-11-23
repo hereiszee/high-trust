@@ -48,6 +48,9 @@ const CARDS={
   dragmini:{sup:{k:'Sensible Dragway',l:'Bring the<br><b>minivan.</b>'}},
   drag:{sup:{k:'Sensible Dragway',l:'Quarter mile.<br><b>Sensible speeds.</b>'}},
   waves:{sup:{k:'The festival',l:'Everybody<br><b>waves.</b>',c:1}},
+  /* v2 punchlines (replace the feature-speak 'dadlife' and 'open' cards) */
+  guard:{sup:{k:'Crossing guard',l:'Every kid gets home.<br><b>Every single one.</b>'}},
+  hoa:{sup:{k:'Maple Heights',l:'The HOA has been<br><b>notified.</b>'}},
   end:{end:1},
   title:{end:1,title:1},
 };

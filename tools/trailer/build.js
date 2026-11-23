@@ -63,14 +63,16 @@ sh(['-i',mix,'-af',`loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${js.input_i}:measu
 console.log('audio: input',js.input_i,'LUFS ->',-14);
 
 /* ---- 6/7: deliverables ---- */
-const f1080=path.join(OUTD,'high-trust-trailer-1080p.mp4'),f720=path.join(OUTD,'high-trust-trailer-720p.mp4');
+/* file names: v1 keeps its names; edit-v2.js sets name 'high-trust-trailer-v2' and suffix '-v2' (poster-v2.jpg, contact-sheet-v2.jpg) */
+const NAME=E.name||'high-trust-trailer',SUF=E.suffix||'';
+const f1080=path.join(OUTD,NAME+'-1080p.mp4'),f720=path.join(OUTD,NAME+'-720p.mp4');
 const enc=(out,scale,br,max,buf)=>{const pl=path.join(W,'x264-'+path.basename(out));
   const vopt=[...(scale?['-vf',scale]:[]),'-c:v','libx264','-profile:v','high','-level','4.1','-preset','slow','-b:v',br,'-maxrate',max,'-bufsize',buf,'-pix_fmt','yuv420p','-r',String(FPS),'-g',String(FPS),'-keyint_min',String(FPS),'-x264-params','colorprim=bt709:transfer=bt709:colormatrix=bt709','-color_primaries','bt709','-color_trc','bt709','-colorspace','bt709','-passlogfile',pl];
   sh(['-i',path.join(W,'video.mp4'),...vopt,'-pass','1','-an','-f','mp4','/dev/null']);
   sh(['-i',path.join(W,'video.mp4'),'-i',norm,'-map','0:v','-map','1:a',...vopt,'-pass','2','-c:a','aac','-b:a','192k','-ar','48000','-ac','2','-shortest','-movflags','+faststart',out])};
 enc(f1080,null,'8M','10M','16M');enc(f720,'scale=1280:720:flags=lanczos','5M','6M','10M');
-sh(['-ss',String(E.poster||10),'-i',f1080,'-frames:v','1','-q:v','2',path.join(OUTD,'poster.jpg')]);
-const rows=Math.ceil(total/6);sh(['-i',f1080,'-vf',`fps=1,scale=320:-1,drawtext=text='%{pts\\:hms}':x=6:y=6:fontsize=16:fontcolor=white:box=1:boxcolor=black@0.5,tile=6x${rows}:padding=4:color=black`,'-frames:v','1','-q:v','3',path.join(OUTD,'contact-sheet.jpg')]);
+sh(['-ss',String(E.poster||10),'-i',f1080,'-frames:v','1','-q:v','2',path.join(OUTD,'poster'+SUF+'.jpg')]);
+const rows=Math.ceil(total/6);sh(['-i',f1080,'-vf',`fps=1,scale=320:-1,drawtext=text='%{pts\\:hms}':x=6:y=6:fontsize=16:fontcolor=white:box=1:boxcolor=black@0.5,tile=6x${rows}:padding=4:color=black`,'-frames:v','1','-q:v','3',path.join(OUTD,'contact-sheet'+SUF+'.jpg')]);
 const probe=cp.execSync(`ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,profile,width,height,r_frame_rate,pix_fmt,sample_rate,channels,bit_rate -of json "${f1080}"`).toString();
 fs.writeFileSync(path.join(W,'probe.json'),probe);console.log(probe);
 console.log('done:',f1080,(fs.statSync(f1080).size/1e6).toFixed(1)+' MB;',f720,(fs.statSync(f720).size/1e6).toFixed(1)+' MB');
